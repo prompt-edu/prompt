@@ -12,6 +12,8 @@ This document provides essential context for AI assistants working on the PROMPT
 
 **Live Instance:** <https://prompt.aet.cit.tum.de/>
 
+**Community & Support:** [Join our Discord Server](https://discord.gg/eybNUqD8gf) for coordination and support.
+
 ## Repository Structure
 
 ```text

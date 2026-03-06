@@ -256,12 +256,15 @@ jobs:
             echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env.prod
             echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env.prod
 
-            echo "SENTRY_DSN_CORE=${{ vars.SENTRY_DSN_CORE }}" >> .env.prod
-            echo "SENTRY_DSN_INTRO_COURSE=${{ vars.SENTRY_DSN_INTRO_COURSE }}" >> .env.prod
-            echo "SENTRY_DSN_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_TEAM_ALLOCATION }}" >> .env.prod
-            echo "SENTRY_DSN_SELF_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_SELF_TEAM_ALLOCATION }}" >> .env.prod
-            echo "SENTRY_DSN_ASSESSMENT=${{ vars.SENTRY_DSN_ASSESSMENT }}" >> .env.prod
-            echo "SENTRY_DSN_INTERVIEW=${{ vars.SENTRY_DSN_INTERVIEW }}" >> .env.prod
+            # --- Disable Sentry on Prod ---
+            # Uncomment to reenable
+            # 
+            # echo "SENTRY_DSN_CORE=${{ vars.SENTRY_DSN_CORE }}" >> .env.prod
+            # echo "SENTRY_DSN_INTRO_COURSE=${{ vars.SENTRY_DSN_INTRO_COURSE }}" >> .env.prod
+            # echo "SENTRY_DSN_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_TEAM_ALLOCATION }}" >> .env.prod
+            # echo "SENTRY_DSN_SELF_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_SELF_TEAM_ALLOCATION }}" >> .env.prod
+            # echo "SENTRY_DSN_ASSESSMENT=${{ vars.SENTRY_DSN_ASSESSMENT }}" >> .env.prod
+            # echo "SENTRY_DSN_INTERVIEW=${{ vars.SENTRY_DSN_INTERVIEW }}" >> .env.prod
 
             echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env.prod
             echo "GITLAB_ACCESS_TOKEN=${{ vars.GITLAB_ACCESS_TOKEN }}" >> .env.prod

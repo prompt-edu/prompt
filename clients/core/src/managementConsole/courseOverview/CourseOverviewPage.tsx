@@ -4,29 +4,25 @@ import {
   useAuthStore,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  Button,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { CalendarDays, GraduationCap, Clock, Calendar, Settings } from 'lucide-react'
+import { CalendarDays, GraduationCap, Clock, Calendar } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import { CourseStatusTag } from '../layout/Sidebar/CourseSwitchSidebar/components/CourseStatusTag'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { CourseSettingsButton } from '../shared/components/CourseCard/CourseSettingsButton'
 
 export const CourseOverview = () => {
   const { courses } = useCourseStore()
   const { courseId } = useParams<{ courseId: string }>()
   const course = courses.find((c) => c.id === courseId) as Course | undefined
   const { permissions } = useAuthStore()
-  const navigate = useNavigate()
 
   const formatDate = (dateString: string): string => {
     const [year, month, date] = dateString.split('-')
@@ -69,21 +65,7 @@ export const CourseOverview = () => {
               </CardDescription>
             </div>
 
-            {canEdit && (
-              <Tooltip>
-                <TooltipContent>Open Course Settings</TooltipContent>
-                <TooltipTrigger>
-                  <Button
-                    variant='outline'
-                    onClick={() => {
-                      navigate(`/management/course/${courseId}/settings`)
-                    }}
-                  >
-                    <Settings />
-                  </Button>
-                </TooltipTrigger>
-              </Tooltip>
-            )}
+            {canEdit && <CourseSettingsButton courseID={course.id} />}
           </div>
         </CardHeader>
         <CardContent className='p-6'>

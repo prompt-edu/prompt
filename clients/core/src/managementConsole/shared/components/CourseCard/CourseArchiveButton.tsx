@@ -4,17 +4,17 @@ import { Archive, ArchiveRestore } from 'lucide-react'
 
 interface CourseArchiveButtonProps {
   archived: boolean
-  courseId: string
+  courseID: string
 }
 
-export const handleArchive = async (archived: boolean, courseId: string): Promise<void> => {
+export const handleArchive = async (archived: boolean, courseID: string): Promise<void> => {
   if (archived) {
-    await unarchiveCourses([courseId])
+    await unarchiveCourses([courseID])
   } else {
-    await archiveCourses([courseId])
+    await archiveCourses([courseID])
   }
 }
-export function CourseArchiveButton({ archived, courseId }: CourseArchiveButtonProps) {
+export function CourseArchiveButton({ archived, courseID: courseId }: CourseArchiveButtonProps) {
   return (
     <Tooltip>
       <TooltipContent>{archived ? 'Unarchive' : 'Archive'} this course</TooltipContent>
@@ -26,9 +26,9 @@ export function CourseArchiveButton({ archived, courseId }: CourseArchiveButtonP
           aria-label={archived ? 'Unarchive course' : 'Archive course'}
         >
           {archived ? (
-            <ArchiveRestore className='w-6 h-6 text-gray-600' />
+            <ArchiveRestore className='w-6 h-6 text-gray-600 dark:text-gray-100' />
           ) : (
-            <Archive className='w-6 h-6 text-gray-600' />
+            <Archive className='w-6 h-6 text-gray-600 dark:text-gray-100' />
           )}
         </Button>
       </TooltipTrigger>

@@ -1,0 +1,28 @@
+name: Discord PR Notification
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    if: github.event.label.name == 'schau mi o'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Notification
+        uses: appleboy/discord-action@6047e1fe519c24dbf2865cf0557f20f51f075b3e # v1.1.0
+        with:
+          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          username: "PROMPT Review Bot"
+          avatar_url: "https://prompt.aet.cit.tum.de/img/prompt_logo.svg"
+          message: |
+            🚀 **New Review Request!**
+            
+            **PR:** [${{ github.event.pull_request.title }}](${{ github.event.pull_request.html_url }})
+            **Author:** ${{ github.event.pull_request.user.login }}
+            
+            @Maintainers, please have a look! (schau mi o! 😉)

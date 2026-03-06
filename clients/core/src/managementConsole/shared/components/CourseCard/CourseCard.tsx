@@ -1,21 +1,12 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tumaet/prompt-ui-components'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
 import { Course } from '@tumaet/prompt-shared-state'
-import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight, Settings } from 'lucide-react'
+import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import DynamicIcon from '@/components/DynamicIcon'
-import { useNavigate } from 'react-router-dom'
 import { formatDate } from '@core/utils/formatDate'
 import { CourseArchiveButton } from './CourseArchiveButton'
+import { useNavigate } from 'react-router-dom'
+import { CourseSettingsButton } from './CourseSettingsButton'
 
 type CourseMetaItemProps = {
   icon: React.ReactNode
@@ -40,7 +31,6 @@ type CourseCardProps = {
 export const CourseCard = ({ course }: CourseCardProps) => {
   const bgColor = course.studentReadableData?.['bg-color'] || 'bg-gray-50'
   const navigate = useNavigate()
-  const settingsURL = `/management/course/${course.id}/settings`
 
   return (
     <Card className='overflow-hidden border border-gray-200 h-full flex flex-col'>
@@ -63,26 +53,8 @@ export const CourseCard = ({ course }: CourseCardProps) => {
           </div>
 
           <div className='flex gap-2'>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CourseArchiveButton archived={course.archived} courseId={course.id} />
-              </TooltipTrigger>
-
-              <TooltipContent>
-                {course.archived ? 'Unarchive this course' : 'Archive this course'}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <Button
-                variant='outline'
-                onClick={() => navigate(settingsURL)}
-                className='shrink-0 focus-visible:ring-2 focus-visible:ring-offset-2'
-              >
-                <Settings className='text-gray-600' />
-              </Button>
-
-              <TooltipContent>Go to Course Settings</TooltipContent>
-            </Tooltip>
+            <CourseArchiveButton courseID={course.id} archived={course.archived} />
+            <CourseSettingsButton courseID={course.id} />
           </div>
         </div>
       </CardHeader>

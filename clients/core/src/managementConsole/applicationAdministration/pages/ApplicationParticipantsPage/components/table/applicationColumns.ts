@@ -2,25 +2,22 @@ import { PassStatus } from '@tumaet/prompt-shared-state'
 import { ApplicationRow } from './applicationRow'
 import { ColumnDef } from '@tanstack/react-table'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
-import { createElement, Fragment } from 'react'
 
 export function getApplicationColumns(
   additionalScores?: { key: string; name: string }[],
 ): ColumnDef<ApplicationRow>[] {
   return [
     {
-      accessorKey: 'student',
-      header: 'Name',
-      cell: ({ row }) =>
-        createElement(
-          Fragment,
-          null,
-          createElement('span', {
-            className: 'sr-only',
-            'data-application-participation-id': row.original.courseParticipationID,
-          }),
-          `${row.original.student.firstName} ${row.original.student.lastName}`,
-        ),
+      id: 'firstName',
+      header: 'First Name',
+      cell: ({ row }) => row.original.student.firstName,
+      accessorFn: (row) => row.student.firstName,
+    },
+    {
+      id: 'lastName',
+      header: 'Last Name',
+      cell: ({ row }) => row.original.student.lastName,
+      accessorFn: (row) => row.student.lastName,
     },
     { accessorKey: 'email', header: 'Email' },
     { accessorKey: 'studyProgram', header: 'Study Program' },

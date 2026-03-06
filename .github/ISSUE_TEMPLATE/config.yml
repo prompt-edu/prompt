@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discord Community
+    url: https://discord.gg/eybNUqD8gf
+    about: Join our Discord server for support and community discussion.
+  - name: 📖 Documentation
+    url: https://ls1intum.github.io/prompt2/
+    about: Explore the official PROMPT 2 documentation.

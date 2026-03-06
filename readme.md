@@ -1,5 +1,7 @@
 # PROMPT 2.0: A Modular and Scalable Management Platform for Project-Based Teaching
 
+[![Discord](https://img.shields.io/discord/1345423854160445580?style=for-the-badge&logo=discord&logoColor=white&label=Join%20our%20Community)](https://discord.gg/eybNUqD8gf)
+
 ## What is PROMPT?
 
 **PROMPT (Project-Oriented Modular Platform for Teaching)** is a course management tool built to simplify the administration of project-based university courses.
@@ -230,6 +232,20 @@ go install github.com/swaggo/swag/cmd/swag@latest
 | Keycloak | 8081 |
 | Core Server | 8080 |
 | PostgreSQL | 5432 |
+
+---
+
+## 💬 Community & Support
+
+We are building a community around PROMPT! Whether you are an instructor using the platform or a developer looking to contribute, we'd love to have you.
+
+- **Discord**: Join our [Discord Server](https://discord.gg/eybNUqD8gf) for real-time discussion and support.
+- **GitHub Issues**: Report bugs or request features on our [Issue Tracker](https://github.com/ls1intum/prompt2/issues).
+- **Documentation**: Visit our [Documentation Portal](https://ls1intum.github.io/prompt2/) for detailed guides.
+
+## 🤝 Contributing
+
+We welcome contributions of all kinds! Please see our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
 
 ---
 

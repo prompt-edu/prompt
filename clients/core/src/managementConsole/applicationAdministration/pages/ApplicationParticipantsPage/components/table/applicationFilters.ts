@@ -1,5 +1,5 @@
 import { PassStatus } from '@tumaet/prompt-shared-state'
-import { TableFilter } from '@tumaet/prompt-ui-components/dist/types/components/table/TableTypes'
+import { TableFilter } from '@tumaet/prompt-ui-components'
 import { getApplicationStatusBadge, getApplicationStatusString } from './getApplicationStatusBadge'
 
 export function getApplicationFilters(

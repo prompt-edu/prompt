@@ -5,11 +5,11 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas"
-	"github.com/ls1intum/prompt2/servers/assessment/categories/categoryDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 

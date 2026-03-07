@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/instructorNote/instructorNoteDTO"
-	promptSDK "github.com/ls1intum/prompt-sdk"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/instructorNote/instructorNoteDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 )
 
 type InstructorNoteService struct {

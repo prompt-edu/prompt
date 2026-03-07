@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 // Helper function to create a test course phase config request

@@ -10,7 +10,7 @@ export const Footer = () => {
       <div className='max-w-[1400px] mx-auto text-center text-sm text-gray-500'>
         <nav className='space-x-4'>
           <a
-            href={`https://github.com/ls1intum/prompt2`}
+            href={`https://github.com/prompt-edu/prompt`}
             target='_blank'
             className='text-gray-500 hover:text-gray-700 transition-colors underline'
             rel='noreferrer'

@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/interview/db/sqlc"
-	interviewAssignmentDTO "github.com/ls1intum/prompt2/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	interviewSlotDTO "github.com/ls1intum/prompt2/servers/interview/interviewSlot/interviewSlotDTO"
+	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
+	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
+	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
 	log "github.com/sirupsen/logrus"
 )
 

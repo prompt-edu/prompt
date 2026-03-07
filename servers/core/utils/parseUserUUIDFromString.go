@@ -3,7 +3,7 @@ package utils
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 )
 
 func GetUserUUIDFromContext(c *gin.Context) (uuid.UUID, error) {

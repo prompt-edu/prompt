@@ -114,8 +114,8 @@ corepack enable
 #### 2. Clone & Configure Environment
 
 ```bash
-git clone https://github.com/ls1intum/prompt2.git
-cd prompt2
+git clone https://github.com/prompt-edu/prompt.git
+cd prompt
 
 # Create environment files from templates
 cp .env.template .env

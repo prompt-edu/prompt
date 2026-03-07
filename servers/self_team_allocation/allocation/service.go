@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/allocation/allocationDTO"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 

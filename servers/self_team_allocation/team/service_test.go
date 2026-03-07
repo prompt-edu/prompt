@@ -7,10 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/team/teamDTO"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/testutils"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/timeframe"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/team/teamDTO"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/testutils"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

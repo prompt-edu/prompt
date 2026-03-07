@@ -5,13 +5,21 @@ on:
     branches: [main]
     paths-ignore:
       - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
       - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/build-docs.yml"
       - ".github/workflows/discord-notifications.yml"
   push:
     branches: [main]
     paths-ignore:
       - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
       - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/build-docs.yml"
       - ".github/workflows/discord-notifications.yml"
 
 concurrency:

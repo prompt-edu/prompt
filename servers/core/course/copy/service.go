@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/core/course/copy/courseCopyDTO"
-	"github.com/ls1intum/prompt2/servers/core/course/courseDTO"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
 type CourseCopyService struct {

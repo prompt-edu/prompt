@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send Discord Notification
-        uses: appleboy/discord-action@6047e1fe519c24dbf2865cf0557f20f51f075b3e # v1.1.0
+        uses: appleboy/discord-action@v1.2.0
         with:
           webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
           webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}

@@ -15,13 +15,13 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	sdkUtils "github.com/ls1intum/prompt-sdk/utils"
-	"github.com/ls1intum/prompt2/servers/interview/config"
-	"github.com/ls1intum/prompt2/servers/interview/copy"
-	db "github.com/ls1intum/prompt2/servers/interview/db/sqlc"
-	interview_assignment "github.com/ls1intum/prompt2/servers/interview/interviewAssignment"
-	interview_slot "github.com/ls1intum/prompt2/servers/interview/interviewSlot"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/interview/config"
+	"github.com/prompt-edu/prompt/servers/interview/copy"
+	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
+	interview_assignment "github.com/prompt-edu/prompt/servers/interview/interviewAssignment"
+	interview_slot "github.com/prompt-edu/prompt/servers/interview/interviewSlot"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -119,7 +119,7 @@ func initSentry() {
 // @host            localhost:8087
 // @BasePath        /interview/api
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization

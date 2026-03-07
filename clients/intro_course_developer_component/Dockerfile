@@ -1,5 +1,5 @@
-ARG IMAGE_TAG
-FROM ghcr.io/ls1intum/prompt2/prompt-clients-base:${IMAGE_TAG} AS core-base
+ARG IMAGE_TAG=latest
+FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 
 
 WORKDIR /app/intro_course_developer_component

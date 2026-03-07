@@ -2,7 +2,7 @@ package seatPlanDTO
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
 )
 
 type SeatAssignment struct {

@@ -3,8 +3,8 @@ package applicationAdministration
 import (
 	"errors"
 
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/meta"
 	log "github.com/sirupsen/logrus"
 )
 

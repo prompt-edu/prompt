@@ -13,15 +13,15 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/intro_course/config"
-	"github.com/ls1intum/prompt2/servers/intro_course/copy"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/intro_course/developerProfile"
-	"github.com/ls1intum/prompt2/servers/intro_course/infrastructureSetup"
-	"github.com/ls1intum/prompt2/servers/intro_course/seatPlan"
-	"github.com/ls1intum/prompt2/servers/intro_course/tutor"
-	"github.com/ls1intum/prompt2/servers/intro_course/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/intro_course/config"
+	"github.com/prompt-edu/prompt/servers/intro_course/copy"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/intro_course/developerProfile"
+	"github.com/prompt-edu/prompt/servers/intro_course/infrastructureSetup"
+	"github.com/prompt-edu/prompt/servers/intro_course/seatPlan"
+	"github.com/prompt-edu/prompt/servers/intro_course/tutor"
+	"github.com/prompt-edu/prompt/servers/intro_course/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -118,7 +118,7 @@ func initKeycloak() {
 // @host            localhost:8082
 // @BasePath        /intro-course/api
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization

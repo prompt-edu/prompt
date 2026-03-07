@@ -34,7 +34,7 @@ export const ApplicationLoginCard = ({
           <p className='text-yellow-600 bg-yellow-50 p-3 rounded-md'>
             This course is only open for {translations.university.name} students.
             {universityLoginAvailable &&
-              'If you cannot log in, please reach out to the instructor of the course.'}
+              ' If you cannot log in, please reach out to the instructor of the course.'}
           </p>
         )}
         <div className='space-y-4'>

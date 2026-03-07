@@ -1,6 +1,6 @@
 package applicationDTO
 
-import db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+import db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 
 type FormWithDetails struct {
 	ApplicationPhase     OpenApplication       `json:"applicationPhase"`

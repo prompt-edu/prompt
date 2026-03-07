@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type AssessmentSchema struct {

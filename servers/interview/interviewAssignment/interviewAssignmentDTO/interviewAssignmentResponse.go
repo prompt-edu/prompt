@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	interviewSlotDTO "github.com/ls1intum/prompt2/servers/interview/interviewSlot/interviewSlotDTO"
+	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
 )
 
 type InterviewAssignmentResponse struct {

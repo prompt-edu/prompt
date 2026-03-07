@@ -1,7 +1,7 @@
 package applicationDTO
 
 import (
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 )
 
 type PostApplication struct {

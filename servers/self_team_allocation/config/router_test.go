@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/testutils"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

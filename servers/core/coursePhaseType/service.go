@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/core/coursePhaseType/coursePhaseTypeDTO"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/coursePhaseType/coursePhaseTypeDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
 type CoursePhaseTypeService struct {

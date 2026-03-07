@@ -2,9 +2,9 @@ package coursePhaseParticipationDTO
 
 import (
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/meta"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 )
 

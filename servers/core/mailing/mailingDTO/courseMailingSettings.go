@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/mail"
 
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
 type CourseMailingSettings struct {

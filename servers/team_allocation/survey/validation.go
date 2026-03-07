@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/team_allocation/survey/surveyDTO"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 	log "github.com/sirupsen/logrus"
 )
 

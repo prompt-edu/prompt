@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/assessment/competencies/competencyMap/competencyMapDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyMap/competencyMapDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 

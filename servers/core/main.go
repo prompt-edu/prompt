@@ -13,23 +13,23 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration"
-	"github.com/ls1intum/prompt2/servers/core/course"
-	"github.com/ls1intum/prompt2/servers/core/course/copy"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/resolution"
-	"github.com/ls1intum/prompt2/servers/core/coursePhaseAuth"
-	"github.com/ls1intum/prompt2/servers/core/coursePhaseType"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/instructorNote"
-	"github.com/ls1intum/prompt2/servers/core/keycloakRealmManager"
-	"github.com/ls1intum/prompt2/servers/core/keycloakTokenVerifier"
-	"github.com/ls1intum/prompt2/servers/core/mailing"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
-	"github.com/ls1intum/prompt2/servers/core/student"
-	"github.com/ls1intum/prompt2/servers/core/utils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
+	"github.com/prompt-edu/prompt/servers/core/course"
+	"github.com/prompt-edu/prompt/servers/core/course/copy"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
+	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth"
+	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/instructorNote"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -162,7 +162,7 @@ func initSentry() {
 // @BasePath  /api/
 
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
 	if utils.GetEnv("DEBUG", "false") == "true" {
 		log.SetLevel(log.DebugLevel)

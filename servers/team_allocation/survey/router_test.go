@@ -11,9 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/team_allocation/survey/surveyDTO"
-	"github.com/ls1intum/prompt2/servers/team_allocation/testutils"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
+	"github.com/prompt-edu/prompt/servers/team_allocation/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

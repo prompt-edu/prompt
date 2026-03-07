@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt2/servers/intro_course/developerProfile/developerProfileDTO"
+	"github.com/prompt-edu/prompt/servers/intro_course/developerProfile/developerProfileDTO"
 )
 
 // udidRegex validates a UDID of the form "XXXXXXXX-XXXXXXXXXXXXXXXX"

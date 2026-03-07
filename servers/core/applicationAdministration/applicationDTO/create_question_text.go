@@ -3,7 +3,7 @@ package applicationDTO
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
 type CreateQuestionText struct {

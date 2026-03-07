@@ -13,12 +13,12 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/template_server/config"
-	"github.com/ls1intum/prompt2/servers/template_server/copy"
-	db "github.com/ls1intum/prompt2/servers/template_server/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/template_server/template"
-	"github.com/ls1intum/prompt2/servers/template_server/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/template_server/config"
+	"github.com/prompt-edu/prompt/servers/template_server/copy"
+	db "github.com/prompt-edu/prompt/servers/template_server/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/template_server/template"
+	"github.com/prompt-edu/prompt/servers/template_server/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -117,7 +117,7 @@ func initKeycloak(queries db.Queries) {
 // @host            localhost:8086
 // @BasePath        /template-service/api
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
 	initSentry()
 	defer sentry.Flush(2 * time.Second)

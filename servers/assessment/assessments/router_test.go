@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	assessmentDTO "github.com/ls1intum/prompt2/servers/assessment/assessments/assessmentDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 // AssessmentRouterTestSuite tests HTTP routes for assessments

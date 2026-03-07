@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation/courseParticipationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation/courseParticipationDTO"
 	"github.com/stretchr/testify/assert"
 )
 

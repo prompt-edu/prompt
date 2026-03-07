@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/timeframe/timeframeDTO"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe/timeframeDTO"
 	log "github.com/sirupsen/logrus"
 )
 

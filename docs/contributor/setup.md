@@ -73,7 +73,7 @@ Before you can build and run **Prompt**, you must install and configure the foll
    - Clone (or download) the Prompt repository to your local machine:
 
      ```bash
-     git clone https://github.com/ls1intum/prompt2.git
+     git clone https://github.com/prompt-edu/prompt.git
      ```
 
 2. **Start the Database and Keycloak Server**

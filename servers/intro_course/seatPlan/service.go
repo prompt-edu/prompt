@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/intro_course/seatPlan/seatPlanDTO"
-	promptSDK "github.com/ls1intum/prompt-sdk"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/intro_course/seatPlan/seatPlanDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
 

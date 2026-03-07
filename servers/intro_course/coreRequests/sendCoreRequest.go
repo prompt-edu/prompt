@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ls1intum/prompt2/servers/intro_course/utils"
+	"github.com/prompt-edu/prompt/servers/intro_course/utils"
 	log "github.com/sirupsen/logrus"
 )
 

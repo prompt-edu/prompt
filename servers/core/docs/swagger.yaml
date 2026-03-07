@@ -822,6 +822,80 @@ definitions:
     x-enum-varnames:
     - StudyDegreeBachelor
     - StudyDegreeMaster
+  instructorNoteDTO.CreateInstructorNote:
+    properties:
+      content:
+        type: string
+      forNote:
+        type: string
+      new:
+        type: boolean
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
+  instructorNoteDTO.CreateNoteTag:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+    type: object
+  instructorNoteDTO.InstructorNote:
+    properties:
+      author:
+        type: string
+      authorEmail:
+        type: string
+      authorName:
+        type: string
+      dateCreated:
+        type: string
+      dateDeleted:
+        type: string
+      deletedBy:
+        type: string
+      forStudent:
+        type: string
+      id:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/instructorNoteDTO.NoteTag'
+        type: array
+      versions:
+        items:
+          $ref: '#/definitions/instructorNoteDTO.NoteVersion'
+        type: array
+    type: object
+  instructorNoteDTO.NoteTag:
+    properties:
+      color:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  instructorNoteDTO.NoteVersion:
+    properties:
+      content:
+        type: string
+      dateCreated:
+        type: string
+      id:
+        type: string
+      versionNumber:
+        type: integer
+    type: object
+  instructorNoteDTO.UpdateNoteTag:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+    type: object
   keycloakRealmDTO.AddStudentsToGroup:
     properties:
       studentsToAdd:
@@ -1026,6 +1100,15 @@ definitions:
           $ref: '#/definitions/studentDTO.CourseEnrollmentDTO'
         type: array
     type: object
+  studentDTO.StudentNoteTagDTO:
+    properties:
+      color:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   studentDTO.StudentWithCourseParticipationsDTO:
     properties:
       courses:
@@ -1044,6 +1127,10 @@ definitions:
         type: string
       lastName:
         type: string
+      noteTags:
+        items:
+          $ref: '#/definitions/studentDTO.StudentNoteTagDTO'
+        type: array
       studyProgram:
         type: string
     type: object
@@ -2642,6 +2729,230 @@ paths:
       summary: Get template courses
       tags:
       - courses
+  /instructor-notes:
+    get:
+      description: Get all instructor notes with note versions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/instructorNoteDTO.InstructorNote'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all notes
+      tags:
+      - instructorNotes
+  /instructor-notes/{note-uuid}:
+    delete:
+      description: Delete an instructor note by UUID
+      parameters:
+      - description: Note UUID
+        in: path
+        name: note-uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/instructorNoteDTO.InstructorNote'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete an instructor Note
+      tags:
+      - instructorNotes
+  /instructor-notes/s/{student-uuid}:
+    get:
+      description: Get all instructor notes with note versions for a specific student,
+        provided the student ID
+      parameters:
+      - description: Student UUID
+        in: path
+        name: student-uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/instructorNoteDTO.InstructorNote'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all notes for a student
+      tags:
+      - instructorNotes
+    post:
+      consumes:
+      - application/json
+      description: Create a new instructor note or a new edit for a specific student
+        given its ID
+      parameters:
+      - description: Student UUID
+        in: path
+        name: student-uuid
+        required: true
+        type: string
+      - description: Note to create
+        in: body
+        name: note
+        required: true
+        schema:
+          $ref: '#/definitions/instructorNoteDTO.CreateInstructorNote'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/instructorNoteDTO.InstructorNote'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create an instructor Note for a student
+      tags:
+      - instructorNotes
+  /instructor-notes/tags:
+    get:
+      description: Get all available note tags
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/instructorNoteDTO.NoteTag'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all note tags
+      tags:
+      - instructorNotes
+    post:
+      consumes:
+      - application/json
+      description: Create a new note tag with a name and color
+      parameters:
+      - description: Tag to create
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/instructorNoteDTO.CreateNoteTag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/instructorNoteDTO.NoteTag'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create a note tag
+      tags:
+      - instructorNotes
+  /instructor-notes/tags/{tag-uuid}:
+    delete:
+      description: Delete a note tag by UUID
+      parameters:
+      - description: Tag UUID
+        in: path
+        name: tag-uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete a note tag
+      tags:
+      - instructorNotes
+    put:
+      consumes:
+      - application/json
+      description: Update the name and color of an existing note tag
+      parameters:
+      - description: Tag UUID
+        in: path
+        name: tag-uuid
+        required: true
+        type: string
+      - description: Updated tag data
+        in: body
+        name: tag
+        required: true
+        schema:
+          $ref: '#/definitions/instructorNoteDTO.UpdateNoteTag'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/instructorNoteDTO.NoteTag'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Update a note tag
+      tags:
+      - instructorNotes
   /keycloak/{courseID}/group:
     put:
       consumes:

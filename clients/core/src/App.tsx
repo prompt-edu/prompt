@@ -24,6 +24,7 @@ import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPa
 import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPage'
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
+import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,16 @@ export const App = () => {
               element={
                 <ManagementRoot>
                   <StudentDetailPage />
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/student-note-tags'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <StudentNoteTagsPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />

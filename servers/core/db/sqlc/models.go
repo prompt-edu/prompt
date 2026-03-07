@@ -99,6 +99,52 @@ func (ns NullGender) Value() (driver.Value, error) {
 	return string(ns.Gender), nil
 }
 
+type NoteTagColor string
+
+const (
+	NoteTagColorBlue   NoteTagColor = "blue"
+	NoteTagColorGreen  NoteTagColor = "green"
+	NoteTagColorRed    NoteTagColor = "red"
+	NoteTagColorYellow NoteTagColor = "yellow"
+	NoteTagColorOrange NoteTagColor = "orange"
+	NoteTagColorPink   NoteTagColor = "pink"
+)
+
+func (e *NoteTagColor) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NoteTagColor(s)
+	case string:
+		*e = NoteTagColor(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NoteTagColor: %T", src)
+	}
+	return nil
+}
+
+type NullNoteTagColor struct {
+	NoteTagColor NoteTagColor `json:"note_tag_color"`
+	Valid        bool         `json:"valid"` // Valid is true if NoteTagColor is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNoteTagColor) Scan(value interface{}) error {
+	if value == nil {
+		ns.NoteTagColor, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NoteTagColor.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNoteTagColor) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NoteTagColor), nil
+}
+
 type PassStatus string
 
 const (
@@ -321,6 +367,49 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
 	DtoName           string    `json:"dto_name"`
 	Specification     []byte    `json:"specification"`
+}
+
+type Note struct {
+	ID          uuid.UUID          `json:"id"`
+	ForStudent  uuid.UUID          `json:"for_student"`
+	Author      uuid.UUID          `json:"author"`
+	AuthorName  string             `json:"author_name"`
+	AuthorEmail string             `json:"author_email"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	DateDeleted pgtype.Timestamptz `json:"date_deleted"`
+	DeletedBy   pgtype.UUID        `json:"deleted_by"`
+}
+
+type NoteTag struct {
+	ID    uuid.UUID    `json:"id"`
+	Name  string       `json:"name"`
+	Color NoteTagColor `json:"color"`
+}
+
+type NoteTagRelation struct {
+	NoteID uuid.UUID `json:"note_id"`
+	TagID  uuid.UUID `json:"tag_id"`
+}
+
+type NoteVersion struct {
+	ID            uuid.UUID          `json:"id"`
+	Content       string             `json:"content"`
+	DateCreated   pgtype.Timestamptz `json:"date_created"`
+	VersionNumber int32              `json:"version_number"`
+	ForNote       uuid.UUID          `json:"for_note"`
+}
+
+type NoteWithVersion struct {
+	ID          uuid.UUID          `json:"id"`
+	Author      uuid.UUID          `json:"author"`
+	AuthorName  string             `json:"author_name"`
+	AuthorEmail string             `json:"author_email"`
+	ForStudent  uuid.UUID          `json:"for_student"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	DateDeleted pgtype.Timestamptz `json:"date_deleted"`
+	DeletedBy   pgtype.UUID        `json:"deleted_by"`
+	Versions    []byte             `json:"versions"`
+	Tags        []byte             `json:"tags"`
 }
 
 type ParticipationDataDependencyGraph struct {

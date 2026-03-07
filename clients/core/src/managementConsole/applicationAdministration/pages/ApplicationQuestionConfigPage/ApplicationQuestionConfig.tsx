@@ -151,7 +151,7 @@ export const ApplicationQuestionConfig = () => {
           <div className='flex justify-between items-center'>
             <ApplicationPreview
               questionsMultiSelect={applicationQuestions.filter(
-                (question) => 'options' in question,
+                (question): question is ApplicationQuestionMultiSelect => 'options' in question,
               )}
               questionsText={applicationQuestions.filter(
                 (question) => 'options' in question === false,

@@ -6,6 +6,12 @@ export interface StudentCourseParticipation {
   studentReadableData: object
 }
 
+export interface StudentNoteTag {
+  id: string
+  name: string
+  color: string
+}
+
 export interface StudentWithCourses {
   id: string
   firstName: string
@@ -15,6 +21,7 @@ export interface StudentWithCourses {
   currentSemester?: number
   studyProgram: string
   courses: StudentCourseParticipation[]
+  noteTags: StudentNoteTag[]
 }
 
 export const getStudentsWithCourses = async (): Promise<StudentWithCourses[]> => {

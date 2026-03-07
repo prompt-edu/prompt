@@ -23,6 +23,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/instructorNote"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
@@ -220,6 +221,7 @@ func main() {
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)
 	applicationAdministration.InitApplicationAdministrationModule(api, *query, conn)
+	instructorNote.InitInstructorNoteModule(api, *query, conn)
 
 	serverAddress := utils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")

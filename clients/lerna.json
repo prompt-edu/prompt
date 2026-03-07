@@ -5,13 +5,14 @@
     "core",
     "interview_component",
     "matching_component",
-    "template_component", 
+    "template_component",
     "intro_course_developer_component",
     "intro_course_tutor_component",
     "shared_library",
     "assessment_component",
     "devops_challenge_component",
     "team_allocation_component",
-    "self_team_allocation_component"
+    "self_team_allocation_component",
+    "certificate_component"
   ]
 }

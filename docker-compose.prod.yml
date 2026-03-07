@@ -50,7 +50,8 @@ services:
       - prompt-network
     healthcheck:
       # BusyBox wget in nginx:alpine does not support --spider/--tries flags; use simple fetch instead
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 3s
       start_period: 5s
@@ -267,6 +268,39 @@ services:
     networks:
       - prompt-network
 
+  server-certificate:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-certificate:${SERVER_CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-server-certificate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-certificate.rule=Host(`${CORE_HOST}`) && PathPrefix(`/certificate/api`)"
+      - "traefik.http.services.server-certificate.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-certificate.entrypoints=websecure"
+      - "traefik.http.routers.server-certificate.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
+      - "traefik.http.routers.server-certificate.middlewares=api-ratelimit"
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_CERTIFICATE=db-certificate
+      - DB_PORT_CERTIFICATE=5432
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - SENTRY_DSN_CERTIFICATE
+    networks:
+      - prompt-network
+
   db:
     image: "postgres:15.16-alpine"
     container_name: prompt-db
@@ -384,6 +418,26 @@ services:
       retries: 5
     ports:
       - "127.0.0.1:5435:5432"
+    networks:
+      - prompt-network
+
+  db-certificate:
+    image: "postgres:15.16-alpine"
+    container_name: prompt-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_certificate_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5439:5432"
     networks:
       - prompt-network
 
@@ -547,6 +601,27 @@ services:
       - "80"
     depends_on:
       - server-core
+    networks:
+      - prompt-network
+
+  client-certificate-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-certificate-component:${CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-client-certificate-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.certificate.rule=Host(`${CORE_HOST}`) && PathPrefix(`/certificate`)"
+      - "traefik.http.routers.certificate.entrypoints=websecure"
+      - "traefik.http.routers.certificate.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.certificate-strip-prefix.stripPrefix.prefixes=/certificate"
+      - "traefik.http.routers.certificate.middlewares=certificate-strip-prefix,certificate-compress"
+      - "traefik.http.middlewares.certificate-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-certificate
     networks:
       - prompt-network
 

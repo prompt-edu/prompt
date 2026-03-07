@@ -21,6 +21,7 @@ type EnvType = {
   SERVER_IMAGE_TAG: string
   SELF_TEAM_ALLOCATION_HOST: string
   TEMPLATE_HOST: string
+  CERTIFICATE_HOST: string
   SENTRY_DSN_CLIENT: string
 }
 export const env: EnvType = { ...window.env }

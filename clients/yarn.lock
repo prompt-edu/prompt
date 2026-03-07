@@ -6468,6 +6468,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"certificate_component@workspace:certificate_component":
+  version: 0.0.0-use.local
+  resolution: "certificate_component@workspace:certificate_component"
+  dependencies:
+    webpack: "npm:^5.105.4"
+    webpack-cli: "npm:^6.0.1"
+  languageName: unknown
+  linkType: soft
+
 "cfb@npm:~1.2.1":
   version: 1.2.2
   resolution: "cfb@npm:1.2.2"

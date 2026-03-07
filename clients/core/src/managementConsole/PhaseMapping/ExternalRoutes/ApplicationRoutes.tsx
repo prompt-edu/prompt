@@ -7,6 +7,7 @@ import { ExternalRoutes } from './ExternalRoutes'
 import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
 import { ApplicationMailingSettings } from '../../applicationAdministration/pages/Mailing/ApplicationMailingSettings'
 import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
+// eslint-disable-next-line max-len
 import { ApplicationDetailsPage } from '@core/managementConsole/applicationAdministration/pages/ApplicationParticipantsPage/components/ApplicationDetailsDialog/ApplicationDetailsPage'
 
 const applicationRoutesObjects: ExtendedRouteObject[] = [

@@ -71,3 +71,5 @@ jobs:
       server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag }}
       devops_challenge_image_tag: ${{ needs.build-clients.outputs.devops_challenge_image_tag }}
       server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag }}
+      server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag }}
+      certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag }}

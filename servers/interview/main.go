@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/ls1intum/prompt-sdk"
+	"github.com/ls1intum/prompt-sdk/promptTypes"
 	sdkUtils "github.com/ls1intum/prompt-sdk/utils"
 	"github.com/ls1intum/prompt2/servers/interview/config"
 	"github.com/ls1intum/prompt2/servers/interview/copy"
@@ -176,6 +177,19 @@ func main() {
 
 	copyApi := router.Group("interview/api")
 	copy.InitCopyModule(copyApi, *query, conn)
+
+	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+		ServiceName: "interview",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyStudentExport:   false,
+			promptTypes.CapabilityPrivacyStudentDeletion: false,
+			promptTypes.CapabilityPhaseCopy:              true,
+			promptTypes.CapabilityPhaseConfig:            true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	config.InitConfigModule(api, *query, conn)
 

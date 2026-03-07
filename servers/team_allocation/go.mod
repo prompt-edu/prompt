@@ -2,6 +2,8 @@ module github.com/ls1intum/prompt2/servers/team_allocation
 
 go 1.26
 
+replace github.com/ls1intum/prompt-sdk => ../../../prompt-sdk
+
 require (
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/getsentry/sentry-go/gin v0.42.0

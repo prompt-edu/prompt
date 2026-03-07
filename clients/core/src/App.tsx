@@ -24,6 +24,7 @@ import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPa
 import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPage'
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
+import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,16 @@ export const App = () => {
               element={
                 <ManagementRoot>
                   <StudentDetailPage />
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/system-status'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <SystemStatusPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />

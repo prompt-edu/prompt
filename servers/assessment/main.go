@@ -164,22 +164,23 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("assessment/api/course_phase/:coursePhaseID")
+	apiBase := router.Group("/assessment/api")
+	coursePhaseApi := apiBase.Group("/course_phase/:coursePhaseID")
+
 	initKeycloak(*query)
 
-	api.GET("/hello", helloAssessment)
+	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(api, *query, conn)
-	categories.InitCategoryModule(api, *query, conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(api, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(api, *query, conn)
-	assessments.InitAssessmentModule(api, *query, conn)
-	evaluations.InitEvaluationModule(api, *query, conn)
+	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
+	categories.InitCategoryModule(coursePhaseApi, *query, conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
+	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
+	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
+	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
-	copyApi := router.Group("assessment/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.InitCopyModule(apiBase, *query, conn)
 
-	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
 		ServiceName: "assessment",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{

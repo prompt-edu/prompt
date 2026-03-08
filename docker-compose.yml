@@ -151,6 +151,32 @@ services:
       - DEBUG
       - SENTRY_DSN_ASSESSMENT
 
+  server-certificate:
+    build:
+      context: ./servers/certificate
+      dockerfile: Dockerfile
+    container_name: prompt-server-certificate
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+    ports:
+      - "8088:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_USER=${DB_CERTIFICATE_USER}
+      - DB_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
+      - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - DB_NAME=${DB_CERTIFICATE_NAME}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_CERTIFICATE
+
   # Template server (example service)
   server-template:
     build:
@@ -168,7 +194,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_TEMPLATE_HOST}  
+      - DB_HOST=${DB_TEMPLATE_HOST}
       - DB_PORT=${DB_TEMPLATE_PORT}
       - DB_NAME=${DB_TEMPLATE_NAME}
       - DB_USER=${DB_TEMPLATE_USER}
@@ -294,6 +320,16 @@ services:
     depends_on:
       - clients-base
 
+  client-certificate:
+    build:
+      context: ./clients/certificate_component
+      dockerfile: Dockerfile
+    container_name: prompt-client-certificate
+    ports:
+      - "3009:80"
+    depends_on:
+      - clients-base
+
   clients-base:
     build:
       context: ./clients
@@ -329,7 +365,11 @@ services:
     volumes:
       - ./postgres_intro_course_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_INTRO_COURSE_NAME} -U ${DB_INTRO_COURSE_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTRO_COURSE_NAME} -U ${DB_INTRO_COURSE_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -347,7 +387,11 @@ services:
     volumes:
       - ./postgres_team_allocation_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -365,7 +409,11 @@ services:
     volumes:
       - ./postgres_assessment_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -384,7 +432,11 @@ services:
     volumes:
       - ./postgres_template_server_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_TEMPLATE_NAME:-prompt} -U ${DB_TEMPLATE_USER:-prompt-postgres}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEMPLATE_NAME:-prompt} -U ${DB_TEMPLATE_USER:-prompt-postgres}",
+        ]
       timeout: 5s
       retries: 5
     ports:
@@ -401,7 +453,11 @@ services:
     volumes:
       - ./postgres_interview_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_INTERVIEW_NAME:-prompt} -U ${DB_INTERVIEW_USER:-prompt-postgres}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTERVIEW_NAME:-prompt} -U ${DB_INTERVIEW_USER:-prompt-postgres}",
+        ]
       timeout: 5s
       retries: 5
     ports:
@@ -418,12 +474,38 @@ services:
     volumes:
       - ./postgres_self_team_allocation_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
     ports:
       - "5436:5432"
+
+  db-certificate:
+    image: "postgres:15.16-alpine"
+    container_name: prompt-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_CERTIFICATE_USER}
+      - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - POSTGRES_DB=${DB_CERTIFICATE_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_certificate_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_CERTIFICATE_NAME} -U ${DB_CERTIFICATE_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5439:5432"
 
   keycloak-db:
     image: "postgres:15.16-alpine"
@@ -436,7 +518,11 @@ services:
     volumes:
       - ./keycloak_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5

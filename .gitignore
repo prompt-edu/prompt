@@ -21,6 +21,7 @@ postgres_assessment_data/
 postgres_self_team_allocation_data/
 postgres_template_server_data/
 postgres_interview_data/
+postgres_certificate_data/
 keycloak_postgres_data/
 postfix_config/
 seaweedfs_master_data/

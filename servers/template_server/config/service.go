@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/template_server/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/template_server/db/sqlc"
 )
 
 // ConfigService provides phase-level configuration status.

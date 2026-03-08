@@ -184,6 +184,13 @@ func (ns NullStudyDegree) Value() (driver.Value, error) {
 	return string(ns.StudyDegree), nil
 }
 
+type ApplicationAnswerFileUpload struct {
+	ID                    uuid.UUID `json:"id"`
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	FileID                uuid.UUID `json:"file_id"`
+}
+
 type ApplicationAnswerMultiSelect struct {
 	ID                    uuid.UUID `json:"id"`
 	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
@@ -203,6 +210,19 @@ type ApplicationAssessment struct {
 	Score                 pgtype.Int4 `json:"score"`
 	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+}
+
+type ApplicationQuestionFileUpload struct {
+	ID                       uuid.UUID   `json:"id"`
+	CoursePhaseID            uuid.UUID   `json:"course_phase_id"`
+	Title                    string      `json:"title"`
+	Description              pgtype.Text `json:"description"`
+	IsRequired               bool        `json:"is_required"`
+	AllowedFileTypes         pgtype.Text `json:"allowed_file_types"`
+	MaxFileSizeMb            pgtype.Int4 `json:"max_file_size_mb"`
+	OrderNum                 int32       `json:"order_num"`
+	AccessibleForOtherPhases bool        `json:"accessible_for_other_phases"`
+	AccessKey                pgtype.Text `json:"access_key"`
 }
 
 type ApplicationQuestionMultiSelect struct {
@@ -321,6 +341,24 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
 	DtoName           string    `json:"dto_name"`
 	Specification     []byte    `json:"specification"`
+}
+
+type File struct {
+	ID               uuid.UUID        `json:"id"`
+	Filename         string           `json:"filename"`
+	OriginalFilename string           `json:"original_filename"`
+	ContentType      string           `json:"content_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	StorageKey       string           `json:"storage_key"`
+	StorageProvider  string           `json:"storage_provider"`
+	UploadedByUserID string           `json:"uploaded_by_user_id"`
+	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
+	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
+	Description      pgtype.Text      `json:"description"`
+	Tags             []string         `json:"tags"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
 }
 
 type ParticipationDataDependencyGraph struct {

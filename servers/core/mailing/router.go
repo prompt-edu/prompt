@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/mailing/mailingDTO"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
-	"github.com/ls1intum/prompt2/servers/core/utils"
+	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // setupMailingRouter sets up the mailing endpoints

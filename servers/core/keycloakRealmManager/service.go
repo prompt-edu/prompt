@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/keycloakRealmManager/keycloakRealmDTO"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 )
 

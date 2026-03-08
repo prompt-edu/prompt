@@ -14,6 +14,10 @@ VALUES ($1, $2, $3, $4);
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4);
 
+-- name: CreateApplicationAnswerFileUpload :exec
+INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
+VALUES ($1, $2, $3, $4);
+
 -- name: GetApplicationExists :one
 SELECT EXISTS (
     SELECT 1
@@ -310,3 +314,46 @@ JOIN course_phase_type cpt ON cp.course_phase_type_id = cpt.id
 WHERE cp.course_id = $1
   AND cpt.name = 'Application'
 LIMIT 1;
+
+-- name: GetApplicationQuestionsFileUploadForCoursePhase :many
+SELECT * FROM application_question_file_upload
+WHERE course_phase_id = $1;
+
+-- name: CreateApplicationQuestionFileUpload :exec
+INSERT INTO application_question_file_upload (id, course_phase_id, title, description, is_required, allowed_file_types, max_file_size_mb, order_num, accessible_for_other_phases, access_key)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+
+-- name: UpdateApplicationQuestionFileUpload :exec
+UPDATE application_question_file_upload
+SET
+    title = COALESCE($2, title),
+    description = COALESCE($3, description),
+    is_required = COALESCE($4, is_required),
+    allowed_file_types = COALESCE($5, allowed_file_types),
+    max_file_size_mb = COALESCE($6, max_file_size_mb),
+    order_num = COALESCE($7, order_num),
+    accessible_for_other_phases = COALESCE($8, accessible_for_other_phases),
+    access_key = COALESCE($9, access_key)
+WHERE id = $1;
+
+-- name: DeleteApplicationQuestionFileUpload :exec
+DELETE FROM application_question_file_upload
+WHERE id = $1;
+
+-- name: GetApplicationAnswersFileUploadForCourseParticipationID :many
+SELECT aafu.*
+FROM application_answer_file_upload aafu
+JOIN application_question_file_upload aqfu ON aafu.application_question_id = aqfu.id
+WHERE aqfu.course_phase_id = $1 AND aafu.course_participation_id = $2;
+
+-- name: GetApplicationAnswerFileUploadByQuestionAndParticipation :one
+SELECT * FROM application_answer_file_upload
+WHERE application_question_id = $1 AND course_participation_id = $2;
+
+-- name: CreateOrOverwriteApplicationAnswerFileUpload :exec 
+INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (course_participation_id, application_question_id)
+DO UPDATE
+SET file_id = EXCLUDED.file_id;
+

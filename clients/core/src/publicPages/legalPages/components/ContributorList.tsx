@@ -14,7 +14,7 @@ export const ContributorList = () => {
   const [vali, setVali] = useState<Contributor>()
 
   useEffect(() => {
-    fetch('https://api.github.com/repos/ls1intum/prompt2/contributors')
+    fetch('https://api.github.com/repos/prompt-edu/prompt/contributors')
       .then((response) => response.json())
       .then((data) => setContributors(data))
       .catch((error) => console.error('Error fetching contributors:', error))

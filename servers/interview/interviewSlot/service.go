@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	sdkUtils "github.com/ls1intum/prompt-sdk/utils"
-	db "github.com/ls1intum/prompt2/servers/interview/db/sqlc"
-	interviewSlotDTO "github.com/ls1intum/prompt2/servers/interview/interviewSlot/interviewSlotDTO"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
+	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
 	log "github.com/sirupsen/logrus"
 )
 

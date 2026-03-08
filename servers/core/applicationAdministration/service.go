@@ -9,15 +9,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation/courseParticipationDTO"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/student"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/student"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,6 +31,110 @@ var ApplicationServiceSingleton *ApplicationService
 var ErrNotFound = errors.New("application was not found")
 var ErrAlreadyApplied = errors.New("application already exists")
 var ErrStudentDetailsDoNotMatch = errors.New("student details do not match")
+
+func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
+	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
+	for _, answer := range answers {
+		dto := applicationDTO.AnswerFileUpload{
+			ID:                    answer.ID,
+			ApplicationQuestionID: answer.ApplicationQuestionID,
+			CourseParticipationID: answer.CourseParticipationID,
+			FileID:                answer.FileID,
+		}
+
+		if includeDownloadURL {
+			file, err := storage.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
+			if err != nil {
+				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
+			} else {
+				dto.FileName = file.OriginalFilename
+				dto.FileSize = file.SizeBytes
+				dto.UploadedAt = file.CreatedAt
+				dto.DownloadURL = file.DownloadURL
+			}
+		} else {
+			file, err := ApplicationServiceSingleton.queries.GetFileByID(ctx, answer.FileID)
+			if err != nil {
+				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
+			} else {
+				dto.FileName = file.OriginalFilename
+				dto.FileSize = file.SizeBytes
+				dto.UploadedAt = file.CreatedAt.Time
+			}
+		}
+
+		answerDTOs = append(answerDTOs, dto)
+	}
+
+	return answerDTOs
+}
+
+// createOrReplaceFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
+func createOrReplaceFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
+	return upsertFileUploadAnswer(ctx, qtx, answer, courseParticipationID)
+}
+
+// createOrOverwriteFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
+func createOrOverwriteFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
+	return upsertFileUploadAnswer(ctx, qtx, answer, courseParticipationID)
+}
+
+func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
+	if answer.FileID == uuid.Nil {
+		return nil, nil
+	}
+
+	// Check if there's an existing file upload answer for this question
+	existingAnswer, err := qtx.GetApplicationAnswerFileUploadByQuestionAndParticipation(ctx, db.GetApplicationAnswerFileUploadByQuestionAndParticipationParams{
+		ApplicationQuestionID: answer.ApplicationQuestionID,
+		CourseParticipationID: courseParticipationID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+
+	var oldFileID *uuid.UUID
+	if err == nil {
+		if existingAnswer.FileID != answer.FileID {
+			existingFileID := existingAnswer.FileID
+			oldFileID = &existingFileID
+		}
+	}
+
+	// Create or overwrite the answer in the same transaction.
+	answerDBModel := answer.GetDBModel()
+	answerDBModel.ID = uuid.New()
+	answerDBModel.CourseParticipationID = courseParticipationID
+	if err := qtx.CreateOrOverwriteApplicationAnswerFileUpload(ctx, db.CreateOrOverwriteApplicationAnswerFileUploadParams(answerDBModel)); err != nil {
+		return nil, err
+	}
+
+	return oldFileID, nil
+}
+
+func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
+	if len(fileIDs) == 0 {
+		return
+	}
+	if storage.StorageServiceSingleton == nil {
+		return
+	}
+
+	seenFileIDs := make(map[uuid.UUID]struct{}, len(fileIDs))
+	for _, fileID := range fileIDs {
+		if fileID == uuid.Nil {
+			continue
+		}
+		if _, seen := seenFileIDs[fileID]; seen {
+			continue
+		}
+		seenFileIDs[fileID] = struct{}{}
+
+		if err := storage.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
+		}
+	}
+}
 
 func GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.Form, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
@@ -55,7 +159,12 @@ func GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicati
 		return applicationDTO.Form{}, err
 	}
 
-	applicationFormDTO := applicationDTO.GetFormDTOFromDBModel(applicationQuestionsText, applicationQuestionsMultiSelect)
+	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		return applicationDTO.Form{}, err
+	}
+
+	applicationFormDTO := applicationDTO.GetFormDTOFromDBModel(applicationQuestionsText, applicationQuestionsMultiSelect, applicationQuestionsFileUpload)
 
 	return applicationFormDTO, nil
 }
@@ -96,6 +205,14 @@ func UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form ap
 		}
 	}
 
+	for _, questionID := range form.DeleteQuestionsFileUpload {
+		err := qtx.DeleteApplicationQuestionFileUpload(ctx, questionID)
+		if err != nil {
+			log.Error(err)
+			return errors.New("could not delete question")
+		}
+	}
+
 	// Create all questions to be created
 	for _, question := range form.CreateQuestionsText {
 		questionDBModel := question.GetDBModel()
@@ -123,6 +240,19 @@ func UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form ap
 		}
 	}
 
+	for _, question := range form.CreateQuestionsFileUpload {
+		questionDBModel := question.GetDBModel()
+		questionDBModel.ID = uuid.New()
+		// force ensuring right course phase id -> but also checked in validation
+		questionDBModel.CoursePhaseID = coursePhaseId
+
+		err = qtx.CreateApplicationQuestionFileUpload(ctx, questionDBModel)
+		if err != nil {
+			log.Error(err)
+			return errors.New("could not create question")
+		}
+	}
+
 	// Update the rest
 	for _, question := range form.UpdateQuestionsMultiSelect {
 		questionDBModel := question.GetDBModel()
@@ -136,6 +266,15 @@ func UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form ap
 	for _, question := range form.UpdateQuestionsText {
 		questionDBModel := question.GetDBModel()
 		err = qtx.UpdateApplicationQuestionText(ctx, questionDBModel)
+		if err != nil {
+			log.Error(err)
+			return errors.New("could not update question")
+		}
+	}
+
+	for _, question := range form.UpdateQuestionsFileUpload {
+		questionDBModel := question.GetDBModel()
+		err = qtx.UpdateApplicationQuestionFileUpload(ctx, questionDBModel)
 		if err != nil {
 			log.Error(err)
 			return errors.New("could not update question")
@@ -188,7 +327,13 @@ func GetApplicationFormWithDetails(ctx context.Context, coursePhaseID uuid.UUID)
 		return applicationDTO.FormWithDetails{}, errors.New("could not get application form")
 	}
 
-	openApplicationDTO := applicationDTO.GetFormWithDetailsDTOFromDBModel(applicationCoursePhase, applicationFormText, applicationFormMultiSelect)
+	applicationFormFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.FormWithDetails{}, errors.New("could not get application form")
+	}
+
+	openApplicationDTO := applicationDTO.GetFormWithDetailsDTOFromDBModel(applicationCoursePhase, applicationFormText, applicationFormMultiSelect, applicationFormFileUpload)
 
 	return openApplicationDTO, nil
 }
@@ -232,21 +377,20 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 			return uuid.Nil, errors.New("could not save student")
 		}
 	}
-
-	// 2. Create Course and Course Phase Participation
+	// 2. Possibly Create Course and Course Phase Participation
 	courseID, err := qtx.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
 	if err != nil {
 		log.Error(err)
-		return uuid.Nil, errors.New("could not find the application")
+		return uuid.Nil, errors.New("could not get the application phase")
 	}
 
-	cParticipation, err := courseParticipation.CreateCourseParticipation(ctx, qtx, courseParticipationDTO.CreateCourseParticipation{StudentID: studentObj.ID, CourseID: courseID})
+	cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 	if err != nil {
 		log.Error(err)
-		return uuid.Nil, errors.New("could not create course participation")
+		return uuid.Nil, errors.New("could not save the course participation")
 	}
 
-	cPhaseParticipation, err := coursePhaseParticipation.CreateOrUpdateCoursePhaseParticipation(ctx, qtx, coursePhaseParticipationDTO.CreateCoursePhaseParticipation{CourseParticipationID: cParticipation.ID, CoursePhaseID: coursePhaseID})
+	cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not create course phase participation")
@@ -260,7 +404,7 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		err = qtx.CreateApplicationAnswerText(ctx, answerDBModel)
 		if err != nil {
 			log.Error(err)
-			return uuid.Nil, errors.New("could save the application answers")
+			return uuid.Nil, errors.New("could not save the application answers")
 		}
 	}
 
@@ -271,7 +415,20 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		err = qtx.CreateApplicationAnswerMultiSelect(ctx, answerDBModel)
 		if err != nil {
 			log.Error(err)
-			return uuid.Nil, errors.New("could save the application answers")
+			return uuid.Nil, errors.New("could not save the application answers")
+		}
+	}
+
+	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
+	for _, answer := range application.AnswersFileUpload {
+		var oldFileID *uuid.UUID
+		oldFileID, err = createOrReplaceFileUploadAnswer(ctx, qtx, answer, cPhaseParticipation.CourseParticipationID)
+		if err != nil {
+			log.Error(err)
+			return uuid.Nil, errors.New("could not save the application answers")
+		}
+		if oldFileID != nil {
+			replacedFileIDs = append(replacedFileIDs, *oldFileID)
 		}
 	}
 
@@ -299,6 +456,8 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	cleanupReplacedFiles(ctx, replacedFileIDs)
+
 	return cPhaseParticipation.CourseParticipationID, nil
 }
 
@@ -313,6 +472,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			Student:            nil,
 			AnswersText:        make([]applicationDTO.AnswerText, 0),
 			AnswersMultiSelect: make([]applicationDTO.AnswerMultiSelect, 0),
+			AnswersFileUpload:  make([]applicationDTO.AnswerFileUpload, 0),
 		}, nil
 	}
 	if err != nil {
@@ -354,19 +514,33 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			log.Error(err)
 			return applicationDTO.Application{}, errors.New("could not get application answers")
 		}
+
+		answersFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
+			CourseParticipationID: courseParticipation.ID,
+			CoursePhaseID:         coursePhaseID,
+		})
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.Application{}, errors.New("could not get application answers")
+		}
+
 		return applicationDTO.Application{
+			ID:                 courseParticipation.ID,
 			Status:             applicationDTO.StatusApplied,
 			Student:            &studentObj,
 			AnswersText:        applicationDTO.GetAnswersTextDTOFromDBModels(answersText),
 			AnswersMultiSelect: applicationDTO.GetAnswersMultiSelectDTOFromDBModels(answersMultiSelect),
+			AnswersFileUpload:  buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, true),
 		}, nil
 
 	} else {
 		return applicationDTO.Application{
+			ID:                 uuid.Nil,
 			Status:             applicationDTO.StatusNotApplied,
 			Student:            &studentObj,
 			AnswersText:        make([]applicationDTO.AnswerText, 0),
 			AnswersMultiSelect: make([]applicationDTO.AnswerMultiSelect, 0),
+			AnswersFileUpload:  make([]applicationDTO.AnswerFileUpload, 0),
 		}, nil
 	}
 
@@ -416,7 +590,6 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save the application answers")
 		}
-
 	}
 
 	for _, answer := range application.AnswersMultiSelect {
@@ -428,7 +601,19 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save the application answers")
 		}
+	}
 
+	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
+	for _, answer := range application.AnswersFileUpload {
+		var oldFileID *uuid.UUID
+		oldFileID, err = createOrOverwriteFileUploadAnswer(ctx, qtx, answer, cPhaseParticipation.CourseParticipationID)
+		if err != nil {
+			log.Error(err)
+			return uuid.Nil, errors.New("could not save the application answers")
+		}
+		if oldFileID != nil {
+			replacedFileIDs = append(replacedFileIDs, *oldFileID)
+		}
 	}
 
 	// 4. Set Application To Passed if feature is turned on
@@ -454,6 +639,8 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 		log.Error(err)
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
 
@@ -498,11 +685,22 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		return applicationDTO.Application{}, errors.New("could not get application answers")
 	}
 
+	answersFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.Application{}, errors.New("could not get application answers")
+	}
+
 	return applicationDTO.Application{
+		ID:                 courseParticipationID,
 		Status:             applicationDTO.StatusApplied,
 		Student:            &studentObj,
 		AnswersText:        applicationDTO.GetAnswersTextDTOFromDBModels(answersText),
 		AnswersMultiSelect: applicationDTO.GetAnswersMultiSelectDTOFromDBModels(answersMultiSelect),
+		AnswersFileUpload:  buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, false),
 	}, nil
 }
 

@@ -2,7 +2,7 @@ package allocationDTO
 
 import (
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 )
 
 type AllocationWithParticipation struct {

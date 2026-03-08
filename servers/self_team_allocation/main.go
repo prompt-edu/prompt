@@ -13,14 +13,14 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/allocation"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/config"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/copy"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
-	teams "github.com/ls1intum/prompt2/servers/self_team_allocation/team"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/timeframe"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/config"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/copy"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	teams "github.com/prompt-edu/prompt/servers/self_team_allocation/team"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -43,7 +43,7 @@ func getDatabaseURL() string {
 // @host            localhost:8084
 // @BasePath        /self-team-allocation/api
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization

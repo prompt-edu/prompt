@@ -12,14 +12,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/mailing"
-	"github.com/ls1intum/prompt2/servers/core/student"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
-	"github.com/ls1intum/prompt2/servers/core/testutils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
+	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,6 +31,11 @@ type ApplicationAdminRouterTestSuite struct {
 	cleanup                 func()
 	applicationAdminService ApplicationService
 }
+
+var (
+	requiredFileUploadQuestionID = uuid.MustParse("b1b04042-95d1-4765-8592-caf9560c8c3d")
+	seededUploadFileID           = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c3f")
+)
 
 func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
@@ -216,6 +221,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -278,6 +289,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -319,6 +336,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 			{
 				ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"),
 				Answer:                []string{"MacBook"},
+			},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
 			},
 		},
 	}

@@ -6,12 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
-	"github.com/ls1intum/prompt2/servers/core/mailing"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
-	"github.com/ls1intum/prompt2/servers/core/utils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,6 +32,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationManual)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteApplications)
+	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
 
 	application.GET("/:coursePhaseID/:courseParticipationID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationByCPID)
 	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationAssessment)
@@ -43,10 +44,15 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	apply.GET("", getAllOpenApplications)
 	apply.GET("/:coursePhaseID", getApplicationFormWithCourseDetails)
 	apply.POST("/:coursePhaseID", postApplicationExtern)
+	apply.POST("/:coursePhaseID/files/presign", presignApplicationUploadExternal)
+	apply.POST("/:coursePhaseID/files/complete", completeApplicationUploadExternal)
 
 	applyAuthenticated := router.Group("/apply/authenticated", applicationMiddleware())
 	applyAuthenticated.GET("/:coursePhaseID", getApplicationAuthenticated)
 	applyAuthenticated.POST("/:coursePhaseID", postApplicationAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/presign", presignApplicationUploadAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/complete", completeApplicationUploadAuthenticated)
+	applyAuthenticated.DELETE("/:coursePhaseID/files/:fileId", deleteApplicationFileAuthenticated)
 
 }
 

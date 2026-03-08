@@ -188,6 +188,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/applications/{coursePhaseID}/files/{fileId}/download-url": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a presigned download URL for an application file in the given course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Get application file download URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File UUID",
+                        "name": "fileId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/applications/{coursePhaseID}/form": {
             "get": {
                 "description": "Get the application form for a course phase",
@@ -676,6 +744,199 @@ const docTemplate = `{
                 }
             }
         },
+        "/apply/authenticated/{coursePhaseID}/files/complete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Registers an uploaded file after a presigned upload completes (authenticated applicants)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Complete a presigned upload (authenticated)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Complete request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationAdministration.applicationCompleteUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/storage.FileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/apply/authenticated/{coursePhaseID}/files/presign": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a presigned URL for uploading a file directly to storage (authenticated applicants)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Create a presigned upload URL (authenticated)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Presign request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationAdministration.applicationPresignUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storage.PresignUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/apply/authenticated/{coursePhaseID}/files/{fileId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a file uploaded by the authenticated applicant for the given course phase",
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Delete an uploaded application file (authenticated)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File UUID",
+                        "name": "fileId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/apply/{coursePhaseID}": {
             "get": {
                 "description": "Get the application form and course details for a course phase",
@@ -774,6 +1035,112 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/apply/{coursePhaseID}/files/complete": {
+            "post": {
+                "description": "Registers an uploaded file after a presigned upload completes (external applicants)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Complete a presigned upload (external)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Complete request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationAdministration.applicationCompleteUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/storage.FileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/apply/{coursePhaseID}/files/presign": {
+            "post": {
+                "description": "Returns a presigned URL for uploading a file directly to storage (external applicants)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Create a presigned upload URL (external)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Presign request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationAdministration.applicationPresignUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/storage.PresignUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -2938,6 +3305,43 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "applicationAdministration.applicationCompleteUploadRequest": {
+            "type": "object",
+            "properties": {
+                "contentType": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "originalFilename": {
+                    "type": "string"
+                },
+                "storageKey": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationAdministration.applicationPresignUploadRequest": {
+            "type": "object",
+            "properties": {
+                "contentType": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.AdditionalScore": {
             "type": "object",
             "properties": {
@@ -2969,6 +3373,35 @@ const docTemplate = `{
                 },
                 "thresholdActive": {
                     "type": "boolean"
+                }
+            }
+        },
+        "applicationDTO.AnswerFileUpload": {
+            "type": "object",
+            "properties": {
+                "applicationQuestionID": {
+                    "type": "string"
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "downloadUrl": {
+                    "type": "string"
+                },
+                "fileID": {
+                    "type": "string"
+                },
+                "fileName": {
+                    "type": "string"
+                },
+                "fileSize": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "uploadedAt": {
+                    "type": "string"
                 }
             }
         },
@@ -3015,6 +3448,12 @@ const docTemplate = `{
         "applicationDTO.Application": {
             "type": "object",
             "properties": {
+                "answersFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.AnswerFileUpload"
+                    }
+                },
                 "answersMultiSelect": {
                     "type": "array",
                     "items": {
@@ -3026,6 +3465,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/applicationDTO.AnswerText"
                     }
+                },
+                "id": {
+                    "type": "string"
                 },
                 "status": {
                     "$ref": "#/definitions/applicationDTO.StatusEnum"
@@ -3058,6 +3500,17 @@ const docTemplate = `{
                 }
             }
         },
+        "applicationDTO.CreateAnswerFileUpload": {
+            "type": "object",
+            "properties": {
+                "applicationQuestionID": {
+                    "type": "string"
+                },
+                "fileID": {
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.CreateAnswerMultiSelect": {
             "type": "object",
             "properties": {
@@ -3079,6 +3532,38 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "applicationQuestionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.CreateQuestionFileUpload": {
+            "type": "object",
+            "properties": {
+                "accessKey": {
+                    "type": "string"
+                },
+                "accessibleForOtherPhases": {
+                    "type": "boolean"
+                },
+                "allowedFileTypes": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "isRequired": {
+                    "type": "boolean"
+                },
+                "maxFileSizeMB": {
+                    "type": "integer"
+                },
+                "orderNum": {
+                    "type": "integer"
+                },
+                "title": {
                     "type": "string"
                 }
             }
@@ -3170,6 +3655,12 @@ const docTemplate = `{
         "applicationDTO.Form": {
             "type": "object",
             "properties": {
+                "questionsFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.QuestionFileUpload"
+                    }
+                },
                 "questionsMultiSelect": {
                     "type": "array",
                     "items": {
@@ -3189,6 +3680,12 @@ const docTemplate = `{
             "properties": {
                 "applicationPhase": {
                     "$ref": "#/definitions/applicationDTO.OpenApplication"
+                },
+                "questionsFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.QuestionFileUpload"
+                    }
                 },
                 "questionsMultiSelect": {
                     "type": "array",
@@ -3256,6 +3753,12 @@ const docTemplate = `{
         "applicationDTO.PostApplication": {
             "type": "object",
             "properties": {
+                "answersFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.CreateAnswerFileUpload"
+                    }
+                },
                 "answersMultiSelect": {
                     "type": "array",
                     "items": {
@@ -3289,6 +3792,41 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "integer"
+                }
+            }
+        },
+        "applicationDTO.QuestionFileUpload": {
+            "type": "object",
+            "properties": {
+                "accessKey": {
+                    "type": "string"
+                },
+                "accessibleForOtherPhases": {
+                    "type": "boolean"
+                },
+                "allowedFileTypes": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isRequired": {
+                    "type": "boolean"
+                },
+                "maxFileSizeMB": {
+                    "type": "integer"
+                },
+                "orderNum": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -3398,6 +3936,12 @@ const docTemplate = `{
         "applicationDTO.UpdateForm": {
             "type": "object",
             "properties": {
+                "createQuestionsFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.CreateQuestionFileUpload"
+                    }
+                },
                 "createQuestionsMultiSelect": {
                     "type": "array",
                     "items": {
@@ -3410,6 +3954,12 @@ const docTemplate = `{
                         "$ref": "#/definitions/applicationDTO.CreateQuestionText"
                     }
                 },
+                "deleteQuestionsFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "deleteQuestionsMultiSelect": {
                     "type": "array",
                     "items": {
@@ -3420,6 +3970,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "updateQuestionsFileUpload": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.QuestionFileUpload"
                     }
                 },
                 "updateQuestionsMultiSelect": {
@@ -4316,6 +4872,67 @@ const docTemplate = `{
                 }
             }
         },
+        "storage.FileResponse": {
+            "type": "object",
+            "properties": {
+                "contentType": {
+                    "type": "string"
+                },
+                "coursePhaseId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "downloadUrl": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "originalFilename": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "storageKey": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uploadedByEmail": {
+                    "type": "string"
+                },
+                "uploadedByUserId": {
+                    "type": "string"
+                }
+            }
+        },
+        "storage.PresignUploadResponse": {
+            "type": "object",
+            "properties": {
+                "storageKey": {
+                    "type": "string"
+                },
+                "uploadUrl": {
+                    "type": "string"
+                }
+            }
+        },
         "studentDTO.CourseEnrollmentDTO": {
             "type": "object",
             "properties": {
@@ -4546,7 +5163,7 @@ const docTemplate = `{
     },
     "externalDocs": {
         "description": "PROMPT Documentation",
-        "url": "https://ls1intum.github.io/prompt2/"
+        "url": "https://prompt-edu.github.io/prompt/"
     }
 }`
 

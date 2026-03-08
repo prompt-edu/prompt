@@ -49,9 +49,12 @@ export default function PrivacyPage() {
           >
             <ArrowLeft className='h-4 w-4' />
           </Button>
-          <CardTitle className='text-3xl font-bold text-center'>Privacy Policy</CardTitle>
+          <CardTitle className='text-3xl font-bold text-center'>
+            Datenschutzerklärung / Privacy Policy
+          </CardTitle>
           <CardDescription className='text-center'>
-            Information about data protection and your rights
+            Informationen zum Datenschutz und Ihren Rechten / Information about data protection and
+            your rights
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-6'>

@@ -1,5 +1,29 @@
 basePath: /api/
 definitions:
+  applicationAdministration.applicationCompleteUploadRequest:
+    properties:
+      contentType:
+        type: string
+      description:
+        type: string
+      originalFilename:
+        type: string
+      storageKey:
+        type: string
+      tags:
+        type: string
+    type: object
+  applicationAdministration.applicationPresignUploadRequest:
+    properties:
+      contentType:
+        type: string
+      description:
+        type: string
+      filename:
+        type: string
+      tags:
+        type: string
+    type: object
   applicationDTO.AdditionalScore:
     properties:
       key:
@@ -21,6 +45,25 @@ definitions:
         type: number
       thresholdActive:
         type: boolean
+    type: object
+  applicationDTO.AnswerFileUpload:
+    properties:
+      applicationQuestionID:
+        type: string
+      courseParticipationID:
+        type: string
+      downloadUrl:
+        type: string
+      fileID:
+        type: string
+      fileName:
+        type: string
+      fileSize:
+        type: integer
+      id:
+        type: string
+      uploadedAt:
+        type: string
     type: object
   applicationDTO.AnswerMultiSelect:
     properties:
@@ -50,6 +93,10 @@ definitions:
     type: object
   applicationDTO.Application:
     properties:
+      answersFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.AnswerFileUpload'
+        type: array
       answersMultiSelect:
         items:
           $ref: '#/definitions/applicationDTO.AnswerMultiSelect'
@@ -58,6 +105,8 @@ definitions:
         items:
           $ref: '#/definitions/applicationDTO.AnswerText'
         type: array
+      id:
+        type: string
       status:
         $ref: '#/definitions/applicationDTO.StatusEnum'
       student:
@@ -78,6 +127,13 @@ definitions:
       student:
         $ref: '#/definitions/studentDTO.Student'
     type: object
+  applicationDTO.CreateAnswerFileUpload:
+    properties:
+      applicationQuestionID:
+        type: string
+      fileID:
+        type: string
+    type: object
   applicationDTO.CreateAnswerMultiSelect:
     properties:
       answer:
@@ -92,6 +148,27 @@ definitions:
       answer:
         type: string
       applicationQuestionID:
+        type: string
+    type: object
+  applicationDTO.CreateQuestionFileUpload:
+    properties:
+      accessKey:
+        type: string
+      accessibleForOtherPhases:
+        type: boolean
+      allowedFileTypes:
+        type: string
+      coursePhaseID:
+        type: string
+      description:
+        type: string
+      isRequired:
+        type: boolean
+      maxFileSizeMB:
+        type: integer
+      orderNum:
+        type: integer
+      title:
         type: string
     type: object
   applicationDTO.CreateQuestionMultiSelect:
@@ -152,6 +229,10 @@ definitions:
     type: object
   applicationDTO.Form:
     properties:
+      questionsFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.QuestionFileUpload'
+        type: array
       questionsMultiSelect:
         items:
           $ref: '#/definitions/applicationDTO.QuestionMultiSelect'
@@ -165,6 +246,10 @@ definitions:
     properties:
       applicationPhase:
         $ref: '#/definitions/applicationDTO.OpenApplication'
+      questionsFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.QuestionFileUpload'
+        type: array
       questionsMultiSelect:
         items:
           $ref: '#/definitions/applicationDTO.QuestionMultiSelect'
@@ -208,6 +293,10 @@ definitions:
     type: object
   applicationDTO.PostApplication:
     properties:
+      answersFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.CreateAnswerFileUpload'
+        type: array
       answersMultiSelect:
         items:
           $ref: '#/definitions/applicationDTO.CreateAnswerMultiSelect'
@@ -230,6 +319,29 @@ definitions:
         $ref: '#/definitions/meta.MetaData'
       score:
         type: integer
+    type: object
+  applicationDTO.QuestionFileUpload:
+    properties:
+      accessKey:
+        type: string
+      accessibleForOtherPhases:
+        type: boolean
+      allowedFileTypes:
+        type: string
+      coursePhaseID:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isRequired:
+        type: boolean
+      maxFileSizeMB:
+        type: integer
+      orderNum:
+        type: integer
+      title:
+        type: string
     type: object
   applicationDTO.QuestionMultiSelect:
     properties:
@@ -303,6 +415,10 @@ definitions:
     - StatusNewUser
   applicationDTO.UpdateForm:
     properties:
+      createQuestionsFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.CreateQuestionFileUpload'
+        type: array
       createQuestionsMultiSelect:
         items:
           $ref: '#/definitions/applicationDTO.CreateQuestionMultiSelect'
@@ -311,6 +427,10 @@ definitions:
         items:
           $ref: '#/definitions/applicationDTO.CreateQuestionText'
         type: array
+      deleteQuestionsFileUpload:
+        items:
+          type: string
+        type: array
       deleteQuestionsMultiSelect:
         items:
           type: string
@@ -318,6 +438,10 @@ definitions:
       deleteQuestionsText:
         items:
           type: string
+        type: array
+      updateQuestionsFileUpload:
+        items:
+          $ref: '#/definitions/applicationDTO.QuestionFileUpload'
         type: array
       updateQuestionsMultiSelect:
         items:
@@ -904,6 +1028,46 @@ definitions:
       endpointPath:
         type: string
     type: object
+  storage.FileResponse:
+    properties:
+      contentType:
+        type: string
+      coursePhaseId:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      downloadUrl:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      originalFilename:
+        type: string
+      sizeBytes:
+        type: integer
+      storageKey:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+      uploadedByEmail:
+        type: string
+      uploadedByUserId:
+        type: string
+    type: object
+  storage.PresignUploadResponse:
+    properties:
+      storageKey:
+        type: string
+      uploadUrl:
+        type: string
+    type: object
   studentDTO.CourseEnrollmentDTO:
     properties:
       courseId:
@@ -1055,7 +1219,7 @@ definitions:
     type: object
 externalDocs:
   description: PROMPT Documentation
-  url: https://ls1intum.github.io/prompt2/
+  url: https://prompt-edu.github.io/prompt/
 host: localhost:8080
 info:
   contact: {}
@@ -1255,6 +1419,51 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Update applications status
+      tags:
+      - applications
+  /applications/{coursePhaseID}/files/{fileId}/download-url:
+    get:
+      description: Creates a presigned download URL for an application file in the
+        given course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: File UUID
+        in: path
+        name: fileId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get application file download URL
       tags:
       - applications
   /applications/{coursePhaseID}/form:
@@ -1507,6 +1716,78 @@ paths:
       summary: Post an application (external)
       tags:
       - applications
+  /apply/{coursePhaseID}/files/complete:
+    post:
+      consumes:
+      - application/json
+      description: Registers an uploaded file after a presigned upload completes (external
+        applicants)
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Complete request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/applicationAdministration.applicationCompleteUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/storage.FileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Complete a presigned upload (external)
+      tags:
+      - applications
+  /apply/{coursePhaseID}/files/presign:
+    post:
+      consumes:
+      - application/json
+      description: Returns a presigned URL for uploading a file directly to storage
+        (external applicants)
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Presign request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/applicationAdministration.applicationPresignUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.PresignUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create a presigned upload URL (external)
+      tags:
+      - applications
   /apply/authenticated/{coursePhaseID}:
     get:
       description: Get the application form for an authenticated user
@@ -1575,6 +1856,133 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Post an application (authenticated)
+      tags:
+      - applications
+  /apply/authenticated/{coursePhaseID}/files/{fileId}:
+    delete:
+      description: Deletes a file uploaded by the authenticated applicant for the
+        given course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: File UUID
+        in: path
+        name: fileId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an uploaded application file (authenticated)
+      tags:
+      - applications
+  /apply/authenticated/{coursePhaseID}/files/complete:
+    post:
+      consumes:
+      - application/json
+      description: Registers an uploaded file after a presigned upload completes (authenticated
+        applicants)
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Complete request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/applicationAdministration.applicationCompleteUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/storage.FileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete a presigned upload (authenticated)
+      tags:
+      - applications
+  /apply/authenticated/{coursePhaseID}/files/presign:
+    post:
+      consumes:
+      - application/json
+      description: Returns a presigned URL for uploading a file directly to storage
+        (authenticated applicants)
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Presign request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/applicationAdministration.applicationPresignUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/storage.PresignUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a presigned upload URL (authenticated)
       tags:
       - applications
   /auth/course_phase/{coursePhaseID}/is_student:

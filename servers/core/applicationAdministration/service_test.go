@@ -10,15 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/meta"
-	"github.com/ls1intum/prompt2/servers/core/student"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
-	"github.com/ls1intum/prompt2/servers/core/testutils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
+	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -67,6 +67,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_Success() 
 	assert.NotNil(suite.T(), form)
 	assert.NotEmpty(suite.T(), form.QuestionsText)
 	assert.NotEmpty(suite.T(), form.QuestionsMultiSelect)
+	assert.NotEmpty(suite.T(), form.QuestionsFileUpload)
 
 	// Verify QuestionsText
 	assert.Equal(suite.T(), 2, len(form.QuestionsText))
@@ -93,6 +94,23 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_Success() 
 			suite.T().Errorf("Unexpected question title: %s", question.Title)
 		}
 	}
+
+	// Verify QuestionsFileUpload
+	assert.Equal(suite.T(), 2, len(form.QuestionsFileUpload))
+	for _, question := range form.QuestionsFileUpload {
+		switch question.Title {
+		case "Resume Upload":
+			assert.True(suite.T(), question.IsRequired)
+			assert.Equal(suite.T(), ".pdf,.doc,.docx", question.AllowedFileTypes)
+			assert.Equal(suite.T(), 10, question.MaxFileSizeMB)
+		case "Portfolio":
+			assert.False(suite.T(), question.IsRequired)
+			assert.Equal(suite.T(), ".pdf,.zip", question.AllowedFileTypes)
+			assert.Equal(suite.T(), 20, question.MaxFileSizeMB)
+		default:
+			suite.T().Errorf("Unexpected question title: %s", question.Title)
+		}
+	}
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_NotApplicationPhase() {
@@ -108,6 +126,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationForm_Success
 	updateForm := applicationDTO.UpdateForm{
 		DeleteQuestionsText:        []uuid.UUID{uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c")},
 		DeleteQuestionsMultiSelect: []uuid.UUID{uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b")},
+		DeleteQuestionsFileUpload:  []uuid.UUID{uuid.MustParse("b1b04042-95d1-4765-8592-caf9560c8c3d")},
 		CreateQuestionsText: []applicationDTO.CreateQuestionText{
 			{
 				CoursePhaseID: coursePhaseID,
@@ -122,6 +141,16 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationForm_Success
 				MinSelect:     1,
 				MaxSelect:     5,
 				Options:       []string{"Option1", "Option2"},
+			},
+		},
+		CreateQuestionsFileUpload: []applicationDTO.CreateQuestionFileUpload{
+			{
+				CoursePhaseID:    coursePhaseID,
+				Title:            "New File Upload",
+				IsRequired:       true,
+				AllowedFileTypes: ".pdf,.docx",
+				MaxFileSizeMB:    15,
+				OrderNum:         5,
 			},
 		},
 	}
@@ -155,6 +184,23 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationForm_Success
 			assert.ElementsMatch(suite.T(), []string{"Option1", "Option2"}, question.Options)
 		case "Taken Courses":
 			assert.ElementsMatch(suite.T(), []string{"Ferienakademie", "Patterns", "Interactive Learning"}, question.Options)
+		default:
+			suite.T().Errorf("Unexpected question title: %s", question.Title)
+		}
+	}
+
+	// Verify QuestionsFileUpload
+	assert.Equal(suite.T(), 2, len(form.QuestionsFileUpload))
+	for _, question := range form.QuestionsFileUpload {
+		switch question.Title {
+		case "New File Upload":
+			assert.True(suite.T(), question.IsRequired)
+			assert.Equal(suite.T(), ".pdf,.docx", question.AllowedFileTypes)
+			assert.Equal(suite.T(), 15, question.MaxFileSizeMB)
+		case "Portfolio":
+			assert.False(suite.T(), question.IsRequired)
+			assert.Equal(suite.T(), ".pdf,.zip", question.AllowedFileTypes)
+			assert.Equal(suite.T(), 20, question.MaxFileSizeMB)
 		default:
 			suite.T().Errorf("Unexpected question title: %s", question.Title)
 		}

@@ -3,8 +3,24 @@ name: Build and Deploy to Dev
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/build-docs.yml"
+      - ".github/workflows/discord-notifications.yml"
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/build-docs.yml"
+      - ".github/workflows/discord-notifications.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

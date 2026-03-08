@@ -176,7 +176,7 @@ export default function Home() {
               <h3>Report a Bug</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/issues"
+                  href="https://github.com/prompt-edu/prompt/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -191,7 +191,7 @@ export default function Home() {
               <h3>Request a Feature</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/issues"
+                  href="https://github.com/prompt-edu/prompt/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -206,7 +206,7 @@ export default function Home() {
               <h3>Release Notes</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/releases"
+                  href="https://github.com/prompt-edu/prompt/releases"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

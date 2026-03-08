@@ -3,8 +3,8 @@ package teamDTO
 import (
 	"encoding/json"
 
-	"github.com/ls1intum/prompt-sdk/promptTypes"
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 )
 
 func GetTeamDTOFromDBModel(dbTeam db.GetTeamsWithStudentNamesRow) (promptTypes.Team, error) {

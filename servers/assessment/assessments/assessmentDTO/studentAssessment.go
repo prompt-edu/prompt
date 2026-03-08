@@ -2,9 +2,9 @@ package assessmentDTO
 
 import (
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 )
 
 type StudentAssessment struct {

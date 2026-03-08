@@ -17,6 +17,7 @@ import {
 } from './FormPages/ApplicationQuestionCard'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { ApplicationForm } from '../../interfaces/form/applicationForm'
 import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
@@ -30,7 +31,7 @@ import { ApplicationPreview } from '@core/publicPages/application/pages/Applicat
 export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const [applicationQuestions, setApplicationQuestions] = useState<
-    (ApplicationQuestionText | ApplicationQuestionMultiSelect)[]
+    (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
   >([])
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
@@ -49,6 +50,7 @@ export const ApplicationQuestionConfig = () => {
   const originalQuestions = [
     ...(fetchedForm?.questionsMultiSelect ?? []),
     ...(fetchedForm?.questionsText ?? []),
+    ...(fetchedForm?.questionsFileUpload ?? []),
   ]
   const questionsModified = computeQuestionsModified(fetchedForm, applicationQuestions)
 
@@ -69,9 +71,14 @@ export const ApplicationQuestionConfig = () => {
   })
 
   const setQuestionsFromForm = (form: ApplicationForm) => {
-    const combinedQuestions: (ApplicationQuestionText | ApplicationQuestionMultiSelect)[] = [
-      ...form.questionsMultiSelect,
-      ...form.questionsText,
+    const combinedQuestions: (
+      | ApplicationQuestionText
+      | ApplicationQuestionMultiSelect
+      | ApplicationQuestionFileUpload
+    )[] = [
+      ...(form.questionsMultiSelect ?? []),
+      ...(form.questionsText ?? []),
+      ...(form.questionsFileUpload ?? []),
     ]
 
     // Sort the combined questions by ordernum
@@ -154,7 +161,10 @@ export const ApplicationQuestionConfig = () => {
                 (question) => 'options' in question,
               )}
               questionsText={applicationQuestions.filter(
-                (question) => 'options' in question === false,
+                (question) => !('options' in question) && !('allowedFileTypes' in question),
+              )}
+              questionsFileUpload={applicationQuestions.filter(
+                (question) => 'allowedFileTypes' in question,
               )}
             />
             <AddQuestionMenu

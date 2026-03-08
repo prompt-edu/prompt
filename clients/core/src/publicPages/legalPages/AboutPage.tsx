@@ -119,18 +119,18 @@ export default function AboutPage() {
                 {
                   icon: Bug,
                   text: 'Report a bug',
-                  link: 'https://github.com/ls1intum/prompt2/issues',
+                  link: 'https://github.com/prompt-edu/prompt/issues',
                 },
                 {
                   icon: GitPullRequest,
                   text: 'Request a feature',
-                  link: 'https://github.com/ls1intum/prompt2/issues',
+                  link: 'https://github.com/prompt-edu/prompt/issues',
                 },
                 { icon: Mail, text: 'Contact us', link: 'https://ase.cit.tum.de/impressum/' },
                 {
                   icon: FileText,
                   text: 'Release notes',
-                  link: 'https://github.com/ls1intum/prompt2/releases',
+                  link: 'https://github.com/prompt-edu/prompt/releases',
                 },
               ].map((item, index) => (
                 <a
@@ -211,7 +211,7 @@ export default function AboutPage() {
                   </p>
                   <div className='flex justify-end mt-3'>
                     <Button variant='outline'>
-                      <Link to='https://ls1intum.github.io/prompt2/' className='btn btn-outline'>
+                      <Link to='https://prompt-edu.github.io/prompt/' className='btn btn-outline'>
                         Learn More
                       </Link>
                     </Button>

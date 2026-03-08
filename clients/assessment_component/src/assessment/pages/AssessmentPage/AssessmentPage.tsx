@@ -68,7 +68,7 @@ export const AssessmentPage = () => {
     return (
       <ErrorPage
         title='No participant found for this course participation ID'
-        description='We like what you are doing. To contribute, checkout https://github.com/ls1intum/prompt2'
+        description='We like what you are doing. To contribute, checkout https://github.com/prompt-edu/prompt'
       />
     )
   }

@@ -2,7 +2,7 @@ package developerProfileDTO
 
 import (
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
 )
 
 type DeviceWithParticipationID struct {

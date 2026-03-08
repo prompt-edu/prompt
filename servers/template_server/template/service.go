@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/template_server/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/template_server/db/sqlc"
 )
 
 type TemplateService struct {

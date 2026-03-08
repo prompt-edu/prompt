@@ -1,6 +1,6 @@
 package utils
 
-import promptSDK "github.com/ls1intum/prompt-sdk"
+import promptSDK "github.com/prompt-edu/prompt-sdk"
 
 func GetCoreUrl() string {
 	localHost := "http://localhost:8080"

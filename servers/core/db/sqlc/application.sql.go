@@ -118,6 +118,28 @@ func (q *Queries) CheckIfCoursePhaseIsOpenApplicationPhase(ctx context.Context, 
 	return i, err
 }
 
+const createApplicationAnswerFileUpload = `-- name: CreateApplicationAnswerFileUpload :exec
+INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateApplicationAnswerFileUploadParams struct {
+	ID                    uuid.UUID `json:"id"`
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	FileID                uuid.UUID `json:"file_id"`
+}
+
+func (q *Queries) CreateApplicationAnswerFileUpload(ctx context.Context, arg CreateApplicationAnswerFileUploadParams) error {
+	_, err := q.db.Exec(ctx, createApplicationAnswerFileUpload,
+		arg.ID,
+		arg.ApplicationQuestionID,
+		arg.CourseParticipationID,
+		arg.FileID,
+	)
+	return err
+}
+
 const createApplicationAnswerMultiSelect = `-- name: CreateApplicationAnswerMultiSelect :exec
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4)
@@ -158,6 +180,40 @@ func (q *Queries) CreateApplicationAnswerText(ctx context.Context, arg CreateApp
 		arg.ApplicationQuestionID,
 		arg.CourseParticipationID,
 		arg.Answer,
+	)
+	return err
+}
+
+const createApplicationQuestionFileUpload = `-- name: CreateApplicationQuestionFileUpload :exec
+INSERT INTO application_question_file_upload (id, course_phase_id, title, description, is_required, allowed_file_types, max_file_size_mb, order_num, accessible_for_other_phases, access_key)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type CreateApplicationQuestionFileUploadParams struct {
+	ID                       uuid.UUID   `json:"id"`
+	CoursePhaseID            uuid.UUID   `json:"course_phase_id"`
+	Title                    string      `json:"title"`
+	Description              pgtype.Text `json:"description"`
+	IsRequired               bool        `json:"is_required"`
+	AllowedFileTypes         pgtype.Text `json:"allowed_file_types"`
+	MaxFileSizeMb            pgtype.Int4 `json:"max_file_size_mb"`
+	OrderNum                 int32       `json:"order_num"`
+	AccessibleForOtherPhases bool        `json:"accessible_for_other_phases"`
+	AccessKey                pgtype.Text `json:"access_key"`
+}
+
+func (q *Queries) CreateApplicationQuestionFileUpload(ctx context.Context, arg CreateApplicationQuestionFileUploadParams) error {
+	_, err := q.db.Exec(ctx, createApplicationQuestionFileUpload,
+		arg.ID,
+		arg.CoursePhaseID,
+		arg.Title,
+		arg.Description,
+		arg.IsRequired,
+		arg.AllowedFileTypes,
+		arg.MaxFileSizeMb,
+		arg.OrderNum,
+		arg.AccessibleForOtherPhases,
+		arg.AccessKey,
 	)
 	return err
 }
@@ -240,6 +296,31 @@ func (q *Queries) CreateApplicationQuestionText(ctx context.Context, arg CreateA
 	return err
 }
 
+const createOrOverwriteApplicationAnswerFileUpload = `-- name: CreateOrOverwriteApplicationAnswerFileUpload :exec
+INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (course_participation_id, application_question_id)
+DO UPDATE
+SET file_id = EXCLUDED.file_id
+`
+
+type CreateOrOverwriteApplicationAnswerFileUploadParams struct {
+	ID                    uuid.UUID `json:"id"`
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	FileID                uuid.UUID `json:"file_id"`
+}
+
+func (q *Queries) CreateOrOverwriteApplicationAnswerFileUpload(ctx context.Context, arg CreateOrOverwriteApplicationAnswerFileUploadParams) error {
+	_, err := q.db.Exec(ctx, createOrOverwriteApplicationAnswerFileUpload,
+		arg.ID,
+		arg.ApplicationQuestionID,
+		arg.CourseParticipationID,
+		arg.FileID,
+	)
+	return err
+}
+
 const createOrOverwriteApplicationAnswerMultiSelect = `-- name: CreateOrOverwriteApplicationAnswerMultiSelect :exec
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4)
@@ -287,6 +368,16 @@ func (q *Queries) CreateOrOverwriteApplicationAnswerText(ctx context.Context, ar
 		arg.CourseParticipationID,
 		arg.Answer,
 	)
+	return err
+}
+
+const deleteApplicationQuestionFileUpload = `-- name: DeleteApplicationQuestionFileUpload :exec
+DELETE FROM application_question_file_upload
+WHERE id = $1
+`
+
+func (q *Queries) DeleteApplicationQuestionFileUpload(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteApplicationQuestionFileUpload, id)
 	return err
 }
 
@@ -493,6 +584,65 @@ func (q *Queries) GetAllOpenApplicationPhases(ctx context.Context) ([]GetAllOpen
 	return items, nil
 }
 
+const getApplicationAnswerFileUploadByQuestionAndParticipation = `-- name: GetApplicationAnswerFileUploadByQuestionAndParticipation :one
+SELECT id, application_question_id, course_participation_id, file_id FROM application_answer_file_upload
+WHERE application_question_id = $1 AND course_participation_id = $2
+`
+
+type GetApplicationAnswerFileUploadByQuestionAndParticipationParams struct {
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+}
+
+func (q *Queries) GetApplicationAnswerFileUploadByQuestionAndParticipation(ctx context.Context, arg GetApplicationAnswerFileUploadByQuestionAndParticipationParams) (ApplicationAnswerFileUpload, error) {
+	row := q.db.QueryRow(ctx, getApplicationAnswerFileUploadByQuestionAndParticipation, arg.ApplicationQuestionID, arg.CourseParticipationID)
+	var i ApplicationAnswerFileUpload
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationQuestionID,
+		&i.CourseParticipationID,
+		&i.FileID,
+	)
+	return i, err
+}
+
+const getApplicationAnswersFileUploadForCourseParticipationID = `-- name: GetApplicationAnswersFileUploadForCourseParticipationID :many
+SELECT aafu.id, aafu.application_question_id, aafu.course_participation_id, aafu.file_id
+FROM application_answer_file_upload aafu
+JOIN application_question_file_upload aqfu ON aafu.application_question_id = aqfu.id
+WHERE aqfu.course_phase_id = $1 AND aafu.course_participation_id = $2
+`
+
+type GetApplicationAnswersFileUploadForCourseParticipationIDParams struct {
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+}
+
+func (q *Queries) GetApplicationAnswersFileUploadForCourseParticipationID(ctx context.Context, arg GetApplicationAnswersFileUploadForCourseParticipationIDParams) ([]ApplicationAnswerFileUpload, error) {
+	rows, err := q.db.Query(ctx, getApplicationAnswersFileUploadForCourseParticipationID, arg.CoursePhaseID, arg.CourseParticipationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApplicationAnswerFileUpload
+	for rows.Next() {
+		var i ApplicationAnswerFileUpload
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationQuestionID,
+			&i.CourseParticipationID,
+			&i.FileID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getApplicationAnswersMultiSelectForCourseParticipationID = `-- name: GetApplicationAnswersMultiSelectForCourseParticipationID :many
 SELECT aams.id, aams.application_question_id, aams.answer, aams.course_participation_id
 FROM application_answer_multi_select aams
@@ -623,6 +773,42 @@ func (q *Queries) GetApplicationPhaseIDForCourse(ctx context.Context, courseID u
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getApplicationQuestionsFileUploadForCoursePhase = `-- name: GetApplicationQuestionsFileUploadForCoursePhase :many
+SELECT id, course_phase_id, title, description, is_required, allowed_file_types, max_file_size_mb, order_num, accessible_for_other_phases, access_key FROM application_question_file_upload
+WHERE course_phase_id = $1
+`
+
+func (q *Queries) GetApplicationQuestionsFileUploadForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]ApplicationQuestionFileUpload, error) {
+	rows, err := q.db.Query(ctx, getApplicationQuestionsFileUploadForCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApplicationQuestionFileUpload
+	for rows.Next() {
+		var i ApplicationQuestionFileUpload
+		if err := rows.Scan(
+			&i.ID,
+			&i.CoursePhaseID,
+			&i.Title,
+			&i.Description,
+			&i.IsRequired,
+			&i.AllowedFileTypes,
+			&i.MaxFileSizeMb,
+			&i.OrderNum,
+			&i.AccessibleForOtherPhases,
+			&i.AccessKey,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getApplicationQuestionsMultiSelectForCoursePhase = `-- name: GetApplicationQuestionsMultiSelectForCoursePhase :many
@@ -844,6 +1030,47 @@ type UpdateApplicationAssessmentParams struct {
 
 func (q *Queries) UpdateApplicationAssessment(ctx context.Context, arg UpdateApplicationAssessmentParams) error {
 	_, err := q.db.Exec(ctx, updateApplicationAssessment, arg.CoursePhaseID, arg.CourseParticipationID, arg.Score)
+	return err
+}
+
+const updateApplicationQuestionFileUpload = `-- name: UpdateApplicationQuestionFileUpload :exec
+UPDATE application_question_file_upload
+SET
+    title = COALESCE($2, title),
+    description = COALESCE($3, description),
+    is_required = COALESCE($4, is_required),
+    allowed_file_types = COALESCE($5, allowed_file_types),
+    max_file_size_mb = COALESCE($6, max_file_size_mb),
+    order_num = COALESCE($7, order_num),
+    accessible_for_other_phases = COALESCE($8, accessible_for_other_phases),
+    access_key = COALESCE($9, access_key)
+WHERE id = $1
+`
+
+type UpdateApplicationQuestionFileUploadParams struct {
+	ID                       uuid.UUID   `json:"id"`
+	Title                    string      `json:"title"`
+	Description              pgtype.Text `json:"description"`
+	IsRequired               bool        `json:"is_required"`
+	AllowedFileTypes         pgtype.Text `json:"allowed_file_types"`
+	MaxFileSizeMb            pgtype.Int4 `json:"max_file_size_mb"`
+	OrderNum                 int32       `json:"order_num"`
+	AccessibleForOtherPhases bool        `json:"accessible_for_other_phases"`
+	AccessKey                pgtype.Text `json:"access_key"`
+}
+
+func (q *Queries) UpdateApplicationQuestionFileUpload(ctx context.Context, arg UpdateApplicationQuestionFileUploadParams) error {
+	_, err := q.db.Exec(ctx, updateApplicationQuestionFileUpload,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.IsRequired,
+		arg.AllowedFileTypes,
+		arg.MaxFileSizeMb,
+		arg.OrderNum,
+		arg.AccessibleForOtherPhases,
+		arg.AccessKey,
+	)
 	return err
 }
 

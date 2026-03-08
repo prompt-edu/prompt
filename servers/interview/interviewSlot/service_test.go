@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/interview/db/sqlc"
-	interviewSlotDTO "github.com/ls1intum/prompt2/servers/interview/interviewSlot/interviewSlotDTO"
-	"github.com/ls1intum/prompt2/servers/interview/testutils"
+	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
+	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
+	"github.com/prompt-edu/prompt/servers/interview/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 type AssessmentSchemaServiceTestSuite struct {

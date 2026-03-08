@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/assessment/competencies/competencyDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type CategoryWithCompetencies struct {

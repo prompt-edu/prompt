@@ -12,6 +12,8 @@ This document provides essential context for AI assistants working on the PROMPT
 
 **Live Instance:** <https://prompt.aet.cit.tum.de/>
 
+**Community & Support:** [Join our Discord Server](https://discord.gg/eybNUqD8gf) for coordination and support.
+
 ## Repository Structure
 
 ```text
@@ -178,7 +180,7 @@ module/
 3. Use generated methods:
 
    ```go
-   import db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+   import db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 
    tutors, err := queries.GetTutors(ctx, coursePhaseID)
    ```

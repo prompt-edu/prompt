@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt-sdk/keycloakTokenVerifier"
-	interviewAssignmentDTO "github.com/ls1intum/prompt2/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	"github.com/ls1intum/prompt2/servers/interview/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
+	"github.com/prompt-edu/prompt/servers/interview/utils"
 	log "github.com/sirupsen/logrus"
 )
 

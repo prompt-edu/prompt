@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/intro_course/developerProfile/developerProfileDTO"
-	"github.com/ls1intum/prompt2/servers/intro_course/testutils"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/intro_course/developerProfile/developerProfileDTO"
+	"github.com/prompt-edu/prompt/servers/intro_course/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

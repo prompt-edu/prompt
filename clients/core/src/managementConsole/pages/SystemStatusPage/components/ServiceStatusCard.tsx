@@ -8,18 +8,18 @@ import {
   Skeleton,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, CheckCircle2, Server, XCircle } from 'lucide-react'
-import { useGetServiceInfo } from '../hooks/useGetServiceCapabilities'
-import { CAPABILITY_LABELS, KnownService } from '../interfaces/serviceCapabilities'
+import { CAPABILITY_LABELS, KnownService, ServiceInfo } from '../interfaces/serviceCapabilities'
 
 interface ServiceStatusCardProps {
   service: KnownService
+  data: ServiceInfo | undefined
+  isPending: boolean
+  isError: boolean
 }
 
 const ALL_KNOWN_CAPABILITIES = Object.keys(CAPABILITY_LABELS)
 
-export const ServiceStatusCard = ({ service }: ServiceStatusCardProps) => {
-  const { data, isPending, isError } = useGetServiceInfo(service)
-
+export const ServiceStatusCard = ({ service, data, isPending, isError }: ServiceStatusCardProps) => {
   const statusBadge = () => {
     if (isError) {
       return (
@@ -76,7 +76,7 @@ export const ServiceStatusCard = ({ service }: ServiceStatusCardProps) => {
           <>
             <dl className='grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm'>
               <dt className='text-muted-foreground'>Version</dt>
-              <dd>{data!.version ? `v${data!.version}` : '—'}</dd>
+              <dd>{data!.version ? `${data!.version}` : 'n/a'}</dd>
               <dt className='text-muted-foreground'>Health</dt>
               <dd className={data!.healthy ? 'text-green-600' : 'text-yellow-600'}>
                 {data!.healthy ? 'Healthy' : 'Degraded'}

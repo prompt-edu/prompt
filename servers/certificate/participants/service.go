@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt-sdk/promptTypes"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/certificate/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
 

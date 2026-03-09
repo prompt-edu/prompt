@@ -3,8 +3,8 @@ package config
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 )
 
 func InitConfigModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {

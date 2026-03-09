@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt-sdk/keycloakTokenVerifier"
-	"github.com/ls1intum/prompt2/servers/certificate/config/configDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
 )
 

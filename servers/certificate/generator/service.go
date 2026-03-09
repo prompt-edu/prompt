@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/certificate/config"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/certificate/participants"
+	"github.com/prompt-edu/prompt/servers/certificate/config"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	log "github.com/sirupsen/logrus"
 )
 

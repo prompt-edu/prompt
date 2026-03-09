@@ -1,7 +1,7 @@
 package utils
 
 import (
-	promptSDK "github.com/ls1intum/prompt-sdk"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 )
 
 func GetCoreUrl() string {

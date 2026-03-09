@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/certificate/testutils"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/testutils"
 )
 
 type ConfigServiceTestSuite struct {

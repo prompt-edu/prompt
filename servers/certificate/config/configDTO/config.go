@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 )
 
 type CoursePhaseConfig struct {

@@ -14,12 +14,13 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/certificate/config"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/certificate/generator"
-	"github.com/ls1intum/prompt2/servers/certificate/participants"
-	"github.com/ls1intum/prompt2/servers/certificate/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/certificate/config"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/generator"
+	"github.com/prompt-edu/prompt/servers/certificate/participants"
+	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -142,7 +143,8 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("certificate/api/course_phase/:coursePhaseID")
+	apiBase := router.Group("certificate/api")
+	api := apiBase.Group("/course_phase/:coursePhaseID")
 	initKeycloak()
 
 	api.GET("/hello", helloCertificate)
@@ -151,6 +153,19 @@ func main() {
 	config.InitConfigModule(api, *query, conn)
 	participants.InitParticipantsModule(api, *query)
 	generator.InitGeneratorModule(api, *query)
+
+	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
+		ServiceName: "certificate",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyStudentExport:   false,
+			promptTypes.CapabilityPrivacyStudentDeletion: false,
+			promptTypes.CapabilityPhaseCopy:              false,
+			promptTypes.CapabilityPhaseConfig:            true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8088")
 	log.Info("Certificate Server started")

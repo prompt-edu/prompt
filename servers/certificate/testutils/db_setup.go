@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )

@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ls1intum/prompt2/servers/certificate/config/configDTO"
-	db "github.com/ls1intum/prompt2/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 

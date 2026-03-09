@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { KnownService, ServiceInfo } from '../interfaces/serviceCapabilities'
+import { ServiceInfo } from '../interfaces/serviceCapabilities'
 import { getServiceInfo } from '../network/getServiceCapabilities'
+import { CoursePhaseType } from '../interfaces/coursePhaseType'
 
-export const useGetServiceInfo = (service: KnownService) => {
+export const useGetServiceInfo = (coursePhaseType: CoursePhaseType) => {
   return useQuery<ServiceInfo, Error>({
-    queryKey: ['serviceInfo', service.apiBasePath],
-    queryFn: () => getServiceInfo(service),
+    queryKey: ['serviceInfo', coursePhaseType.baseUrl],
+    queryFn: () => getServiceInfo(coursePhaseType),
     retry: false,
     staleTime: 30_000,
   })

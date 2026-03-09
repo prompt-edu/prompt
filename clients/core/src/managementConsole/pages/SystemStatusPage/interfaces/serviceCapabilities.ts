@@ -17,9 +17,3 @@ export const CAPABILITY_LABELS: Record<string, string> = {
   [CAPABILITY_PRIVACY_STUDENT_EXPORT]: 'Student Export (GDPR)',
   [CAPABILITY_PRIVACY_STUDENT_DELETION]: 'Student Deletion (GDPR)',
 }
-
-export interface KnownService {
-  name: string
-  apiBasePath: string
-  host: string
-}

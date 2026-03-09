@@ -1,9 +1,10 @@
 import axios from 'axios'
-import { parseURL } from '@/utils/parseURL'
-import { KnownService, ServiceInfo } from '../interfaces/serviceCapabilities'
+import { ServiceInfo } from '../interfaces/serviceCapabilities'
+import { CoursePhaseType } from '../interfaces/coursePhaseType'
 
-export const getServiceInfo = async (service: KnownService): Promise<ServiceInfo> => {
-  const baseUrl = parseURL(service.host)
-  const response = await axios.get<ServiceInfo>(`${baseUrl}/${service.apiBasePath}/info`)
+export const getServiceInfo = async (service: CoursePhaseType): Promise<ServiceInfo> => {
+  console.log('get service info for ' + `${service.baseUrl}/info`)
+
+  const response = await axios.get<ServiceInfo>(`${service.baseUrl}/info`)
   return response.data
 }

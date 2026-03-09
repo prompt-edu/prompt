@@ -8,10 +8,11 @@ import {
   Skeleton,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, CheckCircle2, Server, XCircle } from 'lucide-react'
-import { CAPABILITY_LABELS, KnownService, ServiceInfo } from '../interfaces/serviceCapabilities'
+import { CAPABILITY_LABELS, ServiceInfo } from '../interfaces/serviceCapabilities'
+import { CoursePhaseType } from '../interfaces/coursePhaseType'
 
 interface ServiceStatusCardProps {
-  service: KnownService
+  service: CoursePhaseType
   data: ServiceInfo | undefined
   isPending: boolean
   isError: boolean
@@ -19,7 +20,12 @@ interface ServiceStatusCardProps {
 
 const ALL_KNOWN_CAPABILITIES = Object.keys(CAPABILITY_LABELS)
 
-export const ServiceStatusCard = ({ service, data, isPending, isError }: ServiceStatusCardProps) => {
+export const ServiceStatusCard = ({
+  service,
+  data,
+  isPending,
+  isError,
+}: ServiceStatusCardProps) => {
   const statusBadge = () => {
     if (isError) {
       return (

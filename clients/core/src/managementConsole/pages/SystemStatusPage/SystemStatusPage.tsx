@@ -1,27 +1,32 @@
 import { useQueries } from '@tanstack/react-query'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
-import { KNOWN_SERVICES } from './config/knownServices'
 import { ServiceInfo } from './interfaces/serviceCapabilities'
+import { CoursePhaseType } from './interfaces/coursePhaseType'
 import { getServiceInfo } from './network/getServiceCapabilities'
+import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
 
 export const SystemStatusPage = () => {
+  const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()
+
   const results = useQueries({
-    queries: KNOWN_SERVICES.map((service) => ({
-      queryKey: ['serviceInfo', service.apiBasePath],
-      queryFn: () => getServiceInfo(service),
-      retry: false,
-      staleTime: 30_000,
-    })),
+    queries: coursePhaseTypes.map((service) => {
+      return {
+        queryKey: ['serviceInfo-' + service.id],
+        queryFn: () => getServiceInfo(service),
+        retry: false,
+        staleTime: 30_000,
+      }
+    }),
   })
 
-  const availableServices = KNOWN_SERVICES.filter((_, i) => !results[i].isError)
-  const unavailableServices = KNOWN_SERVICES.filter((_, i) => results[i].isError)
+  const availableServices = coursePhaseTypes.filter((_, i) => !results[i].isError)
+  const unavailableServices = coursePhaseTypes.filter((_, i) => results[i].isError)
 
-  const renderCard = (service: (typeof KNOWN_SERVICES)[number]) => {
-    const i = KNOWN_SERVICES.indexOf(service)
+  const renderCard = (service: CoursePhaseType) => {
+    const i = coursePhaseTypes.indexOf(service)
     return (
       <ServiceStatusCard
-        key={service.apiBasePath}
+        key={service.id}
         service={service}
         data={results[i].data as ServiceInfo | undefined}
         isPending={results[i].isPending}
@@ -36,7 +41,7 @@ export const SystemStatusPage = () => {
 
       <div className='flex flex-col gap-3'>
         <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
-          Available ({availableServices.length})
+          Available
         </h2>
         {availableServices.length > 0 ? (
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
@@ -50,7 +55,7 @@ export const SystemStatusPage = () => {
       {unavailableServices.length > 0 && (
         <div className='flex flex-col gap-3'>
           <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
-            Unavailable ({unavailableServices.length})
+            Unavailable
           </h2>
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
             {unavailableServices.map(renderCard)}

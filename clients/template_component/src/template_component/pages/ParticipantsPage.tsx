@@ -1,30 +1,18 @@
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
-import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
 import { Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
+import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
 
 export const ParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const {
     data: coursePhaseParticipations,
-    isPending: isCoursePhaseParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
-  })
-
-  const refetch = () => {
-    refetchCoursePhaseParticipations()
-  }
-
-  const isError = isParticipationsError
-  const isPending = isCoursePhaseParticipationsPending
+    isPending,
+    isError,
+    refetch,
+  } = useGetCoursePhaseParticipants()
 
   if (isError) return <ErrorPage onRetry={refetch} description='Could not fetch participants' />
   if (isPending)

@@ -7,14 +7,14 @@ export const StudentCoursePreview = ({
   studentCourseParticipation: StudentCourseParticipation
 }) => {
   return (
-    <div
-      className={`flex items-center ${studentCourseParticipation.studentReadableData['bg-color']} rounded-lg gap-1 pr-2 font-semibold text-black`}
-    >
-      <CourseAvatar
-        bgColor={studentCourseParticipation.studentReadableData['bg-color']}
-        iconName={studentCourseParticipation.studentReadableData['icon']}
-        className='size-8'
-      />
+    <div className={`flex items-center text-black text-sm mr-1`}>
+      <div style={{ zoom: 0.85 }}>
+        <CourseAvatar
+          bgColor={studentCourseParticipation.studentReadableData['bg-color']}
+          iconName={studentCourseParticipation.studentReadableData['icon']}
+          className='size-8 mr-1'
+        />
+      </div>
       {studentCourseParticipation.courseName}
     </div>
   )

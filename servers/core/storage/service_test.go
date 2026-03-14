@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,7 +28,9 @@ func (suite *StorageServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up test database
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/storage_test.sql")
+	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/storage_test.sql", func(pool *pgxpool.Pool) *db.Queries {
+		return db.New(pool)
+	})
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

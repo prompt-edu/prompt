@@ -8,8 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/intro_course/testutils"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +19,7 @@ func TestHandlePhaseCopyCopiesSeatPlan(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx := context.Background()
 
-	testDB, cleanup, err := testutils.SetupTestDB(ctx, "../database_dumps/intro_course.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/intro_course.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}

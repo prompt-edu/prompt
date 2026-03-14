@@ -22,14 +22,14 @@ const config = {
   },
 
   // Set the production url of your site here
-  url: "https://ls1intum.github.io",
+  url: "https://prompt-edu.github.io",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: "/prompt2/",
+  baseUrl: "/prompt/",
 
   // GitHub pages deployment config.
-  organizationName: "ls1intum", // Your GitHub org/user name.
-  projectName: "prompt2", // Your repo name.
+  organizationName: "prompt-edu", // Your GitHub org/user name.
+  projectName: "prompt", // Your repo name.
 
   onBrokenLinks: "throw",
 

@@ -62,7 +62,7 @@ export default function Home() {
           <div className={styles.featureGrid}>
             <a
               className={styles.featureCard}
-              href="/prompt2/user/course_configurator"
+              href="/prompt/user/course_configurator"
             >
               <div className={styles.featureIcon}>
                 <Layers size={26} />
@@ -73,7 +73,7 @@ export default function Home() {
                 specific teaching needs.
               </p>
             </a>
-            <a className={styles.featureCard} href="/prompt2/user/application">
+            <a className={styles.featureCard} href="/prompt/user/application">
               <div className={styles.featureIcon}>
                 <FileUser size={26} />
               </div>
@@ -86,7 +86,7 @@ export default function Home() {
             </a>
             <a
               className={styles.featureCard}
-              href="/prompt2/user/course_configurator"
+              href="/prompt/user/course_configurator"
             >
               <div className={styles.featureIcon}>
                 <UserCheck size={26} />

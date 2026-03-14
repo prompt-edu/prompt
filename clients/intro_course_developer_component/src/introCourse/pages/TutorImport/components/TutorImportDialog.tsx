@@ -71,7 +71,11 @@ export function TutorImportDialog() {
     if (selectedStudents.length === students.length) {
       setSelectedStudents([])
     } else {
-      setSelectedStudents(students.map((s) => s.id).filter((id) => id !== undefined))
+      function isString(value: string | undefined): value is string {
+        return value !== undefined
+      }
+
+      setSelectedStudents(students.map((s) => s.id).filter(isString))
     }
   }
 

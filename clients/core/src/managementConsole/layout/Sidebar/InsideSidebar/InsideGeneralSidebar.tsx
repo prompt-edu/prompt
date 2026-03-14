@@ -1,12 +1,12 @@
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, Activity, File, FileText, Users } from 'lucide-react'
+import { Archive, File, FileText, Tag, Users, Activity } from 'lucide-react'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
-import { useAuthStore, Role } from '@tumaet/prompt-shared-state'
+import { Role, getPermissionString, useAuthStore } from '@tumaet/prompt-shared-state'
 
 export const InsideGeneralSidebar = () => {
   const { permissions } = useAuthStore()
-  const isPromptAdmin = permissions.includes(Role.PROMPT_ADMIN)
+  const isPromptAdmin = permissions.includes(getPermissionString(Role.PROMPT_ADMIN))
 
   return (
     <SidebarMenu>
@@ -35,6 +35,13 @@ export const InsideGeneralSidebar = () => {
               goToPath={'/management/students'}
               title='Students'
             />
+            {isPromptAdmin && (
+              <InsideSidebarMenuItem
+                icon={<Tag />}
+                goToPath={'/management/student-note-tags'}
+                title='Tags'
+              />
+            )}
           </InsideSidebarVisualGroup>
           {isPromptAdmin && (
             <InsideSidebarVisualGroup title='System'>

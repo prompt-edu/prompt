@@ -25,6 +25,7 @@ import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPa
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
 import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
+import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,7 +87,11 @@ export const App = () => {
               path='/management/students'
               element={
                 <ManagementRoot>
-                  <StudentsPage />
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.PROMPT_LECTURER]}
+                  >
+                    <StudentsPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />
@@ -94,7 +99,9 @@ export const App = () => {
               path='/management/students/:studentId'
               element={
                 <ManagementRoot>
-                  <StudentDetailPage />
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <StudentDetailPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />
@@ -104,6 +111,16 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
                     <SystemStatusPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/student-note-tags'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <StudentNoteTagsPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

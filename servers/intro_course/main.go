@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/intro_course/config"
 	"github.com/prompt-edu/prompt/servers/intro_course/copy"
 	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
@@ -21,18 +22,17 @@ import (
 	"github.com/prompt-edu/prompt/servers/intro_course/infrastructureSetup"
 	"github.com/prompt-edu/prompt/servers/intro_course/seatPlan"
 	"github.com/prompt-edu/prompt/servers/intro_course/tutor"
-	"github.com/prompt-edu/prompt/servers/intro_course/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func getDatabaseURL() string {
-	dbUser := utils.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := utils.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := utils.GetEnv("DB_HOST_INTRO_COURSE", "localhost")
-	dbPort := utils.GetEnv("DB_PORT_INTRO_COURSE", "5433")
-	dbName := utils.GetEnv("DB_NAME", "prompt")
-	sslMode := utils.GetEnv("SSL_MODE", "disable")
-	timeZone := utils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
+	dbUser := sdkUtils.GetEnv("DB_USER", "prompt-postgres")
+	dbPassword := sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
+	dbHost := sdkUtils.GetEnv("DB_HOST_INTRO_COURSE", "localhost")
+	dbPort := sdkUtils.GetEnv("DB_PORT_INTRO_COURSE", "5433")
+	dbName := sdkUtils.GetEnv("DB_NAME", "prompt")
+	sslMode := sdkUtils.GetEnv("SSL_MODE", "disable")
+	timeZone := sdkUtils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
@@ -47,7 +47,7 @@ func runMigrations(databaseURL string) {
 }
 
 func initSentry() {
-	sentryDsn := utils.GetEnv("SENTRY_DSN_INTRO_COURSE", "")
+	sentryDsn := sdkUtils.GetEnv("SENTRY_DSN_INTRO_COURSE", "")
 	if sentryDsn == "" {
 		log.Info("Sentry DSN not configured, skipping initialization")
 		return
@@ -58,7 +58,7 @@ func initSentry() {
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              sentryDsn,
-		Environment:      utils.GetEnv("ENVIRONMENT", "development"),
+		Environment:      sdkUtils.GetEnv("ENVIRONMENT", "development"),
 		Debug:            false,
 		Transport:        transport,
 		EnableLogs:       true,
@@ -99,13 +99,13 @@ func initSentry() {
 }
 
 func initKeycloak() {
-	baseURL := utils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
+	baseURL := sdkUtils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
 		baseURL = "https://" + baseURL
 	}
 
-	realm := utils.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
-	coreURL := utils.GetCoreUrl()
+	realm := sdkUtils.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
+	coreURL := sdkUtils.GetCoreUrl()
 	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -142,8 +142,10 @@ func main() {
 	query := db.New(conn)
 
 	router := gin.Default()
+	localHost := "http://localhost:3000"
+	clientHost := sdkUtils.GetEnv("CORE_HOST", localHost)
+	router.Use(sdkUtils.CORS(clientHost))
 	router.Use(sentrygin.New(sentrygin.Options{}))
-	router.Use(utils.CORS())
 
 	api := router.Group("intro-course/api/course_phase/:coursePhaseID")
 	initKeycloak()
@@ -152,7 +154,7 @@ func main() {
 	seatPlan.InitSeatPlanModule(api, *query, conn)
 
 	// Infrastructure Setup
-	gitlabAccessToken := utils.GetEnv("GITLAB_ACCESS_TOKEN", "")
+	gitlabAccessToken := sdkUtils.GetEnv("GITLAB_ACCESS_TOKEN", "")
 	infrastructureSetup.InitInfrastructureModule(api, *query, conn, gitlabAccessToken)
 
 	copyApi := router.Group("intro-course/api")
@@ -160,7 +162,7 @@ func main() {
 
 	config.InitConfigModule(api, *query, conn)
 
-	serverAddress := utils.GetEnv("SERVER_ADDRESS", "localhost:8082")
+	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8082")
 	log.Info("Intro Course Server started")
 	err = router.Run(serverAddress)
 	if err != nil {

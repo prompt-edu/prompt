@@ -13,6 +13,7 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
@@ -23,24 +24,24 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/instructorNote"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/prompt-edu/prompt/servers/core/student"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func getDatabaseURL() string {
-	dbUser := utils.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := utils.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := utils.GetEnv("DB_HOST", "localhost")
-	dbPort := utils.GetEnv("DB_PORT", "5432")
-	dbName := utils.GetEnv("DB_NAME", "prompt")
-	sslMode := utils.GetEnv("SSL_MODE", "disable")
-	timeZone := utils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
+	dbUser := sdkUtils.GetEnv("DB_USER", "prompt-postgres")
+	dbPassword := sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
+	dbHost := sdkUtils.GetEnv("DB_HOST", "localhost")
+	dbPort := sdkUtils.GetEnv("DB_PORT", "5432")
+	dbName := sdkUtils.GetEnv("DB_NAME", "prompt")
+	sslMode := sdkUtils.GetEnv("SSL_MODE", "disable")
+	timeZone := sdkUtils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
@@ -55,16 +56,16 @@ func runMigrations(databaseURL string) {
 }
 
 func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
-	baseURL := utils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
+	baseURL := sdkUtils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
 		baseURL = "https://" + baseURL
 	}
 
-	realm := utils.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
-	clientID := utils.GetEnv("KEYCLOAK_CLIENT_ID", "prompt-server")
-	clientSecret := utils.GetEnv("KEYCLOAK_CLIENT_SECRET", "")
-	idOfClient := utils.GetEnv("KEYCLOAK_ID_OF_CLIENT", "a584ca61-fa83-4e95-98b6-c5f3157ae4b4")
-	expectedAuthorizedParty := utils.GetEnv("KEYCLOAK_AUTHORIZED_PARTY", "prompt-client")
+	realm := sdkUtils.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
+	clientID := sdkUtils.GetEnv("KEYCLOAK_CLIENT_ID", "prompt-server")
+	clientSecret := sdkUtils.GetEnv("KEYCLOAK_CLIENT_SECRET", "")
+	idOfClient := sdkUtils.GetEnv("KEYCLOAK_ID_OF_CLIENT", "a584ca61-fa83-4e95-98b6-c5f3157ae4b4")
+	expectedAuthorizedParty := sdkUtils.GetEnv("KEYCLOAK_AUTHORIZED_PARTY", "prompt-client")
 
 	log.Info("Debugging: baseURL: ", baseURL, " realm: ", realm, " clientID: ", clientID, " idOfClient: ", idOfClient, " expectedAuthorizedParty: ", expectedAuthorizedParty)
 
@@ -80,13 +81,13 @@ func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
 func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	log.Debug("Reading mailing environment variables...")
 
-	clientURL := utils.GetEnv("CORE_HOST", "localhost:3000") // required for application link in mails
-	smtpHost := utils.GetEnv("SMTP_HOST", "127.0.0.1")
-	smtpPort := utils.GetEnv("SMTP_PORT", "25")
-	smtpUsername := utils.GetEnv("SMTP_USERNAME", "")
-	smtpPassword := utils.GetEnv("SMTP_PASSWORD", "")
-	senderEmail := utils.GetEnv("SENDER_EMAIL", "")
-	senderName := utils.GetEnv("SENDER_NAME", "Prompt Mailing Service")
+	clientURL := sdkUtils.GetEnv("CORE_HOST", "localhost:3000") // required for application link in mails
+	smtpHost := sdkUtils.GetEnv("SMTP_HOST", "127.0.0.1")
+	smtpPort := sdkUtils.GetEnv("SMTP_PORT", "25")
+	smtpUsername := sdkUtils.GetEnv("SMTP_USERNAME", "")
+	smtpPassword := sdkUtils.GetEnv("SMTP_PASSWORD", "")
+	senderEmail := sdkUtils.GetEnv("SENDER_EMAIL", "")
+	senderName := sdkUtils.GetEnv("SENDER_NAME", "Prompt Mailing Service")
 
 	log.Debug("Environment variables read:")
 	log.Debug("CORE_HOST: ", clientURL)
@@ -103,7 +104,7 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool
 }
 
 func initSentry() {
-	sentryDsn := utils.GetEnv("SENTRY_DSN_CORE", "")
+	sentryDsn := sdkUtils.GetEnv("SENTRY_DSN_CORE", "")
 	if sentryDsn == "" {
 		log.Info("Sentry DSN not configured, skipping initialization")
 		return
@@ -114,7 +115,7 @@ func initSentry() {
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              sentryDsn,
-		Environment:      utils.GetEnv("ENVIRONMENT", "development"),
+		Environment:      sdkUtils.GetEnv("ENVIRONMENT", "development"),
 		Debug:            false,
 		Transport:        transport,
 		EnableLogs:       true,
@@ -164,7 +165,7 @@ func initSentry() {
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
-	if utils.GetEnv("DEBUG", "false") == "true" {
+	if sdkUtils.GetEnv("DEBUG", "false") == "true" {
 		log.SetLevel(log.DebugLevel)
 		log.Debug("Debug mode is enabled")
 	}
@@ -192,7 +193,9 @@ func main() {
 
 	router := gin.Default()
 	router.Use(sentrygin.New(sentrygin.Options{}))
-	router.Use(utils.CORS())
+	localHost := "http://localhost:3000"
+	clientHost := sdkUtils.GetEnv("CORE_HOST", localHost)
+	router.Use(sdkUtils.CORS(clientHost))
 
 	api := router.Group("/api")
 	api.GET("/hello", func(c *gin.Context) {
@@ -205,11 +208,11 @@ func main() {
 	permissionValidation.InitValidationService(*query, conn)
 
 	// this initializes also all available course phase types
-	environment := utils.GetEnv("ENVIRONMENT", "development")
+	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
 	isDevEnvironment := environment == "development"
 	coursePhaseType.InitCoursePhaseTypeModule(api, *query, conn, isDevEnvironment)
 
-	coreHost := utils.GetEnv("CORE_HOST", "localhost:8080")
+	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolution.InitResolutionModule(coreHost)
 
 	coursePhaseAuth.InitCoursePhaseAuthModule(api, *query, conn)
@@ -221,13 +224,14 @@ func main() {
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)
 	applicationAdministration.InitApplicationAdministrationModule(api, *query, conn)
+	instructorNote.InitInstructorNoteModule(api, *query, conn)
 
 	// Initialize storage module (service only)
 	if err := storage.InitStorageModule(*query, conn); err != nil {
 		log.Fatalf("Failed to initialize storage module: %v", err)
 	}
 
-	serverAddress := utils.GetEnv("SERVER_ADDRESS", "localhost:8080")
+	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")
 	err = router.Run(serverAddress)
 	if err != nil {

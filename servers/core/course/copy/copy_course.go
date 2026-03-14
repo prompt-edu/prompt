@@ -7,11 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -77,7 +77,7 @@ func copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariable
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer promptSDK.DeferDBRollback(tx, c)
+	defer sdkUtils.DeferRollback(tx, c)
 	qtx := CourseCopyServiceSingleton.queries.WithTx(tx)
 
 	createCourseParams, err := newCourse.GetDBModel()

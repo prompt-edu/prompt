@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -26,7 +28,7 @@ type SchemaCopyTestSuite struct {
 
 func (suite *SchemaCopyTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/schema_copy_tests.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/schema_copy_tests.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -48,7 +50,7 @@ func (suite *SchemaCopyTestSuite) SetupSuite() {
 }
 
 // initializeServiceSingletons is a helper to set up service singletons for testing
-func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *testutils.TestDB) {
+func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *sdkTestUtils.TestDB[*db.Queries]) {
 	// Create temporary minimal router for init
 	router := gin.New()
 	group := router.Group("")

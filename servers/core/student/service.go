@@ -33,14 +33,13 @@ func GetAllStudents(ctx context.Context) ([]studentDTO.Student, error) {
 	return dtoStudents, nil
 }
 
-
 func GetAllStudentsWithCourses(ctx context.Context) ([]studentDTO.StudentWithCourseParticipationsDTO, error) {
 	studentsWithCourses, err := StudentServiceSingleton.queries.GetAllStudentsWithCourseParticipations(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	dtoStudentsWithCourses := make( []studentDTO.StudentWithCourseParticipationsDTO, 0, len(studentsWithCourses))
+	dtoStudentsWithCourses := make([]studentDTO.StudentWithCourseParticipationsDTO, 0, len(studentsWithCourses))
 
 	for _, studentWithCourse := range studentsWithCourses {
 		dto, err := studentDTO.GetStudentWithCoursesFromDB(studentWithCourse)
@@ -52,7 +51,6 @@ func GetAllStudentsWithCourses(ctx context.Context) ([]studentDTO.StudentWithCou
 
 	return dtoStudentsWithCourses, nil
 }
-
 
 func GetStudentByID(ctx context.Context, id uuid.UUID) (studentDTO.Student, error) {
 	student, err := StudentServiceSingleton.queries.GetStudent(ctx, id)
@@ -172,10 +170,10 @@ func SearchStudents(ctx context.Context, searchString string) ([]studentDTO.Stud
 }
 
 func GetStudentEnrollmentsByID(ctx context.Context, id uuid.UUID) (studentDTO.StudentEnrollmentsDTO, error) {
-  studentWithEnrollments, err := StudentServiceSingleton.queries.GetStudentEnrollments(ctx, id)
+	studentWithEnrollments, err := StudentServiceSingleton.queries.GetStudentEnrollments(ctx, id)
 	if err != nil {
 		return studentDTO.StudentEnrollmentsDTO{}, err
 	}
 
-  return  studentDTO.GetStudentEnrollmentsDTOFromDB(studentWithEnrollments)
+	return studentDTO.GetStudentEnrollmentsDTOFromDB(studentWithEnrollments)
 }

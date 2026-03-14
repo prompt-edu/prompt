@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,7 +48,7 @@ func initializeApplicationCoursePhaseType() error {
 		if err != nil {
 			return err
 		}
-		defer promptSDK.DeferDBRollback(tx, ctx)
+		defer sdkUtils.DeferRollback(tx, ctx)
 		qtx := ApplicationServiceSingleton.queries.WithTx(tx)
 
 		// 2.) create the application module

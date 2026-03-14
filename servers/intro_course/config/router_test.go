@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/intro_course/testutils"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +17,7 @@ func TestConfigRouterReturnsOK(t *testing.T) {
 	router := gin.Default()
 	api := router.Group("/intro-course/api/course_phase/:coursePhaseID")
 	setupConfigRouter(api, func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.DefaultMockAuthMiddleware()
+		return sdkTestUtils.MockAuthMiddleware(allowedRoles)
 	})
 
 	req, _ := http.NewRequest("GET", "/intro-course/api/course_phase/"+uuid.New().String()+"/config", nil)

@@ -82,3 +82,4 @@ func validateUniversityData(hasUniversityAccount bool, matriculationNumber, univ
 
 	return nil
 }
+

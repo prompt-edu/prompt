@@ -8,9 +8,6 @@ interface RoleCheckOptions {
   anyCourseRole?: CourseRole[]
 }
 
-/**
- * Pure permission check (no React dependencies)
- */
 export function hasRolePermission(
   permissions: string[],
   { roles = [], anyCourseRole = [] }: RoleCheckOptions,
@@ -23,7 +20,7 @@ export function hasRolePermission(
 }
 
 /**
- * Hook version for React components
+ * Hook version
  */
 export function useHasRolePermission(options: RoleCheckOptions) {
   const { permissions } = useAuthStore()
@@ -36,7 +33,7 @@ interface ShowForRoleProps extends PropsWithChildren {
 }
 
 /**
- * UI wrapper
+ * Component wrapper
  */
 export function ShowForRole({ roles = [], anyCourseRole = [], children }: ShowForRoleProps) {
   const allowed = useHasRolePermission({ roles, anyCourseRole })

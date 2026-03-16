@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOut } from 'lucide-react'
+import { ChevronsUpDown, LogOut, Shield } from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -13,12 +13,14 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { NavAvatar } from './NavAvatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useNavigate } from 'react-router-dom'
 
 interface NavUserProps {
   onLogout: () => void
 }
 
 export function NavUserMenu({ onLogout }: NavUserProps) {
+  const navigate = useNavigate()
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -54,6 +56,10 @@ export function NavUserMenu({ onLogout }: NavUserProps) {
               </div>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/management/privacy')}>
+              <Shield />
+              Privacy
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onLogout}>
               <LogOut />
               Log out

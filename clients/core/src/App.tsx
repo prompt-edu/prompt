@@ -25,6 +25,7 @@ import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPa
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
 import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
+import { PrivacyManagementPage } from './managementConsole/pages/PrivacyManagementPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -104,6 +105,24 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
                     <StudentNoteTagsPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/privacy'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.PROMPT_LECTURER,
+                      Role.COURSE_STUDENT,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <PrivacyManagementPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

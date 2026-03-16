@@ -43,6 +43,8 @@ export const Breadcrumbs: React.FC = () => {
         breadcrumbs.push({ title: 'Template Courses', path: '/management/course_templates' })
       } else if (pathSegments[1] === 'course_archive') {
         breadcrumbs.push({ title: 'Archived Courses', path: '/management/course_archive' })
+      } else if (pathSegments[1] === 'privacy') {
+        breadcrumbs.push({ title: 'Privacy', path: '/management/privacy' })
       } else if (pathSegments[1] === 'students') {
         breadcrumbs.push({ title: 'Students', path: '/management/students' })
         if (pathSegments.length > 2) {

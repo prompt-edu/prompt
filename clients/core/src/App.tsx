@@ -60,7 +60,7 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course_templates'
+              path='/management/course-templates'
               element={
                 <ManagementRoot>
                   <TemplateCoursesPage />
@@ -68,7 +68,7 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course_archive'
+              path='/management/course-archive'
               element={
                 <ManagementRoot>
                   <ArchivedCoursesPage />

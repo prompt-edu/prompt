@@ -20,12 +20,12 @@ export const InsideGeneralSidebar = () => {
             />
             <InsideSidebarMenuItem
               icon={<File />}
-              goToPath={'/management/course_templates'}
+              goToPath={'/management/course-templates'}
               title='Template Courses'
             />
             <InsideSidebarMenuItem
               icon={<Archive />}
-              goToPath={'/management/course_archive'}
+              goToPath={'/management/course-archive'}
               title='Archived Courses'
             />
           </InsideSidebarVisualGroup>

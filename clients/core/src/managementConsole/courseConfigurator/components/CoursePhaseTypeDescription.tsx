@@ -26,9 +26,7 @@ export const CoursePhaseTypeDescription = ({
 
       const top = rect.bottom + TOOLTIP_OFFSET
       const left =
-        rect.right + TOOLTIP_WIDTH > viewportWidth
-          ? rect.left - TOOLTIP_WIDTH
-          : rect.left
+        rect.right + TOOLTIP_WIDTH > viewportWidth ? rect.left - TOOLTIP_WIDTH : rect.left
 
       setCoords({ top, left })
     }
@@ -47,10 +45,7 @@ export const CoursePhaseTypeDescription = ({
       {open &&
         coords &&
         createPortal(
-          <div
-            className='fixed z-[9999]'
-            style={{ top: coords.top, left: coords.left }}
-          >
+          <div className='fixed z-[9999]' style={{ top: coords.top, left: coords.left }}>
             <Card className='w-64 shadow-lg'>
               <CardContent className='p-4'>
                 <p className='font-semibold'>{title}</p>

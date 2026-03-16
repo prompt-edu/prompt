@@ -26,8 +26,8 @@ export function IconEdge({
         <path
           d={edgePath}
           fill='none'
-          stroke={style.stroke as string || '#000'}
-          strokeWidth={(style.strokeWidth as number || 2) + 5}
+          stroke={(style.stroke as string) || '#000'}
+          strokeWidth={((style.strokeWidth as number) || 2) + 5}
           strokeOpacity={0.3}
           strokeLinecap='round'
         />

@@ -29,6 +29,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	log "github.com/sirupsen/logrus"
@@ -230,6 +231,8 @@ func main() {
 	if err := storage.InitStorageModule(*query, conn); err != nil {
 		log.Fatalf("Failed to initialize storage module: %v", err)
 	}
+
+  privacy.InitPrivacyModule(api, *query, conn)
 
 	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")

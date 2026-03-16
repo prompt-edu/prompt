@@ -3575,6 +3575,22 @@ paths:
       summary: Manually trigger status mail for a course phase
       tags:
       - mailing
+  /privacy/student-data-export:
+    post:
+      description: Get an export of all student data from core and all microservices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Export all student related data
   /students/:
     get:
       description: Get a list of all students

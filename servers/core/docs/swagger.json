@@ -3411,6 +3411,30 @@
                 }
             }
         },
+        "/privacy/student-data-export": {
+            "post": {
+                "description": "Get an export of all student data from core and all microservices",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Export all student related data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/students/": {
             "get": {
                 "description": "Get a list of all students",

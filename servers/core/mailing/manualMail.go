@@ -69,16 +69,7 @@ func SendManualMailToParticipants(
 			passedMailingInfo.CourseName,
 			passedMailingInfo.CourseStartDate,
 			passedMailingInfo.CourseEndDate,
-			db.GetParticipantMailingInformationRow{
-				FirstName:           participant.FirstName,
-				LastName:            participant.LastName,
-				Email:               participant.Email,
-				MatriculationNumber: participant.MatriculationNumber,
-				UniversityLogin:     participant.UniversityLogin,
-				StudyDegree:         participant.StudyDegree,
-				CurrentSemester:     participant.CurrentSemester,
-				StudyProgram:        participant.StudyProgram,
-			},
+			db.GetParticipantMailingInformationRow(participant),
 		)
 		for key, value := range request.AdditionalPlaceholders {
 			placeholderMap[key] = value

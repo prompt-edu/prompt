@@ -117,12 +117,7 @@ func SendEvaluationReminderManualTrigger(
 	report.SentAt = mailReport.SentAt
 
 	setLastSentAt(coursePhase.RestrictedData, evaluationType, report.SentAt)
-	if err := updateCoreCoursePhaseFn(ctx, authHeader, coreUpdateCoursePhaseRequest{
-		ID:                  coursePhase.ID,
-		Name:                coursePhase.Name,
-		RestrictedData:      coursePhase.RestrictedData,
-		StudentReadableData: coursePhase.StudentReadableData,
-	}); err != nil {
+	if err := updateCoreCoursePhaseFn(ctx, authHeader, coreUpdateCoursePhaseRequest(coursePhase)); err != nil {
 		log.WithError(err).
 			WithField("coursePhaseID", coursePhase.ID).
 			WithField("evaluationType", evaluationType).

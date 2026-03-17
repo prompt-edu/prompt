@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -65,11 +64,6 @@ func initSentry() {
 
 	transport := sentry.NewHTTPTransport()
 	transport.Timeout = 2 * time.Second
-	sendDefaultPII, err := strconv.ParseBool(promptSDK.GetEnv("SENTRY_SEND_DEFAULT_PII", "false"))
-	if err != nil {
-		log.Warnf("Invalid SENTRY_SEND_DEFAULT_PII value, defaulting to false: %v", err)
-		sendDefaultPII = false
-	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              sentryDsn,
@@ -78,7 +72,7 @@ func initSentry() {
 		Transport:        transport,
 		EnableLogs:       true,
 		AttachStacktrace: true,
-		SendDefaultPII:   sendDefaultPII,
+		SendDefaultPII:   true,
 		EnableTracing:    true,
 		TracesSampleRate: 1.0,
 	}); err != nil {

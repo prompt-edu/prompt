@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
 var getEvaluationReminderRecipientsForSendFn = GetEvaluationReminderRecipients
@@ -129,7 +129,7 @@ func SendEvaluationReminderManualTrigger(
 }
 
 func getCoreCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
-	endpoint := fmt.Sprintf("%s/api/course_phases/%s", utils.GetCoreUrl(), coursePhaseID)
+	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), coursePhaseID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return coreCoursePhaseResponse{}, fmt.Errorf("failed to create core course phase request: %w", err)
@@ -182,7 +182,7 @@ func sendManualReminderMail(
 		return coreManualMailReport{}, fmt.Errorf("failed to marshal manual mail request: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/api/mailing/%s/manual", utils.GetCoreUrl(), coursePhaseID)
+	endpoint := fmt.Sprintf("%s/api/mailing/%s/manual", sdkUtils.GetCoreUrl(), coursePhaseID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return coreManualMailReport{}, fmt.Errorf("failed to create core mailing request: %w", err)
@@ -228,7 +228,7 @@ func updateCoreCoursePhase(
 		return fmt.Errorf("failed to marshal course phase update request: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/api/course_phases/%s", utils.GetCoreUrl(), request.ID)
+	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), request.ID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create core course phase update request: %w", err)

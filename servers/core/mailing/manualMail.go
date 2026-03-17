@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/mailing/mailingDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 )
 
 var sendMailFn = SendMail

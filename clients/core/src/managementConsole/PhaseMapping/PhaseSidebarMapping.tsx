@@ -3,7 +3,6 @@ import { InterviewSidebar } from './ExternalSidebars/InterviewSidebar'
 import { ApplicationSidebar } from './ExternalSidebars/ApplicationSidebar'
 import { MatchingSidebar } from './ExternalSidebars/MatchingSidebar'
 import { IntroCourseDeveloperSidebar } from './ExternalSidebars/IntroCourseDeveloperSidebar'
-import { IntroCourseTutorSidebar } from './ExternalSidebars/IntroCourseTutorSidebar'
 import { AssessmentSidebar } from './ExternalSidebars/AssessmentSidebar'
 import { DevOpsChallengeSidebar } from './ExternalSidebars/DevOpsChallengeSidebar'
 import { TeamAllocationSidebar } from './ExternalSidebars/TeamAllocationSidebar'
@@ -18,7 +17,6 @@ export const PhaseSidebarMapping: {
   Interview: InterviewSidebar,
   Matching: MatchingSidebar,
   'Intro Course Developer': IntroCourseDeveloperSidebar,
-  IntroCourseTutor: IntroCourseTutorSidebar,
   Assessment: AssessmentSidebar,
   'DevOps Challenge': DevOpsChallengeSidebar,
   'Team Allocation': TeamAllocationSidebar,

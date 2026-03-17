@@ -60,12 +60,10 @@ jobs:
       template_image_tag: ${{ needs.build-clients.outputs.template_image_tag }}
       interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag }}
       matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag }}
-      intro_course_developer_image_tag: ${{ needs.build-clients.outputs.intro_course_developer_image_tag }}
       assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag }}
       team_allocation_image_tag: ${{ needs.build-clients.outputs.team_allocation_image_tag }}
       self_team_allocation_image_tag: ${{ needs.build-clients.outputs.self_team_allocation_image_tag }}
       server_core_image_tag: ${{ needs.build-servers.outputs.server_core_image_tag }}
-      server_intro_course_image_tag: ${{ needs.build-servers.outputs.server_intro_course_image_tag }}
       server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag }}
       server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag }}
       server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag }}

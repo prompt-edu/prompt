@@ -789,22 +789,6 @@ func (q *Queries) TestIntroCourseDeveloperPhaseTypeExists(ctx context.Context) (
 	return does_exist, err
 }
 
-const testIntroCourseTutorPhaseTypeExists = `-- name: TestIntroCourseTutorPhaseTypeExists :one
-SELECT EXISTS (
-        SELECT 1
-        FROM course_phase_type
-        WHERE
-            name = 'IntroCourseTutor'
-    ) AS does_exist
-`
-
-func (q *Queries) TestIntroCourseTutorPhaseTypeExists(ctx context.Context) (bool, error) {
-	row := q.db.QueryRow(ctx, testIntroCourseTutorPhaseTypeExists)
-	var does_exist bool
-	err := row.Scan(&does_exist)
-	return does_exist, err
-}
-
 const testMatchingPhaseTypeExists = `-- name: TestMatchingPhaseTypeExists :one
 SELECT EXISTS (
         SELECT 1

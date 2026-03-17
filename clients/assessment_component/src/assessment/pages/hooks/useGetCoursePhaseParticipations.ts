@@ -8,7 +8,7 @@ export const useGetCoursePhaseParticipations = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   return useQuery<AssessmentParticipationWithStudent[]>({
-    queryKey: ['participations', phaseId],
+    queryKey: ['participants', phaseId],
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
   })
 }

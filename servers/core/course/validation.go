@@ -6,8 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/course/courseDTO"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	log "github.com/sirupsen/logrus"
 )
 

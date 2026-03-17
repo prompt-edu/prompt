@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/team_allocation/skills/skillDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/skills/skillDTO"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation/courseParticipationDTO"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
-	"github.com/ls1intum/prompt2/servers/core/utils"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation/courseParticipationDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // setupCourseParticipationRouter sets up the course participation endpoints

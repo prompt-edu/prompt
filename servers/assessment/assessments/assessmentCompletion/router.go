@@ -7,13 +7,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
+// setupAssessmentCompletionRouter sets up assessment completion endpoints.
+// @Summary Assessment Completion Endpoints
+// @Description Manage assessment completion and grades.
+// @Tags assessment_completions
+// @Security BearerAuth
 func setupAssessmentCompletionRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assessmentCompletionRouter := routerGroup.Group("/student-assessment/completed")
 
@@ -32,6 +37,16 @@ func setupAssessmentCompletionRouter(routerGroup *gin.RouterGroup, authMiddlewar
 	assessmentCompletionRouter.GET("/my-grade-suggestion", authMiddleware(promptSDK.CourseStudent), getMyGradeSuggestion)
 }
 
+// getAllGrades godoc
+// @Summary List grades
+// @Description List grade suggestions for all course participations.
+// @Tags assessment_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} assessmentCompletionDTO.GradeWithParticipation
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/grade [get]
 func getAllGrades(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -46,6 +61,17 @@ func getAllGrades(c *gin.Context) {
 	c.JSON(http.StatusOK, grades)
 }
 
+// getStudentGrade godoc
+// @Summary Get grade for student
+// @Description Get grade suggestion for a course participation.
+// @Tags assessment_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Course participation ID"
+// @Success 200 {number} float64
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/grade/course-participation/{courseParticipationID} [get]
 func getStudentGrade(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -65,6 +91,16 @@ func getStudentGrade(c *gin.Context) {
 	c.JSON(http.StatusOK, grade)
 }
 
+// listAssessmentCompletionsByCoursePhase godoc
+// @Summary List assessment completions
+// @Description List assessment completions for a course phase.
+// @Tags assessment_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} assessmentCompletionDTO.AssessmentCompletion
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed [get]
 func listAssessmentCompletionsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -79,6 +115,20 @@ func listAssessmentCompletionsByCoursePhase(c *gin.Context) {
 	c.JSON(http.StatusOK, assessmentCompletionDTO.GetAssessmentCompletionDTOsFromDBModels(completions))
 }
 
+// createOrUpdateAssessmentCompletion godoc
+// @Summary Create or update assessment completion
+// @Description Create or update an assessment completion.
+// @Tags assessment_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param completion body assessmentCompletionDTO.AssessmentCompletion true "Assessment completion payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed [post]
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed [put]
 func createOrUpdateAssessmentCompletion(c *gin.Context) {
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
@@ -97,6 +147,19 @@ func createOrUpdateAssessmentCompletion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment completion created/updated successfully"})
 }
 
+// markAssessmentAsCompleted godoc
+// @Summary Mark assessment as completed
+// @Description Mark an assessment as completed.
+// @Tags assessment_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param completion body assessmentCompletionDTO.AssessmentCompletion true "Assessment completion payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/mark-complete [post]
 func markAssessmentAsCompleted(c *gin.Context) {
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
@@ -115,6 +178,16 @@ func markAssessmentAsCompleted(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment marked as completed successfully"})
 }
 
+// deleteAssessmentCompletion godoc
+// @Summary Delete assessment completion
+// @Description Delete an assessment completion by course participation ID.
+// @Tags assessment_completions
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Course participation ID"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/course-participation/{courseParticipationID} [delete]
 func deleteAssessmentCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -133,6 +206,17 @@ func deleteAssessmentCompletion(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// unmarkAssessmentAsCompleted godoc
+// @Summary Unmark assessment as completed
+// @Description Unmark an assessment completion.
+// @Tags assessment_completions
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Course participation ID"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/course-participation/{courseParticipationID}/unmark [put]
 func unmarkAssessmentAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -156,6 +240,17 @@ func unmarkAssessmentAsCompleted(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// getAssessmentCompletion godoc
+// @Summary Get assessment completion
+// @Description Get an assessment completion by course participation ID.
+// @Tags assessment_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Course participation ID"
+// @Success 200 {object} assessmentCompletionDTO.AssessmentCompletion
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/course-participation/{courseParticipationID} [get]
 func getAssessmentCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -175,6 +270,18 @@ func getAssessmentCompletion(c *gin.Context) {
 	c.JSON(http.StatusOK, assessmentCompletion)
 }
 
+// getMyGradeSuggestion godoc
+// @Summary Get my grade suggestion
+// @Description Get grade suggestion for the current student.
+// @Tags assessment_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {number} float64
+// @Success 204 {string} string "No Content"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/my-grade-suggestion [get]
 func getMyGradeSuggestion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {

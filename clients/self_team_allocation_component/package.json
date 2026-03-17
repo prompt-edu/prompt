@@ -1,6 +1,6 @@
 {
   "name": "self_team_allocation_component",
-  "version": "2.7.0",
+  "version": "2.10.0",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -11,8 +11,8 @@
     "check-performance": "webpack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "webpack": "^5.104.1",
+    "webpack": "^5.105.4",
     "webpack-cli": "^6.0.1"
   },
-  "packageManager": "yarn@4.1.0"
+  "packageManager": "yarn@4.12.0"
 }

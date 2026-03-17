@@ -13,16 +13,16 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/team_allocation/allocation"
-	"github.com/ls1intum/prompt2/servers/team_allocation/config"
-	"github.com/ls1intum/prompt2/servers/team_allocation/copy"
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/team_allocation/skills"
-	"github.com/ls1intum/prompt2/servers/team_allocation/survey"
-	teams "github.com/ls1intum/prompt2/servers/team_allocation/team"
-	"github.com/ls1intum/prompt2/servers/team_allocation/tease"
-	"github.com/ls1intum/prompt2/servers/team_allocation/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
+	"github.com/prompt-edu/prompt/servers/team_allocation/config"
+	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
+	teams "github.com/prompt-edu/prompt/servers/team_allocation/team"
+	"github.com/prompt-edu/prompt/servers/team_allocation/tease"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,6 +37,18 @@ func getDatabaseURL() string {
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
+
+// @title           PROMPT Team Allocation API
+// @version         1.0
+// @description     This is the team allocation server of PROMPT.
+// @host            localhost:8083
+// @BasePath        /team-allocation/api
+// @externalDocs.description  PROMPT Documentation
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @description Bearer token authentication. Use format: Bearer {token}
 
 func runMigrations(databaseURL string) {
 	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
@@ -108,7 +120,7 @@ func initKeycloak(queries db.Queries) {
 
 	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -142,10 +154,7 @@ func main() {
 	api := router.Group("team-allocation/api/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
-	api.GET("/hello", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Hello from team allocation service"})
-	})
+	// No health endpoint; health checks are handled externally.
 
 	skills.InitSkillModule(api, *query, conn)
 	teams.InitTeamModule(api, *query, conn)

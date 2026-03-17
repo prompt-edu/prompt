@@ -1,13 +1,13 @@
 import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import { saveAs } from 'file-saver'
-import { ExtraParticipationTableColumn } from '../interfaces/ExtraParticipationTableColumn'
+import { ExtraParticipantColumn } from '../table/participationRow'
 
 export const downloadParticipations = (
   data: CoursePhaseParticipationWithStudent[],
   prevDataKeys: string[],
   restrictedDataKeys: string[],
   studentReadableDataKeys: string[],
-  extraColumns: ExtraParticipationTableColumn[] = [],
+  extraColumns: ExtraParticipantColumn<any>[] = [],
   filename = 'participation-export.csv',
 ) => {
   if (!data || data.length === 0) {

@@ -12,6 +12,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkCourseNameExists = `-- name: CheckCourseNameExists :one
+SELECT EXISTS(
+    SELECT 1 FROM course WHERE name = $1 AND semester_tag = $2
+) AS "exists"
+`
+
+type CheckCourseNameExistsParams struct {
+	Name        string      `json:"name"`
+	SemesterTag pgtype.Text `json:"semester_tag"`
+}
+
+func (q *Queries) CheckCourseNameExists(ctx context.Context, arg CheckCourseNameExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkCourseNameExists, arg.Name, arg.SemesterTag)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const checkCourseTemplateStatus = `-- name: CheckCourseTemplateStatus :one
 SELECT template
 FROM course

@@ -17,7 +17,7 @@ export const useMissingConfigs = (
       missingConfigItems.push({
         title: 'Application Phase Deadlines',
         icon: CalendarX,
-        link: `${path}/configuration`,
+        link: `${path}/settings`,
       })
     }
 

@@ -5,12 +5,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations/evaluationDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
+// setupEvaluationRouter sets up evaluation endpoints.
+// @Summary Evaluation Endpoints
+// @Description Manage evaluations for course participations.
+// @Tags evaluations
+// @Security BearerAuth
 func setupEvaluationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	evaluationRouter := routerGroup.Group("/evaluation")
 
@@ -24,6 +29,16 @@ func setupEvaluationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), deleteEvaluation)
 }
 
+// getAllEvaluationsByPhase godoc
+// @Summary List evaluations by course phase
+// @Description List evaluations for a course phase.
+// @Tags evaluations
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} evaluationDTO.Evaluation
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation [get]
 func getAllEvaluationsByPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -39,6 +54,17 @@ func getAllEvaluationsByPhase(c *gin.Context) {
 	c.JSON(http.StatusOK, evaluations)
 }
 
+// getEvaluationsForTutorInPhase godoc
+// @Summary List evaluations for tutor in phase
+// @Description List evaluations for a tutor in a course phase.
+// @Tags evaluations
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Tutor course participation ID"
+// @Success 200 {array} evaluationDTO.Evaluation
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID} [get]
 func getEvaluationsForTutorInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -60,6 +86,16 @@ func getEvaluationsForTutorInPhase(c *gin.Context) {
 	c.JSON(http.StatusOK, evaluations)
 }
 
+// getMyEvaluations godoc
+// @Summary List my evaluations
+// @Description List evaluations authored by the current student.
+// @Tags evaluations
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} evaluationDTO.Evaluation
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/my-evaluations [get]
 func getMyEvaluations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -82,6 +118,18 @@ func getMyEvaluations(c *gin.Context) {
 	c.JSON(http.StatusOK, evaluations)
 }
 
+// createOrUpdateEvaluation godoc
+// @Summary Create or update evaluation
+// @Description Create or update an evaluation for the current student.
+// @Tags evaluations
+// @Accept json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param evaluation body evaluationDTO.CreateOrUpdateEvaluationRequest true "Evaluation payload"
+// @Success 201 {string} string "Created"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation [post]
 func createOrUpdateEvaluation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -110,6 +158,17 @@ func createOrUpdateEvaluation(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
+// deleteEvaluation godoc
+// @Summary Delete evaluation
+// @Description Delete an evaluation by ID.
+// @Tags evaluations
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param evaluationID path string true "Evaluation ID"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/{evaluationID} [delete]
 func deleteEvaluation(c *gin.Context) {
 	evaluationID, err := uuid.Parse(c.Param("evaluationID"))
 	if err != nil {

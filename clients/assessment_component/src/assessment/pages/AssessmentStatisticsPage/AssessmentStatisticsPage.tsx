@@ -65,7 +65,7 @@ export const AssessmentStatisticsPage = () => {
 
   const filteredGrades = filteredParticipationWithAssessments
     .map((p) => p.assessmentCompletion?.gradeSuggestion)
-    .filter((p) => p !== undefined)
+    .filter((p): p is number => p !== undefined)
 
   const filteredScoreLevels = useMemo(
     () =>

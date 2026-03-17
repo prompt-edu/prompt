@@ -2,7 +2,7 @@ package coursePhase
 
 import (
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )

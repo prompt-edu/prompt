@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,16 +14,16 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments"
-	"github.com/ls1intum/prompt2/servers/assessment/categories"
-	"github.com/ls1intum/prompt2/servers/assessment/competencies"
-	"github.com/ls1intum/prompt2/servers/assessment/copy"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments"
+	"github.com/prompt-edu/prompt/servers/assessment/categories"
+	"github.com/prompt-edu/prompt/servers/assessment/competencies"
+	"github.com/prompt-edu/prompt/servers/assessment/copy"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -108,13 +109,36 @@ func initKeycloak(queries db.Queries) {
 
 	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
 	}
 }
 
+// helloAssessment godoc
+// @Summary Assessment service health check
+// @Description Returns a simple hello message from the assessment service.
+// @Tags health
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/hello [get]
+func helloAssessment(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Hello from assessment service",
+	})
+}
+
+// @title           PROMPT Assessment API
+// @version         1.0
+// @description     This is the assessment server of PROMPT.
+
+// @host      localhost:8085
+// @BasePath  /assessment/api
+
+// @externalDocs.description  PROMPT Documentation
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
 	initSentry()
 	defer sentry.Flush(2 * time.Second)
@@ -142,10 +166,7 @@ func main() {
 	api := router.Group("assessment/api/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
-	api.GET("/hello", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Hello from assessment service"})
-	})
+	api.GET("/hello", helloAssessment)
 
 	competencies.InitCompetencyModule(api, *query, conn)
 	categories.InitCategoryModule(api, *query, conn)

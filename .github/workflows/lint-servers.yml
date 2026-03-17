@@ -2,65 +2,31 @@ name: Lint Servers
 
 on:
   workflow_call:
+    inputs:
+      modules:
+        description: "JSON array of server modules to lint"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  set-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      modules: ${{ steps.set-matrix.outputs.modules }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: tj-actions/changed-files@v45
-        id: changed-servers
-        with:
-          files: servers/**/
-          dir_names: true
-          dir_names_max_depth: 2
-          json: true
-      - uses: tj-actions/changed-files@v45
-        id: changed-workflow
-        with:
-          files: .github/workflows/lint-servers.yml
-      - id: set-matrix
-        run: |
-          if [ "${{ steps.changed-workflow.outputs.any_changed }}" = "true" ]; then
-            MODULES="[]"
-            for dir in servers/*/; do
-              [ -f "$dir/go.mod" ] && MODULES=$(echo "$MODULES" | jq --arg d "$dir" '. += [$d]')
-            done
-          else
-            MODULES="[]"
-            for dir in $(echo '${{ steps.changed-servers.outputs.all_changed_files }}' | jq -r '.[]'); do
-              module=$(echo "$dir" | cut -d'/' -f2)
-              [ -n "$module" ] && [ -f "servers/$module/go.mod" ] && MODULES=$(echo "$MODULES" | jq --arg d "servers/$module/" '. += [$d]')
-            done
-          fi
-
-          echo "modules<<EOF" >> $GITHUB_OUTPUT
-          echo "$MODULES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
   lint-server:
-    needs: set-matrix
-    if: needs.set-matrix.outputs.modules != '[]'
+    if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{ fromJson(needs.set-matrix.outputs.modules) }}
+        module: ${{ fromJson(inputs.modules) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: "${{ matrix.module }}/*.sum"
+          cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.8.0
-          working-directory: ${{ matrix.module }}
+          version: latest
+          working-directory: servers/${{ matrix.module }}
           args: --timeout 5m

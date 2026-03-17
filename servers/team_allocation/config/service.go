@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/team_allocation/survey"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
 )
 
 type ConfigService struct {

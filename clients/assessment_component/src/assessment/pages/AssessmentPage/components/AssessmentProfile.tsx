@@ -7,8 +7,8 @@ import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 
 import {
   StudentScoreBadge,
-  GradeSuggestionBadge,
   AssessmentStatusBadge,
+  GradeSuggestionBadgeWithTooltip,
 } from '../../components/badges'
 
 interface AssessmentProfileProps {
@@ -37,7 +37,7 @@ export const AssessmentProfile = ({
                 isFinalized={studentAssessment.assessmentCompletion.completed}
               />
               {studentAssessment.assessmentCompletion && (
-                <GradeSuggestionBadge
+                <GradeSuggestionBadgeWithTooltip
                   gradeSuggestion={studentAssessment.assessmentCompletion.gradeSuggestion}
                   text={true}
                 />

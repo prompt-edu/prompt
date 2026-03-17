@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ls1intum/prompt2/servers/team_allocation/utils"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ import (
 func sendRequest(method, subURL, authHeader string, body io.Reader) (*http.Response, error) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	requestURL := coreURL + subURL
 	req, err := http.NewRequest(method, requestURL, body)
 	if err != nil {

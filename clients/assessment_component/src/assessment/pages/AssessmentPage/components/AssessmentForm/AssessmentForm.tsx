@@ -26,6 +26,7 @@ import { AssessmentTextField } from './components/AssessmentTextField'
 
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
+import { JSX } from 'react/jsx-runtime'
 
 interface AssessmentFormProps {
   courseParticipationID: string
@@ -187,7 +188,7 @@ export const AssessmentForm = ({
           )
         : undefined
 
-  const peerEvaluationStudentAnswers = hidePeerEvaluationDetails
+  const peerEvaluationStudentAnswers: (() => JSX.Element)[] | undefined = hidePeerEvaluationDetails
     ? undefined
     : teamMembers
         ?.map((member) => {
@@ -206,7 +207,7 @@ export const AssessmentForm = ({
               )
             : undefined
         })
-        .filter((item) => item !== undefined)
+        .filter((item): item is () => JSX.Element => item !== undefined)
 
   return (
     <Form {...form}>

@@ -1,0 +1,865 @@
+basePath: /team-allocation/api
+definitions:
+  allocationDTO.AllocationWithParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      teamAllocation:
+        type: string
+    type: object
+  db.SkillLevel:
+    enum:
+    - novice
+    - intermediate
+    - advanced
+    - expert
+    type: string
+    x-enum-varnames:
+    - SkillLevelNovice
+    - SkillLevelIntermediate
+    - SkillLevelAdvanced
+    - SkillLevelExpert
+  promptTypes.Person:
+    properties:
+      firstName:
+        description: FirstName stores the first name as provided during initial application
+          or profile updates.
+        type: string
+      id:
+        description: |-
+          ID is the unique identifier for the person using UUID v4 format.
+          The uuid.UUID type ensures type safety and automatic validation during JSON unmarshaling.
+        type: string
+      lastName:
+        description: LastName stores the last name as provided during initial application
+          or profile updates.
+        type: string
+    type: object
+  promptTypes.Team:
+    properties:
+      id:
+        description: |-
+          ID is the unique identifier for the team.
+          The uuid.UUID type ensures type safety and automatic validation during JSON unmarshaling.
+        type: string
+      members:
+        description: |-
+          Members contains the list of students who are part of this team.
+          These are the primary participants who will be working together on team activities.
+        items:
+          $ref: '#/definitions/promptTypes.Person'
+        type: array
+      name:
+        description: |-
+          Name is the display name of the team, used for identification and communication.
+          This could be assigned automatically (e.g., "Team 1") or chosen by team members.
+        type: string
+      tutors:
+        description: |-
+          Tutors contains the list of tutors, coaches, or teaching assistants assigned to guide this team.
+          Tutors provide mentorship, feedback, and academic support to the team members.
+        items:
+          $ref: '#/definitions/promptTypes.Person'
+        type: array
+    required:
+    - name
+    type: object
+  skillDTO.CreateSkillsRequest:
+    properties:
+      skillNames:
+        items:
+          type: string
+        type: array
+    type: object
+  skillDTO.Skill:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  skillDTO.UpdateSkillRequest:
+    properties:
+      newSkillName:
+        type: string
+    type: object
+  surveyDTO.StudentSkillResponse:
+    properties:
+      skillID:
+        type: string
+      skillLevel:
+        $ref: '#/definitions/db.SkillLevel'
+    type: object
+  surveyDTO.StudentSurveyResponse:
+    properties:
+      skillResponses:
+        items:
+          $ref: '#/definitions/surveyDTO.StudentSkillResponse'
+        type: array
+      teamPreferences:
+        items:
+          $ref: '#/definitions/surveyDTO.StudentTeamPreferenceResponse'
+        type: array
+    type: object
+  surveyDTO.StudentTeamPreferenceResponse:
+    properties:
+      preference:
+        type: integer
+      teamID:
+        type: string
+    type: object
+  surveyDTO.SurveyForm:
+    properties:
+      deadline:
+        type: string
+      skills:
+        items:
+          $ref: '#/definitions/skillDTO.Skill'
+        type: array
+      teams:
+        items:
+          $ref: '#/definitions/promptTypes.Team'
+        type: array
+    type: object
+  surveyDTO.SurveyTimeframe:
+    properties:
+      surveyDeadline:
+        type: string
+      surveyStart:
+        type: string
+      timeframeSet:
+        type: boolean
+    required:
+    - surveyDeadline
+    - surveyStart
+    type: object
+  teamDTO.CreateTeamsRequest:
+    properties:
+      teamNames:
+        items:
+          type: string
+        type: array
+    type: object
+  teamDTO.StudentName:
+    properties:
+      firstName:
+        type: string
+      lastName:
+        type: string
+    type: object
+  teamDTO.StudentNameUpdateRequest:
+    properties:
+      coursePhaseID:
+        type: string
+      studentNamesPerID:
+        additionalProperties:
+          $ref: '#/definitions/teamDTO.StudentName'
+        type: object
+    type: object
+  teamDTO.Tutor:
+    properties:
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      teamID:
+        type: string
+    type: object
+  teamDTO.UpdateTeamRequest:
+    properties:
+      newTeamName:
+        type: string
+    type: object
+externalDocs:
+  description: PROMPT Documentation
+  url: https://prompt-edu.github.io/prompt/
+host: localhost:8083
+info:
+  contact: {}
+  description: This is the team allocation server of PROMPT.
+  title: PROMPT Team Allocation API
+  version: "1.0"
+paths:
+  /course_phase/{coursePhaseID}/allocation:
+    get:
+      description: Get all team allocations for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/allocationDTO.AllocationWithParticipation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all allocations
+      tags:
+      - allocation
+  /course_phase/{coursePhaseID}/allocation/{courseParticipationID}:
+    get:
+      description: Get the team allocation for a specific course participation
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course Participation UUID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/allocationDTO.AllocationWithParticipation'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get allocation by course participation ID
+      tags:
+      - allocation
+  /course_phase/{coursePhaseID}/skill:
+    get:
+      description: Get all skills for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/skillDTO.Skill'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all skills
+      tags:
+      - skill
+    post:
+      consumes:
+      - application/json
+      description: Create one or more skills for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Skill names to create
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/skillDTO.CreateSkillsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create new skills
+      tags:
+      - skill
+  /course_phase/{coursePhaseID}/skill/{skillID}:
+    delete:
+      description: Delete a skill by its ID
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Skill UUID
+        in: path
+        name: skillID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete skill
+      tags:
+      - skill
+    put:
+      consumes:
+      - application/json
+      description: Update a skill name
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Skill UUID
+        in: path
+        name: skillID
+        required: true
+        type: string
+      - description: New skill name
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/skillDTO.UpdateSkillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update skill
+      tags:
+      - skill
+  /course_phase/{coursePhaseID}/survey/answers:
+    get:
+      description: Get the authenticated student's survey answers
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/surveyDTO.StudentSurveyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get student survey responses
+      tags:
+      - survey
+    post:
+      consumes:
+      - application/json
+      description: Create or update the authenticated student's survey answers
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Survey responses
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/surveyDTO.StudentSurveyResponse'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Submit survey responses
+      tags:
+      - survey
+  /course_phase/{coursePhaseID}/survey/form:
+    get:
+      description: Get available survey data (teams, skills, and deadline) for a course
+        phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/surveyDTO.SurveyForm'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get survey form
+      tags:
+      - survey
+  /course_phase/{coursePhaseID}/survey/timeframe:
+    get:
+      description: Get the survey timeframe for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/surveyDTO.SurveyTimeframe'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get survey timeframe
+      tags:
+      - survey
+    put:
+      consumes:
+      - application/json
+      description: Set or update the survey timeframe for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Survey timeframe
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/surveyDTO.SurveyTimeframe'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Set survey timeframe
+      tags:
+      - survey
+  /course_phase/{coursePhaseID}/team:
+    get:
+      description: Get all teams for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/promptTypes.Team'
+              type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all teams
+      tags:
+      - team
+    post:
+      consumes:
+      - application/json
+      description: Create one or more new teams for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Team names to create
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teamDTO.CreateTeamsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create new teams
+      tags:
+      - team
+  /course_phase/{coursePhaseID}/team/{teamID}:
+    delete:
+      description: Delete a team by its ID
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Team UUID
+        in: path
+        name: teamID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete team
+      tags:
+      - team
+    get:
+      description: Get a specific team by its ID
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Team UUID
+        in: path
+        name: teamID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/promptTypes.Team'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get team by ID
+      tags:
+      - team
+    put:
+      consumes:
+      - application/json
+      description: Update a team name
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Team UUID
+        in: path
+        name: teamID
+        required: true
+        type: string
+      - description: New team name
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teamDTO.UpdateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update team
+      tags:
+      - team
+  /course_phase/{coursePhaseID}/team/student-names:
+    post:
+      consumes:
+      - application/json
+      description: Add student first and last names to team allocations
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Student names per participation ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teamDTO.StudentNameUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add student names to allocations
+      tags:
+      - team
+  /course_phase/{coursePhaseID}/team/tutors:
+    post:
+      consumes:
+      - application/json
+      description: Import tutors for teams in a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Tutors to import
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/teamDTO.Tutor'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Import tutors
+      tags:
+      - team
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Bearer token authentication. Use format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

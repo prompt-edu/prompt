@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/timeframe/timeframeDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe/timeframeDTO"
 	log "github.com/sirupsen/logrus"
 )
 

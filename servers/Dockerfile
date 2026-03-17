@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 
 # Install dependencies
 RUN apk add --no-cache curl

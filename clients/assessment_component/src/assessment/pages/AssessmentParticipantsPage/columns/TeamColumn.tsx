@@ -1,52 +1,54 @@
 import { Team } from '@tumaet/prompt-shared-state'
-
-import { ExtraParticipationTableColumn } from '@/components/pages/CoursePhaseParticipationsTable/interfaces/ExtraParticipationTableColumn'
-
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import {
+  ExtraParticipantColumn,
+  ParticipantRow,
+} from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
 
 export const createTeamColumn = (
   teams: Team[],
   participations: AssessmentParticipationWithStudent[],
-): ExtraParticipationTableColumn | undefined => {
+): ExtraParticipantColumn<string> | undefined => {
   if (teams.length === 0) return undefined
+
+  const getTeamName = (courseParticipationID: string): string => {
+    return (
+      teams.find((t) => t.members.some((member) => member.id === courseParticipationID))?.name ?? ''
+    )
+  }
 
   return {
     id: 'team',
     header: 'Team',
-    accessorFn: (row) => {
-      return (
-        teams.find((t) => t.members.some((member) => member.id === row.courseParticipationID))
-          ?.name ?? ''
-      )
+
+    accessorFn: (row: ParticipantRow) => getTeamName(row.courseParticipationID),
+
+    cell: ({ getValue }) => {
+      const teamName = getValue<string>()
+      return teamName || null
     },
+
     enableSorting: true,
-    sortingFn: (rowA, rowB) => {
-      const teamA =
-        teams.find((t) =>
-          t.members.some((member) => member.id === rowA.original.courseParticipationID),
-        )?.name ?? ''
-      const teamB =
-        teams.find((t) =>
-          t.members.some((member) => member.id === rowB.original.courseParticipationID),
-        )?.name ?? ''
-      return teamA.localeCompare(teamB)
-    },
+
+    enableColumnFilter: true,
+
+    sortingFn: (rowA, rowB) =>
+      getTeamName(rowA.original.courseParticipationID).localeCompare(
+        getTeamName(rowB.original.courseParticipationID),
+      ),
+
     extraData: participations.map((p) => {
-      const team = teams.find((t) =>
-        t.members.some((member) => member.id === p.courseParticipationID),
-      )
+      const teamName = getTeamName(p.courseParticipationID)
       return {
         courseParticipationID: p.courseParticipationID,
-        value: team ? team.name : '',
-        stringValue: team ? team.name : '',
+        value: teamName,
+        stringValue: teamName,
       }
     }),
-    filterFn: (row, columnId, filterValue) => {
-      const team = teams.find((t) =>
-        t.members.some((member) => member.id === row.original.courseParticipationID),
-      )
-      const teamName = team ? team.name : ''
-      return Array.isArray(filterValue) ? filterValue.includes(teamName) : false
+
+    filterFn: (row, _columnId, filterValue) => {
+      if (!Array.isArray(filterValue)) return false
+      return filterValue.includes(getTeamName(row.original.courseParticipationID))
     },
   }
 }

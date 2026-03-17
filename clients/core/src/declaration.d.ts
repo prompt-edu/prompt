@@ -12,3 +12,9 @@ declare module '*_component/sidebar' {
   const sidebar: SidebarMenuItemProps
   export default sidebar
 }
+
+declare module '*_component/provide' {
+  import React from 'react'
+
+  export const StudentDetail: React.ComponentType<any>
+}

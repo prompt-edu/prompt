@@ -6,13 +6,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations/evaluationCompletion/evaluationCompletionDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion/evaluationCompletionDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
+// setupEvaluationCompletionRouter sets up evaluation completion endpoints.
+// @Summary Evaluation Completion Endpoints
+// @Description Manage evaluation completion for students.
+// @Tags evaluation_completions
+// @Security BearerAuth
 func setupEvaluationCompletionRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	evaluationRouter := routerGroup.Group("/evaluation/completed")
 
@@ -26,6 +31,16 @@ func setupEvaluationCompletionRouter(routerGroup *gin.RouterGroup, authMiddlewar
 
 }
 
+// listEvaluationCompletionsByCoursePhase godoc
+// @Summary List evaluation completions by course phase
+// @Description List evaluation completions for a course phase.
+// @Tags evaluation_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} evaluationCompletionDTO.EvaluationCompletion
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/completed [get]
 func listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -40,6 +55,20 @@ func listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 	c.JSON(http.StatusOK, evaluationCompletionDTO.GetEvaluationCompletionDTOsFromDBModels(completions))
 }
 
+// createOrUpdateMyEvaluationCompletion godoc
+// @Summary Create or update my evaluation completion
+// @Description Create or update evaluation completion for the current student.
+// @Tags evaluation_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param completion body evaluationCompletionDTO.EvaluationCompletion true "Evaluation completion payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [post]
+// @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [put]
 func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
@@ -65,6 +94,19 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Evaluation completion created/updated successfully"})
 }
 
+// markMyEvaluationAsCompleted godoc
+// @Summary Mark my evaluation as completed
+// @Description Mark evaluation as completed for the current student.
+// @Tags evaluation_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param completion body evaluationCompletionDTO.EvaluationCompletion true "Evaluation completion payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/mark-complete [post]
 func markMyEvaluationAsCompleted(c *gin.Context) {
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
@@ -90,6 +132,18 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Evaluation marked as completed successfully"})
 }
 
+// unmarkMyEvaluationAsCompleted godoc
+// @Summary Unmark my evaluation as completed
+// @Description Unmark evaluation as completed for the current student.
+// @Tags evaluation_completions
+// @Accept json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param completion body evaluationCompletionDTO.EvaluationCompletion true "Evaluation completion payload"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/unmark [put]
 func unmarkMyEvaluationAsCompleted(c *gin.Context) {
 	var req struct {
 		CourseParticipationID       uuid.UUID `json:"courseParticipationID"`
@@ -118,6 +172,16 @@ func unmarkMyEvaluationAsCompleted(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// getMyEvaluationCompletions godoc
+// @Summary List my evaluation completions
+// @Description List evaluation completions for the current student.
+// @Tags evaluation_completions
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} evaluationCompletionDTO.EvaluationCompletion
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completions [get]
 func getMyEvaluationCompletions(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {

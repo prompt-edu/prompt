@@ -62,7 +62,7 @@ export default function Home() {
           <div className={styles.featureGrid}>
             <a
               className={styles.featureCard}
-              href="/prompt2/user/course_configurator"
+              href="/prompt/user/course_configurator"
             >
               <div className={styles.featureIcon}>
                 <Layers size={26} />
@@ -73,7 +73,7 @@ export default function Home() {
                 specific teaching needs.
               </p>
             </a>
-            <a className={styles.featureCard} href="/prompt2/user/application">
+            <a className={styles.featureCard} href="/prompt/user/application">
               <div className={styles.featureIcon}>
                 <FileUser size={26} />
               </div>
@@ -86,7 +86,7 @@ export default function Home() {
             </a>
             <a
               className={styles.featureCard}
-              href="/prompt2/user/course_configurator"
+              href="/prompt/user/course_configurator"
             >
               <div className={styles.featureIcon}>
                 <UserCheck size={26} />
@@ -176,7 +176,7 @@ export default function Home() {
               <h3>Report a Bug</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/issues"
+                  href="https://github.com/prompt-edu/prompt/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -191,7 +191,7 @@ export default function Home() {
               <h3>Request a Feature</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/issues"
+                  href="https://github.com/prompt-edu/prompt/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -206,7 +206,7 @@ export default function Home() {
               <h3>Release Notes</h3>
               <p>
                 <a
-                  href="https://github.com/ls1intum/prompt2/releases"
+                  href="https://github.com/prompt-edu/prompt/releases"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

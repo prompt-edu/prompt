@@ -29,12 +29,12 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
   const templateURL = IS_DEV ? `http://localhost:3001` : `/template`
   const interviewURL = IS_DEV ? `http://localhost:3002` : `/interview`
   const matchingURL = IS_DEV ? `http://localhost:3003` : `/matching`
-  const introCourseTutorURL = IS_DEV ? `http://localhost:3004` : `/intro-course-tutor`
   const introCourseDeveloperURL = IS_DEV ? `http://localhost:3005` : `/intro-course-developer`
   const devopsChallengURL = IS_DEV ? `http://localhost:3006` : `/devops-challenge`
   const assessmentURL = IS_DEV ? `http://localhost:3007` : `/assessment`
   const teamAllocationURL = IS_DEV ? `http://localhost:3008` : `/team-allocation`
   const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
+  const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
 
   return {
     target: 'web',
@@ -98,12 +98,12 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
           template_component: `template_component@${templateURL}/remoteEntry.js?${Date.now()}`,
           interview_component: `interview_component@${interviewURL}/remoteEntry.js?${Date.now()}`,
           matching_component: `matching_component@${matchingURL}/remoteEntry.js?${Date.now()}`,
-          intro_course_tutor_component: `intro_course_tutor_component@${introCourseTutorURL}/remoteEntry.js?${Date.now()}`,
           intro_course_developer_component: `intro_course_developer_component@${introCourseDeveloperURL}/remoteEntry.js?${Date.now()}`,
           assessment_component: `assessment_component@${assessmentURL}/remoteEntry.js?${Date.now()}`,
           devops_challenge_component: `devops_challenge_component@${devopsChallengURL}/remoteEntry.js?${Date.now()}`,
           team_allocation_component: `team_allocation_component@${teamAllocationURL}/remoteEntry.js?${Date.now()}`,
           self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
+          certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
         },
         shared: {
           react: { singleton: true, requiredVersion: deps.react },

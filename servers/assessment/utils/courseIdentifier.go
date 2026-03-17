@@ -7,13 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 // GetCourseIdentifierFromPhase retrieves the course identifier (name + semester_tag) from a course phase
 func GetCourseIdentifierFromPhase(ctx context.Context, coursePhaseID uuid.UUID) (string, error) {
-	coreURL := GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	url := fmt.Sprintf("%s/api/course_phases/%s", coreURL, coursePhaseID.String())
 
 	// Extract auth token from gin context, use empty string for test contexts

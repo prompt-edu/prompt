@@ -158,6 +158,58 @@ CREATE TABLE application_question_text (
     access_key character varying(50) DEFAULT ''::character varying
 );
 
+--
+-- Name: application_question_file_upload; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE application_question_file_upload (
+    id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    title text NOT NULL,
+    description text,
+    is_required boolean NOT NULL DEFAULT false,
+    allowed_file_types text,
+    max_file_size_mb integer,
+    order_num integer NOT NULL,
+    accessible_for_other_phases boolean NOT NULL DEFAULT false,
+    access_key text
+);
+
+
+--
+-- Name: files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE files (
+    id uuid NOT NULL,
+    filename character varying(500) NOT NULL,
+    original_filename character varying(500) NOT NULL,
+    content_type character varying(200) NOT NULL,
+    size_bytes bigint NOT NULL,
+    storage_key character varying(500) NOT NULL,
+    storage_provider character varying(50) NOT NULL DEFAULT 'seaweedfs'::character varying,
+    uploaded_by_user_id character varying(200) NOT NULL,
+    uploaded_by_email character varying(200),
+    course_phase_id uuid,
+    description text,
+    tags character varying(100)[],
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deleted_at timestamp without time zone
+);
+
+
+--
+-- Name: application_answer_file_upload; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE application_answer_file_upload (
+    id uuid NOT NULL,
+    application_question_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    file_id uuid NOT NULL
+);
+
 
 --
 -- Name: course; Type: TABLE; Schema: public; Owner: -
@@ -581,6 +633,41 @@ ALTER TABLE ONLY application_question_multi_select
 ALTER TABLE ONLY application_question_text
     ADD CONSTRAINT application_question_text_pkey PRIMARY KEY (id);
 
+--
+-- Name: application_question_file_upload application_question_file_upload_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_question_file_upload
+    ADD CONSTRAINT application_question_file_upload_pkey PRIMARY KEY (id);
+
+--
+-- Name: application_answer_file_upload application_answer_file_upload_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_answer_file_upload
+    ADD CONSTRAINT application_answer_file_upload_pkey PRIMARY KEY (id);
+
+--
+-- Name: application_answer_file_upload unique_file_upload_answer; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_answer_file_upload
+    ADD CONSTRAINT unique_file_upload_answer UNIQUE (course_participation_id, application_question_id);
+
+--
+-- Name: files files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY files
+    ADD CONSTRAINT files_pkey PRIMARY KEY (id);
+
+--
+-- Name: files files_storage_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY files
+    ADD CONSTRAINT files_storage_key_key UNIQUE (storage_key);
+
 
 --
 -- Name: course_participation course_participation_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -880,6 +967,41 @@ ALTER TABLE ONLY application_question_text
 ALTER TABLE ONLY application_question_multi_select
     ADD CONSTRAINT fk_course_phase FOREIGN KEY (course_phase_id) REFERENCES course_phase(id) ON DELETE CASCADE;
 
+--
+-- Name: application_question_file_upload fk_application_question_file_upload_course_phase; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_question_file_upload
+    ADD CONSTRAINT fk_application_question_file_upload_course_phase FOREIGN KEY (course_phase_id) REFERENCES course_phase(id) ON DELETE CASCADE;
+
+--
+-- Name: files fk_files_course_phase; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY files
+    ADD CONSTRAINT fk_files_course_phase FOREIGN KEY (course_phase_id) REFERENCES course_phase(id) ON DELETE SET NULL;
+
+--
+-- Name: application_answer_file_upload fk_application_answer_file_upload_question; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_answer_file_upload
+    ADD CONSTRAINT fk_application_answer_file_upload_question FOREIGN KEY (application_question_id) REFERENCES application_question_file_upload(id) ON DELETE CASCADE;
+
+--
+-- Name: application_answer_file_upload fk_application_answer_file_upload_participation; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_answer_file_upload
+    ADD CONSTRAINT fk_application_answer_file_upload_participation FOREIGN KEY (course_participation_id) REFERENCES course_participation(id) ON DELETE CASCADE;
+
+--
+-- Name: application_answer_file_upload fk_application_answer_file_upload_file; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY application_answer_file_upload
+    ADD CONSTRAINT fk_application_answer_file_upload_file FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE;
+
 
 --
 -- Name: application_assessment fk_course_phase_participation; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -1020,4 +1142,3 @@ ALTER TABLE ONLY phase_data_dependency_graph
 --
 -- PostgreSQL database dump complete
 --
-

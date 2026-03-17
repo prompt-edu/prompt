@@ -7,6 +7,8 @@ import { ExternalRoutes } from './ExternalRoutes'
 import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
 import { ApplicationMailingSettings } from '../../applicationAdministration/pages/Mailing/ApplicationMailingSettings'
 import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
+// eslint-disable-next-line max-len
+import { ApplicationDetailsPage } from '@core/managementConsole/applicationAdministration/pages/ApplicationParticipantsPage/components/ApplicationDetailsDialog/ApplicationDetailsPage'
 
 const applicationRoutesObjects: ExtendedRouteObject[] = [
   {
@@ -41,6 +43,15 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
     element: (
       <ApplicationDataWrapper>
         <ApplicationParticipantsPage />
+      </ApplicationDataWrapper>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/participants/:participationId',
+    element: (
+      <ApplicationDataWrapper>
+        <ApplicationDetailsPage />
       </ApplicationDataWrapper>
     ),
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

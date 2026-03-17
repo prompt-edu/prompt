@@ -2,57 +2,80 @@ name: Generate and Release API Spec
 
 on:
   workflow_call:
+    inputs:
+      directories:
+        description: "JSON array of server modules to generate API specs for"
+        required: false
+        type: string
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  set-matrix:
+  resolve-directories:
     runs-on: ubuntu-latest
     outputs:
-      directories: ${{ steps.set-matrix.outputs.directories }}
+      directories: ${{ steps.resolve.outputs.directories }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: tj-actions/changed-files@v45
-        id: changed-servers
-        with:
-          files: servers/**/
-          dir_names: true
-          dir_names_max_depth: 2
-          json: true
-      - uses: tj-actions/changed-files@v45
-        id: changed-workflow
-        with:
-          files: .github/workflows/generate-api-spec.yml
-      - id: set-matrix
+      - id: resolve
+        env:
+          INPUT_DIRECTORIES: ${{ inputs.directories }}
         run: |
-          if [ "${{ steps.changed-workflow.outputs.any_changed }}" = "true" ]; then
-            DIRS=$(find servers -mindepth 1 -maxdepth 1 -type d | cut -d/ -f2 | jq -R -s -c 'split("\n")[:-1]')
+          set -euo pipefail
+
+          if [ -n "$INPUT_DIRECTORIES" ] && [ "$INPUT_DIRECTORIES" != '[]' ]; then
+            DIRS="$INPUT_DIRECTORIES"
           else
-            DIRS=$(echo '${{ steps.changed-servers.outputs.all_changed_files }}' | jq -c '[.[] | split("/") | select(length > 1) | .[1]] | unique')
+            add_unique() {
+              local list="$1"
+              local value="$2"
+              echo "$list" | jq --arg v "$value" 'if contains([$v]) then . else . + [$v] end'
+            }
+
+            is_api_spec_module() {
+              local module="$1"
+              local modfile="servers/$module/go.mod"
+              if [ -f "$modfile" ] && grep -q "swaggo/swag" "$modfile"; then
+                return 0
+              fi
+              return 1
+            }
+
+            DIRS="[]"
+            if compgen -G "servers/*/" > /dev/null; then
+              for dir in servers/*/; do
+                module=$(basename "$dir")
+                if is_api_spec_module "$module"; then
+                  DIRS=$(add_unique "$DIRS" "$module")
+                fi
+              done
+            fi
           fi
 
-          echo "directories<<EOF" >> $GITHUB_OUTPUT
-          echo "$DIRS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "directories<<EOF"
+            echo "$DIRS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
   generate-api-spec:
     runs-on: ubuntu-latest
-    needs: set-matrix
-    if: needs.set-matrix.outputs.directories != '[]'
+    needs: resolve-directories
+    if: needs.resolve-directories.outputs.directories != '[]'
     strategy:
       matrix:
-        directory: ${{ fromJson(needs.set-matrix.outputs.directories) }}
+        directory: ${{ fromJson(needs.resolve-directories.outputs.directories) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version: stable
           cache-dependency-path: "**/*.sum"
       - name: Install swag
         run: |

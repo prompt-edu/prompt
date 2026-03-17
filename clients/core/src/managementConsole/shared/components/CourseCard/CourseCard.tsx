@@ -1,28 +1,13 @@
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@tumaet/prompt-ui-components'
-import { Course } from '@tumaet/prompt-shared-state'
-import {
-  CalendarDays,
-  GraduationCap,
-  Clock,
-  Calendar,
-  ChevronRight,
-  Archive,
-  ArchiveRestore,
-} from 'lucide-react'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
+import { Course, Role } from '@tumaet/prompt-shared-state'
+import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import DynamicIcon from '@/components/DynamicIcon'
-import { useNavigate } from 'react-router-dom'
-import { archiveCourse, unarchiveCourse } from '@core/network/mutations/updateCourseArchiveStatus'
 import { formatDate } from '@core/utils/formatDate'
+import { CourseArchiveButton } from './CourseArchiveButton'
+import { useNavigate } from 'react-router-dom'
+import { CourseSettingsButton } from './CourseSettingsButton'
+import { ShowForRole } from '../ShowForRole'
 
 type CourseMetaItemProps = {
   icon: React.ReactNode
@@ -48,14 +33,6 @@ export const CourseCard = ({ course }: CourseCardProps) => {
   const bgColor = course.studentReadableData?.['bg-color'] || 'bg-gray-50'
   const navigate = useNavigate()
 
-  const handleArchive = async () => {
-    if (course.archived) {
-      await unarchiveCourse(course.id)
-    } else {
-      await archiveCourse(course.id)
-    }
-  }
-
   return (
     <Card className='overflow-hidden border border-gray-200 h-full flex flex-col'>
       <CardHeader className={`rounded-t-lg ${bgColor} py-6 px-6 border-b`}>
@@ -76,25 +53,12 @@ export const CourseCard = ({ course }: CourseCardProps) => {
             </CardTitle>
           </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={handleArchive}
-                className='shrink-0 p-2 rounded-md bg-white focus-visible:ring-2 focus-visible:ring-offset-2 hover:bg-gray-100'
-                aria-label={course.archived ? 'Unarchive course' : 'Archive course'}
-              >
-                {course.archived ? (
-                  <ArchiveRestore className='w-6 h-6 text-gray-600' />
-                ) : (
-                  <Archive className='w-6 h-6 text-gray-600' />
-                )}
-              </button>
-            </TooltipTrigger>
-
-            <TooltipContent>
-              {course.archived ? 'Unarchive this course' : 'Archive this course'}
-            </TooltipContent>
-          </Tooltip>
+          <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <div className='flex gap-2'>
+              <CourseArchiveButton courseID={course.id} archived={course.archived} />
+              <CourseSettingsButton courseID={course.id} />
+            </div>
+          </ShowForRole>
         </div>
       </CardHeader>
 

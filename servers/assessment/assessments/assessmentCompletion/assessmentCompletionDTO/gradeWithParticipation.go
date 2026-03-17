@@ -2,8 +2,8 @@ package assessmentCompletionDTO
 
 import (
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
 type GradeWithParticipation struct {

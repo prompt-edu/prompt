@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/team_allocation/survey/surveyDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,6 +23,17 @@ func setupSurveyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowed
 
 }
 
+// getSurveyForm godoc
+// @Summary Get survey form
+// @Description Get available survey data (teams, skills, and deadline) for a course phase
+// @Tags survey
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} surveyDTO.SurveyForm
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/form [get]
 // getAvailableSurveyData returns teams and skills if the survey has started.
 // Expects coursePhaseID to be provided as a query parameter.
 func getSurveyForm(c *gin.Context) {
@@ -45,6 +56,17 @@ func getSurveyForm(c *gin.Context) {
 	c.JSON(http.StatusOK, surveyData)
 }
 
+// getStudentSurveyResponses godoc
+// @Summary Get student survey responses
+// @Description Get the authenticated student's survey answers
+// @Tags survey
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} surveyDTO.StudentSurveyResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/answers [get]
 // getStudentSurveyResponses returns the student's submitted survey answers.
 // Expects courseParticipationID to be provided as a query parameter.
 func getStudentSurveyResponses(c *gin.Context) {
@@ -70,6 +92,19 @@ func getStudentSurveyResponses(c *gin.Context) {
 	c.JSON(http.StatusOK, responses)
 }
 
+// submitSurveyResponses godoc
+// @Summary Submit survey responses
+// @Description Create or update the authenticated student's survey answers
+// @Tags survey
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body surveyDTO.StudentSurveyResponse true "Survey responses"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/answers [post]
 // submitSurveyResponses accepts and stores (or overwrites) the student's survey answers.
 // Expects courseParticipationID and coursePhaseID as query parameters.
 func submitSurveyResponses(c *gin.Context) {
@@ -108,6 +143,19 @@ func submitSurveyResponses(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// setSurveyTimeframe godoc
+// @Summary Set survey timeframe
+// @Description Set or update the survey timeframe for a course phase
+// @Tags survey
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body surveyDTO.SurveyTimeframe true "Survey timeframe"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/timeframe [put]
 // setSurveyTimeframe allows lecturers to set or update the survey timeframe.
 // Expects coursePhaseID as a query parameter and the new timeframe in the JSON body.
 func setSurveyTimeframe(c *gin.Context) {
@@ -132,6 +180,17 @@ func setSurveyTimeframe(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// getSurveyTimeframe godoc
+// @Summary Get survey timeframe
+// @Description Get the survey timeframe for a course phase
+// @Tags survey
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} surveyDTO.SurveyTimeframe
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/timeframe [get]
 func getSurveyTimeframe(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {

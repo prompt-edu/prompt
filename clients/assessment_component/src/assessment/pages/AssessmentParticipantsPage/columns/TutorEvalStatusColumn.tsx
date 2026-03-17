@@ -1,7 +1,4 @@
-import { Row } from '@tanstack/table-core'
-import { CoursePhaseParticipationWithStudent, Team } from '@tumaet/prompt-shared-state'
-
-import { ExtraParticipationTableColumn } from '@/components/pages/CoursePhaseParticipationsTable/interfaces/ExtraParticipationTableColumn'
+import { Team } from '@tumaet/prompt-shared-state'
 
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
@@ -9,81 +6,61 @@ import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
 import { PeerEvaluationCompletionBadge } from '../../components/badges'
 
 import { createEvaluationLookup, getEvaluationCounts } from '../utils/evaluationUtils'
+import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
 
 export const createTutorEvalStatusColumn = (
   tutorEvaluationCompletions: EvaluationCompletion[] | undefined,
   teams: Team[],
   participations: AssessmentParticipationWithStudent[],
   isEnabled: boolean,
-): ExtraParticipationTableColumn | undefined => {
+): ExtraParticipantColumn<{ completed: number; total: number }> | undefined => {
   if (!isEnabled) return undefined
 
   const evaluationLookup = createEvaluationLookup(tutorEvaluationCompletions)
 
+  const getCountsForParticipation = (courseParticipationID: string) => {
+    const team = teams.find((t) => t.members.some((member) => member.id === courseParticipationID))
+
+    if (!team) {
+      return { completed: 0, total: 0 }
+    }
+
+    const tutorIds = team.tutors
+      .map((tutor) => tutor.id)
+      .filter((id): id is string => id !== undefined)
+
+    return getEvaluationCounts(courseParticipationID, tutorIds, evaluationLookup)
+  }
+
   return {
     id: 'tutorEvalStatus',
     header: 'Tutor Eval',
-    accessorFn: (row) => {
-      const team = teams.find((t) =>
-        t.members.some((member) => member.id === row.courseParticipationID),
-      )
 
-      if (!team) {
-        return <PeerEvaluationCompletionBadge completed={0} total={0} />
-      }
+    accessorFn: (row) => getCountsForParticipation(row.courseParticipationID),
 
-      const tutorIds = team.tutors
-        .map((tutor) => tutor.id)
-        .filter((id): id is string => id !== undefined)
-      const counts = getEvaluationCounts(row.courseParticipationID, tutorIds, evaluationLookup)
-
-      return <PeerEvaluationCompletionBadge completed={counts.completed} total={counts.total} />
+    cell: ({ getValue }) => {
+      const { completed, total } = getValue()
+      return <PeerEvaluationCompletionBadge completed={completed} total={total} />
     },
+
     enableSorting: true,
     sortingFn: (rowA, rowB) => {
-      const getCompletionRatio = (row: Row<CoursePhaseParticipationWithStudent>) => {
-        const team = teams.find((t) =>
-          t.members.some((member) => member.id === row.original.courseParticipationID),
-        )
+      const a = getCountsForParticipation(rowA.original.courseParticipationID)
+      const b = getCountsForParticipation(rowB.original.courseParticipationID)
 
-        if (!team) return 0
+      const ratioA = a.total > 0 ? a.completed / a.total : 0
+      const ratioB = b.total > 0 ? b.completed / b.total : 0
 
-        const tutorIds = team.tutors
-          .map((tutor) => tutor.id)
-          .filter((id): id is string => id !== undefined)
-        const counts = getEvaluationCounts(
-          row.original.courseParticipationID,
-          tutorIds,
-          evaluationLookup,
-        )
-
-        return counts.total > 0 ? counts.completed / counts.total : 0
-      }
-
-      return getCompletionRatio(rowA) - getCompletionRatio(rowB)
+      return ratioA - ratioB
     },
+
     extraData: participations.map((p) => {
-      const team = teams.find((t) => t.id === p.teamID)
-
-      if (!team) {
-        return {
-          courseParticipationID: p.courseParticipationID,
-          value: <PeerEvaluationCompletionBadge completed={0} total={0} />,
-          stringValue: '0/0',
-        }
-      }
-
-      const tutorIds = team.tutors
-        .map((tutor) => tutor.id)
-        .filter((id): id is string => id !== undefined)
-      const counts = getEvaluationCounts(p.courseParticipationID, tutorIds, evaluationLookup)
-
-      const statusText = `${counts.completed}/${counts.total}`
+      const counts = getCountsForParticipation(p.courseParticipationID)
 
       return {
         courseParticipationID: p.courseParticipationID,
-        value: <PeerEvaluationCompletionBadge completed={counts.completed} total={counts.total} />,
-        stringValue: statusText,
+        value: counts,
+        stringValue: `${counts.completed}/${counts.total}`,
       }
     }),
   }

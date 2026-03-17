@@ -105,6 +105,94 @@ func (q *Queries) GetAllStudents(ctx context.Context) ([]Student, error) {
 	return items, nil
 }
 
+const getAllStudentsWithCourseParticipations = `-- name: GetAllStudentsWithCourseParticipations :many
+SELECT
+  s.id AS student_id,
+  s.first_name AS student_first_name,
+  s.last_name AS student_last_name,
+  s.email AS student_email,
+  s.has_university_account AS student_has_university_account,
+  s.current_semester,
+  s.study_program,
+  COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'courseId', c.id,
+        'courseName', c.name,
+        'studentReadableData', c.student_readable_data
+      )
+    ) FILTER (WHERE c.id IS NOT NULL),
+    '[]'::jsonb
+  )::jsonb AS courses,
+  COALESCE(
+    (
+      SELECT jsonb_agg(jsonb_build_object('id', nt.id, 'name', nt.name, 'color', nt.color) ORDER BY nt.name)
+      FROM (
+        SELECT DISTINCT nt.id, nt.name, nt.color
+        FROM note n
+        JOIN note_tag_relation ntr ON ntr.note_id = n.id
+        JOIN note_tag nt ON nt.id = ntr.tag_id
+        WHERE n.for_student = s.id
+          AND n.date_deleted IS NULL
+      ) nt
+    ),
+    '[]'::jsonb
+  )::jsonb AS note_tags
+FROM student s
+LEFT JOIN course_participation cp
+  ON cp.student_id = s.id
+LEFT JOIN course c
+  ON c.id = cp.course_id
+GROUP BY
+  s.id,
+  s.first_name,
+  s.last_name,
+  s.email,
+  s.has_university_account
+`
+
+type GetAllStudentsWithCourseParticipationsRow struct {
+	StudentID                   uuid.UUID   `json:"student_id"`
+	StudentFirstName            pgtype.Text `json:"student_first_name"`
+	StudentLastName             pgtype.Text `json:"student_last_name"`
+	StudentEmail                pgtype.Text `json:"student_email"`
+	StudentHasUniversityAccount pgtype.Bool `json:"student_has_university_account"`
+	CurrentSemester             pgtype.Int4 `json:"current_semester"`
+	StudyProgram                pgtype.Text `json:"study_program"`
+	Courses                     []byte      `json:"courses"`
+	NoteTags                    []byte      `json:"note_tags"`
+}
+
+func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([]GetAllStudentsWithCourseParticipationsRow, error) {
+	rows, err := q.db.Query(ctx, getAllStudentsWithCourseParticipations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllStudentsWithCourseParticipationsRow
+	for rows.Next() {
+		var i GetAllStudentsWithCourseParticipationsRow
+		if err := rows.Scan(
+			&i.StudentID,
+			&i.StudentFirstName,
+			&i.StudentLastName,
+			&i.StudentEmail,
+			&i.StudentHasUniversityAccount,
+			&i.CurrentSemester,
+			&i.StudyProgram,
+			&i.Courses,
+			&i.NoteTags,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStudent = `-- name: GetStudent :one
 SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
 WHERE id = $1 LIMIT 1
@@ -218,6 +306,33 @@ func (q *Queries) GetStudentByMatriculationNumberAndUniversityLogin(ctx context.
 	return i, err
 }
 
+const getStudentByUniversityLogin = `-- name: GetStudentByUniversityLogin :one
+SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
+WHERE university_login = $1
+LIMIT 1
+`
+
+func (q *Queries) GetStudentByUniversityLogin(ctx context.Context, universityLogin pgtype.Text) (Student, error) {
+	row := q.db.QueryRow(ctx, getStudentByUniversityLogin, universityLogin)
+	var i Student
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.MatriculationNumber,
+		&i.UniversityLogin,
+		&i.HasUniversityAccount,
+		&i.Gender,
+		&i.Nationality,
+		&i.StudyProgram,
+		&i.StudyDegree,
+		&i.CurrentSemester,
+		&i.LastModified,
+	)
+	return i, err
+}
+
 const getStudentEmails = `-- name: GetStudentEmails :many
 SELECT id, email
 FROM student
@@ -247,6 +362,114 @@ func (q *Queries) GetStudentEmails(ctx context.Context, dollar_1 []uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getStudentEnrollments = `-- name: GetStudentEnrollments :one
+WITH RECURSIVE
+course_participations AS (
+    SELECT
+        cp.id AS course_participation_id,
+        cp.student_id,
+        cp.course_id
+    FROM course_participation cp
+    WHERE cp.student_id = $1
+),
+phase_sequence AS (
+    SELECT
+        cph.id,
+        cph.course_id,
+        cph.name,
+        cph.is_initial_phase,
+        cph.course_phase_type_id,
+        1 AS sequence_order
+    FROM course_phase cph
+    WHERE cph.is_initial_phase = true
+    UNION ALL
+    SELECT
+        cph.id,
+        cph.course_id,
+        cph.name,
+        cph.is_initial_phase,
+        cph.course_phase_type_id,
+        ps.sequence_order + 1
+    FROM course_phase cph
+    INNER JOIN course_phase_graph g
+        ON g.to_course_phase_id = cph.id
+    INNER JOIN phase_sequence ps
+        ON g.from_course_phase_id = ps.id
+),
+course_phases AS (
+    SELECT
+        cp.student_id,
+        cp.course_id,
+        cp.course_participation_id,
+        COALESCE(
+            jsonb_agg(
+                jsonb_build_object(
+                    'coursePhaseId', ps.id,
+                    'name', ps.name,
+                    'isInitialPhase', ps.is_initial_phase,
+                    'coursePhaseType', jsonb_build_object(
+                        'id', cpt.id,
+                        'name', cpt.name
+                    ),
+                    'passStatus', COALESCE(cpp.pass_status, 'not_assessed'),
+                    'lastModified', cpp.last_modified::text
+                )
+                ORDER BY ps.sequence_order
+            ),
+            '[]'::jsonb
+        ) AS course_phases
+    FROM course_participations cp
+    INNER JOIN phase_sequence ps
+        ON ps.course_id = cp.course_id
+    INNER JOIN course_phase_type cpt
+        ON ps.course_phase_type_id = cpt.id
+    LEFT JOIN course_phase_participation cpp
+        ON cpp.course_participation_id = cp.course_participation_id
+       AND cpp.course_phase_id = ps.id
+    GROUP BY cp.student_id, cp.course_id, cp.course_participation_id
+)
+SELECT
+    COALESCE(
+        jsonb_agg(
+            jsonb_build_object(
+                'courseId', c.id,
+                'courseParticipationId', cp.course_participation_id,
+                'name', c.name,
+                'semesterTag', c.semester_tag,
+                'courseType', c.course_type,
+                'ects', c.ects,
+                'startDate', to_char(
+                    c.start_date::timestamptz,
+                    'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+                ),
+                'studentReadableData', c.student_readable_data,
+                'endDate', to_char(
+                    c.end_date::timestamptz,
+                    'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+                ),
+                'longDescription', c.long_description,
+                'coursePhases', cp.course_phases
+            )
+            ORDER BY c.start_date DESC, c.name
+        ) FILTER (WHERE c.id IS NOT NULL),
+        '[]'::jsonb
+    )::jsonb AS courses
+FROM student s
+LEFT JOIN course_phases cp
+    ON s.id = cp.student_id
+LEFT JOIN course c
+    ON cp.course_id = c.id
+WHERE s.id = $1
+GROUP BY s.id
+`
+
+func (q *Queries) GetStudentEnrollments(ctx context.Context, id uuid.UUID) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getStudentEnrollments, id)
+	var courses []byte
+	err := row.Scan(&courses)
+	return courses, err
 }
 
 const getStudentUniversityLogins = `-- name: GetStudentUniversityLogins :many

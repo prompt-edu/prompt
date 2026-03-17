@@ -6,18 +6,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
-	"github.com/ls1intum/prompt2/servers/core/utils"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 func setupStudentRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	student := router.Group("/students", authMiddleware())
-	student.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudents)
+	student.GET("/with-courses", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudentsWithCourses)
+	student.GET("/search/:searchString", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), searchStudents)
 	student.GET("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getStudentByID)
+	student.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudents)
 	student.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), createStudent)
 	student.PUT("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), updateStudent)
-	student.GET("/search/:searchString", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), searchStudents)
+	student.GET("/:uuid/enrollments", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getStudentEnrollments)
 }
 
 // getAllStudents godoc
@@ -36,6 +38,24 @@ func getAllStudents(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, students)
+}
+
+// getAllStudentsWithCourses() godoc
+// @Summary Get all students with courses
+// @Description Get a list of all students with the property 'courses' a list of courses that the student is taking part of or was
+// @Tags students
+// @Produce json
+// @Success 200 {array} studentDTO.StudentWithCourseParticipationsDTO
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /students/with-courses [get]
+func getAllStudentsWithCourses(c *gin.Context) {
+	studentsWithCourses, err := GetAllStudentsWithCourses(c)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, studentsWithCourses)
 }
 
 // getStudentByID godoc
@@ -160,6 +180,30 @@ func searchStudents(c *gin.Context) {
 		return
 	}
 	c.IndentedJSON(http.StatusOK, students)
+}
+
+// getStudentEnrollments godoc
+// @Summary Get student enrollments by ID
+// @Description Get all of a students enrollments, provide student UUID
+// @Tags students
+// @Produce json
+// @Param uuid path string true "Student UUID"
+// @Success 200 {object} studentDTO.StudentEnrollmentsDTO
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /students/{uuid}/enrollments [get]
+func getStudentEnrollments(c *gin.Context) {
+	id, parseErr := uuid.Parse(c.Param("uuid"))
+	if parseErr != nil {
+		handleError(c, http.StatusBadRequest, parseErr)
+		return
+	}
+  studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+	c.IndentedJSON(http.StatusOK, studentEnrollments)
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

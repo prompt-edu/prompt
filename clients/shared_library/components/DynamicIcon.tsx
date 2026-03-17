@@ -2,11 +2,13 @@ import React, { lazy, Suspense } from 'react'
 import { LucideProps } from 'lucide-react'
 import dynamicIconImports from 'lucide-react/dynamicIconImports'
 
-const fallback = <div style={{ background: '#ddd', width: 24, height: 24 }}>?</div>
+const fallback = <div style={{ width: 24, height: 24 }} />
 
 interface IconProps extends Omit<LucideProps, 'ref'> {
   name: string
 }
+
+const iconCache = new Map<string, React.LazyExoticComponent<React.ComponentType<LucideProps>>>()
 
 const DynamicIcon = ({ name, ...props }: IconProps) => {
   if (!dynamicIconImports[name]) {
@@ -14,7 +16,11 @@ const DynamicIcon = ({ name, ...props }: IconProps) => {
     return fallback
   }
 
-  const LucideIcon = lazy(dynamicIconImports[name])
+  let LucideIcon = iconCache.get(name)
+  if (!LucideIcon) {
+    LucideIcon = lazy(dynamicIconImports[name])
+    iconCache.set(name, LucideIcon)
+  }
 
   return (
     <Suspense fallback={fallback}>

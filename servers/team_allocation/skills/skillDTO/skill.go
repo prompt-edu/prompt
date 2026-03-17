@@ -2,7 +2,7 @@ package skillDTO
 
 import (
 	"github.com/google/uuid"
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 )
 
 // Skill represents a simplified view of the skill record.

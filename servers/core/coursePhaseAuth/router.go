@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/core/permissionValidation"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
 // setupCoursePhaseAuthRouter sets up the course phase auth endpoints

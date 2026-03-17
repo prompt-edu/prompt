@@ -3,7 +3,7 @@ package coursePhaseType
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,5 +50,10 @@ func InitCoursePhaseTypeModule(routerGroup *gin.RouterGroup, queries db.Queries,
 	err = initSelfTeamAllocation()
 	if err != nil {
 		log.Fatal("failed to init self team allocation phase type: ", err)
+	}
+
+	err = initCertificate()
+	if err != nil {
+		log.Fatal("failed to init certificate phase type: ", err)
 	}
 }

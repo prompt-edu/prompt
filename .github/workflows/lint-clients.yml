@@ -2,61 +2,27 @@ name: Lint Clients
 
 on:
   workflow_call:
+    inputs:
+      modules:
+        description: "JSON array of client modules to lint"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  set-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      modules: ${{ steps.set-matrix.outputs.modules }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: tj-actions/changed-files@v45
-        id: changed-clients
-        with:
-          files: clients/**/
-          dir_names: true
-          dir_names_max_depth: 2
-          json: true
-      - uses: tj-actions/changed-files@v45
-        id: changed-workflow
-        with:
-          files: .github/workflows/lint-clients.yml
-      - id: set-matrix
-        run: |
-          if [ "${{ steps.changed-workflow.outputs.any_changed }}" = "true" ]; then
-            MODULES="[]"
-            for dir in clients/*/; do
-              module=$(basename "$dir")
-              [ -f "$dir/eslint.config.mjs" ] && MODULES=$(echo "$MODULES" | jq --arg m "$module" '. += [$m]')
-            done
-          else
-            MODULES="[]"
-            for dir in $(echo '${{ steps.changed-clients.outputs.all_changed_files }}' | jq -r '.[]'); do
-              [ -f "$dir/eslint.config.mjs" ] && MODULES=$(echo "$MODULES" | jq --arg m "$module" '. += [$m]')
-            done
-          fi
-
-          echo "modules<<EOF" >> $GITHUB_OUTPUT
-          echo "$MODULES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
   lint-client:
-    needs: set-matrix
-    if: needs.set-matrix.outputs.modules != '[]'
+    if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./clients
     strategy:
       matrix:
-        module: ${{ fromJson(needs.set-matrix.outputs.modules) }}
+        module: ${{ fromJson(inputs.modules) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node
       - run: yarn install
       - name: Lint components in ${{ matrix.module }}

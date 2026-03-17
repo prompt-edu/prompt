@@ -4,14 +4,13 @@ import { Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsWithResolution, Team } from '@tumaet/prompt-shared-state'
+import { Team } from '@tumaet/prompt-shared-state'
 
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
-
-import { ExtraParticipationTableColumn } from '@/components/pages/CoursePhaseParticipationsTable/interfaces/ExtraParticipationTableColumn'
-import { CoursePhaseParticipationsTablePage } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTablePage'
+import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
 
 import { getAllTeams } from '../../network/queries/getAllTeams'
+import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
 
 export const SelfTeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -21,10 +20,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
     isPending: isCoursePhaseParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
-  })
+  } = useGetCoursePhaseParticipants()
 
   const {
     data: teams,
@@ -36,7 +32,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
-  const extraColumns: ExtraParticipationTableColumn[] = useMemo(() => {
+  const extraColumns: ExtraParticipantColumn<any>[] = useMemo(() => {
     if (!teams) return []
 
     const teamNameById = new Map(teams.map(({ id, name }) => [id, name]))
@@ -96,11 +92,9 @@ export const SelfTeamAllocationParticipantsPage = () => {
         This table shows all participants and their allocated teams.
       </p>
       <div className='w-full'>
-        <CoursePhaseParticipationsTablePage
+        <CoursePhaseParticipationsTable
+          phaseId={phaseId!}
           participants={coursePhaseParticipations.participations ?? []}
-          prevDataKeys={[]}
-          restrictedDataKeys={[]}
-          studentReadableDataKeys={[]}
           extraColumns={extraColumns}
         />
       </div>

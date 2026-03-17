@@ -9,6 +9,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
 
 interface BreadcrumbProps {
   title: string
@@ -23,6 +24,7 @@ export const Breadcrumbs: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { courses } = useCourseStore()
+  const { studentsById } = useStudentStore()
 
   const breadcrumbList = useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -41,6 +43,19 @@ export const Breadcrumbs: React.FC = () => {
         breadcrumbs.push({ title: 'Template Courses', path: '/management/course_templates' })
       } else if (pathSegments[1] === 'course_archive') {
         breadcrumbs.push({ title: 'Archived Courses', path: '/management/course_archive' })
+      } else if (pathSegments[1] === 'students') {
+        breadcrumbs.push({ title: 'Students', path: '/management/students' })
+        if (pathSegments.length > 2) {
+          if (studentsById[pathSegments[2]]) {
+            const s = studentsById[pathSegments[2]]
+            breadcrumbs.push({
+              title: s.firstName + ' ' + s.lastName,
+              path: '/management/students/' + pathSegments[2],
+            })
+          } else {
+            breadcrumbs.push({ title: 'Student', path: '/management/students/' + pathSegments[2] })
+          }
+        }
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {
         const courseId = pathSegments[2]
         const course = courses.find((c) => c.id === courseId)
@@ -83,7 +98,7 @@ export const Breadcrumbs: React.FC = () => {
     }
 
     return breadcrumbs
-  }, [location.pathname, courses])
+  }, [location.pathname, courses, studentsById])
 
   if (breadcrumbList.length === 0) {
     return null

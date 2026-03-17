@@ -10,7 +10,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,6 +74,16 @@ func KeycloakMiddleware() gin.HandlerFunc {
 			log.Error("Failed to extract user university login (sub) from token claims")
 		}
 
+		firstName, ok := claims["given_name"].(string)
+		if !ok {
+			log.Error("Failed to extract user given name from token claims")
+		}
+
+		lastName, ok := claims["family_name"].(string)
+		if !ok {
+			log.Error("Failed to extract user family name from token claims")
+		}
+
 		// Retrieve all user's roles from the token (if any) for the audience prompt-server (clientID)
 		userRoles, err := checkKeycloakRoles(claims)
 		if err != nil {
@@ -100,11 +110,13 @@ func KeycloakMiddleware() gin.HandlerFunc {
 		}
 
 		// Store the extracted roles in the context
-		c.Set("userRoles", userRoles)
-		c.Set("userID", userID)
-		c.Set("userEmail", userEmail)
-		c.Set("matriculationNumber", matriculationNumber)
-		c.Set("universityLogin", universityLogin)
+		c.Set(CtxUserRoles, userRoles)
+		c.Set(CtxUserID, userID)
+		c.Set(CtxUserEmail, userEmail)
+		c.Set(CtxMatriculationNumber, matriculationNumber)
+		c.Set(CtxUniversityLogin, universityLogin)
+		c.Set(CtxFirstName, firstName)
+		c.Set(CtxLastName, lastName)
 		c.Next()
 	}
 }

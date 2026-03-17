@@ -8,9 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ls1intum/prompt2/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type ScoreLevelServiceTestSuite struct {
@@ -22,7 +23,7 @@ type ScoreLevelServiceTestSuite struct {
 
 func (suite *ScoreLevelServiceTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

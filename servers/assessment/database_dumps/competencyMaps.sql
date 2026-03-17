@@ -55,6 +55,12 @@ CREATE TABLE public.category (
     CONSTRAINT category_course_phase_id_fkey FOREIGN KEY (course_phase_id) REFERENCES public.course_phase(id) ON DELETE CASCADE
 );
 
+CREATE VIEW public.category_course_phase AS
+SELECT
+    id AS category_id,
+    course_phase_id
+FROM public.category;
+
 CREATE TABLE public.competency (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name character varying NOT NULL,

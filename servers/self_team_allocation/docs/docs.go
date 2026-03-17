@@ -1000,7 +1000,7 @@ const docTemplate = `{
     },
     "externalDocs": {
         "description": "PROMPT Documentation",
-        "url": "https://ls1intum.github.io/prompt2/"
+        "url": "https://prompt-edu.github.io/prompt/"
     }
 }`
 

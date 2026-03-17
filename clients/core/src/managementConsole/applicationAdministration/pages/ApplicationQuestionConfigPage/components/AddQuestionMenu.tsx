@@ -7,14 +7,21 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { Plus } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 
 interface AddQuestionMenuProps {
   setApplicationQuestions: React.Dispatch<
-    React.SetStateAction<(ApplicationQuestionText | ApplicationQuestionMultiSelect)[]>
+    React.SetStateAction<
+      (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
+    >
   >
-  applicationQuestions: (ApplicationQuestionText | ApplicationQuestionMultiSelect)[]
+  applicationQuestions: (
+    | ApplicationQuestionText
+    | ApplicationQuestionMultiSelect
+    | ApplicationQuestionFileUpload
+  )[]
 }
 
 export const AddQuestionMenu = ({
@@ -70,6 +77,21 @@ export const AddQuestionMenu = ({
     setApplicationQuestions([...applicationQuestions, newQuestion])
   }
 
+  const handleAddNewFileUpload = () => {
+    const newQuestion: ApplicationQuestionFileUpload = {
+      id: `not-valid-id-question-${applicationQuestions.length + 1}`,
+      title: ``,
+      coursePhaseID: phaseId!,
+      isRequired: false,
+      orderNum: applicationQuestions.length + 1,
+      allowedFileTypes: '.pdf',
+      maxFileSizeMB: 10,
+      accessKey: '',
+      accessibleForOtherPhases: false,
+    }
+    setApplicationQuestions([...applicationQuestions, newQuestion])
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -86,6 +108,7 @@ export const AddQuestionMenu = ({
           Multi-Select Question
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => handleAddNewCheckbox()}>Checkbox</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleAddNewFileUpload()}>File Upload</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

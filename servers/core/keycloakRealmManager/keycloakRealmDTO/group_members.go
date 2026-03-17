@@ -1,6 +1,6 @@
 package keycloakRealmDTO
 
-import "github.com/ls1intum/prompt2/servers/core/student/studentDTO"
+import "github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 
 type GroupMembers struct {
 	Students    []studentDTO.Student `json:"students"`

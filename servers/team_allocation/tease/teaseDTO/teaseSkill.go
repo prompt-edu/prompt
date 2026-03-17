@@ -1,7 +1,7 @@
 package teaseDTO
 
 import (
-	db "github.com/ls1intum/prompt2/servers/team_allocation/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 )
 
 type Skill struct {

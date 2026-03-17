@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/team_allocation/team/teamDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,6 +26,17 @@ func setupTeamRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRo
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getTeamByID)
 }
 
+// getAllTeams godoc
+// @Summary Get all teams
+// @Description Get all teams for a course phase
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} map[string][]promptTypes.Team
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team [get]
 func getAllTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -43,6 +54,18 @@ func getAllTeams(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"teams": teams})
 }
 
+// getTeamByID godoc
+// @Summary Get team by ID
+// @Description Get a specific team by its ID
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param teamID path string true "Team UUID"
+// @Success 200 {object} promptTypes.Team
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/{teamID} [get]
 func getTeamByID(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -66,6 +89,19 @@ func getTeamByID(c *gin.Context) {
 	c.JSON(http.StatusOK, team)
 }
 
+// createTeams godoc
+// @Summary Create new teams
+// @Description Create one or more new teams for a course phase
+// @Tags team
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body teamDTO.CreateTeamsRequest true "Team names to create"
+// @Success 201
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team [post]
 func createTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -88,6 +124,20 @@ func createTeams(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
+// updateTeam godoc
+// @Summary Update team
+// @Description Update a team name
+// @Tags team
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param teamID path string true "Team UUID"
+// @Param request body teamDTO.UpdateTeamRequest true "New team name"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/{teamID} [put]
 func updateTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -117,6 +167,18 @@ func updateTeam(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// deleteTeam godoc
+// @Summary Delete team
+// @Description Delete a team by its ID
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param teamID path string true "Team UUID"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/{teamID} [delete]
 func deleteTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -144,6 +206,19 @@ func handleError(c *gin.Context, statusCode int, err error) {
 	c.JSON(statusCode, gin.H{"error": err.Error()})
 }
 
+// addStudentNamesToTeams godoc
+// @Summary Add student names to allocations
+// @Description Add student first and last names to team allocations
+// @Tags team
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body teamDTO.StudentNameUpdateRequest true "Student names per participation ID"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/student-names [post]
 func addStudentNamesToTeams(c *gin.Context) {
 	var req teamDTO.StudentNameUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -160,6 +235,19 @@ func addStudentNamesToTeams(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// importTutors godoc
+// @Summary Import tutors
+// @Description Import tutors for teams in a course phase
+// @Tags team
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body []teamDTO.Tutor true "Tutors to import"
+// @Success 201
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/tutors [post]
 func importTutors(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {

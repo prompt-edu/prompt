@@ -1,40 +1,43 @@
-import { ExtraParticipationTableColumn } from '@/components/pages/CoursePhaseParticipationsTable/interfaces/ExtraParticipationTableColumn'
-import { GradeSuggestionBadge } from '../../components/badges'
 import { AssessmentCompletion } from '../../../interfaces/assessmentCompletion'
+import { GradeSuggestionBadge } from '../../components/badges'
+import {
+  ExtraParticipantColumn,
+  ParticipantRow,
+} from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
 
 export const createGradeSuggestionColumn = (
   assessmentCompletions: AssessmentCompletion[] | undefined,
-): ExtraParticipationTableColumn | undefined => {
+): ExtraParticipantColumn<number | null> | undefined => {
   if (!assessmentCompletions) return undefined
 
   const completedGradings = assessmentCompletions.filter((a) => a.completed)
 
+  const getGradeForParticipation = (courseParticipationID: string): number | null => {
+    const match = completedGradings.find((a) => a.courseParticipationID === courseParticipationID)
+    return match ? match.gradeSuggestion : null
+  }
+
   return {
     id: 'gradeSuggestion',
     header: 'Grade',
-    accessorFn: (row) => {
-      const match = completedGradings.find(
-        (a) => a.courseParticipationID === row.courseParticipationID,
-      )
-      return match ? match.gradeSuggestion.toFixed(1) : ''
+
+    accessorFn: (row: ParticipantRow) => getGradeForParticipation(row.courseParticipationID),
+
+    cell: ({ getValue }) => {
+      const grade = getValue()
+      return grade !== null ? <GradeSuggestionBadge gradeSuggestion={grade} text={false} /> : null
     },
+
     enableSorting: true,
     sortingFn: (rowA, rowB) => {
-      const gradeSuggestionA =
-        completedGradings.find(
-          (s) => s.courseParticipationID === rowA.original.courseParticipationID,
-        )?.gradeSuggestion ?? 6
-
-      const gradeSuggestionB =
-        completedGradings.find(
-          (s) => s.courseParticipationID === rowB.original.courseParticipationID,
-        )?.gradeSuggestion ?? 6
-
-      return gradeSuggestionA - gradeSuggestionB
+      const a = getGradeForParticipation(rowA.original.courseParticipationID) ?? 6
+      const b = getGradeForParticipation(rowB.original.courseParticipationID) ?? 6
+      return a - b
     },
+
     extraData: completedGradings.map((s) => ({
       courseParticipationID: s.courseParticipationID,
-      value: <GradeSuggestionBadge gradeSuggestion={s.gradeSuggestion} text={false} />,
+      value: s.gradeSuggestion,
       stringValue: s.gradeSuggestion.toFixed(1),
     })),
   }

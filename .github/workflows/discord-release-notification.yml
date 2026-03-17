@@ -1,0 +1,26 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Release Notification
+        uses: appleboy/discord-action@v1.2.0
+        with:
+          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          username: "PROMPT Release Bot"
+          avatar_url: "https://prompt.aet.cit.tum.de/img/prompt_logo.svg"
+          message: |
+            🎉 **PROMPT ${{ github.event.release.tag_name }} has been released!**
+
+            ${{ github.event.release.body }}
+
+            👉 **Full release notes:** ${{ github.event.release.html_url }}

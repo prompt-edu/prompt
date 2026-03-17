@@ -1,115 +1,78 @@
-import { useMemo } from 'react'
+import { ReactNode, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTablePage } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTablePage'
-import {
-  CoursePhaseParticipationWithStudent,
-  PassStatus,
-  Gender,
-} from '@tumaet/prompt-shared-state'
+import { PromptTable } from '@tumaet/prompt-ui-components'
 
 import { useTeamStore } from '../../zustand/useTeamStore'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 
-export const TutorOverviewPage = () => {
+import type { ColumnDef } from '@tanstack/react-table'
+
+interface TutorRow {
+  id: string
+  firstName: string
+  lastName: string
+  teamName: string
+}
+
+export const TutorOverviewPage = (): ReactNode => {
   const navigate = useNavigate()
   const path = useLocation().pathname
 
   const { teams } = useTeamStore()
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
 
-  // Extract tutors from teams
-  const tutors = useMemo(() => {
+  const data: TutorRow[] = useMemo(() => {
     return teams.flatMap((team) =>
       team.tutors
-        .filter((tutor) => tutor.id !== undefined)
+        .filter((tutor) => tutor.id)
         .map((tutor) => ({
           id: tutor.id!,
           firstName: tutor.firstName,
           lastName: tutor.lastName,
           teamName: team.name,
-          teamId: team.id,
         })),
     )
   }, [teams])
 
-  // Transform tutors into participation-like format for the table
-  const tutorParticipations: CoursePhaseParticipationWithStudent[] = useMemo(() => {
-    return tutors.map((tutor) => ({
-      courseParticipationID: tutor.id,
-      coursePhaseID: '', // Not applicable for tutors in this context
-      student: {
-        id: tutor.id,
-        firstName: tutor.firstName,
-        lastName: tutor.lastName,
-        email: '', // Not available for tutors
-        matriculationNumber: '', // Not available for tutors
-        hasUniversityAccount: false, // Not applicable for tutors
-        gender: Gender.PREFER_NOT_TO_SAY, // Default value
-        course: {
-          id: '',
-          name: '',
-          semesterTag: '',
-          description: '',
-          studentReadableData: {},
-          restrictedData: {},
-        },
-      },
-      score: 0, // Not applicable for tutors
-      passStatus: PassStatus.NOT_ASSESSED,
-      studentReadableData: {},
-      restrictedData: {},
-      prevData: {},
-      teamID: tutor.teamId,
-      teamName: tutor.teamName,
-    }))
-  }, [tutors])
-
-  const extraColumns = useMemo(
+  const columns: ColumnDef<TutorRow>[] = useMemo(
     () => [
       {
-        id: 'team',
+        accessorKey: 'firstName',
+        header: 'First Name',
+      },
+      {
+        accessorKey: 'lastName',
+        header: 'Last Name',
+      },
+      {
+        accessorKey: 'teamName',
         header: 'Team',
-        extraData: tutors.map((tutor) => ({
-          courseParticipationID: tutor.id,
-          value: tutor.teamName,
-          stringValue: tutor.teamName,
-        })),
-        enableSorting: true,
-        enableColumnFilter: true,
       },
     ],
-    [tutors],
+    [],
   )
-
-  const handleRowClick = (tutor: CoursePhaseParticipationWithStudent) => {
-    if (coursePhaseConfig?.tutorEvaluationEnabled) {
-      navigate(`${path}/${tutor.courseParticipationID}`)
-    }
-  }
 
   return (
     <div className='space-y-4'>
       <ManagementPageHeader>Tutor Overview</ManagementPageHeader>
 
-      <p className='text-sm text-muted-foreground mb-4'>
-        {coursePhaseConfig?.tutorEvaluationEnabled
-          ? 'Click on a tutor to view their evaluation results from students.'
-          : undefined}
-      </p>
+      {coursePhaseConfig?.tutorEvaluationEnabled && (
+        <p className='text-sm text-muted-foreground mb-4'>
+          Click on a tutor to view their evaluation results from students.
+        </p>
+      )}
 
-      <div className='w-full'>
-        <CoursePhaseParticipationsTablePage
-          participants={tutorParticipations}
-          prevDataKeys={[]}
-          restrictedDataKeys={[]}
-          studentReadableDataKeys={[]}
-          hideActions={true}
-          extraColumns={extraColumns}
-          onClickRowAction={handleRowClick}
-        />
-      </div>
+      <PromptTable<TutorRow>
+        data={data}
+        columns={columns}
+        onRowClick={(row) => {
+          if (coursePhaseConfig?.tutorEvaluationEnabled) {
+            navigate(`${path}/${row.id}`)
+          }
+        }}
+      />
     </div>
   )
 }

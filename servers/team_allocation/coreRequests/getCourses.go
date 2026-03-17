@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/team_allocation/coreRequests/coreRequestDTO"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests/coreRequestDTO"
 )
 
 // GetCourses fetches courses from the core service.

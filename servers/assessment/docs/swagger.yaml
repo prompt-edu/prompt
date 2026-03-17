@@ -1,0 +1,3716 @@
+basePath: /assessment/api
+definitions:
+  actionItemDTO.ActionItem:
+    properties:
+      action:
+        type: string
+      author:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        $ref: '#/definitions/pgtype.Timestamp'
+      id:
+        type: string
+    type: object
+  actionItemDTO.CreateActionItemRequest:
+    properties:
+      action:
+        type: string
+      author:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+    type: object
+  actionItemDTO.UpdateActionItemRequest:
+    properties:
+      action:
+        type: string
+      author:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      id:
+        type: string
+    type: object
+  assessmentCompletionDTO.AssessmentCompletion:
+    properties:
+      author:
+        type: string
+      comment:
+        type: string
+      completed:
+        type: boolean
+      completedAt:
+        $ref: '#/definitions/pgtype.Timestamptz'
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      gradeSuggestion:
+        type: number
+    type: object
+  assessmentCompletionDTO.GradeWithParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      grade:
+        type: number
+    type: object
+  assessmentDTO.AggregatedEvaluationResult:
+    properties:
+      averageScoreNumeric:
+        type: number
+      competencyID:
+        type: string
+    type: object
+  assessmentDTO.Assessment:
+    properties:
+      assessedAt:
+        type: string
+      author:
+        type: string
+      comment:
+        type: string
+      competencyID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      examples:
+        type: string
+      id:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+    type: object
+  assessmentDTO.CreateOrUpdateAssessmentRequest:
+    properties:
+      assessedAt:
+        type: string
+      author:
+        type: string
+      comment:
+        type: string
+      competencyID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      examples:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+    type: object
+  assessmentDTO.StudentAssessment:
+    properties:
+      assessmentCompletion:
+        $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+      assessments:
+        items:
+          $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      courseParticipationID:
+        type: string
+      evaluations:
+        items:
+          $ref: '#/definitions/evaluationDTO.Evaluation'
+        type: array
+      studentScore:
+        $ref: '#/definitions/scoreLevelDTO.StudentScore'
+    type: object
+  assessmentDTO.StudentAssessmentResults:
+    properties:
+      actionItems:
+        items:
+          $ref: '#/definitions/actionItemDTO.ActionItem'
+        type: array
+      assessmentCompletion:
+        $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+      assessments:
+        items:
+          $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      peerEvaluationResults:
+        items:
+          $ref: '#/definitions/assessmentDTO.AggregatedEvaluationResult'
+        type: array
+      selfEvaluationResults:
+        items:
+          $ref: '#/definitions/assessmentDTO.AggregatedEvaluationResult'
+        type: array
+      studentScore:
+        $ref: '#/definitions/scoreLevelDTO.StudentScore'
+    type: object
+  assessmentSchemaDTO.AssessmentSchema:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  assessmentSchemaDTO.CreateAssessmentSchemaRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  assessmentSchemaDTO.UpdateAssessmentSchemaRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  assessmentType.AssessmentType:
+    enum:
+    - self
+    - peer
+    - tutor
+    - assessment
+    type: string
+    x-enum-varnames:
+    - Self
+    - Peer
+    - Tutor
+    - Assessment
+  categoryDTO.CategoryWithCompetencies:
+    properties:
+      competencies:
+        items:
+          $ref: '#/definitions/competencyDTO.CompetencyWithMappedCompetencies'
+        type: array
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  categoryDTO.CreateCategoryRequest:
+    properties:
+      assessmentSchemaID:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  categoryDTO.UpdateCategoryRequest:
+    properties:
+      assessmentSchemaID:
+        description: This field is required for the update operation
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  competencyDTO.Competency:
+    properties:
+      categoryID:
+        type: string
+      description:
+        type: string
+      descriptionBad:
+        type: string
+      descriptionGood:
+        type: string
+      descriptionOk:
+        type: string
+      descriptionVeryBad:
+        type: string
+      descriptionVeryGood:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  competencyDTO.CompetencyWithMappedCompetencies:
+    properties:
+      categoryID:
+        type: string
+      description:
+        type: string
+      descriptionBad:
+        type: string
+      descriptionGood:
+        type: string
+      descriptionOk:
+        type: string
+      descriptionVeryBad:
+        type: string
+      descriptionVeryGood:
+        type: string
+      id:
+        type: string
+      mappedFromCompetencies:
+        description: List of competency IDs that map to this competency
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  competencyDTO.CreateCompetencyRequest:
+    properties:
+      categoryID:
+        type: string
+      description:
+        type: string
+      descriptionBad:
+        type: string
+      descriptionGood:
+        type: string
+      descriptionOk:
+        type: string
+      descriptionVeryBad:
+        type: string
+      descriptionVeryGood:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  competencyDTO.UpdateCompetencyRequest:
+    properties:
+      categoryID:
+        type: string
+      description:
+        type: string
+      descriptionBad:
+        type: string
+      descriptionGood:
+        type: string
+      descriptionOk:
+        type: string
+      descriptionVeryBad:
+        type: string
+      descriptionVeryGood:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
+  competencyMapDTO.CompetencyMapping:
+    properties:
+      fromCompetencyId:
+        type: string
+      toCompetencyId:
+        type: string
+    type: object
+  coursePhaseConfigDTO.AssessmentParticipationWithStudent:
+    properties:
+      courseParticipationID:
+        description: CourseParticipationID links this phase participation to the overall
+          course participation.
+        type: string
+      coursePhaseID:
+        description: CoursePhaseID is the unique identifier of the course phase the
+          student is participating in.
+        type: string
+      passStatus:
+        description: |-
+          PassStatus indicates the student's current status in this course phase.
+          Common values are usually "passed", "failed", and "not_assessed".
+        type: string
+      prevData:
+        allOf:
+        - $ref: '#/definitions/promptTypes.MetaData'
+        description: PrevData contains metadata from previous phases, passed via course-phase
+          communication
+      restrictedData:
+        allOf:
+        - $ref: '#/definitions/promptTypes.MetaData'
+        description: |-
+          RestrictedData contains sensitive metadata that should only be accessible to authorized users
+          such as instructors, admins, or the system itself.
+      student:
+        allOf:
+        - $ref: '#/definitions/promptTypes.Student'
+        description: Student contains the complete student information associated
+          with this participation.
+      studentReadableData:
+        allOf:
+        - $ref: '#/definitions/promptTypes.MetaData'
+        description: |-
+          StudentReadableData contains metadata that can be safely shared with the student,
+          such as feedback, scores, or progress information.
+      teamID:
+        type: string
+    type: object
+  coursePhaseConfigDTO.CoursePhaseConfig:
+    properties:
+      actionItemsVisible:
+        type: boolean
+      assessmentSchemaID:
+        type: string
+      coursePhaseID:
+        type: string
+      deadline:
+        type: string
+      evaluationResultsVisible:
+        type: boolean
+      gradeSuggestionVisible:
+        type: boolean
+      gradingSheetVisible:
+        type: boolean
+      peerEvaluationDeadline:
+        type: string
+      peerEvaluationEnabled:
+        type: boolean
+      peerEvaluationSchema:
+        type: string
+      peerEvaluationStart:
+        type: string
+      resultsReleased:
+        type: boolean
+      selfEvaluationDeadline:
+        type: string
+      selfEvaluationEnabled:
+        type: boolean
+      selfEvaluationSchema:
+        type: string
+      selfEvaluationStart:
+        type: string
+      start:
+        type: string
+      tutorEvaluationDeadline:
+        type: string
+      tutorEvaluationEnabled:
+        type: boolean
+      tutorEvaluationSchema:
+        type: string
+      tutorEvaluationStart:
+        type: string
+    type: object
+  coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest:
+    properties:
+      actionItemsVisible:
+        type: boolean
+      assessmentSchemaId:
+        type: string
+      coursePhaseId:
+        type: string
+      deadline:
+        type: string
+      evaluationResultsVisible:
+        type: boolean
+      gradeSuggestionVisible:
+        type: boolean
+      gradingSheetVisible:
+        type: boolean
+      peerEvaluationDeadline:
+        type: string
+      peerEvaluationEnabled:
+        type: boolean
+      peerEvaluationSchema:
+        type: string
+      peerEvaluationStart:
+        type: string
+      selfEvaluationDeadline:
+        type: string
+      selfEvaluationEnabled:
+        type: boolean
+      selfEvaluationSchema:
+        type: string
+      selfEvaluationStart:
+        type: string
+      start:
+        type: string
+      tutorEvaluationDeadline:
+        type: string
+      tutorEvaluationEnabled:
+        type: boolean
+      tutorEvaluationSchema:
+        type: string
+      tutorEvaluationStart:
+        type: string
+    type: object
+  db.Category:
+    properties:
+      assessment_schema_id:
+        type: string
+      description:
+        $ref: '#/definitions/pgtype.Text'
+      id:
+        type: string
+      name:
+        type: string
+      short_name:
+        $ref: '#/definitions/pgtype.Text'
+      weight:
+        type: integer
+    type: object
+  db.FeedbackType:
+    enum:
+    - positive
+    - negative
+    type: string
+    x-enum-varnames:
+    - FeedbackTypePositive
+    - FeedbackTypeNegative
+  evaluationCompletionDTO.EvaluationCompletion:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      completed:
+        type: boolean
+      completedAt:
+        $ref: '#/definitions/pgtype.Timestamptz'
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      id:
+        type: string
+      type:
+        $ref: '#/definitions/assessmentType.AssessmentType'
+    type: object
+  evaluationDTO.CreateOrUpdateEvaluationRequest:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      competencyID:
+        type: string
+      courseParticipationID:
+        type: string
+      scoreLevel:
+        allOf:
+        - $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+        enum:
+        - veryBad
+        - bad
+        - ok
+        - good
+        - veryGood
+      type:
+        allOf:
+        - $ref: '#/definitions/assessmentType.AssessmentType'
+        enum:
+        - self
+        - peer
+        - tutor
+        - assessment
+    required:
+    - authorCourseParticipationID
+    - competencyID
+    - courseParticipationID
+    - scoreLevel
+    - type
+    type: object
+  evaluationDTO.Evaluation:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      competencyID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      evaluatedAt:
+        $ref: '#/definitions/pgtype.Timestamptz'
+      id:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+      type:
+        $ref: '#/definitions/assessmentType.AssessmentType'
+    type: object
+  feedbackItemDTO.CreateFeedbackItemRequest:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      feedbackText:
+        type: string
+      feedbackType:
+        allOf:
+        - $ref: '#/definitions/db.FeedbackType'
+        enum:
+        - positive
+        - negative
+      type:
+        allOf:
+        - $ref: '#/definitions/assessmentType.AssessmentType'
+        enum:
+        - self
+        - peer
+        - tutor
+        - assessment
+    required:
+    - authorCourseParticipationID
+    - courseParticipationID
+    - coursePhaseID
+    - feedbackType
+    - type
+    type: object
+  feedbackItemDTO.FeedbackItem:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        $ref: '#/definitions/pgtype.Timestamptz'
+      feedbackText:
+        type: string
+      feedbackType:
+        $ref: '#/definitions/db.FeedbackType'
+      id:
+        type: string
+      type:
+        $ref: '#/definitions/assessmentType.AssessmentType'
+    type: object
+  feedbackItemDTO.UpdateFeedbackItemRequest:
+    properties:
+      authorCourseParticipationID:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      feedbackText:
+        type: string
+      feedbackType:
+        allOf:
+        - $ref: '#/definitions/db.FeedbackType'
+        enum:
+        - positive
+        - negative
+      id:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/assessmentType.AssessmentType'
+        enum:
+        - self
+        - peer
+        - tutor
+        - assessment
+    required:
+    - authorCourseParticipationID
+    - courseParticipationID
+    - coursePhaseID
+    - feedbackText
+    - feedbackType
+    - id
+    - type
+    type: object
+  pgtype.Float8:
+    properties:
+      float64:
+        format: float64
+        type: number
+      valid:
+        type: boolean
+    type: object
+  pgtype.InfinityModifier:
+    enum:
+    - 1
+    - 0
+    - -1
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - Infinity
+    - Finite
+    - NegativeInfinity
+  pgtype.Int4:
+    properties:
+      int32:
+        format: int32
+        type: integer
+      valid:
+        type: boolean
+    type: object
+  pgtype.Text:
+    properties:
+      string:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  pgtype.Timestamp:
+    properties:
+      infinityModifier:
+        $ref: '#/definitions/pgtype.InfinityModifier'
+      time:
+        description: Time zone will be ignored when encoding to PostgreSQL.
+        type: string
+      valid:
+        type: boolean
+    type: object
+  pgtype.Timestamptz:
+    properties:
+      infinityModifier:
+        $ref: '#/definitions/pgtype.InfinityModifier'
+      time:
+        type: string
+      valid:
+        type: boolean
+    type: object
+  promptTypes.Gender:
+    enum:
+    - male
+    - female
+    - diverse
+    - prefer_not_to_say
+    type: string
+    x-enum-varnames:
+    - GenderMale
+    - GenderFemale
+    - GenderDiverse
+    - GenderPreferNotToSay
+  promptTypes.MetaData:
+    additionalProperties: true
+    type: object
+  promptTypes.PhaseCopyRequest:
+    properties:
+      sourceCoursePhaseID:
+        description: |-
+          SourceCoursePhaseID is the unique identifier of the course phase to copy from.
+          This phase serves as the template and its data will be duplicated.
+        type: string
+      targetCoursePhaseID:
+        description: |-
+          TargetCoursePhaseID is the unique identifier of the course phase to copy into.
+          This phase will receive the copied data and configurations.
+        type: string
+    type: object
+  promptTypes.Student:
+    properties:
+      currentSemester:
+        allOf:
+        - $ref: '#/definitions/pgtype.Int4'
+        description: |-
+          CurrentSemester indicates which semester the student is currently in within their program.
+          This helps with course eligibility, academic planning, and progress tracking.
+      email:
+        description: |-
+          Email is the student's contact email address, must be a valid email format.
+          This is used for notifications, communications, and account recovery.
+        type: string
+      firstName:
+        description: FirstName stores the first name as provided during initial application
+          or profile updates.
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/promptTypes.Gender'
+        description: |-
+          Gender represents the student's gender identity for demographic and statistical purposes.
+          Must be one of: "male", "female", "diverse", or "prefer_not_to_say".
+        enum:
+        - male
+        - female
+        - diverse
+        - prefer_not_to_say
+      hasUniversityAccount:
+        description: |-
+          HasUniversityAccount indicates whether the student has been granted access to university systems.
+          This flag helps determine what services and resources the student can access.
+        type: boolean
+      id:
+        description: |-
+          ID is the unique identifier for the person using UUID v4 format.
+          The uuid.UUID type ensures type safety and automatic validation during JSON unmarshaling.
+        type: string
+      lastName:
+        description: LastName stores the last name as provided during initial application
+          or profile updates.
+        type: string
+      matriculationNumber:
+        description: |-
+          MatriculationNumber is the student's unique university identification number.
+          This number is assigned by the university and remains constant throughout the student's enrollment.
+        type: string
+      nationality:
+        description: |-
+          Nationality represents the student's nationality or citizenship.
+          This information may be used for visa requirements, international student services, or statistics.
+        type: string
+      studyDegree:
+        allOf:
+        - $ref: '#/definitions/promptTypes.StudyDegree'
+        description: |-
+          StudyDegree indicates the type of degree the student is pursuing.
+          Must be either "bachelor" or "master".
+        enum:
+        - bachelor
+        - master
+      studyProgram:
+        description: |-
+          StudyProgram is the specific program or major the student is enrolled in.
+          Examples: "Computer Science", "Information Systems", "Management and Technology".
+        type: string
+      universityLogin:
+        description: |-
+          UniversityLogin is the student's username for university systems and services.
+          This login is typically used for accessing library, computing resources, and other university platforms.
+        type: string
+    type: object
+  promptTypes.StudyDegree:
+    enum:
+    - bachelor
+    - master
+    type: string
+    x-enum-varnames:
+    - StudyDegreeBachelor
+    - StudyDegreeMaster
+  scoreLevelDTO.ScoreLevel:
+    enum:
+    - veryBad
+    - bad
+    - ok
+    - good
+    - veryGood
+    type: string
+    x-enum-varnames:
+    - ScoreLevelVeryBad
+    - ScoreLevelBad
+    - ScoreLevelOk
+    - ScoreLevelGood
+    - ScoreLevelVeryGood
+  scoreLevelDTO.ScoreLevelWithParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+      scoreNumeric:
+        type: number
+    type: object
+  scoreLevelDTO.StudentScore:
+    properties:
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+      scoreNumeric:
+        $ref: '#/definitions/pgtype.Float8'
+    type: object
+externalDocs:
+  description: PROMPT Documentation
+  url: https://prompt-edu.github.io/prompt/
+host: localhost:8085
+info:
+  contact: {}
+  description: This is the assessment server of PROMPT.
+  title: PROMPT Assessment API
+  version: "1.0"
+paths:
+  /copy:
+    post:
+      consumes:
+      - application/json
+      description: Copy course phase configuration between phases.
+      parameters:
+      - description: Phase copy payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/promptTypes.PhaseCopyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Phase Copy Endpoints
+      tags:
+      - copy
+  /course_phase/{coursePhaseID}/assessment-schema:
+    get:
+      description: List all assessment schemas.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/assessmentSchemaDTO.AssessmentSchema'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List assessment schemas
+      tags:
+      - assessment_schemas
+    post:
+      consumes:
+      - application/json
+      description: Create a new assessment schema.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment schema payload
+        in: body
+        name: schema
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentSchemaDTO.CreateAssessmentSchemaRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/assessmentSchemaDTO.AssessmentSchema'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create assessment schema
+      tags:
+      - assessment_schemas
+  /course_phase/{coursePhaseID}/assessment-schema/{schemaID}:
+    delete:
+      description: Delete an assessment schema.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Schema ID
+        in: path
+        name: schemaID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete assessment schema
+      tags:
+      - assessment_schemas
+    get:
+      description: Get an assessment schema by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Schema ID
+        in: path
+        name: schemaID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentSchemaDTO.AssessmentSchema'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get assessment schema
+      tags:
+      - assessment_schemas
+    put:
+      consumes:
+      - application/json
+      description: Update an assessment schema.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Schema ID
+        in: path
+        name: schemaID
+        required: true
+        type: string
+      - description: Assessment schema payload
+        in: body
+        name: schema
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentSchemaDTO.UpdateAssessmentSchemaRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update assessment schema
+      tags:
+      - assessment_schemas
+  /course_phase/{coursePhaseID}/assessment-schema/{schemaID}/has-assessment-data:
+    get:
+      description: Check whether a schema has assessment data for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Schema ID
+        in: path
+        name: schemaID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Check schema assessment data
+      tags:
+      - assessment_schemas
+  /course_phase/{coursePhaseID}/category:
+    get:
+      description: List all categories for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/db.Category'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Category payload
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/categoryDTO.CreateCategoryRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create category
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/category/{categoryID}:
+    delete:
+      description: Delete a category from the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: categoryID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete category
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Update a category for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: categoryID
+        required: true
+        type: string
+      - description: Category payload
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/categoryDTO.UpdateCategoryRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update category
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/category/assessment/with-competencies:
+    get:
+      description: List assessment categories with competencies for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/categoryDTO.CategoryWithCompetencies'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List categories with competencies
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/category/peer/with-competencies:
+    get:
+      description: List peer-evaluation categories with competencies for the course
+        phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/categoryDTO.CategoryWithCompetencies'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List peer-evaluation categories with competencies
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/category/self/with-competencies:
+    get:
+      description: List self-evaluation categories with competencies for the course
+        phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/categoryDTO.CategoryWithCompetencies'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List self-evaluation categories with competencies
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/category/tutor/with-competencies:
+    get:
+      description: List tutor-evaluation categories with competencies for the course
+        phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/categoryDTO.CategoryWithCompetencies'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List tutor-evaluation categories with competencies
+      tags:
+      - categories
+  /course_phase/{coursePhaseID}/competency:
+    get:
+      description: List all competencies for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/competencyDTO.Competency'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List competencies
+      tags:
+      - competencies
+    post:
+      consumes:
+      - application/json
+      description: Create a competency for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency payload
+        in: body
+        name: competency
+        required: true
+        schema:
+          $ref: '#/definitions/competencyDTO.CreateCompetencyRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create competency
+      tags:
+      - competencies
+  /course_phase/{coursePhaseID}/competency-mappings:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a mapping between competencies.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency mapping payload
+        in: body
+        name: mapping
+        required: true
+        schema:
+          $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete competency mapping
+      tags:
+      - competency_mappings
+    get:
+      description: List all competency mappings.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List competency mappings
+      tags:
+      - competency_mappings
+    post:
+      consumes:
+      - application/json
+      description: Create a mapping between competencies.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency mapping payload
+        in: body
+        name: mapping
+        required: true
+        schema:
+          $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create competency mapping
+      tags:
+      - competency_mappings
+  /course_phase/{coursePhaseID}/competency-mappings/evaluations/{fromCompetencyID}:
+    get:
+      description: List evaluations using the mapped competency relationships.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Source competency ID
+        in: path
+        name: fromCompetencyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List evaluations by mapped competency
+      tags:
+      - competency_mappings
+  /course_phase/{coursePhaseID}/competency-mappings/from/{fromCompetencyID}:
+    get:
+      description: List mappings from the given competency.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Source competency ID
+        in: path
+        name: fromCompetencyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List mappings from a competency
+      tags:
+      - competency_mappings
+  /course_phase/{coursePhaseID}/competency-mappings/to/{toCompetencyID}:
+    get:
+      description: List mappings to the given competency.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Target competency ID
+        in: path
+        name: toCompetencyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List mappings to a competency
+      tags:
+      - competency_mappings
+  /course_phase/{coursePhaseID}/competency/{competencyID}:
+    delete:
+      description: Delete a competency.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency ID
+        in: path
+        name: competencyID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete competency
+      tags:
+      - competencies
+    get:
+      description: Get a competency by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency ID
+        in: path
+        name: competencyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/competencyDTO.Competency'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get competency
+      tags:
+      - competencies
+    put:
+      consumes:
+      - application/json
+      description: Update a competency.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Competency ID
+        in: path
+        name: competencyID
+        required: true
+        type: string
+      - description: Competency payload
+        in: body
+        name: competency
+        required: true
+        schema:
+          $ref: '#/definitions/competencyDTO.UpdateCompetencyRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update competency
+      tags:
+      - competencies
+  /course_phase/{coursePhaseID}/competency/category/{categoryID}:
+    get:
+      description: List competencies for a category.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: categoryID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/competencyDTO.Competency'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List competencies by category
+      tags:
+      - competencies
+  /course_phase/{coursePhaseID}/config:
+    get:
+      description: Get the course phase configuration.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseConfigDTO.CoursePhaseConfig'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get course phase config
+      tags:
+      - course_phase_config
+    put:
+      consumes:
+      - application/json
+      description: Create or update the course phase configuration.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course phase config payload
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update course phase config
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/config/participations:
+    get:
+      description: Get course participations for a course phase from core service.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/coursePhaseConfigDTO.AssessmentParticipationWithStudent'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List participations for course phase
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/config/release:
+    post:
+      description: Release assessment results for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Release assessment results
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/config/teams:
+    get:
+      description: Get teams for a course phase from core service.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List teams for course phase
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/evaluation:
+    get:
+      description: List evaluations for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List evaluations by course phase
+      tags:
+      - evaluations
+    post:
+      consumes:
+      - application/json
+      description: Create or update an evaluation for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation payload
+        in: body
+        name: evaluation
+        required: true
+        schema:
+          $ref: '#/definitions/evaluationDTO.CreateOrUpdateEvaluationRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update evaluation
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/{evaluationID}:
+    delete:
+      description: Delete an evaluation by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation ID
+        in: path
+        name: evaluationID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete evaluation
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/completed:
+    get:
+      description: List evaluation completions for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List evaluation completions by course phase
+      tags:
+      - evaluation_completions
+  /course_phase/{coursePhaseID}/evaluation/completed/my-completion:
+    post:
+      consumes:
+      - application/json
+      description: Create or update evaluation completion for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update my evaluation completion
+      tags:
+      - evaluation_completions
+    put:
+      consumes:
+      - application/json
+      description: Create or update evaluation completion for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update my evaluation completion
+      tags:
+      - evaluation_completions
+  /course_phase/{coursePhaseID}/evaluation/completed/my-completion/mark-complete:
+    post:
+      consumes:
+      - application/json
+      description: Mark evaluation as completed for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark my evaluation as completed
+      tags:
+      - evaluation_completions
+  /course_phase/{coursePhaseID}/evaluation/completed/my-completion/unmark:
+    put:
+      consumes:
+      - application/json
+      description: Unmark evaluation as completed for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unmark my evaluation as completed
+      tags:
+      - evaluation_completions
+  /course_phase/{coursePhaseID}/evaluation/completed/my-completions:
+    get:
+      description: List evaluation completions for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationCompletionDTO.EvaluationCompletion'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List my evaluation completions
+      tags:
+      - evaluation_completions
+  /course_phase/{coursePhaseID}/evaluation/feedback-items:
+    get:
+      description: List feedback items for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/feedbackItemDTO.FeedbackItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List feedback items for course phase
+      tags:
+      - feedback_items
+    post:
+      consumes:
+      - application/json
+      description: Create a feedback item for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Feedback item payload
+        in: body
+        name: feedbackItem
+        required: true
+        schema:
+          $ref: '#/definitions/feedbackItemDTO.CreateFeedbackItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create feedback item
+      tags:
+      - feedback_items
+  /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID}:
+    delete:
+      description: Delete a feedback item by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Feedback item ID
+        in: path
+        name: feedbackItemID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete feedback item
+      tags:
+      - feedback_items
+    put:
+      consumes:
+      - application/json
+      description: Update a feedback item.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Feedback item ID
+        in: path
+        name: feedbackItemID
+        required: true
+        type: string
+      - description: Feedback item payload
+        in: body
+        name: feedbackItem
+        required: true
+        schema:
+          $ref: '#/definitions/feedbackItemDTO.UpdateFeedbackItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update feedback item
+      tags:
+      - feedback_items
+  /course_phase/{coursePhaseID}/evaluation/feedback-items/course-participation/{courseParticipationID}:
+    get:
+      description: List feedback items for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/feedbackItemDTO.FeedbackItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List feedback items for participant
+      tags:
+      - feedback_items
+  /course_phase/{coursePhaseID}/evaluation/feedback-items/my-feedback:
+    get:
+      description: List feedback items authored by the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/feedbackItemDTO.FeedbackItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List my feedback items
+      tags:
+      - feedback_items
+  /course_phase/{coursePhaseID}/evaluation/feedback-items/tutor/{courseParticipationID}:
+    get:
+      description: List feedback items for a tutor in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Tutor course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/feedbackItemDTO.FeedbackItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List feedback items for tutor
+      tags:
+      - feedback_items
+  /course_phase/{coursePhaseID}/evaluation/my-evaluations:
+    get:
+      description: List evaluations authored by the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List my evaluations
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID}:
+    get:
+      description: List evaluations for a tutor in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Tutor course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List evaluations for tutor in phase
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/hello:
+    get:
+      description: Returns a simple hello message from the assessment service.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Assessment service health check
+      tags:
+      - health
+  /course_phase/{coursePhaseID}/student-assessment:
+    get:
+      description: List all assessments for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/assessmentDTO.Assessment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List assessments by course phase
+      tags:
+      - assessments
+    post:
+      consumes:
+      - application/json
+      description: Create or update an assessment for a student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment payload
+        in: body
+        name: assessment
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentDTO.CreateOrUpdateAssessmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update assessment
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/{assessmentID}:
+    delete:
+      description: Delete an assessment by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment ID
+        in: path
+        name: assessmentID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete assessment
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}:
+    get:
+      description: Get an assessment for a course participation.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentDTO.StudentAssessment'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get student assessment
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/action-item:
+    post:
+      consumes:
+      - application/json
+      description: Create a new action item.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Action item payload
+        in: body
+        name: actionItem
+        required: true
+        schema:
+          $ref: '#/definitions/actionItemDTO.CreateActionItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create action item
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/action-item/{id}:
+    delete:
+      description: Delete an action item.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Action item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete action item
+      tags:
+      - action_items
+    put:
+      consumes:
+      - application/json
+      description: Update an action item.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Action item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Action item payload
+        in: body
+        name: actionItem
+        required: true
+        schema:
+          $ref: '#/definitions/actionItemDTO.UpdateActionItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update action item
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/action-item/action:
+    get:
+      description: List all action items for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/actionItemDTO.ActionItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List action items for course phase communication
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/action-item/action/course-participation/{courseParticipationID}:
+    get:
+      description: List action items for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/actionItemDTO.ActionItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List action items for a student (communication)
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/action-item/course-participation/{courseParticipationID}:
+    get:
+      description: List action items for a course participation in the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/actionItemDTO.ActionItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List action items for student
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/action-item/my-action-items:
+    get:
+      description: List action items for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/actionItemDTO.ActionItem'
+            type: array
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List my action items
+      tags:
+      - action_items
+  /course_phase/{coursePhaseID}/student-assessment/completed:
+    get:
+      description: List assessment completions for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List assessment completions
+      tags:
+      - assessment_completions
+    post:
+      consumes:
+      - application/json
+      description: Create or update an assessment completion.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update assessment completion
+      tags:
+      - assessment_completions
+    put:
+      consumes:
+      - application/json
+      description: Create or update an assessment completion.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update assessment completion
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/course-participation/{courseParticipationID}:
+    delete:
+      description: Delete an assessment completion by course participation ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete assessment completion
+      tags:
+      - assessment_completions
+    get:
+      description: Get an assessment completion by course participation ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get assessment completion
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/course-participation/{courseParticipationID}/unmark:
+    put:
+      description: Unmark an assessment completion.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unmark assessment as completed
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/grade:
+    get:
+      description: List grade suggestions for all course participations.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/assessmentCompletionDTO.GradeWithParticipation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List grades
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/grade/course-participation/{courseParticipationID}:
+    get:
+      description: Get grade suggestion for a course participation.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: number
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get grade for student
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/mark-complete:
+    post:
+      consumes:
+      - application/json
+      description: Mark an assessment as completed.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment completion payload
+        in: body
+        name: completion
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentCompletionDTO.AssessmentCompletion'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark assessment as completed
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/my-grade-suggestion:
+    get:
+      description: Get grade suggestion for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: number
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get my grade suggestion
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/course-participation/{courseParticipationID}:
+    get:
+      description: List assessments for a course participation in the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/assessmentDTO.Assessment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List assessments for student in phase
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/my-results:
+    get:
+      description: Get assessment results for the current student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentDTO.StudentAssessmentResults'
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get my assessment results
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/scoreLevel:
+    get:
+      description: List score levels for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/scoreLevelDTO.ScoreLevelWithParticipation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List score levels
+      tags:
+      - score_levels
+  /course_phase/{coursePhaseID}/student-assessment/scoreLevel/{courseParticipationID}:
+    get:
+      description: Get score level for a course participation.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get score level for student
+      tags:
+      - score_levels
+swagger: "2.0"

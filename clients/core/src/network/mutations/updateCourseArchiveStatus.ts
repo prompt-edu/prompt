@@ -26,10 +26,14 @@ const updateCourseArchiveStatus = async (
   }
 }
 
-export const archiveCourse = async (courseId: string): Promise<void> => {
-  await updateCourseArchiveStatus(courseId, { archived: true })
+export const archiveCourses = async (courseIds: string[]): Promise<void> => {
+  await Promise.all(
+    courseIds.map((courseId) => updateCourseArchiveStatus(courseId, { archived: true })),
+  )
 }
 
-export const unarchiveCourse = async (courseId: string): Promise<void> => {
-  await updateCourseArchiveStatus(courseId, { archived: false })
+export const unarchiveCourses = async (courseIds: string[]): Promise<void> => {
+  await Promise.all(
+    courseIds.map((courseId) => updateCourseArchiveStatus(courseId, { archived: false })),
+  )
 }

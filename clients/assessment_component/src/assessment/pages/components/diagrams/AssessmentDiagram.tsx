@@ -88,11 +88,11 @@ export const AssessmentDiagram = ({
           {(() => {
             switch (assessmentType) {
               case AssessmentType.SELF:
-                return 'self evaluations'
+                return 'self evaluations '
               case AssessmentType.PEER:
-                return 'peer evaluations'
+                return 'peer evaluations '
               default:
-                return 'assessments'
+                return 'assessments '
             }
           })()}
           and their status

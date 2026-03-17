@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Edit, Trash2 } from 'lucide-react'
 
-import { Button } from '@tumaet/prompt-ui-components'
+import { Button, Badge } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../../../../../interfaces/assessmentType'
 import { Competency } from '../../../../../../interfaces/competency'
@@ -58,7 +58,12 @@ export const CompetencyItem = ({
     <div>
       <div className='rounded-md border p-4 space-y-4'>
         <div className='flex justify-between items-center gap-2'>
-          <h3 className='text-base font-medium'>{competency.name}</h3>
+          <div className='flex flex-wrap items-center gap-2'>
+            <h3 className='text-base font-medium'>{competency.name}</h3>
+            <Badge className='h-5 px-2 text-xs font-medium bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-100'>
+              Weight: {competency.weight}
+            </Badge>
+          </div>
 
           <div className='flex'>
             <Button

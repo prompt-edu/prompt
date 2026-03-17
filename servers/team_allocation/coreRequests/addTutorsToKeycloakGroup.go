@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/team_allocation/coreRequests/coreRequestDTO"
+	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests/coreRequestDTO"
 	log "github.com/sirupsen/logrus"
 )
 

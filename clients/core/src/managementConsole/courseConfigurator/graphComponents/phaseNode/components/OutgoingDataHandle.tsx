@@ -25,7 +25,11 @@ export const OutgoingDataHandle = ({ phaseID, dto, type }: OutgoingDataHandlePro
         type='source'
         position={Position.Right}
         id={handleName}
-        style={{ right: '-28px', top: '50%', background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE }}
+        style={{
+          right: '-28px',
+          top: '50%',
+          background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
+        }}
         className='!w-3 !h-3 rounded-full'
       />
     </div>

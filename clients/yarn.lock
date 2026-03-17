@@ -10154,15 +10154,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"intro_course_developer_component@workspace:intro_course_developer_component":
-  version: 0.0.0-use.local
-  resolution: "intro_course_developer_component@workspace:intro_course_developer_component"
-  dependencies:
-    webpack: "npm:^5.105.4"
-    webpack-cli: "npm:^6.0.1"
-  languageName: unknown
-  linkType: soft
-
 "ip-address@npm:^9.0.5":
   version: 9.0.5
   resolution: "ip-address@npm:9.0.5"

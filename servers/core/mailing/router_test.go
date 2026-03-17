@@ -131,3 +131,32 @@ func TestSendManualMailTriggerServiceError(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Contains(t, resp.Body.String(), "sending failed")
 }
+
+func TestSendManualMailTriggerValidationError(t *testing.T) {
+	oldSendManualMailFn := sendManualMailFn
+	t.Cleanup(func() { sendManualMailFn = oldSendManualMailFn })
+
+	sendManualMailFn = func(
+		ctx context.Context,
+		coursePhaseID uuid.UUID,
+		request mailingDTO.SendManualMailRequest,
+	) (mailingDTO.ManualMailReport, error) {
+		return mailingDTO.ManualMailReport{}, ErrManualMailValidation
+	}
+
+	router := setupMailingTestRouter()
+	phaseID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	requestBody := []byte(`{"subject":"Subj","content":"Body","recipientCourseParticipationIDs":[]}`)
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/mailing/"+phaseID.String()+"/manual",
+		bytes.NewReader(requestBody),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, resp.Body.String(), ErrManualMailValidation.Error())
+}

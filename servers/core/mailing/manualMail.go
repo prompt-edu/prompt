@@ -2,18 +2,22 @@ package mailing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
+	log "github.com/sirupsen/logrus"
 )
 
 var sendMailFn = SendMail
 var nowFn = func() time.Time {
 	return time.Now().UTC()
 }
+
+var ErrManualMailValidation = errors.New("manual mail validation error")
 
 func SendManualMailToParticipants(
 	ctx context.Context,
@@ -27,7 +31,7 @@ func SendManualMailToParticipants(
 	}
 
 	if request.Subject == "" || request.Content == "" {
-		return report, fmt.Errorf("mailing template incomplete: subject or content is empty")
+		return report, fmt.Errorf("%w: mailing template incomplete: subject or content is empty", ErrManualMailValidation)
 	}
 
 	recipientIDs := deduplicateUUIDList(request.RecipientCourseParticipationIDs)
@@ -54,6 +58,13 @@ func SendManualMailToParticipants(
 	}
 
 	for _, participant := range participants {
+		if !participant.Email.Valid || participant.Email.String == "" {
+			log.WithField("coursePhaseID", coursePhaseID).
+				WithField("universityLogin", participant.UniversityLogin.String).
+				Warn("Skipping manual mail recipient with missing email address")
+			continue
+		}
+
 		placeholderMap := getStatusEmailPlaceholderValues(
 			passedMailingInfo.CourseName,
 			passedMailingInfo.CourseStartDate,
@@ -76,11 +87,13 @@ func SendManualMailToParticipants(
 		finalSubject := replacePlaceholders(request.Subject, placeholderMap)
 		finalContent := replacePlaceholders(request.Content, placeholderMap)
 
-		if err := sendMailFn(courseMailingSettings, participant.Email.String, finalSubject, finalContent); err != nil {
-			report.FailedEmails = append(report.FailedEmails, participant.Email.String)
+		recipientEmail := participant.Email.String
+		if err := sendMailFn(courseMailingSettings, recipientEmail, finalSubject, finalContent); err != nil {
+			log.WithError(err).WithField("email", recipientEmail).Warn("Failed to send manual mail to participant")
+			report.FailedEmails = append(report.FailedEmails, recipientEmail)
 			continue
 		}
-		report.SuccessfulEmails = append(report.SuccessfulEmails, participant.Email.String)
+		report.SuccessfulEmails = append(report.SuccessfulEmails, recipientEmail)
 	}
 
 	report.SentAt = nowFn()

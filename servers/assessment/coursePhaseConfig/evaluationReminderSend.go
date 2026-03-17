@@ -15,6 +15,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	log "github.com/sirupsen/logrus"
 )
 
 var getEvaluationReminderRecipientsForSendFn = GetEvaluationReminderRecipients
@@ -122,6 +123,10 @@ func SendEvaluationReminderManualTrigger(
 		RestrictedData:      coursePhase.RestrictedData,
 		StudentReadableData: coursePhase.StudentReadableData,
 	}); err != nil {
+		log.WithError(err).
+			WithField("coursePhaseID", coursePhase.ID).
+			WithField("evaluationType", evaluationType).
+			Warn("Evaluation reminder mails were sent, but persisting lastSentAt failed")
 		return report, err
 	}
 

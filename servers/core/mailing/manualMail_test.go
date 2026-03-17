@@ -131,10 +131,11 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), 2, report.RequestedRecipients)
-	assert.Len(suite.T(), report.SuccessfulEmails, 2)
+	suite.Require().Len(report.SuccessfulEmails, 2)
 	assert.Len(suite.T(), report.FailedEmails, 0)
 	assert.Equal(suite.T(), fixedNow, report.SentAt)
 
+	suite.Require().Len(sentMails, 2)
 	sentRecipients := []string{sentMails[0].Recipient, sentMails[1].Recipient}
 	sort.Strings(sentRecipients)
 	assert.Equal(suite.T(), []string{"alice@example.com", "bob@example.com"}, sentRecipients)
@@ -196,6 +197,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailTemplateMissing() {
 		},
 	)
 	suite.Require().Error(err)
+	assert.ErrorIs(suite.T(), err, ErrManualMailValidation)
 	assert.Contains(suite.T(), err.Error(), "template incomplete")
 	assert.False(suite.T(), sendWasCalled)
 }

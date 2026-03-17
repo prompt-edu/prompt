@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 
@@ -50,6 +51,10 @@ type ReminderTypeConfig = {
   label: string
   enabled: boolean
   deadline?: Date
+}
+
+interface ErrorResponse {
+  error?: string
 }
 
 const parseReminderMetaData = (
@@ -138,8 +143,8 @@ export const AssessmentReminderCard = () => {
       })
       queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
     },
-    onError: (error: any) => {
-      const serverError = error?.response?.data?.error ?? 'Failed to send reminder emails.'
+    onError: (error: AxiosError<ErrorResponse>) => {
+      const serverError = error.response?.data?.error ?? 'Failed to send reminder emails.'
       toast({
         title: 'Reminder sending failed',
         description: serverError,
@@ -201,7 +206,9 @@ export const AssessmentReminderCard = () => {
     }
 
     updateCoursePhase({
-      id: phaseId,
+      id: coursePhase.id,
+      name: coursePhase.name,
+      studentReadableData: coursePhase.studentReadableData ?? {},
       restrictedData: {
         mailingSettings: {
           ...mailingSettings,

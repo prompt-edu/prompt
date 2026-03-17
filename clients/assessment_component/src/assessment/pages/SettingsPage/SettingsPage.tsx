@@ -101,7 +101,7 @@ export const SettingsPage = () => {
         hasTutorEvalData={tutorEvalSchemaData?.hasAssessmentData ?? false}
       />
 
-      <AssessmentReminderCard />
+      {(isPromptAdmin || isLecturer) && <AssessmentReminderCard />}
 
       {(isPromptAdmin || isLecturer) && !config?.resultsReleased && (
         <div className='w-full'>

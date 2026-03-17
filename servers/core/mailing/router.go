@@ -1,6 +1,7 @@
 package mailing
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -87,6 +88,10 @@ func sendManualMailTrigger(c *gin.Context) {
 		request,
 	)
 	if err != nil {
+		if errors.Is(err, ErrManualMailValidation) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}

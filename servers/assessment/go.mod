@@ -2,6 +2,8 @@ module github.com/prompt-edu/prompt/servers/assessment
 
 go 1.26
 
+replace github.com/prompt-edu/prompt-sdk => ../../../prompt-sdk
+
 require (
 	github.com/getsentry/sentry-go v0.43.0
 	github.com/getsentry/sentry-go/logrus v0.43.0

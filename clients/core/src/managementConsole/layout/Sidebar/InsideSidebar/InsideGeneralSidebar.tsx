@@ -1,5 +1,5 @@
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, File, FileText, Tag, Users } from 'lucide-react'
+import { Archive, File, FileText, Tag, Users, Activity } from 'lucide-react'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { Role, getPermissionString, useAuthStore } from '@tumaet/prompt-shared-state'
@@ -43,6 +43,15 @@ export const InsideGeneralSidebar = () => {
               />
             )}
           </InsideSidebarVisualGroup>
+          {isPromptAdmin && (
+            <InsideSidebarVisualGroup title='System'>
+              <InsideSidebarMenuItem
+                icon={<Activity />}
+                goToPath={'/management/system-status'}
+                title='System Status'
+              />
+            </InsideSidebarVisualGroup>
+          )}
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarMenu>

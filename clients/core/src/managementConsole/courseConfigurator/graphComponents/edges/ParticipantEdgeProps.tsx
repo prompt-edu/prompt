@@ -1,6 +1,5 @@
 import { Connection, Edge, MarkerType } from '@xyflow/react'
-
-const EDGE_COLOR_BLUE = '#3b82f6'
+import { EDGE_COLOR_BLUE } from './edgeColors'
 
 export const ParticipantEdgeProps = (params: Edge | Connection) => ({
   ...params,

@@ -32,7 +32,7 @@ export const CoursePhaseTypePanelItem = ({
         <GripVertical className='mr-2 h-4 w-4 text-muted-foreground' />
         <span className='text-sm font-medium'>{phase.name}</span>
       </div>
-      <CoursePhaseTypeDescription title={phase.name} description={phase.description} />
+      <CoursePhaseTypeDescription phase={phase} />
     </div>
   )
 }

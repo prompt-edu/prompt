@@ -1,6 +1,5 @@
 import { Connection, Edge, MarkerType } from '@xyflow/react'
-
-const EDGE_COLOR_PURPLE = '#a855f7'
+import { EDGE_COLOR_PURPLE } from './edgeColors'
 
 export const PhaseDataEdgeProps = (params: Edge | Connection) => ({
   ...params,

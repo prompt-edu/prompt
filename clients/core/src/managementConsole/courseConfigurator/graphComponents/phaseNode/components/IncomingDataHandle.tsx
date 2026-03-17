@@ -105,7 +105,11 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
               type='target'
               position={Position.Left}
               id={handleName}
-              style={{ left: '-28px', top: '50%', background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE }}
+              style={{
+                left: '-28px',
+                top: '50%',
+                background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
+              }}
               className='!w-3 !h-3 rounded-full'
             />
             <div className='flex items-center space-x-2'>

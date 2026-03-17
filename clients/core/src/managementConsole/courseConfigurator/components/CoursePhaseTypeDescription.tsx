@@ -66,7 +66,7 @@ export const CoursePhaseTypeDescription = ({ phase }: CoursePhaseTypeDescription
   const phaseOutputs = (phase.providedPhaseOutputDTOs ?? []).map((dto) => camelToTitle(dto.dtoName))
 
   const inputs = [
-    { color: EDGE_COLOR_BLUE, name: 'Participants' },
+    ...(!phase.initialPhase ? [{ color: EDGE_COLOR_BLUE, name: 'Participants' }] : []),
     ...participationInputs.map((name) => ({ color: EDGE_COLOR_GREEN, name })),
     ...phaseInputs.map((name) => ({ color: EDGE_COLOR_PURPLE, name })),
   ]

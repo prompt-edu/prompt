@@ -1,6 +1,7 @@
 import { SettingsCard } from '@/components/SettingsCard'
 import { CopyCourseDialog } from '@core/managementConsole/courseOverview/components/CopyCourseDialog'
-import { handleArchive } from '@core/managementConsole/shared/components/CourseCard/CourseArchiveButton'
+import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/components/ArchiveCourseConfirmationDialog'
+import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
 import { deleteCourse } from '@core/network/mutations/deleteCourse'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { useCourseStore, Course } from '@tumaet/prompt-shared-state'
@@ -47,6 +48,7 @@ export default function CourseDangerZone() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [copyCourseDialogOpen, setCopyCourseDialogOpen] = useState(false)
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const { toast } = useToast()
 
   const queryClient = useQueryClient()
@@ -77,6 +79,32 @@ export default function CourseDangerZone() {
   const handleDelete = (deleteConfirmed: boolean) => {
     if (deleteConfirmed) {
       mutateDeleteCourse()
+    }
+  }
+
+  const handleArchiveConfirm = async () => {
+    try {
+      await archiveCourses([course.id])
+      toast({ title: 'Archived Course' })
+    } catch {
+      toast({
+        title: 'Failed to update course archive status',
+        description: 'Please try again later!',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleUnarchive = async () => {
+    try {
+      await unarchiveCourses([course.id])
+      toast({ title: 'Unarchived Course' })
+    } catch {
+      toast({
+        title: 'Failed to update course archive status',
+        description: 'Please try again later!',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -111,20 +139,7 @@ export default function CourseDangerZone() {
                   ? 'Unarchive this course to make it active again'
                   : 'The Course will no longer appear in the sidebar but is still retrievable at the Archived Courses page. This can be undone.'
               }
-              action={async () => {
-                try {
-                  await handleArchive(course.archived, course.id)
-                  toast({
-                    title: `${!course.archived ? 'Archived' : 'Unarchived'} Course`,
-                  })
-                } catch {
-                  toast({
-                    title: 'Failed to update course archive status',
-                    description: 'Please try again later!',
-                    variant: 'destructive',
-                  })
-                }
-              }}
+              action={course.archived ? handleUnarchive : () => setArchiveDialogOpen(true)}
               label={course.archived ? 'Unarchive' : 'Archive'}
               variant='default'
             />
@@ -138,12 +153,19 @@ export default function CourseDangerZone() {
         </div>
       </SettingsCard>
 
+      <ArchiveCourseConfirmationDialog
+        courseID={course.id}
+        isOpen={archiveDialogOpen}
+        onOpenChange={setArchiveDialogOpen}
+        onConfirm={handleArchiveConfirm}
+      />
+
       {deleteDialogOpen && (
         <DeleteConfirmation
           isOpen={deleteDialogOpen}
           setOpen={setDeleteDialogOpen}
           deleteMessage='Are you sure you want to delete this course?'
-          customWarning={`This action cannot be undone. All student associations with this course will be lost. 
+          customWarning={`This action cannot be undone. All student associations with this course will be lost.
             If you want to keep the course data, consider archiving it instead.`}
           onClick={handleDelete}
         />

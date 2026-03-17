@@ -100,7 +100,7 @@ jobs:
           sha256sum maintenance.tar.gz > maintenance.tar.gz.sha256
 
       - name: Copy file to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -115,7 +115,7 @@ jobs:
           target: /home/${{ vars.VM_USERNAME }}
 
       - name: Copy maintenance tarball to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -135,7 +135,7 @@ jobs:
           echo "${{ vars.POSTFIX_MASTER_CF }}" > master.cf
 
       - name: Copy main.cf to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -150,7 +150,7 @@ jobs:
           target: /home/${{ vars.VM_USERNAME }}/postfix-config/
 
       - name: Copy master.cf to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}

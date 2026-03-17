@@ -73,7 +73,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   certificate:
-    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.1.1
+    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-certificate
       docker-file: servers/certificate/Dockerfile

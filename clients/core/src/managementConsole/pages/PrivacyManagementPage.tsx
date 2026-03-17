@@ -2,6 +2,8 @@ import { requestStudentDataExport } from '@core/network/queries/privacyStudentDa
 import { useQuery } from '@tanstack/react-query'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
+import JsonView from 'react18-json-view'
+import 'react18-json-view/src/style.css'
 
 export function PrivacyManagementPage() {
   const exportQuery = useQuery({
@@ -19,9 +21,9 @@ export function PrivacyManagementPage() {
         Request data export
       </Button>
       {exportQuery.isSuccess && (
-        <pre className='mt-4'>
-          <code>{JSON.stringify(exportQuery.data, null, 2)}</code>
-        </pre>
+        <div className='mt-4'>
+          <JsonView src={exportQuery.data} collapsed={3} enableClipboard />
+        </div>
       )}
     </div>
   )

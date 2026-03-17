@@ -67,14 +67,14 @@ export const CoursePhaseTypeDescription = ({ phase }: CoursePhaseTypeDescription
 
   const inputs = [
     ...(!phase.initialPhase ? [{ color: EDGE_COLOR_BLUE, name: 'Participants' }] : []),
-    ...participationInputs.map((name) => ({ color: EDGE_COLOR_GREEN, name })),
     ...phaseInputs.map((name) => ({ color: EDGE_COLOR_PURPLE, name })),
+    ...participationInputs.map((name) => ({ color: EDGE_COLOR_GREEN, name })),
   ]
 
   const outputs = [
     { color: EDGE_COLOR_BLUE, name: 'Participants' },
-    ...participationOutputs.map((name) => ({ color: EDGE_COLOR_GREEN, name })),
     ...phaseOutputs.map((name) => ({ color: EDGE_COLOR_PURPLE, name })),
+    ...participationOutputs.map((name) => ({ color: EDGE_COLOR_GREEN, name })),
   ]
 
   return (

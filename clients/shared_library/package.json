@@ -33,7 +33,7 @@
     "i18n-iso-countries": "^7.14.0",
     "react-day-picker": "9.14.0",
     "react-hook-form": "^7.71.2",
-    "recharts": "^3.7.0",
+    "recharts": "^3.8.0",
     "zod": "^4.3.6"
   },
   "exports": {

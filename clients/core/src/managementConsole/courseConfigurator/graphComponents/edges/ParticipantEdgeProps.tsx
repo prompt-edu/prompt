@@ -6,6 +6,6 @@ export const ParticipantEdgeProps = (params: Edge | Connection) => ({
   ...params,
   animated: false,
   style: { stroke: EDGE_COLOR_BLUE, strokeWidth: 2, strokeDasharray: '5,5' },
-  type: 'iconEdge',
+  type: 'selectableEdge',
   markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR_BLUE },
 })

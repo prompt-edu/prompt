@@ -1,6 +1,6 @@
 import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react'
 
-export function IconEdge({
+export function SelectableEdge({
   sourceX,
   sourceY,
   targetX,

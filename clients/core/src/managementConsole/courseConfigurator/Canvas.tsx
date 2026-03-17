@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { PhaseNode } from './graphComponents/phaseNode/PhaseNode'
-import { IconEdge } from './graphComponents/edges/IconEdge'
+import { SelectableEdge } from './graphComponents/edges/SelectableEdge'
 import { useConnect } from './handlers/useConnect'
 import { useValidation } from './handlers/useValidation'
 import { useDrop } from './handlers/useDrop'
@@ -34,7 +34,7 @@ const nodeTypes: NodeTypes = {
 }
 
 const edgeTypes: EdgeTypes = {
-  iconEdge: IconEdge,
+  selectableEdge: SelectableEdge,
 }
 
 export function CourseConfigurator() {

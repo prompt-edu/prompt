@@ -109,40 +109,6 @@ services:
     networks:
       - prompt-network
 
-  server-intro-course:
-    image: "ghcr.io/prompt-edu/prompt/prompt-server-intro-course:${SERVER_INTRO_COURSE_IMAGE_TAG}"
-    container_name: prompt-server-intro-course
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.server-intro-course.rule=Host(`${CORE_HOST}`) && PathPrefix(`/intro-course/api`)"
-      - "traefik.http.services.server-intro-course.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-intro-course.entrypoints=websecure"
-      - "traefik.http.routers.server-intro-course.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
-      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
-      - "traefik.http.routers.server-intro-course.middlewares=api-ratelimit"
-    depends_on:
-      db-intro-course:
-        condition: service_healthy
-    expose:
-      - "8080"
-    environment:
-      - CORE_HOST
-      - SERVER_CORE_HOST
-      - SERVER_ADDRESS
-      - DB_HOST_INTRO_COURSE
-      - DB_PORT_INTRO_COURSE
-      - DB_NAME
-      - DB_PASSWORD
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
-      - KEYCLOAK_AUTHORIZED_PARTY
-      - KEYCLOAK_CLIENT_ID
-      - GITLAB_ACCESS_TOKEN
-      - SENTRY_DSN_INTRO_COURSE
-    networks:
-      - prompt-network
-
   server-team-allocation:
     image: "ghcr.io/prompt-edu/prompt/prompt-server-team-allocation:${SERVER_TEAM_ALLOCATION_IMAGE_TAG}"
     container_name: prompt-server-team-allocation
@@ -321,26 +287,6 @@ services:
     networks:
       - prompt-network
 
-  db-intro-course:
-    image: "postgres:15.16-alpine"
-    container_name: prompt-db-intro-course
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
-      - TZ=Europe/Berlin
-    volumes:
-      - ./postgres_intro_course_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "127.0.0.1:5433:5432"
-    networks:
-      - prompt-network
-
   db-team-allocation:
     image: "postgres:15.16-alpine"
     container_name: prompt-db-team-allocation
@@ -479,28 +425,6 @@ services:
       - "80"
     depends_on:
       - server-core
-    networks:
-      - prompt-network
-
-  client-intro-course-developer-component:
-    image: "ghcr.io/prompt-edu/prompt/prompt-clients-intro-course-developer-component:${INTRO_COURSE_DEVELOPER_IMAGE_TAG}"
-    container_name: prompt-client-intro-course-developer-component
-    environment:
-      - TZ=Europe/Berlin
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.intro-course-developer.rule=Host(`${CORE_HOST}`) && PathPrefix(`/intro-course-developer`)"
-      - "traefik.http.routers.intro-course-developer.entrypoints=websecure"
-      - "traefik.http.routers.intro-course-developer.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.intro-course-developer-strip-prefix.stripPrefix.prefixes=/intro-course-developer"
-      - "traefik.http.routers.intro-course-developer.middlewares=intro-course-developer-strip-prefix,intro-course-developer-compress"
-      - "traefik.http.middlewares.intro-course-developer-compress.compress=true"
-    expose:
-      - "80"
-    depends_on:
-      - server-core
-      - server-intro-course
-      - server-interview
     networks:
       - prompt-network
 

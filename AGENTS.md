@@ -27,8 +27,9 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
-    - intro_course_developer_component (port 3005)
     - devops_challenge_component (port 3006)
+  external remotes:
+    - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
 
 servers/
   core/                    # Main Go service (port 8080)
@@ -36,7 +37,6 @@ servers/
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
-  intro_course/            # Intro programming course (port 8082)
   template_server/         # Course templates (port 8086)
 
 docs/                      # Docusaurus documentation
@@ -66,7 +66,7 @@ make lint
 make test
 ```
 
-**Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_INTRO_COURSE_*`).
+**Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`).
 
 ## Technology Stack
 

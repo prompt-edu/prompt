@@ -48,34 +48,6 @@ services:
       - ALLOWED_FILE_TYPES
     restart: unless-stopped
 
-  server-intro-course:
-    build:
-      context: ./servers/intro_course
-      dockerfile: ../Dockerfile
-    container_name: prompt-server-intro-course
-    depends_on:
-      db-intro-course:
-        condition: service_healthy
-    ports:
-      - "8082:8080"
-    extra_hosts:
-      - "localhost:host-gateway"
-    environment:
-      - CORE_HOST
-      - SERVER_CORE_HOST
-      - SERVER_ADDRESS
-      - DB_HOST=${DB_INTRO_COURSE_HOST}
-      - DB_PORT=${DB_INTRO_COURSE_PORT}
-      - DB_NAME=${DB_INTRO_COURSE_NAME}
-      - DB_USER=${DB_INTRO_COURSE_USER}
-      - DB_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
-      - KEYCLOAK_AUTHORIZED_PARTY
-      - KEYCLOAK_CLIENT_ID
-      - DEBUG
-      - SENTRY_DSN_INTRO_COURSE
-
   server-team-allocation:
     build:
       context: ./servers/team_allocation
@@ -270,16 +242,6 @@ services:
     depends_on:
       - clients-base
 
-  client-intro-course-developer-component:
-    build:
-      context: ./clients/intro_course_developer_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-intro-course-developer-component
-    ports:
-      - "3004:80"
-    depends_on:
-      - clients-base
-
   client-interview-component:
     build:
       context: ./clients/interview_component
@@ -353,28 +315,6 @@ services:
       retries: 5
     ports:
       - "5432:5432"
-
-  db-intro-course:
-    image: "postgres:15.16-alpine"
-    container_name: prompt-db-intro-course
-    environment:
-      - POSTGRES_USER=${DB_INTRO_COURSE_USER}
-      - POSTGRES_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
-      - POSTGRES_DB=${DB_INTRO_COURSE_NAME}
-      - TZ=Europe/Berlin
-    volumes:
-      - ./postgres_intro_course_data:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -d ${DB_INTRO_COURSE_NAME} -U ${DB_INTRO_COURSE_USER}",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "5433:5432"
 
   db-team-allocation:
     image: "postgres:15.16-alpine"

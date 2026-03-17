@@ -272,6 +272,41 @@ func (q *Queries) GetSingleStudentNoteByID(ctx context.Context, id uuid.UUID) (N
 	return i, err
 }
 
+const getStudentNotesForAuthor = `-- name: GetStudentNotesForAuthor :many
+SELECT id, author, author_name, author_email, for_student, date_created, date_deleted, deleted_by, versions, tags FROM note_with_versions WHERE author = $1 ORDER BY date_created ASC
+`
+
+func (q *Queries) GetStudentNotesForAuthor(ctx context.Context, author uuid.UUID) ([]NoteWithVersion, error) {
+	rows, err := q.db.Query(ctx, getStudentNotesForAuthor, author)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []NoteWithVersion
+	for rows.Next() {
+		var i NoteWithVersion
+		if err := rows.Scan(
+			&i.ID,
+			&i.Author,
+			&i.AuthorName,
+			&i.AuthorEmail,
+			&i.ForStudent,
+			&i.DateCreated,
+			&i.DateDeleted,
+			&i.DeletedBy,
+			&i.Versions,
+			&i.Tags,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStudentNotesForStudent = `-- name: GetStudentNotesForStudent :many
 SELECT id, author, author_name, author_email, for_student, date_created, date_deleted, deleted_by, versions, tags FROM note_with_versions WHERE for_student = $1 ORDER BY date_created ASC
 `

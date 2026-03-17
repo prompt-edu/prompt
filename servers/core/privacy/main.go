@@ -9,11 +9,10 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 )
 
-
 func InitPrivacyModule(api *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 
-  setupPrivacyRouter(api, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+	setupPrivacyRouter(api, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 
-  service.InitPrivacyService(queries, conn)
+	service.InitPrivacyService(queries, conn)
 
 }

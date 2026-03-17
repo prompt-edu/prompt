@@ -13,56 +13,56 @@ import (
 )
 
 func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
-  userID, errUserUUID := utils.GetUserUUIDFromContext(ctx)
-  if errUserUUID != nil {
-    return sdk.SubjectIdentifiers{}, errUserUUID
-  }
+	userID, errUserUUID := utils.GetUserUUIDFromContext(ctx)
+	if errUserUUID != nil {
+		return sdk.SubjectIdentifiers{}, errUserUUID
+	}
 
-  studentID, errStudentUUID := getStudentID(ctx)
+	studentID, errStudentUUID := getStudentID(ctx)
 
-  if errors.Is(errStudentUUID, sql.ErrNoRows) {
-    return sdk.SubjectIdentifiers{ UserID: userID, }, nil
-  }
+	if errors.Is(errStudentUUID, sql.ErrNoRows) {
+		return sdk.SubjectIdentifiers{UserID: userID}, nil
+	}
 
-  if errStudentUUID != nil{
-    return sdk.SubjectIdentifiers{}, errStudentUUID
-  }
+	if errStudentUUID != nil {
+		return sdk.SubjectIdentifiers{}, errStudentUUID
+	}
 
-  courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
-  if errCourseParts != nil {
-    courseParticipationIDs = []uuid.UUID{}
-  }
+	courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
+	if errCourseParts != nil {
+		courseParticipationIDs = []uuid.UUID{}
+	}
 
-  return sdk.SubjectIdentifiers{ 
-    UserID: userID, 
-    StudentID: studentID, 
-    CourseParticipationIDs: courseParticipationIDs,
-  }, errUserUUID
+	return sdk.SubjectIdentifiers{
+		UserID:                 userID,
+		StudentID:              studentID,
+		CourseParticipationIDs: courseParticipationIDs,
+	}, errUserUUID
 }
 
 func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
-  matrNr := utils.GetMatriculationNumberFromContext(ctx)
-  universityLogin := utils.GetUniversityLoginFromContext(ctx)
+	matrNr := utils.GetMatriculationNumberFromContext(ctx)
+	universityLogin := utils.GetUniversityLoginFromContext(ctx)
 
-  student, err := student.ResolveStudentByUniversityCredentials(ctx, &PrivacyServiceSingleton.queries, matrNr, universityLogin)
-  if err != nil {
-    return uuid.UUID{}, err
-  }
+	student, err := student.ResolveStudentByUniversityCredentials(ctx, &PrivacyServiceSingleton.queries, matrNr, universityLogin)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
 
-  return student.ID, nil
+	return student.ID, nil
 }
 
 func getCourseParticipations(ctx *gin.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
-  cps, err := courseParticipation.GetAllCourseParticipationsForStudent(ctx, studentID)
-  if err != nil {
-    return []uuid.UUID{}, err
-  }
+	cps, err := courseParticipation.GetAllCourseParticipationsForStudent(ctx, studentID)
+	if err != nil {
+		return []uuid.UUID{}, err
+	}
 
-  uuids := []uuid.UUID{}
+	uuids := []uuid.UUID{}
 
-  for _, cp := range cps {
-    uuids = append(uuids, cp.ID)
-  }
+	for _, cp := range cps {
+		uuids = append(uuids, cp.ID)
+	}
 
-  return uuids, nil
+	return uuids, nil
 }

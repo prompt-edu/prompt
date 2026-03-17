@@ -232,7 +232,7 @@ func main() {
 		log.Fatalf("Failed to initialize storage module: %v", err)
 	}
 
-  privacy.InitPrivacyModule(api, *query, conn)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")

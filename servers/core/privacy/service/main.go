@@ -6,18 +6,17 @@ import (
 )
 
 type PrivacyService struct {
-  queries db.Queries
-  conn    *pgxpool.Pool
+	queries db.Queries
+	conn    *pgxpool.Pool
 }
 
-var PrivacyServiceSingleton * PrivacyService
+var PrivacyServiceSingleton *PrivacyService
 
 func InitPrivacyService(queries db.Queries, conn *pgxpool.Pool) {
 
-  PrivacyServiceSingleton = &PrivacyService{
-    queries: queries,
-    conn:    conn,
-  }
+	PrivacyServiceSingleton = &PrivacyService{
+		queries: queries,
+		conn:    conn,
+	}
 
 }
-

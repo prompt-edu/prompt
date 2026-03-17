@@ -706,6 +706,77 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 	}, nil
 }
 
+type ApplicationDataExportPerCourseParticipation struct {
+	CourseParticipationID uuid.UUID                                                         `json:"courseParticipationId"`
+	AnswersText           []db.GetAllApplicationAnswersTextByCourseParticipationIDsRow        `json:"answersText"`
+	AnswersMultiSelect    []db.GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow `json:"answersMultiSelect"`
+	AnswersFileUpload     []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow  `json:"answersFileUpload"`
+	Assessments           []db.ApplicationAssessment                                          `json:"assessments"`
+}
+
+func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]ApplicationDataExportPerCourseParticipation, error) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	answersText, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application text answers")
+	}
+
+	answersMultiSelect, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application multi-select answers")
+	}
+
+	answersFileUpload, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application file upload answers")
+	}
+
+	assessments, err := ApplicationServiceSingleton.queries.GetAllApplicationAssessmentsByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application assessments")
+	}
+
+	// Group by course participation ID
+	grouped := make(map[uuid.UUID]*ApplicationDataExportPerCourseParticipation)
+	getOrCreate := func(cpID uuid.UUID) *ApplicationDataExportPerCourseParticipation {
+		if entry, ok := grouped[cpID]; ok {
+			return entry
+		}
+		entry := &ApplicationDataExportPerCourseParticipation{CourseParticipationID: cpID}
+		grouped[cpID] = entry
+		return entry
+	}
+
+	for _, a := range answersText {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersText = append(entry.AnswersText, a)
+	}
+	for _, a := range answersMultiSelect {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersMultiSelect = append(entry.AnswersMultiSelect, a)
+	}
+	for _, a := range answersFileUpload {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersFileUpload = append(entry.AnswersFileUpload, a)
+	}
+	for _, a := range assessments {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.Assessments = append(entry.Assessments, a)
+	}
+
+	result := make([]ApplicationDataExportPerCourseParticipation, 0, len(grouped))
+	for _, entry := range grouped {
+		result = append(result, *entry)
+	}
+	return result, nil
+}
+
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()

@@ -18,6 +18,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -345,9 +346,10 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+  queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
 
 	// 1. Check if studentObj with this email already exists
-	studentObj, err := student.GetStudentByEmail(ctx, application.Student.Email)
+	studentObj, err := student.GetStudentByEmail(ctx, &queries, application.Student.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Error(err)
 		return uuid.Nil, errors.New("could save the application")
@@ -465,7 +467,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	studentObj, err := student.GetStudentByMatriculationNumberAndUniversityLogin(ctxWithTimeout, matriculationNumber, universityLogin)
+	studentObj, err := student.ResolveStudentByUniversityCredentials(ctxWithTimeout, &ApplicationServiceSingleton.queries, matriculationNumber, universityLogin)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return applicationDTO.Application{
 			Status:             applicationDTO.StatusNewUser,

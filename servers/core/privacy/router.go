@@ -2,7 +2,6 @@ package privacy
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -27,8 +26,6 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /privacy/student-data-export [post]
 func studentDataExport(c *gin.Context) {
-
-  time.Sleep(1 * time.Second)
 
   subjectIdentifiers, errSI := service.GetSubjectIdentifiers(c)
   if errSI != nil {

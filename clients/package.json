@@ -71,7 +71,7 @@
     "sass-loader": "^16.0.7",
     "sonner": "^2.0.7",
     "style-loader": "^4.0.0",
-    "tailwind-merge": "^3.4.1",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",

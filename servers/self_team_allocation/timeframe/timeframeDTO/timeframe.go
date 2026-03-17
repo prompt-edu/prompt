@@ -3,7 +3,7 @@ package timeframeDTO
 import (
 	"time"
 
-	db "github.com/ls1intum/prompt2/servers/self_team_allocation/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 )
 
 type Timeframe struct {

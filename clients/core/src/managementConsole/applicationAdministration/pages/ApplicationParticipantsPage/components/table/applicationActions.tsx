@@ -1,4 +1,4 @@
-import { RowAction } from '@tumaet/prompt-ui-components/dist/types/components/table/TableTypes'
+import { RowAction } from '@tumaet/prompt-ui-components'
 import { ApplicationRow } from './applicationRow'
 import { CheckCircle, FileUser, Trash2, XCircle } from 'lucide-react'
 

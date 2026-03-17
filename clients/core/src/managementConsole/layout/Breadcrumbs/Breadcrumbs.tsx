@@ -98,7 +98,7 @@ export const Breadcrumbs: React.FC = () => {
     }
 
     return breadcrumbs
-  }, [location.pathname, courses])
+  }, [location.pathname, courses, studentsById])
 
   if (breadcrumbList.length === 0) {
     return null

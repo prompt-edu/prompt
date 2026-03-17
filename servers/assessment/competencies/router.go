@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/competencies/competencyDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 // setupCompetencyRouter sets up competency endpoints.

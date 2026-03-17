@@ -12,14 +12,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt2/servers/core/applicationAdministration/applicationDTO"
-	"github.com/ls1intum/prompt2/servers/core/course/courseParticipation"
-	"github.com/ls1intum/prompt2/servers/core/coursePhase/coursePhaseParticipation"
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/mailing"
-	"github.com/ls1intum/prompt2/servers/core/student"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
-	"github.com/ls1intum/prompt2/servers/core/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -32,11 +33,16 @@ type ApplicationAdminRouterTestSuite struct {
 	applicationAdminService ApplicationService
 }
 
+var (
+	requiredFileUploadQuestionID = uuid.MustParse("b1b04042-95d1-4765-8592-caf9560c8c3d")
+	seededUploadFileID           = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c3f")
+)
+
 func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -51,9 +57,9 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func() gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupApplicationRouter(api, testMiddleware, testMiddleware, testutils.MockPermissionMiddleware)
+	setupApplicationRouter(api, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
@@ -216,6 +222,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -278,6 +290,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -319,6 +337,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 			{
 				ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"),
 				Answer:                []string{"MacBook"},
+			},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
 			},
 		},
 	}

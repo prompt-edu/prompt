@@ -2,7 +2,7 @@ package coursePhaseConfigDTO
 
 import (
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
 type AssessmentParticipationWithStudent struct {

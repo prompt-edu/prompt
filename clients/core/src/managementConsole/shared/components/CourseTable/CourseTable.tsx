@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { PromptTable } from '@tumaet/prompt-ui-components'
 import { Course } from '@tumaet/prompt-shared-state'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Settings } from 'lucide-react'
 import { RowAction, TableFilter } from '@tumaet/prompt-ui-components'
 import { CourseTableColumns } from './CourseTableColumns'
 import { CourseTableActions } from './CourseTableActions'
@@ -26,6 +26,14 @@ export const CourseTable = ({ courses }: CourseTableProps) => {
       hide: (rows) => rows.length !== 1,
       onAction: ([course]) => {
         navigate(`/management/course/${course.id}`)
+      },
+    },
+    {
+      label: 'Open settings',
+      icon: <Settings />,
+      hide: (rows) => rows.length !== 1,
+      onAction: ([course]) => {
+        navigate(`/management/course/${course.id}/settings`)
       },
     },
   ]

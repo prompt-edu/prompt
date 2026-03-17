@@ -9,10 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas"
-	"github.com/ls1intum/prompt2/servers/assessment/categories/categoryDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 type CategoryServiceTestSuite struct {
@@ -25,7 +28,7 @@ type CategoryServiceTestSuite struct {
 
 func (suite *CategoryServiceTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

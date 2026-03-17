@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentType"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"regexp"
 
-	db "github.com/ls1intum/prompt2/servers/core/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/core/student/studentDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -69,8 +69,11 @@ func validateUniversityData(hasUniversityAccount bool, matriculationNumber, univ
 		// Schema for TUM ID
 		universityLoginRegex := `^[a-zA-Z]{2}\d{2}[a-zA-Z]{3}$`
 
-		if matched, _ := regexp.MatchString(matriculationNumberRegex, matriculationNumber); !matched {
-			return errors.New("invalid matriculation number")
+		// Matriculation number is optional (external TUM members may not have one)
+		if matriculationNumber != "" {
+			if matched, _ := regexp.MatchString(matriculationNumberRegex, matriculationNumber); !matched {
+				return errors.New("invalid matriculation number")
+			}
 		}
 
 		if matched, _ := regexp.MatchString(universityLoginRegex, universityLogin); !matched {
@@ -82,3 +85,4 @@ func validateUniversityData(hasUniversityAccount bool, matriculationNumber, univ
 
 	return nil
 }
+

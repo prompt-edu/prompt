@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@tumaet/prompt-ui-components'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@tumaet/prompt-ui-components'
 import type { CourseFormValues } from '@core/validations/course'
 import { AddCourseProperties } from './AddCourseProperties'
 import { AddCourseAppearance } from './AddCourseAppearance'
@@ -74,10 +83,7 @@ export const AddCourseDialog = ({
       longDescription: coursePropertiesFormValues?.longDescription || '',
       template: false,
     }
-    // todo API call
     mutate(course)
-    setCurrentPage(1)
-    setCoursePropertiesFormValues(null) // reset the page 1 form
   }
 
   const handleNext = (data) => {
@@ -116,6 +122,31 @@ export const AddCourseDialog = ({
       <DialogContent className='sm:max-w-[550px]'>
         {isPending ? (
           <DialogLoadingDisplay customMessage='Updating course data...' />
+        ) : isError && (error as any)?.response?.status === 409 ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className='text-2xl font-bold text-center'>Add a New Course</DialogTitle>
+            </DialogHeader>
+            <Alert variant='destructive'>
+              <AlertTitle>Name already taken</AlertTitle>
+              <AlertDescription>
+                A course with the name &quot;{coursePropertiesFormValues?.name}&quot; and semester
+                tag &quot;{coursePropertiesFormValues?.semesterTag}&quot; already exists. Please
+                choose a different name or semester tag.
+              </AlertDescription>
+            </Alert>
+            <div className='flex justify-end pt-2'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  reset()
+                  setCurrentPage(1)
+                }}
+              >
+                Go Back
+              </Button>
+            </div>
+          </>
         ) : isError ? (
           <DialogErrorDisplay error={error} />
         ) : (

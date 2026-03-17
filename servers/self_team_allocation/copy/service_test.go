@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptTypes "github.com/ls1intum/prompt-sdk/promptTypes"
+	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,7 +3,7 @@ package assessmentType
 import (
 	"log"
 
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type AssessmentType string

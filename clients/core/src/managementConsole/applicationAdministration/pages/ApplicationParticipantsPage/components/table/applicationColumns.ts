@@ -8,9 +8,16 @@ export function getApplicationColumns(
 ): ColumnDef<ApplicationRow>[] {
   return [
     {
-      accessorKey: 'student',
-      header: 'Name',
-      cell: ({ row }) => `${row.original.student.firstName} ${row.original.student.lastName}`,
+      id: 'firstName',
+      header: 'First Name',
+      cell: ({ row }) => row.original.student.firstName,
+      accessorFn: (row) => row.student.firstName,
+    },
+    {
+      id: 'lastName',
+      header: 'Last Name',
+      cell: ({ row }) => row.original.student.lastName,
+      accessorFn: (row) => row.student.lastName,
     },
     { accessorKey: 'email', header: 'Email' },
     { accessorKey: 'studyProgram', header: 'Study Program' },

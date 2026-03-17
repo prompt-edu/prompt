@@ -6,10 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt-sdk/promptTypes"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentType"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
-	"github.com/ls1intum/prompt2/servers/assessment/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -49,7 +51,11 @@ func (suite *ReminderRecipientsServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.testPhaseID = uuid.MustParse(reminderTestPhaseID)
 
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/reminder_recipients_test.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(
+		suite.ctx,
+		"../database_dumps/reminder_recipients_test.sql",
+		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
+	)
 	if err != nil {
 		suite.T().Fatalf("failed to set up test database: %v", err)
 	}

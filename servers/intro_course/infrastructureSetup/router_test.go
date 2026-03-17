@@ -9,7 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/intro_course/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -25,7 +27,7 @@ type InfrastructureRouterTestSuite struct {
 func (suite *InfrastructureRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/intro_course.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/intro_course.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -41,7 +43,7 @@ func (suite *InfrastructureRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/intro-course/api/course_phase/:coursePhaseID")
 	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.DefaultMockAuthMiddleware()
+		return sdkTestUtils.MockAuthMiddleware(allowedRoles)
 	}
 	setupInfrastructureRouter(api, authMiddleware)
 }

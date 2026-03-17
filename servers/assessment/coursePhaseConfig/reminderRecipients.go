@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt-sdk/promptTypes"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentType"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 var getParticipationsForCoursePhaseFn = GetParticipationsForCoursePhase

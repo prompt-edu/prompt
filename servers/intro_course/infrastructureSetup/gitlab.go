@@ -3,7 +3,7 @@ package infrastructureSetup
 import (
 	"errors"
 
-	"github.com/ls1intum/prompt2/servers/intro_course/infrastructureSetup/data"
+	"github.com/prompt-edu/prompt/servers/intro_course/infrastructureSetup/data"
 	log "github.com/sirupsen/logrus"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )

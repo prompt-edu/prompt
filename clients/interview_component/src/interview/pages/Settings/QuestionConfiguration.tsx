@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, Plus, GripVertical, Trash2 } from 'lucide-react'
+import { useDebouncedCallback } from 'use-debounce'
 import type { InterviewQuestion } from '../../interfaces/InterviewQuestion'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
 import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import {
   DeleteConfirmation,
   Input,
@@ -19,27 +20,32 @@ export const QuestionConfiguration = () => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [toBeDeletedQuestionID, setToBeDeletedQuestionID] = useState<number | undefined>(undefined)
+  const { mutate, isPending, error } = useUpdateCoursePhaseMetaData()
 
-  const { mutate } = useUpdateCoursePhaseMetaData()
+  // Debounced save function to prevent rapid-fire mutations
+  const debouncedSave = useDebouncedCallback(
+    (questions: InterviewQuestion[]) => {
+      if (coursePhase) {
+        mutate({
+          id: coursePhase.id,
+          restrictedData: {
+            interviewQuestions: questions,
+          },
+        })
+      }
+    },
+    500, // 500ms debounce
+  )
 
+  // Load initial questions from coursePhase
   useEffect(() => {
     if (coursePhase) {
       const questions = coursePhase.restrictedData?.interviewQuestions ?? []
       setInterviewQuestions(questions)
       setIsLoading(false)
     }
-  }, [coursePhase])
-
-  useEffect(() => {
-    if (coursePhase && !isLoading) {
-      mutate({
-        id: coursePhase.id,
-        restrictedData: {
-          interviewQuestions: interviewQuestions,
-        },
-      })
-    }
-  }, [interviewQuestions, coursePhase, mutate, isLoading])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coursePhase?.id]) // Only depend on coursePhase.id, not the entire object
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -50,14 +56,14 @@ export const QuestionConfiguration = () => {
 
   const addQuestion = () => {
     if (newQuestion.trim()) {
-      setInterviewQuestions((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          question: newQuestion.trim(),
-          orderNum: prev.length,
-        },
-      ])
+      const newEntry = {
+        id: Date.now(),
+        question: newQuestion.trim(),
+        orderNum: interviewQuestions.length,
+      }
+      const newQuestions = [...interviewQuestions, newEntry]
+      setInterviewQuestions(newQuestions)
+      debouncedSave(newQuestions)
       setNewQuestion('')
       requestAnimationFrame(() => {
         scrollToBottom()
@@ -66,19 +72,25 @@ export const QuestionConfiguration = () => {
   }
 
   const deleteQuestion = () => {
-    if (!toBeDeletedQuestionID) return
-    setInterviewQuestions((prev) => prev.filter((q) => q.id !== toBeDeletedQuestionID))
+    if (toBeDeletedQuestionID == null) return
+    const newQuestions = interviewQuestions
+      .filter((q) => q.id !== toBeDeletedQuestionID)
+      .map((q, idx) => ({ ...q, orderNum: idx }))
+    setInterviewQuestions(newQuestions)
+    debouncedSave(newQuestions)
     setToBeDeletedQuestionID(undefined)
   }
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) return
 
     const newQuestions = Array.from(interviewQuestions)
     const [reorderedItem] = newQuestions.splice(result.source.index, 1)
     newQuestions.splice(result.destination.index, 0, reorderedItem)
 
-    setInterviewQuestions(newQuestions.map((q, idx) => ({ ...q, orderNum: idx })))
+    const reorderedQuestions = newQuestions.map((q, idx) => ({ ...q, orderNum: idx }))
+    setInterviewQuestions(reorderedQuestions)
+    debouncedSave(reorderedQuestions)
   }
 
   const scrollToBottom = () => {
@@ -120,6 +132,14 @@ export const QuestionConfiguration = () => {
 
       {/* Scrollable content */}
       <div className='flex-grow overflow-auto h-[calc(100vh-300px)] p-4'>
+        {/* Saving indicator */}
+        {isPending && (
+          <div className='mb-2 text-xs text-muted-foreground flex items-center gap-1'>
+            <Loader2 className='h-3 w-3 animate-spin' />
+            Saving...
+          </div>
+        )}
+        {error && <div className='mb-2 text-xs text-destructive'>Error: {error.message}</div>}
         {isLoading ? (
           <div className='flex justify-center items-center h-64'>
             <Loader2 className='h-12 w-12 animate-spin text-primary' />

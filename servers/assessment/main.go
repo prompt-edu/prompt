@@ -14,16 +14,16 @@ import (
 	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentSchemas"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments"
-	"github.com/ls1intum/prompt2/servers/assessment/categories"
-	"github.com/ls1intum/prompt2/servers/assessment/competencies"
-	"github.com/ls1intum/prompt2/servers/assessment/copy"
-	"github.com/ls1intum/prompt2/servers/assessment/coursePhaseConfig"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations"
-	"github.com/ls1intum/prompt2/servers/assessment/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments"
+	"github.com/prompt-edu/prompt/servers/assessment/categories"
+	"github.com/prompt-edu/prompt/servers/assessment/competencies"
+	"github.com/prompt-edu/prompt/servers/assessment/copy"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -109,7 +109,7 @@ func initKeycloak(queries db.Queries) {
 
 	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -138,7 +138,7 @@ func helloAssessment(c *gin.Context) {
 // @BasePath  /assessment/api
 
 // @externalDocs.description  PROMPT Documentation
-// @externalDocs.url          https://ls1intum.github.io/prompt2/
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
 	initSentry()
 	defer sentry.Flush(2 * time.Second)

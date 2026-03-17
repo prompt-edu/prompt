@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	promptTypes "github.com/ls1intum/prompt-sdk/promptTypes"
-	"github.com/ls1intum/prompt2/servers/self_team_allocation/testutils"
+	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -30,7 +30,10 @@ func (suite *CopyRouterTestSuite) SetupSuite() {
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/self-team-allocation/api")
-	setupCopyRouter(api, testutils.DefaultMockAuthMiddleware())
+	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
+		return sdkTestUtils.DefaultMockAuthMiddleware()
+	}
+	setupCopyRouter(api, authMiddleware)
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpointSuccess() {

@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	promptTypes "github.com/ls1intum/prompt-sdk/promptTypes"
-	db "github.com/ls1intum/prompt2/servers/intro_course/db/sqlc"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	db "github.com/prompt-edu/prompt/servers/intro_course/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 

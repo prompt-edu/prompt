@@ -14,9 +14,9 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { CalendarDays, GraduationCap, Clock, Calendar } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { EditCourseDropdown } from './components/EditCourseDropdown'
 import { CourseStatusTag } from '../layout/Sidebar/CourseSwitchSidebar/components/CourseStatusTag'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { CourseSettingsButton } from '../shared/components/CourseCard/CourseSettingsButton'
 
 export const CourseOverview = () => {
   const { courses } = useCourseStore()
@@ -64,7 +64,8 @@ export const CourseOverview = () => {
                 <CourseStatusTag course={course} />
               </CardDescription>
             </div>
-            {canEdit && <EditCourseDropdown />}
+
+            {canEdit && <CourseSettingsButton courseID={course.id} />}
           </div>
         </CardHeader>
         <CardContent className='p-6'>

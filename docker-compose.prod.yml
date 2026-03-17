@@ -1,5 +1,3 @@
-version: "1.0"
-
 services:
   reverse-proxy:
     image: traefik:v2.10
@@ -52,14 +50,15 @@ services:
       - prompt-network
     healthcheck:
       # BusyBox wget in nginx:alpine does not support --spider/--tries flags; use simple fetch instead
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 3s
       start_period: 5s
       retries: 3
 
   server-core:
-    image: "ghcr.io/ls1intum/prompt2/prompt-server-core:${SERVER_CORE_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-core:${SERVER_CORE_IMAGE_TAG}"
     container_name: prompt-server-core
     labels:
       - "traefik.enable=true"
@@ -72,6 +71,8 @@ services:
       - "traefik.http.routers.server-core.middlewares=api-ratelimit"
     depends_on:
       db:
+        condition: service_healthy
+      seaweedfs-s3:
         condition: service_healthy
     expose:
       - "8080"
@@ -95,11 +96,21 @@ services:
       - SENDER_EMAIL
       - SENDER_NAME
       - SENTRY_DSN_CORE
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_PUBLIC_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+    restart: unless-stopped
     networks:
       - prompt-network
 
   server-intro-course:
-    image: "ghcr.io/ls1intum/prompt2/prompt-server-intro-course:${SERVER_INTRO_COURSE_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-intro-course:${SERVER_INTRO_COURSE_IMAGE_TAG}"
     container_name: prompt-server-intro-course
     labels:
       - "traefik.enable=true"
@@ -133,7 +144,7 @@ services:
       - prompt-network
 
   server-team-allocation:
-    image: "ghcr.io/ls1intum/prompt2/prompt-server-team-allocation:${SERVER_TEAM_ALLOCATION_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-team-allocation:${SERVER_TEAM_ALLOCATION_IMAGE_TAG}"
     container_name: prompt-server-team-allocation
     labels:
       - "traefik.enable=true"
@@ -164,7 +175,7 @@ services:
       - prompt-network
 
   server-self-team-allocation:
-    image: "ghcr.io/ls1intum/prompt2/prompt-server-self-team-allocation:${SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-self-team-allocation:${SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG}"
     container_name: prompt-server-self-team-allocation
     labels:
       - "traefik.enable=true"
@@ -195,7 +206,7 @@ services:
       - prompt-network
 
   server-assessment:
-    image: "ghcr.io/ls1intum/prompt2/prompt-server-assessment:${SERVER_ASSESSMENT_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-assessment:${SERVER_ASSESSMENT_IMAGE_TAG}"
     container_name: prompt-server-assessment
     labels:
       - "traefik.enable=true"
@@ -225,8 +236,73 @@ services:
     networks:
       - prompt-network
 
+  server-interview:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-interview:${SERVER_INTERVIEW_IMAGE_TAG}"
+    container_name: prompt-server-interview
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-interview.rule=Host(`${CORE_HOST}`) && PathPrefix(`/interview/api`)"
+      - "traefik.http.services.server-interview.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-interview.entrypoints=websecure"
+      - "traefik.http.routers.server-interview.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
+      - "traefik.http.routers.server-interview.middlewares=api-ratelimit"
+    depends_on:
+      db-interview:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_INTERVIEW=db-interview
+      - DB_PORT_INTERVIEW=5432
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_INTERVIEW
+    networks:
+      - prompt-network
+
+  server-certificate:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-certificate:${SERVER_CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-server-certificate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-certificate.rule=Host(`${CORE_HOST}`) && PathPrefix(`/certificate/api`)"
+      - "traefik.http.services.server-certificate.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-certificate.entrypoints=websecure"
+      - "traefik.http.routers.server-certificate.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
+      - "traefik.http.routers.server-certificate.middlewares=api-ratelimit"
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_CERTIFICATE=db-certificate
+      - DB_PORT_CERTIFICATE=5432
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - SENTRY_DSN_CERTIFICATE
+    networks:
+      - prompt-network
+
   db:
-    image: "postgres:15.2-alpine"
+    image: "postgres:15.16-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -246,7 +322,7 @@ services:
       - prompt-network
 
   db-intro-course:
-    image: "postgres:15.2-alpine"
+    image: "postgres:15.16-alpine"
     container_name: prompt-db-intro-course
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -266,7 +342,7 @@ services:
       - prompt-network
 
   db-team-allocation:
-    image: "postgres:15.2-alpine"
+    image: "postgres:15.16-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -286,7 +362,7 @@ services:
       - prompt-network
 
   db-self-team-allocation:
-    image: "postgres:15.2-alpine"
+    image: "postgres:15.16-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -305,8 +381,28 @@ services:
     networks:
       - prompt-network
 
+  db-interview:
+    image: "postgres:15.16-alpine"
+    container_name: prompt-db-interview
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_interview_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5438:5432"
+    networks:
+      - prompt-network
+
   db-assessment:
-    image: "postgres:15.2-alpine"
+    image: "postgres:15.16-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -325,8 +421,28 @@ services:
     networks:
       - prompt-network
 
+  db-certificate:
+    image: "postgres:15.16-alpine"
+    container_name: prompt-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_certificate_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5439:5432"
+    networks:
+      - prompt-network
+
   client-assessment-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-assessment-component:${ASSESSMENT_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-assessment-component:${ASSESSMENT_IMAGE_TAG}"
     container_name: prompt-client-assessment-component
     environment:
       - TZ=Europe/Berlin
@@ -347,7 +463,7 @@ services:
       - prompt-network
 
   client-devops-challenge-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-devops-challenge-component:${DEVOPS_CHALLENGE_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-devops-challenge-component:${DEVOPS_CHALLENGE_IMAGE_TAG}"
     container_name: prompt-client-devops-challenge-component
     environment:
       - TZ=Europe/Berlin
@@ -367,7 +483,7 @@ services:
       - prompt-network
 
   client-intro-course-developer-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-intro-course-developer-component:${INTRO_COURSE_DEVELOPER_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-intro-course-developer-component:${INTRO_COURSE_DEVELOPER_IMAGE_TAG}"
     container_name: prompt-client-intro-course-developer-component
     environment:
       - TZ=Europe/Berlin
@@ -384,11 +500,12 @@ services:
     depends_on:
       - server-core
       - server-intro-course
+      - server-interview
     networks:
       - prompt-network
 
   client-interview-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-interview-component:${INTERVIEW_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-interview-component:${INTERVIEW_IMAGE_TAG}"
     container_name: prompt-client-interview-component
     environment:
       - TZ=Europe/Berlin
@@ -408,7 +525,7 @@ services:
       - prompt-network
 
   client-matching-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-matching-component:${MATCHING_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-matching-component:${MATCHING_IMAGE_TAG}"
     container_name: prompt-client-matching-component
     environment:
       - TZ=Europe/Berlin
@@ -428,7 +545,7 @@ services:
       - prompt-network
 
   client-team-allocation-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-team-allocation-component:${TEAM_ALLOCATION_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-team-allocation-component:${TEAM_ALLOCATION_IMAGE_TAG}"
     container_name: prompt-client-team-allocation-component
     environment:
       - TZ=Europe/Berlin
@@ -448,7 +565,7 @@ services:
       - prompt-network
 
   client-self-team-allocation-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-self-team-allocation-component:${SELF_TEAM_ALLOCATION_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-self-team-allocation-component:${SELF_TEAM_ALLOCATION_IMAGE_TAG}"
     container_name: prompt-client-self-team-allocation-component
     environment:
       - TZ=Europe/Berlin
@@ -468,7 +585,7 @@ services:
       - prompt-network
 
   client-template-component:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-template-component:${TEMPLATE_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-template-component:${TEMPLATE_IMAGE_TAG}"
     container_name: prompt-client-template-component
     environment:
       - TZ=Europe/Berlin
@@ -487,8 +604,29 @@ services:
     networks:
       - prompt-network
 
+  client-certificate-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-certificate-component:${CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-client-certificate-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.certificate.rule=Host(`${CORE_HOST}`) && PathPrefix(`/certificate`)"
+      - "traefik.http.routers.certificate.entrypoints=websecure"
+      - "traefik.http.routers.certificate.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.certificate-strip-prefix.stripPrefix.prefixes=/certificate"
+      - "traefik.http.routers.certificate.middlewares=certificate-strip-prefix,certificate-compress"
+      - "traefik.http.middlewares.certificate-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-certificate
+    networks:
+      - prompt-network
+
   client-core:
-    image: "ghcr.io/ls1intum/prompt2/prompt-clients-core:${CORE_IMAGE_TAG}"
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-core:${CORE_IMAGE_TAG}"
     container_name: prompt-client-core
     environment:
       - TZ=Europe/Berlin
@@ -517,6 +655,123 @@ services:
       - server-core
     networks:
       - prompt-network
+
+  # SeaweedFS Master Server
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:4.17
+    container_name: prompt-seaweedfs-master
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_master_data:/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+    expose:
+      - "9333"
+      - "19333"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9333/cluster/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS Volume Server
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:4.17
+    container_name: prompt-seaweedfs-volume
+    command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
+    volumes:
+      - ./seaweedfs_volume_data:/data
+    depends_on:
+      - seaweedfs-master
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+    expose:
+      - "8080"
+      - "18080"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS Filer (required for S3)
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:4.17
+    container_name: prompt-seaweedfs-filer
+    command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_filer_data:/data
+    depends_on:
+      - seaweedfs-master
+    restart: unless-stopped
+    expose:
+      - "8888"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS S3 Gateway (public access via presigned URLs only)
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:4.17
+    container_name: prompt-seaweedfs-s3
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        cat >/tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "prompt-s3",
+              "credentials": [
+                {
+                  "accessKey": "$$WEED_S3_DEFAULT_USER",
+                  "secretKey": "$$WEED_S3_DEFAULT_PWD"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write"]
+            }
+          ]
+        }
+        EOF
+        exec weed s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/tmp/s3.json
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-filer
+    restart: unless-stopped
+    environment:
+      - WEED_S3_DEFAULT_USER=${S3_ACCESS_KEY}
+      - WEED_S3_DEFAULT_PWD=${S3_SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seaweedfs-s3.rule=Host(`s3.${CORE_HOST}`)"
+      - "traefik.http.routers.seaweedfs-s3.entrypoints=websecure"
+      - "traefik.http.routers.seaweedfs-s3.tls.certresolver=letsencrypt"
+      - "traefik.http.services.seaweedfs-s3.loadbalancer.server.port=8333"
+    expose:
+      - "8333"
+    networks:
+      - prompt-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "code=$(wget --server-response --spider -q http://localhost:8333/ 2>&1 | grep -Eo \"HTTP/[0-9.]+ [0-9]+\" | tail -1 | cut -d\" \" -f2); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"403\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   # Create network manually in advance: docker network create prompt-network

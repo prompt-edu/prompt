@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 )
 
 type EvaluationReminderRecipients struct {

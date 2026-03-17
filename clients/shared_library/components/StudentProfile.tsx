@@ -5,18 +5,11 @@ import {
   getStudyDegreeString,
 } from '@tumaet/prompt-shared-state'
 import { Mail, Flag, Book, GraduationCap, Calendar, Hash, Users, KeyRound } from 'lucide-react'
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-  Card,
-  CardContent,
-  CardHeader,
-} from '@tumaet/prompt-ui-components'
+import { Card, CardContent, CardHeader } from '@tumaet/prompt-ui-components'
 import { getCountryName } from '@/lib/getCountries'
 import translations from '@/lib/translations.json'
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
 import { getStatusColor } from '@/lib/getStatusColor'
+import { ProfilePicture } from './StudentProfilePicture'
 
 interface StudentProfileProps {
   student: Student
@@ -27,15 +20,15 @@ export const StudentProfile = ({ student, status }: StudentProfileProps) => {
   return (
     <Card className='relative overflow-hidden'>
       {/* Status indicator */}
-      <div className={`h-16 ${status ? getStatusColor(status) : 'bg-gray-100'}`} />
+      <div className={`h-16 ${status ? getStatusColor(status) : 'bg-gray-100 dark:bg-muted'}`} />
       <div className='mb-4'>
-        <Avatar className='absolute w-24 h-24 border-4 border-background rounded-full transform left-3 -translate-y-1/2'>
-          <AvatarImage src={getGravatarUrl(student.email)} alt={student.lastName} />
-          <AvatarFallback className='rounded-lg font-bold text-lg'>
-            {student.firstName[0]}
-            {student.lastName[0]}
-          </AvatarFallback>
-        </Avatar>
+        <ProfilePicture
+          email={student.email}
+          firstName={student.firstName}
+          lastName={student.lastName}
+          size='lg'
+          className='absolute border-4 border-background rounded-full transform left-3 -translate-y-1/2'
+        />
       </div>
       <CardHeader>
         <div className='flex flex-col sm:flex-row items-center'>

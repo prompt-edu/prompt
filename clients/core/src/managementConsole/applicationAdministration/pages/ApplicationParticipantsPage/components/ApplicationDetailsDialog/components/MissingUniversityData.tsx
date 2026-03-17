@@ -66,7 +66,7 @@ export const MissingUniversityData = ({ student }: MissingUniversityDataProps) =
 
   return (
     <Alert variant={isMutateError ? 'destructive' : undefined}>
-      <div className='flex items-center justify-between mb-2'>
+      <div className='flex items-center justify-between'>
         <AlertDescription className='flex items-center'>
           {isMutateError ? (
             <XCircle className='h-4 w-4 mr-2' />

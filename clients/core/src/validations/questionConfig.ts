@@ -3,7 +3,7 @@ import * as z from 'zod'
 
 // Base schema containing common fields and the discriminant 'type'
 const baseQuestionSchema = z.object({
-  type: z.enum(['text', 'multi-select']), // Discriminant field
+  type: z.enum(['text', 'multi-select', 'file-upload']), // Discriminant field
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   placeholder: z.string().optional(),
@@ -46,9 +46,20 @@ export const multiSelectQuestionSchema = baseQuestionSchema.extend({
     .min(1, 'Options cannot be empty'),
 })
 
+// Schema for file upload questions
+export const fileUploadQuestionSchema = baseQuestionSchema.extend({
+  type: z.literal('file-upload'), // Ensure the type is 'file-upload'
+  allowedFileTypes: z.string().optional(),
+  maxFileSizeMB: z.number().min(1, 'Maximum file size must be at least 1 MB').optional(),
+})
+
 // Combine schemas using discriminated union
 export const questionConfigSchema = z
-  .discriminatedUnion('type', [multiSelectQuestionSchema, textQuestionSchema])
+  .discriminatedUnion('type', [
+    multiSelectQuestionSchema,
+    textQuestionSchema,
+    fileUploadQuestionSchema,
+  ])
   .refine(
     (data) => {
       // If accessibleForOtherPhases = false, no validation needed.
@@ -72,3 +83,4 @@ export const questionConfigSchema = z
 export type QuestionConfigFormData = z.infer<typeof questionConfigSchema>
 export type QuestionConfigFormDataMultiSelect = z.infer<typeof multiSelectQuestionSchema>
 export type QuestionConfigFormDataText = z.infer<typeof textQuestionSchema>
+export type QuestionConfigFormDataFileUpload = z.infer<typeof fileUploadQuestionSchema>

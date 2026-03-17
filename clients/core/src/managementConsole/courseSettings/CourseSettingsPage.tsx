@@ -1,19 +1,16 @@
-import { useParams } from 'react-router-dom'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { CourseTemplateToggle } from './components/CourseTemplateToggle'
 import { MailingConfigPage } from '../mailingConfig/MailingConfigPage'
+import { CourseGeneralSettings } from './components/CourseGeneralSettings'
+import CourseDangerZone from './components/CourseDangerZone'
 
 export const CourseSettingsPage = () => {
-  const { courseId } = useParams<{ courseId: string }>()
-
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between mb-4'>
-        <ManagementPageHeader>Settings</ManagementPageHeader>
-      </div>
+      <ManagementPageHeader>Settings</ManagementPageHeader>
 
-      {courseId && <CourseTemplateToggle courseId={courseId} />}
+      <CourseGeneralSettings />
       <MailingConfigPage />
+      <CourseDangerZone />
     </div>
   )
 }

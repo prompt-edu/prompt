@@ -3,9 +3,9 @@ package evaluationDTO
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt2/servers/assessment/assessmentType"
-	"github.com/ls1intum/prompt2/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type Evaluation struct {

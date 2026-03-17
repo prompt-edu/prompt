@@ -11,7 +11,8 @@ import {
 } from '@tumaet/prompt-shared-state'
 import { getCoursePhase } from '@/network/queries/getCoursePhase'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
-import { InterviewSlot } from '../interfaces/InterviewSlots'
+import { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
+import { interviewAxiosInstance } from '../network/interviewServerConfig'
 
 interface InterviewDataShellProps {
   children: React.ReactNode
@@ -41,11 +42,30 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     queryFn: () => getCoursePhase(phaseId ?? ''),
   })
 
-  const isError = isParticipationsError || isCoursePhaseError
-  const isPending = isCoursePhaseParticipationsPending || isCoursePhasePending
+  // Fetch interview slots with assignments from the interview server
+  const {
+    data: interviewSlotsWithAssignments,
+    isPending: isInterviewSlotsPending,
+    isError: isInterviewSlotsError,
+    refetch: refetchInterviewSlots,
+  } = useQuery<InterviewSlotWithAssignments[]>({
+    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryFn: async () => {
+      const response = await interviewAxiosInstance.get(
+        `interview/api/course_phase/${phaseId}/interview-slots`,
+      )
+      return response.data
+    },
+    enabled: !!phaseId,
+  })
+
+  const isError = isParticipationsError || isCoursePhaseError || isInterviewSlotsError
+  const isPending =
+    isCoursePhaseParticipationsPending || isCoursePhasePending || isInterviewSlotsPending
   const refetch = () => {
     refetchCoursePhaseParticipations()
     refetchCoursePhase()
+    refetchInterviewSlots()
   }
 
   useEffect(() => {
@@ -57,16 +77,29 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
   useEffect(() => {
     if (coursePhase) {
       setCoursePhase(coursePhase)
-
-      const interviewSlots =
-        ((coursePhase?.restrictedData?.interviewSlots as InterviewSlot[]) ?? []).map(
-          (slot, index) => {
-            return { ...slot, index: index + 1 }
-          },
-        ) ?? []
-      setInterviewSlots(interviewSlots)
     }
-  }, [coursePhase, setCoursePhase, setInterviewSlots])
+  }, [coursePhase, setCoursePhase])
+
+  useEffect(() => {
+    if (interviewSlotsWithAssignments) {
+      // Transform the slots with assignments into a flat array
+      // where each assignment creates an entry with courseParticipationID
+      const flattenedSlots: InterviewSlot[] = []
+
+      interviewSlotsWithAssignments.forEach((slot) => {
+        slot.assignments.forEach((assignment) => {
+          flattenedSlots.push({
+            id: slot.id,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            courseParticipationID: assignment.courseParticipationId,
+          })
+        })
+      })
+
+      setInterviewSlots(flattenedSlots)
+    }
+  }, [interviewSlotsWithAssignments, setInterviewSlots])
 
   return (
     <>

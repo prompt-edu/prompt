@@ -23,7 +23,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.25
+          go-version: stable
           cache-dependency-path: "**/*.sum"
       - name: Install dependencies
         run: cd servers/${{ matrix.directory }} && go mod download

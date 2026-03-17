@@ -3,7 +3,7 @@ package teaseDTO
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/ls1intum/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	log "github.com/sirupsen/logrus"
 )
 

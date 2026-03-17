@@ -3,10 +3,10 @@ package evaluations
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/ls1intum/prompt-sdk"
-	db "github.com/ls1intum/prompt2/servers/assessment/db/sqlc"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations/evaluationCompletion"
-	"github.com/ls1intum/prompt2/servers/assessment/evaluations/feedbackItem"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 )
 
 func InitEvaluationModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Eye } from 'lucide-react'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { Student } from '@tumaet/prompt-shared-state'
 import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
 import {
@@ -17,11 +18,13 @@ import {
 interface ApplicationPreviewProps {
   questionsText: ApplicationQuestionText[]
   questionsMultiSelect: ApplicationQuestionMultiSelect[]
+  questionsFileUpload: ApplicationQuestionFileUpload[]
 }
 
 export const ApplicationPreview = ({
   questionsText,
   questionsMultiSelect,
+  questionsFileUpload,
 }: ApplicationPreviewProps) => {
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -47,6 +50,7 @@ export const ApplicationPreview = ({
           <ApplicationFormView
             questionsText={questionsText}
             questionsMultiSelect={questionsMultiSelect}
+            questionsFileUpload={questionsFileUpload}
             student={initialStudent}
             onSubmit={() => {}}
           />

@@ -190,6 +190,7 @@ services:
       - GITHUB_SHA
       - GITHUB_REF
       - SERVER_CORE_IMAGE_TAG
+      - ENABLE_PASSKEYS
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

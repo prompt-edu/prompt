@@ -11,8 +11,8 @@
     "check-performance": "webpack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.8",
-    "@sentry/react": "^10.43.0",
+    "@dagrejs/dagre": "^2.0.4",
+    "@sentry/react": "^10.44.0",
     "@xyflow/react": "^12.10.1",
     "date-fns-tz": "^3.2.0",
     "external-remotes-plugin": "^1.0.0",

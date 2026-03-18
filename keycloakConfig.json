@@ -26,6 +26,7 @@
     "oauth2DeviceCodeLifespan": 600,
     "oauth2DevicePollingInterval": 5,
     "enabled": true,
+    "loginTheme": "prompt",
     "sslRequired": "external",
     "registrationAllowed": false,
     "registrationEmailAsUsername": false,
@@ -795,6 +796,22 @@
               "id.token.claim": "false",
               "access.token.claim": "true",
               "claim.name": "matriculation_number"
+            }
+          },
+          {
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "name": "privacy_consent_version",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "aggregate.attrs": "false",
+              "userinfo.token.claim": "false",
+              "multivalued": "false",
+              "user.attribute": "privacy_consent_version",
+              "id.token.claim": "false",
+              "access.token.claim": "true",
+              "claim.name": "privacy_consent_version"
             }
           }
         ],
@@ -2289,8 +2306,8 @@
         "alias": "terms_and_conditions",
         "name": "Terms and Conditions",
         "providerId": "terms_and_conditions",
-        "enabled": false,
-        "defaultAction": false,
+        "enabled": true,
+        "defaultAction": true,
         "priority": 20,
         "config": {}
       },

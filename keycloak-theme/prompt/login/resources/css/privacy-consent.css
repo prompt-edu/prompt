@@ -1,0 +1,57 @@
+#kc-terms-text {
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: #fff;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+#kc-terms-text h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+#kc-terms-text h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+#kc-terms-text p {
+  margin-top: 0.5rem;
+}
+
+#kc-terms-text section {
+  margin-top: 1.25rem;
+}
+
+#kc-terms-text hr {
+  margin: 1.5rem 0;
+  border-color: #d1d5db;
+}
+
+#kc-terms-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+#kc-terms-text ul,
+#kc-terms-text ol {
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+#kc-terms-text li {
+  margin-top: 0.25rem;
+}
+
+.terms-actions {
+  display: flex;
+  gap: 1rem;
+}

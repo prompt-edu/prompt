@@ -476,6 +476,10 @@ services:
       - start-dev
       - --health-enabled=true
       - --hostname-strict=false
+      - --spi-theme-cache-themes=false
+      - --spi-theme-static-max-age=-1
+    volumes:
+      - ./keycloak-theme/prompt:/opt/keycloak/themes/prompt
     environment:
       KC_DB: postgres
       KC_DB_URL_HOST: ${KEYCLOAK_DB_HOST}

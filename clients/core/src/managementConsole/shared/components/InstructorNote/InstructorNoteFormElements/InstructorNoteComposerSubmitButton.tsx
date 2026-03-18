@@ -21,7 +21,7 @@ export function InstructorNoteComposerSubmitButton({
   isEditMode,
 }: InstructorNoteComposerSubmitButtonProps) {
   const buttonClass = `shrink-0 p-1 rounded transition-colors disabled:cursor-not-allowed ${
-    disabled ? 'text-muted-foreground' : 'text-black'
+    disabled ? 'text-muted-foreground' : 'text-black dark:text-white'
   } hover:bg-muted`
 
   return (

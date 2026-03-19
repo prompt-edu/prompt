@@ -7,7 +7,7 @@ export const StudentCoursePreview = ({
   studentCourseParticipation: StudentCourseParticipation
 }) => {
   return (
-    <div className={`flex items-center text-black text-sm mr-1`}>
+    <div className={`flex items-center text-black dark:text-white text-sm mr-1`}>
       <div style={{ zoom: 0.85 }}>
         <CourseAvatar
           bgColor={studentCourseParticipation.studentReadableData['bg-color']}

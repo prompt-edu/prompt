@@ -45,6 +45,11 @@ export const Breadcrumbs: React.FC = () => {
         breadcrumbs.push({ title: 'Archived Courses', path: '/management/course_archive' })
       } else if (pathSegments[1] === 'privacy') {
         breadcrumbs.push({ title: 'Privacy', path: '/management/privacy' })
+        if (pathSegments[2] === 'data-export') {
+          breadcrumbs.push({ title: 'Data Export', path: '/management/privacy/data-export' })
+        } else if (pathSegments[2] === 'student-data-deletion') {
+          breadcrumbs.push({ title: 'Data Deletion', path: '/management/privacy/student-data-deletion' })
+        }
       } else if (pathSegments[1] === 'students') {
         breadcrumbs.push({ title: 'Students', path: '/management/students' })
         if (pathSegments.length > 2) {

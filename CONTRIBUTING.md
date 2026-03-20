@@ -17,7 +17,7 @@ If you remember nothing else from this guide, please keep these three rules in m
 PROMPT is a modular platform with a React micro-frontend and Go microservices architecture. To get your development environment set up:
 
 1.  **Read the Technical Guide**: Our [AGENTS.md](./AGENTS.md) file is the source of truth for architecture, coding conventions, and common commands.
-2.  **Follow the Setup Guide**: See our [Detailed Setup Documentation](https://ls1intum.github.io/prompt2/contributor/setup) for step-by-step instructions.
+2.  **Follow the Setup Guide**: See our [Detailed Setup Documentation](https://prompt-edu.github.io/prompt/contributor/setup) for step-by-step instructions.
 3.  **Join the Community**: We coordinate planning and support on our [Discord Server](https://discord.gg/eybNUqD8gf).
 
 ## 🤝 How to Contribute
@@ -42,7 +42,7 @@ PROMPT is a modular platform with a React micro-frontend and Go microservices ar
 ## 💬 Community & Support
 
 - **Discord**: [Join our server](https://discord.gg/eybNUqD8gf) for real-time discussion.
-- **Documentation**: Visit our [Documentation Portal](https://ls1intum.github.io/prompt2/).
+- **Documentation**: Visit our [Documentation Portal](https://prompt-edu.github.io/prompt/).
 
 By contributing, you agree to abide by our [Code of Conduct](./CODE_OF_CONDUCT.md).
 

@@ -1,6 +1,6 @@
 # PROMPT 2.0: A Modular and Scalable Management Platform for Project-Based Teaching
 
-[![Discord](https://img.shields.io/discord/1345423854160445580?style=for-the-badge&logo=discord&logoColor=white&label=Join%20our%20Community)](https://discord.gg/eybNUqD8gf)
+[![Discord](https://img.shields.io/badge/Join%20our%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/eybNUqD8gf)
 
 ## What is PROMPT?
 
@@ -243,7 +243,7 @@ We are building a community around PROMPT! Whether you are an instructor using t
 
 - **Discord**: Join our [Discord Server](https://discord.gg/eybNUqD8gf) for real-time discussion and support.
 - **GitHub Issues**: Report bugs or request features on our [Issue Tracker](https://github.com/prompt-edu/prompt/issues).
-- **Documentation**: Visit our [Documentation Portal](https://ls1intum.github.io/prompt2/) for detailed guides.
+- **Documentation**: Visit our [Documentation Portal](https://prompt-edu.github.io/prompt/) for detailed guides.
 
 ## 🤝 Contributing
 

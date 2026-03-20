@@ -9,13 +9,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -161,7 +161,7 @@ func UpdateBatchCoursePhaseParticipation(ctx context.Context, createOrUpdateCour
 	if err != nil {
 		return nil, err
 	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := CoursePhaseParticipationServiceSingleton.queries.WithTx(tx)
 
 	updatedIDs := make([]uuid.UUID, 0, len(createOrUpdateCoursePhaseParticipation))

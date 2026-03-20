@@ -7,15 +7,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
+
+// ErrDuplicateCourseIdentifier is returned when a course with the same name and semester tag already exists.
+var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semester already exists")
 
 type CourseService struct {
 	queries db.Queries
@@ -153,7 +157,7 @@ func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterI
 	if err != nil {
 		return courseDTO.Course{}, err
 	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := CourseServiceSingleton.queries.WithTx(tx)
 
 	createCourseParams, err := course.GetDBModel()
@@ -168,6 +172,10 @@ func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterI
 	}
 	createdCourse, err := qtx.CreateCourse(ctx, createCourseParams)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return courseDTO.Course{}, ErrDuplicateCourseIdentifier
+		}
 		return courseDTO.Course{}, err
 	}
 
@@ -184,12 +192,25 @@ func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterI
 	return courseDTO.GetCourseDTOFromDBModel(createdCourse)
 }
 
+func CheckCourseNameExists(ctx context.Context, name, semesterTag string) (bool, error) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+	semesterTagParam := pgtype.Text{Valid: false}
+	if semesterTag != "" {
+		semesterTagParam = pgtype.Text{String: semesterTag, Valid: true}
+	}
+	return CourseServiceSingleton.queries.CheckCourseNameExists(ctxWithTimeout, db.CheckCourseNameExistsParams{
+		Name:        name,
+		SemesterTag: semesterTagParam,
+	})
+}
+
 func UpdateCoursePhaseOrder(ctx context.Context, courseID uuid.UUID, graphUpdate courseDTO.UpdateCoursePhaseGraph) error {
 	tx, err := CourseServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := CourseServiceSingleton.queries.WithTx(tx)
 
 	// delete all previous connections
@@ -289,7 +310,7 @@ func UpdateParticipationDataGraph(ctx context.Context, courseID uuid.UUID, graph
 	if err != nil {
 		return err
 	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := CourseServiceSingleton.queries.WithTx(tx)
 
 	// delete all previous connections
@@ -324,7 +345,7 @@ func UpdatePhaseDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate [
 	if err != nil {
 		return err
 	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := CourseServiceSingleton.queries.WithTx(tx)
 
 	// delete all previous connections

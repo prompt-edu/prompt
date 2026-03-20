@@ -17,7 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/utils"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -134,7 +134,7 @@ func (s *StorageService) UploadFile(ctx context.Context, req FileUploadRequest) 
 	}
 
 	// Get storage provider from environment
-	storageProvider := utils.GetEnv("STORAGE_PROVIDER", "seaweedfs")
+	storageProvider := sdkUtils.GetEnv("STORAGE_PROVIDER", "seaweedfs")
 
 	// Save file metadata to database
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
@@ -283,7 +283,7 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 		originalFilename = uniqueFilename
 	}
 
-	storageProvider := utils.GetEnv("STORAGE_PROVIDER", "seaweedfs")
+	storageProvider := sdkUtils.GetEnv("STORAGE_PROVIDER", "seaweedfs")
 
 	var coursePhaseIDPgtype pgtype.UUID
 	if req.CoursePhaseID != nil {
@@ -533,7 +533,7 @@ func presignDownloadTTLSeconds() int {
 }
 
 func resolvePresignTTLSeconds(envKey string, defaultTTL int) int {
-	primaryValue := strings.TrimSpace(utils.GetEnv(envKey, ""))
+	primaryValue := strings.TrimSpace(sdkUtils.GetEnv(envKey, ""))
 	if primaryValue != "" {
 		ttl, err := strconv.Atoi(primaryValue)
 		if err == nil && ttl > 0 {
@@ -541,7 +541,7 @@ func resolvePresignTTLSeconds(envKey string, defaultTTL int) int {
 		}
 	}
 
-	legacyValue := strings.TrimSpace(utils.GetEnv("S3_PRESIGN_TTL_SECONDS", ""))
+	legacyValue := strings.TrimSpace(sdkUtils.GetEnv("S3_PRESIGN_TTL_SECONDS", ""))
 	if legacyValue != "" {
 		ttl, err := strconv.Atoi(legacyValue)
 		if err == nil && ttl > 0 {

@@ -85,7 +85,7 @@ jobs:
         run: |
           ./scripts/generate-api-spec.sh ${{ matrix.directory }}
       - name: Upload API spec artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-spec-${{ matrix.directory }}
           path: servers/${{ matrix.directory }}/docs/

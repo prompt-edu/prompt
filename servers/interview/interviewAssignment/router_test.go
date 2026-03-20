@@ -12,9 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	keycloakTokenVerifier "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	"github.com/prompt-edu/prompt/servers/interview/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -22,7 +24,7 @@ import (
 type InterviewAssignmentRouterTestSuite struct {
 	suite.Suite
 	ctx     context.Context
-	testDB  *testutils.TestDB
+	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 }
 
@@ -30,7 +32,7 @@ func (suite *InterviewAssignmentRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/base.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
 	suite.testDB = testDB
 	suite.cleanup = cleanup
@@ -47,18 +49,27 @@ func (suite *InterviewAssignmentRouterTestSuite) TearDownSuite() {
 	}
 }
 
-func (suite *InterviewAssignmentRouterTestSuite) newRouter(identity testutils.MockIdentity) *gin.Engine {
+func (suite *InterviewAssignmentRouterTestSuite) newRouter(courseParticipationID uuid.UUID) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupInterviewAssignmentRouter(api, testutils.NewMockAuthMiddleware(identity))
+	setupInterviewAssignmentRouter(api, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			c.Set("courseParticipationID", courseParticipationID)
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles:                 map[string]bool{},
+				Email:                 "test@example.com",
+				IsStudentOfCourse:     true,
+				CourseParticipationID: courseParticipationID,
+			})
+			c.Next()
+		}
+	})
 	return router
 }
 
 func (suite *InterviewAssignmentRouterTestSuite) TestCreateInterviewAssignmentRoute() {
 	participationID := uuid.New()
-	router := suite.newRouter(testutils.MockIdentity{
-		CourseParticipationID: participationID,
-	})
+	router := suite.newRouter(participationID)
 
 	body := interviewAssignmentDTO.CreateInterviewAssignmentRequest{
 		InterviewSlotID: uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
@@ -81,9 +92,7 @@ func (suite *InterviewAssignmentRouterTestSuite) TestCreateInterviewAssignmentRo
 
 func (suite *InterviewAssignmentRouterTestSuite) TestGetMyInterviewAssignmentRoute() {
 	participationID := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
-	router := suite.newRouter(testutils.MockIdentity{
-		CourseParticipationID: participationID,
-	})
+	router := suite.newRouter(participationID)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/11111111-1111-1111-1111-111111111111/interview-assignments/my-assignment", nil)
 	resp := httptest.NewRecorder()
@@ -115,9 +124,7 @@ func (suite *InterviewAssignmentRouterTestSuite) TestDeleteInterviewAssignmentRo
 	assignment, err := CreateInterviewAssignment(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), participationID, createBody)
 	require.NoError(suite.T(), err)
 
-	router := suite.newRouter(testutils.MockIdentity{
-		CourseParticipationID: participationID,
-	})
+	router := suite.newRouter(participationID)
 	url := "/api/course_phase/11111111-1111-1111-1111-111111111111/interview-assignments/" + assignment.ID.String()
 	req, _ := http.NewRequest("DELETE", url, nil)
 	resp := httptest.NewRecorder()
@@ -134,9 +141,7 @@ func (suite *InterviewAssignmentRouterTestSuite) TestDeleteInterviewAssignmentUn
 	existingAssignmentID := uuid.MustParse("11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	wrongParticipationID := uuid.New()
 
-	router := suite.newRouter(testutils.MockIdentity{
-		CourseParticipationID: wrongParticipationID,
-	})
+	router := suite.newRouter(wrongParticipationID)
 	url := "/api/course_phase/11111111-1111-1111-1111-111111111111/interview-assignments/" + existingAssignmentID.String()
 	req, _ := http.NewRequest("DELETE", url, nil)
 	resp := httptest.NewRecorder()

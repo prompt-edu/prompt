@@ -8,9 +8,11 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth/coursePhaseAuthDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -27,7 +29,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container with test dump.
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/full_db.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/full_db.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -48,10 +50,10 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	setupCoursePhaseAuthRouter(api,
 		// Auth middleware: simulate a student with known email, matriculation number, and university login.
 		func() gin.HandlerFunc {
-			return testutils.MockAuthMiddlewareWithEmail([]string{"ios2425-TestCourse-Student"}, "existingstudent@example.com", "09999999", "as45fgh")
+			return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"ios2425-TestCourse-Student"}, "existingstudent@example.com", "09999999", "as45fgh")
 		},
 		// Permission middleware: use test helper.
-		testutils.MockPermissionMiddleware,
+		sdkTestUtils.MockPermissionMiddleware,
 	)
 }
 

@@ -7,9 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	"github.com/prompt-edu/prompt/servers/interview/testutils"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -17,7 +18,7 @@ import (
 type InterviewAssignmentServiceTestSuite struct {
 	suite.Suite
 	ctx               context.Context
-	testDB            *testutils.TestDB
+	testDB            *sdkTestUtils.TestDB[*db.Queries]
 	cleanup           func()
 	activePhaseID     uuid.UUID
 	participationUUID uuid.UUID
@@ -25,7 +26,7 @@ type InterviewAssignmentServiceTestSuite struct {
 
 func (suite *InterviewAssignmentServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/base.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
 	suite.testDB = testDB
 	suite.cleanup = cleanup

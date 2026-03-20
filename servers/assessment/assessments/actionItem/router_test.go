@@ -13,10 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
-	"github.com/prompt-edu/prompt/servers/assessment/testutils"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type ActionItemRouterTestSuite struct {
@@ -29,7 +31,7 @@ type ActionItemRouterTestSuite struct {
 
 func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -52,7 +54,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
 	setupActionItemRouter(api, testMiddleware)
@@ -217,7 +219,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsWhenVisible() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupActionItemRouter(api, testMiddleware)
@@ -242,7 +244,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsWhenNotVisible() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupActionItemRouter(api, testMiddleware)
@@ -267,7 +269,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsBeforeDeadline() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupActionItemRouter(api, testMiddleware)

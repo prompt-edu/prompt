@@ -7,13 +7,13 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]coursePhaseConfigDTO.AssessmentParticipationWithStudent, error) {
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	participations, err := promptSDK.FetchAndMergeParticipationsWithResolutions(coreURL, authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch course phase participations with students: ", err)
@@ -24,7 +24,7 @@ func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, cou
 }
 
 func GetParticipationForStudent(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) (coursePhaseConfigDTO.AssessmentParticipationWithStudent, error) {
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	participation, err := promptSDK.FetchAndMergeCourseParticipationWithResolution(coreURL, authHeader, coursePhaseID, courseParticipationID)
 	if err != nil {
 		log.Error("could not fetch course phase participation with student: ", err)
@@ -151,7 +151,7 @@ func parseTeams(teamsRaw interface{}) ([]promptTypes.Team, error) {
 }
 
 func GetTeamsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]promptTypes.Team, error) {
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	cpWithResoultion, err := promptSDK.FetchAndMergeCoursePhaseWithResolution(coreURL, authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch course phase with resolution: ", err)

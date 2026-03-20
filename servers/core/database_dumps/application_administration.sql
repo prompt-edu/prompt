@@ -64,7 +64,9 @@ CREATE TABLE course (
     semester_tag text,
     course_type course_type NOT NULL,
     ects integer,
-    meta_data jsonb
+    meta_data jsonb,
+    archived boolean NOT NULL DEFAULT FALSE,
+    archived_on timestamptz
 );
 
 CREATE TABLE course_participation (

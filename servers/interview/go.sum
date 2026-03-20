@@ -58,8 +58,8 @@ github.com/gabriel-vasile/mimetype v1.4.12 h1:e9hWvmLYvtp846tLHam2o++qitpguFiYCK
 github.com/gabriel-vasile/mimetype v1.4.12/go.mod h1:d+9Oxyo1wTzWdyVUPMmXFvp4F9tea18J8ufA774AB3s=
 github.com/getsentry/sentry-go v0.43.0 h1:XbXLpFicpo8HmBDaInk7dum18G9KSLcjZiyUKS+hLW4=
 github.com/getsentry/sentry-go v0.43.0/go.mod h1:XDotiNZbgf5U8bPDUAfvcFmOnMQQceESxyKaObSssW0=
-github.com/getsentry/sentry-go/gin v0.42.0 h1:Mu1fqTbHcmkjQUPPb2O3nmVFpslo70Y1uLlVzEVm1VI=
-github.com/getsentry/sentry-go/gin v0.42.0/go.mod h1:+iphsbNh87sFyw5fFys96YXsaQ33ruhIv5XBogwZvEM=
+github.com/getsentry/sentry-go/gin v0.43.0 h1:39PH91LqoFxhvyaLGhgeahmGnVG5xn5jOWKQrBz/eRE=
+github.com/getsentry/sentry-go/gin v0.43.0/go.mod h1:Uyn8n0wYW9JDPxbRY1i5mYVuN/NPLw2CB1/1gmIVXX4=
 github.com/getsentry/sentry-go/logrus v0.43.0 h1:8Mj3oQFVChCUygo4wZYROZpH8EZH0lxLkOFZwB1qO3c=
 github.com/getsentry/sentry-go/logrus v0.43.0/go.mod h1:dXGXUUXDT9gLkh7N7vPUkUndsZ/tqFGIV4fAKndrBXs=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
@@ -180,8 +180,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c h1:ncq/mPwQF4JjgDlrVEn3C11VoGHZN7m8qihwgMEtzYw=
 github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
-github.com/prompt-edu/prompt-sdk v1.1.0 h1:Q3/1NVpgRN8Nk7wcPYOnaHIch0BWQRuCKpzJwpmt3VE=
-github.com/prompt-edu/prompt-sdk v1.1.0/go.mod h1:5Q+aUkahHYsNJQ2bKR8zlyT+zGJZha1tXJTMcEc+EGI=
+github.com/prompt-edu/prompt-sdk v1.1.1 h1:TcPaeQKLhZ1sOcY7Z9AsfXL6KP5FZEWW1TKEcUSAjo8=
+github.com/prompt-edu/prompt-sdk v1.1.1/go.mod h1:5Q+aUkahHYsNJQ2bKR8zlyT+zGJZha1tXJTMcEc+EGI=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/quic-go/quic-go v0.59.0 h1:OLJkp1Mlm/aS7dpKgTc6cnpynnD2Xg7C1pwL6vy/SAw=

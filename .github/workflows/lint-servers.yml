@@ -25,7 +25,7 @@ jobs:
           go-version: stable
           cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
           working-directory: servers/${{ matrix.module }}

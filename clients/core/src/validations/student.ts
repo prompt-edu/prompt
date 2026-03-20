@@ -39,8 +39,8 @@ export const studentUniversitySchema = z.object({
   hasUniversityAccount: z.literal(true), // Explicit literal for university case
   matriculationNumber: z
     .string()
-    .regex(
-      matriculationNumberRegex,
+    .refine(
+      (val) => val === '' || matriculationNumberRegex.test(val),
       `Matriculation number must follow the pattern ${translations.university.matriculationExample}`,
     ),
   universityLogin: z

@@ -60,7 +60,13 @@ export const CopyCourseDialog = ({
         const name = templateFormData.name
         const semesterTag = templateFormData.semesterTag || 'template'
         const dateRange = copyFormData?.dateRange || { from: new Date(), to: new Date() }
-        handleProceedWithCopy({ name, semesterTag, dateRange })
+        handleProceedWithCopy({
+          name,
+          semesterTag,
+          dateRange,
+          shortDescription: templateFormData.shortDescription,
+          longDescription: templateFormData.longDescription,
+        })
       }
     } else {
       if (copyFormData) {

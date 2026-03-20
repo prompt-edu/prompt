@@ -13,8 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/testutils"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 // AssessmentRouterTestSuite tests HTTP routes for assessments
@@ -28,7 +30,7 @@ type AssessmentRouterTestSuite struct {
 
 func (suite *AssessmentRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/assessments.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test DB: %v", err)
 	}
@@ -44,7 +46,7 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "id@example.com", "id")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "id@example.com", "id")
 	}
 	// attach assessment routes
 	setupAssessmentRouter(api, testMiddleware)

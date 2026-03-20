@@ -195,10 +195,6 @@ func getApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 	matriculationNumber := c.GetString("matriculationNumber")
-	if matriculationNumber == "" {
-		handleError(c, http.StatusUnauthorized, errors.New("no matriculation number found"))
-		return
-	}
 
 	universityLogin := c.GetString("universityLogin")
 	if universityLogin == "" {

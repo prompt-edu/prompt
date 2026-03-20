@@ -23,9 +23,6 @@ on:
       matching_image_tag:
         description: "The tag of the matching component image that was built"
         value: ${{ jobs.matching.outputs.image_tag }}
-      intro_course_developer_image_tag:
-        description: "The tag of the intro course developer component image that was built"
-        value: ${{ jobs.intro-course-developer.outputs.image_tag }}
       assessment_image_tag:
         description: "The tag of the assessment component image that was built"
         value: ${{ jobs.assessment.outputs.image_tag }}
@@ -111,19 +108,6 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-clients-matching-component
       docker-file: clients/matching_component/Dockerfile # Defaults to Dockerfile
       docker-context: ./clients/matching_component
-      tags: ${{ inputs.release_tag }}
-      build-args: |
-        "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"
-        "CORE_HOST=${{ vars.CORE_HOST }}"
-    secrets: inherit
-
-  intro-course-developer:
-    needs: clients-base
-    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
-    with:
-      image-name: ghcr.io/prompt-edu/prompt/prompt-clients-intro-course-developer-component
-      docker-file: clients/intro_course_developer_component/Dockerfile # Defaults to Dockerfile
-      docker-context: ./clients/intro_course_developer_component
       tags: ${{ inputs.release_tag }}
       build-args: |
         "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"

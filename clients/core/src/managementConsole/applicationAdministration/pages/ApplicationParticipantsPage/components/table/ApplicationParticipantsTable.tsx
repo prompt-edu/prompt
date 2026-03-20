@@ -11,6 +11,7 @@ import { PassStatus } from '@tumaet/prompt-shared-state'
 import { useUpdateCoursePhaseParticipationBatch } from '@/hooks/useUpdateCoursePhaseParticipationBatch'
 import { ColumnDef } from '@tanstack/react-table'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): ReactNode => {
   const { courseId } = useParams()
@@ -62,6 +63,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [navigate, courseId, phaseId, getVisibleApplicationIds],
   )
 
+  const queryClient = useQueryClient()
   const { mutate: updateBatch } = useUpdateCoursePhaseParticipationBatch()
 
   const actions = useMemo(() => {
@@ -74,13 +76,20 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
           restrictedData: r.restrictedData ?? {},
           studentReadableData: {},
         })),
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: ['application_participations', 'students', phaseId],
+            })
+          },
+        },
       )
     }
     return getApplicationActions(deleteApplications, viewApplication, {
       setPassed: (r) => setStatus(PassStatus.PASSED, r),
       setFailed: (r) => setStatus(PassStatus.FAILED, r),
     })
-  }, [deleteApplications, viewApplication, phaseId, updateBatch])
+  }, [deleteApplications, viewApplication, phaseId, updateBatch, queryClient])
 
   return (
     <div ref={tableContainerRef}>
@@ -90,6 +99,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         filters={filters}
         actions={actions}
         onRowClick={viewApplication}
+        initialState={{ sorting: [{ id: 'firstName', desc: false }] }}
       />
     </div>
   )

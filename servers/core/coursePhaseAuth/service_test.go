@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -21,7 +23,7 @@ func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container with test dump
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/full_db.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/full_db.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}

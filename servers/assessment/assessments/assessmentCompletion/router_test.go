@@ -15,9 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
-	"github.com/prompt-edu/prompt/servers/assessment/testutils"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
 type AssessmentCompletionRouterTestSuite struct {
@@ -30,7 +32,7 @@ type AssessmentCompletionRouterTestSuite struct {
 
 func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessmentCompletions.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessmentCompletions.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -47,7 +49,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
 	setupAssessmentCompletionRouter(api, testMiddleware)
@@ -564,7 +566,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenVi
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupAssessmentCompletionRouter(api, testMiddleware)
@@ -589,7 +591,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenNo
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupAssessmentCompletionRouter(api, testMiddleware)
@@ -614,7 +616,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionBefore
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", partID)
-			testutils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
+			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
 	setupAssessmentCompletionRouter(api, testMiddleware)

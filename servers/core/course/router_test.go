@@ -12,12 +12,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -34,7 +36,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/copy_course_test.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/copy_course_test.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -60,8 +62,8 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	setupCourseRouter(api, func() gin.HandlerFunc {
-		return testutils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
-	}, testutils.MockPermissionMiddleware, testutils.MockPermissionMiddleware)
+		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
+	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
 }
 

@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
@@ -19,7 +21,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -41,7 +42,7 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -56,9 +57,9 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func() gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupApplicationRouter(api, testMiddleware, testMiddleware, testutils.MockPermissionMiddleware)
+	setupApplicationRouter(api, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)

@@ -42,6 +42,11 @@ WHERE matriculation_number = $1
   AND university_login = $2
 LIMIT 1;
 
+-- name: GetStudentByUniversityLogin :one
+SELECT * FROM student
+WHERE university_login = $1
+LIMIT 1;
+
 -- name: SearchStudents :many
 SELECT *
 FROM student
@@ -84,7 +89,21 @@ SELECT
       )
     ) FILTER (WHERE c.id IS NOT NULL),
     '[]'::jsonb
-  )::jsonb AS courses
+  )::jsonb AS courses,
+  COALESCE(
+    (
+      SELECT jsonb_agg(jsonb_build_object('id', nt.id, 'name', nt.name, 'color', nt.color) ORDER BY nt.name)
+      FROM (
+        SELECT DISTINCT nt.id, nt.name, nt.color
+        FROM note n
+        JOIN note_tag_relation ntr ON ntr.note_id = n.id
+        JOIN note_tag nt ON nt.id = ntr.tag_id
+        WHERE n.for_student = s.id
+          AND n.date_deleted IS NULL
+      ) nt
+    ),
+    '[]'::jsonb
+  )::jsonb AS note_tags
 FROM student s
 LEFT JOIN course_participation cp
   ON cp.student_id = s.id

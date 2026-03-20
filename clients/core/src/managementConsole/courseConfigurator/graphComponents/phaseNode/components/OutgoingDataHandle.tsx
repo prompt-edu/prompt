@@ -1,6 +1,7 @@
 import { ProvidedOutputDTO } from '@core/managementConsole/courseConfigurator/interfaces/providedOutputDto'
 import { Handle, Position } from '@xyflow/react'
 import { camelToTitle } from './utils/camelToTitle'
+import { EDGE_COLOR_GREEN, EDGE_COLOR_PURPLE } from '../../edges/edgeColors'
 
 interface OutgoingDataHandleProps {
   phaseID: string
@@ -24,8 +25,12 @@ export const OutgoingDataHandle = ({ phaseID, dto, type }: OutgoingDataHandlePro
         type='source'
         position={Position.Right}
         id={handleName}
-        style={{ right: '-28px', top: '50%' }}
-        className={`!w-3 !h-3 ${isParticipationEdge ? '!bg-green-500' : '!bg-purple-500'} rounded-full`}
+        style={{
+          right: '-28px',
+          top: '50%',
+          background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
+        }}
+        className='!w-3 !h-3 rounded-full'
       />
     </div>
   )

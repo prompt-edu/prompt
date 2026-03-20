@@ -10,7 +10,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
-	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -105,58 +104,6 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool
 	mailing.InitMailingModule(router, queries, conn, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL)
 }
 
-func initSentry() {
-	sentryDsn := sdkUtils.GetEnv("SENTRY_DSN_CORE", "")
-	if sentryDsn == "" {
-		log.Info("Sentry DSN not configured, skipping initialization")
-		return
-	}
-
-	transport := sentry.NewHTTPTransport()
-	transport.Timeout = 2 * time.Second
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              sentryDsn,
-		Environment:      sdkUtils.GetEnv("ENVIRONMENT", "development"),
-		Debug:            false,
-		Transport:        transport,
-		EnableLogs:       true,
-		AttachStacktrace: true,
-		SendDefaultPII:   true,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		log.Errorf("Sentry initialization failed: %v", err)
-		return
-	}
-
-	client := sentry.CurrentHub().Client()
-	if client == nil {
-		log.Error("Sentry client is nil")
-		return
-	}
-
-	logHook := sentrylogrus.NewLogHookFromClient(
-		[]log.Level{log.InfoLevel, log.WarnLevel},
-		client,
-	)
-
-	eventHook := sentrylogrus.NewEventHookFromClient(
-		[]log.Level{log.ErrorLevel, log.FatalLevel, log.PanicLevel},
-		client,
-	)
-
-	log.AddHook(logHook)
-	log.AddHook(eventHook)
-
-	log.RegisterExitHandler(func() {
-		eventHook.Flush(5 * time.Second)
-		logHook.Flush(5 * time.Second)
-	})
-
-	log.Info("Sentry initialized successfully")
-}
-
 // @title           PROMPT Core API
 // @version         1.0
 // @description     This is a core sever of PROMPT.
@@ -173,7 +120,7 @@ func main() {
 	}
 
 	// initialize Sentry
-	initSentry()
+	_ = sdkUtils.InitSentry(sdkUtils.GetEnv("SENTRY_DSN_CORE", ""))
 	defer sentry.Flush(2 * time.Second) // Flush buffered events before exiting (2 seconds timeout)
 
 	// establish database connection

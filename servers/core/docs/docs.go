@@ -784,7 +784,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/storage.FileResponse"
+                            "$ref": "#/definitions/files.FileResponse"
                         }
                     },
                     "400": {
@@ -848,7 +848,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/storage.PresignUploadResponse"
+                            "$ref": "#/definitions/files.PresignUploadResponse"
                         }
                     },
                     "400": {
@@ -1083,7 +1083,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/storage.FileResponse"
+                            "$ref": "#/definitions/files.FileResponse"
                         }
                     },
                     "400": {
@@ -1136,7 +1136,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/storage.PresignUploadResponse"
+                            "$ref": "#/definitions/files.PresignUploadResponse"
                         }
                     },
                     "400": {
@@ -3417,7 +3417,30 @@ const docTemplate = `{
                 }
             }
         },
-        "/privacy/student-data-export": {
+        "/privacy/data-export": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get the current user's latest export",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.PrivacyExport"
+                        }
+                    },
+                    "204": {
+                        "description": "No recent export"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Get an export of all student data from core and all microservices",
                 "produces": [
@@ -3430,6 +3453,83 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/data-export/{uuid}": {
+            "get": {
+                "description": "Get the current status and all ids of the export record and all export docs. needed so client knows what docs exist to be able to download them",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get all Ids and status of export and export docs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.PrivacyExport"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/data-export/{uuid}/docs/{docID}/download-url": {
+            "get": {
+                "description": "Returns a short-lived presigned URL to download a specific export ZIP",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get download URL for an export document",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Export UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Export Document UUID",
+                        "name": "docID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
@@ -5117,6 +5217,19 @@ const docTemplate = `{
                 "CourseTypePracticalcourse"
             ]
         },
+        "db.ExportStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "complete",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "ExportStatusPending",
+                "ExportStatusComplete",
+                "ExportStatusFailed"
+            ]
+        },
         "db.Gender": {
             "type": "string",
             "enum": [
@@ -5155,6 +5268,67 @@ const docTemplate = `{
                 "StudyDegreeBachelor",
                 "StudyDegreeMaster"
             ]
+        },
+        "files.FileResponse": {
+            "type": "object",
+            "properties": {
+                "contentType": {
+                    "type": "string"
+                },
+                "coursePhaseId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "downloadUrl": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "originalFilename": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "storageKey": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uploadedByEmail": {
+                    "type": "string"
+                },
+                "uploadedByUserId": {
+                    "type": "string"
+                }
+            }
+        },
+        "files.PresignUploadResponse": {
+            "type": "object",
+            "properties": {
+                "storageKey": {
+                    "type": "string"
+                },
+                "uploadUrl": {
+                    "type": "string"
+                }
+            }
         },
         "instructorNoteDTO.CreateInstructorNote": {
             "type": "object",
@@ -5380,6 +5554,55 @@ const docTemplate = `{
                 }
             }
         },
+        "privacyDTO.PrivacyExport": {
+            "type": "object",
+            "properties": {
+                "available_until": {
+                    "type": "string"
+                },
+                "date_created": {
+                    "type": "string"
+                },
+                "documents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/privacyDTO.PrivacyExportDocument"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                },
+                "studentID": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "privacyDTO.PrivacyExportDocument": {
+            "type": "object",
+            "properties": {
+                "date_created": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "object_key": {
+                    "type": "string"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
         "resolutionDTO.Resolution": {
             "type": "object",
             "properties": {
@@ -5393,67 +5616,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "endpointPath": {
-                    "type": "string"
-                }
-            }
-        },
-        "storage.FileResponse": {
-            "type": "object",
-            "properties": {
-                "contentType": {
-                    "type": "string"
-                },
-                "coursePhaseId": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "downloadUrl": {
-                    "type": "string"
-                },
-                "filename": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "originalFilename": {
-                    "type": "string"
-                },
-                "sizeBytes": {
-                    "type": "integer"
-                },
-                "storageKey": {
-                    "type": "string"
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "updatedAt": {
-                    "type": "string"
-                },
-                "uploadedByEmail": {
-                    "type": "string"
-                },
-                "uploadedByUserId": {
-                    "type": "string"
-                }
-            }
-        },
-        "storage.PresignUploadResponse": {
-            "type": "object",
-            "properties": {
-                "storageKey": {
-                    "type": "string"
-                },
-                "uploadUrl": {
                     "type": "string"
                 }
             }

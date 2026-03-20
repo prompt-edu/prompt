@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt-sdk/utils/export"
+	"github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
@@ -23,7 +23,7 @@ func AggregateSubjectDataFromCore(c *gin.Context, exportRequestID uuid.UUID, sub
 
   defer func() { UpdateExportDocStatus(err, c, docID) }()
 
-  ex, err := export.NewExport()
+  ex, err := utils.NewExport()
   if err != nil { return; }
 
   defer ex.Close()
@@ -38,7 +38,7 @@ func AggregateSubjectDataFromCore(c *gin.Context, exportRequestID uuid.UUID, sub
   return
 }
 
-func getSubjectDataForUser(c *gin.Context, ex *export.Export, userUUID uuid.UUID) {
+func getSubjectDataForUser(c *gin.Context, ex *utils.Export, userUUID uuid.UUID) {
 
   ex.AddJSON("Instructor Notes as Author", "user/instructor_notes.json", func () (any, error) { 
     return instructorNote.GetStudentNotesForAuthor(c, userUUID)
@@ -46,7 +46,7 @@ func getSubjectDataForUser(c *gin.Context, ex *export.Export, userUUID uuid.UUID
 
 }
 
-func getSubjectDataForStudent(c *gin.Context, ex *export.Export, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID) {
+func getSubjectDataForStudent(c *gin.Context, ex *utils.Export, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID) {
 
   ex.AddJSON("Student record", "student/student_record.json", func () (any, error) {
     return student.GetStudentByID(c, studentUUID)
@@ -68,7 +68,7 @@ func getSubjectDataForStudent(c *gin.Context, ex *export.Export, studentUUID uui
 
 }
 
-func addApplicationFiles(c *gin.Context, ex *export.Export, courseParticipationUUIDs []uuid.UUID) {
+func addApplicationFiles(c *gin.Context, ex *utils.Export, courseParticipationUUIDs []uuid.UUID) {
   for _, answer := range applicationAdministration.GetApplicationFileUploadAnswers(c, courseParticipationUUIDs) {
     fileID := answer.FileID
     questionTitle := answer.QuestionTitle

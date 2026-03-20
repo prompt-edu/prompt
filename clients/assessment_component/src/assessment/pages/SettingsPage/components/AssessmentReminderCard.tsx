@@ -210,6 +210,7 @@ export const AssessmentReminderCard = () => {
       name: coursePhase.name,
       studentReadableData: coursePhase.studentReadableData ?? {},
       restrictedData: {
+        ...coursePhase.restrictedData,
         mailingSettings: {
           ...mailingSettings,
           assessmentReminder: updatedReminder,

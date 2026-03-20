@@ -1,74 +1,39 @@
 package service
 
 import (
+	"sync"
+	"time"
+
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
-	"github.com/prompt-edu/prompt/servers/core/instructorNote"
-	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 )
 
-func GetSubjectData(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) []any {
+func HandleStudentDataExportRequest(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
 
-  res := []any{}
-
-  getSubjectDataForUser(c, subjectIdentifiers.UserID, &res)
-
-  if (subjectIdentifiers.StudentID != uuid.Nil) {
-    getSubjectDataForStudent(c, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs, &res)
+  exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
+  if err != nil {
+    return privacyDTO.PrivacyExport{}, err
   }
 
-  return res
+  cCopy := c.Copy()
+  go func() {
+    var goroutineErr error
+    defer func() { UpdateExportStatus(goroutineErr, cCopy, exportRecord.ID) }()
+
+    var wg sync.WaitGroup
+    wg.Add(4)
+
+    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Core", 0*time.Second) }()
+    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Assessment", 18*time.Second) }()
+    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Team Allocation", 5*time.Second) }()
+    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Interview", 9*time.Second) }()
+
+    wg.Wait()
+
+    // TODO: aggregate from each microservice
+  }()
+
+  return exportRecord, nil
 }
-
-func getSubjectDataForUser(c *gin.Context, userUUID uuid.UUID, res *[]any ) {
-
-  addToResult("Instructor Notes as Author", func () (any, error) { 
-    return instructorNote.GetStudentNotesForAuthor(c, userUUID)
-  }, res)
-
-}
-
-func getSubjectDataForStudent(c *gin.Context, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID, res *[]any) {
-
-  addToResult("Student record", func () (any, error) { 
-    return student.GetStudentByID(c, studentUUID)
-  }, res)
-
-  addToResult("Enrollments", func () (any, error) { 
-    return student.GetStudentEnrollmentsByID(c, studentUUID)
-  }, res)
-
-  addToResult("Instructor Notes as Receiver", func () (any, error) {
-    return instructorNote.GetStudentNotesByIDWithoutAuthor(c, studentUUID)
-  }, res)
-
-  addToResult("Application Data", func () (any, error) {
-    return applicationAdministration.GetAllApplicationAnswers(c, courseParticipationUUIDs)
-  }, res)
-
-}
-
-type DataSourceResult struct {
-	Name  string
-	Value any
-	Error string
-}
-
-func addToResult(name string, serviceMethod func() (any, error), res *[]any) {
-  data, err := serviceMethod()
-  if err != nil { 
-    *res = append(*res, DataSourceResult{
-      Name: name,
-      Error: err.Error(),
-    })
-    return
-  }
-  *res = append(*res, DataSourceResult{
-    Name: name,
-    Value: data,
-  })
-}
-
 

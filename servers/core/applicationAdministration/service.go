@@ -16,7 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnsw
 		}
 
 		if includeDownloadURL {
-			file, err := storage.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
+			file, err := files.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
 			if err != nil {
 				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
 			} else {
@@ -117,7 +117,7 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 	if len(fileIDs) == 0 {
 		return
 	}
-	if storage.StorageServiceSingleton == nil {
+	if files.StorageServiceSingleton == nil {
 		return
 	}
 
@@ -131,7 +131,7 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 		}
 		seenFileIDs[fileID] = struct{}{}
 
-		if err := storage.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}
 	}
@@ -775,6 +775,18 @@ func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid
 		result = append(result, *entry)
 	}
 	return result, nil
+}
+
+func GetApplicationFileUploadAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	return answers
 }
 
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {

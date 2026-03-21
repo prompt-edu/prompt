@@ -21,6 +21,7 @@ import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevel
 
 import { CoursePhaseConfigSelection } from './components/CoursePhaseConfigSelection/CoursePhaseConfigSelection'
 import { CategoryList } from './components/CategoryList/CategoryList'
+import { AssessmentReminderCard } from './components/AssessmentReminderCard'
 
 export const SettingsPage = () => {
   const [showReleaseDialog, setShowReleaseDialog] = useState(false)
@@ -99,6 +100,8 @@ export const SettingsPage = () => {
         hasPeerEvalData={peerEvalSchemaData?.hasAssessmentData ?? false}
         hasTutorEvalData={tutorEvalSchemaData?.hasAssessmentData ?? false}
       />
+
+      {(isPromptAdmin || isLecturer) && <AssessmentReminderCard />}
 
       {(isPromptAdmin || isLecturer) && !config?.resultsReleased && (
         <div className='w-full'>

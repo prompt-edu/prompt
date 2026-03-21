@@ -1,4 +1,4 @@
-package storage
+package files
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/storage"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -25,7 +26,7 @@ import (
 type StorageService struct {
 	queries        db.Queries
 	conn           *pgxpool.Pool
-	storageAdapter StorageAdapter
+	storageAdapter storage.StorageAdapter
 	maxFileSize    int64
 	allowedTypes   []string
 }
@@ -83,7 +84,7 @@ type FileResponse struct {
 }
 
 // NewStorageService creates a new storage service instance
-func NewStorageService(queries db.Queries, conn *pgxpool.Pool, adapter StorageAdapter, maxFileSizeMB int64, allowedTypes []string) *StorageService {
+func NewStorageService(queries db.Queries, conn *pgxpool.Pool, adapter storage.StorageAdapter, maxFileSizeMB int64, allowedTypes []string) *StorageService {
 	return &StorageService{
 		queries:        queries,
 		conn:           conn,
@@ -483,7 +484,6 @@ func (s *StorageService) isAllowedType(contentType string) bool {
 
 // convertToFileResponse converts a database file record to an API response
 func (s *StorageService) convertToFileResponse(ctx context.Context, file db.File) *FileResponse {
-	// Generate download URL
 	downloadURL, err := s.storageAdapter.GetURL(ctx, file.StorageKey, presignDownloadTTLSeconds())
 	if err != nil {
 		log.WithError(err).WithField("storageKey", file.StorageKey).Warn("Failed to generate download URL")

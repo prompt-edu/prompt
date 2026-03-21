@@ -20,6 +20,14 @@ func GetUserNameFromContext(c *gin.Context) (string) {
 	return firstName + " " + lastName
 }
 
+func GetUniversityLoginFromContext(c*gin.Context) (string) {
+  return c.GetString(keycloakTokenVerifier.CtxUniversityLogin)
+}
+
+func GetMatriculationNumberFromContext(c*gin.Context) (string) {
+  return c.GetString(keycloakTokenVerifier.CtxMatriculationNumber)
+}
+
 func parseUUIDString(value string) (uuid.UUID, error) {
 	return uuid.Parse(value)
 }

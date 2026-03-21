@@ -421,6 +421,166 @@ func (q *Queries) DeleteApplications(ctx context.Context, arg DeleteApplications
 	return err
 }
 
+const getAllApplicationAnswersFileUploadByCourseParticipationIDs = `-- name: GetAllApplicationAnswersFileUploadByCourseParticipationIDs :many
+SELECT aafu.id, aafu.application_question_id, aafu.course_participation_id, aafu.file_id, aqfu.title AS question_title, aqfu.description AS question_description
+FROM application_answer_file_upload aafu
+JOIN application_question_file_upload aqfu ON aafu.application_question_id = aqfu.id
+WHERE aafu.course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID   `json:"id"`
+	ApplicationQuestionID uuid.UUID   `json:"application_question_id"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FileID                uuid.UUID   `json:"file_id"`
+	QuestionTitle         string      `json:"question_title"`
+	QuestionDescription   pgtype.Text `json:"question_description"`
+}
+
+func (q *Queries) GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllApplicationAnswersFileUploadByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationQuestionID,
+			&i.CourseParticipationID,
+			&i.FileID,
+			&i.QuestionTitle,
+			&i.QuestionDescription,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllApplicationAnswersMultiSelectByCourseParticipationIDs = `-- name: GetAllApplicationAnswersMultiSelectByCourseParticipationIDs :many
+SELECT aams.id, aams.application_question_id, aams.answer, aams.course_participation_id, aqms.title AS question_title, aqms.description AS question_description
+FROM application_answer_multi_select aams
+JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
+WHERE aams.course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID   `json:"id"`
+	ApplicationQuestionID uuid.UUID   `json:"application_question_id"`
+	Answer                []string    `json:"answer"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	QuestionTitle         pgtype.Text `json:"question_title"`
+	QuestionDescription   pgtype.Text `json:"question_description"`
+}
+
+func (q *Queries) GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllApplicationAnswersMultiSelectByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationQuestionID,
+			&i.Answer,
+			&i.CourseParticipationID,
+			&i.QuestionTitle,
+			&i.QuestionDescription,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllApplicationAnswersTextByCourseParticipationIDs = `-- name: GetAllApplicationAnswersTextByCourseParticipationIDs :many
+SELECT aat.id, aat.application_question_id, aat.answer, aat.course_participation_id, aqt.title AS question_title, aqt.description AS question_description
+FROM application_answer_text aat
+JOIN application_question_text aqt ON aat.application_question_id = aqt.id
+WHERE aat.course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllApplicationAnswersTextByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID   `json:"id"`
+	ApplicationQuestionID uuid.UUID   `json:"application_question_id"`
+	Answer                pgtype.Text `json:"answer"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	QuestionTitle         pgtype.Text `json:"question_title"`
+	QuestionDescription   pgtype.Text `json:"question_description"`
+}
+
+func (q *Queries) GetAllApplicationAnswersTextByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllApplicationAnswersTextByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllApplicationAnswersTextByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllApplicationAnswersTextByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllApplicationAnswersTextByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationQuestionID,
+			&i.Answer,
+			&i.CourseParticipationID,
+			&i.QuestionTitle,
+			&i.QuestionDescription,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllApplicationAssessmentsByCourseParticipationIDs = `-- name: GetAllApplicationAssessmentsByCourseParticipationIDs :many
+SELECT aa.id, aa.score, aa.course_phase_id, aa.course_participation_id
+FROM application_assessment aa
+WHERE aa.course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllApplicationAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]ApplicationAssessment, error) {
+	rows, err := q.db.Query(ctx, getAllApplicationAssessmentsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApplicationAssessment
+	for rows.Next() {
+		var i ApplicationAssessment
+		if err := rows.Scan(
+			&i.ID,
+			&i.Score,
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllApplicationParticipations = `-- name: GetAllApplicationParticipations :many
 SELECT
     cpp.course_phase_id,

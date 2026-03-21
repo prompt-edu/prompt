@@ -1,0 +1,70 @@
+import {
+  ExportStatus,
+  PrivacyExportDocument as PrivacyExportDocumentType,
+  getExportDocDownloadURL,
+} from '@core/network/queries/privacyStudentDataExport'
+import { Button, Card, CardContent } from '@tumaet/prompt-ui-components'
+import { Download, FolderArchive, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
+
+interface PrivacyExportDocumentProps {
+  exportId: string
+  privacy_export_document: PrivacyExportDocumentType
+}
+
+export function PrivacyExportDocument({
+  exportId,
+  privacy_export_document,
+}: PrivacyExportDocumentProps) {
+  const isComplete = privacy_export_document.status === ExportStatus.complete
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setIsDownloading(true)
+    try {
+      const url = await getExportDocDownloadURL(exportId, privacy_export_document.id)
+      window.open(url, '_blank')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  return (
+    <Card className='border border-gray-200'>
+      <CardContent className='p-4 relative'>
+        <div className='flex items-start gap-3'>
+          <div className='bg-gray-100 p-2 rounded-full shrink-0'>
+            <FolderArchive className='w-5 h-5 text-gray-700' />
+          </div>
+          <div className='flex-1 min-w-0'>
+            <p className='font-semibold text-gray-900 truncate'>
+              {privacy_export_document.source_name}
+            </p>
+            <p className='text-xs text-gray-500 mt-0.5'>
+              {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
+            </p>
+            <div className='mt-1 w-fit'>
+              <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
+            </div>
+          </div>
+        </div>
+        <div className='absolute bottom-4 right-4'>
+          <Button
+            size='sm'
+            disabled={!isComplete || isDownloading}
+            variant={'outline'}
+            onClick={handleDownload}
+          >
+            {isDownloading ? (
+              <Loader2 className='h-4 w-4 animate-spin' />
+            ) : (
+              <Download className='h-4 w-4' />
+            )}
+            <div className='hidden xl:inline-block'>Download</div>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

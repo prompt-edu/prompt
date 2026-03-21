@@ -1,96 +1,51 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { useParams } from 'react-router-dom'
-import { format } from 'date-fns'
-
-import { getCoursePhase } from '@/network/queries/getCoursePhase'
-import { useModifyCoursePhase } from '@/hooks/useModifyCoursePhase'
-import { useGetMailingIsConfigured } from '@/hooks/useGetMailingIsConfigured'
-import { AvailableMailPlaceholders } from '@/components/pages/Mailing/components/AvailableMailPlaceholders'
 import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
+import { useParams } from 'react-router-dom'
+
+import { AvailableMailPlaceholders } from '@/components/pages/Mailing/components/AvailableMailPlaceholders'
+import { useGetMailingIsConfigured } from '@/hooks/useGetMailingIsConfigured'
+import { useModifyCoursePhase } from '@/hooks/useModifyCoursePhase'
+import { getCoursePhase } from '@/network/queries/getCoursePhase'
 import {
   Alert,
   AlertDescription,
   AlertTitle,
   Badge,
-  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Textarea,
   useToast,
 } from '@tumaet/prompt-ui-components'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-import {
+import type { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
+import type {
   AssessmentReminderMetaData,
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../interfaces/evaluationReminder'
 import { sendEvaluationReminder } from '../../../network/mutations/sendEvaluationReminder'
-
-const EMPTY_REMINDER_META: AssessmentReminderMetaData = {
-  subject: '',
-  content: '',
-  lastSentAtByType: {},
-}
-
-type ReminderTypeConfig = {
-  type: EvaluationReminderType
-  label: string
-  enabled: boolean
-  deadline?: Date
-}
+import { getAllEvaluationCompletionsInPhase } from '../../../network/queries/getAllEvaluationCompletionsInPhase'
+import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useParticipationStore } from '../../../zustand/useParticipationStore'
+import { useTeamStore } from '../../../zustand/useTeamStore'
+import { ManualReminderSendingSection } from './AssessmentReminderCard/components/ManualReminderSendingSection'
+import { ReminderSendConfirmationDialog } from './AssessmentReminderCard/components/ReminderSendConfirmationDialog'
+import { ReminderTemplateEditor } from './AssessmentReminderCard/components/ReminderTemplateEditor'
+import {
+  ASSESSMENT_REMINDER_PLACEHOLDERS,
+  deadlinePassed,
+  EMPTY_REMINDER_META,
+  formatDeadline,
+  getReminderTypes,
+  parseReminderMetaData,
+} from './AssessmentReminderCard/utils'
 
 interface ErrorResponse {
   error?: string
-}
-
-const parseReminderMetaData = (
-  coursePhase: CoursePhaseWithMetaData | undefined,
-): AssessmentReminderMetaData => {
-  const mailingSettings = coursePhase?.restrictedData?.mailingSettings as
-    | Record<string, unknown>
-    | undefined
-  const reminderData = mailingSettings?.assessmentReminder as
-    | Partial<AssessmentReminderMetaData>
-    | undefined
-
-  if (!reminderData) {
-    return EMPTY_REMINDER_META
-  }
-
-  return {
-    subject: reminderData.subject ?? '',
-    content: reminderData.content ?? '',
-    lastSentAtByType: reminderData.lastSentAtByType ?? {},
-  }
-}
-
-const formatDeadline = (deadline?: Date) => {
-  if (!deadline) return 'Not configured'
-  return format(new Date(deadline), 'dd.MM.yyyy HH:mm')
-}
-
-const formatSentAt = (sentAt?: string) => {
-  if (!sentAt) return 'Never sent'
-  return format(new Date(sentAt), 'dd.MM.yyyy HH:mm')
-}
-
-const deadlinePassed = (deadline?: Date) => {
-  if (!deadline) return false
-  return new Date(deadline) < new Date()
 }
 
 export const AssessmentReminderCard = () => {
@@ -99,6 +54,8 @@ export const AssessmentReminderCard = () => {
   const queryClient = useQueryClient()
 
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { participations } = useParticipationStore()
+  const { teams } = useTeamStore()
   const courseMailingIsConfigured = useGetMailingIsConfigured()
 
   const [subject, setSubject] = useState('')
@@ -107,6 +64,7 @@ export const AssessmentReminderCard = () => {
   const [confirmationType, setConfirmationType] = useState<EvaluationReminderType | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [lastReport, setLastReport] = useState<EvaluationReminderReport | null>(null)
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const {
     data: coursePhase,
@@ -115,6 +73,14 @@ export const AssessmentReminderCard = () => {
   } = useQuery<CoursePhaseWithMetaData>({
     queryKey: ['course_phase', phaseId],
     queryFn: () => getCoursePhase(phaseId ?? ''),
+    enabled: !!phaseId,
+  })
+
+  const { data: evaluationCompletions, isPending: isEvaluationCompletionsPending } = useQuery<
+    EvaluationCompletion[]
+  >({
+    queryKey: ['evaluationCompletions', phaseId],
+    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
     enabled: !!phaseId,
   })
 
@@ -165,34 +131,25 @@ export const AssessmentReminderCard = () => {
     setContent(parsed.content)
   }, [coursePhase])
 
+  useEffect(() => {
+    if (!contentTextareaRef.current) return
+
+    contentTextareaRef.current.style.height = 'auto'
+    contentTextareaRef.current.style.height = `${contentTextareaRef.current.scrollHeight}px`
+  }, [content])
+
   const currentReminderMetaData = useMemo(() => parseReminderMetaData(coursePhase), [coursePhase])
+  const reminderTypes = useMemo(
+    () => getReminderTypes(coursePhaseConfig, participations, teams, evaluationCompletions),
+    [coursePhaseConfig, participations, teams, evaluationCompletions],
+  )
+  const confirmationReminderType = useMemo(
+    () => reminderTypes.find((reminderType) => reminderType.type === confirmationType) ?? null,
+    [confirmationType, reminderTypes],
+  )
 
   const isModified = subject !== initialMetaData.subject || content !== initialMetaData.content
   const templateComplete = subject.trim() !== '' && content.trim() !== ''
-
-  const reminderTypes: ReminderTypeConfig[] = useMemo(
-    () => [
-      {
-        type: 'self',
-        label: 'Self Evaluation',
-        enabled: coursePhaseConfig?.selfEvaluationEnabled ?? false,
-        deadline: coursePhaseConfig?.selfEvaluationDeadline,
-      },
-      {
-        type: 'peer',
-        label: 'Peer Evaluation',
-        enabled: coursePhaseConfig?.peerEvaluationEnabled ?? false,
-        deadline: coursePhaseConfig?.peerEvaluationDeadline,
-      },
-      {
-        type: 'tutor',
-        label: 'Tutor Evaluation',
-        enabled: coursePhaseConfig?.tutorEvaluationEnabled ?? false,
-        deadline: coursePhaseConfig?.tutorEvaluationDeadline,
-      },
-    ],
-    [coursePhaseConfig],
-  )
 
   const handleSaveTemplate = () => {
     if (!phaseId || !coursePhase) return
@@ -229,13 +186,19 @@ export const AssessmentReminderCard = () => {
     sendReminderMutation.mutate(confirmationType)
   }
 
-  const getDisableReason = (config: ReminderTypeConfig): string | undefined => {
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open)
+    if (!open) {
+      setConfirmationType(null)
+    }
+  }
+
+  const getDisableReason = (reminderType: (typeof reminderTypes)[number]): string | undefined => {
     if (isModified) return 'Save template changes before sending reminders.'
     if (!courseMailingIsConfigured) return 'Configure course mailing reply-to settings first.'
     if (!templateComplete) return 'Reminder subject and content are required.'
-    if (!config.enabled) return `${config.label} is disabled in the assessment configuration.`
-    if (!deadlinePassed(config.deadline))
-      return `${config.label} deadline has not passed yet (${formatDeadline(config.deadline)}).`
+    if (!deadlinePassed(reminderType.deadline))
+      return `${reminderType.label} deadline has not passed yet (${formatDeadline(reminderType.deadline)}).`
     return undefined
   }
 
@@ -245,7 +208,7 @@ export const AssessmentReminderCard = () => {
         <div className='flex items-center justify-between gap-2'>
           <CardTitle>Evaluation Reminder Mailing</CardTitle>
           {isModified && (
-            <Badge variant='outline' className='bg-yellow-100 text-yellow-800 border-yellow-300'>
+            <Badge variant='outline' className='border-yellow-300 bg-yellow-100 text-yellow-800'>
               Unsaved Changes
             </Badge>
           )}
@@ -256,6 +219,10 @@ export const AssessmentReminderCard = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className='space-y-6'>
+        <AvailableMailPlaceholders
+          customAdditionalPlaceholders={ASSESSMENT_REMINDER_PLACEHOLDERS}
+        />
+
         {!courseMailingIsConfigured && (
           <Alert variant='destructive'>
             <AlertTitle>Course mailing not configured</AlertTitle>
@@ -282,119 +249,38 @@ export const AssessmentReminderCard = () => {
           </Alert>
         )}
 
-        <div className='space-y-3'>
-          <Label htmlFor='assessment-reminder-subject'>Reminder Subject</Label>
-          <Input
-            id='assessment-reminder-subject'
-            placeholder='Assessment reminder for {{evaluationType}}'
-            value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            disabled={isCoursePhasePending}
-          />
-        </div>
-
-        <div className='space-y-3'>
-          <Label htmlFor='assessment-reminder-content'>Reminder Message</Label>
-          <Textarea
-            id='assessment-reminder-content'
-            placeholder='Hi {{firstName}}, please complete your {{evaluationType}} before {{evaluationDeadline}}.'
-            className='min-h-[130px]'
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            disabled={isCoursePhasePending}
-          />
-        </div>
-
-        <AvailableMailPlaceholders
-          customAdditionalPlaceholders={[
-            {
-              placeholder: '{{evaluationType}}',
-              description:
-                'Current evaluation type (Self Evaluation, Peer Evaluation, Tutor Evaluation)',
-            },
-            {
-              placeholder: '{{evaluationDeadline}}',
-              description: 'Deadline of the selected evaluation type',
-            },
-            {
-              placeholder: '{{coursePhaseName}}',
-              description: 'Name of the current course phase',
-            },
-          ]}
+        <ReminderTemplateEditor
+          subject={subject}
+          content={content}
+          onSubjectChange={setSubject}
+          onContentChange={setContent}
+          onSave={handleSaveTemplate}
+          isPending={isCoursePhasePending}
+          isSaving={isSavingTemplate}
+          isModified={isModified}
+          contentTextareaRef={contentTextareaRef}
         />
 
-        <div className='flex justify-end'>
-          <Button
-            onClick={handleSaveTemplate}
-            disabled={!isModified || isSavingTemplate || isCoursePhasePending}
-          >
-            {isSavingTemplate ? 'Saving...' : 'Save Template'}
-          </Button>
-        </div>
-
-        <div className='space-y-3'>
-          <h3 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
-            Manual Reminder Sending
-          </h3>
-          {reminderTypes.map((reminderType) => {
-            const lastSent = currentReminderMetaData.lastSentAtByType[reminderType.type]
-            const disableReason = getDisableReason(reminderType)
-            const disabled = !!disableReason || sendReminderMutation.isPending
-
-            return (
-              <div
-                key={reminderType.type}
-                className='border rounded-md p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'
-              >
-                <div className='space-y-1'>
-                  <p className='font-medium'>{reminderType.label}</p>
-                  <p className='text-sm text-muted-foreground'>
-                    Deadline: {formatDeadline(reminderType.deadline)}
-                  </p>
-                  <p className='text-sm text-muted-foreground'>
-                    Last sent: {formatSentAt(lastSent)}
-                  </p>
-                  {disableReason && <p className='text-sm text-red-600'>{disableReason}</p>}
-                </div>
-                <Button
-                  onClick={() => openConfirmationDialog(reminderType.type)}
-                  disabled={disabled}
-                  className='sm:w-auto'
-                >
-                  Send Reminder
-                </Button>
-              </div>
-            )
-          })}
-        </div>
+        <ManualReminderSendingSection
+          reminderTypes={reminderTypes}
+          lastSentAtByType={currentReminderMetaData.lastSentAtByType}
+          getDisableReason={getDisableReason}
+          isEvaluationCompletionsPending={isEvaluationCompletionsPending}
+          isSending={sendReminderMutation.isPending}
+          onSend={openConfirmationDialog}
+        />
       </CardContent>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Reminder Send</DialogTitle>
-            <DialogDescription>
-              {confirmationType &&
-                `Send reminder emails for ${confirmationType} evaluations to all currently incomplete students?`}
-            </DialogDescription>
-            {confirmationType && currentReminderMetaData.lastSentAtByType[confirmationType] && (
-              <DialogDescription>
-                A reminder for this type was already sent on{' '}
-                {formatSentAt(currentReminderMetaData.lastSentAtByType[confirmationType])}. Sending
-                again will resend to currently incomplete students.
-              </DialogDescription>
-            )}
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={sendConfirmedReminder} disabled={sendReminderMutation.isPending}>
-              {sendReminderMutation.isPending ? 'Sending...' : 'Confirm Send'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReminderSendConfirmationDialog
+        open={dialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        confirmationReminderType={confirmationReminderType}
+        previousSentAt={
+          confirmationType ? currentReminderMetaData.lastSentAtByType[confirmationType] : undefined
+        }
+        isSending={sendReminderMutation.isPending}
+        onConfirm={sendConfirmedReminder}
+      />
     </Card>
   )
 }

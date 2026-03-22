@@ -13,7 +13,6 @@ import { PrivacyExportDocument } from '../shared/components/PrivacyExport/Privac
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
-import { downloadAll } from '../shared/downloadAll'
 
 function getExportIDFromLatest(latest: LatestExportResponse | undefined): string | undefined {
   if (latest?.status === 'exists') return latest.export.id

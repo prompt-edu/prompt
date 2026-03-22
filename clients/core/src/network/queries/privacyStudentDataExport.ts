@@ -27,7 +27,7 @@ export interface PrivacyExport {
   studentID: string
   status: ExportStatus
   date_created: string
-  available_until: string
+  valid_until: string
   documents: PrivacyExportDocument[]
 }
 export interface PrivacyExportDocument {
@@ -36,6 +36,7 @@ export interface PrivacyExportDocument {
   source_name: string
   object_key: string
   status: ExportStatus
+  file_size: number | null
 }
 
 export const getStudentDataExportStatus = async (exportID: string): Promise<PrivacyExport> => {
@@ -59,11 +60,15 @@ export const getExportDocDownloadURL = async (exportID: string, docID: string): 
   }
 }
 
-// Returns the user's latest export if one exists within the rate-limit window, or null if none.
-export const getLatestStudentDataExport = async (): Promise<PrivacyExport | null> => {
+export type LatestExportResponse =
+  | { status: 'exists'; export: PrivacyExport }
+  | { status: 'rate_limited'; retry_after: string }
+  | { status: 'ready' }
+
+export const getLatestStudentDataExport = async (): Promise<LatestExportResponse> => {
   try {
     const response = await axiosInstance.get('/api/privacy/data-export')
-    if (response.status === 204) return null
+    if (response.status === 204) return { status: 'ready' }
     return response.data
   } catch (err) {
     console.error(err)

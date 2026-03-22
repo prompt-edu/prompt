@@ -2,8 +2,6 @@ module github.com/prompt-edu/prompt/servers/team_allocation
 
 go 1.26
 
-replace github.com/prompt-edu/prompt-sdk => ../../../prompt-sdk
-
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0

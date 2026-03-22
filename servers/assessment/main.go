@@ -184,8 +184,8 @@ func main() {
 		ServiceName: "assessment",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyStudentExport:   false,
-			promptTypes.CapabilityPrivacyStudentDeletion: false,
+			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyDeletion: false,
 			promptTypes.CapabilityPhaseCopy:              true,
 			promptTypes.CapabilityPhaseConfig:            true,
 		},

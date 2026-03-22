@@ -2,8 +2,6 @@ module github.com/prompt-edu/prompt/servers/interview
 
 go 1.26
 
-replace github.com/prompt-edu/prompt-sdk => ../../../prompt-sdk
-
 require (
 	github.com/getsentry/sentry-go v0.43.0
 	github.com/getsentry/sentry-go/gin v0.42.0

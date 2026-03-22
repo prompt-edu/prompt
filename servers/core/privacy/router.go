@@ -19,7 +19,7 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	privacyRouter.POST("/data-export", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), studentDataExport)
 	privacyRouter.GET("/data-export", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestExport)
 
-	privacyRouter.GET("/data-export/:uuid", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportStatus)
+	privacyRouter.GET("/data-export/:uuid", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
 	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
 }
 
@@ -41,23 +41,25 @@ func studentDataExport(c *gin.Context) {
 		return
 	}
 
-  if valErr := service.ValidateNoRecentExportExists(c, subjectIdentifiers.UserID); valErr != nil {
+  if valErr := service.ValidateAllowedToExport(c, subjectIdentifiers.UserID); valErr != nil {
     utils.HandleError(c, http.StatusTooManyRequests, valErr)
     return
   }
 
-  exp, err := service.HandleStudentDataExportRequest(c, subjectIdentifiers)
+  prep, err := service.PrepareStudentDataExport(c, subjectIdentifiers)
 	if err != nil {
     log.Error("student data export failed: ", err)
     utils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, exp)
+	c.JSON(http.StatusOK, prep.Record)
+
+  service.RunStudentDataExport(c, prep, subjectIdentifiers)
 }
 
 // getLatestExport returns the most recent export for the requesting user if one exists
-// within the rate-limit window, or 204 No Content if none.
+// or 204 No Content if none.
 //
 // @Summary Get the current user's latest export
 // @Produce json
@@ -72,19 +74,21 @@ func getLatestExport(c *gin.Context) {
 		return
 	}
 
-	exp, err := service.GetLatestExportWithDocs(c, userID)
+	availability, exp, err := service.GetExportAvailability(c, userID)
 	if err != nil {
 		log.Error("get latest export failed: ", err)
 		utils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	if exp == nil {
+	switch availability {
+	case service.ExportExistsAndValid:
+		c.JSON(http.StatusOK, gin.H{"status": "exists", "export": exp})
+	case service.ExportRateLimited:
+		c.JSON(http.StatusOK, gin.H{"status": "rate_limited", "retry_after": service.RateLimitEndForExport(*exp)})
+	default:
 		c.Status(http.StatusNoContent)
-		return
 	}
-
-	c.JSON(http.StatusOK, exp)
 }
 
 // getExportDocDownloadURL returns a presigned download URL for a single export document.
@@ -117,6 +121,11 @@ func getExportDocDownloadURL(c *gin.Context) {
 		return
 	}
 
+  if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		return
+  }
+
 	downloadURL, err := service.GetDownloadURLForDoc(c, exportID, docID)
 	if err != nil {
 		log.Error("get export doc download URL failed: ", err)
@@ -127,7 +136,7 @@ func getExportDocDownloadURL(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"downloadUrl": downloadURL})
 }
 
-// getExportStatus returns export status and ids for documents related to an export
+// getExport returns export status and ids for documents related to an export
 //
 // @Summary Get all Ids and status of export and export docs
 // @Description Get the current status and all ids of the export record and all export docs. needed so client knows what docs exist to be able to download them
@@ -135,7 +144,7 @@ func getExportDocDownloadURL(c *gin.Context) {
 // @Success 200 {object} privacyDTO.PrivacyExport
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /privacy/data-export/{uuid} [get]
-func getExportStatus(c *gin.Context) {
+func getExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, err)
@@ -147,6 +156,11 @@ func getExportStatus(c *gin.Context) {
 		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
 		return
 	}
+
+  if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		return
+  }
 
   expWithDocs, expErr := service.GetExportWithDocs(c, exportID)
 	if expErr != nil {

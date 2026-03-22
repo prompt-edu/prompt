@@ -377,6 +377,13 @@ FROM application_answer_file_upload aafu
 JOIN application_question_file_upload aqfu ON aafu.application_question_id = aqfu.id
 WHERE aafu.course_participation_id = ANY($1::uuid[]);
 
+-- name: GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs :many
+SELECT aafu.*, aqfu.title AS question_title, aqfu.description AS question_description, f.*
+FROM application_answer_file_upload aafu, files f, application_question_file_upload aqfu
+WHERE aafu.course_participation_id = ANY($1::uuid[])
+AND aafu.application_question_id = aqfu.id
+AND f.id = aafu.file_id;
+
 -- name: GetAllApplicationAssessmentsByCourseParticipationIDs :many
 SELECT aa.*
 FROM application_assessment aa

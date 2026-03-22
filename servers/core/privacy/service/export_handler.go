@@ -9,31 +9,63 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 )
 
-func HandleStudentDataExportRequest(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
-
-  exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
-  if err != nil {
-    return privacyDTO.PrivacyExport{}, err
-  }
-
-  cCopy := c.Copy()
-  go func() {
-    var goroutineErr error
-    defer func() { UpdateExportStatus(goroutineErr, cCopy, exportRecord.ID) }()
-
-    var wg sync.WaitGroup
-    wg.Add(4)
-
-    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Core", 0*time.Second) }()
-    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Assessment", 18*time.Second) }()
-    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Team Allocation", 5*time.Second) }()
-    go func() { defer wg.Done(); AggregateSubjectDataFromCore(cCopy, exportRecord.ID, subjectIdentifiers, "Interview", 9*time.Second) }()
-
-    wg.Wait()
-
-    // TODO: aggregate from each microservice
-  }()
-
-  return exportRecord, nil
+type ExportPreparation struct {
+	Record       privacyDTO.PrivacyExport
+	CoreDoc      PreparedExportDoc
+	ExternalDocs []PreparedExportDoc
 }
 
+var externalServices = []string{"Assessment", "Team Allocation", "Interview"}
+
+func PrepareStudentDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (ExportPreparation, error) {
+	exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
+	if err != nil {
+		return ExportPreparation{}, err
+	}
+
+	coreDoc, err := PrepareExportRecordDoc(c, exportRecord.ID, "Core")
+	if err != nil {
+		return ExportPreparation{}, err
+	}
+
+	externalDocs := make([]PreparedExportDoc, 0, len(externalServices))
+	for _, svc := range externalServices {
+		doc, err := PrepareExportRecordDoc(c, exportRecord.ID, svc)
+		if err != nil {
+			return ExportPreparation{}, err
+		}
+		externalDocs = append(externalDocs, doc)
+	}
+
+	return ExportPreparation{
+		Record:       exportRecord,
+		CoreDoc:      coreDoc,
+		ExternalDocs: externalDocs,
+	}, nil
+}
+
+func RunStudentDataExport(c *gin.Context, prep ExportPreparation, subjectIdentifiers sdk.SubjectIdentifiers) {
+	cCopy := c.Copy()
+	go func() {
+		var goroutineErr error
+		defer func() { UpdateExportStatus(goroutineErr, cCopy, prep.Record.ID) }()
+
+		var wg sync.WaitGroup
+		wg.Add(1 + len(prep.ExternalDocs))
+
+		go func() {
+			defer wg.Done()
+			AggregateSubjectDataFromCore(cCopy, prep.CoreDoc, subjectIdentifiers, 5*time.Second)
+		}()
+
+		for _, doc := range prep.ExternalDocs {
+			go func(d PreparedExportDoc) {
+				defer wg.Done()
+				// TODO: replace with actual API call to the external microservice
+				MockExternalServiceExport(cCopy, d)
+			}(doc)
+		}
+
+		wg.Wait()
+	}()
+}

@@ -15,13 +15,10 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 )
 
-func AggregateSubjectDataFromCore(c *gin.Context, exportRequestID uuid.UUID, subjectIdentifiers sdk.SubjectIdentifiers, source_name string, wait_time time.Duration) (err error) {
-  url, docID, err := PrepareExportRecordDoc(c, exportRequestID, source_name)
-  if err != nil { return; }
-
+func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subjectIdentifiers sdk.SubjectIdentifiers, wait_time time.Duration) (err error) {
   time.Sleep(wait_time)
 
-  defer func() { UpdateExportDocStatus(err, c, docID) }()
+  defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc) }()
 
   ex, err := utils.NewExport()
   if err != nil { return; }
@@ -34,7 +31,7 @@ func AggregateSubjectDataFromCore(c *gin.Context, exportRequestID uuid.UUID, sub
     getSubjectDataForStudent(c, ex, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs)
   }
 
-  err = ex.UploadTo(c, url)
+  err = ex.UploadTo(c, doc.URL)
   return
 }
 
@@ -69,12 +66,12 @@ func getSubjectDataForStudent(c *gin.Context, ex *utils.Export, studentUUID uuid
 }
 
 func addApplicationFiles(c *gin.Context, ex *utils.Export, courseParticipationUUIDs []uuid.UUID) {
-  for _, answer := range applicationAdministration.GetApplicationFileUploadAnswers(c, courseParticipationUUIDs) {
+  for _, answer := range applicationAdministration.GetApplicationFileUploadAnswersWithFileRecord(c, courseParticipationUUIDs) {
     fileID := answer.FileID
     questionTitle := answer.QuestionTitle
     ex.AddFile(
-      fmt.Sprintf("Application File: %s", questionTitle),
-      fmt.Sprintf("student/application_files/%s", fileID.String()),
+      fmt.Sprintf("Application File: %s-%s", answer.FileID, questionTitle),
+      fmt.Sprintf("student/application_files/%s", MakeUniqueFileNameWithEnding(answer)),
       func() (io.Reader, error) {
         reader, _, err := files.StorageServiceSingleton.DownloadFile(c, fileID)
         return reader, err
@@ -83,3 +80,31 @@ func addApplicationFiles(c *gin.Context, ex *utils.Export, courseParticipationUU
   }
 }
 
+func MockExternalServiceExport(c *gin.Context, doc PreparedExportDoc) {
+  var err error
+  defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc) }()
+
+  name := doc.ExportDoc.SourceName
+  // simulate varying processing times per service
+  switch name {
+  case "Assessment":
+    time.Sleep(18 * time.Second)
+  case "Team Allocation":
+    time.Sleep(10 * time.Second)
+  case "Interview":
+    time.Sleep(9 * time.Second)
+  default:
+    time.Sleep(8 * time.Second)
+  }
+
+  // mock: create a minimal empty export and upload it
+  ex, err := utils.NewExport()
+  if err != nil { return }
+  defer ex.Close()
+
+  ex.AddJSON(name+" Data", "data.json", func() (any, error) {
+    return map[string]string{"mock": "This is mock data for " + name}, nil
+  })
+
+  err = ex.UploadTo(c, doc.URL)
+}

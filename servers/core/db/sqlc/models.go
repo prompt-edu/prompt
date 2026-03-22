@@ -513,6 +513,7 @@ type PrivacyExport struct {
 	Studentid   pgtype.UUID        `json:"studentid"`
 	Status      ExportStatus       `json:"status"`
 	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
 }
 
 type PrivacyExportDocument struct {
@@ -522,6 +523,7 @@ type PrivacyExportDocument struct {
 	SourceName  string             `json:"source_name"`
 	ObjectKey   string             `json:"object_key"`
 	Status      ExportStatus       `json:"status"`
+	FileSize    pgtype.Int8        `json:"file_size"`
 }
 
 type PrivacyExportWithDoc struct {
@@ -530,6 +532,7 @@ type PrivacyExportWithDoc struct {
 	Studentid   pgtype.UUID        `json:"studentid"`
 	Status      ExportStatus       `json:"status"`
 	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
 	Documents   interface{}        `json:"documents"`
 }
 

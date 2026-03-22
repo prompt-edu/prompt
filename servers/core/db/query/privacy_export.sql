@@ -8,8 +8,8 @@ SELECT * FROM privacy_export_with_docs WHERE id = $1;
 SELECT * FROM privacy_export_with_docs WHERE userID = $1 ORDER BY date_created DESC LIMIT 1;
 
 -- name: CreateNewExport :one
-INSERT INTO privacy_export ( id, userID, studentID, status )
-VALUES ($1, $2, $3, $4)
+INSERT INTO privacy_export ( id, userID, studentID, status, valid_until )
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: CreateNewExportDoc :one
@@ -22,3 +22,6 @@ UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING *;
 
 -- name: SetExportDocStatus :one
 UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING *;
+
+-- name: UpdateExportDocResult :one
+UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING *;

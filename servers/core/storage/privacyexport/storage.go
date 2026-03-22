@@ -76,3 +76,16 @@ func GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
 
 	return adapter.GetURL(ctx, objectKey, int(presignTTL.Seconds()))
 }
+
+// GetFileSize returns the size of the stored object in bytes.
+func GetFileSize(ctx context.Context, objectKey string) (int64, error) {
+	if adapter == nil {
+		return 0, fmt.Errorf("privacy export storage not initialized")
+	}
+
+	meta, err := adapter.GetMetadata(ctx, objectKey)
+	if err != nil {
+		return 0, err
+	}
+	return meta.Size, nil
+}

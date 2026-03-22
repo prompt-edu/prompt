@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -9,15 +10,26 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func ValidateNoRecentExportExists(c *gin.Context, userID uuid.UUID) error {
-	existing, err := GetLatestExportWithDocs(c, userID)
-	if err != nil {
-		return err
+func ValidateAllowedToExport(c *gin.Context, userID uuid.UUID) error {
+	availability, exp, err := GetExportAvailability(c, userID)
+	if err != nil { return err }
+	if availability == ExportReadyForNew {
+		return nil
 	}
-	if existing != nil {
-		return errors.New("a recent export already exists — please wait before requesting a new one")
-	}
-	return nil
+	return errors.New("Rate Limited Until " + RateLimitEndForExport(*exp).String())
+}
+
+func ValidateExportValid(c *gin.Context, exportID uuid.UUID) error {
+  exp, err := PrivacyServiceSingleton.queries.GetExportRecordByID(c, exportID)
+  if err != nil {
+    return err
+  }
+  expDTO := privacyDTO.GetPrivacyExportDTOFromDBModel(exp)
+
+  if time.Now().After(expDTO.ValidUntil) {
+    return errors.New("The export is no longer valid")
+  }
+  return nil
 }
 
 func ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error {

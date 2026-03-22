@@ -15,6 +15,7 @@ type PrivacyExportDocument struct {
 	SourceName  string          `json:"source_name"`
 	ObjectKey   string          `json:"object_key"`
 	Status      db.ExportStatus `json:"status"`
+	FileSize    *int64          `json:"file_size"`
 }
 
 type PrivacyExport struct {
@@ -23,8 +24,18 @@ type PrivacyExport struct {
 	StudentID      *uuid.UUID              `json:"studentID"`
 	Status         db.ExportStatus         `json:"status"`
 	DateCreated    time.Time               `json:"date_created"`
-	AvailableUntil time.Time               `json:"available_until"`
+	ValidUntil     time.Time               `json:"valid_until"`
 	Documents      []PrivacyExportDocument `json:"documents"`
+}
+
+func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyExportDocument {
+	return PrivacyExportDocument{
+		ID:          model.ID,
+		DateCreated: model.DateCreated.Time,
+		SourceName:  model.SourceName,
+		ObjectKey:   model.ObjectKey,
+		Status:      model.Status,
+	}
 }
 
 func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
@@ -40,6 +51,7 @@ func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 		StudentID:   studentID,
 		Status:      model.Status,
 		DateCreated: model.DateCreated.Time,
+    ValidUntil:  model.ValidUntil.Time,
 		Documents:   []PrivacyExportDocument{},
 	}
 }
@@ -50,6 +62,7 @@ func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (Priv
 		UserID:      model.Userid,
 		Status:      model.Status,
 		DateCreated: model.DateCreated.Time,
+		ValidUntil:  model.ValidUntil.Time,
 	}
 
 	if model.Studentid.Valid {

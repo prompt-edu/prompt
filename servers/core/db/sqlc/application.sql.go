@@ -464,6 +464,80 @@ func (q *Queries) GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctx
 	return items, nil
 }
 
+const getAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs = `-- name: GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs :many
+SELECT aafu.id, aafu.application_question_id, aafu.course_participation_id, aafu.file_id, aqfu.title AS question_title, aqfu.description AS question_description, f.id, f.filename, f.original_filename, f.content_type, f.size_bytes, f.storage_key, f.storage_provider, f.uploaded_by_user_id, f.uploaded_by_email, f.course_phase_id, f.description, f.tags, f.created_at, f.updated_at, f.deleted_at
+FROM application_answer_file_upload aafu, files f, application_question_file_upload aqfu
+WHERE aafu.course_participation_id = ANY($1::uuid[])
+AND aafu.application_question_id = aqfu.id
+AND f.id = aafu.file_id
+`
+
+type GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID        `json:"id"`
+	ApplicationQuestionID uuid.UUID        `json:"application_question_id"`
+	CourseParticipationID uuid.UUID        `json:"course_participation_id"`
+	FileID                uuid.UUID        `json:"file_id"`
+	QuestionTitle         string           `json:"question_title"`
+	QuestionDescription   pgtype.Text      `json:"question_description"`
+	ID_2                  uuid.UUID        `json:"id_2"`
+	Filename              string           `json:"filename"`
+	OriginalFilename      string           `json:"original_filename"`
+	ContentType           string           `json:"content_type"`
+	SizeBytes             int64            `json:"size_bytes"`
+	StorageKey            string           `json:"storage_key"`
+	StorageProvider       string           `json:"storage_provider"`
+	UploadedByUserID      string           `json:"uploaded_by_user_id"`
+	UploadedByEmail       pgtype.Text      `json:"uploaded_by_email"`
+	CoursePhaseID         pgtype.UUID      `json:"course_phase_id"`
+	Description           pgtype.Text      `json:"description"`
+	Tags                  []string         `json:"tags"`
+	CreatedAt             pgtype.Timestamp `json:"created_at"`
+	UpdatedAt             pgtype.Timestamp `json:"updated_at"`
+	DeletedAt             pgtype.Timestamp `json:"deleted_at"`
+}
+
+func (q *Queries) GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationQuestionID,
+			&i.CourseParticipationID,
+			&i.FileID,
+			&i.QuestionTitle,
+			&i.QuestionDescription,
+			&i.ID_2,
+			&i.Filename,
+			&i.OriginalFilename,
+			&i.ContentType,
+			&i.SizeBytes,
+			&i.StorageKey,
+			&i.StorageProvider,
+			&i.UploadedByUserID,
+			&i.UploadedByEmail,
+			&i.CoursePhaseID,
+			&i.Description,
+			&i.Tags,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllApplicationAnswersMultiSelectByCourseParticipationIDs = `-- name: GetAllApplicationAnswersMultiSelectByCourseParticipationIDs :many
 SELECT aams.id, aams.application_question_id, aams.answer, aams.course_participation_id, aqms.title AS question_title, aqms.description AS question_description
 FROM application_answer_multi_select aams

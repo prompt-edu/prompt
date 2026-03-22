@@ -707,7 +707,7 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 }
 
 type ApplicationDataExportPerCourseParticipation struct {
-	CourseParticipationID uuid.UUID                                                         `json:"courseParticipationId"`
+	CourseParticipationID uuid.UUID                                                           `json:"courseParticipationId"`
 	AnswersText           []db.GetAllApplicationAnswersTextByCourseParticipationIDsRow        `json:"answersText"`
 	AnswersMultiSelect    []db.GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow `json:"answersMultiSelect"`
 	AnswersFileUpload     []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow  `json:"answersFileUpload"`
@@ -777,16 +777,28 @@ func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid
 	return result, nil
 }
 
-func GetApplicationFileUploadAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
-	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
-	defer cancel()
+func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow{
+  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+  defer cancel()
 
-	answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+  answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-	return answers
+  return answers
+}
+
+func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
+  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+  defer cancel()
+
+  answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+  return answersWithFileRecords
 }
 
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {

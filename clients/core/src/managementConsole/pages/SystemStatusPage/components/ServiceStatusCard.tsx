@@ -1,5 +1,4 @@
 import {
-  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -7,9 +6,10 @@ import {
   Separator,
   Skeleton,
 } from '@tumaet/prompt-ui-components'
-import { AlertCircle, CheckCircle2, Server, XCircle } from 'lucide-react'
+import { CheckCircle2, Server, XCircle } from 'lucide-react'
 import { CAPABILITY_LABELS, ServiceInfo } from '../interfaces/serviceCapabilities'
 import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import { ServiceStatusBadge } from './ServiceStatusBadge'
 
 interface ServiceStatusCardProps {
   service: CoursePhaseType
@@ -26,34 +26,6 @@ export const ServiceStatusCard = ({
   isPending,
   isError,
 }: ServiceStatusCardProps) => {
-  const statusBadge = () => {
-    if (isError) {
-      return (
-        <Badge variant='destructive' className='flex items-center gap-1'>
-          <XCircle className='h-3 w-3' />
-          Offline
-        </Badge>
-      )
-    }
-    if (!data!.healthy) {
-      return (
-        <Badge
-          variant='outline'
-          className='flex items-center gap-1 border-yellow-500 text-yellow-600'
-        >
-          <AlertCircle className='h-3 w-3' />
-          Degraded
-        </Badge>
-      )
-    }
-    return (
-      <Badge variant='outline' className='flex items-center gap-1 border-green-500 text-green-600'>
-        <CheckCircle2 className='h-3 w-3' />
-        Online
-      </Badge>
-    )
-  }
-
   return (
     <Card>
       <CardHeader className='pb-3'>
@@ -62,7 +34,22 @@ export const ServiceStatusCard = ({
             <Server className='h-4 w-4 text-muted-foreground' />
             <CardTitle className='text-base'>{service.name}</CardTitle>
           </div>
-          {isPending ? <Skeleton className='h-5 w-16' /> : statusBadge()}
+          {isPending ? (
+            <Skeleton className='h-5 w-16' />
+          ) : (
+            <ServiceStatusBadge
+              status={(() => {
+                if (isError) {
+                  return 'Offline'
+                }
+                if (!data?.healthy) {
+                  return 'OnlineUnhealthy'
+                } else {
+                  return 'Online'
+                }
+              })()}
+            />
+          )}
         </div>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>

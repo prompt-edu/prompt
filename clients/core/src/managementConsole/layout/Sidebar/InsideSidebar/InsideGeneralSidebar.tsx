@@ -52,7 +52,7 @@ export const InsideGeneralSidebar = () => {
               <InsideSidebarMenuItem
                 icon={<Activity />}
                 goToPath={'/management/system-status'}
-                title='Students'
+                title='Services'
               />
             </InsideSidebarVisualGroup>
           </ShowForRole>

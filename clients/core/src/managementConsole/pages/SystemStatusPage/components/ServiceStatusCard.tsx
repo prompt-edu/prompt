@@ -10,6 +10,7 @@ import { CheckCircle2, Server, XCircle } from 'lucide-react'
 import { CAPABILITY_LABELS, ServiceInfo } from '../interfaces/serviceCapabilities'
 import { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { ServiceStatusBadge } from './ServiceStatusBadge'
+import { ServiceStatusCardSkeleton } from './ServiceStatusCardSkeleton'
 
 interface ServiceStatusCardProps {
   service: CoursePhaseType
@@ -39,7 +40,7 @@ export const ServiceStatusCard = ({
           ) : (
             <ServiceStatusBadge
               status={(() => {
-                if (isError) {
+                if (isError || data == null) {
                   return 'Offline'
                 }
                 if (!data?.healthy) {
@@ -54,15 +55,7 @@ export const ServiceStatusCard = ({
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
         {isPending ? (
-          <div className='flex flex-col gap-2'>
-            <Skeleton className='h-4 w-1/2' />
-            <Skeleton className='h-4 w-1/3' />
-            <Skeleton className='h-px w-full' />
-            <Skeleton className='h-4 w-full' />
-            <Skeleton className='h-4 w-3/4' />
-            <Skeleton className='h-4 w-5/6' />
-            <Skeleton className='h-4 w-2/3' />
-          </div>
+          <ServiceStatusCardSkeleton />
         ) : isError ? (
           <p className='text-sm text-muted-foreground'>Service unreachable</p>
         ) : (

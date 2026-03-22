@@ -306,6 +306,33 @@ func (q *Queries) GetStudentByMatriculationNumberAndUniversityLogin(ctx context.
 	return i, err
 }
 
+const getStudentByUniversityLogin = `-- name: GetStudentByUniversityLogin :one
+SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
+WHERE university_login = $1
+LIMIT 1
+`
+
+func (q *Queries) GetStudentByUniversityLogin(ctx context.Context, universityLogin pgtype.Text) (Student, error) {
+	row := q.db.QueryRow(ctx, getStudentByUniversityLogin, universityLogin)
+	var i Student
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.MatriculationNumber,
+		&i.UniversityLogin,
+		&i.HasUniversityAccount,
+		&i.Gender,
+		&i.Nationality,
+		&i.StudyProgram,
+		&i.StudyDegree,
+		&i.CurrentSemester,
+		&i.LastModified,
+	)
+	return i, err
+}
+
 const getStudentEmails = `-- name: GetStudentEmails :many
 SELECT id, email
 FROM student

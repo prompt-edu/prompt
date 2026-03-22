@@ -11,11 +11,11 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
-	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
@@ -51,58 +51,6 @@ func runMigrations(databaseURL string) {
 	fmt.Print(sanitized)
 }
 
-func initSentry() {
-	sentryDsn := promptSDK.GetEnv("SENTRY_DSN_CERTIFICATE", "")
-	if sentryDsn == "" {
-		log.Info("Sentry DSN not configured, skipping initialization")
-		return
-	}
-
-	transport := sentry.NewHTTPTransport()
-	transport.Timeout = 2 * time.Second
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              sentryDsn,
-		Environment:      promptSDK.GetEnv("ENVIRONMENT", "development"),
-		Debug:            false,
-		Transport:        transport,
-		EnableLogs:       true,
-		AttachStacktrace: true,
-		SendDefaultPII:   true,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		log.Errorf("Sentry initialization failed: %v", err)
-		return
-	}
-
-	client := sentry.CurrentHub().Client()
-	if client == nil {
-		log.Error("Sentry client is nil")
-		return
-	}
-
-	logHook := sentrylogrus.NewLogHookFromClient(
-		[]log.Level{log.InfoLevel, log.WarnLevel},
-		client,
-	)
-
-	eventHook := sentrylogrus.NewEventHookFromClient(
-		[]log.Level{log.ErrorLevel, log.FatalLevel, log.PanicLevel},
-		client,
-	)
-
-	log.AddHook(logHook)
-	log.AddHook(eventHook)
-
-	log.RegisterExitHandler(func() {
-		eventHook.Flush(5 * time.Second)
-		logHook.Flush(5 * time.Second)
-	})
-
-	log.Info("Sentry initialized successfully")
-}
-
 func initKeycloak() {
 	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
@@ -120,7 +68,7 @@ func initKeycloak() {
 }
 
 func main() {
-	initSentry()
+	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_CERTIFICATE", ""))
 	defer sentry.Flush(2 * time.Second)
 
 	databaseURL := getDatabaseURL()
@@ -160,8 +108,8 @@ func main() {
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   false,
 			promptTypes.CapabilityPrivacyDeletion: false,
-			promptTypes.CapabilityPhaseCopy:              false,
-			promptTypes.CapabilityPhaseConfig:            true,
+			promptTypes.CapabilityPhaseCopy:       false,
+			promptTypes.CapabilityPhaseConfig:     true,
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

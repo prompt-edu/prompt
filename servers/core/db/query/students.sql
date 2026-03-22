@@ -42,6 +42,11 @@ WHERE matriculation_number = $1
   AND university_login = $2
 LIMIT 1;
 
+-- name: GetStudentByUniversityLogin :one
+SELECT * FROM student
+WHERE university_login = $1
+LIMIT 1;
+
 -- name: SearchStudents :many
 SELECT *
 FROM student

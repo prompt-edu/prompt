@@ -2,12 +2,10 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-u
 import { Archive, File, FileText, Tag, Users, Activity } from 'lucide-react'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
-import { Role, getPermissionString, useAuthStore } from '@tumaet/prompt-shared-state'
+import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
+import { Role } from '@tumaet/prompt-shared-state'
 
 export const InsideGeneralSidebar = () => {
-  const { permissions } = useAuthStore()
-  const isPromptAdmin = permissions.includes(getPermissionString(Role.PROMPT_ADMIN))
-
   return (
     <SidebarMenu>
       <SidebarGroup>
@@ -18,40 +16,46 @@ export const InsideGeneralSidebar = () => {
               goToPath={'/management/courses'}
               title='Courses'
             />
-            <InsideSidebarMenuItem
-              icon={<File />}
-              goToPath={'/management/course-templates'}
-              title='Template Courses'
-            />
-            <InsideSidebarMenuItem
-              icon={<Archive />}
-              goToPath={'/management/course-archive'}
-              title='Archived Courses'
-            />
-          </InsideSidebarVisualGroup>
-          <InsideSidebarVisualGroup title='Students'>
-            <InsideSidebarMenuItem
-              icon={<Users />}
-              goToPath={'/management/students'}
-              title='Students'
-            />
-            {isPromptAdmin && (
+            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
               <InsideSidebarMenuItem
-                icon={<Tag />}
-                goToPath={'/management/student-note-tags'}
-                title='Tags'
+                icon={<File />}
+                goToPath={'/management/course_templates'}
+                title='Template Courses'
               />
-            )}
+            </ShowForRole>
+            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+              <InsideSidebarMenuItem
+                icon={<Archive />}
+                goToPath={'/management/course_archive'}
+                title='Archived Courses'
+              />
+            </ShowForRole>
           </InsideSidebarVisualGroup>
-          {isPromptAdmin && (
-            <InsideSidebarVisualGroup title='System'>
+          <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <InsideSidebarVisualGroup title='Students'>
+              <InsideSidebarMenuItem
+                icon={<Users />}
+                goToPath={'/management/students'}
+                title='Students'
+              />
+              <ShowForRole roles={[Role.PROMPT_ADMIN]}>
+                <InsideSidebarMenuItem
+                  icon={<Tag />}
+                  goToPath={'/management/student-note-tags'}
+                  title='Tags'
+                />
+              </ShowForRole>
+            </InsideSidebarVisualGroup>
+          </ShowForRole>
+          <ShowForRole roles={[Role.PROMPT_ADMIN]}>
+            <InsideSidebarVisualGroup title='Admin'>
               <InsideSidebarMenuItem
                 icon={<Activity />}
                 goToPath={'/management/system-status'}
-                title='System Status'
+                title='Students'
               />
             </InsideSidebarVisualGroup>
-          )}
+          </ShowForRole>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarMenu>

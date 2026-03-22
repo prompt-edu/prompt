@@ -45,11 +45,11 @@ export function PrivacyExportDocument({
             <p className='text-xs text-gray-500 mt-0.5'>
               {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
             </p>
-            {privacy_export_document.file_size != null && (
-              <p className='text-xs text-gray-500 mt-0.5'>
-                {formatFileSize(privacy_export_document.file_size)}
-              </p>
-            )}
+            <p className='text-xs text-gray-500 mt-0.5'>
+              {privacy_export_document.file_size == null
+                ? '-'
+                : formatFileSize(privacy_export_document.file_size)}
+            </p>
           </div>
         </div>
         <div className='absolute bottom-4 right-4'>

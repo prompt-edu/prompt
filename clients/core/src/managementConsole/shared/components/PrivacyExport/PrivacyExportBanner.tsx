@@ -56,10 +56,14 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
             Requested on {new Date(privacyExport.date_created).toLocaleString()}
           </p>
           {!inProgress && (
-            <p className='text-xs text-gray-500 mt-0.5'>
-              Files available until {new Date(privacyExport.valid_until).toLocaleString()}
-              {totalSize == null ? '-' : formatFileSize(totalSize)}
-            </p>
+            <>
+              <p className='text-xs text-gray-500 mt-0.5'>
+                Files available until {new Date(privacyExport.valid_until).toLocaleString()}
+              </p>
+              {totalSize != null && (
+                <p className='text-xs text-gray-500 mt-0.5'>~{formatFileSize(totalSize)}</p>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -5557,9 +5557,6 @@ const docTemplate = `{
         "privacyDTO.PrivacyExport": {
             "type": "object",
             "properties": {
-                "available_until": {
-                    "type": "string"
-                },
                 "date_created": {
                     "type": "string"
                 },
@@ -5580,6 +5577,9 @@ const docTemplate = `{
                 },
                 "userID": {
                     "type": "string"
+                },
+                "valid_until": {
+                    "type": "string"
                 }
             }
         },
@@ -5588,6 +5588,9 @@ const docTemplate = `{
             "properties": {
                 "date_created": {
                     "type": "string"
+                },
+                "file_size": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "string"

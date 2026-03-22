@@ -5551,9 +5551,6 @@
         "privacyDTO.PrivacyExport": {
             "type": "object",
             "properties": {
-                "available_until": {
-                    "type": "string"
-                },
                 "date_created": {
                     "type": "string"
                 },
@@ -5574,6 +5571,9 @@
                 },
                 "userID": {
                     "type": "string"
+                },
+                "valid_until": {
+                    "type": "string"
                 }
             }
         },
@@ -5582,6 +5582,9 @@
             "properties": {
                 "date_created": {
                     "type": "string"
+                },
+                "file_size": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "string"

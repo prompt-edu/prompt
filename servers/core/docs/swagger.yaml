@@ -1143,8 +1143,6 @@ definitions:
     type: object
   privacyDTO.PrivacyExport:
     properties:
-      available_until:
-        type: string
       date_created:
         type: string
       documents:
@@ -1159,11 +1157,15 @@ definitions:
         type: string
       userID:
         type: string
+      valid_until:
+        type: string
     type: object
   privacyDTO.PrivacyExportDocument:
     properties:
       date_created:
         type: string
+      file_size:
+        type: integer
       id:
         type: string
       object_key:

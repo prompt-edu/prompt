@@ -4,9 +4,10 @@ import {
   getExportDocDownloadURL,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, Card, CardContent } from '@tumaet/prompt-ui-components'
-import { Download, FolderArchive, Loader2 } from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
+import { formatFileSize } from './formatFileSize'
 
 interface PrivacyExportDocumentProps {
   exportId: string
@@ -34,8 +35,8 @@ export function PrivacyExportDocument({
     <Card className='border border-gray-200'>
       <CardContent className='p-4 relative'>
         <div className='flex items-start gap-3'>
-          <div className='bg-gray-100 p-2 rounded-full shrink-0'>
-            <FolderArchive className='w-5 h-5 text-gray-700' />
+          <div className='shrink-0'>
+            <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
           </div>
           <div className='flex-1 min-w-0'>
             <p className='font-semibold text-gray-900 truncate'>
@@ -44,9 +45,11 @@ export function PrivacyExportDocument({
             <p className='text-xs text-gray-500 mt-0.5'>
               {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
             </p>
-            <div className='mt-1 w-fit'>
-              <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
-            </div>
+            {privacy_export_document.file_size != null && (
+              <p className='text-xs text-gray-500 mt-0.5'>
+                {formatFileSize(privacy_export_document.file_size)}
+              </p>
+            )}
           </div>
         </div>
         <div className='absolute bottom-4 right-4'>

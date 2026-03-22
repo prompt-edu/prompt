@@ -4,39 +4,35 @@ import { CircleCheck, CircleDashed, CircleX } from 'lucide-react'
 
 interface PrivacyExportStatusProps {
   privacy_export_status: ExportStatus
+  size?: number
 }
 
 const statusStyles: Record<ExportStatus, string> = {
-  [ExportStatus.failed]: 'bg-red-200 text-red-800',
-  [ExportStatus.pending]: 'bg-gray-200 text-gray-800',
-  [ExportStatus.complete]: 'bg-green-200 text-green-800',
+  [ExportStatus.failed]: 'bg-red-100 text-red-600',
+  [ExportStatus.pending]: 'bg-gray-100 text-gray-500',
+  [ExportStatus.complete]: 'bg-green-100 text-green-600',
 }
 
-const statusIcons: Record<ExportStatus, React.ReactNode> = {
-  [ExportStatus.failed]: <CircleX size={12} />,
-  [ExportStatus.pending]: <CircleDashed className='animate-spin' size={12} />,
-  [ExportStatus.complete]: <CircleCheck size={12} />,
-}
+const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
+  [ExportStatus.failed]: <CircleX size={size} />,
+  [ExportStatus.pending]: <CircleDashed className='animate-spin' size={size} />,
+  [ExportStatus.complete]: <CircleCheck size={size} />,
+})
 
-export function PrivacyExportStatus({ privacy_export_status }: PrivacyExportStatusProps) {
+export function PrivacyExportStatus({ privacy_export_status, size = 20 }: PrivacyExportStatusProps) {
   return (
-    <div
-      className={
-        'px-2 py-1 rounded-full text-xs flex items-center gap-1 ' +
-        statusStyles[privacy_export_status]
-      }
-    >
+    <div className={'p-2 rounded-full ' + statusStyles[privacy_export_status]}>
       <AnimatePresence mode='wait' initial={false}>
         <motion.span
           key={privacy_export_status}
+          className='flex'
           initial={{ scale: 0.5 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
         >
-          {statusIcons[privacy_export_status]}
+          {statusIcons(size)[privacy_export_status]}
         </motion.span>
       </AnimatePresence>
-      <span>{privacy_export_status}</span>
     </div>
   )
 }

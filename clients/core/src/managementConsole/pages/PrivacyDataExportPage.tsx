@@ -3,24 +3,22 @@ import {
   getLatestStudentDataExport,
   getStudentDataExportStatus,
   requestStudentDataExport,
+  type LatestExportResponse,
 } from '@core/network/queries/privacyStudentDataExport'
 import { useQuery } from '@tanstack/react-query'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  ManagementPageHeader,
-} from '@tumaet/prompt-ui-components'
+import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyExportDocument } from '../shared/components/PrivacyExport/PrivacyExportDoc'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
+import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
+import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
+import { downloadAll } from '../shared/downloadAll'
+
+function getExportIDFromLatest(latest: LatestExportResponse | undefined): string | undefined {
+  if (latest?.status === 'exists') return latest.export.id
+  return undefined
+}
 
 export function PrivacyDataExportPage() {
   const [exportConfirmDialogOpen, setExportConfirmDialogOpen] = useState(false)
@@ -36,7 +34,7 @@ export function PrivacyDataExportPage() {
     enabled: false,
   })
   // Prefer a freshly triggered export ID; fall back to the existing one from the server
-  const exportID = exportQuery.data?.id ?? latestExportQuery.data?.id
+  const exportID = exportQuery.data?.id ?? getExportIDFromLatest(latestExportQuery.data)
 
   const statusQuery = useQuery({
     queryKey: ['data-export-status', exportID],
@@ -59,16 +57,28 @@ export function PrivacyDataExportPage() {
     statusQuery.data?.status !== ExportStatus.failed &&
     !!exportID
 
+  const isRateLimited = latestExportQuery.data?.status === 'rate_limited'
+
   return (
     <div>
       <ManagementPageHeader>Data Export</ManagementPageHeader>
+
+      {isRateLimited && latestExportQuery.data?.status === 'rate_limited' && (
+        <PrivacyExportRateLimitNotice
+          until={latestExportQuery.data?.retry_after}
+          className='mb-6'
+        />
+      )}
 
       {!statusQuery.data && (
         <>
           <p className='mb-6 text-gray-600'>
             Download a copy of all personal data stored about you in our systems.
           </p>
-          <Button disabled={exportQuery.isLoading} onClick={() => setExportConfirmDialogOpen(true)}>
+          <Button
+            disabled={exportQuery.isLoading || isRateLimited}
+            onClick={() => setExportConfirmDialogOpen(true)}
+          >
             {exportQuery.isLoading && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
             Request data export
           </Button>
@@ -93,21 +103,11 @@ export function PrivacyDataExportPage() {
         </div>
       )}
 
-      <AlertDialog open={exportConfirmDialogOpen} onOpenChange={setExportConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Request Data Export</AlertDialogTitle>
-            <AlertDialogDescription className='mt-2 space-y-1'>
-              <p>You can only request a data export every 30 days.</p>
-              <p>The export process might take a few minutes.</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmExport}>Request Data Export</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PrivacyExportConfirmationDialog
+        isOpen={exportConfirmDialogOpen}
+        setIsOpen={setExportConfirmDialogOpen}
+        handleConfirm={handleConfirmExport}
+      />
     </div>
   )
 }

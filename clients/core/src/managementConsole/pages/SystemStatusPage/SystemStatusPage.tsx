@@ -48,7 +48,7 @@ export const SystemStatusPage = () => {
             {availableServices.map(renderCard)}
           </div>
         ) : (
-          <p className='text-sm text-muted-foreground'>No services available</p>
+          <p className='text-sm text-muted-foreground'>None</p>
         )}
       </div>
 

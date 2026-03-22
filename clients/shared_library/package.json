@@ -40,7 +40,7 @@
     "./components/*": "./components/*",
     "./src/*": "./src/*"
   },
-  "packageManager": "yarn@4.12.0",
+  "packageManager": "yarn@4.13.0",
   "devDependencies": {
     "tailwindcss": "^4.2.1",
     "webpack": "^5.105.4",

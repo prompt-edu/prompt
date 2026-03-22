@@ -98,6 +98,7 @@ jobs:
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
   deploy-dev:
+    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
     needs: [build-clients, build-servers]
     uses: ./.github/workflows/deploy-docker.yml
     secrets: inherit

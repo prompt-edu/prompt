@@ -14,6 +14,6 @@ export const CAPABILITY_PRIVACY_DELETION = 'privacy.deletion'
 export const CAPABILITY_LABELS: Record<string, string> = {
   [CAPABILITY_PHASE_COPY]: 'Phase Copy',
   [CAPABILITY_PHASE_CONFIG]: 'Phase Config',
-  [CAPABILITY_PRIVACY_EXPORT]: 'Student Export (GDPR)',
-  [CAPABILITY_PRIVACY_DELETION]: 'Student Deletion (GDPR)',
+  [CAPABILITY_PRIVACY_EXPORT]: 'Privacy Data Export',
+  [CAPABILITY_PRIVACY_DELETION]: 'Privacy Data Deletion',
 }

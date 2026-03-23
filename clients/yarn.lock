@@ -4252,21 +4252,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.95.0":
-  version: 5.95.0
-  resolution: "@tanstack/query-core@npm:5.95.0"
-  checksum: 10c0/ccd53d42748f654c2ad203efd76b4e6a654bc960096e5a10377938b8ee7600bf1d82c2062ffc75eb6320915e9943cf646183c291ff91a64716f76904d2a1fc97
+"@tanstack/query-core@npm:5.95.1":
+  version: 5.95.1
+  resolution: "@tanstack/query-core@npm:5.95.1"
+  checksum: 10c0/56e35e3213365ca5b95a487843e8951a9c2afce757a04eca0a5a5b5355d58276e492fdcef7d2ae83d1337ced34a7553eeb65d787151927ee9ea7def33e165d02
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.95.0":
-  version: 5.95.0
-  resolution: "@tanstack/react-query@npm:5.95.0"
+"@tanstack/react-query@npm:^5.95.1":
+  version: 5.95.1
+  resolution: "@tanstack/react-query@npm:5.95.1"
   dependencies:
-    "@tanstack/query-core": "npm:5.95.0"
+    "@tanstack/query-core": "npm:5.95.1"
   peerDependencies:
     react: ^18 || ^19
-  checksum: 10c0/67025fa88de906a7b5511c6ac09f953904f0c3f72976ca2af578b63a005b27320d95fe05e1f01dcefae9bfeb3db11b190a06908c32014009c363f363cb0eb0ad
+  checksum: 10c0/9b0168b5539e13edff67bfbaf1a4f2a5517256ca1cd07ca56f01123798c4c5dc5ebbba96ce6d85749e09ba435e6fc289015398d9c75b12b5efc4dd6b0c02efeb
   languageName: node
   linkType: hard
 
@@ -15089,7 +15089,7 @@ __metadata:
     "@radix-ui/react-icons": "npm:^1.3.2"
     "@radix-ui/react-toolbar": "npm:^1.1.11"
     "@tailwindcss/typography": "npm:^0.5.19"
-    "@tanstack/react-query": "npm:^5.95.0"
+    "@tanstack/react-query": "npm:^5.95.1"
     "@tanstack/react-table": "npm:^8.21.3"
     "@tiptap/extension-code-block-lowlight": "npm:^3.20.4"
     "@tiptap/extension-color": "npm:^3.20.4"

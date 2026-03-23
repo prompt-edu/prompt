@@ -1421,19 +1421,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dagrejs/dagre@npm:^2.0.4":
-  version: 2.0.4
-  resolution: "@dagrejs/dagre@npm:2.0.4"
+"@dagrejs/dagre@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "@dagrejs/dagre@npm:3.0.0"
   dependencies:
-    "@dagrejs/graphlib": "npm:3.0.4"
-  checksum: 10c0/c9e0cd2bc1ed449cc2b936acd795ab58623b8136c82b0f53bd107774273c8bd03d4371be777ec3c7e5fa5875bc69b7592146274b968004bbf1e18a0900db8121
+    "@dagrejs/graphlib": "npm:4.0.1"
+  checksum: 10c0/f5d43819697b33864e8aced460fbf972a7151758b5f0aea8ee47315b9ab957782b2ab8beb4e1e2bff892b1820b0ff8ab8a22abc12a65ebb37e205e3a7f63a6e0
   languageName: node
   linkType: hard
 
-"@dagrejs/graphlib@npm:3.0.4":
-  version: 3.0.4
-  resolution: "@dagrejs/graphlib@npm:3.0.4"
-  checksum: 10c0/ee43d221ab9388e25efd4c88f2d837efe7e670de94776f8a451ec45050e54a3739c70ffbd8c294ecb135077bd730015d131eae5fd524f1d31ac9f3fd2e3405ef
+"@dagrejs/graphlib@npm:4.0.1":
+  version: 4.0.1
+  resolution: "@dagrejs/graphlib@npm:4.0.1"
+  checksum: 10c0/03ab574f2eb7d87173af0b9d8bbae87c10e225778b8144a800c663afe307ff71d851c13d96d32ec91db85e325d64914cdabbab1ce76fb043e0a5538e60bb51bd
   languageName: node
   linkType: hard
 
@@ -7212,7 +7212,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "client@workspace:core"
   dependencies:
-    "@dagrejs/dagre": "npm:^2.0.4"
+    "@dagrejs/dagre": "npm:^3.0.0"
     "@sentry/react": "npm:^10.45.0"
     "@xyflow/react": "npm:^12.10.1"
     clean-webpack-plugin: "npm:^4.0.0"

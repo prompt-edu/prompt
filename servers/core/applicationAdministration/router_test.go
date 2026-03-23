@@ -369,6 +369,61 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 	assert.Equal(suite.T(), "already applied", responseBody["error"])
 }
 
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_UniversityStudent_Success() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "New",
+			LastName:             "UniversityStudent",
+			Email:                "newunistudent@tum.de",
+			Gender:               db.GenderMale,
+			HasUniversityAccount: true,
+			MatriculationNumber:  "03799999",
+			UniversityLogin:      "zz99zzz",
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 3},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+		AnswersText: []applicationDTO.CreateAnswerText{
+			{
+				ApplicationQuestionID: uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c"),
+				Answer:                "Valid motivation answer.",
+			},
+		},
+		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{
+			{
+				ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"),
+				Answer:                []string{"MacBook"},
+			},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(application)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/applications/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	suite.T().Logf("Response code: %d", resp.Code)
+	suite.T().Logf("Response body: %s", resp.Body.String())
+
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	var responseBody map[string]interface{}
+	err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "application posted", responseBody["message"])
+}
+
 func TestApplicationAdminRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(ApplicationAdminRouterTestSuite))
 }

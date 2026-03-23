@@ -30,8 +30,8 @@ func InitStorageModule(queries db.Queries, conn *pgxpool.Pool) error {
 	region := sdkUtils.GetEnv("S3_REGION", "us-east-1")
 	endpoint := sdkUtils.GetEnv("S3_ENDPOINT", "http://localhost:8334") // Empty for AWS S3, set for SeaweedFS/MinIO
 	publicEndpoint := sdkUtils.GetEnv("S3_PUBLIC_ENDPOINT", "")
-	accessKey := sdkUtils.GetEnv("S3_ACCESS_KEY", "")
-	secretKey := sdkUtils.GetEnv("S3_SECRET_KEY", "")
+	accessKey := sdkUtils.GetEnv("S3_ACCESS_KEY", "admin")
+	secretKey := sdkUtils.GetEnv("S3_SECRET_KEY", "admin123")
 	forcePathStyle := sdkUtils.GetEnv("S3_FORCE_PATH_STYLE", "true") == "true" // Required for SeaweedFS/MinIO
 
 	lowerEndpoint := strings.ToLower(endpoint)

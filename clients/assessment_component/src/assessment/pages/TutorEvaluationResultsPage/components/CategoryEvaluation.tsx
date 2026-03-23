@@ -12,7 +12,7 @@ import { CompetencyHeader } from '../../components/CompetencyHeader'
 import { ScoreLevelSelector } from '../../components/ScoreLevelSelector'
 import { StudentScoreBadge } from '../../components/badges'
 
-import { getLevelConfig } from '../../utils/getLevelConfig'
+import { getLevelConfig } from '@tumaet/prompt-ui-components'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 interface CategoryEvaluationProps {

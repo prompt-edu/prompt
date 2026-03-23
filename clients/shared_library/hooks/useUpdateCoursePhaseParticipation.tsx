@@ -48,9 +48,14 @@ export const useUpdateCoursePhaseParticipation = (): UseMutationResult<
           if (participant.courseParticipationID === newParticipationData.courseParticipationID) {
             return {
               ...participant,
+              passStatus: newParticipationData.passStatus ?? participant.passStatus,
               restrictedData: {
                 ...participant.restrictedData,
                 ...newParticipationData.restrictedData,
+              },
+              studentReadableData: {
+                ...participant.studentReadableData,
+                ...newParticipationData.studentReadableData,
               },
             }
           }

@@ -192,9 +192,9 @@ export const SettingsPage = () => {
   const selfHasChanges = !originalConfig
     ? Boolean(
         selfEvaluationEnabled ||
-          selfEvaluationSchema ||
-          selfEvaluationStart ||
-          selfEvaluationDeadline,
+        selfEvaluationSchema ||
+        selfEvaluationStart ||
+        selfEvaluationDeadline,
       )
     : selfEvaluationEnabled !== (originalConfig.selfEvaluationEnabled ?? false) ||
       selfEvaluationSchema !== (originalConfig.selfEvaluationSchema || '') ||
@@ -203,9 +203,9 @@ export const SettingsPage = () => {
   const peerHasChanges = !originalConfig
     ? Boolean(
         peerEvaluationEnabled ||
-          peerEvaluationSchema ||
-          peerEvaluationStart ||
-          peerEvaluationDeadline,
+        peerEvaluationSchema ||
+        peerEvaluationStart ||
+        peerEvaluationDeadline,
       )
     : peerEvaluationEnabled !== (originalConfig.peerEvaluationEnabled ?? false) ||
       peerEvaluationSchema !== (originalConfig.peerEvaluationSchema || '') ||
@@ -214,9 +214,9 @@ export const SettingsPage = () => {
   const tutorHasChanges = !originalConfig
     ? Boolean(
         tutorEvaluationEnabled ||
-          tutorEvaluationSchema ||
-          tutorEvaluationStart ||
-          tutorEvaluationDeadline,
+        tutorEvaluationSchema ||
+        tutorEvaluationStart ||
+        tutorEvaluationDeadline,
       )
     : tutorEvaluationEnabled !== (originalConfig.tutorEvaluationEnabled ?? false) ||
       tutorEvaluationSchema !== (originalConfig.tutorEvaluationSchema || '') ||

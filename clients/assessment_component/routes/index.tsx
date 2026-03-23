@@ -15,6 +15,7 @@ import { AssessmentStatisticsPage } from '../src/assessment/pages/AssessmentStat
 import { TutorOverviewPage } from '../src/assessment/pages/TutorOverviewPage/TutorOverviewPage'
 import { TutorEvaluationResultsPage } from '../src/assessment/pages/TutorEvaluationResultsPage/TutorEvaluationResultsPage'
 import { SettingsPage } from '../src/assessment/pages/SettingsPage/SettingsPage'
+import { SchemaDetailPage } from '../src/assessment/pages/SettingsPage/SchemaDetailPage'
 
 const routes: ExtendedRouteObject[] = [
   {
@@ -137,6 +138,15 @@ const routes: ExtendedRouteObject[] = [
     element: (
       <AssessmentDataShell>
         <SettingsPage />
+      </AssessmentDataShell>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/settings/schema/:assessmentType',
+    element: (
+      <AssessmentDataShell>
+        <SchemaDetailPage />
       </AssessmentDataShell>
     ),
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

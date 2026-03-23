@@ -12,7 +12,7 @@ export const useCreateAssessmentSchema = (setError: (error: string | undefined) 
     mutationFn: (assessmentSchema: CreateAssessmentSchemaRequest) =>
       createAssessmentSchema(phaseId ?? '', assessmentSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessmentSchemas'] })
+      queryClient.invalidateQueries({ queryKey: ['assessmentSchemas', phaseId] })
       setError(undefined)
     },
     onError: (error: any) => {

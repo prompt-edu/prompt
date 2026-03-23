@@ -65,6 +65,7 @@ export const AssessmentReminderCard = () => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [lastReport, setLastReport] = useState<EvaluationReminderReport | null>(null)
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const initializedPhaseIdRef = useRef<string | null>(null)
 
   const {
     data: coursePhase,
@@ -125,11 +126,16 @@ export const AssessmentReminderCard = () => {
 
   useEffect(() => {
     if (!coursePhase) return
+
+    const currentPhaseId = phaseId ?? coursePhase.id
+    if (initializedPhaseIdRef.current === currentPhaseId) return
+
     const parsed = parseReminderMetaData(coursePhase)
     setInitialMetaData(parsed)
     setSubject(parsed.subject)
     setContent(parsed.content)
-  }, [coursePhase])
+    initializedPhaseIdRef.current = currentPhaseId
+  }, [coursePhase, phaseId])
 
   useEffect(() => {
     if (!contentTextareaRef.current) return
@@ -194,6 +200,9 @@ export const AssessmentReminderCard = () => {
   }
 
   const getDisableReason = (reminderType: (typeof reminderTypes)[number]): string | undefined => {
+    if (isEvaluationCompletionsPending) {
+      return 'Wait until recipient counts have finished loading.'
+    }
     if (isModified) return 'Save template changes before sending reminders.'
     if (!courseMailingIsConfigured) return 'Configure course mailing reply-to settings first.'
     if (!templateComplete) return 'Reminder subject and content are required.'

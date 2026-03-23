@@ -38,13 +38,9 @@ export function ReminderSendConfirmationDialog({
               `Send reminder emails for ${confirmationReminderType.label.toLowerCase()} to ${confirmationReminderType.recipientCount} currently incomplete ${
                 confirmationReminderType.recipientCount === 1 ? 'student' : 'students'
               }?`}
+            {previousSentAt &&
+              ` A reminder for this type was already sent on ${formatSentAt(previousSentAt)}. Sending again will resend to currently incomplete students.`}
           </DialogDescription>
-          {previousSentAt && (
-            <DialogDescription>
-              A reminder for this type was already sent on {formatSentAt(previousSentAt)}. Sending
-              again will resend to currently incomplete students.
-            </DialogDescription>
-          )}
         </DialogHeader>
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>

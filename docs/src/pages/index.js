@@ -14,8 +14,105 @@ import {
   Lightbulb,
   Package,
   Plus,
+  Github,
+  BookOpen,
+  ExternalLink,
+  PlayCircle,
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
+
+const DEMOS = [
+  {
+    id: "course-configurator",
+    label: "Course Configurator",
+    description:
+      "Build your course by assembling phases via an intuitive drag-and-drop interface.",
+    gif: "/img/gifs/course-configurator.gif",
+    available: true,
+  },
+  {
+    id: "application",
+    label: "Application Phase",
+    description:
+      "Students apply to courses through a streamlined form — instructors review, filter, and accept applicants.",
+    gif: null,
+    available: false,
+  },
+  {
+    id: "interview",
+    label: "Interview Scheduling",
+    description:
+      "Coordinate and schedule interviews with applicants as part of the selection process.",
+    gif: null,
+    available: false,
+  },
+  {
+    id: "team-allocation",
+    label: "Team Allocation",
+    description:
+      "Assign students to teams and projects, manually or through automated matching.",
+    gif: null,
+    available: false,
+  },
+  {
+    id: "assessment",
+    label: "Assessment",
+    description:
+      "Run structured peer, self, and instructor assessments using a configurable rubric framework.",
+    gif: null,
+    available: false,
+  },
+];
+
+function DemoShowcase() {
+  const firstAvailable = DEMOS.find((d) => d.available);
+
+  return (
+    <section className={styles.section}>
+      <Heading as="h2" className={styles.sectionTitle}>
+        See PROMPT in Action
+      </Heading>
+      <p className={styles.sectionDescription}>
+        Watch how PROMPT simplifies course management — from setup to grading.
+      </p>
+
+      {firstAvailable && (
+        <div className={styles.demoFeatured}>
+          <div className={styles.demoFeaturedContent}>
+            <div className={styles.demoFeaturedMeta}>
+              <span className={styles.demoBadge}>
+                <PlayCircle size={14} />
+                {firstAvailable.label}
+              </span>
+              <p className={styles.demoFeaturedDescription}>
+                {firstAvailable.description}
+              </p>
+            </div>
+            <div className={styles.demoGifWrapper}>
+              <img
+                src={useBaseUrl(firstAvailable.gif)}
+                alt={`${firstAvailable.label} demo`}
+                className={styles.demoGif}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={styles.demoGrid}>
+        {DEMOS.filter((d) => !d.available).map((demo) => (
+          <div key={demo.id} className={styles.demoCard}>
+            <div className={styles.demoCardHeader}>
+              <span className={styles.demoComingSoonBadge}>Coming soon</span>
+              <h3 className={styles.demoCardTitle}>{demo.label}</h3>
+            </div>
+            <p className={styles.demoCardDescription}>{demo.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const promptLogo = useBaseUrl("/img/prompt_logo.svg");
@@ -43,21 +140,47 @@ export default function Home() {
             Project-Oriented Modular Platform for Teaching
           </p>
           <p className={styles.heroDescription}>
-            A flexible course management tool designed for project-based
+            A flexible course management platform designed for project-based
             university courses. Streamline administrative tasks and enhance the
             learning experience for both students and instructors.
           </p>
+          <div className={styles.heroActions}>
+            <a
+              href="https://prompt.aet.cit.tum.de/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroCTAPrimary}
+            >
+              <ExternalLink size={16} />
+              Live Demo
+            </a>
+            <Link to="/user/course_configurator" className={styles.heroCTASecondary}>
+              <BookOpen size={16} />
+              Documentation
+            </Link>
+            <a
+              href="https://github.com/prompt-edu/prompt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroCTASecondary}
+            >
+              <Github size={16} />
+              GitHub
+            </a>
+          </div>
         </div>
 
+        {/* Demo Showcase */}
+        <DemoShowcase />
+
         {/* Core Features */}
-        <section className={styles.section}>
+        <section className={styles.section} style={{ marginTop: "80px" }}>
           <Heading as="h2" className={styles.sectionTitle}>
             Core Features
           </Heading>
           <p className={styles.sectionDescription}>
-            The core features are built-in functionalities essential for course
-            management, while dynamically loaded phases are additional,
-            customizable components that can be added as needed.
+            Built-in functionalities essential for course management, with
+            dynamically loaded phases that extend the platform as needed.
           </p>
           <div className={styles.featureGrid}>
             <a
@@ -80,8 +203,7 @@ export default function Home() {
               <h2>Application Phase</h2>
               <p>
                 Streamline the application process for courses, making it easier
-                for students to apply and for instructors to manage
-                applications.
+                for students to apply and for instructors to manage applications.
               </p>
             </a>
             <a
@@ -100,7 +222,7 @@ export default function Home() {
         </section>
 
         {/* Dynamic Phases */}
-        <section className={styles.section} style={{ marginTop: "100px" }}>
+        <section className={styles.section} style={{ marginTop: "80px" }}>
           <Heading as="h2" className={styles.sectionTitle}>
             Dynamic Course Phases
           </Heading>
@@ -163,8 +285,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Quick Links */}
-        <section className={styles.section} style={{ marginTop: "100px" }}>
+        {/* Get in Touch */}
+        <section className={styles.section} style={{ marginTop: "80px" }}>
           <Heading as="h2" className={styles.sectionTitle}>
             Get in Touch
           </Heading>

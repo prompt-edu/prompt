@@ -7,7 +7,7 @@ require (
 	github.com/getsentry/sentry-go/logrus v0.43.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.1
 	github.com/prompt-edu/prompt-sdk v1.1.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/swaggo/swag v1.16.6

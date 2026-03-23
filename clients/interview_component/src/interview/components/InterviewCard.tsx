@@ -51,7 +51,6 @@ export const InterviewCard = () => {
   const { participations } = useParticipationStore()
   const participation = participations.find((p) => p.student.id === studentId)
   const restrictedData = (participation?.restrictedData ?? {}) as Record<string, unknown>
-  const studentReadableData = (participation?.studentReadableData ?? {}) as Record<string, unknown>
 
   const { user } = useAuthStore()
   const { coursePhase } = useCoursePhaseStore()
@@ -123,8 +122,20 @@ export const InterviewCard = () => {
           score: overrides?.score ?? score,
           interviewer: overrides?.interviewer ?? interviewer,
         },
-        studentReadableData,
+        studentReadableData: {},
         passStatus: passStatus ?? participation.passStatus,
+      })
+    }
+  }
+
+  const saveRestrictedDataPatch = (patch: Record<string, unknown>) => {
+    if (participation && coursePhase) {
+      mutate({
+        coursePhaseID: coursePhase.id,
+        courseParticipationID: participation.courseParticipationID,
+        restrictedData: patch,
+        studentReadableData: {},
+        passStatus: participation.passStatus,
       })
     }
   }
@@ -165,7 +176,7 @@ export const InterviewCard = () => {
               onScoreChange={(value) => {
                 const nextScore = mapScoreLevelToNumber(value)
                 setScore(nextScore)
-                saveChanges(undefined, { score: nextScore })
+                saveRestrictedDataPatch({ score: nextScore })
               }}
               completed={isPending}
               descriptionsByLevel={scoreLevelDescriptions}

@@ -50,6 +50,8 @@ export const InterviewCard = () => {
   const { studentId } = useParams<{ studentId: string }>()
   const { participations } = useParticipationStore()
   const participation = participations.find((p) => p.student.id === studentId)
+  const restrictedData = (participation?.restrictedData ?? {}) as Record<string, unknown>
+  const studentReadableData = (participation?.studentReadableData ?? {}) as Record<string, unknown>
 
   const { user } = useAuthStore()
   const { coursePhase } = useCoursePhaseStore()
@@ -116,11 +118,12 @@ export const InterviewCard = () => {
         coursePhaseID: coursePhase.id,
         courseParticipationID: participation.courseParticipationID,
         restrictedData: {
+          ...restrictedData,
           interviewAnswers: overrides?.answers ?? answers,
           score: overrides?.score ?? score,
           interviewer: overrides?.interviewer ?? interviewer,
         },
-        studentReadableData: {},
+        studentReadableData,
         passStatus: passStatus ?? participation.passStatus,
       })
     }
@@ -140,6 +143,9 @@ export const InterviewCard = () => {
       saveChanges()
     }
   }
+
+  const isRejected = participation?.passStatus === PassStatus.FAILED
+  const isPassed = participation?.passStatus === PassStatus.PASSED
 
   return (
     <Card>
@@ -179,19 +185,29 @@ export const InterviewCard = () => {
             <div className='flex flex-wrap gap-2'>
               <Button
                 variant='outline'
-                disabled={isPending || participation?.passStatus === PassStatus.FAILED}
-                className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
+                disabled={isPending}
+                aria-pressed={isRejected}
+                className={
+                  isRejected
+                    ? 'border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white'
+                    : 'border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700'
+                }
                 onClick={() => saveChanges(PassStatus.FAILED)}
               >
                 Reject
               </Button>
               <Button
-                variant='default'
-                disabled={isPending || participation?.passStatus === PassStatus.PASSED}
-                className='bg-green-500 hover:bg-green-600 text-white'
+                variant='outline'
+                disabled={isPending}
+                aria-pressed={isPassed}
+                className={
+                  isPassed
+                    ? 'border-green-600 bg-green-600 text-white hover:bg-green-700 hover:text-white'
+                    : 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700'
+                }
                 onClick={() => saveChanges(PassStatus.PASSED)}
               >
-                Accept
+                Pass
               </Button>
             </div>
           </div>

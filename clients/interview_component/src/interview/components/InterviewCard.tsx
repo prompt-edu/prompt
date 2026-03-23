@@ -150,11 +150,11 @@ export const InterviewCard = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className='mb-4 flex flex-col gap-4 lg:flex-row lg:justify-between'>
-          <div className='flex-1 space-y-2'>
+        <div className='mb-4 space-y-4'>
+          <div className='space-y-2'>
             <Label>Interview Score</Label>
             <ScoreLevelSelector
-              className='grid gap-2 md:grid-cols-5'
+              className='grid gap-2 xl:grid-cols-5'
               selectedScore={mapStoredScoreToScoreLevel(score)}
               onScoreChange={(value) => {
                 const nextScore = mapScoreLevelToNumber(value)
@@ -176,7 +176,7 @@ export const InterviewCard = () => {
           </div>
           <div className='space-y-2'>
             <Label>Resolution</Label>
-            <div className='space-x-2'>
+            <div className='flex flex-wrap gap-2'>
               <Button
                 variant='outline'
                 disabled={isPending || participation?.passStatus === PassStatus.FAILED}

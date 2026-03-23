@@ -97,12 +97,12 @@ export const AssessmentCard = ({
         <CardTitle>Assessment</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className='grid gap-6 lg:grid-cols-2'>
+        <div className='space-y-6'>
           <div>
             <Label className='text-sm font-medium'>Application Score</Label>
             <div className='mt-1 space-y-2'>
               <ScoreLevelSelector
-                className='grid gap-2 md:grid-cols-5'
+                className='grid gap-2 xl:grid-cols-5'
                 selectedScore={mapStoredScoreToScoreLevel(currentScore)}
                 onScoreChange={(value) => {
                   const nextScore = mapScoreLevelToNumber(value)
@@ -127,7 +127,7 @@ export const AssessmentCard = ({
             <Label htmlFor='resolution' className='text-sm font-medium'>
               Resolution
             </Label>
-            <div className='flex items-center space-x-4 mt-1'>
+            <div className='mt-1 flex flex-wrap items-center gap-4'>
               <Button
                 variant='outline'
                 size='sm'

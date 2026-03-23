@@ -285,6 +285,7 @@ export const CoursePhaseConfigSelection = ({
         }
         canSave={Boolean(assessmentSchemaId)}
         onCreateSchemaError={(nextError) => handleCardError(AssessmentType.ASSESSMENT, nextError)}
+        showToggle={false}
       >
         <div className='grid gap-6 xl:grid-cols-2'>
           <div className='space-y-4'>

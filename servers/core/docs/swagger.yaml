@@ -3099,6 +3099,40 @@ paths:
       summary: Update course template status
       tags:
       - courses
+  /courses/check-name:
+    get:
+      description: Check if a course name is already taken for a given semester tag
+      parameters:
+      - description: Course name
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Semester tag
+        in: query
+        name: semesterTag
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Check course name availability
+      tags:
+      - courses
   /courses/self:
     get:
       description: Get the course IDs for the current user

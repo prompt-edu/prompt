@@ -11,9 +11,6 @@ on:
       server_core_image_tag:
         description: "The tag of the image that was built"
         value: ${{ jobs.core.outputs.image_tag }}
-      server_intro_course_image_tag:
-        description: "The tag of the image that was built"
-        value: ${{ jobs.intro-course.outputs.image_tag }}
       server_team_allocation_image_tag:
         description: "The tag of the image that was built"
         value: ${{ jobs.team-allocation.outputs.image_tag }}
@@ -41,14 +38,6 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-core # Defaults to the repository name
       docker-file: servers/Dockerfile # Defaults to Dockerfile
       docker-context: ./servers/core
-      tags: ${{ inputs.release_tag }}
-    secrets: inherit
-  intro-course:
-    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
-    with:
-      image-name: ghcr.io/prompt-edu/prompt/prompt-server-intro-course
-      docker-file: servers/Dockerfile
-      docker-context: ./servers/intro_course
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   team-allocation:

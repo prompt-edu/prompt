@@ -2,7 +2,11 @@ import { Avatar, AvatarImage, AvatarFallback } from '@tumaet/prompt-ui-component
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { getGravatarUrl } from '@/lib/getGravatarUrl'
 
-export function NavAvatar() {
+interface NavAvatarProps {
+  avatarOnly?: boolean
+}
+
+export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
   const { user } = useAuthStore()
 
   const userName = user?.firstName + ' ' + user?.lastName || ' Unknown User'
@@ -15,10 +19,12 @@ export function NavAvatar() {
         <AvatarImage src={getGravatarUrl(userEmail)} alt={userName} />
         <AvatarFallback className='rounded-lg'>{initials}</AvatarFallback>
       </Avatar>
-      <div className='grid flex-1 text-left text-sm leading-tight'>
-        <span className='truncate font-semibold'>{userName}</span>
-        <span className='truncate text-xs'>{userEmail}</span>
-      </div>
+      {!avatarOnly && (
+        <div className='grid flex-1 text-left text-sm leading-tight'>
+          <span className='truncate font-semibold'>{userName}</span>
+          <span className='truncate text-xs'>{userEmail}</span>
+        </div>
+      )}
     </>
   )
 }

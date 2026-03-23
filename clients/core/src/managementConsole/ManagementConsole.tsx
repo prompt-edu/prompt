@@ -91,13 +91,14 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
       const selectedCourse = fetchedCourses.find((course) => course.id === retrievedCourseID)
       if (retrievedCourseID && selectedCourse !== undefined) {
         navigate(`/management/course/${retrievedCourseID}`)
+      } else if (fetchedCourses.length === 1) {
+        // Single-course users should go straight to their course overview.
+        navigate(`/management/course/${fetchedCourses[0].id}`)
+      } else if (fetchedCourses.length > 1) {
+        // Multi-course users should see the actual management landing page.
+        navigate('/management/courses')
       } else {
         removeSelectedCourseID()
-      }
-
-      // if you have only one course, redirect to it
-      if (fetchedCourses.length === 1) {
-        navigate(`/management/course/${fetchedCourses[0].id}`)
       }
     } else if (
       [

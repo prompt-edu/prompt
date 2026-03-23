@@ -132,7 +132,6 @@ export const AssessmentCard = ({
                 variant='outline'
                 size='sm'
                 disabled={isPending || acceptanceStatus === PassStatus.FAILED}
-                // className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
                 onClick={() => handleAcceptanceStatusChange(PassStatus.FAILED)}
               >
                 <X />
@@ -142,7 +141,6 @@ export const AssessmentCard = ({
                 variant='default'
                 size='sm'
                 disabled={isPending || acceptanceStatus === PassStatus.PASSED}
-                // className='bg-green-500 hover:bg-green-600 text-white'
                 onClick={() => handleAcceptanceStatusChange(PassStatus.PASSED)}
               >
                 <Check />

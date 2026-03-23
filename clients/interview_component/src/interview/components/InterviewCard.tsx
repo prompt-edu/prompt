@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageSquare, User } from 'lucide-react'
+import { Check, MessageSquare, User, X } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -196,28 +196,22 @@ export const InterviewCard = () => {
             <div className='flex flex-wrap gap-2'>
               <Button
                 variant='outline'
+                size='sm'
                 disabled={isPending}
                 aria-pressed={isRejected}
-                className={
-                  isRejected
-                    ? 'border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white'
-                    : 'border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700'
-                }
                 onClick={() => saveChanges(PassStatus.FAILED)}
               >
+                <X />
                 Reject
               </Button>
               <Button
-                variant='outline'
+                variant='default'
+                size='sm'
                 disabled={isPending}
                 aria-pressed={isPassed}
-                className={
-                  isPassed
-                    ? 'border-green-600 bg-green-600 text-white hover:bg-green-700 hover:text-white'
-                    : 'border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700'
-                }
                 onClick={() => saveChanges(PassStatus.PASSED)}
               >
+                <Check />
                 Pass
               </Button>
             </div>

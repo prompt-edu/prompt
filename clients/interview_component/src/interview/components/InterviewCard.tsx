@@ -10,6 +10,7 @@ import {
   Separator,
   TooltipProvider,
   MinimalTiptapEditor,
+  ScoreLevelSelector,
   Input,
   Label,
 } from '@tumaet/prompt-ui-components'
@@ -17,8 +18,33 @@ import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 import type { InterviewQuestion } from '../interfaces/InterviewQuestion'
 import type { InterviewAnswer } from '../interfaces/InterviewAnswer'
-import { PassStatus, useAuthStore } from '@tumaet/prompt-shared-state'
+import {
+  mapNumberToScoreLevel,
+  mapScoreLevelToNumber,
+  PassStatus,
+  ScoreLevel,
+  useAuthStore,
+} from '@tumaet/prompt-shared-state'
 import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
+
+const scoreLevelLabels: Partial<Record<ScoreLevel, string>> = {
+  [ScoreLevel.VeryGood]: 'Very Good',
+  [ScoreLevel.Good]: 'Good',
+  [ScoreLevel.Ok]: 'Okay',
+  [ScoreLevel.Bad]: 'Bad',
+  [ScoreLevel.VeryBad]: 'Very Bad',
+}
+
+const scoreLevelDescriptions: Record<ScoreLevel, string> = {
+  [ScoreLevel.VeryGood]: 'Strong final recommendation after the interview.',
+  [ScoreLevel.Good]: 'Positive final recommendation with minor reservations.',
+  [ScoreLevel.Ok]: 'Mixed interview outcome with a neutral final recommendation.',
+  [ScoreLevel.Bad]: 'Weak interview outcome with notable concerns.',
+  [ScoreLevel.VeryBad]: 'Do not recommend based on the interview outcome.',
+}
+
+const mapStoredScoreToScoreLevel = (score: number | undefined): ScoreLevel | undefined =>
+  score !== undefined && score >= 1 && score <= 5 ? mapNumberToScoreLevel(score) : undefined
 
 export const InterviewCard = () => {
   const { studentId } = useParams<{ studentId: string }>()
@@ -38,7 +64,7 @@ export const InterviewCard = () => {
     participation?.restrictedData?.interviewer,
   )
 
-  const { mutate } = useUpdateCoursePhaseParticipation()
+  const { mutate, isPending } = useUpdateCoursePhaseParticipation()
 
   // Compare current state with original data
   const isModified =
@@ -77,15 +103,22 @@ export const InterviewCard = () => {
     })
   }
 
-  const saveChanges = (passStatus?: PassStatus) => {
+  const saveChanges = (
+    passStatus?: PassStatus,
+    overrides?: {
+      answers?: InterviewAnswer[]
+      score?: number
+      interviewer?: string
+    },
+  ) => {
     if (participation && coursePhase) {
       mutate({
         coursePhaseID: coursePhase.id,
         courseParticipationID: participation.courseParticipationID,
         restrictedData: {
-          interviewAnswers: answers,
-          score: score,
-          interviewer: interviewer,
+          interviewAnswers: overrides?.answers ?? answers,
+          score: overrides?.score ?? score,
+          interviewer: overrides?.interviewer ?? interviewer,
         },
         studentReadableData: {},
         passStatus: passStatus ?? participation.passStatus,
@@ -95,7 +128,9 @@ export const InterviewCard = () => {
 
   const setInterviewerAsSelf = () => {
     if (user) {
-      setInterviewer(user.firstName + ' ' + user.lastName)
+      const nextInterviewer = `${user.firstName} ${user.lastName}`
+      setInterviewer(nextInterviewer)
+      saveChanges(undefined, { interviewer: nextInterviewer })
     }
   }
 
@@ -115,27 +150,36 @@ export const InterviewCard = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className='flex flex-row space-x-4 mb-4 justify-between'>
-          <div className='space-y-2'>
-            <Label htmlFor='score'>Interview Score</Label>
-            <Input
-              id='score'
-              className='w-48'
-              value={score}
-              onChange={(e) => setScore(Number(e.target.value))}
-              onBlur={handleBlur}
-              type='number'
-              min='0'
-              max='100'
-              placeholder='Enter an interview score'
+        <div className='mb-4 flex flex-col gap-4 lg:flex-row lg:justify-between'>
+          <div className='flex-1 space-y-2'>
+            <Label>Interview Score</Label>
+            <ScoreLevelSelector
+              className='grid gap-2 md:grid-cols-5'
+              selectedScore={mapStoredScoreToScoreLevel(score)}
+              onScoreChange={(value) => {
+                const nextScore = mapScoreLevelToNumber(value)
+                setScore(nextScore)
+                saveChanges(undefined, { score: nextScore })
+              }}
+              completed={isPending}
+              descriptionsByLevel={scoreLevelDescriptions}
+              labelsByLevel={scoreLevelLabels}
+              showIndicators={false}
+              hideUnselectedOnDesktop={false}
             />
+            {score !== undefined && (score < 1 || score > 5) && (
+              <p className='text-sm text-muted-foreground'>
+                Existing numeric score {score} is outside the 1-5 selector range. Selecting a level
+                will replace it.
+              </p>
+            )}
           </div>
-          <div className='col-span-2 space-y-2'>
+          <div className='space-y-2'>
             <Label>Resolution</Label>
             <div className='space-x-2'>
               <Button
                 variant='outline'
-                disabled={participation?.passStatus === PassStatus.FAILED}
+                disabled={isPending || participation?.passStatus === PassStatus.FAILED}
                 className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
                 onClick={() => saveChanges(PassStatus.FAILED)}
               >
@@ -143,7 +187,7 @@ export const InterviewCard = () => {
               </Button>
               <Button
                 variant='default'
-                disabled={participation?.passStatus === PassStatus.PASSED}
+                disabled={isPending || participation?.passStatus === PassStatus.PASSED}
                 className='bg-green-500 hover:bg-green-600 text-white'
                 onClick={() => saveChanges(PassStatus.PASSED)}
               >
@@ -166,7 +210,7 @@ export const InterviewCard = () => {
               <Button
                 variant='outline'
                 className='shrink-0'
-                disabled={user === undefined}
+                disabled={isPending || user === undefined}
                 onClick={setInterviewerAsSelf}
               >
                 <User className='h-4 w-4 mr-2' />

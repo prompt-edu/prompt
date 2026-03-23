@@ -42,7 +42,7 @@ export const SchemaDetailPage = () => {
         <Button asChild variant='outline'>
           <Link to='../..' relative='path'>
             <ArrowLeft className='mr-2 h-4 w-4' />
-            Back to settings
+            Settings
           </Link>
         </Button>
         <ErrorPage message='The requested schema type does not exist.' />
@@ -56,7 +56,7 @@ export const SchemaDetailPage = () => {
         <Button asChild variant='outline'>
           <Link to='../..' relative='path'>
             <ArrowLeft className='mr-2 h-4 w-4' />
-            Back to settings
+            Settings
           </Link>
         </Button>
         <ErrorPage message='Could not load assessment schemas.' />
@@ -74,7 +74,7 @@ export const SchemaDetailPage = () => {
         <Button asChild variant='outline'>
           <Link to='../..' relative='path'>
             <ArrowLeft className='mr-2 h-4 w-4' />
-            Back to settings
+            Settings
           </Link>
         </Button>
         <ErrorPage message={`${content.title} is currently disabled for this phase.`} />
@@ -88,7 +88,7 @@ export const SchemaDetailPage = () => {
         <Button asChild variant='outline'>
           <Link to='../..' relative='path'>
             <ArrowLeft className='mr-2 h-4 w-4' />
-            Back to settings
+            Settings
           </Link>
         </Button>
         <ErrorPage message='No schema is configured for this assessment type yet.' />
@@ -105,7 +105,7 @@ export const SchemaDetailPage = () => {
           <Button asChild variant='outline'>
             <Link to='../..' relative='path'>
               <ArrowLeft className='mr-2 h-4 w-4' />
-              Back to settings
+              Settings
             </Link>
           </Button>
           <ManagementPageHeader>{content.detailTitle}</ManagementPageHeader>

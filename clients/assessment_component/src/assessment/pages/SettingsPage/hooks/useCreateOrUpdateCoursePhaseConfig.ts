@@ -1,11 +1,28 @@
+import { AxiosError } from 'axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
 import { CreateOrUpdateCoursePhaseConfigRequest } from '../../../interfaces/coursePhaseConfig'
 import { createOrUpdateCoursePhaseConfig } from '../../../network/mutations/createOrUpdateCoursePhaseConfig'
 
+interface CreateOrUpdateCoursePhaseConfigResponseError {
+  error?: string
+}
+
+interface UseCreateOrUpdateCoursePhaseConfigOptions {
+  onSuccess?: () => void
+  onError?: (errorMessage: string) => void
+}
+
+const getErrorMessage = (error: unknown): string => {
+  const responseError = (error as AxiosError<CreateOrUpdateCoursePhaseConfigResponseError>)
+    ?.response?.data?.error
+
+  return responseError || 'An unexpected error occurred. Please try again.'
+}
+
 export const useCreateOrUpdateCoursePhaseConfig = (
-  setError: (error: string | undefined) => void,
+  options?: UseCreateOrUpdateCoursePhaseConfigOptions,
 ) => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
@@ -15,15 +32,10 @@ export const useCreateOrUpdateCoursePhaseConfig = (
       createOrUpdateCoursePhaseConfig(phaseId ?? '', request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coursePhaseConfig', phaseId] })
-      setError(undefined)
+      options?.onSuccess?.()
     },
-    onError: (error: any) => {
-      if (error?.response?.data?.error) {
-        const serverError = error.response.data?.error
-        setError(serverError)
-      } else {
-        setError('An unexpected error occurred. Please try again.')
-      }
+    onError: (error: unknown) => {
+      options?.onError?.(getErrorMessage(error))
     },
   })
 }

@@ -26,6 +26,7 @@ const SHOWCASE_ITEMS = [
     title: "Course Configuration",
     description:
       "Design your course by assembling independent phases with a drag-and-drop configurator. Link outputs between phases, configure participation settings, and tailor the entire course structure to your exact teaching needs — no technical knowledge required.",
+    mp4Src: "/img/gifs/course-configurator.mp4",
     gifSrc: "/img/gifs/course-configurator.gif",
     gifAlt: "Course Configurator demo",
     link: "/user/course_configurator",
@@ -36,6 +37,7 @@ const SHOWCASE_ITEMS = [
     title: "Application & Student Management",
     description:
       "Streamline the entire application lifecycle. Students apply online, instructors review and manage submissions, and accepted participants are automatically onboarded into the course.",
+    mp4Src: "/img/gifs/application-management.mp4",
     gifSrc: "/img/gifs/application-management.gif",
     gifAlt: "Application management demo",
     link: "/user/application",
@@ -47,6 +49,7 @@ const SHOWCASE_ITEMS = [
     title: "Assessment",
     description:
       "PROMPT's assessment engine is one of its most powerful capabilities. Configure multi-criteria rubrics, run structured peer reviews, self-assessments, and instructor evaluations — all in one unified workflow. Results are aggregated automatically, giving instructors instant, detailed insight into student performance across the entire cohort.",
+    mp4Src: "/img/gifs/assessment.mp4",
     gifSrc: "/img/gifs/assessment.gif",
     gifAlt: "Assessment demo",
     link: "/user/assessment",
@@ -57,7 +60,9 @@ const SHOWCASE_ITEMS = [
 
 function ShowcaseItem({ item }) {
   const ref = useRef(null);
+  const mp4Src = useBaseUrl(item.mp4Src || "");
   const gifSrc = useBaseUrl(item.gifSrc || "");
+  const hasVideo = Boolean(item.mp4Src);
 
   useEffect(() => {
     const el = ref.current;
@@ -114,7 +119,25 @@ function ShowcaseItem({ item }) {
       className={`${styles.showcaseItem} ${item.reversed ? styles.showcaseItemReversed : ""}`}
     >
       <div className={styles.showcaseMedia}>
-        {item.gifSrc ? (
+        {hasVideo ? (
+          <video
+            className={styles.showcaseGif}
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-label={item.gifAlt}
+          >
+            <source src={mp4Src} type="video/mp4" />
+            {/* GIF fallback for browsers that don't support video */}
+            <img
+              src={gifSrc}
+              alt={item.gifAlt}
+              loading="lazy"
+              decoding="async"
+            />
+          </video>
+        ) : item.gifSrc ? (
           <img
             src={gifSrc}
             alt={item.gifAlt}

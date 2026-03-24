@@ -187,6 +187,10 @@
   min-height: 80vh;
   box-sizing: border-box;
 
+  /* Skip layout/paint for off-screen items */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80vh;
+
   /* JS sets opacity/transform/transition directly based on scroll direction */
   opacity: 0;
   transform: translateY(36px);

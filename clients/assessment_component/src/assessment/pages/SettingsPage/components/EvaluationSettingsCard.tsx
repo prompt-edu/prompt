@@ -26,9 +26,9 @@ export const EvaluationSettingsCard = ({
       disabled={isSaving || isSchemasPending || isSchemasError}
       isSaving={isSaving}
     >
-      <p className='text-xs text-slate-500'>{distinctionText}</p>
+      <p className='text-xs text-muted-foreground'>{distinctionText}</p>
       {isSchemasError && (
-        <p className='text-xs text-rose-600'>
+        <p className='text-xs text-destructive'>
           Assessment schemas could not be loaded. Please refresh and try again.
         </p>
       )}

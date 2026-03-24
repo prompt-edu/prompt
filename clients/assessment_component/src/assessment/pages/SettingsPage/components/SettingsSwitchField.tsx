@@ -18,12 +18,12 @@ export const SettingsSwitchField = ({
   const switchId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
   return (
-    <div className='flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4'>
+    <div className='flex items-start justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4'>
       <div className='space-y-1'>
-        <Label htmlFor={switchId} className='text-sm font-semibold text-slate-900'>
+        <Label htmlFor={switchId} className='text-sm font-semibold text-foreground'>
           {title}
         </Label>
-        <p className='text-sm text-slate-600'>{description}</p>
+        <p className='text-sm text-muted-foreground'>{description}</p>
       </div>
       <Switch
         id={switchId}

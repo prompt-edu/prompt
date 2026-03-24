@@ -86,15 +86,21 @@ export const SchemaConfigurationCard = ({
       <div className='flex flex-wrap items-start gap-4'>
         <div className='min-w-0 flex-1 space-y-2'>
           <div className='flex items-center gap-2'>
-            <h2 className='text-xl font-semibold text-slate-900'>{content.title}</h2>
+            <h2 className='text-xl font-semibold text-foreground'>{content.title}</h2>
             {hasAssessmentData && (
-              <span className='inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800'>
+              <span
+                className={[
+                  'inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1',
+                  'text-xs font-medium text-amber-800 dark:bg-amber-900/30',
+                  'dark:text-amber-300',
+                ].join(' ')}
+              >
                 <Lock className='h-3.5 w-3.5' />
                 Locked by submitted data
               </span>
             )}
           </div>
-          <p className='max-w-3xl text-sm leading-6 text-slate-600'>{content.summary}</p>
+          <p className='max-w-3xl text-sm leading-6 text-muted-foreground'>{content.summary}</p>
         </div>
 
         {showToggle && (
@@ -115,11 +121,11 @@ export const SchemaConfigurationCard = ({
       {isActive && (
         <div className='grid gap-6 xl:grid-cols-[1.2fr_0.8fr]'>
           <div className='space-y-3'>
-            <div className='flex items-center gap-2 text-sm font-semibold text-slate-900'>
+            <div className='flex items-center gap-2 text-sm font-semibold text-foreground'>
               <FileStack className='h-4 w-4' />
               <span>{content.schemaLabel}</span>
             </div>
-            <p className='text-sm leading-6 text-slate-600'>{content.schemaHint}</p>
+            <p className='text-sm leading-6 text-muted-foreground'>{content.schemaHint}</p>
             <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
               <div className='flex flex-1 gap-2'>
                 <Select
@@ -161,11 +167,11 @@ export const SchemaConfigurationCard = ({
           </div>
 
           <div className='space-y-3'>
-            <div className='flex items-center gap-2 text-sm font-semibold text-slate-900'>
+            <div className='flex items-center gap-2 text-sm font-semibold text-foreground'>
               <CalendarRange className='h-4 w-4' />
               <span>{content.timeframeLabel}</span>
             </div>
-            <p className='text-sm leading-6 text-slate-600'>{content.timeframeHint}</p>
+            <p className='text-sm leading-6 text-muted-foreground'>{content.timeframeHint}</p>
             <DatePickerWithRange
               aria-disabled={timeframeControlsDisabled}
               inert={timeframeControlsDisabled}
@@ -190,8 +196,8 @@ export const SchemaConfigurationCard = ({
       {isActive && children}
 
       {isActive && (
-        <div className='flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4'>
-          <p className='flex-1 text-xs leading-5 text-slate-500'>
+        <div className='flex flex-wrap items-center gap-3 border-t border-border pt-4'>
+          <p className='flex-1 text-xs leading-5 text-muted-foreground'>
             Save this card to apply its configuration changes for the current course phase.
           </p>
           <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
@@ -206,5 +212,5 @@ export const SchemaConfigurationCard = ({
     return contentBlock
   }
 
-  return <Card className='border-slate-200 shadow-sm'>{contentBlock}</Card>
+  return <Card className='border-border shadow-sm'>{contentBlock}</Card>
 }

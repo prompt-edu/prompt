@@ -22,11 +22,13 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
 
   return (
     <>
-      <div className='rounded-xl border border-slate-200 bg-slate-50/60 p-4'>
+      <div className='rounded-xl border border-border bg-muted/40 p-4'>
         {resultsReleased ? (
           <div className='space-y-1'>
-            <h3 className='text-sm font-semibold text-emerald-900'>Results released</h3>
-            <p className='text-sm leading-6 text-emerald-700'>
+            <h3 className='text-sm font-semibold text-emerald-800 dark:text-emerald-300'>
+              Results released
+            </h3>
+            <p className='text-sm leading-6 text-emerald-700 dark:text-emerald-400'>
               Students in this phase can already view the released assessment results based on the
               visibility settings above.
             </p>
@@ -34,8 +36,8 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
         ) : (
           <div className='space-y-4'>
             <div className='space-y-1'>
-              <h3 className='text-sm font-semibold text-slate-900'>Release results</h3>
-              <p className='text-sm leading-6 text-slate-600'>
+              <h3 className='text-sm font-semibold text-foreground'>Release results</h3>
+              <p className='text-sm leading-6 text-muted-foreground'>
                 Release final assessment results to students after every assessment is marked as
                 final. This action cannot be undone.
               </p>
@@ -52,7 +54,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
             </Button>
 
             {!allAssessmentsCompleted && (
-              <p className='text-xs leading-5 text-slate-500'>
+              <p className='text-xs leading-5 text-muted-foreground'>
                 All assessments must be marked as final before results can be released.
               </p>
             )}

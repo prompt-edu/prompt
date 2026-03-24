@@ -75,7 +75,7 @@ export function ReleaseConfirmationDialog({
             {totalAssessments}) visible to students. This action cannot be undone.
           </AlertDialogDescription>
           {releaseError && (
-            <p className='text-sm font-medium text-rose-600' role='alert'>
+            <p className='text-sm font-medium text-destructive' role='alert'>
               {releaseError}
             </p>
           )}

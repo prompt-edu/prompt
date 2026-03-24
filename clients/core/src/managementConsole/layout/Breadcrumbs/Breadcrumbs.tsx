@@ -48,7 +48,10 @@ export const Breadcrumbs: React.FC = () => {
         if (pathSegments[2] === 'data-export') {
           breadcrumbs.push({ title: 'Data Export', path: '/management/privacy/data-export' })
         } else if (pathSegments[2] === 'student-data-deletion') {
-          breadcrumbs.push({ title: 'Data Deletion', path: '/management/privacy/student-data-deletion' })
+          breadcrumbs.push({
+            title: 'Data Deletion',
+            path: '/management/privacy/student-data-deletion',
+          })
         }
       } else if (pathSegments[1] === 'students') {
         breadcrumbs.push({ title: 'Students', path: '/management/students' })

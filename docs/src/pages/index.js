@@ -106,7 +106,7 @@ function ShowcaseItem({ item }) {
           el.style.transform = `translateY(${exitedAbove ? "-36px" : "36px"})`;
         }
       },
-      { threshold: 0, rootMargin: "-10px 0px -10px 0px" },
+      { threshold: 0.18 },
     );
 
     observer.observe(el);

@@ -139,10 +139,6 @@ export const AssessmentSettingsCard = () => {
               <h3 className='text-sm font-semibold text-slate-900'>
                 Student visibility after release
               </h3>
-              <p className='text-sm leading-6 text-slate-600'>
-                Choose which parts of the final assessment become visible to students after you
-                release results for this phase.
-              </p>
             </div>
 
             <SettingsSwitchField
@@ -150,7 +146,7 @@ export const AssessmentSettingsCard = () => {
               onCheckedChange={assessmentVisibility.setGradingSheetVisible}
               disabled={isSaving}
               title='Show assessment sheet'
-              description='Students can inspect the grading sheet, including score levels, examples, and assessor comments.'
+              description='Students can inspect the grading sheet, including score levels, examples, and comments.'
             />
             <SettingsSwitchField
               checked={assessmentVisibility.gradeSuggestionVisible}
@@ -164,17 +160,15 @@ export const AssessmentSettingsCard = () => {
               onCheckedChange={assessmentVisibility.setActionItemsVisible}
               disabled={isSaving}
               title='Show action items'
-              description='Students can see the follow-up actions or recommendations assessors recorded for them.'
+              description='Students can see the action-items recorded for them.'
             />
           </div>
 
           <div className='space-y-4'>
             <div className='space-y-1'>
-              <h3 className='text-sm font-semibold text-slate-900'>Assessor workflow visibility</h3>
-              <p className='text-sm leading-6 text-slate-600'>
-                Control whether assessors can inspect related evaluation results before they submit
-                the final assessment.
-              </p>
+              <h3 className='text-sm font-semibold text-slate-900'>
+                Assessment workflow visibility
+              </h3>
             </div>
 
             <SettingsSwitchField
@@ -182,7 +176,7 @@ export const AssessmentSettingsCard = () => {
               onCheckedChange={assessmentVisibility.setEvaluationResultsVisible}
               disabled={isSaving}
               title='Show evaluation results before submission'
-              description='Assessors can review self-, peer-, and student-to-tutor evaluation results before they finalize the assessment.'
+              description='Assessment authors can review self-, peer-, and student-to-tutor evaluation results before they finalize the assessment.'
             />
 
             <ReleaseResultsSection isSaving={isSaving} />

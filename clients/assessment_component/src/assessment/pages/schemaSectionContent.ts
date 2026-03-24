@@ -22,7 +22,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
     toggleHint: 'The main assessment is required for this phase and cannot be turned off.',
     schemaLabel: 'Assessment schema',
     schemaHint:
-      'Choose the rubric used for the final assessment. Shared schemas are copied automatically before local edits.',
+      'Choose the schema used for the final assessment. Shared schemas are copied automatically before local edits.',
     timeframeLabel: 'Assessment timeframe',
     timeframeHint:
       'This controls when lecturers can submit final assessments for participants in this phase.',
@@ -38,7 +38,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
     toggleHint: 'Turn this on when students should submit a structured reflection for this phase.',
     schemaLabel: 'Self-evaluation schema',
     schemaHint:
-      'Choose the rubric students use for self-reflection. Use the detail page to inspect or adapt its content.',
+      'Choose the schema students use for self-reflection. Use the detail page to inspect or adapt its content.',
     timeframeLabel: 'Self-evaluation timeframe',
     timeframeHint: 'This controls when students can start and submit their self-evaluations.',
     detailTitle: 'Self-Evaluation Schema',
@@ -53,7 +53,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
     toggleHint: 'Turn this on when peer feedback should be collected in this course phase.',
     schemaLabel: 'Peer-evaluation schema',
     schemaHint:
-      'Choose the rubric used for peer feedback. Shared schemas stay safe because edits create local copies when needed.',
+      'Choose the schema used for peer feedback. Shared schemas stay safe because edits create local copies when needed.',
     timeframeLabel: 'Peer-evaluation timeframe',
     timeframeHint: 'This controls when peer feedback opens and when submissions are due.',
     detailTitle: 'Peer-Evaluation Schema',
@@ -69,7 +69,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
       'Turn this on when students should submit structured feedback about their tutors in this phase.',
     schemaLabel: 'Tutor-evaluation schema',
     schemaHint:
-      'Choose the rubric students use to evaluate their tutors. Use the detail page to review categories and competency descriptions.',
+      'Choose the schema students use to evaluate their tutors. Use the detail page to review categories and competency descriptions.',
     timeframeLabel: 'Tutor-evaluation timeframe',
     timeframeHint:
       'This controls when students can evaluate their tutors and when submissions close.',

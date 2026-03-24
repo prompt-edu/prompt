@@ -76,8 +76,9 @@ export const SchemaConfigurationCard = ({
   const isRequired = assessmentType === AssessmentType.ASSESSMENT
   const isActive = isRequired || enabled
   const controlsDisabled = disabled || isSaving
+  const enableSwitchDisabled = isRequired || controlsDisabled || hasAssessmentData
   const schemaControlsDisabled = controlsDisabled || hasAssessmentData || !isActive
-  const saveDisabled = controlsDisabled || !hasChanges || !canSave
+  const saveDisabled = controlsDisabled || hasAssessmentData || !hasChanges || !canSave
 
   const contentBlock = (
     <div className={renderAsCard ? 'space-y-6 p-6' : 'space-y-6'}>
@@ -102,7 +103,7 @@ export const SchemaConfigurationCard = ({
               onCheckedChange={onEnabledChange}
               title={content.toggleLabel}
               description={content.toggleHint}
-              disabled={isRequired || controlsDisabled}
+              disabled={enableSwitchDisabled}
             />
           </div>
         )}
@@ -164,18 +165,23 @@ export const SchemaConfigurationCard = ({
               <span>{content.timeframeLabel}</span>
             </div>
             <p className='text-sm leading-6 text-slate-600'>{content.timeframeHint}</p>
-            <div className={`${schemaControlsDisabled ? 'pointer-events-none opacity-60' : ''}`}>
-              <DatePickerWithRange
-                date={{
-                  from: startDate,
-                  to: deadline,
-                }}
-                setDate={(dateRange) => {
-                  onStartDateChange(dateRange?.from ? startOfDay(dateRange.from) : undefined)
-                  onDeadlineChange(dateRange?.to ? endOfDay(dateRange.to) : undefined)
-                }}
-              />
-            </div>
+            <DatePickerWithRange
+              aria-disabled={schemaControlsDisabled}
+              inert={schemaControlsDisabled}
+              className={schemaControlsDisabled ? 'pointer-events-none opacity-60' : undefined}
+              date={{
+                from: startDate,
+                to: deadline,
+              }}
+              setDate={(dateRange) => {
+                if (schemaControlsDisabled) {
+                  return
+                }
+
+                onStartDateChange(dateRange?.from ? startOfDay(dateRange.from) : undefined)
+                onDeadlineChange(dateRange?.to ? endOfDay(dateRange.to) : undefined)
+              }}
+            />
           </div>
         </div>
       )}

@@ -195,9 +195,11 @@
   box-sizing: border-box;
 
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.4s ease;
   pointer-events: none;
   will-change: opacity;
+  /* Promote each slide to its own compositor layer so the fade runs on the GPU */
+  transform: translateZ(0);
 }
 
 .showcaseSlideActive {

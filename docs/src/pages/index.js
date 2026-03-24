@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef } from "react";
 import Link from "@docusaurus/Link";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
@@ -53,10 +53,13 @@ const showcaseItems = [
   },
 ];
 
-function ShowcaseSlide({ item, active }) {
+// forwardRef so ShowcaseSection can hold a ref to the slide's DOM node
+// and toggle CSS classes directly — bypassing React re-renders entirely.
+const ShowcaseSlide = forwardRef(function ShowcaseSlide({ item, active }, ref) {
   const gifSrc = useBaseUrl(item.gifSrc || "");
   return (
     <div
+      ref={ref}
       className={`${styles.showcaseSlide} ${active ? styles.showcaseSlideActive : ""} ${item.reversed ? styles.showcaseSlideReversed : ""}`}
       aria-hidden={!active}
     >
@@ -85,13 +88,16 @@ function ShowcaseSlide({ item, active }) {
       </div>
     </div>
   );
-}
+});
 
 function ShowcaseSection({ items }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [hasScrolled, setHasScrolled] = useState(false);
   const containerRef = useRef(null);
+  const slideRefs = useRef([]);
+  const dotRefs = useRef([]);
+  const counterActiveRef = useRef(null);
+  const scrollHintRef = useRef(null);
   const rafRef = useRef(null);
+  const activeIndexRef = useRef(0);
 
   useEffect(() => {
     const compute = () => {
@@ -99,17 +105,37 @@ function ShowcaseSection({ items }) {
       const rect = containerRef.current.getBoundingClientRect();
       const totalScrollable = rect.height - window.innerHeight;
       if (totalScrollable <= 0) return;
+
       const scrolled = -rect.top;
-      if (scrolled > 60) setHasScrolled(true);
-      const progress = Math.max(
+
+      if (scrolled > 60 && scrollHintRef.current) {
+        scrollHintRef.current.classList.add(styles.scrollHintHidden);
+      }
+
+      const progress = Math.max(0, Math.min(1 - 1e-9, scrolled / totalScrollable));
+      const idx = Math.max(
         0,
-        Math.min(1 - 1e-9, scrolled / totalScrollable),
+        Math.min(Math.floor(progress * items.length), items.length - 1),
       );
-      const newIndex = Math.min(
-        Math.floor(progress * items.length),
-        items.length - 1,
-      );
-      setActiveIndex(Math.max(0, newIndex));
+
+      if (idx === activeIndexRef.current) return;
+      activeIndexRef.current = idx;
+
+      // Directly toggle classes — no React state, no re-render
+      slideRefs.current.forEach((el, i) => {
+        if (!el) return;
+        el.classList.toggle(styles.showcaseSlideActive, i === idx);
+        el.setAttribute("aria-hidden", String(i !== idx));
+      });
+
+      dotRefs.current.forEach((el, i) => {
+        if (!el) return;
+        el.classList.toggle(styles.progressDotActive, i === idx);
+      });
+
+      if (counterActiveRef.current) {
+        counterActiveRef.current.textContent = String(idx + 1).padStart(2, "0");
+      }
     };
 
     const handleScroll = () => {
@@ -136,7 +162,12 @@ function ShowcaseSection({ items }) {
     >
       <div className={styles.showcaseSticky}>
         {items.map((item, i) => (
-          <ShowcaseSlide key={i} item={item} active={i === activeIndex} />
+          <ShowcaseSlide
+            key={i}
+            item={item}
+            active={i === 0}
+            ref={(el) => { slideRefs.current[i] = el; }}
+          />
         ))}
 
         {/* Progress dots */}
@@ -144,7 +175,8 @@ function ShowcaseSection({ items }) {
           {items.map((it, i) => (
             <div
               key={i}
-              className={`${styles.progressDot} ${i === activeIndex ? styles.progressDotActive : ""}`}
+              ref={(el) => { dotRefs.current[i] = el; }}
+              className={`${styles.progressDot} ${i === 0 ? styles.progressDotActive : ""}`}
               title={it.title}
             />
           ))}
@@ -152,17 +184,15 @@ function ShowcaseSection({ items }) {
 
         {/* Step counter */}
         <div className={styles.showcaseCounter}>
-          <span className={styles.showcaseCounterActive}>
-            {String(activeIndex + 1).padStart(2, "0")}
+          <span ref={counterActiveRef} className={styles.showcaseCounterActive}>
+            01
           </span>
           <span className={styles.showcaseCounterSep}> / </span>
           <span>{String(items.length).padStart(2, "0")}</span>
         </div>
 
         {/* Scroll hint */}
-        <div
-          className={`${styles.scrollHint} ${hasScrolled ? styles.scrollHintHidden : ""}`}
-        >
+        <div ref={scrollHintRef} className={styles.scrollHint}>
           <ChevronDown size={18} />
           <span>Scroll to explore</span>
         </div>

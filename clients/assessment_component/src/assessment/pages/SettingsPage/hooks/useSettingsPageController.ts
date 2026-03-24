@@ -1,15 +1,13 @@
 import { useState } from 'react'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
-import { AssessmentSchema } from '../../../interfaces/assessmentSchema'
+import { useSchemaHasAssessmentData } from '../../hooks/useSchemaHasAssessmentData'
 import {
   CoursePhaseConfig,
   CreateOrUpdateCoursePhaseConfigRequest,
 } from '../../../interfaces/coursePhaseConfig'
 import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-import { useSchemaHasAssessmentData } from '../hooks/usePhaseHasAssessmentData'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
-import { useGetAllAssessmentSchemas } from '../components/CoursePhaseConfigSelection/hooks/useGetAllAssessmentSchemas'
 import { useCreateOrUpdateCoursePhaseConfig } from '../components/CoursePhaseConfigSelection/hooks/useCreateOrUpdateCoursePhaseConfig'
 import {
   MainConfigState,
@@ -33,10 +31,7 @@ interface AssessmentVisibilityModel {
 }
 
 export interface SettingsPageController {
-  isSchemasPending: boolean
-  isSchemasError: boolean
   isSaving: boolean
-  schemas: AssessmentSchema[]
   assessmentCard: CardModel
   evaluationCards: Record<EvaluationCardType, CardModel>
   assessmentVisibility: AssessmentVisibilityModel
@@ -184,12 +179,6 @@ export const useSettingsPageController = (): SettingsPageController => {
     evaluationOptions,
   } = useEvaluationOptions()
 
-  const {
-    data: schemas,
-    isPending: isSchemasPending,
-    isError: isSchemasError,
-  } = useGetAllAssessmentSchemas()
-
   const configMutation = useCreateOrUpdateCoursePhaseConfig(setError)
 
   const { data: assessmentSchemaData } = useSchemaHasAssessmentData(assessmentSchemaId || undefined)
@@ -267,7 +256,7 @@ export const useSettingsPageController = (): SettingsPageController => {
     onStartDateChange: setStart,
     deadline,
     onDeadlineChange: setDeadline,
-    detailPath: `schema/${AssessmentType.ASSESSMENT}`,
+    detailPath: assessmentSchemaId ? `schema/${assessmentSchemaId}` : '',
     canOpenDetails:
       assessmentSchemaId === (originalConfig?.assessmentSchemaID ?? '') &&
       Boolean(originalConfig?.assessmentSchemaID),
@@ -301,7 +290,7 @@ export const useSettingsPageController = (): SettingsPageController => {
       onStartDateChange: setSelfEvaluationStart,
       deadline: selfEvaluationDeadline,
       onDeadlineChange: setSelfEvaluationDeadline,
-      detailPath: `schema/${AssessmentType.SELF}`,
+      detailPath: selfEvaluationSchema ? `schema/${selfEvaluationSchema}` : '',
       canOpenDetails: isEvaluationDetailReady(
         selfEvaluationEnabled,
         selfEvaluationSchema,
@@ -332,7 +321,7 @@ export const useSettingsPageController = (): SettingsPageController => {
       onStartDateChange: setPeerEvaluationStart,
       deadline: peerEvaluationDeadline,
       onDeadlineChange: setPeerEvaluationDeadline,
-      detailPath: `schema/${AssessmentType.PEER}`,
+      detailPath: peerEvaluationSchema ? `schema/${peerEvaluationSchema}` : '',
       canOpenDetails: isEvaluationDetailReady(
         peerEvaluationEnabled,
         peerEvaluationSchema,
@@ -363,7 +352,7 @@ export const useSettingsPageController = (): SettingsPageController => {
       onStartDateChange: setTutorEvaluationStart,
       deadline: tutorEvaluationDeadline,
       onDeadlineChange: setTutorEvaluationDeadline,
-      detailPath: `schema/${AssessmentType.TUTOR}`,
+      detailPath: tutorEvaluationSchema ? `schema/${tutorEvaluationSchema}` : '',
       canOpenDetails: isEvaluationDetailReady(
         tutorEvaluationEnabled,
         tutorEvaluationSchema,
@@ -387,10 +376,7 @@ export const useSettingsPageController = (): SettingsPageController => {
   }
 
   return {
-    isSchemasPending,
-    isSchemasError,
     isSaving: configMutation.isPending,
-    schemas: schemas ?? [],
     assessmentCard,
     evaluationCards,
     assessmentVisibility: {

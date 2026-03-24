@@ -1,5 +1,4 @@
-import { AssessmentType } from '../../interfaces/assessmentType'
-import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
+import { AssessmentType } from '../interfaces/assessmentType'
 
 export interface SchemaSectionContent {
   title: string
@@ -77,42 +76,4 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
     detailDescription:
       'Review and edit the tutor-evaluation categories, competencies, weights, and proficiency descriptions.',
   },
-}
-
-export const getSchemaIdForType = (
-  config: CoursePhaseConfig | undefined,
-  assessmentType: AssessmentType,
-): string | undefined => {
-  if (!config) return undefined
-
-  switch (assessmentType) {
-    case AssessmentType.SELF:
-      return config.selfEvaluationSchema
-    case AssessmentType.PEER:
-      return config.peerEvaluationSchema
-    case AssessmentType.TUTOR:
-      return config.tutorEvaluationSchema
-    case AssessmentType.ASSESSMENT:
-    default:
-      return config.assessmentSchemaID
-  }
-}
-
-export const isSchemaTypeEnabled = (
-  config: CoursePhaseConfig | undefined,
-  assessmentType: AssessmentType,
-): boolean => {
-  if (!config) return false
-
-  switch (assessmentType) {
-    case AssessmentType.SELF:
-      return config.selfEvaluationEnabled
-    case AssessmentType.PEER:
-      return config.peerEvaluationEnabled
-    case AssessmentType.TUTOR:
-      return config.tutorEvaluationEnabled
-    case AssessmentType.ASSESSMENT:
-    default:
-      return true
-  }
 }

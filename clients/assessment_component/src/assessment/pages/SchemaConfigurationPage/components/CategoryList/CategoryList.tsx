@@ -17,7 +17,7 @@ import { useTutorEvaluationCategoryStore } from '../../../../zustand/useTutorEva
 
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../interfaces/category'
-import { schemaSectionContent } from '../../schemaConfig'
+import { schemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
 import { EditCategoryDialog } from './components/EditCategoryDialog'

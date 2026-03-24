@@ -13,7 +13,8 @@ import {
 import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 
 import { AssessmentType } from '../../../../interfaces/assessmentType'
-import { schemaSectionContent } from '../../schemaConfig'
+import { useGetAllAssessmentSchemas } from '../../../hooks/useGetAllAssessmentSchemas'
+import { schemaSectionContent } from '../../../schemaSectionContent'
 import { SettingsSwitchField } from '../SettingsSwitchField'
 import { CreateAssessmentSchemaDialog } from '../CoursePhaseConfigSelection/components/CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from '../CoursePhaseConfigSelection/components/ErrorDisplay'
@@ -21,11 +22,20 @@ import { useSettingsPageContext } from '../SettingsPageContext'
 import { ReleaseResultsSection } from './components/ReleaseResultsSection'
 
 export const AssessmentSettingsCard = () => {
-  const { schemas, isSaving, assessmentCard, assessmentVisibility } = useSettingsPageContext()
+  const { isSaving, assessmentCard, assessmentVisibility } = useSettingsPageContext()
+  const {
+    data: schemas,
+    isPending: isSchemasPending,
+    isError: isSchemasError,
+  } = useGetAllAssessmentSchemas()
 
   const content = schemaSectionContent[AssessmentType.ASSESSMENT]
   const controlsDisabled = isSaving
-  const schemaControlsDisabled = controlsDisabled || (assessmentCard.hasAssessmentData ?? false)
+  const schemaControlsDisabled =
+    controlsDisabled ||
+    isSchemasPending ||
+    isSchemasError ||
+    (assessmentCard.hasAssessmentData ?? false)
   const saveDisabled = controlsDisabled || !assessmentCard.hasChanges || !assessmentCard.canSave
 
   return (
@@ -53,6 +63,11 @@ export const AssessmentSettingsCard = () => {
               <span>{content.schemaLabel}</span>
             </div>
             <p className='text-sm leading-6 text-slate-600'>{content.schemaHint}</p>
+            {isSchemasError && (
+              <p className='text-xs text-rose-600'>
+                Assessment schemas could not be loaded. Please refresh and try again.
+              </p>
+            )}
             <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
               <div className='flex flex-1 gap-2'>
                 <Select
@@ -64,7 +79,7 @@ export const AssessmentSettingsCard = () => {
                     <SelectValue placeholder='Select a schema...' />
                   </SelectTrigger>
                   <SelectContent>
-                    {schemas.map((schema) => (
+                    {(schemas ?? []).map((schema) => (
                       <SelectItem key={schema.id} value={schema.id}>
                         {schema.name}
                       </SelectItem>
@@ -121,7 +136,9 @@ export const AssessmentSettingsCard = () => {
         <div className='grid gap-6 xl:grid-cols-2'>
           <div className='space-y-4'>
             <div className='space-y-1'>
-              <h3 className='text-sm font-semibold text-slate-900'>Student visibility after release</h3>
+              <h3 className='text-sm font-semibold text-slate-900'>
+                Student visibility after release
+              </h3>
               <p className='text-sm leading-6 text-slate-600'>
                 Choose which parts of the final assessment become visible to students after you
                 release results for this phase.
@@ -188,4 +205,3 @@ export const AssessmentSettingsCard = () => {
     </Card>
   )
 }
-

@@ -10,42 +10,91 @@ import {
 import { ArrowLeft, Lock } from 'lucide-react'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useSchemaHasAssessmentData } from './hooks/usePhaseHasAssessmentData'
-import { schemaSectionContent, getSchemaIdForType, isSchemaTypeEnabled } from './schemaConfig'
+import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
+import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
+import { schemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
-import { useGetAllAssessmentSchemas } from './components/CoursePhaseConfigSelection/hooks/useGetAllAssessmentSchemas'
 
-const isAssessmentType = (value: string | undefined): value is AssessmentType => {
-  return value !== undefined && Object.values(AssessmentType).includes(value as AssessmentType)
+const BackToSettingsButton = () => (
+  <Button asChild variant='outline'>
+    <Link to='../..' relative='path'>
+      <ArrowLeft className='mr-2 h-4 w-4' />
+      Settings
+    </Link>
+  </Button>
+)
+
+const getAssessmentTypeForSchema = (
+  config: CoursePhaseConfig | undefined,
+  schemaID: string | undefined,
+): AssessmentType | undefined => {
+  if (!config || !schemaID) {
+    return undefined
+  }
+
+  if (config.assessmentSchemaID === schemaID) {
+    return AssessmentType.ASSESSMENT
+  }
+
+  if (config.selfEvaluationSchema === schemaID) {
+    return AssessmentType.SELF
+  }
+
+  if (config.peerEvaluationSchema === schemaID) {
+    return AssessmentType.PEER
+  }
+
+  if (config.tutorEvaluationSchema === schemaID) {
+    return AssessmentType.TUTOR
+  }
+
+  return undefined
 }
 
-export const SchemaDetailPage = () => {
-  const { assessmentType: assessmentTypeParam } = useParams<{ assessmentType: string }>()
+const isAssessmentTypeEnabled = (
+  config: CoursePhaseConfig | undefined,
+  assessmentType: AssessmentType,
+): boolean => {
+  if (!config) {
+    return false
+  }
+
+  switch (assessmentType) {
+    case AssessmentType.SELF:
+      return config.selfEvaluationEnabled
+    case AssessmentType.PEER:
+      return config.peerEvaluationEnabled
+    case AssessmentType.TUTOR:
+      return config.tutorEvaluationEnabled
+    case AssessmentType.ASSESSMENT:
+    default:
+      return true
+  }
+}
+
+export const SchemaConfigurationPage = () => {
+  const { schemaId } = useParams<{ schemaId: string }>()
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
   const {
     data: schemas,
     isPending: isSchemasPending,
     isError: isSchemasError,
   } = useGetAllAssessmentSchemas()
-  const assessmentType = isAssessmentType(assessmentTypeParam) ? assessmentTypeParam : undefined
-  const content = assessmentType ? schemaSectionContent[assessmentType] : undefined
-  const schemaId = assessmentType
-    ? getSchemaIdForType(coursePhaseConfig, assessmentType)
-    : undefined
-  const isEnabled = assessmentType ? isSchemaTypeEnabled(coursePhaseConfig, assessmentType) : false
   const { data: schemaData } = useSchemaHasAssessmentData(schemaId)
 
-  if (!assessmentType || !content) {
+  const assessmentType = getAssessmentTypeForSchema(coursePhaseConfig, schemaId)
+  const content = assessmentType ? schemaSectionContent[assessmentType] : undefined
+  const isEnabled = assessmentType
+    ? isAssessmentTypeEnabled(coursePhaseConfig, assessmentType)
+    : false
+
+  if (!schemaId) {
     return (
       <div className='space-y-4'>
-        <Button asChild variant='outline'>
-          <Link to='../..' relative='path'>
-            <ArrowLeft className='mr-2 h-4 w-4' />
-            Settings
-          </Link>
-        </Button>
-        <ErrorPage message='The requested schema type does not exist.' />
+        <BackToSettingsButton />
+        <ErrorPage message='The requested schema does not exist.' />
       </div>
     )
   }
@@ -53,12 +102,7 @@ export const SchemaDetailPage = () => {
   if (isSchemasError) {
     return (
       <div className='space-y-4'>
-        <Button asChild variant='outline'>
-          <Link to='../..' relative='path'>
-            <ArrowLeft className='mr-2 h-4 w-4' />
-            Settings
-          </Link>
-        </Button>
+        <BackToSettingsButton />
         <ErrorPage message='Could not load assessment schemas.' />
       </div>
     )
@@ -68,30 +112,20 @@ export const SchemaDetailPage = () => {
     return <LoadingPage />
   }
 
-  if (assessmentType !== AssessmentType.ASSESSMENT && !isEnabled) {
+  if (!assessmentType || !content) {
     return (
       <div className='space-y-4'>
-        <Button asChild variant='outline'>
-          <Link to='../..' relative='path'>
-            <ArrowLeft className='mr-2 h-4 w-4' />
-            Settings
-          </Link>
-        </Button>
-        <ErrorPage message={`${content.title} is currently disabled for this phase.`} />
+        <BackToSettingsButton />
+        <ErrorPage message='This schema is currently not configured for this course phase.' />
       </div>
     )
   }
 
-  if (!schemaId) {
+  if (assessmentType !== AssessmentType.ASSESSMENT && !isEnabled) {
     return (
       <div className='space-y-4'>
-        <Button asChild variant='outline'>
-          <Link to='../..' relative='path'>
-            <ArrowLeft className='mr-2 h-4 w-4' />
-            Settings
-          </Link>
-        </Button>
-        <ErrorPage message='No schema is configured for this assessment type yet.' />
+        <BackToSettingsButton />
+        <ErrorPage message={`${content.title} is currently disabled for this phase.`} />
       </div>
     )
   }
@@ -102,12 +136,7 @@ export const SchemaDetailPage = () => {
     <div className='space-y-6'>
       <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div className='space-y-2'>
-          <Button asChild variant='outline'>
-            <Link to='../..' relative='path'>
-              <ArrowLeft className='mr-2 h-4 w-4' />
-              Settings
-            </Link>
-          </Button>
+          <BackToSettingsButton />
           <ManagementPageHeader>{content.detailTitle}</ManagementPageHeader>
           <p className='max-w-3xl text-sm leading-6 text-muted-foreground'>
             {content.detailDescription}

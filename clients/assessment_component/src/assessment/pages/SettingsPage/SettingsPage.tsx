@@ -1,5 +1,4 @@
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
@@ -9,18 +8,6 @@ import { useSettingsPageController } from './hooks/useSettingsPageController'
 
 export const SettingsPage = () => {
   const controller = useSettingsPageController()
-
-  if (controller.isSchemasError) {
-    return <ErrorPage />
-  }
-
-  if (controller.isSchemasPending) {
-    return (
-      <div className='flex h-64 items-center justify-center'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
-  }
 
   return (
     <SettingsPageProvider value={controller}>

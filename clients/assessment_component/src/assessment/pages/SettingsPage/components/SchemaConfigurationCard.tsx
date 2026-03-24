@@ -14,7 +14,7 @@ import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import { AssessmentSchema } from '../../../interfaces/assessmentSchema'
-import { schemaSectionContent } from '../schemaConfig'
+import { schemaSectionContent } from '../../schemaSectionContent'
 import { SettingsSwitchField } from './SettingsSwitchField'
 import { CreateAssessmentSchemaDialog } from './CoursePhaseConfigSelection/components/CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from './CoursePhaseConfigSelection/components/ErrorDisplay'

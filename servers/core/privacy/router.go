@@ -23,8 +23,6 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
 }
 
-// TODO: (later)
-// - expiration : have files delete after x days (might need a cron job / separate process for that)
 
 // studentDataExport exports all student related data from core and all microservices.
 //

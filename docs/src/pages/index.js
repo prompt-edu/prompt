@@ -75,8 +75,19 @@ function ShowcaseItem({ item }) {
     ) {
       el.style.opacity = "1";
       el.style.transform = "none";
+      // Stop any autoplaying media
+      const media = el.querySelector("video");
+      if (media) {
+        media.autoplay = false;
+        media.loop = false;
+        media.pause();
+      }
       return;
     }
+
+    // JS opts into the hidden initial state so no-JS visitors always see content
+    el.style.opacity = "0";
+    el.style.transform = "translateY(36px)";
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -126,6 +137,7 @@ function ShowcaseItem({ item }) {
             loop
             muted
             playsInline
+            preload="none"
             aria-label={item.gifAlt}
           >
             <source src={mp4Src} type="video/mp4" />
@@ -203,14 +215,14 @@ export default function Home() {
             <Link className={styles.heroButtonPrimary} to="/user">
               Get Started
             </Link>
-            <Link
+            <a
               className={styles.heroButtonSecondary}
               href="https://github.com/prompt-edu/prompt"
               target="_blank"
               rel="noopener noreferrer"
             >
               View on GitHub
-            </Link>
+            </a>
           </div>
         </div>
       </div>

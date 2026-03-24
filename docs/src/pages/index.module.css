@@ -7,7 +7,7 @@
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -94,60 +94,6 @@
   transform: translateY(-2px);
 }
 
-.heroActions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 2rem;
-}
-
-.heroCTAPrimary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.65rem 1.4rem;
-  background: var(--ifm-color-primary);
-  color: white;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  transition:
-    background 0.2s,
-    transform 0.15s;
-}
-
-.heroCTAPrimary:hover {
-  background: var(--ifm-color-primary-dark);
-  color: white;
-  text-decoration: none;
-  transform: translateY(-2px);
-}
-
-.heroCTASecondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.65rem 1.4rem;
-  border: 1.5px solid var(--ifm-color-emphasis-300);
-  color: var(--ifm-color-content);
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.15s;
-}
-
-.heroCTASecondary:hover {
-  border-color: var(--ifm-color-primary);
-  color: var(--ifm-color-primary);
-  text-decoration: none;
-  transform: translateY(-2px);
-}
 
 .section {
   margin: 5rem 0;
@@ -169,10 +115,9 @@
 /* ── Showcase section wrapper ── */
 
 .showcaseSection {
-  width: 100vw;
   position: relative;
-  left: 50%;
-  transform: translateX(-50%);
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   margin-top: 0;
 }
 
@@ -191,9 +136,6 @@
   content-visibility: auto;
   contain-intrinsic-size: 0 80vh;
 
-  /* JS sets opacity/transform/transition directly based on scroll direction */
-  opacity: 0;
-  transform: translateY(36px);
   will-change: opacity, transform;
 }
 
@@ -432,11 +374,6 @@ a.featureCard:focus {
 
   .heroDescription {
     font-size: 1rem;
-  }
-
-  .heroActions {
-    flex-direction: column;
-    align-items: center;
   }
 
   .sectionTitle {

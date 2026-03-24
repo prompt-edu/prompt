@@ -15,7 +15,7 @@ const privacyOptions = [
     title: 'Data Deletion',
     description:
       'Request the deletion of your personal data from our systems. This action is irreversible and may affect your access to courses.',
-    path: '/management/privacy/student-data-deletion',
+    path: '/management/privacy/data-deletion',
   },
 ]
 

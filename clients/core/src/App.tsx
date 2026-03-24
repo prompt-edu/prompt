@@ -148,7 +148,7 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/privacy/student-data-deletion'
+              path='/management/privacy/data-deletion'
               element={
                 <ManagementRoot>
                   <PermissionRestriction

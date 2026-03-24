@@ -28,7 +28,7 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Description Get an export of all student data from core and all microservices
 // @Produce json
 // @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} utils.ErrorResponse
+// @Failure 500 {object} coreutils.ErrorResponse
 // @Router /privacy/data-export [post]
 func studentDataExport(c *gin.Context) {
 	subjectIdentifiers, errSI := service.GetSubjectIdentifiers(c)
@@ -61,7 +61,7 @@ func studentDataExport(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyExport
 // @Success 204 "No recent export"
-// @Failure 500 {object} utils.ErrorResponse
+// @Failure 500 {object} coreutils.ErrorResponse
 // @Router /privacy/data-export [get]
 func getLatestExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
@@ -95,9 +95,9 @@ func getLatestExport(c *gin.Context) {
 // @Param uuid path string true "Export UUID"
 // @Param docID path string true "Export Document UUID"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} utils.ErrorResponse
-// @Failure 405 {object} utils.ErrorResponse
-// @Failure 500 {object} utils.ErrorResponse
+// @Failure 400 {object} coreutils.ErrorResponse
+// @Failure 405 {object} coreutils.ErrorResponse
+// @Failure 500 {object} coreutils.ErrorResponse
 // @Router /privacy/data-export/{uuid}/docs/{docID}/download-url [get]
 func getExportDocDownloadURL(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
@@ -138,7 +138,7 @@ func getExportDocDownloadURL(c *gin.Context) {
 // @Description Get the current status and all ids of the export record and all export docs. needed so client knows what docs exist to be able to download them
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyExport
-// @Failure 500 {object} utils.ErrorResponse
+// @Failure 500 {object} coreutils.ErrorResponse
 // @Router /privacy/data-export/{uuid} [get]
 func getExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))

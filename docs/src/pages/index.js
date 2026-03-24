@@ -8,9 +8,12 @@ import {
   FileUser,
   UserCheck,
   Mic,
-  Upload,
+  GitMerge,
   Users,
+  UserPlus,
   Clipboard,
+  Award,
+  Terminal,
   Bug,
   Lightbulb,
   Package,
@@ -247,28 +250,38 @@ export default function Home() {
               </div>
               <h2>Interview Phase</h2>
               <p>
-                Manage and schedule interviews with applicants as part of the
-                selection process.
+                Schedule and conduct structured interviews with applicants as
+                part of the selection process.
               </p>
             </div>
             <div className={styles.featureCard}>
               <div className={styles.featureIcon}>
-                <Upload size={26} />
+                <GitMerge size={26} />
               </div>
-              <h2>TUM Matching Export</h2>
+              <h2>Matching Phase</h2>
               <p>
-                Export data in a format compatible with TUM Matching for
-                seamless integration.
+                Automatically match students to projects based on application
+                scores and preferences using configurable algorithms.
               </p>
             </div>
             <div className={styles.featureCard}>
               <div className={styles.featureIcon}>
                 <Users size={26} />
               </div>
-              <h2>Team Phase</h2>
+              <h2>Team Allocation Phase</h2>
               <p>
-                Assign students to teams and projects, and manage project work
-                throughout the course.
+                Assign students to teams and projects managed by instructors,
+                with full control over team composition.
+              </p>
+            </div>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIcon}>
+                <UserPlus size={26} />
+              </div>
+              <h2>Self Team Allocation Phase</h2>
+              <p>
+                Let students form their own teams — they create groups and
+                invite peers without instructor involvement.
               </p>
             </div>
             <div className={styles.featureCard}>
@@ -278,7 +291,27 @@ export default function Home() {
               <h2>Assessment Phase</h2>
               <p>
                 Conduct structured peer, self, and instructor assessments using
-                a configurable framework.
+                configurable rubrics and weighted scoring.
+              </p>
+            </div>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIcon}>
+                <Award size={26} />
+              </div>
+              <h2>Certificate Phase</h2>
+              <p>
+                Generate and distribute personalized course completion
+                certificates using customizable Typst templates.
+              </p>
+            </div>
+            <div className={styles.featureCard}>
+              <div className={styles.featureIcon}>
+                <Terminal size={26} />
+              </div>
+              <h2>DevOps Challenge Phase</h2>
+              <p>
+                Present hands-on DevOps exercises and practical challenges
+                to students as part of their coursework.
               </p>
             </div>
             <div className={styles.featureCardCustomPhase}>
@@ -287,8 +320,8 @@ export default function Home() {
               </div>
               <h2>Custom Course Phase</h2>
               <p>
-                Easily extend PROMPT with custom phases tailored to your course
-                needs.
+                Easily extend PROMPT with your own phases — the micro-frontend
+                architecture makes adding new phases straightforward.
               </p>
             </div>
           </div>

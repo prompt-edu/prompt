@@ -169,8 +169,8 @@
   grid-template-columns: 65fr 35fr;
   column-gap: 4rem;
   align-items: center;
-  padding: 6rem 5vw;
-  min-height: 100vh;
+  padding: 4rem 5vw;
+  min-height: 80vh;
   box-sizing: border-box;
 
   /* Start hidden below — animates in via IntersectionObserver */
@@ -181,9 +181,7 @@
   will-change: opacity, transform;
 }
 
-.showcaseItem + .showcaseItem {
-  border-top: 1px solid var(--ifm-color-emphasis-200);
-}
+
 
 .showcaseItemVisible {
   opacity: 1;

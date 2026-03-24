@@ -36,6 +36,7 @@ export const AssessmentSettingsCard = () => {
     isSchemasPending ||
     isSchemasError ||
     (assessmentCard.hasAssessmentData ?? false)
+  const timeframeControlsDisabled = controlsDisabled || isSchemasPending || isSchemasError
   const saveDisabled = controlsDisabled || !assessmentCard.hasChanges || !assessmentCard.canSave
 
   return (
@@ -114,7 +115,7 @@ export const AssessmentSettingsCard = () => {
               <span>{content.timeframeLabel}</span>
             </div>
             <p className='text-sm leading-6 text-slate-600'>{content.timeframeHint}</p>
-            <div className={`${schemaControlsDisabled ? 'pointer-events-none opacity-60' : ''}`}>
+            <div className={`${timeframeControlsDisabled ? 'pointer-events-none opacity-60' : ''}`}>
               <DatePickerWithRange
                 date={{
                   from: assessmentCard.startDate,

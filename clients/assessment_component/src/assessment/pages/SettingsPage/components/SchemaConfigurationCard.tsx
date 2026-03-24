@@ -78,7 +78,8 @@ export const SchemaConfigurationCard = ({
   const controlsDisabled = disabled || isSaving
   const enableSwitchDisabled = isRequired || controlsDisabled || hasAssessmentData
   const schemaControlsDisabled = controlsDisabled || hasAssessmentData || !isActive
-  const saveDisabled = controlsDisabled || hasAssessmentData || !hasChanges || !canSave
+  const timeframeControlsDisabled = controlsDisabled || !isActive
+  const saveDisabled = controlsDisabled || !hasChanges || !canSave
 
   const contentBlock = (
     <div className={renderAsCard ? 'space-y-6 p-6' : 'space-y-6'}>
@@ -166,15 +167,15 @@ export const SchemaConfigurationCard = ({
             </div>
             <p className='text-sm leading-6 text-slate-600'>{content.timeframeHint}</p>
             <DatePickerWithRange
-              aria-disabled={schemaControlsDisabled}
-              inert={schemaControlsDisabled}
-              className={schemaControlsDisabled ? 'pointer-events-none opacity-60' : undefined}
+              aria-disabled={timeframeControlsDisabled}
+              inert={timeframeControlsDisabled}
+              className={timeframeControlsDisabled ? 'pointer-events-none opacity-60' : undefined}
               date={{
                 from: startDate,
                 to: deadline,
               }}
               setDate={(dateRange) => {
-                if (schemaControlsDisabled) {
+                if (timeframeControlsDisabled) {
                   return
                 }
 

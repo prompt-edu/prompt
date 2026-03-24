@@ -42,7 +42,7 @@ export function NoteComposer({
       el.style.height = `${el.scrollHeight}px`
       setIsMultiLine(el.scrollHeight > singleLineHeightRef.current)
     }
-  }, [])
+  }, [initialContent])
 
   const sendUnavailable = !content.trim() || isPending
   const isEditMode = onCancel !== undefined

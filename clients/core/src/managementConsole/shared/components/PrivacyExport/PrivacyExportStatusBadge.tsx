@@ -19,7 +19,10 @@ const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
   [ExportStatus.complete]: <CircleCheck size={size} />,
 })
 
-export function PrivacyExportStatus({ privacy_export_status, size = 20 }: PrivacyExportStatusProps) {
+export function PrivacyExportStatus({
+  privacy_export_status,
+  size = 20,
+}: PrivacyExportStatusProps) {
   return (
     <div className={'p-2 rounded-full ' + statusStyles[privacy_export_status]}>
       <AnimatePresence mode='wait' initial={false}>

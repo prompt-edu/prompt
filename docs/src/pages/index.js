@@ -101,10 +101,13 @@ function ShowcaseSection({ items }) {
       if (totalScrollable <= 0) return;
       const scrolled = -rect.top;
       if (scrolled > 60) setHasScrolled(true);
-      const progress = Math.max(0, Math.min(1 - 1e-9, scrolled / totalScrollable));
+      const progress = Math.max(
+        0,
+        Math.min(1 - 1e-9, scrolled / totalScrollable),
+      );
       const newIndex = Math.min(
         Math.floor(progress * items.length),
-        items.length - 1
+        items.length - 1,
       );
       setActiveIndex(Math.max(0, newIndex));
     };
@@ -224,19 +227,46 @@ export default function Home() {
             Everything you need to run a project-based course — from first
             application to final assessment.
           </p>
+          <div className={styles.heroActions}>
+            <a
+              href="https://prompt.aet.cit.tum.de/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroCTAPrimary}
+            >
+              <ExternalLink size={16} />
+              Live Demo
+            </a>
+            <Link
+              to="/user/course_configurator"
+              className={styles.heroCTASecondary}
+            >
+              <BookOpen size={16} />
+              Documentation
+            </Link>
+            <a
+              href="https://github.com/prompt-edu/prompt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.heroCTASecondary}
+            >
+              <Github size={16} />
+              GitHub
+            </a>
+          </div>
         </div>
         <ShowcaseSection items={showcaseItems} />
       </section>
 
       <div className="container">
         {/* Core Features */}
-        <section className={styles.section}>
+        <section className={styles.section} style={{ marginTop: "80px" }}>
           <Heading as="h2" className={styles.sectionTitle}>
             Core Features
           </Heading>
           <p className={styles.sectionDescription}>
-            Built-in functionalities essential for every course, complemented
-            by dynamically loaded phases you can add as needed.
+            Built-in functionalities essential for every course, complemented by
+            dynamically loaded phases you can add as needed.
           </p>
           <div className={styles.featureGrid}>
             <a

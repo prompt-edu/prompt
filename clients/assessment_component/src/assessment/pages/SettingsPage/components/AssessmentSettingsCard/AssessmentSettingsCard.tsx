@@ -16,8 +16,8 @@ import { AssessmentType } from '../../../../interfaces/assessmentType'
 import { useGetAllAssessmentSchemas } from '../../../hooks/useGetAllAssessmentSchemas'
 import { schemaSectionContent } from '../../../schemaSectionContent'
 import { SettingsSwitchField } from '../SettingsSwitchField'
-import { CreateAssessmentSchemaDialog } from '../CoursePhaseConfigSelection/components/CreateAssessmentSchemaDialog'
-import { ErrorDisplay } from '../CoursePhaseConfigSelection/components/ErrorDisplay'
+import { CreateAssessmentSchemaDialog } from '../CreateAssessmentSchemaDialog'
+import { ErrorDisplay } from '../ErrorDisplay'
 import { useSettingsPageContext } from '../SettingsPageContext'
 import { ReleaseResultsSection } from './components/ReleaseResultsSection'
 
@@ -182,7 +182,7 @@ export const AssessmentSettingsCard = () => {
               onCheckedChange={assessmentVisibility.setEvaluationResultsVisible}
               disabled={isSaving}
               title='Show evaluation results before submission'
-              description='Assessors can review self-, peer-, and tutor-evaluation results before they finalize the assessment.'
+              description='Assessors can review self-, peer-, and student-to-tutor evaluation results before they finalize the assessment.'
             />
 
             <ReleaseResultsSection isSaving={isSaving} />

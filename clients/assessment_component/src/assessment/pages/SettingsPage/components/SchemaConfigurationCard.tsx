@@ -16,8 +16,8 @@ import { AssessmentType } from '../../../interfaces/assessmentType'
 import { AssessmentSchema } from '../../../interfaces/assessmentSchema'
 import { schemaSectionContent } from '../../schemaSectionContent'
 import { SettingsSwitchField } from './SettingsSwitchField'
-import { CreateAssessmentSchemaDialog } from './CoursePhaseConfigSelection/components/CreateAssessmentSchemaDialog'
-import { ErrorDisplay } from './CoursePhaseConfigSelection/components/ErrorDisplay'
+import { CreateAssessmentSchemaDialog } from './CreateAssessmentSchemaDialog'
+import { ErrorDisplay } from './ErrorDisplay'
 
 export interface SchemaConfigurationCardProps {
   assessmentType: AssessmentType

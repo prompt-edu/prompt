@@ -14,7 +14,7 @@ import {
 import { Plus } from 'lucide-react'
 
 import { useCreateAssessmentSchema } from '../hooks/useCreateAssessmentSchema'
-import { CreateAssessmentSchemaRequest } from '../../../../../interfaces/assessmentSchema'
+import { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
 
 interface CreateAssessmentSchemaDialogProps {
   onError: (error: string | undefined) => void

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
-import { createOrUpdateCoursePhaseConfig } from '../../../../../network/mutations/createOrUpdateCoursePhaseConfig'
-import { CreateOrUpdateCoursePhaseConfigRequest } from '../../../../../interfaces/coursePhaseConfig'
+import { CreateOrUpdateCoursePhaseConfigRequest } from '../../../interfaces/coursePhaseConfig'
+import { createOrUpdateCoursePhaseConfig } from '../../../network/mutations/createOrUpdateCoursePhaseConfig'
 
 export const useCreateOrUpdateCoursePhaseConfig = (
   setError: (error: string | undefined) => void,

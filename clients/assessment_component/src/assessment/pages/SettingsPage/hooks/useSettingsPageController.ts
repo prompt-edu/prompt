@@ -8,13 +8,13 @@ import {
 } from '../../../interfaces/coursePhaseConfig'
 import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
-import { useCreateOrUpdateCoursePhaseConfig } from '../components/CoursePhaseConfigSelection/hooks/useCreateOrUpdateCoursePhaseConfig'
+import { EvaluationOptions } from '../interfaces/EvaluationOption'
 import {
   MainConfigState,
   useCoursePhaseConfigForm,
-} from '../components/CoursePhaseConfigSelection/hooks/useCoursePhaseConfigForm'
-import { useEvaluationOptions } from '../components/CoursePhaseConfigSelection/hooks/useEvaluationOptions'
-import { EvaluationOptions } from '../components/CoursePhaseConfigSelection/interfaces/EvaluationOption'
+} from './useCoursePhaseConfigForm'
+import { useCreateOrUpdateCoursePhaseConfig } from './useCreateOrUpdateCoursePhaseConfig'
+import { useEvaluationOptions } from './useEvaluationOptions'
 
 type EvaluationCardType = AssessmentType.SELF | AssessmentType.PEER | AssessmentType.TUTOR
 type CardModel = Omit<SchemaConfigurationCardProps, 'schemas' | 'disabled' | 'isSaving'>

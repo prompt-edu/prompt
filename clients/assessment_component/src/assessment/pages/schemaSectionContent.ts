@@ -63,17 +63,18 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
   [AssessmentType.TUTOR]: {
     title: 'Tutor-Evaluation',
     summary:
-      'Configure the rubric tutors use when they submit a dedicated evaluation in addition to the final assessment.',
+      'Configure the feedback form students use to evaluate their tutors in this course phase.',
     toggleLabel: 'Tutor-evaluation enabled',
     toggleHint:
-      'Turn this on when tutors should complete a separate structured evaluation for this phase.',
+      'Turn this on when students should submit structured feedback about their tutors in this phase.',
     schemaLabel: 'Tutor-evaluation schema',
     schemaHint:
-      'Choose the rubric tutors use. Use the detail page to review the categories and competency descriptions.',
+      'Choose the rubric students use to evaluate their tutors. Use the detail page to review categories and competency descriptions.',
     timeframeLabel: 'Tutor-evaluation timeframe',
-    timeframeHint: 'This controls when tutor evaluations are available and when they close.',
+    timeframeHint:
+      'This controls when students can evaluate their tutors and when submissions close.',
     detailTitle: 'Tutor-Evaluation Schema',
     detailDescription:
-      'Review and edit the tutor-evaluation categories, competencies, weights, and proficiency descriptions.',
+      'Review and edit the tutor-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their tutors.',
   },
 }

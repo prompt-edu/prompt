@@ -21,4 +21,3 @@ export const useSettingsPageContext = (): SettingsPageController => {
 
   return context
 }
-

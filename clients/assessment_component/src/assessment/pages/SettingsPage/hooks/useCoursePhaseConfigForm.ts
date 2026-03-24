@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
-import { CoursePhaseConfig } from '../../../../../interfaces/coursePhaseConfig'
+import { CoursePhaseConfig } from '../../../interfaces/coursePhaseConfig'
+import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
 
 export interface MainConfigState {
   assessmentSchemaId: string

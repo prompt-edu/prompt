@@ -26,7 +26,7 @@ export const SettingsPage = () => {
         />
         <EvaluationSettingsCard
           assessmentType={AssessmentType.TUTOR}
-          distinctionText='Independent tutor perspective to complement peer and self evaluations.'
+          distinctionText='Feedback from students about their tutors in this phase.'
         />
       </div>
     </SettingsPageProvider>

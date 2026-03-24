@@ -16,9 +16,6 @@ import {
   Package,
   Plus,
   ChevronDown,
-  ExternalLink,
-  BookOpen,
-  Github,
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
@@ -220,44 +217,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* See it in Action — full-bleed showcase */}
+      {/* Demos — full-bleed showcase */}
       <section className={styles.showcaseSection}>
-        <div className={styles.showcaseSectionHeader}>
-          <Heading as="h2" className={styles.sectionTitle}>
-            See PROMPT in Action
-          </Heading>
-          <p className={styles.sectionDescription}>
-            Everything you need to run a project-based course — from first
-            application to final assessment.
-          </p>
-          <div className={styles.heroActions}>
-            <a
-              href="https://prompt.aet.cit.tum.de/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.heroCTAPrimary}
-            >
-              <ExternalLink size={16} />
-              Live Demo
-            </a>
-            <Link
-              to="/user/course_configurator"
-              className={styles.heroCTASecondary}
-            >
-              <BookOpen size={16} />
-              Documentation
-            </Link>
-            <a
-              href="https://github.com/prompt-edu/prompt"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.heroCTASecondary}
-            >
-              <Github size={16} />
-              GitHub
-            </a>
-          </div>
-        </div>
         <ShowcaseSection items={showcaseItems} />
       </section>
 

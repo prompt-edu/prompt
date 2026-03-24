@@ -2,7 +2,7 @@
 
 .heroSection {
   text-align: center;
-  padding: 9rem 0 6rem 0;
+  padding: 9rem 0 2rem 0;
 }
 
 .heroTitle {
@@ -160,12 +160,7 @@
   position: relative;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 1rem;
-}
-
-.showcaseSectionHeader {
-  text-align: center;
-  padding: 3rem 1rem 1rem;
+  margin-top: 0;
 }
 
 /* ── Sticky scroll container ── */

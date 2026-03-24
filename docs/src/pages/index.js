@@ -16,6 +16,9 @@ import {
   Package,
   Plus,
   ChevronDown,
+  ExternalLink,
+  BookOpen,
+  Github,
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 

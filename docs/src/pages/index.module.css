@@ -73,6 +73,13 @@
     transform 0.2s;
 }
 
+.heroButtonSecondary:hover {
+  background-color: var(--ifm-color-primary);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
 .heroActions {
   display: flex;
   gap: 1rem;
@@ -126,105 +133,6 @@
   color: var(--ifm-color-primary);
   text-decoration: none;
   transform: translateY(-2px);
-}
-
-/* Demo showcase */
-
-.demoFeatured {
-  background: var(--ifm-color-emphasis-100);
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 2rem;
-}
-
-.demoFeaturedContent {
-  padding: 2rem;
-}
-
-.demoFeaturedMeta {
-  margin-bottom: 1.5rem;
-}
-
-.demoBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: var(--ifm-color-primary);
-  color: white;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.demoFeaturedDescription {
-  color: var(--ifm-color-content-secondary);
-  font-size: 1rem;
-  margin: 0;
-  max-width: 600px;
-}
-
-.demoGifWrapper {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-}
-
-.demoGif {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.demoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
-}
-
-.demoCard {
-  padding: 1.25rem;
-  border: 1px dashed var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-  opacity: 0.8;
-}
-
-.demoCardHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.6rem;
-}
-
-.demoCardTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--ifm-heading-color);
-}
-
-.demoCardDescription {
-  font-size: 0.875rem;
-  color: var(--ifm-color-content-secondary);
-  margin: 0;
-}
-
-.demoComingSoonBadge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--ifm-color-content-secondary);
-  background: var(--ifm-color-emphasis-200);
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  width: fit-content;
 }
 
 .section {
@@ -642,19 +550,6 @@ a.featureCard:focus {
 
   .featureGrid {
     grid-template-columns: 1fr;
-  }
-
-  .demoGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .demoFeaturedContent {
-    padding: 1.25rem;
-  }
-
-  .buttons {
-    flex-direction: column;
-    align-items: center;
   }
 
   .showcaseSlide {

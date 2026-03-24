@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef } from "react";
+import { useEffect, useRef } from "react";
 import Link from "@docusaurus/Link";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
@@ -15,7 +15,6 @@ import {
   Lightbulb,
   Package,
   Plus,
-  ChevronDown,
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
@@ -53,15 +52,30 @@ const showcaseItems = [
   },
 ];
 
-// forwardRef so ShowcaseSection can hold a ref to the slide's DOM node
-// and toggle CSS classes directly — bypassing React re-renders entirely.
-const ShowcaseSlide = forwardRef(function ShowcaseSlide({ item, active }, ref) {
+function ShowcaseItem({ item }) {
+  const ref = useRef(null);
   const gifSrc = useBaseUrl(item.gifSrc || "");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add(styles.showcaseItemVisible);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       ref={ref}
-      className={`${styles.showcaseSlide} ${active ? styles.showcaseSlideActive : ""} ${item.reversed ? styles.showcaseSlideReversed : ""}`}
-      aria-hidden={!active}
+      className={`${styles.showcaseItem} ${item.reversed ? styles.showcaseItemReversed : ""}`}
     >
       <div className={styles.showcaseMedia}>
         {item.gifSrc ? (
@@ -85,117 +99,6 @@ const ShowcaseSlide = forwardRef(function ShowcaseSlide({ item, active }, ref) {
         <Link to={item.link} className={styles.showcaseLink}>
           {item.linkLabel}
         </Link>
-      </div>
-    </div>
-  );
-});
-
-function ShowcaseSection({ items }) {
-  const containerRef = useRef(null);
-  const slideRefs = useRef([]);
-  const dotRefs = useRef([]);
-  const counterActiveRef = useRef(null);
-  const scrollHintRef = useRef(null);
-  const rafRef = useRef(null);
-  const activeIndexRef = useRef(0);
-
-  useEffect(() => {
-    const compute = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const totalScrollable = rect.height - window.innerHeight;
-      if (totalScrollable <= 0) return;
-
-      const scrolled = -rect.top;
-
-      if (scrolled > 60 && scrollHintRef.current) {
-        scrollHintRef.current.classList.add(styles.scrollHintHidden);
-      }
-
-      const progress = Math.max(0, Math.min(1 - 1e-9, scrolled / totalScrollable));
-      const idx = Math.max(
-        0,
-        Math.min(Math.floor(progress * items.length), items.length - 1),
-      );
-
-      if (idx === activeIndexRef.current) return;
-      activeIndexRef.current = idx;
-
-      // Directly toggle classes — no React state, no re-render
-      slideRefs.current.forEach((el, i) => {
-        if (!el) return;
-        el.classList.toggle(styles.showcaseSlideActive, i === idx);
-        el.setAttribute("aria-hidden", String(i !== idx));
-      });
-
-      dotRefs.current.forEach((el, i) => {
-        if (!el) return;
-        el.classList.toggle(styles.progressDotActive, i === idx);
-      });
-
-      if (counterActiveRef.current) {
-        counterActiveRef.current.textContent = String(idx + 1).padStart(2, "0");
-      }
-    };
-
-    const handleScroll = () => {
-      if (rafRef.current) return;
-      rafRef.current = requestAnimationFrame(() => {
-        compute();
-        rafRef.current = null;
-      });
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    compute();
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [items.length]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={styles.showcaseScrollContainer}
-      style={{ height: `${items.length * 100}vh` }}
-    >
-      <div className={styles.showcaseSticky}>
-        {items.map((item, i) => (
-          <ShowcaseSlide
-            key={i}
-            item={item}
-            active={i === 0}
-            ref={(el) => { slideRefs.current[i] = el; }}
-          />
-        ))}
-
-        {/* Progress dots */}
-        <div className={styles.showcaseProgress}>
-          {items.map((it, i) => (
-            <div
-              key={i}
-              ref={(el) => { dotRefs.current[i] = el; }}
-              className={`${styles.progressDot} ${i === 0 ? styles.progressDotActive : ""}`}
-              title={it.title}
-            />
-          ))}
-        </div>
-
-        {/* Step counter */}
-        <div className={styles.showcaseCounter}>
-          <span ref={counterActiveRef} className={styles.showcaseCounterActive}>
-            01
-          </span>
-          <span className={styles.showcaseCounterSep}> / </span>
-          <span>{String(items.length).padStart(2, "0")}</span>
-        </div>
-
-        {/* Scroll hint */}
-        <div ref={scrollHintRef} className={styles.scrollHint}>
-          <ChevronDown size={18} />
-          <span>Scroll to explore</span>
-        </div>
       </div>
     </div>
   );
@@ -247,9 +150,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Demos — full-bleed showcase */}
+      {/* Demos */}
       <section className={styles.showcaseSection}>
-        <ShowcaseSection items={showcaseItems} />
+        {showcaseItems.map((item, i) => (
+          <ShowcaseItem key={i} item={item} />
+        ))}
       </section>
 
       <div className="container">

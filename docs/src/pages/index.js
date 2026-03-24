@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import Link from "@docusaurus/Link";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
@@ -14,8 +15,158 @@ import {
   Lightbulb,
   Package,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
+
+const showcaseItems = [
+  {
+    title: "Course Configuration",
+    description:
+      "Design your course by assembling independent phases with a drag-and-drop configurator. Link outputs between phases, configure participation settings, and tailor the entire course structure to your exact teaching needs — no technical knowledge required.",
+    gifSrc: "/img/gifs/course-configurator.gif",
+    gifAlt: "Course Configurator demo",
+    link: "/user/course_configurator",
+    linkLabel: "Learn about course configuration →",
+    tag: "Core Feature",
+  },
+  {
+    title: "Application & Student Management",
+    description:
+      "Streamline the entire application lifecycle. Students apply online, instructors review and manage submissions, and accepted participants are automatically onboarded into the course.",
+    gifSrc: "/img/gifs/application-management.gif",
+    gifAlt: "Application management demo",
+    link: "/user/application",
+    linkLabel: "Learn about applications →",
+    tag: "Core Feature",
+    reversed: true,
+  },
+  {
+    title: "Assessment",
+    description:
+      "PROMPT's assessment engine is one of its most powerful capabilities. Configure multi-criteria rubrics, run structured peer reviews, self-assessments, and instructor evaluations — all in one unified workflow. Results are aggregated automatically, giving instructors instant, detailed insight into student performance across the entire cohort.",
+    gifSrc: "/img/gifs/assessment.gif",
+    gifAlt: "Assessment demo",
+    link: "/user/assessment",
+    linkLabel: "Learn about assessments →",
+    tag: "Highlight",
+  },
+];
+
+function ShowcaseSlide({ item, active }) {
+  const gifSrc = useBaseUrl(item.gifSrc || "");
+  return (
+    <div
+      className={`${styles.showcaseSlide} ${active ? styles.showcaseSlideActive : ""} ${item.reversed ? styles.showcaseSlideReversed : ""}`}
+      aria-hidden={!active}
+    >
+      <div className={styles.showcaseMedia}>
+        {item.gifSrc ? (
+          <img src={gifSrc} alt={item.gifAlt} className={styles.showcaseGif} />
+        ) : (
+          <div className={styles.gifPlaceholder}>
+            <span className={styles.gifPlaceholderText}>Demo coming soon</span>
+          </div>
+        )}
+      </div>
+      <div className={styles.showcaseText}>
+        {item.tag && (
+          <span
+            className={`${styles.showcaseTag} ${item.tag === "Highlight" ? styles.showcaseTagHighlight : ""}`}
+          >
+            {item.tag}
+          </span>
+        )}
+        <h3 className={styles.showcaseTitle}>{item.title}</h3>
+        <p className={styles.showcaseDescription}>{item.description}</p>
+        <Link to={item.link} className={styles.showcaseLink}>
+          {item.linkLabel}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ShowcaseSection({ items }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const containerRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const compute = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const totalScrollable = rect.height - window.innerHeight;
+      if (totalScrollable <= 0) return;
+      const scrolled = -rect.top;
+      if (scrolled > 60) setHasScrolled(true);
+      const progress = Math.max(0, Math.min(1 - 1e-9, scrolled / totalScrollable));
+      const newIndex = Math.min(
+        Math.floor(progress * items.length),
+        items.length - 1
+      );
+      setActiveIndex(Math.max(0, newIndex));
+    };
+
+    const handleScroll = () => {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        compute();
+        rafRef.current = null;
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    compute();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [items.length]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={styles.showcaseScrollContainer}
+      style={{ height: `${items.length * 100}vh` }}
+    >
+      <div className={styles.showcaseSticky}>
+        {items.map((item, i) => (
+          <ShowcaseSlide key={i} item={item} active={i === activeIndex} />
+        ))}
+
+        {/* Progress dots */}
+        <div className={styles.showcaseProgress}>
+          {items.map((it, i) => (
+            <div
+              key={i}
+              className={`${styles.progressDot} ${i === activeIndex ? styles.progressDotActive : ""}`}
+              title={it.title}
+            />
+          ))}
+        </div>
+
+        {/* Step counter */}
+        <div className={styles.showcaseCounter}>
+          <span className={styles.showcaseCounterActive}>
+            {String(activeIndex + 1).padStart(2, "0")}
+          </span>
+          <span className={styles.showcaseCounterSep}> / </span>
+          <span>{String(items.length).padStart(2, "0")}</span>
+        </div>
+
+        {/* Scroll hint */}
+        <div
+          className={`${styles.scrollHint} ${hasScrolled ? styles.scrollHintHidden : ""}`}
+        >
+          <ChevronDown size={18} />
+          <span>Scroll to explore</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const promptLogo = useBaseUrl("/img/prompt_logo.svg");
@@ -24,8 +175,8 @@ export default function Home() {
       title="PROMPT - Course Management Platform"
       description="Project-Oriented Modular Platform for Teaching. A flexible course management tool for project-based university courses."
     >
-      <div className="container margin-vert--lg">
-        {/* Hero Section */}
+      {/* Hero */}
+      <div className="container">
         <div className={styles.heroSection}>
           <div className={styles.heroTitleContainer}>
             <img
@@ -43,21 +194,49 @@ export default function Home() {
             Project-Oriented Modular Platform for Teaching
           </p>
           <p className={styles.heroDescription}>
-            A flexible course management tool designed for project-based
-            university courses. Streamline administrative tasks and enhance the
-            learning experience for both students and instructors.
+            A flexible, open-source course management platform built for
+            project-based university courses. Streamline every phase — from
+            applications to assessments — in one place.
+          </p>
+          <div className={styles.heroButtons}>
+            <Link className={styles.heroButtonPrimary} to="/user">
+              Get Started
+            </Link>
+            <Link
+              className={styles.heroButtonSecondary}
+              href="https://github.com/prompt-edu/prompt"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on GitHub
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* See it in Action — full-bleed showcase */}
+      <section className={styles.showcaseSection}>
+        <div className={styles.showcaseSectionHeader}>
+          <Heading as="h2" className={styles.sectionTitle}>
+            See PROMPT in Action
+          </Heading>
+          <p className={styles.sectionDescription}>
+            Everything you need to run a project-based course — from first
+            application to final assessment.
           </p>
         </div>
+        <ShowcaseSection items={showcaseItems} />
+      </section>
 
+      <div className="container">
         {/* Core Features */}
         <section className={styles.section}>
           <Heading as="h2" className={styles.sectionTitle}>
             Core Features
           </Heading>
           <p className={styles.sectionDescription}>
-            The core features are built-in functionalities essential for course
-            management, while dynamically loaded phases are additional,
-            customizable components that can be added as needed.
+            Built-in functionalities essential for every course, complemented
+            by dynamically loaded phases you can add as needed.
           </p>
           <div className={styles.featureGrid}>
             <a
@@ -79,9 +258,8 @@ export default function Home() {
               </div>
               <h2>Application Phase</h2>
               <p>
-                Streamline the application process for courses, making it easier
-                for students to apply and for instructors to manage
-                applications.
+                Streamline the application process — easier for students to
+                apply, simpler for instructors to manage.
               </p>
             </a>
             <a
@@ -93,14 +271,15 @@ export default function Home() {
               </div>
               <h2>Student Management</h2>
               <p>
-                Efficiently manage student information and course participation.
+                Efficiently manage student information and course participation
+                throughout the lifecycle.
               </p>
             </a>
           </div>
         </section>
 
         {/* Dynamic Phases */}
-        <section className={styles.section} style={{ marginTop: "100px" }}>
+        <section className={styles.section}>
           <Heading as="h2" className={styles.sectionTitle}>
             Dynamic Course Phases
           </Heading>
@@ -163,8 +342,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Quick Links */}
-        <section className={styles.section} style={{ marginTop: "100px" }}>
+        {/* Get in Touch */}
+        <section className={styles.section}>
           <Heading as="h2" className={styles.sectionTitle}>
             Get in Touch
           </Heading>

@@ -55,7 +55,7 @@ func RunStudentDataExport(c *gin.Context, prep ExportPreparation, subjectIdentif
 
 		go func() {
 			defer wg.Done()
-			AggregateSubjectDataFromCore(cCopy, prep.CoreDoc, subjectIdentifiers, 5*time.Second)
+			_ = AggregateSubjectDataFromCore(cCopy, prep.CoreDoc, subjectIdentifiers, 5*time.Second)
 		}()
 
 		for _, doc := range prep.ExternalDocs {

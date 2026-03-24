@@ -27,7 +27,7 @@ func ValidateExportValid(c *gin.Context, exportID uuid.UUID) error {
   expDTO := privacyDTO.GetPrivacyExportDTOFromDBModel(exp)
 
   if time.Now().After(expDTO.ValidUntil) {
-    return errors.New("The export is no longer valid")
+    return errors.New("the export is no longer valid")
   }
   return nil
 }

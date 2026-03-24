@@ -32,20 +32,20 @@ export function PrivacyExportDocument({
   }
 
   return (
-    <Card className='border border-gray-200'>
+    <Card className='border border-border'>
       <CardContent className='p-4 relative'>
         <div className='flex items-start gap-3'>
           <div className='shrink-0'>
             <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
           </div>
           <div className='flex-1 min-w-0'>
-            <p className='font-semibold text-gray-900 truncate'>
+            <p className='font-semibold text-foreground truncate'>
               {privacy_export_document.source_name}
             </p>
-            <p className='text-xs text-gray-500 mt-0.5'>
+            <p className='text-xs text-muted-foreground mt-0.5'>
               {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
             </p>
-            <p className='text-xs text-gray-500 mt-0.5'>
+            <p className='text-xs text-muted-foreground mt-0.5'>
               {privacy_export_document.file_size == null
                 ? '-'
                 : formatFileSize(privacy_export_document.file_size)}

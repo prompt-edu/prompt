@@ -8,9 +8,9 @@ interface PrivacyExportStatusProps {
 }
 
 const statusStyles: Record<ExportStatus, string> = {
-  [ExportStatus.failed]: 'bg-red-100 text-red-600',
-  [ExportStatus.pending]: 'bg-gray-100 text-gray-500',
-  [ExportStatus.complete]: 'bg-green-100 text-green-600',
+  [ExportStatus.failed]: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+  [ExportStatus.pending]: 'bg-muted text-muted-foreground',
+  [ExportStatus.complete]: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
 }
 
 const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({

@@ -71,8 +71,11 @@ export function PrivacyDataExportPage() {
 
       {!statusQuery.data && (
         <>
-          <p className='mb-6 text-gray-600'>
+          <p className='text-muted-foreground'>
             Download a copy of all personal data stored about you in our systems.
+          </p>
+          <p className='mb-6 text-muted-foreground'>
+            You must wait 30 days before requesting another export.
           </p>
           <Button
             disabled={exportQuery.isLoading || isRateLimited}

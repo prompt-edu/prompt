@@ -59,12 +59,38 @@ function ShowcaseItem({ item }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        el.classList.toggle(styles.showcaseItemVisible, entry.isIntersecting);
+        if (entry.isIntersecting) {
+          // Determine entry direction: positive top = coming from below, negative = from above
+          const fromBelow = entry.boundingClientRect.top > 0;
+
+          // Snap to starting position with no transition
+          el.style.transition = "none";
+          el.style.opacity = "0";
+          el.style.transform = `translateY(${fromBelow ? "36px" : "-36px"})`;
+
+          // Force reflow so the browser registers the snap before we animate
+          void el.offsetHeight;
+
+          // Animate in
+          el.style.transition =
+            "opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1)";
+          el.style.opacity = "1";
+          el.style.transform = "translateY(0)";
+        } else {
+          // Instantly hide — no visible transition since element is off-screen
+          el.style.transition = "none";
+          el.style.opacity = "0";
+          // Pre-position for the next entry direction
+          const exitedAbove = entry.boundingClientRect.top < 0;
+          el.style.transform = `translateY(${exitedAbove ? "-36px" : "36px"})`;
+        }
       },
-      { threshold: 0.2 },
+      { threshold: 0, rootMargin: "-10px 0px -10px 0px" },
     );
+
     observer.observe(el);
     return () => observer.disconnect();
   }, []);

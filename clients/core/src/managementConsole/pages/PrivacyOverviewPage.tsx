@@ -12,8 +12,7 @@ const privacyOptions = [
   {
     icon: <Trash2 className='w-5 h-5 text-foreground' />,
     title: 'Data Deletion',
-    description:
-      'Request the deletion of your personal data from our systems. This action is irreversible and may affect your access to courses.',
+    description: 'Request the deletion of your personal data from our systems.',
     path: '/management/privacy/data-deletion',
   },
 ]

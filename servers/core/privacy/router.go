@@ -13,7 +13,6 @@ import (
 )
 
 func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, premissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-
 	privacyRouter := router.Group("/privacy", authMiddleware())
 
 	privacyRouter.POST("/data-export", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), studentDataExport)
@@ -22,7 +21,6 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	privacyRouter.GET("/data-export/:uuid", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
 	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
 }
-
 
 // studentDataExport exports all student related data from core and all microservices.
 //

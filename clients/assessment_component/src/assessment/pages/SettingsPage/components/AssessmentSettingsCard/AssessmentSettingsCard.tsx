@@ -183,14 +183,14 @@ export const AssessmentSettingsCard = () => {
           </div>
         </div>
 
-        <div className='flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between'>
-          <p className='text-xs leading-5 text-slate-500'>
+        <div className='flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4'>
+          <p className='flex-1 text-xs leading-5 text-slate-500'>
             Save this card to apply its configuration changes for the current course phase.
           </p>
           <Button
             onClick={assessmentCard.onSave}
             disabled={saveDisabled}
-            className='sm:min-w-[160px]'
+            className='ml-auto min-w-[160px]'
           >
             {isSaving ? 'Saving...' : 'Save Assessment'}
           </Button>

@@ -81,8 +81,8 @@ export const SchemaConfigurationCard = ({
 
   const contentBlock = (
     <div className={renderAsCard ? 'space-y-6 p-6' : 'space-y-6'}>
-      <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
-        <div className='space-y-2'>
+      <div className='flex flex-wrap items-start gap-4'>
+        <div className='min-w-0 flex-1 space-y-2'>
           <div className='flex items-center gap-2'>
             <h2 className='text-xl font-semibold text-slate-900'>{content.title}</h2>
             {hasAssessmentData && (
@@ -96,7 +96,7 @@ export const SchemaConfigurationCard = ({
         </div>
 
         {showToggle && (
-          <div className='w-full max-w-sm'>
+          <div className='ml-auto w-fit max-w-sm'>
             <SettingsSwitchField
               checked={enabled}
               onCheckedChange={onEnabledChange}
@@ -187,11 +187,11 @@ export const SchemaConfigurationCard = ({
 
       {isActive && children}
 
-      <div className='flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between'>
-        <p className='text-xs leading-5 text-slate-500'>
+      <div className='flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4'>
+        <p className='flex-1 text-xs leading-5 text-slate-500'>
           Save this card to apply its configuration changes for the current course phase.
         </p>
-        <Button onClick={onSave} disabled={saveDisabled} className='sm:min-w-[160px]'>
+        <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
           {isSaving ? 'Saving...' : `Save ${content.title}`}
         </Button>
       </div>

@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
-const showcaseItems = [
+const SHOWCASE_ITEMS = [
   {
     title: "Course Configuration",
     description:
@@ -62,6 +62,16 @@ function ShowcaseItem({ item }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Respect the user's motion preference
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      el.style.opacity = "1";
+      el.style.transform = "none";
+      return;
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -105,7 +115,13 @@ function ShowcaseItem({ item }) {
     >
       <div className={styles.showcaseMedia}>
         {item.gifSrc ? (
-          <img src={gifSrc} alt={item.gifAlt} className={styles.showcaseGif} />
+          <img
+            src={gifSrc}
+            alt={item.gifAlt}
+            className={styles.showcaseGif}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className={styles.gifPlaceholder}>
             <span className={styles.gifPlaceholderText}>Demo coming soon</span>
@@ -177,8 +193,14 @@ export default function Home() {
       </div>
 
       {/* Demos */}
-      <section className={styles.showcaseSection}>
-        {showcaseItems.map((item, i) => (
+      <section
+        className={styles.showcaseSection}
+        aria-labelledby="demos-heading"
+      >
+        <h2 id="demos-heading" className={styles.visuallyHidden}>
+          Demos
+        </h2>
+        {SHOWCASE_ITEMS.map((item, i) => (
           <ShowcaseItem key={i} item={item} />
         ))}
       </section>

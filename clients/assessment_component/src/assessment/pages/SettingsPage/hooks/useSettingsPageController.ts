@@ -6,11 +6,8 @@ import {
   CoursePhaseConfig,
   CreateOrUpdateCoursePhaseConfigRequest,
 } from '../../../interfaces/coursePhaseConfig'
-import { useParticipationStore } from '../../../zustand/useParticipationStore'
 import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-import { useGetAllAssessmentCompletions } from '../../hooks/useGetAllAssessmentCompletions'
 import { useSchemaHasAssessmentData } from '../hooks/usePhaseHasAssessmentData'
-import { useReleaseResults } from '../hooks/useReleaseResults'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
 import { useGetAllAssessmentSchemas } from '../components/CoursePhaseConfigSelection/hooks/useGetAllAssessmentSchemas'
 import { useCreateOrUpdateCoursePhaseConfig } from '../components/CoursePhaseConfigSelection/hooks/useCreateOrUpdateCoursePhaseConfig'
@@ -35,17 +32,6 @@ interface AssessmentVisibilityModel {
   setEvaluationResultsVisible: (checked: boolean) => void
 }
 
-interface ReleaseDialogModel {
-  resultsReleased: boolean
-  showReleaseDialog: boolean
-  setShowReleaseDialog: (open: boolean) => void
-  confirmRelease: () => void
-  isReleasing: boolean
-  completedAssessments: number
-  totalAssessments: number
-  allAssessmentsCompleted: boolean
-}
-
 export interface SettingsPageController {
   isSchemasPending: boolean
   isSchemasError: boolean
@@ -54,7 +40,6 @@ export interface SettingsPageController {
   assessmentCard: CardModel
   evaluationCards: Record<EvaluationCardType, CardModel>
   assessmentVisibility: AssessmentVisibilityModel
-  releaseDialog: ReleaseDialogModel
 }
 
 const toDate = (value?: Date): Date | undefined => {
@@ -150,9 +135,6 @@ const buildRequestFromDraft = (
 export const useSettingsPageController = (): SettingsPageController => {
   const [error, setError] = useState<string | undefined>(undefined)
   const [activeErrorCard, setActiveErrorCard] = useState<AssessmentType | undefined>(undefined)
-  const [showReleaseDialog, setShowReleaseDialog] = useState(false)
-
-  const { participations } = useParticipationStore()
   const { coursePhaseConfig: originalConfig } = useCoursePhaseConfigStore()
 
   const {
@@ -208,8 +190,6 @@ export const useSettingsPageController = (): SettingsPageController => {
     isError: isSchemasError,
   } = useGetAllAssessmentSchemas()
 
-  const { data: assessmentCompletions } = useGetAllAssessmentCompletions()
-  const { mutate: releaseResults, isPending: isReleasing } = useReleaseResults()
   const configMutation = useCreateOrUpdateCoursePhaseConfig(setError)
 
   const { data: assessmentSchemaData } = useSchemaHasAssessmentData(assessmentSchemaId || undefined)
@@ -222,11 +202,6 @@ export const useSettingsPageController = (): SettingsPageController => {
   const { data: tutorSchemaData } = useSchemaHasAssessmentData(
     tutorEvaluationEnabled ? tutorEvaluationSchema || undefined : undefined,
   )
-
-  const totalAssessments = participations.length
-  const completedAssessments =
-    assessmentCompletions?.filter((completion) => completion.completed).length ?? 0
-  const allAssessmentsCompleted = totalAssessments > 0 && completedAssessments === totalAssessments
 
   const baseRequest = originalConfig
     ? buildRequestFromConfig(originalConfig)
@@ -246,12 +221,6 @@ export const useSettingsPageController = (): SettingsPageController => {
   const onCardError = (assessmentType: AssessmentType, nextError: string | undefined) => {
     setActiveErrorCard(assessmentType)
     setError(nextError)
-  }
-
-  const confirmRelease = () => {
-    releaseResults(undefined, {
-      onSuccess: () => setShowReleaseDialog(false),
-    })
   }
 
   const assessmentHasChanges = hasMainConfigChanges(originalConfig)
@@ -434,16 +403,5 @@ export const useSettingsPageController = (): SettingsPageController => {
       evaluationResultsVisible,
       setEvaluationResultsVisible,
     },
-    releaseDialog: {
-      resultsReleased: Boolean(originalConfig?.resultsReleased),
-      showReleaseDialog,
-      setShowReleaseDialog,
-      confirmRelease,
-      isReleasing,
-      completedAssessments,
-      totalAssessments,
-      allAssessmentsCompleted,
-    },
   }
 }
-

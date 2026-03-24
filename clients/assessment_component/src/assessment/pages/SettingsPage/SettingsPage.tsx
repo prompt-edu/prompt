@@ -2,7 +2,7 @@ import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { AssessmentSettingsCard } from './components/AssessmentSettingsCard'
+import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
 import { SettingsPageProvider } from './components/SettingsPageContext'
 import { useSettingsPageController } from './hooks/useSettingsPageController'

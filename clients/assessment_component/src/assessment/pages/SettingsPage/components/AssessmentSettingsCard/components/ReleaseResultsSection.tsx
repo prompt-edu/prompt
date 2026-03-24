@@ -14,6 +14,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     setShowReleaseDialog,
     confirmRelease,
     isReleasing,
+    releaseError,
     completedAssessments,
     totalAssessments,
     allAssessmentsCompleted,
@@ -64,6 +65,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
         onOpenChange={setShowReleaseDialog}
         onConfirm={confirmRelease}
         isReleasing={isReleasing}
+        releaseError={releaseError}
         completedAssessments={completedAssessments}
         totalAssessments={totalAssessments}
       />

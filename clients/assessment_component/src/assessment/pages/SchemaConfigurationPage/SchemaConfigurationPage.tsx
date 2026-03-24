@@ -82,7 +82,11 @@ export const SchemaConfigurationPage = () => {
     isPending: isSchemasPending,
     isError: isSchemasError,
   } = useGetAllAssessmentSchemas()
-  const { data: schemaData } = useSchemaHasAssessmentData(schemaId)
+  const {
+    data: schemaData,
+    isPending: isSchemaDataPending,
+    isError: isSchemaDataError,
+  } = useSchemaHasAssessmentData(schemaId)
 
   const assessmentType = getAssessmentTypeForSchema(coursePhaseConfig, schemaId)
   const content = assessmentType ? schemaSectionContent[assessmentType] : undefined
@@ -110,6 +114,19 @@ export const SchemaConfigurationPage = () => {
 
   if (isSchemasPending) {
     return <LoadingPage />
+  }
+
+  if (isSchemaDataPending) {
+    return <LoadingPage />
+  }
+
+  if (isSchemaDataError || !schemaData) {
+    return (
+      <div className='space-y-4'>
+        <BackToSettingsButton />
+        <ErrorPage message='Could not determine whether this schema is locked by submitted data.' />
+      </div>
+    )
   }
 
   if (!assessmentType || !content) {
@@ -150,7 +167,7 @@ export const SchemaConfigurationPage = () => {
             <h2 className='text-xl font-semibold text-slate-900'>
               {schema?.name ?? 'Configured schema'}
             </h2>
-            {schemaData?.hasAssessmentData && (
+            {schemaData.hasAssessmentData && (
               <span className='inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800'>
                 <Lock className='h-3.5 w-3.5' />
                 Locked by submitted data
@@ -171,7 +188,7 @@ export const SchemaConfigurationPage = () => {
       <CategoryList
         assessmentSchemaID={schemaId}
         assessmentType={assessmentType}
-        hasAssessmentData={schemaData?.hasAssessmentData ?? false}
+        hasAssessmentData={schemaData.hasAssessmentData}
       />
     </div>
   )

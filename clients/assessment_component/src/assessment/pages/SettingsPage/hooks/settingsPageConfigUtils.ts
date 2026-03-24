@@ -46,27 +46,33 @@ export const createDetailButtonLabel = (schemaId?: string) =>
 
 export const buildRequestFromConfig = (
   config?: CoursePhaseConfig,
-): CreateOrUpdateCoursePhaseConfigRequest => ({
-  assessmentSchemaId: config?.assessmentSchemaID ?? '',
-  start: toDate(config?.start),
-  deadline: toDate(config?.deadline),
-  selfEvaluationEnabled: config?.selfEvaluationEnabled ?? false,
-  selfEvaluationSchema: config?.selfEvaluationSchema || undefined,
-  selfEvaluationStart: toDate(config?.selfEvaluationStart),
-  selfEvaluationDeadline: toDate(config?.selfEvaluationDeadline),
-  peerEvaluationEnabled: config?.peerEvaluationEnabled ?? false,
-  peerEvaluationSchema: config?.peerEvaluationSchema || undefined,
-  peerEvaluationStart: toDate(config?.peerEvaluationStart),
-  peerEvaluationDeadline: toDate(config?.peerEvaluationDeadline),
-  tutorEvaluationEnabled: config?.tutorEvaluationEnabled ?? false,
-  tutorEvaluationSchema: config?.tutorEvaluationSchema || undefined,
-  tutorEvaluationStart: toDate(config?.tutorEvaluationStart),
-  tutorEvaluationDeadline: toDate(config?.tutorEvaluationDeadline),
-  evaluationResultsVisible: config?.evaluationResultsVisible ?? false,
-  gradeSuggestionVisible: config?.gradeSuggestionVisible ?? true,
-  actionItemsVisible: config?.actionItemsVisible ?? true,
-  gradingSheetVisible: config?.gradingSheetVisible ?? false,
-})
+): CreateOrUpdateCoursePhaseConfigRequest | undefined => {
+  if (!config) {
+    return undefined
+  }
+
+  return {
+    assessmentSchemaId: config?.assessmentSchemaID ?? '',
+    start: toDate(config?.start),
+    deadline: toDate(config?.deadline),
+    selfEvaluationEnabled: config?.selfEvaluationEnabled ?? false,
+    selfEvaluationSchema: config?.selfEvaluationSchema || undefined,
+    selfEvaluationStart: toDate(config?.selfEvaluationStart),
+    selfEvaluationDeadline: toDate(config?.selfEvaluationDeadline),
+    peerEvaluationEnabled: config?.peerEvaluationEnabled ?? false,
+    peerEvaluationSchema: config?.peerEvaluationSchema || undefined,
+    peerEvaluationStart: toDate(config?.peerEvaluationStart),
+    peerEvaluationDeadline: toDate(config?.peerEvaluationDeadline),
+    tutorEvaluationEnabled: config?.tutorEvaluationEnabled ?? false,
+    tutorEvaluationSchema: config?.tutorEvaluationSchema || undefined,
+    tutorEvaluationStart: toDate(config?.tutorEvaluationStart),
+    tutorEvaluationDeadline: toDate(config?.tutorEvaluationDeadline),
+    evaluationResultsVisible: config?.evaluationResultsVisible ?? false,
+    gradeSuggestionVisible: config?.gradeSuggestionVisible ?? true,
+    actionItemsVisible: config?.actionItemsVisible ?? true,
+    gradingSheetVisible: config?.gradingSheetVisible ?? false,
+  }
+}
 
 export const hasAssessmentCardChanges = (
   current: AssessmentStateSnapshot,

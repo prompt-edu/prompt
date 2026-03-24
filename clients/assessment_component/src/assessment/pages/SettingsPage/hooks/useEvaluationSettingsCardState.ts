@@ -56,6 +56,7 @@ export const useEvaluationSettingsCardState = (
   const { data: schemaHasAssessmentData } = useSchemaHasAssessmentData(
     enabled ? schema || undefined : undefined,
   )
+  const baseRequest = useMemo(() => buildRequestFromConfig(originalConfig), [originalConfig])
 
   const hasChanges = useMemo(
     () =>
@@ -92,17 +93,23 @@ export const useEvaluationSettingsCardState = (
     hasAssessmentData: schemaHasAssessmentData?.hasAssessmentData ?? false,
     error,
     hasChanges,
-    onSave: () =>
+    onSave: () => {
+      if (!baseRequest) {
+        setError('Settings are still loading. Please try again in a moment.')
+        return
+      }
+
       configMutation.mutate({
-        ...buildRequestFromConfig(originalConfig),
+        ...baseRequest,
         ...buildEvaluationPatch(assessmentType, {
           enabled,
           schema,
           start,
           deadline,
         }),
-      }),
-    canSave: !enabled || Boolean(schema),
+      })
+    },
+    canSave: (!enabled || Boolean(schema)) && Boolean(baseRequest),
     onCreateSchemaError: setError,
   }
 

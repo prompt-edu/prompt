@@ -11,6 +11,7 @@ export interface ReleaseAssessmentResultsModel {
   setShowReleaseDialog: (open: boolean) => void
   confirmRelease: () => void
   isReleasing: boolean
+  releaseError: string | null
   completedAssessments: number
   totalAssessments: number
   allAssessmentsCompleted: boolean
@@ -18,6 +19,7 @@ export interface ReleaseAssessmentResultsModel {
 
 export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => {
   const [showReleaseDialog, setShowReleaseDialog] = useState(false)
+  const [releaseError, setReleaseError] = useState<string | null>(null)
 
   const { participations } = useParticipationStore()
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
@@ -29,9 +31,18 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
     assessmentCompletions?.filter((completion) => completion.completed).length ?? 0
   const allAssessmentsCompleted = totalAssessments > 0 && completedAssessments === totalAssessments
 
+  const getErrorMessage = (error: unknown): string => {
+    const responseError = (error as { response?: { data?: { error?: string } } })?.response?.data
+      ?.error
+
+    return responseError || 'Releasing results failed. Please try again.'
+  }
+
   const confirmRelease = () => {
+    setReleaseError(null)
     releaseResults(undefined, {
       onSuccess: () => setShowReleaseDialog(false),
+      onError: (error) => setReleaseError(getErrorMessage(error)),
     })
   }
 
@@ -41,6 +52,7 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
     setShowReleaseDialog,
     confirmRelease,
     isReleasing,
+    releaseError,
     completedAssessments,
     totalAssessments,
     allAssessmentsCompleted,

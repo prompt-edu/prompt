@@ -68,6 +68,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
   })
 
   const { data: assessmentSchemaData } = useSchemaHasAssessmentData(assessmentSchemaId || undefined)
+  const baseRequest = useMemo(() => buildRequestFromConfig(originalConfig), [originalConfig])
 
   const hasChanges = useMemo(
     () =>
@@ -112,9 +113,14 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
     hasAssessmentData: assessmentSchemaData?.hasAssessmentData ?? false,
     error,
     hasChanges,
-    onSave: () =>
+    onSave: () => {
+      if (!baseRequest) {
+        setError('Settings are still loading. Please try again in a moment.')
+        return
+      }
+
       configMutation.mutate({
-        ...buildRequestFromConfig(originalConfig),
+        ...baseRequest,
         assessmentSchemaId,
         start,
         deadline,
@@ -122,8 +128,9 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
         gradeSuggestionVisible,
         actionItemsVisible,
         gradingSheetVisible,
-      }),
-    canSave: Boolean(assessmentSchemaId),
+      })
+    },
+    canSave: Boolean(assessmentSchemaId && baseRequest),
     onCreateSchemaError: setError,
     showToggle: false,
   }

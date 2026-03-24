@@ -44,6 +44,6 @@
   },
   "packageManager": "yarn@4.13.0",
   "resolutions": {
-    "tar": "^7.5.12"
+    "tar": "^7.5.13"
   }
 }

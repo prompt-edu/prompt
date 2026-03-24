@@ -19,7 +19,7 @@ import { SettingsSwitchField } from './SettingsSwitchField'
 import { CreateAssessmentSchemaDialog } from './CoursePhaseConfigSelection/components/CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from './CoursePhaseConfigSelection/components/ErrorDisplay'
 
-interface SchemaConfigurationCardProps {
+export interface SchemaConfigurationCardProps {
   assessmentType: AssessmentType
   enabled: boolean
   onEnabledChange?: (enabled: boolean) => void

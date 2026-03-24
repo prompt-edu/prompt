@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
 
 interface ReleaseConfirmationDialogProps {
   open: boolean

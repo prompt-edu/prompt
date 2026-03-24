@@ -1,6 +1,6 @@
 import { Button } from '@tumaet/prompt-ui-components'
 
-import { ReleaseConfirmationDialog } from '../../ReleaseConfirmationDialog'
+import { ReleaseConfirmationDialog } from './ReleaseConfirmationDialog'
 import { useReleaseAssessmentResults } from '../hooks/useReleaseAssessmentResults'
 
 interface ReleaseResultsSectionProps {
@@ -70,4 +70,3 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     </>
   )
 }
-

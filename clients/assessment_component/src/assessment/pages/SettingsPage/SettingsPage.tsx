@@ -1,138 +1,20 @@
-import { useState } from 'react'
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import {
-  CoursePhaseConfig,
-  CreateOrUpdateCoursePhaseConfigRequest,
-} from '../../interfaces/coursePhaseConfig'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
-import { useSchemaHasAssessmentData } from './hooks/usePhaseHasAssessmentData'
-import { useReleaseResults } from './hooks/useReleaseResults'
-import {
-  CoursePhaseConfigSelection,
-  type SchemaCardConfig,
-} from './components/CoursePhaseConfigSelection/CoursePhaseConfigSelection'
-import { useGetAllAssessmentSchemas } from './components/CoursePhaseConfigSelection/hooks/useGetAllAssessmentSchemas'
-import { useCreateOrUpdateCoursePhaseConfig } from './components/CoursePhaseConfigSelection/hooks/useCreateOrUpdateCoursePhaseConfig'
-import { useCoursePhaseConfigForm } from './components/CoursePhaseConfigSelection/hooks/useCoursePhaseConfigForm'
-import { useEvaluationOptions } from './components/CoursePhaseConfigSelection/hooks/useEvaluationOptions'
-
-const toDate = (value?: Date): Date | undefined => {
-  if (!value) return undefined
-
-  return new Date(value)
-}
-
-const areDatesEqual = (left?: Date, right?: Date) => left?.getTime() === right?.getTime()
-
-const buildRequestFromConfig = (
-  config?: CoursePhaseConfig,
-): CreateOrUpdateCoursePhaseConfigRequest => ({
-  assessmentSchemaId: config?.assessmentSchemaID ?? '',
-  start: toDate(config?.start),
-  deadline: toDate(config?.deadline),
-  selfEvaluationEnabled: config?.selfEvaluationEnabled ?? false,
-  selfEvaluationSchema: config?.selfEvaluationSchema || undefined,
-  selfEvaluationStart: toDate(config?.selfEvaluationStart),
-  selfEvaluationDeadline: toDate(config?.selfEvaluationDeadline),
-  peerEvaluationEnabled: config?.peerEvaluationEnabled ?? false,
-  peerEvaluationSchema: config?.peerEvaluationSchema || undefined,
-  peerEvaluationStart: toDate(config?.peerEvaluationStart),
-  peerEvaluationDeadline: toDate(config?.peerEvaluationDeadline),
-  tutorEvaluationEnabled: config?.tutorEvaluationEnabled ?? false,
-  tutorEvaluationSchema: config?.tutorEvaluationSchema || undefined,
-  tutorEvaluationStart: toDate(config?.tutorEvaluationStart),
-  tutorEvaluationDeadline: toDate(config?.tutorEvaluationDeadline),
-  evaluationResultsVisible: config?.evaluationResultsVisible ?? false,
-  gradeSuggestionVisible: config?.gradeSuggestionVisible ?? true,
-  actionItemsVisible: config?.actionItemsVisible ?? true,
-  gradingSheetVisible: config?.gradingSheetVisible ?? false,
-})
+import { AssessmentSettingsCard } from './components/AssessmentSettingsCard'
+import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
+import { SettingsPageProvider } from './components/SettingsPageContext'
+import { useSettingsPageController } from './hooks/useSettingsPageController'
 
 export const SettingsPage = () => {
-  const [error, setError] = useState<string | undefined>(undefined)
-  const [activeErrorCard, setActiveErrorCard] = useState<AssessmentType | undefined>(undefined)
-  const [showReleaseDialog, setShowReleaseDialog] = useState(false)
+  const controller = useSettingsPageController()
 
-  const { participations } = useParticipationStore()
-  const { coursePhaseConfig: originalConfig } = useCoursePhaseConfigStore()
-
-  const {
-    assessmentSchemaId,
-    setAssessmentSchemaId,
-    start,
-    setStart,
-    deadline,
-    setDeadline,
-    evaluationResultsVisible,
-    setEvaluationResultsVisible,
-    gradeSuggestionVisible,
-    setGradeSuggestionVisible,
-    actionItemsVisible,
-    setActionItemsVisible,
-    gradingSheetVisible,
-    setGradingSheetVisible,
-    hasMainConfigChanges,
-  } = useCoursePhaseConfigForm()
-
-  const {
-    selfEvaluationEnabled,
-    setSelfEvaluationEnabled,
-    selfEvaluationSchema,
-    setSelfEvaluationSchema,
-    selfEvaluationStart,
-    setSelfEvaluationStart,
-    selfEvaluationDeadline,
-    setSelfEvaluationDeadline,
-    peerEvaluationEnabled,
-    setPeerEvaluationEnabled,
-    peerEvaluationSchema,
-    setPeerEvaluationSchema,
-    peerEvaluationStart,
-    setPeerEvaluationStart,
-    peerEvaluationDeadline,
-    setPeerEvaluationDeadline,
-    tutorEvaluationEnabled,
-    setTutorEvaluationEnabled,
-    tutorEvaluationSchema,
-    setTutorEvaluationSchema,
-    tutorEvaluationStart,
-    setTutorEvaluationStart,
-    tutorEvaluationDeadline,
-    setTutorEvaluationDeadline,
-  } = useEvaluationOptions()
-
-  const {
-    data: schemas,
-    isPending: isSchemasPending,
-    isError: isSchemasError,
-  } = useGetAllAssessmentSchemas()
-
-  const { data: assessmentCompletions } = useGetAllAssessmentCompletions()
-  const { mutate: releaseResults, isPending: isReleasing } = useReleaseResults()
-
-  const configMutation = useCreateOrUpdateCoursePhaseConfig(setError)
-
-  const { data: assessmentSchemaData } = useSchemaHasAssessmentData(assessmentSchemaId || undefined)
-  const { data: selfSchemaData } = useSchemaHasAssessmentData(
-    selfEvaluationEnabled ? selfEvaluationSchema || undefined : undefined,
-  )
-  const { data: peerSchemaData } = useSchemaHasAssessmentData(
-    peerEvaluationEnabled ? peerEvaluationSchema || undefined : undefined,
-  )
-  const { data: tutorSchemaData } = useSchemaHasAssessmentData(
-    tutorEvaluationEnabled ? tutorEvaluationSchema || undefined : undefined,
-  )
-
-  if (isSchemasError) {
+  if (controller.isSchemasError) {
     return <ErrorPage />
   }
 
-  if (isSchemasPending) {
+  if (controller.isSchemasPending) {
     return (
       <div className='flex h-64 items-center justify-center'>
         <Loader2 className='h-12 w-12 animate-spin text-primary' />
@@ -140,254 +22,26 @@ export const SettingsPage = () => {
     )
   }
 
-  const totalAssessments = participations.length
-  const completedAssessments =
-    assessmentCompletions?.filter((completion) => completion.completed).length ?? 0
-  const allAssessmentsCompleted = totalAssessments > 0 && completedAssessments === totalAssessments
-
-  const currentRequest: CreateOrUpdateCoursePhaseConfigRequest = {
-    assessmentSchemaId,
-    start,
-    deadline,
-    selfEvaluationEnabled,
-    selfEvaluationSchema: selfEvaluationSchema || undefined,
-    selfEvaluationStart,
-    selfEvaluationDeadline,
-    peerEvaluationEnabled,
-    peerEvaluationSchema: peerEvaluationSchema || undefined,
-    peerEvaluationStart,
-    peerEvaluationDeadline,
-    tutorEvaluationEnabled,
-    tutorEvaluationSchema: tutorEvaluationSchema || undefined,
-    tutorEvaluationStart,
-    tutorEvaluationDeadline,
-    evaluationResultsVisible,
-    gradeSuggestionVisible,
-    actionItemsVisible,
-    gradingSheetVisible,
-  }
-
-  const buildBaseRequest = () =>
-    originalConfig ? buildRequestFromConfig(originalConfig) : currentRequest
-
-  const handleCardError = (assessmentType: AssessmentType, nextError: string | undefined) => {
-    setActiveErrorCard(assessmentType)
-    setError(nextError)
-  }
-
-  const handleSave = (
-    assessmentType: AssessmentType,
-    request: CreateOrUpdateCoursePhaseConfigRequest,
-  ) => {
-    setActiveErrorCard(assessmentType)
-    configMutation.mutate(request)
-  }
-
-  const confirmRelease = () => {
-    releaseResults(undefined, {
-      onSuccess: () => setShowReleaseDialog(false),
-    })
-  }
-
-  const assessmentHasChanges = hasMainConfigChanges(originalConfig)
-  const selfHasChanges = !originalConfig
-    ? Boolean(
-        selfEvaluationEnabled ||
-        selfEvaluationSchema ||
-        selfEvaluationStart ||
-        selfEvaluationDeadline,
-      )
-    : selfEvaluationEnabled !== (originalConfig.selfEvaluationEnabled ?? false) ||
-      selfEvaluationSchema !== (originalConfig.selfEvaluationSchema || '') ||
-      !areDatesEqual(selfEvaluationStart, toDate(originalConfig.selfEvaluationStart)) ||
-      !areDatesEqual(selfEvaluationDeadline, toDate(originalConfig.selfEvaluationDeadline))
-  const peerHasChanges = !originalConfig
-    ? Boolean(
-        peerEvaluationEnabled ||
-        peerEvaluationSchema ||
-        peerEvaluationStart ||
-        peerEvaluationDeadline,
-      )
-    : peerEvaluationEnabled !== (originalConfig.peerEvaluationEnabled ?? false) ||
-      peerEvaluationSchema !== (originalConfig.peerEvaluationSchema || '') ||
-      !areDatesEqual(peerEvaluationStart, toDate(originalConfig.peerEvaluationStart)) ||
-      !areDatesEqual(peerEvaluationDeadline, toDate(originalConfig.peerEvaluationDeadline))
-  const tutorHasChanges = !originalConfig
-    ? Boolean(
-        tutorEvaluationEnabled ||
-        tutorEvaluationSchema ||
-        tutorEvaluationStart ||
-        tutorEvaluationDeadline,
-      )
-    : tutorEvaluationEnabled !== (originalConfig.tutorEvaluationEnabled ?? false) ||
-      tutorEvaluationSchema !== (originalConfig.tutorEvaluationSchema || '') ||
-      !areDatesEqual(tutorEvaluationStart, toDate(originalConfig.tutorEvaluationStart)) ||
-      !areDatesEqual(tutorEvaluationDeadline, toDate(originalConfig.tutorEvaluationDeadline))
-
-  const assessmentDetailReady =
-    assessmentSchemaId === (originalConfig?.assessmentSchemaID ?? '') &&
-    Boolean(originalConfig?.assessmentSchemaID)
-  const selfDetailReady =
-    selfEvaluationEnabled &&
-    selfEvaluationSchema === (originalConfig?.selfEvaluationSchema ?? '') &&
-    Boolean(originalConfig?.selfEvaluationEnabled) &&
-    Boolean(originalConfig?.selfEvaluationSchema)
-  const peerDetailReady =
-    peerEvaluationEnabled &&
-    peerEvaluationSchema === (originalConfig?.peerEvaluationSchema ?? '') &&
-    Boolean(originalConfig?.peerEvaluationEnabled) &&
-    Boolean(originalConfig?.peerEvaluationSchema)
-  const tutorDetailReady =
-    tutorEvaluationEnabled &&
-    tutorEvaluationSchema === (originalConfig?.tutorEvaluationSchema ?? '') &&
-    Boolean(originalConfig?.tutorEvaluationEnabled) &&
-    Boolean(originalConfig?.tutorEvaluationSchema)
-
-  const createDetailButtonLabel = (schemaId?: string) =>
-    schemaId ? 'Save this card to open schema details' : 'Select a schema first'
-
-  const assessmentCard: SchemaCardConfig = {
-    assessmentType: AssessmentType.ASSESSMENT,
-    enabled: true,
-    schemaId: assessmentSchemaId,
-    onSchemaIdChange: setAssessmentSchemaId,
-    startDate: start,
-    onStartDateChange: setStart,
-    deadline,
-    onDeadlineChange: setDeadline,
-    detailPath: `schema/${AssessmentType.ASSESSMENT}`,
-    canOpenDetails: assessmentDetailReady,
-    detailButtonLabel: createDetailButtonLabel(assessmentSchemaId),
-    hasAssessmentData: assessmentSchemaData?.hasAssessmentData ?? false,
-    error: activeErrorCard === AssessmentType.ASSESSMENT ? error : undefined,
-    hasChanges: assessmentHasChanges,
-    onSave: () =>
-      handleSave(AssessmentType.ASSESSMENT, {
-        ...buildBaseRequest(),
-        assessmentSchemaId,
-        start,
-        deadline,
-        evaluationResultsVisible,
-        gradeSuggestionVisible,
-        actionItemsVisible,
-        gradingSheetVisible,
-      }),
-    canSave: Boolean(assessmentSchemaId),
-    onCreateSchemaError: (nextError) => handleCardError(AssessmentType.ASSESSMENT, nextError),
-    showToggle: false,
-  }
-
-  const selfCard: SchemaCardConfig = {
-    assessmentType: AssessmentType.SELF,
-    enabled: selfEvaluationEnabled,
-    onEnabledChange: setSelfEvaluationEnabled,
-    schemaId: selfEvaluationSchema,
-    onSchemaIdChange: setSelfEvaluationSchema,
-    startDate: selfEvaluationStart,
-    onStartDateChange: setSelfEvaluationStart,
-    deadline: selfEvaluationDeadline,
-    onDeadlineChange: setSelfEvaluationDeadline,
-    detailPath: `schema/${AssessmentType.SELF}`,
-    canOpenDetails: selfDetailReady,
-    detailButtonLabel: createDetailButtonLabel(selfEvaluationSchema),
-    hasAssessmentData: selfSchemaData?.hasAssessmentData ?? false,
-    error: activeErrorCard === AssessmentType.SELF ? error : undefined,
-    hasChanges: selfHasChanges,
-    onSave: () =>
-      handleSave(AssessmentType.SELF, {
-        ...buildBaseRequest(),
-        selfEvaluationEnabled,
-        selfEvaluationSchema: selfEvaluationSchema || undefined,
-        selfEvaluationStart,
-        selfEvaluationDeadline,
-      }),
-    canSave: !selfEvaluationEnabled || Boolean(selfEvaluationSchema),
-    onCreateSchemaError: (nextError) => handleCardError(AssessmentType.SELF, nextError),
-  }
-
-  const peerCard: SchemaCardConfig = {
-    assessmentType: AssessmentType.PEER,
-    enabled: peerEvaluationEnabled,
-    onEnabledChange: setPeerEvaluationEnabled,
-    schemaId: peerEvaluationSchema,
-    onSchemaIdChange: setPeerEvaluationSchema,
-    startDate: peerEvaluationStart,
-    onStartDateChange: setPeerEvaluationStart,
-    deadline: peerEvaluationDeadline,
-    onDeadlineChange: setPeerEvaluationDeadline,
-    detailPath: `schema/${AssessmentType.PEER}`,
-    canOpenDetails: peerDetailReady,
-    detailButtonLabel: createDetailButtonLabel(peerEvaluationSchema),
-    hasAssessmentData: peerSchemaData?.hasAssessmentData ?? false,
-    error: activeErrorCard === AssessmentType.PEER ? error : undefined,
-    hasChanges: peerHasChanges,
-    onSave: () =>
-      handleSave(AssessmentType.PEER, {
-        ...buildBaseRequest(),
-        peerEvaluationEnabled,
-        peerEvaluationSchema: peerEvaluationSchema || undefined,
-        peerEvaluationStart,
-        peerEvaluationDeadline,
-      }),
-    canSave: !peerEvaluationEnabled || Boolean(peerEvaluationSchema),
-    onCreateSchemaError: (nextError) => handleCardError(AssessmentType.PEER, nextError),
-  }
-
-  const tutorCard: SchemaCardConfig = {
-    assessmentType: AssessmentType.TUTOR,
-    enabled: tutorEvaluationEnabled,
-    onEnabledChange: setTutorEvaluationEnabled,
-    schemaId: tutorEvaluationSchema,
-    onSchemaIdChange: setTutorEvaluationSchema,
-    startDate: tutorEvaluationStart,
-    onStartDateChange: setTutorEvaluationStart,
-    deadline: tutorEvaluationDeadline,
-    onDeadlineChange: setTutorEvaluationDeadline,
-    detailPath: `schema/${AssessmentType.TUTOR}`,
-    canOpenDetails: tutorDetailReady,
-    detailButtonLabel: createDetailButtonLabel(tutorEvaluationSchema),
-    hasAssessmentData: tutorSchemaData?.hasAssessmentData ?? false,
-    error: activeErrorCard === AssessmentType.TUTOR ? error : undefined,
-    hasChanges: tutorHasChanges,
-    onSave: () =>
-      handleSave(AssessmentType.TUTOR, {
-        ...buildBaseRequest(),
-        tutorEvaluationEnabled,
-        tutorEvaluationSchema: tutorEvaluationSchema || undefined,
-        tutorEvaluationStart,
-        tutorEvaluationDeadline,
-      }),
-    canSave: !tutorEvaluationEnabled || Boolean(tutorEvaluationSchema),
-    onCreateSchemaError: (nextError) => handleCardError(AssessmentType.TUTOR, nextError),
-  }
-
   return (
-    <div className='space-y-6'>
-      <ManagementPageHeader>Assessment Settings</ManagementPageHeader>
-      <CoursePhaseConfigSelection
-        schemas={schemas ?? []}
-        isSaving={configMutation.isPending}
-        assessmentCard={assessmentCard}
-        selfCard={selfCard}
-        peerCard={peerCard}
-        tutorCard={tutorCard}
-        gradingSheetVisible={gradingSheetVisible}
-        onGradingSheetVisibleChange={setGradingSheetVisible}
-        gradeSuggestionVisible={gradeSuggestionVisible}
-        onGradeSuggestionVisibleChange={setGradeSuggestionVisible}
-        actionItemsVisible={actionItemsVisible}
-        onActionItemsVisibleChange={setActionItemsVisible}
-        evaluationResultsVisible={evaluationResultsVisible}
-        onEvaluationResultsVisibleChange={setEvaluationResultsVisible}
-        resultsReleased={Boolean(originalConfig?.resultsReleased)}
-        showReleaseDialog={showReleaseDialog}
-        onShowReleaseDialogChange={setShowReleaseDialog}
-        onConfirmRelease={confirmRelease}
-        isReleasing={isReleasing}
-        completedAssessments={completedAssessments}
-        totalAssessments={totalAssessments}
-        allAssessmentsCompleted={allAssessmentsCompleted}
-      />
-    </div>
+    <SettingsPageProvider value={controller}>
+      <div className='space-y-6'>
+        <ManagementPageHeader>Assessment Settings</ManagementPageHeader>
+
+        <AssessmentSettingsCard />
+
+        <EvaluationSettingsCard
+          assessmentType={AssessmentType.SELF}
+          distinctionText='Reflection by the student on their own work in this phase.'
+        />
+        <EvaluationSettingsCard
+          assessmentType={AssessmentType.PEER}
+          distinctionText='Feedback between peers to assess collaboration and team contribution.'
+        />
+        <EvaluationSettingsCard
+          assessmentType={AssessmentType.TUTOR}
+          distinctionText='Independent tutor perspective to complement peer and self evaluations.'
+        />
+      </div>
+    </SettingsPageProvider>
   )
 }

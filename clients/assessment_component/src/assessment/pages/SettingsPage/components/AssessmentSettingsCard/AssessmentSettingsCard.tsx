@@ -15,14 +15,26 @@ import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import { useGetAllAssessmentSchemas } from '../../../hooks/useGetAllAssessmentSchemas'
 import { schemaSectionContent } from '../../../schemaSectionContent'
+import type {
+  AssessmentVisibilityModel,
+  SettingsCardModel,
+} from '../../hooks/useSettingsPageController'
 import { SettingsSwitchField } from '../SettingsSwitchField'
 import { CreateAssessmentSchemaDialog } from '../CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from '../ErrorDisplay'
-import { useSettingsPageContext } from '../SettingsPageContext'
 import { ReleaseResultsSection } from './components/ReleaseResultsSection'
 
-export const AssessmentSettingsCard = () => {
-  const { isSaving, assessmentCard, assessmentVisibility } = useSettingsPageContext()
+interface AssessmentSettingsCardProps {
+  isSaving: boolean
+  assessmentCard: SettingsCardModel
+  assessmentVisibility: AssessmentVisibilityModel
+}
+
+export const AssessmentSettingsCard = ({
+  isSaving,
+  assessmentCard,
+  assessmentVisibility,
+}: AssessmentSettingsCardProps) => {
   const {
     data: schemas,
     isPending: isSchemasPending,

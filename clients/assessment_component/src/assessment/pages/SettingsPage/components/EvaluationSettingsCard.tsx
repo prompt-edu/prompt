@@ -1,26 +1,23 @@
-import { AssessmentType } from '../../../interfaces/assessmentType'
 import { useGetAllAssessmentSchemas } from '../../hooks/useGetAllAssessmentSchemas'
+import type { SettingsCardModel } from '../hooks/useSettingsPageController'
 import { SchemaConfigurationCard } from './SchemaConfigurationCard'
-import { useSettingsPageContext } from './SettingsPageContext'
-
-type EvaluationAssessmentType = AssessmentType.SELF | AssessmentType.PEER | AssessmentType.TUTOR
 
 interface EvaluationSettingsCardProps {
-  assessmentType: EvaluationAssessmentType
   distinctionText: string
+  isSaving: boolean
+  card: SettingsCardModel
 }
 
 export const EvaluationSettingsCard = ({
-  assessmentType,
   distinctionText,
+  isSaving,
+  card,
 }: EvaluationSettingsCardProps) => {
-  const { isSaving, evaluationCards } = useSettingsPageContext()
   const {
     data: schemas,
     isPending: isSchemasPending,
     isError: isSchemasError,
   } = useGetAllAssessmentSchemas()
-  const card = evaluationCards[assessmentType]
 
   return (
     <SchemaConfigurationCard

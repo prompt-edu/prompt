@@ -3,32 +3,36 @@ import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
-import { SettingsPageProvider } from './components/SettingsPageContext'
 import { useSettingsPageController } from './hooks/useSettingsPageController'
 
 export const SettingsPage = () => {
   const controller = useSettingsPageController()
 
   return (
-    <SettingsPageProvider value={controller}>
-      <div className='space-y-6'>
-        <ManagementPageHeader>Assessment Settings</ManagementPageHeader>
+    <div className='space-y-6'>
+      <ManagementPageHeader>Assessment Settings</ManagementPageHeader>
 
-        <AssessmentSettingsCard />
+      <AssessmentSettingsCard
+        isSaving={controller.isSaving}
+        assessmentCard={controller.assessmentCard}
+        assessmentVisibility={controller.assessmentVisibility}
+      />
 
-        <EvaluationSettingsCard
-          assessmentType={AssessmentType.SELF}
-          distinctionText='Reflection by the student on their own work in this phase.'
-        />
-        <EvaluationSettingsCard
-          assessmentType={AssessmentType.PEER}
-          distinctionText='Feedback between peers to assess collaboration and team contribution.'
-        />
-        <EvaluationSettingsCard
-          assessmentType={AssessmentType.TUTOR}
-          distinctionText='Feedback from students about their tutors in this phase.'
-        />
-      </div>
-    </SettingsPageProvider>
+      <EvaluationSettingsCard
+        distinctionText='Reflection by the student on their own work in this phase.'
+        isSaving={controller.isSaving}
+        card={controller.evaluationCards[AssessmentType.SELF]}
+      />
+      <EvaluationSettingsCard
+        distinctionText='Feedback between peers to assess collaboration and team contribution.'
+        isSaving={controller.isSaving}
+        card={controller.evaluationCards[AssessmentType.PEER]}
+      />
+      <EvaluationSettingsCard
+        distinctionText='Feedback from students about their tutors in this phase.'
+        isSaving={controller.isSaving}
+        card={controller.evaluationCards[AssessmentType.TUTOR]}
+      />
+    </div>
   )
 }

@@ -9,17 +9,17 @@ import {
 import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
 import { EvaluationOptions } from '../interfaces/EvaluationOption'
-import {
-  MainConfigState,
-  useCoursePhaseConfigForm,
-} from './useCoursePhaseConfigForm'
+import { MainConfigState, useCoursePhaseConfigForm } from './useCoursePhaseConfigForm'
 import { useCreateOrUpdateCoursePhaseConfig } from './useCreateOrUpdateCoursePhaseConfig'
 import { useEvaluationOptions } from './useEvaluationOptions'
 
-type EvaluationCardType = AssessmentType.SELF | AssessmentType.PEER | AssessmentType.TUTOR
-type CardModel = Omit<SchemaConfigurationCardProps, 'schemas' | 'disabled' | 'isSaving'>
+export type EvaluationCardType = AssessmentType.SELF | AssessmentType.PEER | AssessmentType.TUTOR
+export type SettingsCardModel = Omit<
+  SchemaConfigurationCardProps,
+  'schemas' | 'disabled' | 'isSaving'
+>
 
-interface AssessmentVisibilityModel {
+export interface AssessmentVisibilityModel {
   gradingSheetVisible: boolean
   setGradingSheetVisible: (checked: boolean) => void
   gradeSuggestionVisible: boolean
@@ -32,8 +32,8 @@ interface AssessmentVisibilityModel {
 
 export interface SettingsPageController {
   isSaving: boolean
-  assessmentCard: CardModel
-  evaluationCards: Record<EvaluationCardType, CardModel>
+  assessmentCard: SettingsCardModel
+  evaluationCards: Record<EvaluationCardType, SettingsCardModel>
   assessmentVisibility: AssessmentVisibilityModel
 }
 
@@ -247,7 +247,7 @@ export const useSettingsPageController = (): SettingsPageController => {
   const createDetailButtonLabel = (schemaId?: string) =>
     schemaId ? 'Save this card to open schema details' : 'Select a schema first'
 
-  const assessmentCard: CardModel = {
+  const assessmentCard: SettingsCardModel = {
     assessmentType: AssessmentType.ASSESSMENT,
     enabled: true,
     schemaId: assessmentSchemaId,
@@ -279,7 +279,7 @@ export const useSettingsPageController = (): SettingsPageController => {
     showToggle: false,
   }
 
-  const evaluationCards: Record<EvaluationCardType, CardModel> = {
+  const evaluationCards: Record<EvaluationCardType, SettingsCardModel> = {
     [AssessmentType.SELF]: {
       assessmentType: AssessmentType.SELF,
       enabled: selfEvaluationEnabled,

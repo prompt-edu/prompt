@@ -110,12 +110,7 @@ export const SchemaConfigurationCard = ({
 
       <ErrorDisplay error={error} />
 
-      {!isActive ? (
-        <div className='rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600'>
-          {content.title} is currently disabled. Enable it in the card header to choose a schema,
-          define a submission window, and open the detailed schema editor.
-        </div>
-      ) : (
+      {isActive && (
         <div className='grid gap-6 xl:grid-cols-[1.2fr_0.8fr]'>
           <div className='space-y-3'>
             <div className='flex items-center gap-2 text-sm font-semibold text-slate-900'>
@@ -187,14 +182,16 @@ export const SchemaConfigurationCard = ({
 
       {isActive && children}
 
-      <div className='flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4'>
-        <p className='flex-1 text-xs leading-5 text-slate-500'>
-          Save this card to apply its configuration changes for the current course phase.
-        </p>
-        <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
-          {isSaving ? 'Saving...' : `Save ${content.title}`}
-        </Button>
-      </div>
+      {isActive && (
+        <div className='flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4'>
+          <p className='flex-1 text-xs leading-5 text-slate-500'>
+            Save this card to apply its configuration changes for the current course phase.
+          </p>
+          <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
+            {isSaving ? 'Saving...' : `Save ${content.title}`}
+          </Button>
+        </div>
+      )}
     </div>
   )
 

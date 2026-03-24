@@ -76,7 +76,7 @@ func main() {
 
 	runMigrations(databaseURL)
 
-  ctx := context.Background()
+	ctx := context.Background()
 	conn, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
@@ -104,20 +104,20 @@ func main() {
 	generator.InitGeneratorModule(api, *query)
 
 	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
-      ServiceName: "certificate",
-      Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
-      Capabilities: map[string]bool{
-        promptTypes.CapabilityPrivacyExport:   false,
-        promptTypes.CapabilityPrivacyDeletion: false,
-        promptTypes.CapabilityPhaseCopy:       false,
-        promptTypes.CapabilityPhaseConfig:     true,
-      },
-    }, func() bool {
-      ctt, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-      defer cancel()
-      return conn.Ping(ctt) == nil
-    },
-  )
+		ServiceName: "certificate",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPhaseCopy:       false,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+	}, func() bool {
+		ctt, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer cancel()
+		return conn.Ping(ctt) == nil
+	},
+	)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8088")
 	log.Info("Certificate Server started")

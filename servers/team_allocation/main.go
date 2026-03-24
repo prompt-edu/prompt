@@ -120,8 +120,8 @@ func main() {
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   false,
 			promptTypes.CapabilityPrivacyDeletion: false,
-			promptTypes.CapabilityPhaseCopy:              true,
-			promptTypes.CapabilityPhaseConfig:            true,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

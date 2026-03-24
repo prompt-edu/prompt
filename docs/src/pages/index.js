@@ -61,10 +61,7 @@ function ShowcaseItem({ item }) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add(styles.showcaseItemVisible);
-          observer.unobserve(el);
-        }
+        el.classList.toggle(styles.showcaseItemVisible, entry.isIntersecting);
       },
       { threshold: 0.2 },
     );

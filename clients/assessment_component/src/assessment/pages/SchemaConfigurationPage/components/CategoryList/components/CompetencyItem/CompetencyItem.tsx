@@ -60,7 +60,7 @@ export const CompetencyItem = ({
         <div className='flex justify-between items-center gap-2'>
           <div className='flex flex-wrap items-center gap-2'>
             <h3 className='text-base font-medium'>{competency.name}</h3>
-            <Badge className='h-5 px-2 text-xs font-medium bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-100'>
+            <Badge className='h-5 border-border bg-muted px-2 text-xs font-medium text-muted-foreground hover:bg-muted'>
               Weight: {competency.weight}
             </Badge>
           </div>

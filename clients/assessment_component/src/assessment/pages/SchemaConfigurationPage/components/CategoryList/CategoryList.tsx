@@ -30,6 +30,11 @@ interface CategoryListProps {
   hasAssessmentData?: boolean
 }
 
+const LOCK_BADGE_CLASS = [
+  'inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium',
+  'text-amber-900 dark:bg-amber-900/40 dark:text-amber-200',
+].join(' ')
+
 export const CategoryList = ({
   assessmentSchemaID,
   assessmentType,
@@ -58,18 +63,18 @@ export const CategoryList = ({
   const content = schemaSectionContent[assessmentType]
 
   return (
-    <Card className='overflow-hidden border-slate-200 p-6 shadow-sm'>
+    <Card className='overflow-hidden border-border p-6 shadow-sm'>
       <div className='space-y-6'>
         <div className='space-y-2'>
           <div className='flex flex-wrap items-center gap-2'>
-            <h2 className='text-xl font-semibold tracking-tight text-slate-900'>
+            <h2 className='text-xl font-semibold tracking-tight text-foreground'>
               Categories and competencies
             </h2>
             {hasAssessmentData && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className='inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800'>
+                    <span className={LOCK_BADGE_CLASS}>
                       <Lock className='h-3.5 w-3.5' />
                       Locked by submitted data
                     </span>
@@ -85,15 +90,15 @@ export const CategoryList = ({
             )}
           </div>
 
-          <p className='text-sm leading-6 text-slate-600'>
+          <p className='text-sm leading-6 text-muted-foreground'>
             Review the {content.title.toLowerCase()} structure, category weights, competency
             descriptions, and score-level guidance below.
           </p>
         </div>
 
-        <div className='space-y-6 border-t border-slate-200 pt-6'>
+        <div className='space-y-6 border-t border-border pt-6'>
           {categories.length === 0 ? (
-            <div className='rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600'>
+            <div className='rounded-xl border border-dashed border-border bg-muted/40 p-6 text-sm text-muted-foreground'>
               This schema does not contain any categories yet. Add the first category to start
               defining the rubric.
             </div>

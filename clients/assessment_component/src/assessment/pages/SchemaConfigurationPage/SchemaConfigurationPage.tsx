@@ -26,6 +26,11 @@ const BackToSettingsButton = () => (
   </Button>
 )
 
+const LOCK_BADGE_CLASS = [
+  'inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium',
+  'text-amber-900 dark:bg-amber-900/40 dark:text-amber-200',
+].join(' ')
+
 const getAssessmentTypeForSchema = (
   config: CoursePhaseConfig | undefined,
   schemaID: string | undefined,
@@ -161,24 +166,24 @@ export const SchemaConfigurationPage = () => {
         </div>
       </div>
 
-      <Card className='border-slate-200 shadow-sm'>
+      <Card className='border-border shadow-sm'>
         <CardContent className='space-y-3 p-6'>
           <div className='flex flex-wrap items-center gap-2'>
-            <h2 className='text-xl font-semibold text-slate-900'>
+            <h2 className='text-xl font-semibold text-foreground'>
               {schema?.name ?? 'Configured schema'}
             </h2>
             {schemaData.hasAssessmentData && (
-              <span className='inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800'>
+              <span className={LOCK_BADGE_CLASS}>
                 <Lock className='h-3.5 w-3.5' />
                 Locked by submitted data
               </span>
             )}
           </div>
-          <p className='text-sm leading-6 text-slate-600'>
+          <p className='text-sm leading-6 text-muted-foreground'>
             {schema?.description ||
               'This schema is assigned to the current phase. Review the categories and competencies below.'}
           </p>
-          <p className='text-xs leading-5 text-slate-500'>
+          <p className='text-xs leading-5 text-muted-foreground'>
             Changes here affect the schema currently connected to this assessment type for the
             current course phase.
           </p>

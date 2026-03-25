@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { differenceInDays, format } from 'date-fns'
+import { differenceInDays, differenceInHours, differenceInMinutes, format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
 import { ApplicationStatusBadge } from '../../../components/ApplicationStatusBadge'
 import { getApplicationStatus } from '../../../utils/getApplicationStatus'
@@ -9,6 +9,16 @@ import { ApplicationStatus } from '../../../interfaces/applicationStatus'
 interface ApplicationStatusCardProps {
   applicationMetaData: ApplicationMetaData | null
   applicationPhaseIsConfigured: boolean
+}
+
+function getTimeUntil(date: Date, suffixDays: string, suffixHours: string, suffixMinutes: string) {
+  const now = new Date()
+  const days = differenceInDays(date, now)
+  if (days >= 1) return { value: days, description: suffixDays }
+  const hours = differenceInHours(date, now)
+  if (hours >= 1) return { value: hours, description: suffixHours }
+  const minutes = differenceInMinutes(date, now)
+  return { value: Math.max(minutes, 0), description: suffixMinutes }
 }
 
 export function ApplicationStatusCard({
@@ -24,20 +34,19 @@ export function ApplicationStatusCard({
   }
 
   const getDisplayContent = React.useMemo(() => {
-    const now = new Date()
     switch (status) {
       case ApplicationStatus.NotYetLive:
         return startDate
-          ? { days: differenceInDays(startDate, now), description: 'days until start' }
-          : { days: null, description: 'Not set' }
+          ? getTimeUntil(startDate, 'days until start', 'hours until start', 'minutes until start')
+          : { value: null, description: 'Not set' }
       case ApplicationStatus.Live:
         return endDate
-          ? { days: differenceInDays(endDate, now), description: 'days remaining' }
-          : { days: null, description: 'Ongoing' }
+          ? getTimeUntil(endDate, 'days remaining', 'hours remaining', 'minutes remaining')
+          : { value: null, description: 'Ongoing' }
       case ApplicationStatus.Passed:
-        return { days: null, description: 'CLOSED' }
+        return { value: null, description: 'CLOSED' }
       default:
-        return { days: null, description: 'Unknown' }
+        return { value: null, description: 'Unknown' }
     }
   }, [status, startDate, endDate])
 
@@ -52,9 +61,9 @@ export function ApplicationStatusCard({
       </CardHeader>
       <CardContent className='flex-1 flex flex-col justify-between'>
         <div>
-          {getDisplayContent.days !== null ? (
+          {getDisplayContent.value !== null ? (
             <>
-              <div className='text-6xl font-bold'>{getDisplayContent.days}</div>
+              <div className='text-6xl font-bold'>{getDisplayContent.value}</div>
               <div className='text-xl mt-1'>{getDisplayContent.description}</div>
             </>
           ) : (

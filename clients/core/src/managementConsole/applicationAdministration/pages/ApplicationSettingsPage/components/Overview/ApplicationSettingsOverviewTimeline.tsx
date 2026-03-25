@@ -1,4 +1,4 @@
-import { differenceInDays, format } from 'date-fns'
+import { differenceInDays, differenceInHours, differenceInMinutes, format } from 'date-fns'
 import { Progress } from '@tumaet/prompt-ui-components'
 
 interface ApplicationTimelineProps {
@@ -26,11 +26,24 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
       <Progress value={progress} className='w-full' />
       <div className='text-center text-sm text-gray-500'>
         {progress <= 0 ? (
-          <span>Application period starts in {-daysPassed} days</span>
+          (() => {
+            const hoursUntil = differenceInHours(startDate, today)
+            if (hoursUntil >= 24) return <span>Application period starts in {-daysPassed} days</span>
+            const minutesUntil = differenceInMinutes(startDate, today)
+            if (hoursUntil >= 1) return <span>Application period starts in {hoursUntil} hours</span>
+            return <span>Application period starts in {Math.max(minutesUntil, 0)} minutes</span>
+          })()
         ) : progress >= 100 ? (
           <span>Application period has ended</span>
         ) : (
-          <span>{totalDays - daysPassed} days remaining</span>
+          (() => {
+            const daysLeft = totalDays - daysPassed
+            if (daysLeft >= 1) return <span>{daysLeft} days remaining</span>
+            const hoursLeft = differenceInHours(endDate, today)
+            if (hoursLeft >= 1) return <span>{hoursLeft} hours remaining</span>
+            const minutesLeft = differenceInMinutes(endDate, today)
+            return <span>{Math.max(minutesLeft, 0)} minutes remaining</span>
+          })()
         )}
       </div>
     </div>

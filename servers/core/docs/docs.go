@@ -3585,7 +3585,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a short-lived presigned URL to download a specific export ZIP",
+                "description": "Returns a short-lived presigned URL to download a specific export document after validating ownership and validity",
                 "produces": [
                     "application/json"
                 ],
@@ -3625,8 +3625,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
-                    "405": {
-                        "description": "Method Not Allowed",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }

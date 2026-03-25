@@ -3748,7 +3748,7 @@ paths:
   /privacy/data-export/{uuid}/docs/{docID}/download-url:
     get:
       description: Returns a short-lived presigned URL to download a specific export
-        ZIP
+        document after validating ownership and validity
       parameters:
       - description: Export UUID
         in: path
@@ -3773,8 +3773,8 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-        "405":
-          description: Method Not Allowed
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":

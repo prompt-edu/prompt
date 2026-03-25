@@ -97,17 +97,19 @@ func getLatestExport(c *gin.Context) {
 	}
 }
 
-// getExportDocDownloadURL returns a presigned download URL for a single export document.
+// getExportDocDownloadURL returns a presigned download URL for a single document belonging to an export.
+// It validates that the export belongs to the requester, that the document belongs to the export,
+// and that the export is still valid before generating the URL.
 //
 // @Summary Get download URL for an export document
-// @Description Returns a short-lived presigned URL to download a specific export ZIP
+// @Description Returns a short-lived presigned URL to download a specific export document after validating ownership and validity
 // @Tags privacy
 // @Produce json
 // @Param uuid path string true "Export UUID"
 // @Param docID path string true "Export Document UUID"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 405 {object} coreutils.ErrorResponse
+// @Failure 403 {object} coreutils.ErrorResponse
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid}/docs/{docID}/download-url [get]

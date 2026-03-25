@@ -17,17 +17,17 @@ import (
 // @Description Endpoints for managing GDPR data exports and deletion requests
 // @Tags privacy
 // @Security BearerAuth
-func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, premissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	privacyRouter := router.Group("/privacy", authMiddleware())
 
-	privacyRouter.POST("/data-export", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), studentDataExport)
-	privacyRouter.GET("/data-export", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestExport)
+	privacyRouter.POST("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), studentDataExport)
+	privacyRouter.GET("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestExport)
 
-	privacyRouter.GET("/data-export/:uuid", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
-	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", premissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
+	privacyRouter.GET("/data-export/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
+	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
 
 	// Admin-only routes
-	privacyRouter.GET("/admin/data-exports", premissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
+	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
 }
 
 // studentDataExport exports all student related data from core and all microservices.

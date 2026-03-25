@@ -140,7 +140,7 @@ func getExportDocDownloadURL(c *gin.Context) {
 		return
   }
 
-	downloadURL, err := service.GetDownloadURLForDoc(c, exportID, docID)
+	downloadURL, err := service.GetDownloadURLForDoc(c, docID)
 	if err != nil {
 		log.Error("get export doc download URL failed: ", err)
 		utils.HandleError(c, http.StatusInternalServerError, err)

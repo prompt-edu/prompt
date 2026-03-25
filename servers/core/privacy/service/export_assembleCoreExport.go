@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,9 +14,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 )
 
-func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subjectIdentifiers sdk.SubjectIdentifiers, wait_time time.Duration) (err error) {
-  time.Sleep(wait_time)
-
+func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
   defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc) }()
 
   ex, err := utils.NewExport()
@@ -80,31 +77,3 @@ func addApplicationFiles(c *gin.Context, ex *utils.Export, courseParticipationUU
   }
 }
 
-func MockExternalServiceExport(c *gin.Context, doc PreparedExportDoc) {
-  var err error
-  defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc) }()
-
-  name := doc.ExportDoc.SourceName
-  // simulate varying processing times per service
-  switch name {
-  case "Assessment":
-    time.Sleep(18 * time.Second)
-  case "Team Allocation":
-    time.Sleep(10 * time.Second)
-  case "Interview":
-    time.Sleep(9 * time.Second)
-  default:
-    time.Sleep(8 * time.Second)
-  }
-
-  // mock: create a minimal empty export and upload it
-  ex, err := utils.NewExport()
-  if err != nil { return }
-  defer ex.Close()
-
-  ex.AddJSON(name+" Data", "data.json", func() (any, error) {
-    return map[string]string{"mock": "This is mock data for " + name}, nil
-  })
-
-  err = ex.UploadTo(c, doc.URL)
-}

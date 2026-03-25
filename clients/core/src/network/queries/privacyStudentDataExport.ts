@@ -28,7 +28,6 @@ export interface PrivacyExportDocument {
   id: string
   date_created: string
   source_name: string
-  object_key: string
   status: ExportStatus
   file_size: number | null
   downloaded_at: string | null

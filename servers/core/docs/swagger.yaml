@@ -1191,8 +1191,6 @@ definitions:
         type: integer
       id:
         type: string
-      object_key:
-        type: string
       source_name:
         type: string
       status:

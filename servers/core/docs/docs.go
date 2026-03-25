@@ -5735,9 +5735,6 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "object_key": {
-                    "type": "string"
-                },
                 "source_name": {
                     "type": "string"
                 },

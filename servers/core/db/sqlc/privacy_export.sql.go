@@ -136,6 +136,17 @@ func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error)
 	return items, nil
 }
 
+const getExportDocObjectKey = `-- name: GetExportDocObjectKey :one
+SELECT object_key FROM privacy_export_document WHERE id = $1
+`
+
+func (q *Queries) GetExportDocObjectKey(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getExportDocObjectKey, id)
+	var object_key string
+	err := row.Scan(&object_key)
+	return object_key, err
+}
+
 const getExportRecordByID = `-- name: GetExportRecordByID :one
 SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE id = $1 LIMIT 1
 `

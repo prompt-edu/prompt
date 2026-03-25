@@ -199,7 +199,15 @@ func UpdateExportDocStatus(err error, c *gin.Context, exportDoc privacyDTO.Priva
     return
   }
 
-  fileSize, sizeErr := privacyexport.GetFileSize(c, exportDoc.ObjectKey)
+  objectKey, keyErr := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, exportDoc.ID)
+  if keyErr != nil {
+    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {
+      log.WithError(setErr).Error("failed to set export doc status to complete")
+    }
+    return
+  }
+
+  fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
   if sizeErr != nil {
     // file size is non-critical, fall back to status-only update
     if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {

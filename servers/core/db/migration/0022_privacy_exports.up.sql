@@ -36,7 +36,6 @@ SELECT
         'id', ed.id,
         'date_created', ed.date_created,
         'source_name', ed.source_name,
-        'object_key', ed.object_key,
         'status', ed.status,
         'file_size', ed.file_size,
         'downloaded_at', ed.downloaded_at

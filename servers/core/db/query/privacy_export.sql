@@ -26,6 +26,9 @@ UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING *;
 -- name: UpdateExportDocResult :one
 UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING *;
 
+-- name: GetExportDocObjectKey :one
+SELECT object_key FROM privacy_export_document WHERE id = $1;
+
 -- name: SetExportDocDownloadedAt :exec
 UPDATE privacy_export_document SET downloaded_at = now() WHERE id = $1 AND downloaded_at IS NULL;
 

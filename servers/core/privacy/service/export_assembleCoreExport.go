@@ -50,7 +50,7 @@ func getSubjectDataForStudent(c *gin.Context, ex *utils.Export, studentUUID uuid
     return student.GetStudentEnrollmentsByID(c, studentUUID)
   })
 
-  ex.AddJSON("Instructor Notes as Receiver", "student/intructor_notes.json", func () (any, error) {
+  ex.AddJSON("Instructor Notes as Receiver", "student/instructor_notes.json", func () (any, error) {
     return instructorNote.GetStudentNotesByIDWithoutAuthor(c, studentUUID)
   })
 

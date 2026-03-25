@@ -38,7 +38,6 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyExport
 // @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 429 {object} coreutils.ErrorResponse
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
@@ -129,6 +128,11 @@ func getExportDocDownloadURL(c *gin.Context) {
 		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
+
+  if valErr := service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
+		utils.HandleError(c, http.StatusForbidden, valErr)
+		return
+  }
 
   if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
 		utils.HandleError(c, http.StatusForbidden, valErr)

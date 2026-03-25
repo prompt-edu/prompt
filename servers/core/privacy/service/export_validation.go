@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,19 @@ func ValidateExportValid(c *gin.Context, exportID uuid.UUID) error {
     return errors.New("the export is no longer valid")
   }
   return nil
+}
+
+func ValidateExportDocBelongsToExport(c *gin.Context, docID uuid.UUID, exportID uuid.UUID) error {
+  expWD, err := GetExportWithDocs(c, exportID)
+  if err != nil {
+    return err
+  }
+  for _, expDoc := range expWD.Documents {
+    if expDoc.ID.ID() == docID.ID() {
+      return nil
+    }
+  }
+  return fmt.Errorf("the export doc with given ID does not belong to the export with given ID")
 }
 
 func ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error {

@@ -126,12 +126,12 @@ func getExportDocDownloadURL(c *gin.Context) {
 	}
 
 	if valErr := service.ValidateExportBelongsToRequester(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
   if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
   }
 

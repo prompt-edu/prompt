@@ -5589,6 +5589,9 @@ const docTemplate = `{
                 "date_created": {
                     "type": "string"
                 },
+                "downloaded_at": {
+                    "type": "string"
+                },
                 "file_size": {
                     "type": "integer"
                 },

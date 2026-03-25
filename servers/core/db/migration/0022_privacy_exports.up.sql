@@ -18,7 +18,8 @@ CREATE TABLE privacy_export_document (
   source_name  text          NOT NULL,
   object_key   text          NOT NULL,
   status       export_status NOT NULL DEFAULT 'pending',
-  file_size    bigint
+  file_size    bigint,
+  downloaded_at timestamptz
 );
 
 CREATE VIEW privacy_export_with_docs AS
@@ -37,7 +38,8 @@ SELECT
         'source_name', ed.source_name,
         'object_key', ed.object_key,
         'status', ed.status,
-        'file_size', ed.file_size
+        'file_size', ed.file_size,
+        'downloaded_at', ed.downloaded_at
       ) ORDER BY ed.date_created ASC
     ) FILTER (WHERE ed.id IS NOT NULL),
     '[]'::jsonb

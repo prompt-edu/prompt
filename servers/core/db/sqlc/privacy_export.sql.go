@@ -49,7 +49,7 @@ func (q *Queries) CreateNewExport(ctx context.Context, arg CreateNewExportParams
 const createNewExportDoc = `-- name: CreateNewExportDoc :one
 INSERT INTO privacy_export_document ( id, exportID, source_name, object_key, status )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, exportid, date_created, source_name, object_key, status, file_size
+RETURNING id, exportid, date_created, source_name, object_key, status, file_size, downloaded_at
 `
 
 type CreateNewExportDocParams struct {
@@ -77,6 +77,7 @@ func (q *Queries) CreateNewExportDoc(ctx context.Context, arg CreateNewExportDoc
 		&i.ObjectKey,
 		&i.Status,
 		&i.FileSize,
+		&i.DownloadedAt,
 	)
 	return i, err
 }
@@ -137,8 +138,17 @@ func (q *Queries) GetLatestExportForUserWithDocs(ctx context.Context, userid uui
 	return i, err
 }
 
+const setExportDocDownloadedAt = `-- name: SetExportDocDownloadedAt :exec
+UPDATE privacy_export_document SET downloaded_at = now() WHERE id = $1 AND downloaded_at IS NULL
+`
+
+func (q *Queries) SetExportDocDownloadedAt(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, setExportDocDownloadedAt, id)
+	return err
+}
+
 const setExportDocStatus = `-- name: SetExportDocStatus :one
-UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING id, exportid, date_created, source_name, object_key, status, file_size
+UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING id, exportid, date_created, source_name, object_key, status, file_size, downloaded_at
 `
 
 type SetExportDocStatusParams struct {
@@ -157,6 +167,7 @@ func (q *Queries) SetExportDocStatus(ctx context.Context, arg SetExportDocStatus
 		&i.ObjectKey,
 		&i.Status,
 		&i.FileSize,
+		&i.DownloadedAt,
 	)
 	return i, err
 }
@@ -185,7 +196,7 @@ func (q *Queries) SetExportStatus(ctx context.Context, arg SetExportStatusParams
 }
 
 const updateExportDocResult = `-- name: UpdateExportDocResult :one
-UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING id, exportid, date_created, source_name, object_key, status, file_size
+UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING id, exportid, date_created, source_name, object_key, status, file_size, downloaded_at
 `
 
 type UpdateExportDocResultParams struct {
@@ -205,6 +216,7 @@ func (q *Queries) UpdateExportDocResult(ctx context.Context, arg UpdateExportDoc
 		&i.ObjectKey,
 		&i.Status,
 		&i.FileSize,
+		&i.DownloadedAt,
 	)
 	return i, err
 }

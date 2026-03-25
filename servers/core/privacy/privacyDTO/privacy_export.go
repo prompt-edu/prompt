@@ -10,12 +10,13 @@ import (
 )
 
 type PrivacyExportDocument struct {
-	ID          uuid.UUID       `json:"id"`
-	DateCreated time.Time       `json:"date_created"`
-	SourceName  string          `json:"source_name"`
-	ObjectKey   string          `json:"object_key"`
-	Status      db.ExportStatus `json:"status"`
-	FileSize    *int64          `json:"file_size"`
+	ID           uuid.UUID       `json:"id"`
+	DateCreated  time.Time       `json:"date_created"`
+	SourceName   string          `json:"source_name"`
+	ObjectKey    string          `json:"object_key"`
+	Status       db.ExportStatus `json:"status"`
+	FileSize     *int64          `json:"file_size"`
+	DownloadedAt *time.Time      `json:"downloaded_at"`
 }
 
 type PrivacyExport struct {
@@ -29,13 +30,17 @@ type PrivacyExport struct {
 }
 
 func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyExportDocument {
-	return PrivacyExportDocument{
+	dto := PrivacyExportDocument{
 		ID:          model.ID,
 		DateCreated: model.DateCreated.Time,
 		SourceName:  model.SourceName,
 		ObjectKey:   model.ObjectKey,
 		Status:      model.Status,
 	}
+	if model.DownloadedAt.Valid {
+		dto.DownloadedAt = &model.DownloadedAt.Time
+	}
+	return dto
 }
 
 func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {

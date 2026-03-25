@@ -517,13 +517,14 @@ type PrivacyExport struct {
 }
 
 type PrivacyExportDocument struct {
-	ID          uuid.UUID          `json:"id"`
-	Exportid    pgtype.UUID        `json:"exportid"`
-	DateCreated pgtype.Timestamptz `json:"date_created"`
-	SourceName  string             `json:"source_name"`
-	ObjectKey   string             `json:"object_key"`
-	Status      ExportStatus       `json:"status"`
-	FileSize    pgtype.Int8        `json:"file_size"`
+	ID           uuid.UUID          `json:"id"`
+	Exportid     pgtype.UUID        `json:"exportid"`
+	DateCreated  pgtype.Timestamptz `json:"date_created"`
+	SourceName   string             `json:"source_name"`
+	ObjectKey    string             `json:"object_key"`
+	Status       ExportStatus       `json:"status"`
+	FileSize     pgtype.Int8        `json:"file_size"`
+	DownloadedAt pgtype.Timestamptz `json:"downloaded_at"`
 }
 
 type PrivacyExportWithDoc struct {

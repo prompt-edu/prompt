@@ -16,7 +16,13 @@ func GetDownloadURLForDoc(c *gin.Context, exportID uuid.UUID, docID uuid.UUID) (
 
 	for _, doc := range exp.Documents {
 		if doc.ID == docID {
-			return privacyexport.GetDownloadURL(c.Request.Context(), doc.ObjectKey)
+			url, dlErr := privacyexport.GetDownloadURL(c.Request.Context(), doc.ObjectKey)
+			if dlErr != nil {
+				return "", dlErr
+			}
+
+			_ = PrivacyServiceSingleton.queries.SetExportDocDownloadedAt(c, docID)
+			return url, nil
 		}
 	}
 

@@ -3,7 +3,7 @@ import {
   PrivacyExportDocument as PrivacyExportDocumentType,
   getExportDocDownloadURL,
 } from '@core/network/queries/privacyStudentDataExport'
-import { Button, Card, CardContent } from '@tumaet/prompt-ui-components'
+import { Button, Card, CardContent, useToast } from '@tumaet/prompt-ui-components'
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
@@ -20,12 +20,19 @@ export function PrivacyExportDocument({
 }: PrivacyExportDocumentProps) {
   const isComplete = privacy_export_document.status === ExportStatus.complete
   const [isDownloading, setIsDownloading] = useState(false)
+  const { toast } = useToast()
 
   const handleDownload = async () => {
     setIsDownloading(true)
     try {
       const url = await getExportDocDownloadURL(exportId, privacy_export_document.id)
       window.open(url, '_blank')
+    } catch {
+      toast({
+        title: 'Download failed',
+        description: `Could not download ${privacy_export_document.source_name}. Please try again.`,
+        variant: 'destructive',
+      })
     } finally {
       setIsDownloading(false)
     }

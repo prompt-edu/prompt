@@ -3,7 +3,7 @@ import {
   getExportDocDownloadURL,
   PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
-import { Button } from '@tumaet/prompt-ui-components'
+import { Button, useToast } from '@tumaet/prompt-ui-components'
 import { formatFileSize } from './formatFileSize'
 import { useState } from 'react'
 
@@ -23,17 +23,23 @@ function getTotalFileSize(privacyExport: PrivacyExport): number | null {
 
 export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExportBannerProps) {
   const [downloading, setDownloading] = useState(-1)
+  const { toast } = useToast()
   const totalSize = !inProgress ? getTotalFileSize(privacyExport) : null
 
   const handleDownloadAll = async () => {
     setDownloading(1)
+    let failed = 0
 
     try {
       for (let i = 0; i < privacyExport.documents.length; i++) {
         const expDoc = privacyExport.documents[i]
 
-        const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
-        window.open(downloadURL, '_blank')
+        try {
+          const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
+          window.open(downloadURL, '_blank')
+        } catch {
+          failed++
+        }
 
         setDownloading(i + 1)
 
@@ -43,6 +49,13 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
       }
     } finally {
       setDownloading(-1)
+      if (failed > 0) {
+        toast({
+          title: 'Some downloads failed',
+          description: `${failed} of ${privacyExport.documents.length} files could not be downloaded.`,
+          variant: 'destructive',
+        })
+      }
     }
   }
 

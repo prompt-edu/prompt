@@ -6,13 +6,13 @@ import {
   type LatestExportResponse,
 } from '@core/network/queries/privacyStudentDataExport'
 import { useQuery } from '@tanstack/react-query'
-import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { PrivacyExportDocument } from '../shared/components/PrivacyExport/PrivacyExportDoc'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
+import { PrivacyExportTrigger } from '../shared/components/PrivacyExport/PrivacyExportTrigger'
 
 function getExportIDFromLatest(latest: LatestExportResponse | undefined): string | undefined {
   if (latest?.status === 'exists') return latest.export.id
@@ -70,21 +70,11 @@ export function PrivacyDataExportPage() {
       )}
 
       {!statusQuery.data && (
-        <>
-          <p className='text-muted-foreground'>
-            Download a copy of all personal data stored about you in our systems.
-          </p>
-          <p className='mb-6 text-muted-foreground'>
-            You must wait 30 days before requesting another export.
-          </p>
-          <Button
-            disabled={exportQuery.isLoading || isRateLimited}
-            onClick={() => setExportConfirmDialogOpen(true)}
-          >
-            {exportQuery.isLoading && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
-            Request data export
-          </Button>
-        </>
+        <PrivacyExportTrigger
+          progressOngoing={exportQuery.isFetching}
+          rateLimited={isRateLimited}
+          openDialog={() => setExportConfirmDialogOpen(true)}
+        />
       )}
 
       {statusQuery.data && (

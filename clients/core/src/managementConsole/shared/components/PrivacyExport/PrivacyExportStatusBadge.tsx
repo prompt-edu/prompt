@@ -24,7 +24,7 @@ export function PrivacyExportStatus({
   size = 20,
 }: PrivacyExportStatusProps) {
   return (
-    <div className={'p-2 rounded-full ' + statusStyles[privacy_export_status]}>
+    <div className={'inline-flex shrink-0 p-2 rounded-full ' + statusStyles[privacy_export_status]}>
       <AnimatePresence mode='wait' initial={false}>
         <motion.span
           key={privacy_export_status}

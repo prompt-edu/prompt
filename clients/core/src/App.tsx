@@ -28,6 +28,7 @@ import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTag
 import { PrivacyOverviewPage } from './managementConsole/pages/PrivacyOverviewPage'
 import { PrivacyDataExportPage } from './managementConsole/pages/PrivacyDataExportPage'
 import { PrivacyDataDeletionPage } from './managementConsole/pages/PrivacyDataDeletionPage'
+import { AdminPrivacyPage } from './managementConsole/pages/AdminPrivacyPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -161,6 +162,16 @@ export const App = () => {
                     ]}
                   >
                     <PrivacyDataDeletionPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/admin/privacy'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AdminPrivacyPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

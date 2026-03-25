@@ -2,13 +2,7 @@ import { axiosInstance } from '@/network/configService'
 
 export const requestStudentDataExport = async (): Promise<PrivacyExport> => {
   try {
-    return (
-      await axiosInstance.post('/api/privacy/data-export', {
-        headers: {
-          'Content-Type': 'application/json-path+json',
-        },
-      })
-    ).data
+    return (await axiosInstance.post('/api/privacy/data-export')).data
   } catch (err) {
     console.error(err)
     throw err
@@ -37,6 +31,7 @@ export interface PrivacyExportDocument {
   object_key: string
   status: ExportStatus
   file_size: number | null
+  downloaded_at: string | null
 }
 
 export const getStudentDataExportStatus = async (exportID: string): Promise<PrivacyExport> => {
@@ -64,6 +59,27 @@ export type LatestExportResponse =
   | { status: 'exists'; export: PrivacyExport }
   | { status: 'rate_limited'; retry_after: string }
   | { status: 'ready' }
+
+export interface AdminPrivacyExport {
+  id: string
+  userID: string
+  studentID: string | null
+  status: ExportStatus
+  date_created: string
+  valid_until: string
+  total_docs: number
+  downloaded_docs: number
+  last_downloaded_at: string | null
+}
+
+export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {
+  try {
+    return (await axiosInstance.get('/api/privacy/admin/data-exports')).data
+  } catch (err) {
+    console.error(err)
+    throw err
+  }
+}
 
 export const getLatestStudentDataExport = async (): Promise<LatestExportResponse> => {
   try {

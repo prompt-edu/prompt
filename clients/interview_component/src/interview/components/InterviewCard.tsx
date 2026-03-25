@@ -217,7 +217,7 @@ export const InterviewCard = () => {
                 onClick={() => saveChanges(PassStatus.PASSED)}
               >
                 <Check />
-                Pass
+                Accept
               </Button>
             </div>
           </div>

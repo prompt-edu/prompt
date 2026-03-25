@@ -108,6 +108,9 @@ func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName strin
 
   url, errUrl := privacyexport.GetUploadURL(c, exportID.String(), sourceName)
   if errUrl != nil {
+    if setErr := SetExportDocStatus(c, dbDoc.ID, db.ExportStatusFailed); setErr != nil {
+      log.WithError(setErr).Error("failed to mark export doc as failed after presign error")
+    }
     return PreparedExportDoc{}, errUrl
   }
 

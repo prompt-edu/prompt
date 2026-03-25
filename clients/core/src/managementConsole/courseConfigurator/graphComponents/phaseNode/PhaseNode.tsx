@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 import { Users } from 'lucide-react'
+import { EDGE_COLOR_BLUE } from '../edges/edgeColors'
 import { useCourseConfigurationState } from '../../zustand/useCourseConfigurationStore'
 import { Badge, Card, CardContent, CardHeader, Separator } from '@tumaet/prompt-ui-components'
 import { IncomingDataHandle } from './components/IncomingDataHandle'
@@ -49,8 +50,8 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
               type='target'
               position={Position.Left}
               id={`participants-in-${id}`}
-              style={{ left: '-28px' }}
-              className='!w-3 !h-3 !bg-blue-500 rounded-full'
+              style={{ left: '-28px', background: EDGE_COLOR_BLUE }}
+              className='!w-3 !h-3 rounded-full'
             />
           )}
           <div className='flex items-center justify-center w-full'>
@@ -61,8 +62,8 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
             type='source'
             position={Position.Right}
             id={`participants-out-${id}`}
-            style={{ right: '-28px' }}
-            className='!w-3 !h-3 !bg-blue-500 rounded-full'
+            style={{ right: '-28px', background: EDGE_COLOR_BLUE }}
+            className='!w-3 !h-3 rounded-full'
           />
         </div>
 

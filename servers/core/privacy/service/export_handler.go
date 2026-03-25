@@ -24,7 +24,7 @@ func PrepareStudentDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIden
 	}
 
 	// TODO: prepare external microservice export docs here
-  // this will come with a later PR
+	// this will come with a later PR
 	return ExportPreparation{
 		Record:       exportRecord,
 		CoreDoc:      coreDoc,

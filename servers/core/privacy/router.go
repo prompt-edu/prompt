@@ -49,11 +49,6 @@ func studentDataExport(c *gin.Context) {
 		return
 	}
 
-  if valErr := service.ValidateAllowedToExport(c, subjectIdentifiers.UserID); valErr != nil {
-    utils.HandleError(c, http.StatusTooManyRequests, valErr)
-    return
-  }
-
   prep, err := service.PrepareStudentDataExport(c, subjectIdentifiers)
 	if err != nil {
     log.Error("student data export failed: ", err)

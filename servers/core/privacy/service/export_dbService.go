@@ -38,21 +38,50 @@ func exportExpiry() time.Duration {
 	return 7 * 24 * time.Hour
 }
 
-func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error){
+// CreateExportRecord atomically checks that the user is allowed to create a new export
+// (no valid export exists, not rate-limited) and inserts the record.
+// Uses SELECT ... FOR UPDATE to prevent concurrent duplicate exports.
+func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
+	tx, err := PrivacyServiceSingleton.conn.Begin(c)
+	if err != nil {
+		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(c)
 
-  exp, err := PrivacyServiceSingleton.queries.CreateNewExport(c, db.CreateNewExportParams{
-    ID:         uuid.New(),
-    UserID:     subjectIdentifiers.UserID,
-    StudentID:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
-    Status:     db.ExportStatusPending,
-    ValidUntil: pgtype.Timestamptz{ Time: time.Now().Add(exportExpiry()), Valid: true},
-  })
+	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
 
-  if err != nil {
-    return privacyDTO.PrivacyExport{}, err
-  }
+	latestExport, err := txQueries.GetLatestExportForUserForUpdate(c, subjectIdentifiers.UserID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to check existing exports: %w", err)
+	}
 
-  return privacyDTO.GetPrivacyExportDTOFromDBModel(exp), nil
+	if err == nil {
+		dto := privacyDTO.GetPrivacyExportDTOFromDBModel(latestExport)
+		if time.Now().Before(dto.ValidUntil) {
+			return privacyDTO.PrivacyExport{}, fmt.Errorf("an export already exists and is valid until %s", dto.ValidUntil)
+		}
+		rateLimitEnd := dto.DateCreated.Add(exportRateLimit())
+		if time.Now().Before(rateLimitEnd) {
+			return privacyDTO.PrivacyExport{}, fmt.Errorf("rate limited until %s", rateLimitEnd)
+		}
+	}
+
+	exp, err := txQueries.CreateNewExport(c, db.CreateNewExportParams{
+		ID:         uuid.New(),
+		UserID:     subjectIdentifiers.UserID,
+		StudentID:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
+		Status:     db.ExportStatusPending,
+		ValidUntil: pgtype.Timestamptz{Time: time.Now().Add(exportExpiry()), Valid: true},
+	})
+	if err != nil {
+		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to create export record: %w", err)
+	}
+
+	if err := tx.Commit(c); err != nil {
+		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return privacyDTO.GetPrivacyExportDTOFromDBModel(exp), nil
 }
 
 func CreateExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string) (db.PrivacyExportDocument, error) {
@@ -133,7 +162,6 @@ func GetExportAvailability(c *gin.Context, userID uuid.UUID) (ExportAvailability
 		return ExportReadyForNew, nil, nil
 	}
 
-  fmt.Printf("Valid until %s, now is %s, compare: %t \n", exp.ValidUntil.String(), time.Now().String(), time.Now().Before(exp.ValidUntil))
 	if time.Now().Before(exp.ValidUntil) {
 		return ExportExistsAndValid, exp, nil
 	}

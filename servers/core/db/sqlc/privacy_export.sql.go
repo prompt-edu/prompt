@@ -184,6 +184,24 @@ func (q *Queries) GetExportRecordByIDWithDocs(ctx context.Context, id uuid.UUID)
 	return i, err
 }
 
+const getLatestExportForUserForUpdate = `-- name: GetLatestExportForUserForUpdate :one
+SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1 FOR UPDATE
+`
+
+func (q *Queries) GetLatestExportForUserForUpdate(ctx context.Context, userID uuid.UUID) (PrivacyExport, error) {
+	row := q.db.QueryRow(ctx, getLatestExportForUserForUpdate, userID)
+	var i PrivacyExport
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.StudentID,
+		&i.Status,
+		&i.DateCreated,
+		&i.ValidUntil,
+	)
+	return i, err
+}
+
 const getLatestExportForUserWithDocs = `-- name: GetLatestExportForUserWithDocs :one
 SELECT id, user_id, student_id, status, date_created, valid_until, documents FROM privacy_export_with_docs WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1
 `

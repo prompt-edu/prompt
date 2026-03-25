@@ -32,6 +32,9 @@ SELECT object_key FROM privacy_export_document WHERE id = $1;
 -- name: SetExportDocDownloadedAt :exec
 UPDATE privacy_export_document SET downloaded_at = now() WHERE id = $1 AND downloaded_at IS NULL;
 
+-- name: GetLatestExportForUserForUpdate :one
+SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1 FOR UPDATE;
+
 -- name: GetAllExports :many
 SELECT
   e.*,

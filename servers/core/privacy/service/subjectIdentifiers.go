@@ -37,7 +37,7 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 		UserID:                 userID,
 		StudentID:              studentID,
 		CourseParticipationIDs: courseParticipationIDs,
-	}, errUserUUID
+	}, nil
 }
 
 func getStudentID(ctx *gin.Context) (uuid.UUID, error) {

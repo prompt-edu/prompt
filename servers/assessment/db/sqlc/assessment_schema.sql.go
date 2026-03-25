@@ -44,12 +44,46 @@ func (q *Queries) CheckPhaseHasAssessmentData(ctx context.Context, arg CheckPhas
 	return column_1, err
 }
 
+const checkSchemaAccessibleForCoursePhase = `-- name: CheckSchemaAccessibleForCoursePhase :one
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = $2
+)
+SELECT EXISTS(
+    SELECT 1
+    FROM assessment_schema s
+    LEFT JOIN phase_config pc ON TRUE
+    WHERE s.id = $1
+      AND (
+        s.source_phase_id IS NULL
+        OR s.source_phase_id = $2
+        OR s.id = pc.assessment_schema_id
+        OR s.id = pc.self_evaluation_schema
+        OR s.id = pc.peer_evaluation_schema
+        OR s.id = pc.tutor_evaluation_schema
+      )
+)
+`
+
+type CheckSchemaAccessibleForCoursePhaseParams struct {
+	SchemaID      uuid.UUID   `json:"schema_id"`
+	CoursePhaseID pgtype.UUID `json:"course_phase_id"`
+}
+
+func (q *Queries) CheckSchemaAccessibleForCoursePhase(ctx context.Context, arg CheckSchemaAccessibleForCoursePhaseParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkSchemaAccessibleForCoursePhase, arg.SchemaID, arg.CoursePhaseID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const checkSchemaOwnership = `-- name: CheckSchemaOwnership :one
 SELECT EXISTS(
-    SELECT 1 
-    FROM assessment_schema 
-    WHERE id = $1 
-    AND (source_phase_id = $2 OR source_phase_id IS NULL)
+    SELECT 1
+    FROM assessment_schema
+    WHERE id = $1
+      AND source_phase_id = $2
 )
 `
 
@@ -66,12 +100,11 @@ func (q *Queries) CheckSchemaOwnership(ctx context.Context, arg CheckSchemaOwner
 }
 
 const copyAssessmentSchema = `-- name: CopyAssessmentSchema :one
-WITH cfg AS (SELECT assessment_schema_id
-             FROM course_phase_config
-             WHERE course_phase_id = $1),
-     src_schema AS (SELECT s.id, s.name, s.description, s.created_at, s.updated_at, s.source_phase_id
-                    FROM assessment_schema s
-                             JOIN cfg ON s.id = cfg.assessment_schema_id),
+WITH src_schema AS (
+         SELECT id, name, description, created_at, updated_at, source_phase_id
+         FROM assessment_schema
+         WHERE assessment_schema.id = $1
+     ),
      new_schema AS (
          INSERT INTO assessment_schema (id, name, description, created_at, updated_at, source_phase_id)
              SELECT gen_random_uuid()    AS id,
@@ -79,7 +112,7 @@ WITH cfg AS (SELECT assessment_schema_id
                     s.description        AS description,
                     CURRENT_TIMESTAMP    AS created_at,
                     CURRENT_TIMESTAMP    AS updated_at,
-                    $1 AS source_phase_id
+                    $3 AS source_phase_id
              FROM src_schema s
              RETURNING id, name, description, created_at, updated_at, source_phase_id),
      cat_map AS (SELECT c.id              AS old_id,
@@ -89,7 +122,7 @@ WITH cfg AS (SELECT assessment_schema_id
                         c.weight,
                         c.short_name
                  FROM category c
-                          JOIN cfg ON c.assessment_schema_id = cfg.assessment_schema_id),
+                          JOIN src_schema ss ON c.assessment_schema_id = ss.id),
      inserted_categories AS (
          INSERT INTO category (id, name, description, weight, short_name, assessment_schema_id)
              SELECT cm.new_id,
@@ -134,8 +167,9 @@ FROM new_schema
 `
 
 type CopyAssessmentSchemaParams struct {
-	CoursePhaseID          uuid.UUID   `json:"course_phase_id"`
+	SourceSchemaID         uuid.UUID   `json:"source_schema_id"`
 	CourseIdentifierPrefix pgtype.Text `json:"course_identifier_prefix"`
+	CoursePhaseID          pgtype.UUID `json:"course_phase_id"`
 }
 
 type CopyAssessmentSchemaRow struct {
@@ -148,7 +182,7 @@ type CopyAssessmentSchemaRow struct {
 }
 
 func (q *Queries) CopyAssessmentSchema(ctx context.Context, arg CopyAssessmentSchemaParams) (CopyAssessmentSchemaRow, error) {
-	row := q.db.QueryRow(ctx, copyAssessmentSchema, arg.CoursePhaseID, arg.CourseIdentifierPrefix)
+	row := q.db.QueryRow(ctx, copyAssessmentSchema, arg.SourceSchemaID, arg.CourseIdentifierPrefix, arg.CoursePhaseID)
 	var i CopyAssessmentSchemaRow
 	err := row.Scan(
 		&i.ID,
@@ -347,6 +381,51 @@ ORDER BY name ASC
 
 func (q *Queries) ListAssessmentSchemas(ctx context.Context) ([]AssessmentSchema, error) {
 	rows, err := q.db.Query(ctx, listAssessmentSchemas)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AssessmentSchema
+	for rows.Next() {
+		var i AssessmentSchema
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.SourcePhaseID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAssessmentSchemasForCoursePhase = `-- name: ListAssessmentSchemasForCoursePhase :many
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = $1
+)
+SELECT DISTINCT s.id, s.name, s.description, s.created_at, s.updated_at, s.source_phase_id
+FROM assessment_schema s
+LEFT JOIN phase_config pc ON TRUE
+WHERE s.source_phase_id IS NULL
+   OR s.source_phase_id = $1
+   OR s.id = pc.assessment_schema_id
+   OR s.id = pc.self_evaluation_schema
+   OR s.id = pc.peer_evaluation_schema
+   OR s.id = pc.tutor_evaluation_schema
+ORDER BY s.name ASC
+`
+
+func (q *Queries) ListAssessmentSchemasForCoursePhase(ctx context.Context, coursePhaseID pgtype.UUID) ([]AssessmentSchema, error) {
+	rows, err := q.db.Query(ctx, listAssessmentSchemasForCoursePhase, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}

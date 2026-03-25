@@ -15,6 +15,7 @@ interface CategoryItemProps {
   setCategoryToDelete: (categoryID: string | undefined) => void
   assessmentType: AssessmentType
   disabled?: boolean
+  defaultExpanded?: boolean
 }
 
 export const CategoryItem = ({
@@ -23,8 +24,9 @@ export const CategoryItem = ({
   setCategoryToDelete,
   assessmentType,
   disabled = false,
+  defaultExpanded = false,
 }: CategoryItemProps) => {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const [showAddCompetencyForm, setShowAddCompetencyForm] = useState(false)
 
   const toggleExpand = () => {

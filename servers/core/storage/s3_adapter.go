@@ -102,6 +102,10 @@ func NewS3Adapter(bucket, region, endpoint, publicEndpoint, accessKey, secretKey
 }
 
 func buildS3Config(ctx context.Context, region, accessKey, secretKey string) (aws.Config, error) {
+	if accessKey == "" || secretKey == "" {
+		return config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	}
+
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),

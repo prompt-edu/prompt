@@ -2,6 +2,7 @@ package assessmentSchemas
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -18,6 +19,7 @@ type AssessmentSchemaService struct {
 }
 
 var AssessmentSchemaServiceSingleton *AssessmentSchemaService
+var ErrSchemaNotAccessible = errors.New("assessment schema is not accessible for this course phase")
 
 func NewAssessmentSchemaService(queries db.Queries, conn *pgxpool.Pool) *AssessmentSchemaService {
 	return &AssessmentSchemaService{
@@ -27,6 +29,22 @@ func NewAssessmentSchemaService(queries db.Queries, conn *pgxpool.Pool) *Assessm
 }
 
 func CreateAssessmentSchema(ctx context.Context, req assessmentSchemaDTO.CreateAssessmentSchemaRequest) (assessmentSchemaDTO.AssessmentSchema, error) {
+	return insertAssessmentSchema(ctx, pgtype.UUID{Valid: false}, req)
+}
+
+func CreateAssessmentSchemaForCoursePhase(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	req assessmentSchemaDTO.CreateAssessmentSchemaRequest,
+) (assessmentSchemaDTO.AssessmentSchema, error) {
+	return insertAssessmentSchema(ctx, pgtype.UUID{Bytes: coursePhaseID, Valid: true}, req)
+}
+
+func insertAssessmentSchema(
+	ctx context.Context,
+	sourcePhaseID pgtype.UUID,
+	req assessmentSchemaDTO.CreateAssessmentSchemaRequest,
+) (assessmentSchemaDTO.AssessmentSchema, error) {
 	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
@@ -46,7 +64,7 @@ func CreateAssessmentSchema(ctx context.Context, req assessmentSchemaDTO.CreateA
 		ID:            schemaID,
 		Name:          req.Name,
 		Description:   description,
-		SourcePhaseID: pgtype.UUID{Valid: false},
+		SourcePhaseID: sourcePhaseID,
 	})
 	if err != nil {
 		log.WithError(err).Error("Failed to create assessment schema")
@@ -90,6 +108,63 @@ func ListAssessmentSchemas(ctx context.Context) ([]assessmentSchemaDTO.Assessmen
 	}
 
 	return result, nil
+}
+
+func ListAssessmentSchemasForCoursePhase(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+) ([]assessmentSchemaDTO.AssessmentSchema, error) {
+	schemas, err := AssessmentSchemaServiceSingleton.queries.ListAssessmentSchemasForCoursePhase(
+		ctx,
+		pgtype.UUID{Bytes: coursePhaseID, Valid: true},
+	)
+	if err != nil {
+		log.WithError(err).Error("Failed to list accessible assessment schemas")
+		return nil, err
+	}
+
+	result := make([]assessmentSchemaDTO.AssessmentSchema, len(schemas))
+	for i, schema := range schemas {
+		result[i] = assessmentSchemaDTO.MapDBAssessmentSchemaToDTOAssessmentSchema(schema)
+	}
+
+	return result, nil
+}
+
+func CheckSchemaAccessibleForCoursePhase(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	schemaID uuid.UUID,
+) (bool, error) {
+	isAccessible, err := AssessmentSchemaServiceSingleton.queries.CheckSchemaAccessibleForCoursePhase(
+		ctx,
+		db.CheckSchemaAccessibleForCoursePhaseParams{
+			CoursePhaseID: pgtype.UUID{Bytes: coursePhaseID, Valid: true},
+			SchemaID:      schemaID,
+		},
+	)
+	if err != nil {
+		log.WithError(err).Error("Failed to check schema accessibility")
+		return false, err
+	}
+
+	return isAccessible, nil
+}
+
+func GetAssessmentSchemaForCoursePhase(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	schemaID uuid.UUID,
+) (assessmentSchemaDTO.AssessmentSchema, error) {
+	isAccessible, err := CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	if err != nil {
+		return assessmentSchemaDTO.AssessmentSchema{}, err
+	}
+	if !isAccessible {
+		return assessmentSchemaDTO.AssessmentSchema{}, ErrSchemaNotAccessible
+	}
+
+	return GetAssessmentSchema(ctx, schemaID)
 }
 
 func UpdateAssessmentSchema(ctx context.Context, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest) error {
@@ -166,7 +241,12 @@ func CheckSchemaUsageInOtherPhases(ctx context.Context, schemaID uuid.UUID, curr
 	return used, nil
 }
 
-func CopyAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, courseIdentifierPrefix string) (assessmentSchemaDTO.AssessmentSchema, error) {
+func CopyAssessmentSchema(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	sourceSchemaID uuid.UUID,
+	courseIdentifierPrefix string,
+) (assessmentSchemaDTO.AssessmentSchema, error) {
 	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
@@ -176,7 +256,8 @@ func CopyAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, courseId
 	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
 
 	copiedSchema, err := qtx.CopyAssessmentSchema(ctx, db.CopyAssessmentSchemaParams{
-		CoursePhaseID:          coursePhaseID,
+		CoursePhaseID:          pgtype.UUID{Bytes: coursePhaseID, Valid: true},
+		SourceSchemaID:         sourceSchemaID,
 		CourseIdentifierPrefix: pgtype.Text{String: courseIdentifierPrefix, Valid: true},
 	})
 	if err != nil {

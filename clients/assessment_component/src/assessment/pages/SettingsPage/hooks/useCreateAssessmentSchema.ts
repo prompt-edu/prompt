@@ -1,20 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
-import { createOrUpdateCoursePhaseConfig } from '../../../../../network/mutations/createOrUpdateCoursePhaseConfig'
-import { CreateOrUpdateCoursePhaseConfigRequest } from '../../../../../interfaces/coursePhaseConfig'
+import { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
+import { createAssessmentSchema } from '../../../network/mutations/createAssessmentSchema'
 
-export const useCreateOrUpdateCoursePhaseConfig = (
-  setError: (error: string | undefined) => void,
-) => {
+export const useCreateAssessmentSchema = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (request: CreateOrUpdateCoursePhaseConfigRequest) =>
-      createOrUpdateCoursePhaseConfig(phaseId ?? '', request),
+    mutationFn: (assessmentSchema: CreateAssessmentSchemaRequest) =>
+      createAssessmentSchema(phaseId ?? '', assessmentSchema),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coursePhaseConfig', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['assessmentSchemas', phaseId] })
       setError(undefined)
     },
     onError: (error: any) => {

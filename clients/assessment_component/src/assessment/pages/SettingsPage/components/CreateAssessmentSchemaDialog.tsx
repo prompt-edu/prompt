@@ -14,7 +14,7 @@ import {
 import { Plus } from 'lucide-react'
 
 import { useCreateAssessmentSchema } from '../hooks/useCreateAssessmentSchema'
-import { CreateAssessmentSchemaRequest } from '../../../../../interfaces/assessmentSchema'
+import { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
 
 interface CreateAssessmentSchemaDialogProps {
   onError: (error: string | undefined) => void
@@ -72,7 +72,7 @@ export const CreateAssessmentSchemaDialog = ({
               {...register('name', { required: 'Name is required' })}
               placeholder='Schema name'
             />
-            {errors.name && <p className='text-sm text-red-600'>{errors.name.message}</p>}
+            {errors.name && <p className='text-sm text-destructive'>{errors.name.message}</p>}
           </div>
 
           <div className='space-y-2'>
@@ -84,7 +84,7 @@ export const CreateAssessmentSchemaDialog = ({
               rows={3}
             />
             {errors.description && (
-              <p className='text-sm text-red-600'>{errors.description.message}</p>
+              <p className='text-sm text-destructive'>{errors.description.message}</p>
             )}
           </div>
 

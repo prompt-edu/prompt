@@ -9,13 +9,14 @@ import {
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
 
 interface ReleaseConfirmationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   isReleasing: boolean
+  releaseError: string | null
   completedAssessments: number
   totalAssessments: number
 }
@@ -25,6 +26,7 @@ export function ReleaseConfirmationDialog({
   onOpenChange,
   onConfirm,
   isReleasing,
+  releaseError,
   completedAssessments,
   totalAssessments,
 }: ReleaseConfirmationDialogProps) {
@@ -72,6 +74,11 @@ export function ReleaseConfirmationDialog({
             {getVisibilityDescription()} for all final assessments ({completedAssessments}/
             {totalAssessments}) visible to students. This action cannot be undone.
           </AlertDialogDescription>
+          {releaseError && (
+            <p className='text-sm font-medium text-destructive' role='alert'>
+              {releaseError}
+            </p>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isReleasing}>Cancel</AlertDialogCancel>

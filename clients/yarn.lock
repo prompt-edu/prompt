@@ -12001,12 +12001,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "lucide-react@npm:1.0.1"
+"lucide-react@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "lucide-react@npm:1.6.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/dc5834ef128bbdb9f7d1c6b8cc37b70807203b3dcb91977d3dfa28cbe995c7a0f099689e4191625292238fd18a5f815883d829bef26f318c35b79b336413862a
+  checksum: 10c0/be26a58285afca37b821cb0572a7ca99a86bde8c5e3a1d752719aa7b6dacccc1ac5d1c6bbaac4f08c5ff1e2b6104076adc32a1890c0c7d8676cb38ca790efbcd
   languageName: node
   linkType: hard
 
@@ -15104,7 +15104,7 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^9.0.7"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.0.1"
+    lucide-react: "npm:^1.6.0"
     postcss: "npm:^8.5.8"
     postcss-loader: "npm:8.2.1"
     postcss-preset-env: "npm:^11.2.0"

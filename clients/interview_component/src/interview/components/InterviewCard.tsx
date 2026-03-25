@@ -176,11 +176,14 @@ export const InterviewCard = () => {
               className='grid gap-2 xl:grid-cols-5'
               selectedScore={mapStoredScoreToScoreLevel(score)}
               onScoreChange={(value) => {
+                if (isPending) {
+                  return
+                }
                 const nextScore = mapScoreLevelToNumber(value)
                 setScore(nextScore)
                 saveRestrictedDataPatch({ score: nextScore })
               }}
-              disabled={isPending}
+              completed={false}
               descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
               labelsByLevel={SCORE_LEVEL_LABELS}
               showIndicators={false}

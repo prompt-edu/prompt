@@ -107,11 +107,14 @@ export const AssessmentCard = ({
                 className='grid gap-2 xl:grid-cols-5'
                 selectedScore={mapStoredScoreToScoreLevel(currentScore)}
                 onScoreChange={(value) => {
+                  if (isPending) {
+                    return
+                  }
                   const nextScore = mapScoreLevelToNumber(value)
                   setCurrentScore(nextScore)
                   handleScoreSubmit(nextScore)
                 }}
-                disabled={isPending}
+                completed={false}
                 descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
                 labelsByLevel={SCORE_LEVEL_LABELS}
                 showIndicators={false}

@@ -1,6 +1,7 @@
 package assessmentSchemas
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func SetupAssessmentSchemaRouter(routerGroup *gin.RouterGroup, authMiddleware fu
 	schemaRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllAssessmentSchemas)
 	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAssessmentSchema)
 	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), checkSchemaHasAssessmentData)
-	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin), createAssessmentSchema)
+	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createAssessmentSchema)
 	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin), updateAssessmentSchema)
 	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), deleteAssessmentSchema)
 }
@@ -37,7 +38,13 @@ func SetupAssessmentSchemaRouter(routerGroup *gin.RouterGroup, authMiddleware fu
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema [get]
 func getAllAssessmentSchemas(c *gin.Context) {
-	schemas, err := ListAssessmentSchemas(c)
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	schemas, err := ListAssessmentSchemasForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -57,14 +64,24 @@ func getAllAssessmentSchemas(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID} [get]
 func getAssessmentSchema(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	schema, err := GetAssessmentSchema(c, schemaID)
+	schema, err := GetAssessmentSchemaForCoursePhase(c, coursePhaseID, schemaID)
 	if err != nil {
+		if errors.Is(err, ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -97,6 +114,17 @@ func checkSchemaHasAssessmentData(c *gin.Context) {
 		return
 	}
 
+	isAccessible, err := CheckSchemaAccessibleForCoursePhase(c, coursePhaseID, schemaID)
+	if err != nil {
+		log.WithError(err).Error("Failed to check schema accessibility")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check assessment data"})
+		return
+	}
+	if !isAccessible {
+		c.JSON(http.StatusForbidden, gin.H{"error": ErrSchemaNotAccessible.Error()})
+		return
+	}
+
 	hasData, err := CheckPhaseHasAssessmentData(c, coursePhaseID, schemaID)
 	if err != nil {
 		log.WithError(err).Error("Failed to check if schema has assessment data")
@@ -119,13 +147,19 @@ func checkSchemaHasAssessmentData(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema [post]
 func createAssessmentSchema(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var request assessmentSchemaDTO.CreateAssessmentSchemaRequest
 	if err := c.BindJSON(&request); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	schema, err := CreateAssessmentSchema(c, request)
+	schema, err := CreateAssessmentSchemaForCoursePhase(c, coursePhaseID, request)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

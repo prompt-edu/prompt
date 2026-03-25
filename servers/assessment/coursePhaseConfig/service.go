@@ -56,6 +56,22 @@ func validateSchemaChange(ctx context.Context, coursePhaseID, oldSchemaID, newSc
 	return nil
 }
 
+func validateSchemaAccessibility(ctx context.Context, coursePhaseID, schemaID uuid.UUID) error {
+	if schemaID == uuid.Nil {
+		return nil
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	if err != nil {
+		return err
+	}
+	if !isAccessible {
+		return assessmentSchemas.ErrSchemaNotAccessible
+	}
+
+	return nil
+}
+
 func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
 	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -109,6 +125,18 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 			if err := validateSchemaChange(ctx, coursePhaseID, schema.old, schema.new, schema.schemaType); err != nil {
 				return err
 			}
+		}
+	}
+
+	schemaIDsToValidate := []uuid.UUID{
+		req.AssessmentSchemaID,
+		req.SelfEvaluationSchema,
+		req.PeerEvaluationSchema,
+		req.TutorEvaluationSchema,
+	}
+	for _, schemaID := range schemaIDsToValidate {
+		if err := validateSchemaAccessibility(ctx, coursePhaseID, schemaID); err != nil {
+			return err
 		}
 	}
 
@@ -329,38 +357,62 @@ func UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID 
 		log.WithError(err).Error("Failed to get course phase config")
 		return errors.New("failed to get course phase config")
 	}
-	switch oldSchemaID {
-	case config.AssessmentSchemaID:
+	updatedAny := false
+
+	if oldSchemaID == config.AssessmentSchemaID {
 		err = qtx.UpdateCoursePhaseConfigAssessmentSchema(ctx, db.UpdateCoursePhaseConfigAssessmentSchemaParams{
 			CoursePhaseID:      coursePhaseID,
 			AssessmentSchemaID: newSchemaID,
 		})
-	case config.SelfEvaluationSchema:
+		if err != nil {
+			log.WithError(err).Error("Failed to update assessment schema reference")
+			return err
+		}
+		updatedAny = true
+	}
+
+	if oldSchemaID == config.SelfEvaluationSchema {
 		err = qtx.UpdateCoursePhaseConfigSelfEvaluationSchema(ctx, db.UpdateCoursePhaseConfigSelfEvaluationSchemaParams{
 			CoursePhaseID:        coursePhaseID,
 			SelfEvaluationSchema: newSchemaID,
 		})
-	case config.PeerEvaluationSchema:
+		if err != nil {
+			log.WithError(err).Error("Failed to update self evaluation schema reference")
+			return err
+		}
+		updatedAny = true
+	}
+
+	if oldSchemaID == config.PeerEvaluationSchema {
 		err = qtx.UpdateCoursePhaseConfigPeerEvaluationSchema(ctx, db.UpdateCoursePhaseConfigPeerEvaluationSchemaParams{
 			CoursePhaseID:        coursePhaseID,
 			PeerEvaluationSchema: newSchemaID,
 		})
-	case config.TutorEvaluationSchema:
+		if err != nil {
+			log.WithError(err).Error("Failed to update peer evaluation schema reference")
+			return err
+		}
+		updatedAny = true
+	}
+
+	if oldSchemaID == config.TutorEvaluationSchema {
 		err = qtx.UpdateCoursePhaseConfigTutorEvaluationSchema(ctx, db.UpdateCoursePhaseConfigTutorEvaluationSchemaParams{
 			CoursePhaseID:         coursePhaseID,
 			TutorEvaluationSchema: newSchemaID,
 		})
-	default:
+		if err != nil {
+			log.WithError(err).Error("Failed to update tutor evaluation schema reference")
+			return err
+		}
+		updatedAny = true
+	}
+
+	if !updatedAny {
 		log.WithFields(log.Fields{
 			"oldSchemaID":   oldSchemaID,
 			"coursePhaseID": coursePhaseID,
 		}).Error("Old schema ID does not match any schema field in course phase config")
 		return errors.New("old schema ID does not match any schema field in course phase config")
-	}
-
-	if err != nil {
-		log.WithError(err).Error("Failed to update course phase config schema")
-		return err
 	}
 
 	return tx.Commit(ctx)

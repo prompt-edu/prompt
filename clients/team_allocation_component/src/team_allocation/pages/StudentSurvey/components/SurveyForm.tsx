@@ -40,8 +40,6 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
 
     const currentTeamIDs = new Set(surveyForm.teams.map((t) => t.id))
 
-    // Initialize team ranking: use the saved preferences if they still match the current team list;
-    // otherwise fall back to a fresh randomized order so the student can re-rank after team changes.
     let newTeamRanking: string[]
     if (surveyResponse?.teamPreferences?.length) {
       const sorted = [...surveyResponse.teamPreferences].sort((a, b) => a.preference - b.preference)
@@ -53,7 +51,6 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
       if (savedMatchCurrent) {
         newTeamRanking = savedTeamIDs
       } else {
-        // Teams have changed since the last submission — re-initialize with current teams
         newTeamRanking = surveyForm.teams.map((team) => team.id).sort(() => Math.random() - 0.5)
       }
     } else {
@@ -63,8 +60,6 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
     setTeamRanking(newTeamRanking)
     setInitialTeamRanking(newTeamRanking)
 
-    // Initialize skill ratings: use saved responses if available and the skill is still valid;
-    // skills that were removed since the last submission are dropped.
     const currentSkillIDs = new Set(surveyForm.skills.map((s) => s.id))
     const newSkillRatings: Record<string, SkillLevel | undefined> = {}
     if (surveyResponse?.skillResponses?.length) {

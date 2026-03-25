@@ -46,7 +46,7 @@ func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifier
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(c)
+	defer func() { _ = tx.Rollback(c) }()
 
 	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
 

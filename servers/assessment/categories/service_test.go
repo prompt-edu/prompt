@@ -26,7 +26,7 @@ type CategoryServiceTestSuite struct {
 	categoryService CategoryService
 }
 
-func (suite *CategoryServiceTestSuite) SetupSuite() {
+func (suite *CategoryServiceTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
 	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
@@ -51,7 +51,7 @@ func (suite *CategoryServiceTestSuite) SetupSuite() {
 	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
 }
 
-func (suite *CategoryServiceTestSuite) TearDownSuite() {
+func (suite *CategoryServiceTestSuite) TearDownTest() {
 	if suite.mockCoreCleanup != nil {
 		suite.mockCoreCleanup()
 	}
@@ -128,11 +128,20 @@ func (suite *CategoryServiceTestSuite) TestUpdateCategory() {
 	err := UpdateCategory(suite.suiteCtx, id, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Updating category should not produce an error")
 
-	c, err := GetCategory(suite.suiteCtx, id)
+	categories, err := ListCategoriesForCoursePhase(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), req.Name, c.Name)
-	assert.Equal(suite.T(), req.Description, c.Description.String)
-	assert.Equal(suite.T(), req.Weight, c.Weight)
+
+	foundUpdated := false
+	for _, c := range categories {
+		if c.Name == req.Name {
+			foundUpdated = true
+			assert.Equal(suite.T(), req.Description, c.Description.String)
+			assert.Equal(suite.T(), req.Weight, c.Weight)
+			break
+		}
+	}
+
+	assert.True(suite.T(), foundUpdated, "Updated category should be visible for the course phase")
 }
 
 func (suite *CategoryServiceTestSuite) TestUpdateNonExistentCategory() {

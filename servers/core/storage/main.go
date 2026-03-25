@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,6 +36,11 @@ func InitStorageModule(queries db.Queries, conn *pgxpool.Pool) error {
 
 	lowerEndpoint := strings.ToLower(endpoint)
 	isLocalEndpoint := strings.Contains(lowerEndpoint, "localhost") || strings.Contains(lowerEndpoint, "127.0.0.1")
+	if isLocalEndpoint && accessKey == "" && secretKey == "" {
+		// Use local SeaweedFS development defaults when no explicit credentials are configured.
+		accessKey = "admin"
+		secretKey = "admin123"
+	}
 	if !isLocalEndpoint && (accessKey == "" || secretKey == "") {
 		return fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
 	}

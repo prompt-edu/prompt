@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
@@ -28,6 +29,18 @@ func CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competen
 	if err != nil {
 		log.Error("could not get category: ", err)
 		return errors.New("could not get category")
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(
+		ctx,
+		coursePhaseID,
+		category.AssessmentSchemaID,
+	)
+	if err != nil {
+		return err
+	}
+	if !isAccessible {
+		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
@@ -92,6 +105,32 @@ func ListCompetencies(ctx context.Context) ([]db.Competency, error) {
 	return competencies, nil
 }
 
+func ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Competency, error) {
+	competencies, err := CompetencyServiceSingleton.queries.ListCompetencies(ctx)
+	if err != nil {
+		log.Error("could not list competencies: ", err)
+		return nil, errors.New("could not list competencies")
+	}
+
+	filtered := make([]db.Competency, 0, len(competencies))
+	for _, competency := range competencies {
+		schemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, competency.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+		if err != nil {
+			return nil, err
+		}
+		if isAccessible {
+			filtered = append(filtered, competency)
+		}
+	}
+
+	return filtered, nil
+}
+
 func ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db.Competency, error) {
 	competencies, err := CompetencyServiceSingleton.queries.ListCompetenciesByCategory(ctx, categoryID)
 	if err != nil {
@@ -101,11 +140,61 @@ func ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db
 	return competencies, nil
 }
 
+func GetCompetencyForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, id uuid.UUID) (db.Competency, error) {
+	schemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
+	if err != nil {
+		return db.Competency{}, err
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	if err != nil {
+		return db.Competency{}, err
+	}
+	if !isAccessible {
+		return db.Competency{}, assessmentSchemas.ErrSchemaNotAccessible
+	}
+
+	return GetCompetency(ctx, id)
+}
+
+func ListCompetenciesByCategoryForCoursePhase(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	categoryID uuid.UUID,
+) ([]db.Competency, error) {
+	category, err := CompetencyServiceSingleton.queries.GetCategory(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(
+		ctx,
+		coursePhaseID,
+		category.AssessmentSchemaID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !isAccessible {
+		return nil, assessmentSchemas.ErrSchemaNotAccessible
+	}
+
+	return ListCompetenciesByCategory(ctx, categoryID)
+}
+
 func UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req competencyDTO.UpdateCompetencyRequest) error {
 	currentSchemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
 	if err != nil {
 		log.WithError(err).Error("Failed to get assessment schema ID for competency")
 		return errors.New("failed to get assessment schema ID for competency")
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
+	if err != nil {
+		return err
+	}
+	if !isAccessible {
+		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
@@ -148,6 +237,14 @@ func DeleteCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 		}
 		log.WithError(err).Error("Failed to get assessment schema ID for competency")
 		return errors.New("failed to get assessment schema ID for competency")
+	}
+
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
+	if err != nil {
+		return err
+	}
+	if !isAccessible {
+		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(

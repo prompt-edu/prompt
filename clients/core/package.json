@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "2.10.1",
+  "version": "2.10.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -11,7 +11,7 @@
     "check-performance": "webpack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^2.0.4",
+    "@dagrejs/dagre": "^3.0.0",
     "@sentry/react": "^10.45.0",
     "@xyflow/react": "^12.10.1",
     "date-fns-tz": "^3.2.0",
@@ -27,7 +27,7 @@
     "html-webpack-plugin": "^5.6.6",
     "webpack": "^5.105.4",
     "webpack-bundle-analyzer": "^5.2.0",
-    "webpack-cli": "^6.0.1"
+    "webpack-cli": "^7.0.2"
   },
   "packageManager": "yarn@4.13.0"
 }

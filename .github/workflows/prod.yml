@@ -26,8 +26,14 @@ jobs:
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.server_modules }}
-  test-servers:
+  vet-servers:
     needs: [detect-changes, lint-servers]
+    uses: ./.github/workflows/vet-servers.yml
+    secrets: inherit
+    with:
+      modules: ${{ needs.detect-changes.outputs.server_modules }}
+  test-servers:
+    needs: [detect-changes, vet-servers]
     uses: ./.github/workflows/test-servers.yml
     secrets: inherit
     with:

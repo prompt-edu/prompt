@@ -1,6 +1,22 @@
+/* ── Accessibility ── */
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Hero ── */
+
 .heroSection {
   text-align: center;
-  padding: 9rem 0 9rem 0;
+  padding: 9rem 0 2rem 0;
 }
 
 .heroTitle {
@@ -25,11 +41,62 @@
   font-size: 1.2rem;
   color: var(--ifm-color-content-secondary);
   max-width: 700px;
-  margin: 0 auto 0 auto;
+  margin: 0 auto 2rem auto;
 }
 
+.heroButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.heroButtonPrimary {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  background-color: var(--ifm-color-primary);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
+}
+
+.heroButtonPrimary:hover {
+  background-color: var(--ifm-color-primary-dark);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.heroButtonSecondary {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  border: 2px solid var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
+}
+
+.heroButtonSecondary:hover {
+  background-color: var(--ifm-color-primary);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+
 .section {
-  margin: 3rem 0;
+  margin: 5rem 0;
 }
 
 .sectionTitle {
@@ -45,6 +112,136 @@
   margin: 0 auto 2.5rem auto;
 }
 
+/* ── Showcase section wrapper ── */
+
+.showcaseSection {
+  position: relative;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  margin-top: 0;
+}
+
+/* ── Each demo item ── */
+
+.showcaseItem {
+  display: grid;
+  grid-template-columns: 65fr 35fr;
+  column-gap: 4rem;
+  align-items: center;
+  padding: 4rem 5vw;
+  min-height: 80vh;
+  box-sizing: border-box;
+
+  /* Skip layout/paint for off-screen items */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80vh;
+
+  will-change: opacity, transform;
+}
+
+.showcaseItemReversed {
+  direction: rtl;
+}
+
+.showcaseItemReversed > * {
+  direction: ltr;
+}
+
+/* ── Media column ── */
+
+.showcaseMedia {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  line-height: 0;
+}
+
+.showcaseGif {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gifPlaceholder {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: 2px dashed var(--ifm-color-emphasis-400);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ifm-color-emphasis-100);
+}
+
+.gifPlaceholderText {
+  color: var(--ifm-color-emphasis-600);
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+/* ── Text column ── */
+
+.showcaseText {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.showcaseTag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--ifm-color-primary) 25%, transparent);
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  width: fit-content;
+}
+
+.showcaseTagHighlight {
+  color: #b45309;
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+[data-theme="dark"] .showcaseTagHighlight {
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.12);
+  border-color: rgba(252, 211, 77, 0.3);
+}
+
+.showcaseTitle {
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ifm-heading-color);
+  line-height: 1.25;
+}
+
+.showcaseDescription {
+  font-size: 0.97rem;
+  color: var(--ifm-color-content-secondary);
+  line-height: 1.75;
+  margin: 0;
+}
+
+.showcaseLink {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.showcaseLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Feature grid ── */
+
 .featureGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -56,7 +253,9 @@
   padding: 1.5rem;
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   color: inherit;
   text-decoration: none;
   display: block;
@@ -66,7 +265,9 @@
   padding: 1.5rem;
   border: 3px dashed var(--ifm-color-primary);
   border-radius: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 a.featureCard:hover {
@@ -74,11 +275,6 @@ a.featureCard:hover {
   box-shadow: 0 4px 64px rgba(0, 0, 0, 0.15);
   text-decoration: none;
   cursor: pointer;
-}
-
-a.featureCardCustomPhase:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 64px rgba(0, 0, 0, 0.15);
 }
 
 .featureIcon {
@@ -110,11 +306,15 @@ a.featureCard:focus {
   cursor: pointer;
 }
 
+/* ── Link cards ── */
+
 .linkCard {
   padding: 1.5rem;
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 8px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .linkCard:hover {
@@ -149,7 +349,25 @@ a.featureCard:focus {
   text-decoration: underline;
 }
 
+/* ── Responsive ── */
+
+@media screen and (max-width: 1024px) {
+  .showcaseItem {
+    grid-template-columns: 60fr 40fr;
+    column-gap: 2.5rem;
+    padding: 4rem 3vw;
+  }
+}
+
 @media screen and (max-width: 768px) {
+  .heroSection {
+    padding: 5rem 0 4rem 0;
+  }
+
+  .heroTitle {
+    font-size: 3rem;
+  }
+
   .heroSubtitle {
     font-size: 1.2rem;
   }
@@ -166,7 +384,19 @@ a.featureCard:focus {
     grid-template-columns: 1fr;
   }
 
-  .buttons {
-    flex-direction: column;
+  .showcaseItem {
+    grid-template-columns: 1fr;
+    padding: 3rem 1.25rem;
+    column-gap: 0;
+    row-gap: 2rem;
+    min-height: unset;
+  }
+
+  .showcaseItemReversed {
+    direction: ltr;
+  }
+
+  .showcaseTitle {
+    font-size: 1.5rem;
   }
 }

@@ -38,7 +38,7 @@ export const CategoryItem = ({
       <div className='flex items-center mb-4'>
         <button
           onClick={toggleExpand}
-          className='p-1 mr-2 hover:bg-gray-100 rounded-sm focus:outline-none'
+          className='p-1 mr-2 rounded-sm hover:bg-muted focus:outline-none'
           aria-expanded={isExpanded}
           aria-controls={`content-${category.id}`}
         >

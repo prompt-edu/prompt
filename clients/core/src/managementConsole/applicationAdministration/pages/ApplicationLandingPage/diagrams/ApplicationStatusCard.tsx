@@ -16,7 +16,8 @@ function getTimeUntil(date: Date, action: string) {
   const days = differenceInDays(date, now)
   if (days >= 1) return { value: days, description: `${days === 1 ? 'day' : 'days'} ${action}` }
   const hours = differenceInHours(date, now)
-  if (hours >= 1) return { value: hours, description: `${hours === 1 ? 'hour' : 'hours'} ${action}` }
+  if (hours >= 1)
+    return { value: hours, description: `${hours === 1 ? 'hour' : 'hours'} ${action}` }
   const minutes = Math.max(differenceInMinutes(date, now), 0)
   return { value: minutes, description: `${minutes === 1 ? 'minute' : 'minutes'} ${action}` }
 }

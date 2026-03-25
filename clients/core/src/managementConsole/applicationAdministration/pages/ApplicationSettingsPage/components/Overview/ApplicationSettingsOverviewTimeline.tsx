@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { format } from 'date-fns'
 import { Progress } from '@tumaet/prompt-ui-components'
-import { formatTimeRemaining } from '../../../../../utils/formatTimeRemaining'
+import { formatTimeRemaining } from '../../../../utils/formatTimeRemaining'
 
 interface ApplicationTimelineProps {
   startDate: Date | undefined

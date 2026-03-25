@@ -23,12 +23,12 @@ export function PrivacyDataExportPage() {
   const [exportConfirmDialogOpen, setExportConfirmDialogOpen] = useState(false)
 
   const latestExportQuery = useQuery({
-    queryKey: ['data-export-latest'],
+    queryKey: ['privacy', 'data-export-latest'],
     queryFn: () => getLatestStudentDataExport(),
   })
 
   const exportQuery = useQuery({
-    queryKey: ['data-export'],
+    queryKey: ['privacy', 'data-export'],
     queryFn: () => requestStudentDataExport(),
     enabled: false,
   })
@@ -36,7 +36,7 @@ export function PrivacyDataExportPage() {
   const exportID = exportQuery.data?.id ?? getExportIDFromLatest(latestExportQuery.data)
 
   const statusQuery = useQuery({
-    queryKey: ['data-export-status', exportID],
+    queryKey: ['privacy', 'data-export-status', exportID],
     queryFn: () => getStudentDataExportStatus(exportID!),
     enabled: !!exportID,
     refetchInterval: (query) => {

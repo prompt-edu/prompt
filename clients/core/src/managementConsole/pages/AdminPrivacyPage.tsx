@@ -1,18 +1,13 @@
-import {
-  ExportStatus,
-  getAllExports,
-  type AdminPrivacyExport,
-} from '@core/network/queries/privacyStudentDataExport'
+import { ExportStatus, getAllExports } from '@core/network/queries/privacyStudentDataExport'
 import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
-import { useEffect, useState } from 'react'
 import { adminExportColumns } from '../shared/components/PrivacyExport/adminExportColumns'
+import { useQuery } from '@tanstack/react-query'
 
 export function AdminPrivacyPage() {
-  const [exports, setExports] = useState<AdminPrivacyExport[]>([])
-
-  useEffect(() => {
-    getAllExports().then(setExports)
-  }, [])
+  const allExportsQuery = useQuery({
+    queryKey: ['privacy', 'admin', 'exports'],
+    queryFn: getAllExports,
+  })
 
   return (
     <div>
@@ -29,19 +24,22 @@ export function AdminPrivacyPage() {
 
         <section>
           <h2 className='text-lg font-semibold text-foreground mb-4'>Data Exports</h2>
-          <PromptTable
-            data={exports}
-            columns={adminExportColumns}
-            filters={[
-              {
-                type: 'select',
-                id: 'status',
-                label: 'Status',
-                options: Object.values(ExportStatus),
-              },
-            ]}
-            pageSize={10}
-          />
+          {allExportsQuery.isLoading && <p>Loading...</p>}
+          {allExportsQuery.isSuccess && (
+            <PromptTable
+              data={exports}
+              columns={adminExportColumns}
+              filters={[
+                {
+                  type: 'select',
+                  id: 'status',
+                  label: 'Status',
+                  options: Object.values(ExportStatus),
+                },
+              ]}
+              pageSize={10}
+            />
+          )}
         </section>
       </div>
     </div>

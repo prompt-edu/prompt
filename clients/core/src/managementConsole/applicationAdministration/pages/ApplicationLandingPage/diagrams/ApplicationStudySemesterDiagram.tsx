@@ -60,8 +60,11 @@ export const ApplicationStudySemesterDiagram = ({
         <CardTitle>Semester Distribution</CardTitle>
         <CardDescription>Breakdown of students by semester and degree</CardDescription>
       </CardHeader>
-      <CardContent className='flex-1 flex flex-col justify-end pb-0'>
-        <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px]'>
+      <CardContent className='flex-1 flex flex-col justify-end pb-0 min-h-[280px]'>
+        <ChartContainer
+          config={chartConfig}
+          className='mx-auto w-full h-[280px] min-h-[280px] min-w-0'
+        >
           <BarChart data={semesterData} margin={{ top: 30, right: 10, bottom: 0, left: 10 }}>
             <XAxis
               dataKey='semester'

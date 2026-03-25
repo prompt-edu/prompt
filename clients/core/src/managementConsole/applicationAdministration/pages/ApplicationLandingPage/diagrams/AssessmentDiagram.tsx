@@ -58,8 +58,11 @@ export const AssessmentDiagram = ({ applications }: AssessmentDiagramProps) => {
         <CardTitle>Applications</CardTitle>
         <CardDescription>All applications and their assessment status</CardDescription>
       </CardHeader>
-      <CardContent className='flex-1 pb-0'>
-        <ChartContainer config={chartConfig} className='mx-auto aspect-square max-h-[250px]'>
+      <CardContent className='flex-1 pb-0 min-h-[250px]'>
+        <ChartContainer
+          config={chartConfig}
+          className='mx-auto w-full h-[250px] min-h-[250px] min-w-0'
+        >
           <PieChart>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie

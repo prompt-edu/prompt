@@ -30,7 +30,7 @@ const createRoundedBarShape = (segmentKey: string) => {
 
 export const StackedBarChartWithPassStatus = ({ data }: StackedBarChartWithPassStatusProps) => {
   return (
-    <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px]'>
+    <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px] min-h-[280px] min-w-0'>
       <BarChart data={data} margin={{ top: 30, right: 10, bottom: 0, left: 10 }}>
         <XAxis
           dataKey={'dataKey'}

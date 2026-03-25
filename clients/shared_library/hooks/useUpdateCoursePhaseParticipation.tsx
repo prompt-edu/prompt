@@ -4,11 +4,14 @@ import { useParams } from 'react-router-dom'
 import {
   UpdateCoursePhaseParticipation,
   CoursePhaseParticipationWithStudent,
+  CoursePhaseParticipationsWithResolution,
 } from '@tumaet/prompt-shared-state'
 import { updateCoursePhaseParticipation } from '@/network/mutations/updateCoursePhaseParticipationMetaData'
 
 interface MutationContext {
-  previousParticipants?: CoursePhaseParticipationWithStudent[]
+  previousParticipants?:
+    | CoursePhaseParticipationsWithResolution
+    | CoursePhaseParticipationWithStudent[]
 }
 
 export const useUpdateCoursePhaseParticipation = (): UseMutationResult<
@@ -37,26 +40,45 @@ export const useUpdateCoursePhaseParticipation = (): UseMutationResult<
       await queryClient.cancelQueries({ queryKey: ['participants', phaseId] })
 
       // Snapshot the previous value
-      const previousParticipants = queryClient.getQueryData<CoursePhaseParticipationWithStudent[]>([
-        'participants',
-        phaseId,
-      ])
+      const previousParticipants = queryClient.getQueryData<
+        CoursePhaseParticipationsWithResolution | CoursePhaseParticipationWithStudent[]
+      >(['participants', phaseId])
 
-      // Optimistically update the specific participation
-      if (previousParticipants) {
-        const updatedParticipants = previousParticipants.map((participant) => {
+      const applyParticipationUpdate = (
+        participants: CoursePhaseParticipationWithStudent[],
+      ): CoursePhaseParticipationWithStudent[] =>
+        participants.map((participant) => {
           if (participant.courseParticipationID === newParticipationData.courseParticipationID) {
             return {
               ...participant,
+              passStatus: newParticipationData.passStatus ?? participant.passStatus,
               restrictedData: {
                 ...participant.restrictedData,
                 ...newParticipationData.restrictedData,
               },
+              studentReadableData: {
+                ...participant.studentReadableData,
+                ...newParticipationData.studentReadableData,
+              },
             }
           }
+
           return participant
         })
-        queryClient.setQueryData(['participants', phaseId], updatedParticipants)
+
+      // Optimistically update the specific participation
+      if (previousParticipants) {
+        if (Array.isArray(previousParticipants)) {
+          queryClient.setQueryData(
+            ['participants', phaseId],
+            applyParticipationUpdate(previousParticipants),
+          )
+        } else {
+          queryClient.setQueryData(['participants', phaseId], {
+            ...previousParticipants,
+            participations: applyParticipationUpdate(previousParticipants.participations ?? []),
+          })
+        }
       }
 
       return { previousParticipants }

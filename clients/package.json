@@ -1,6 +1,6 @@
 {
   "name": "prompt-module-federation",
-  "version": "2.10.2",
+  "version": "2.10.3",
   "private": true,
   "workspaces": {
     "packages": [
@@ -42,8 +42,8 @@
     "@tiptap/pm": "^3.20.4",
     "@tiptap/react": "^3.20.4",
     "@tiptap/starter-kit": "^3.20.4",
-    "@tumaet/prompt-shared-state": "^1.0.8",
-    "@tumaet/prompt-ui-components": "^1.0.8",
+    "@tumaet/prompt-shared-state": "^1.0.10",
+    "@tumaet/prompt-ui-components": "^1.0.10",
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",
     "class-variance-authority": "^0.7.1",

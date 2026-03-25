@@ -1,9 +1,8 @@
-import { Badge } from '@tumaet/prompt-ui-components'
+import { Badge, getLevelConfig } from '@tumaet/prompt-ui-components'
 
 import { Competency } from '../../../../../interfaces/competency'
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
 
-import { getLevelConfig } from '../../../../utils/getLevelConfig'
 import { getScoreLevelDescription } from '../../../../utils/getScoreLevelDescription'
 
 interface EvaluationScoreDescriptionBadgeProps {

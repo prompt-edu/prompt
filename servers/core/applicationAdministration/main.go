@@ -15,6 +15,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getScoreLevelSpecificationBytes() ([]byte, error) {
+	scoreLevelSpecificationJson := meta.MetaData{}
+	scoreLevelSpecificationJson["type"] = "string"
+	scoreLevelSpecificationJson["enum"] = []string{"veryBad", "bad", "ok", "good", "veryGood"}
+	return scoreLevelSpecificationJson.GetDBModel()
+}
+
 func InitApplicationAdministrationModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	setupApplicationRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, keycloakTokenVerifier.ApplicationMiddleware, checkAccessControlByIDWrapper)
 	ApplicationServiceSingleton = &ApplicationService{
@@ -73,6 +80,12 @@ func initializeApplicationCoursePhaseType() error {
 			return err
 		}
 
+		scoreLevelSpecificationBytes, err := getScoreLevelSpecificationBytes()
+		if err != nil {
+			log.Error("failed to parse score level specification")
+			return err
+		}
+
 		newProvidedOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
 			ID:                uuid.New(),
 			CoursePhaseTypeID: newApplicationPhaseType.ID,
@@ -84,6 +97,20 @@ func initializeApplicationCoursePhaseType() error {
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
 		if err != nil {
 			log.Error("failed to create required score input: ", err)
+			return err
+		}
+
+		newProvidedScoreLevelOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
+			ID:                uuid.New(),
+			CoursePhaseTypeID: newApplicationPhaseType.ID,
+			DtoName:           "scoreLevel",
+			Specification:     scoreLevelSpecificationBytes,
+			VersionNumber:     1,
+			EndpointPath:      "core",
+		}
+		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
+		if err != nil {
+			log.Error("failed to create score level output: ", err)
 			return err
 		}
 

@@ -38,12 +38,21 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
   useEffect(() => {
     if (!surveyForm) return
 
-    // Initialize team ranking: use the saved preferences if available; else, use the order from the survey form.
+    const currentTeamIDs = new Set(surveyForm.teams.map((t) => t.id))
+
     let newTeamRanking: string[]
     if (surveyResponse?.teamPreferences?.length) {
-      // Sort saved preferences by preference value
       const sorted = [...surveyResponse.teamPreferences].sort((a, b) => a.preference - b.preference)
-      newTeamRanking = sorted.map((pref) => pref.teamID)
+      const savedTeamIDs = sorted.map((pref) => pref.teamID)
+      const savedMatchCurrent =
+        savedTeamIDs.length === surveyForm.teams.length &&
+        savedTeamIDs.every((id) => currentTeamIDs.has(id))
+
+      if (savedMatchCurrent) {
+        newTeamRanking = savedTeamIDs
+      } else {
+        newTeamRanking = surveyForm.teams.map((team) => team.id).sort(() => Math.random() - 0.5)
+      }
     } else {
       // We randomize the order in the beginning to avoid bias
       newTeamRanking = surveyForm.teams.map((team) => team.id).sort(() => Math.random() - 0.5)
@@ -51,11 +60,13 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
     setTeamRanking(newTeamRanking)
     setInitialTeamRanking(newTeamRanking)
 
-    // Initialize skill ratings: use saved responses if available; else leave undefined so no default is selected
+    const currentSkillIDs = new Set(surveyForm.skills.map((s) => s.id))
     const newSkillRatings: Record<string, SkillLevel | undefined> = {}
     if (surveyResponse?.skillResponses?.length) {
       surveyResponse.skillResponses.forEach((sr) => {
-        newSkillRatings[sr.skillID] = sr.skillLevel
+        if (currentSkillIDs.has(sr.skillID)) {
+          newSkillRatings[sr.skillID] = sr.skillLevel
+        }
       })
     }
 

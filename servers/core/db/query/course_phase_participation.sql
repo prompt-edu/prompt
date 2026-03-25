@@ -223,14 +223,53 @@ SELECT
                        (jsonb_each(pcpp.restricted_data)).value AS value
               ) sub
             ) AS each
-            WHERE dpm.from_course_phase_type_name <> 'Application'
+            WHERE dpm.from_course_phase_type_name NOT IN ('Application', 'Interview')
               AND each.key = ANY(dpm.from_dto_names)
          ),
          '{}'::jsonb
       )::jsonb ||
       COALESCE(
           (
-             -- (II) Meta data from the Application phase (special handling)
+             -- (II) Meta data from the Interview phase (special handling)
+            SELECT interviewdata.obj
+            FROM direct_predecessors_for_meta dpm
+            JOIN course_phase_participation pcpp
+              ON pcpp.course_phase_id = dpm.from_course_phase_id
+             AND pcpp.course_participation_id = main.course_participation_id
+            JOIN course_phase_type cpt
+              ON cpt.id = dpm.from_course_phase_type_id
+             AND cpt.name = 'Interview'
+            CROSS JOIN LATERAL (
+               SELECT jsonb_strip_nulls(
+                  jsonb_build_object(
+                     'score', CASE
+                         WHEN 'score' = ANY(dpm.from_dto_names) THEN pcpp.restricted_data -> 'score'
+                         ELSE NULL
+                     END,
+                     'scoreLevel', CASE
+                         WHEN 'scoreLevel' = ANY(dpm.from_dto_names) THEN
+                           CASE
+                             WHEN NOT (pcpp.restricted_data ? 'score') THEN NULL
+                             WHEN jsonb_typeof(pcpp.restricted_data -> 'score') <> 'number' THEN NULL
+                             WHEN (pcpp.restricted_data ->> 'score')::numeric < 1
+                               OR (pcpp.restricted_data ->> 'score')::numeric > 5 THEN NULL
+                             WHEN (pcpp.restricted_data ->> 'score')::numeric <= 1.5 THEN to_jsonb('veryGood'::text)
+                             WHEN (pcpp.restricted_data ->> 'score')::numeric <= 2.5 THEN to_jsonb('good'::text)
+                             WHEN (pcpp.restricted_data ->> 'score')::numeric <= 3.5 THEN to_jsonb('ok'::text)
+                             WHEN (pcpp.restricted_data ->> 'score')::numeric <= 4.5 THEN to_jsonb('bad'::text)
+                             ELSE to_jsonb('veryBad'::text)
+                           END
+                         ELSE NULL
+                     END
+                  )
+               ) AS obj
+            ) interviewdata
+         ),
+         '{}'::jsonb
+      )::jsonb ||
+      COALESCE(
+          (
+             -- (III) Meta data from the Application phase (special handling)
             SELECT appdata.obj
             FROM direct_predecessors_for_meta dpm
             JOIN course_phase_participation pcpp
@@ -245,6 +284,20 @@ SELECT
                      'score', CASE 
                          WHEN 'score' = ANY(dpm.from_dto_names) THEN 
                            (SELECT to_jsonb(aasm.score)
+                            FROM application_assessment aasm
+                            WHERE aasm.course_phase_id = pcpp.course_phase_id AND aasm.course_participation_id = pcpp.course_participation_id)
+                         ELSE NULL 
+                     END,
+                     'scoreLevel', CASE
+                         WHEN 'scoreLevel' = ANY(dpm.from_dto_names) THEN
+                           (SELECT CASE
+                              WHEN aasm.score IS NULL OR aasm.score < 1 OR aasm.score > 5 THEN NULL
+                              WHEN aasm.score <= 1 THEN to_jsonb('veryGood'::text)
+                              WHEN aasm.score <= 2 THEN to_jsonb('good'::text)
+                              WHEN aasm.score <= 3 THEN to_jsonb('ok'::text)
+                              WHEN aasm.score <= 4 THEN to_jsonb('bad'::text)
+                              ELSE to_jsonb('veryBad'::text)
+                            END
                             FROM application_assessment aasm
                             WHERE aasm.course_phase_id = pcpp.course_phase_id AND aasm.course_participation_id = pcpp.course_participation_id)
                          ELSE NULL 

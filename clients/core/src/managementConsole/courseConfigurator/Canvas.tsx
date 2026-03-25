@@ -6,10 +6,12 @@ import {
   useEdgesState,
   Controls,
   NodeTypes,
+  EdgeTypes,
   Background,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { PhaseNode } from './graphComponents/phaseNode/PhaseNode'
+import { SelectableEdge } from './graphComponents/edges/SelectableEdge'
 import { useConnect } from './handlers/useConnect'
 import { useValidation } from './handlers/useValidation'
 import { useDrop } from './handlers/useDrop'
@@ -29,6 +31,10 @@ import { UnsavedChangesAlert } from './components/UnsavedChangesAlert'
 
 const nodeTypes: NodeTypes = {
   phaseNode: PhaseNode,
+}
+
+const edgeTypes: EdgeTypes = {
+  selectableEdge: SelectableEdge,
 }
 
 export function CourseConfigurator() {
@@ -138,9 +144,9 @@ export function CourseConfigurator() {
   const isError = isMutationError
 
   return (
-    <>
+    <div className='relative flex-grow h-full min-h-0'>
       <CoursePhaseTypePanel canEdit={canEdit} />
-      <div className='flex-grow h-full flex flex-col relative' ref={reactFlowWrapper}>
+      <div className='h-full flex flex-col' ref={reactFlowWrapper}>
         {isError && <ErrorPage message='Failed to save the changes' onRetry={handleRetry} />}
         {(isModified || phaseNameModified) && (
           <div className='absolute top-4 right-4 z-50 w-[350px]'>
@@ -157,6 +163,7 @@ export function CourseConfigurator() {
           onDrop={dropHandler}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           isValidConnection={useValidation()}
           colorMode={theme}
           nodesDraggable={canEdit}
@@ -169,7 +176,7 @@ export function CourseConfigurator() {
           <Background />
         </ReactFlow>
       </div>
-    </>
+    </div>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Lock, Plus } from 'lucide-react'
 
 import {
@@ -46,29 +46,14 @@ export const CategoryList = ({
   const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
   const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
 
-  const [categories, setCategories] = useState<CategoryWithCompetencies[]>([])
-
-  useEffect(() => {
-    switch (assessmentType) {
-      case AssessmentType.SELF:
-        setCategories(selfEvaluationCategories)
-        break
-      case AssessmentType.PEER:
-        setCategories(peerEvaluationCategories)
-        break
-      case AssessmentType.TUTOR:
-        setCategories(tutorEvaluationCategories)
-        break
-      default:
-        setCategories(assessmentCategories)
-    }
-  }, [
-    assessmentType,
-    selfEvaluationCategories,
-    peerEvaluationCategories,
-    tutorEvaluationCategories,
-    assessmentCategories,
-  ])
+  const categories =
+    assessmentType === AssessmentType.SELF
+      ? selfEvaluationCategories
+      : assessmentType === AssessmentType.PEER
+        ? peerEvaluationCategories
+        : assessmentType === AssessmentType.TUTOR
+          ? tutorEvaluationCategories
+          : assessmentCategories
 
   const content = schemaSectionContent[assessmentType]
 

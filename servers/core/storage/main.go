@@ -30,18 +30,20 @@ func InitStorageModule(queries db.Queries, conn *pgxpool.Pool) error {
 	region := sdkUtils.GetEnv("S3_REGION", "us-east-1")
 	endpoint := sdkUtils.GetEnv("S3_ENDPOINT", "http://localhost:8334") // Empty for AWS S3, set for SeaweedFS/MinIO
 	publicEndpoint := sdkUtils.GetEnv("S3_PUBLIC_ENDPOINT", "")
-	accessKey := sdkUtils.GetEnv("S3_ACCESS_KEY", "admin")
-	secretKey := sdkUtils.GetEnv("S3_SECRET_KEY", "admin123")
+	accessKey := sdkUtils.GetEnv("S3_ACCESS_KEY", "")
+	secretKey := sdkUtils.GetEnv("S3_SECRET_KEY", "")
 	forcePathStyle := sdkUtils.GetEnv("S3_FORCE_PATH_STYLE", "true") == "true" // Required for SeaweedFS/MinIO
 
 	lowerEndpoint := strings.ToLower(endpoint)
 	isLocalEndpoint := strings.Contains(lowerEndpoint, "localhost") || strings.Contains(lowerEndpoint, "127.0.0.1")
-	if isLocalEndpoint && accessKey == "" && secretKey == "" {
-		// Use local SeaweedFS development defaults when no explicit credentials are configured.
-		accessKey = "admin"
-		secretKey = "admin123"
-	}
-	if !isLocalEndpoint && (accessKey == "" || secretKey == "") {
+	if isLocalEndpoint {
+		if accessKey == "" {
+			accessKey = "admin"
+		}
+		if secretKey == "" {
+			secretKey = "admin123"
+		}
+	} else if accessKey == "" || secretKey == "" {
 		return fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
 	}
 

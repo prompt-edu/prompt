@@ -28,7 +28,7 @@ interface AssessmentCardProps {
   courseParticipationID: string
 }
 
-const scoreLevelLabels: Partial<Record<ScoreLevel, string>> = {
+const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryGood]: 'Very Good',
   [ScoreLevel.Good]: 'Good',
   [ScoreLevel.Ok]: 'Okay',
@@ -36,7 +36,7 @@ const scoreLevelLabels: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryBad]: 'Very Bad',
 }
 
-const scoreLevelDescriptions: Record<ScoreLevel, string> = {
+const SCORE_LEVEL_DESCRIPTIONS: Record<ScoreLevel, string> = {
   [ScoreLevel.VeryGood]: 'Outstanding final application assessment.',
   [ScoreLevel.Good]: 'Strong application assessment with minor reservations.',
   [ScoreLevel.Ok]: 'Neutral application assessment.',
@@ -45,7 +45,9 @@ const scoreLevelDescriptions: Record<ScoreLevel, string> = {
 }
 
 const mapStoredScoreToScoreLevel = (score: number | null): ScoreLevel | undefined =>
-  score !== null && score >= 1 && score <= 5 ? mapNumberToScoreLevel(score) : undefined
+  score !== null && Number.isInteger(score) && score >= 1 && score <= 5
+    ? mapNumberToScoreLevel(score)
+    : undefined
 
 export const AssessmentCard = ({
   score,
@@ -109,18 +111,19 @@ export const AssessmentCard = ({
                   setCurrentScore(nextScore)
                   handleScoreSubmit(nextScore)
                 }}
-                completed={isPending}
-                descriptionsByLevel={scoreLevelDescriptions}
-                labelsByLevel={scoreLevelLabels}
+                disabled={isPending}
+                descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
+                labelsByLevel={SCORE_LEVEL_LABELS}
                 showIndicators={false}
                 hideUnselectedOnDesktop={false}
               />
-              {currentScore !== null && (currentScore < 1 || currentScore > 5) && (
-                <p className='text-sm text-muted-foreground'>
-                  Existing numeric score {currentScore} is outside the 1-5 selector range. Selecting
-                  a level will replace it.
-                </p>
-              )}
+              {currentScore !== null &&
+                (!Number.isInteger(currentScore) || currentScore < 1 || currentScore > 5) && (
+                  <p className='text-sm text-muted-foreground'>
+                    Existing numeric score {currentScore} is outside the 1-5 selector range.
+                    Selecting a level will replace it.
+                  </p>
+                )}
             </div>
           </div>
           <div>

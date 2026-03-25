@@ -27,7 +27,7 @@ import {
 } from '@tumaet/prompt-shared-state'
 import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
 
-const scoreLevelLabels: Partial<Record<ScoreLevel, string>> = {
+const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryGood]: 'Very Good',
   [ScoreLevel.Good]: 'Good',
   [ScoreLevel.Ok]: 'Okay',
@@ -35,7 +35,7 @@ const scoreLevelLabels: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryBad]: 'Very Bad',
 }
 
-const scoreLevelDescriptions: Record<ScoreLevel, string> = {
+const SCORE_LEVEL_DESCRIPTIONS: Record<ScoreLevel, string> = {
   [ScoreLevel.VeryGood]: 'Strong final recommendation after the interview.',
   [ScoreLevel.Good]: 'Positive final recommendation with minor reservations.',
   [ScoreLevel.Ok]: 'Mixed interview outcome with a neutral final recommendation.',
@@ -44,7 +44,9 @@ const scoreLevelDescriptions: Record<ScoreLevel, string> = {
 }
 
 const mapStoredScoreToScoreLevel = (score: number | undefined): ScoreLevel | undefined =>
-  score !== undefined && score >= 1 && score <= 5 ? mapNumberToScoreLevel(score) : undefined
+  score !== undefined && Number.isInteger(score) && score >= 1 && score <= 5
+    ? mapNumberToScoreLevel(score)
+    : undefined
 
 export const InterviewCard = () => {
   const { studentId } = useParams<{ studentId: string }>()
@@ -178,13 +180,13 @@ export const InterviewCard = () => {
                 setScore(nextScore)
                 saveRestrictedDataPatch({ score: nextScore })
               }}
-              completed={isPending}
-              descriptionsByLevel={scoreLevelDescriptions}
-              labelsByLevel={scoreLevelLabels}
+              disabled={isPending}
+              descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
+              labelsByLevel={SCORE_LEVEL_LABELS}
               showIndicators={false}
               hideUnselectedOnDesktop={false}
             />
-            {score !== undefined && (score < 1 || score > 5) && (
+            {score !== undefined && (!Number.isInteger(score) || score < 1 || score > 5) && (
               <p className='text-sm text-muted-foreground'>
                 Existing numeric score {score} is outside the 1-5 selector range. Selecting a level
                 will replace it.
@@ -195,7 +197,7 @@ export const InterviewCard = () => {
             <Label>Resolution</Label>
             <div className='flex flex-wrap gap-2'>
               <Button
-                variant='outline'
+                variant={isRejected ? 'destructive' : 'outline'}
                 size='sm'
                 disabled={isPending}
                 aria-pressed={isRejected}
@@ -205,7 +207,7 @@ export const InterviewCard = () => {
                 Reject
               </Button>
               <Button
-                variant='default'
+                variant={isPassed ? 'default' : 'outline'}
                 size='sm'
                 disabled={isPending}
                 aria-pressed={isPassed}

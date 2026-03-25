@@ -11,14 +11,14 @@ interface ApplicationStatusCardProps {
   applicationPhaseIsConfigured: boolean
 }
 
-function getTimeUntil(date: Date, suffixDays: string, suffixHours: string, suffixMinutes: string) {
+function getTimeUntil(date: Date, action: string) {
   const now = new Date()
   const days = differenceInDays(date, now)
-  if (days >= 1) return { value: days, description: suffixDays }
+  if (days >= 1) return { value: days, description: `${days === 1 ? 'day' : 'days'} ${action}` }
   const hours = differenceInHours(date, now)
-  if (hours >= 1) return { value: hours, description: suffixHours }
-  const minutes = differenceInMinutes(date, now)
-  return { value: Math.max(minutes, 0), description: suffixMinutes }
+  if (hours >= 1) return { value: hours, description: `${hours === 1 ? 'hour' : 'hours'} ${action}` }
+  const minutes = Math.max(differenceInMinutes(date, now), 0)
+  return { value: minutes, description: `${minutes === 1 ? 'minute' : 'minutes'} ${action}` }
 }
 
 export function ApplicationStatusCard({
@@ -37,11 +37,11 @@ export function ApplicationStatusCard({
     switch (status) {
       case ApplicationStatus.NotYetLive:
         return startDate
-          ? getTimeUntil(startDate, 'days until start', 'hours until start', 'minutes until start')
+          ? getTimeUntil(startDate, 'until start')
           : { value: null, description: 'Not set' }
       case ApplicationStatus.Live:
         return endDate
-          ? getTimeUntil(endDate, 'days remaining', 'hours remaining', 'minutes remaining')
+          ? getTimeUntil(endDate, 'remaining')
           : { value: null, description: 'Ongoing' }
       case ApplicationStatus.Passed:
         return { value: null, description: 'CLOSED' }

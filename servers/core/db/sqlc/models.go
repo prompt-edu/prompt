@@ -389,6 +389,24 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	Specification     []byte    `json:"specification"`
 }
 
+type File struct {
+	ID               uuid.UUID        `json:"id"`
+	Filename         string           `json:"filename"`
+	OriginalFilename string           `json:"original_filename"`
+	ContentType      string           `json:"content_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	StorageKey       string           `json:"storage_key"`
+	StorageProvider  string           `json:"storage_provider"`
+	UploadedByUserID string           `json:"uploaded_by_user_id"`
+	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
+	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
+	Description      pgtype.Text      `json:"description"`
+	Tags             []string         `json:"tags"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
+}
+
 type Note struct {
 	ID          uuid.UUID          `json:"id"`
 	ForStudent  uuid.UUID          `json:"for_student"`
@@ -430,24 +448,6 @@ type NoteWithVersion struct {
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Versions    []byte             `json:"versions"`
 	Tags        []byte             `json:"tags"`
-}
-
-type File struct {
-	ID               uuid.UUID        `json:"id"`
-	Filename         string           `json:"filename"`
-	OriginalFilename string           `json:"original_filename"`
-	ContentType      string           `json:"content_type"`
-	SizeBytes        int64            `json:"size_bytes"`
-	StorageKey       string           `json:"storage_key"`
-	StorageProvider  string           `json:"storage_provider"`
-	UploadedByUserID string           `json:"uploaded_by_user_id"`
-	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
-	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
-	Description      pgtype.Text      `json:"description"`
-	Tags             []string         `json:"tags"`
-	CreatedAt        pgtype.Timestamp `json:"created_at"`
-	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
-	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
 }
 
 type ParticipationDataDependencyGraph struct {

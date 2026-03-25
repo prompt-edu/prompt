@@ -1,6 +1,6 @@
 {
   "name": "devops_challenge_component",
-  "version": "2.10.2",
+  "version": "2.10.3",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

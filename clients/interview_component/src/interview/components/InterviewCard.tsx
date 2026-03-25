@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageSquare, User } from 'lucide-react'
+import { Check, MessageSquare, User, X } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -10,6 +10,7 @@ import {
   Separator,
   TooltipProvider,
   MinimalTiptapEditor,
+  ScoreLevelSelector,
   Input,
   Label,
 } from '@tumaet/prompt-ui-components'
@@ -17,13 +18,41 @@ import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 import type { InterviewQuestion } from '../interfaces/InterviewQuestion'
 import type { InterviewAnswer } from '../interfaces/InterviewAnswer'
-import { PassStatus, useAuthStore } from '@tumaet/prompt-shared-state'
+import {
+  mapNumberToScoreLevel,
+  mapScoreLevelToNumber,
+  PassStatus,
+  ScoreLevel,
+  useAuthStore,
+} from '@tumaet/prompt-shared-state'
 import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
+
+const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
+  [ScoreLevel.VeryGood]: 'Very Good',
+  [ScoreLevel.Good]: 'Good',
+  [ScoreLevel.Ok]: 'Okay',
+  [ScoreLevel.Bad]: 'Bad',
+  [ScoreLevel.VeryBad]: 'Very Bad',
+}
+
+const SCORE_LEVEL_DESCRIPTIONS: Record<ScoreLevel, string> = {
+  [ScoreLevel.VeryGood]: 'Strong final recommendation after the interview.',
+  [ScoreLevel.Good]: 'Positive final recommendation with minor reservations.',
+  [ScoreLevel.Ok]: 'Mixed interview outcome with a neutral final recommendation.',
+  [ScoreLevel.Bad]: 'Weak interview outcome with notable concerns.',
+  [ScoreLevel.VeryBad]: 'Do not recommend based on the interview outcome.',
+}
+
+const mapStoredScoreToScoreLevel = (score: number | undefined): ScoreLevel | undefined =>
+  score !== undefined && Number.isInteger(score) && score >= 1 && score <= 5
+    ? mapNumberToScoreLevel(score)
+    : undefined
 
 export const InterviewCard = () => {
   const { studentId } = useParams<{ studentId: string }>()
   const { participations } = useParticipationStore()
   const participation = participations.find((p) => p.student.id === studentId)
+  const restrictedData = (participation?.restrictedData ?? {}) as Record<string, unknown>
 
   const { user } = useAuthStore()
   const { coursePhase } = useCoursePhaseStore()
@@ -38,7 +67,7 @@ export const InterviewCard = () => {
     participation?.restrictedData?.interviewer,
   )
 
-  const { mutate } = useUpdateCoursePhaseParticipation()
+  const { mutate, isPending } = useUpdateCoursePhaseParticipation()
 
   // Compare current state with original data
   const isModified =
@@ -77,15 +106,23 @@ export const InterviewCard = () => {
     })
   }
 
-  const saveChanges = (passStatus?: PassStatus) => {
+  const saveChanges = (
+    passStatus?: PassStatus,
+    overrides?: {
+      answers?: InterviewAnswer[]
+      score?: number
+      interviewer?: string
+    },
+  ) => {
     if (participation && coursePhase) {
       mutate({
         coursePhaseID: coursePhase.id,
         courseParticipationID: participation.courseParticipationID,
         restrictedData: {
-          interviewAnswers: answers,
-          score: score,
-          interviewer: interviewer,
+          ...restrictedData,
+          interviewAnswers: overrides?.answers ?? answers,
+          score: overrides?.score ?? score,
+          interviewer: overrides?.interviewer ?? interviewer,
         },
         studentReadableData: {},
         passStatus: passStatus ?? participation.passStatus,
@@ -93,9 +130,23 @@ export const InterviewCard = () => {
     }
   }
 
+  const saveRestrictedDataPatch = (patch: Record<string, unknown>) => {
+    if (participation && coursePhase) {
+      mutate({
+        coursePhaseID: coursePhase.id,
+        courseParticipationID: participation.courseParticipationID,
+        restrictedData: patch,
+        studentReadableData: {},
+        passStatus: participation.passStatus,
+      })
+    }
+  }
+
   const setInterviewerAsSelf = () => {
     if (user) {
-      setInterviewer(user.firstName + ' ' + user.lastName)
+      const nextInterviewer = `${user.firstName} ${user.lastName}`
+      setInterviewer(nextInterviewer)
+      saveChanges(undefined, { interviewer: nextInterviewer })
     }
   }
 
@@ -106,6 +157,9 @@ export const InterviewCard = () => {
     }
   }
 
+  const isRejected = participation?.passStatus === PassStatus.FAILED
+  const isPassed = participation?.passStatus === PassStatus.PASSED
+
   return (
     <Card>
       <CardHeader>
@@ -115,38 +169,54 @@ export const InterviewCard = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className='flex flex-row space-x-4 mb-4 justify-between'>
+        <div className='mb-4 space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='score'>Interview Score</Label>
-            <Input
-              id='score'
-              className='w-48'
-              value={score}
-              onChange={(e) => setScore(Number(e.target.value))}
-              onBlur={handleBlur}
-              type='number'
-              min='0'
-              max='100'
-              placeholder='Enter an interview score'
+            <Label>Interview Score</Label>
+            <ScoreLevelSelector
+              className='grid gap-2 xl:grid-cols-5'
+              selectedScore={mapStoredScoreToScoreLevel(score)}
+              onScoreChange={(value) => {
+                if (isPending) {
+                  return
+                }
+                const nextScore = mapScoreLevelToNumber(value)
+                setScore(nextScore)
+                saveRestrictedDataPatch({ score: nextScore })
+              }}
+              completed={false}
+              descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
+              labelsByLevel={SCORE_LEVEL_LABELS}
+              showIndicators={false}
+              hideUnselectedOnDesktop={false}
             />
+            {score !== undefined && (!Number.isInteger(score) || score < 1 || score > 5) && (
+              <p className='text-sm text-muted-foreground'>
+                Existing numeric score {score} is outside the 1-5 selector range. Selecting a level
+                will replace it.
+              </p>
+            )}
           </div>
-          <div className='col-span-2 space-y-2'>
+          <div className='space-y-2'>
             <Label>Resolution</Label>
-            <div className='space-x-2'>
+            <div className='flex flex-wrap gap-2'>
               <Button
-                variant='outline'
-                disabled={participation?.passStatus === PassStatus.FAILED}
-                className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
+                variant={isRejected ? 'destructive' : 'outline'}
+                size='sm'
+                disabled={isPending}
+                aria-pressed={isRejected}
                 onClick={() => saveChanges(PassStatus.FAILED)}
               >
+                <X />
                 Reject
               </Button>
               <Button
-                variant='default'
-                disabled={participation?.passStatus === PassStatus.PASSED}
-                className='bg-green-500 hover:bg-green-600 text-white'
+                variant={isPassed ? 'default' : 'outline'}
+                size='sm'
+                disabled={isPending}
+                aria-pressed={isPassed}
                 onClick={() => saveChanges(PassStatus.PASSED)}
               >
+                <Check />
                 Accept
               </Button>
             </div>
@@ -166,7 +236,7 @@ export const InterviewCard = () => {
               <Button
                 variant='outline'
                 className='shrink-0'
-                disabled={user === undefined}
+                disabled={isPending || user === undefined}
                 onClick={setInterviewerAsSelf}
               >
                 <User className='h-4 w-4 mr-2' />

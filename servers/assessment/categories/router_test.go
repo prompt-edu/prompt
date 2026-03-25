@@ -30,7 +30,7 @@ type CategoryRouterTestSuite struct {
 	categoryService CategoryService
 }
 
-func (suite *CategoryRouterTestSuite) SetupSuite() {
+func (suite *CategoryRouterTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
 	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
@@ -61,7 +61,7 @@ func (suite *CategoryRouterTestSuite) SetupSuite() {
 	setupCategoryRouter(api, testMiddleWare)
 }
 
-func (suite *CategoryRouterTestSuite) TearDownSuite() {
+func (suite *CategoryRouterTestSuite) TearDownTest() {
 	if suite.mockCoreCleanup != nil {
 		suite.mockCoreCleanup()
 	}

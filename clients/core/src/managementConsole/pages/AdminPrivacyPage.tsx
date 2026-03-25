@@ -21,13 +21,12 @@ export function AdminPrivacyPage() {
           <h2 className='text-lg font-semibold text-foreground mb-4'>Deletion Requests</h2>
           <PromptTable data={[]} columns={[]} pageSize={10} />
         </section>
-
         <section>
           <h2 className='text-lg font-semibold text-foreground mb-4'>Data Exports</h2>
           {allExportsQuery.isLoading && <p>Loading...</p>}
           {allExportsQuery.isSuccess && (
             <PromptTable
-              data={exports}
+              data={allExportsQuery.data}
               columns={adminExportColumns}
               filters={[
                 {

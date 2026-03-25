@@ -28,20 +28,22 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   const handleDownloadAll = async () => {
     setDownloading(1)
 
-    for (let i = 0; i < privacyExport.documents.length; i++) {
-      const expDoc = privacyExport.documents[i]
+    try {
+      for (let i = 0; i < privacyExport.documents.length; i++) {
+        const expDoc = privacyExport.documents[i]
 
-      const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
-      window.open(downloadURL, '_blank')
+        const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
+        window.open(downloadURL, '_blank')
 
-      setDownloading(i + 1)
+        setDownloading(i + 1)
 
-      if (i < privacyExport.documents.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (i < privacyExport.documents.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        }
       }
+    } finally {
+      setDownloading(-1)
     }
-
-    setDownloading(-1)
   }
 
   const isDownloading = downloading != -1

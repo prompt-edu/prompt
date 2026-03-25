@@ -11,6 +11,7 @@ import {
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { camelToTitle } from './utils/camelToTitle'
+import { EDGE_COLOR_GREEN, EDGE_COLOR_PURPLE } from '../../edges/edgeColors'
 
 interface IncomingDataHandleProps {
   phaseID: string
@@ -104,8 +105,12 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
               type='target'
               position={Position.Left}
               id={handleName}
-              style={{ left: '-28px', top: '50%' }}
-              className={`!w-3 !h-3 ${isParticipationEdge ? '!bg-green-500' : '!bg-purple-500'} rounded-full`}
+              style={{
+                left: '-28px',
+                top: '50%',
+                background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
+              }}
+              className='!w-3 !h-3 rounded-full'
             />
             <div className='flex items-center space-x-2'>
               {icon}

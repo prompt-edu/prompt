@@ -37,8 +37,8 @@ func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subject
 
 func getSubjectDataForUser(c *gin.Context, ex *utils.Export, userUUID uuid.UUID) {
 
-  ex.AddJSON("Instructor Notes as Author", "user/instructor_notes.json", func () (any, error) { 
-    return instructorNote.GetStudentNotesForAuthor(c, userUUID)
+  ex.AddJSON("Instructor Notes as Author", "user/instructor_notes.json", func () (any, error) {
+    return instructorNote.GetStudentNotesForAuthorWithoutStudent(c, userUUID)
   })
 
 }

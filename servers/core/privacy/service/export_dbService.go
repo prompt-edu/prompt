@@ -42,8 +42,8 @@ func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifier
 
   exp, err := PrivacyServiceSingleton.queries.CreateNewExport(c, db.CreateNewExportParams{
     ID:         uuid.New(),
-    Userid:     subjectIdentifiers.UserID,
-    Studentid:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
+    UserID:     subjectIdentifiers.UserID,
+    StudentID:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
     Status:     db.ExportStatusPending,
     ValidUntil: pgtype.Timestamptz{ Time: time.Now().Add(exportExpiry()), Valid: true},
   })
@@ -58,7 +58,7 @@ func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifier
 func CreateExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string) (db.PrivacyExportDocument, error) {
 	return PrivacyServiceSingleton.queries.CreateNewExportDoc(c, db.CreateNewExportDocParams{
 		ID:         uuid.New(),
-		Exportid:   pgtype.UUID{Bytes: exportID, Valid: true},
+		ExportID:   pgtype.UUID{Bytes: exportID, Valid: true},
 		SourceName: sourceName,
 		ObjectKey:  privacyexport.MakeObjectURL(exportID.String(), sourceName),
 		Status:     db.ExportStatusPending,
@@ -144,6 +144,19 @@ func GetExportAvailability(c *gin.Context, userID uuid.UUID) (ExportAvailability
 	}
 
 	return ExportReadyForNew, nil, nil
+}
+
+func GetAllExports(c *gin.Context) ([]privacyDTO.AdminPrivacyExport, error) {
+	dbExports, err := PrivacyServiceSingleton.queries.GetAllExports(c)
+	if err != nil {
+		return nil, err
+	}
+
+	exports := make([]privacyDTO.AdminPrivacyExport, 0, len(dbExports))
+	for _, dbExp := range dbExports {
+		exports = append(exports, privacyDTO.GetAdminPrivacyExportDTOFromDBModel(dbExp))
+	}
+	return exports, nil
 }
 
 func RateLimitEndForExport(exp privacyDTO.PrivacyExport) time.Time {

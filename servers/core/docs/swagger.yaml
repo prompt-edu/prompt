@@ -1141,6 +1141,27 @@ definitions:
       valid:
         type: boolean
     type: object
+  privacyDTO.AdminPrivacyExport:
+    properties:
+      date_created:
+        type: string
+      downloaded_docs:
+        type: integer
+      id:
+        type: string
+      last_downloaded_at:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+      studentID:
+        type: string
+      total_docs:
+        type: integer
+      userID:
+        type: string
+      valid_until:
+        type: string
+    type: object
   privacyDTO.PrivacyExport:
     properties:
       date_created:
@@ -3621,7 +3642,7 @@ paths:
       summary: Manually trigger status mail for a course phase
       tags:
       - mailing
-  /privacy/data-export:
+  /privacy/admin/data-exports:
     get:
       produces:
       - application/json
@@ -3629,16 +3650,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/privacyDTO.PrivacyExport'
-        "204":
-          description: No recent export
+            items:
+              $ref: '#/definitions/privacyDTO.AdminPrivacyExport'
+            type: array
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-      summary: Get the current user's latest export
-    post:
-      description: Get an export of all student data from core and all microservices
+      security:
+      - BearerAuth: []
+      summary: List all data exports (admin only)
+      tags:
+      - privacy
+  /privacy/data-export:
+    get:
+      description: 'Returns {status: "exists", export: ...} when a valid export exists,
+        {status: "rate_limited", retry_after: ...} when rate limited, or 204 when
+        no export exists'
       produces:
       - application/json
       responses:
@@ -3647,16 +3675,23 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "204":
+          description: No recent export
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-      summary: Export all student related data
-  /privacy/data-export/{uuid}:
-    get:
-      description: Get the current status and all ids of the export record and all
-        export docs. needed so client knows what docs exist to be able to download
-        them
+      security:
+      - BearerAuth: []
+      summary: Get the current user's latest export
+      tags:
+      - privacy
+    post:
+      description: Get an export of all student data from core and all microservices
       produces:
       - application/json
       responses:
@@ -3664,11 +3699,58 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/privacyDTO.PrivacyExport'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export all student related data
+      tags:
+      - privacy
+  /privacy/data-export/{uuid}:
+    get:
+      description: Get the current status and all ids of the export record and all
+        export docs. needed so client knows what docs exist to be able to download
+        them
+      parameters:
+      - description: Export UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyExport'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all Ids and status of export and export docs
+      tags:
+      - privacy
   /privacy/data-export/{uuid}/docs/{docID}/download-url:
     get:
       description: Returns a short-lived presigned URL to download a specific export
@@ -3705,7 +3787,11 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get download URL for an export document
+      tags:
+      - privacy
   /students/:
     get:
       description: Get a list of all students

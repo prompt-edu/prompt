@@ -509,8 +509,8 @@ type PhaseDataDependencyGraph struct {
 
 type PrivacyExport struct {
 	ID          uuid.UUID          `json:"id"`
-	Userid      uuid.UUID          `json:"userid"`
-	Studentid   pgtype.UUID        `json:"studentid"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
 	Status      ExportStatus       `json:"status"`
 	DateCreated pgtype.Timestamptz `json:"date_created"`
 	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
@@ -518,7 +518,7 @@ type PrivacyExport struct {
 
 type PrivacyExportDocument struct {
 	ID           uuid.UUID          `json:"id"`
-	Exportid     pgtype.UUID        `json:"exportid"`
+	ExportID     pgtype.UUID        `json:"export_id"`
 	DateCreated  pgtype.Timestamptz `json:"date_created"`
 	SourceName   string             `json:"source_name"`
 	ObjectKey    string             `json:"object_key"`
@@ -529,8 +529,8 @@ type PrivacyExportDocument struct {
 
 type PrivacyExportWithDoc struct {
 	ID          uuid.UUID          `json:"id"`
-	Userid      uuid.UUID          `json:"userid"`
-	Studentid   pgtype.UUID        `json:"studentid"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
 	Status      ExportStatus       `json:"status"`
 	DateCreated pgtype.Timestamptz `json:"date_created"`
 	ValidUntil  pgtype.Timestamptz `json:"valid_until"`

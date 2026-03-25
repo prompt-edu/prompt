@@ -60,6 +60,17 @@ func GetStudentNotesForAuthor(ctx context.Context, authorID uuid.UUID) ([]instru
   return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
 }
 
+func GetStudentNotesForAuthorWithoutStudent(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  notes, err := GetStudentNotesForAuthor(ctx, authorID)
+  if err != nil {
+    return nil, err
+  }
+  for i := range notes {
+    notes[i].ForStudent = uuid.Nil
+  }
+  return notes, nil
+}
+
 
 func GetAllTags(ctx context.Context) ([]instructorNoteDTO.NoteTag, error) {
   tags, err := InstructorNoteServiceSingleton.queries.GetAllTags(ctx)

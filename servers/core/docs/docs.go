@@ -3417,21 +3417,70 @@ const docTemplate = `{
                 }
             }
         },
-        "/privacy/data-export": {
+        "/privacy/admin/data-exports": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "List all data exports (admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/privacyDTO.AdminPrivacyExport"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/data-export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns {status: \"exists\", export: ...} when a valid export exists, {status: \"rate_limited\", retry_after: ...} when rate limited, or 204 when no export exists",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
                 ],
                 "summary": "Get the current user's latest export",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/privacyDTO.PrivacyExport"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "204": {
                         "description": "No recent export"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
                     },
                     "500": {
                         "description": "Internal Server Error",
@@ -3442,17 +3491,36 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get an export of all student data from core and all microservices",
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "privacy"
                 ],
                 "summary": "Export all student related data",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/privacyDTO.PrivacyExport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
@@ -3466,16 +3534,45 @@ const docTemplate = `{
         },
         "/privacy/data-export/{uuid}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get the current status and all ids of the export record and all export docs. needed so client knows what docs exist to be able to download them",
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "privacy"
+                ],
                 "summary": "Get all Ids and status of export and export docs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Export UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/privacyDTO.PrivacyExport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
@@ -3489,9 +3586,17 @@ const docTemplate = `{
         },
         "/privacy/data-export/{uuid}/docs/{docID}/download-url": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns a short-lived presigned URL to download a specific export ZIP",
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "privacy"
                 ],
                 "summary": "Get download URL for an export document",
                 "parameters": [
@@ -5551,6 +5656,38 @@ const docTemplate = `{
                 },
                 "valid": {
                     "type": "boolean"
+                }
+            }
+        },
+        "privacyDTO.AdminPrivacyExport": {
+            "type": "object",
+            "properties": {
+                "date_created": {
+                    "type": "string"
+                },
+                "downloaded_docs": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_downloaded_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                },
+                "studentID": {
+                    "type": "string"
+                },
+                "total_docs": {
+                    "type": "integer"
+                },
+                "userID": {
+                    "type": "string"
+                },
+                "valid_until": {
+                    "type": "string"
                 }
             }
         },

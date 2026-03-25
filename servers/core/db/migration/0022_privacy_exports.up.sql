@@ -4,8 +4,8 @@ CREATE TYPE export_status AS ENUM ('pending', 'complete', 'failed');
 
 CREATE TABLE privacy_export (
   id           uuid          PRIMARY KEY,
-  userID       uuid          NOT NULL,
-  studentID    uuid          REFERENCES student(id),
+  user_id       uuid          NOT NULL,
+  student_id    uuid          REFERENCES student(id),
   status       export_status NOT NULL DEFAULT 'pending',
   date_created timestamptz   NOT NULL DEFAULT now(),
   valid_until  timestamptz   NOT NULL
@@ -13,7 +13,7 @@ CREATE TABLE privacy_export (
 
 CREATE TABLE privacy_export_document (
   id           uuid          PRIMARY KEY,
-  exportID     uuid          REFERENCES privacy_export(id),
+  export_id     uuid          REFERENCES privacy_export(id),
   date_created timestamptz   NOT NULL DEFAULT now(),
   source_name  text          NOT NULL,
   object_key   text          NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE privacy_export_document (
 CREATE VIEW privacy_export_with_docs AS
 SELECT
   e.id,
-  e.userID,
-  e.studentID,
+  e.user_id,
+  e.student_id,
   e.status,
   e.date_created,
   e.valid_until,
@@ -45,5 +45,5 @@ SELECT
     '[]'::jsonb
   ) AS documents
 FROM privacy_export e
-LEFT JOIN privacy_export_document ed ON ed.exportID = e.id
+LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id;

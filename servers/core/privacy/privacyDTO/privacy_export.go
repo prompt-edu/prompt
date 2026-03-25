@@ -29,6 +29,41 @@ type PrivacyExport struct {
 	Documents      []PrivacyExportDocument `json:"documents"`
 }
 
+type AdminPrivacyExport struct {
+	ID               uuid.UUID       `json:"id"`
+	UserID           uuid.UUID       `json:"userID"`
+	StudentID        *uuid.UUID      `json:"studentID"`
+	Status           db.ExportStatus `json:"status"`
+	DateCreated      time.Time       `json:"date_created"`
+	ValidUntil       time.Time       `json:"valid_until"`
+	TotalDocs        int32           `json:"total_docs"`
+	DownloadedDocs   int32           `json:"downloaded_docs"`
+	LastDownloadedAt *time.Time      `json:"last_downloaded_at"`
+}
+
+func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) AdminPrivacyExport {
+	var studentID *uuid.UUID
+	if model.StudentID.Valid {
+		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
+		studentID = &id
+	}
+
+	dto := AdminPrivacyExport{
+		ID:             model.ID,
+		UserID:         model.UserID,
+		StudentID:      studentID,
+		Status:         model.Status,
+		DateCreated:    model.DateCreated.Time,
+		ValidUntil:     model.ValidUntil.Time,
+		TotalDocs:      model.TotalDocs,
+		DownloadedDocs: model.DownloadedDocs,
+	}
+	if model.LastDownloadedAt.Valid {
+		dto.LastDownloadedAt = &model.LastDownloadedAt.Time
+	}
+	return dto
+}
+
 func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyExportDocument {
 	dto := PrivacyExportDocument{
 		ID:          model.ID,
@@ -45,14 +80,14 @@ func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyEx
 
 func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 	var studentID *uuid.UUID
-	if model.Studentid.Valid {
-		id, _ := uuid.FromBytes(model.Studentid.Bytes[:])
+	if model.StudentID.Valid {
+		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
 		studentID = &id
 	}
 
 	return PrivacyExport{
 		ID:          model.ID,
-		UserID:      model.Userid,
+		UserID:      model.UserID,
 		StudentID:   studentID,
 		Status:      model.Status,
 		DateCreated: model.DateCreated.Time,
@@ -64,14 +99,14 @@ func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (PrivacyExport, error) {
 	export := PrivacyExport{
 		ID:          model.ID,
-		UserID:      model.Userid,
+		UserID:      model.UserID,
 		Status:      model.Status,
 		DateCreated: model.DateCreated.Time,
 		ValidUntil:  model.ValidUntil.Time,
 	}
 
-	if model.Studentid.Valid {
-		id, _ := uuid.FromBytes(model.Studentid.Bytes[:])
+	if model.StudentID.Valid {
+		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
 		export.StudentID = &id
 	}
 

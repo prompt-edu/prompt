@@ -30,7 +30,7 @@ func ValidateExportDocBelongsToExport(c *gin.Context, docID uuid.UUID, exportID 
     return err
   }
   for _, expDoc := range expWD.Documents {
-    if expDoc.ID.ID() == docID.ID() {
+    if expDoc.ID == docID {
       return nil
     }
   }

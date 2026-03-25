@@ -220,8 +220,8 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 
 	assert.Equal(suite.T(), assessmentType.Peer, response.EvaluationType)
 	assert.Equal(suite.T(), 3, response.TotalAuthors)
-	assert.Equal(suite.T(), 2, response.CompletedAuthors)
-	assert.Equal(suite.T(), []uuid.UUID{authorTwoID}, response.IncompleteAuthorCourseParticipationIDs)
+	assert.Equal(suite.T(), 1, response.CompletedAuthors)
+	assert.Equal(suite.T(), []uuid.UUID{authorTwoID, authorThrID}, response.IncompleteAuthorCourseParticipationIDs)
 }
 
 func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipientsTutor() {
@@ -239,8 +239,8 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 
 	assert.Equal(suite.T(), assessmentType.Tutor, response.EvaluationType)
 	assert.Equal(suite.T(), 3, response.TotalAuthors)
-	assert.Equal(suite.T(), 2, response.CompletedAuthors)
-	assert.Equal(suite.T(), []uuid.UUID{authorTwoID}, response.IncompleteAuthorCourseParticipationIDs)
+	assert.Equal(suite.T(), 1, response.CompletedAuthors)
+	assert.Equal(suite.T(), []uuid.UUID{authorTwoID, authorThrID}, response.IncompleteAuthorCourseParticipationIDs)
 }
 
 func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipientsDisabledType() {
@@ -309,6 +309,30 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 	suite.Require().NoError(err)
 	assert.False(suite.T(), futureResponse.DeadlinePassed)
 	suite.Require().NotNil(futureResponse.Deadline)
+}
+
+func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipientsDeadlineBoundaryIsPassed() {
+	boundaryDeadline := time.Now()
+
+	_, err := suite.coursePhaseConfigServer.conn.Exec(
+		suite.ctx,
+		`UPDATE course_phase_config
+		 SET self_evaluation_deadline = $1
+		 WHERE course_phase_id = $2`,
+		boundaryDeadline,
+		suite.testPhaseID,
+	)
+	suite.Require().NoError(err)
+
+	response, err := GetEvaluationReminderRecipients(
+		suite.ctx,
+		"Bearer test",
+		suite.testPhaseID,
+		assessmentType.Self,
+	)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), response.DeadlinePassed)
+	suite.Require().NotNil(response.Deadline)
 }
 
 func TestReminderRecipientsServiceTestSuite(t *testing.T) {

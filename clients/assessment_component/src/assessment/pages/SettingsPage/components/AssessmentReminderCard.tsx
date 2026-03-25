@@ -14,10 +14,6 @@ import {
   AlertTitle,
   Badge,
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   useToast,
 } from '@tumaet/prompt-ui-components'
 
@@ -212,22 +208,23 @@ export const AssessmentReminderCard = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className='flex items-center justify-between gap-2'>
-          <CardTitle>Evaluation Reminder Mailing</CardTitle>
-          {isModified && (
-            <Badge variant='outline' className='border-yellow-300 bg-yellow-100 text-yellow-800'>
-              Unsaved Changes
-            </Badge>
-          )}
+    <Card className='border-border shadow-sm'>
+      <div className='space-y-6 p-6'>
+        <div className='space-y-2'>
+          <div className='flex items-center justify-between gap-2'>
+            <h2 className='text-xl font-semibold text-foreground'>Evaluation Reminder Mailing</h2>
+            {isModified && (
+              <Badge variant='outline' className='border-yellow-300 bg-yellow-100 text-yellow-800'>
+                Unsaved Changes
+              </Badge>
+            )}
+          </div>
+          <p className='max-w-3xl text-sm leading-6 text-muted-foreground'>
+            Configure one shared reminder template and manually send reminders after each evaluation
+            deadline.
+          </p>
         </div>
-        <CardDescription>
-          Configure one shared reminder template and manually send reminders after each evaluation
-          deadline.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className='space-y-6'>
+
         <AvailableMailPlaceholders
           customAdditionalPlaceholders={ASSESSMENT_REMINDER_PLACEHOLDERS}
         />
@@ -278,7 +275,7 @@ export const AssessmentReminderCard = () => {
           isSending={sendReminderMutation.isPending}
           onSend={openConfirmationDialog}
         />
-      </CardContent>
+      </div>
 
       <ReminderSendConfirmationDialog
         open={dialogOpen}

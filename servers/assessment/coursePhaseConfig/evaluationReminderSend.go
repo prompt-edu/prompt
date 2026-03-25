@@ -28,6 +28,8 @@ var (
 	ErrReminderDeadlineNotPassed  = errors.New("evaluation deadline has not passed yet")
 )
 
+const coreManualMailTimeout = 2 * time.Minute
+
 type coreCoursePhaseResponse struct {
 	ID                  uuid.UUID      `json:"id"`
 	Name                string         `json:"name"`
@@ -122,7 +124,7 @@ func SendEvaluationReminderManualTrigger(
 			WithField("coursePhaseID", coursePhase.ID).
 			WithField("evaluationType", evaluationType).
 			Warn("Evaluation reminder mails were sent, but persisting lastSentAt failed")
-		return report, err
+		return report, nil
 	}
 
 	return report, nil
@@ -192,7 +194,7 @@ func sendManualReminderMail(
 		req.Header.Set("Authorization", authHeader)
 	}
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := &http.Client{Timeout: coreManualMailTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return coreManualMailReport{}, fmt.Errorf("failed to send manual mails via core: %w", err)

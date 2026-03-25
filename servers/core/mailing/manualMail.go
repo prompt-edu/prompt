@@ -59,9 +59,17 @@ func SendManualMailToParticipants(
 
 	for _, participant := range participants {
 		if !participant.Email.Valid || participant.Email.String == "" {
+			failedIdentifier := participant.UniversityLogin.String
+			if failedIdentifier == "" {
+				failedIdentifier = participant.MatriculationNumber.String
+			}
+			if failedIdentifier == "" {
+				failedIdentifier = "missing-email"
+			}
 			log.WithField("coursePhaseID", coursePhaseID).
-				WithField("universityLogin", participant.UniversityLogin.String).
+				WithField("participantIdentifier", failedIdentifier).
 				Warn("Skipping manual mail recipient with missing email address")
+			report.FailedEmails = append(report.FailedEmails, failedIdentifier)
 			continue
 		}
 

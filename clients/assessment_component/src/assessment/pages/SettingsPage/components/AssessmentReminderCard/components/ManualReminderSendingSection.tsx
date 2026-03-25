@@ -30,11 +30,11 @@ export function ManualReminderSendingSection({
   onSend,
 }: ManualReminderSendingSectionProps) {
   return (
-    <div className='space-y-3'>
-      <h3 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
-        Manual Reminder Sending
-      </h3>
-      <p className='text-sm text-muted-foreground'>
+    <div className='space-y-4'>
+      <div className='space-y-1'>
+        <h3 className='text-sm font-semibold text-foreground'>Manual Reminder Sending</h3>
+      </div>
+      <p className='text-sm leading-6 text-muted-foreground'>
         Only active evaluation types are shown. Reminders are sent to currently incomplete students
         only.
       </p>
@@ -54,7 +54,7 @@ export function ManualReminderSendingSection({
           const disabled = !!disableReason || isSending
 
           return (
-            <Card key={reminderType.type} className='shadow-none'>
+            <Card key={reminderType.type} className='border-border shadow-sm'>
               <CardContent className='flex h-full flex-col gap-4 p-4'>
                 <div className='flex items-start justify-between gap-3'>
                   <div className='flex flex-wrap items-center gap-2'>
@@ -83,7 +83,7 @@ export function ManualReminderSendingSection({
                       {reminderType.recipientCount === 1 ? 'mail' : 'mails'}
                     </p>
                   )}
-                  {disableReason && <p className='text-red-600'>{disableReason}</p>}
+                  {disableReason && <p className='text-destructive'>{disableReason}</p>}
                 </div>
 
                 <Button

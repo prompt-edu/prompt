@@ -29,7 +29,7 @@ func GetEvaluationReminderRecipients(
 	}
 
 	evaluationEnabled, deadline := getEvaluationDeadlineConfig(config, evaluationType)
-	deadlinePassed := deadline.Valid && time.Now().After(deadline.Time)
+	deadlinePassed := !deadline.Valid || !time.Now().Before(deadline.Time)
 	var deadlineTime *time.Time
 	if deadline.Valid {
 		deadlineCopy := deadline.Time
@@ -74,6 +74,23 @@ func GetEvaluationReminderRecipients(
 
 	for _, participation := range participations {
 		authorID := participation.CourseParticipationID
+		if evaluationType != assessmentType.Self {
+			if participation.TeamID == nil {
+				result.IncompleteAuthorCourseParticipationIDs = append(
+					result.IncompleteAuthorCourseParticipationIDs,
+					authorID,
+				)
+				continue
+			}
+			if _, exists := teamsByID[*participation.TeamID]; !exists {
+				result.IncompleteAuthorCourseParticipationIDs = append(
+					result.IncompleteAuthorCourseParticipationIDs,
+					authorID,
+				)
+				continue
+			}
+		}
+
 		expectedTargets := getExpectedTargets(evaluationType, participation, teamsByID)
 		if len(expectedTargets) == 0 {
 			result.CompletedAuthors++

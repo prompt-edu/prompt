@@ -1,11 +1,4 @@
-import {
-  Alert,
-  AlertDescription,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-} from '@tumaet/prompt-ui-components'
+import { Badge, Button, Card, CardContent } from '@tumaet/prompt-ui-components'
 
 import type { EvaluationReminderType } from '../../../../../interfaces/evaluationReminder'
 import { DeadlineBadge } from '../../../../components/badges'
@@ -38,14 +31,6 @@ export function ManualReminderSendingSection({
         Only active evaluation types are shown. Reminders are sent to currently incomplete students
         only.
       </p>
-
-      {reminderTypes.length === 0 && (
-        <Alert>
-          <AlertDescription>
-            Enable at least one evaluation type to send reminder mails.
-          </AlertDescription>
-        </Alert>
-      )}
 
       <div className='grid gap-3 lg:grid-cols-2 xl:grid-cols-3'>
         {reminderTypes.map((reminderType) => {

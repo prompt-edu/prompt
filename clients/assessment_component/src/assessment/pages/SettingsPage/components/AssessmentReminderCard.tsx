@@ -207,6 +207,20 @@ export const AssessmentReminderCard = () => {
     return undefined
   }
 
+  if (reminderTypes.length === 0) {
+    return (
+      <Card className='border-border shadow-sm'>
+        <div className='space-y-4 p-6'>
+          <Alert>
+            <AlertDescription>
+              Enable at least one evaluation type to send reminder mails.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <Card className='border-border shadow-sm'>
       <div className='space-y-6 p-6'>

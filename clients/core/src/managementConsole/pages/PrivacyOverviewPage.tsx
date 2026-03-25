@@ -29,8 +29,16 @@ export function PrivacyOverviewPage() {
         {privacyOptions.map((option) => (
           <Card
             key={option.path}
+            role='button'
+            tabIndex={0}
             className='border border-border cursor-pointer hover:border-muted-foreground/40 hover:shadow-sm transition-all'
             onClick={() => navigate(option.path)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                navigate(option.path)
+              }
+            }}
           >
             <CardContent className='p-5 flex items-center gap-4'>
               <div className='bg-muted p-3 rounded-full shrink-0'>{option.icon}</div>

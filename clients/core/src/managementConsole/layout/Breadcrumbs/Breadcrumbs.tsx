@@ -97,9 +97,13 @@ export const Breadcrumbs: React.FC = () => {
                 const participation = participations.find(
                   (p) => p.courseParticipationID === segment,
                 )
-                const title = participation
-                  ? `${participation.student.firstName} ${participation.student.lastName}`
-                  : 'Participant'
+                const fullName = [
+                  participation?.student?.firstName ?? '',
+                  participation?.student?.lastName ?? '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+                const title = fullName || 'Participant'
                 breadcrumbs.push({
                   title,
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,

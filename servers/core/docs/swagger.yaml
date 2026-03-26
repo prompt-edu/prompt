@@ -916,6 +916,16 @@ definitions:
     - CourseTypeLecture
     - CourseTypeSeminar
     - CourseTypePracticalcourse
+  db.ExportStatus:
+    enum:
+    - pending
+    - complete
+    - failed
+    type: string
+    x-enum-varnames:
+    - ExportStatusPending
+    - ExportStatusComplete
+    - ExportStatusFailed
   db.Gender:
     enum:
     - male
@@ -946,6 +956,46 @@ definitions:
     x-enum-varnames:
     - StudyDegreeBachelor
     - StudyDegreeMaster
+  files.FileResponse:
+    properties:
+      contentType:
+        type: string
+      coursePhaseId:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      downloadUrl:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      originalFilename:
+        type: string
+      sizeBytes:
+        type: integer
+      storageKey:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+      uploadedByEmail:
+        type: string
+      uploadedByUserId:
+        type: string
+    type: object
+  files.PresignUploadResponse:
+    properties:
+      storageKey:
+        type: string
+      uploadUrl:
+        type: string
+    type: object
   instructorNoteDTO.CreateInstructorNote:
     properties:
       content:
@@ -1121,6 +1171,61 @@ definitions:
       valid:
         type: boolean
     type: object
+  privacyDTO.AdminPrivacyExport:
+    properties:
+      date_created:
+        type: string
+      downloaded_docs:
+        type: integer
+      id:
+        type: string
+      last_downloaded_at:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+      studentID:
+        type: string
+      total_docs:
+        type: integer
+      userID:
+        type: string
+      valid_until:
+        type: string
+    type: object
+  privacyDTO.PrivacyExport:
+    properties:
+      date_created:
+        type: string
+      documents:
+        items:
+          $ref: '#/definitions/privacyDTO.PrivacyExportDocument'
+        type: array
+      id:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+      studentID:
+        type: string
+      userID:
+        type: string
+      valid_until:
+        type: string
+    type: object
+  privacyDTO.PrivacyExportDocument:
+    properties:
+      date_created:
+        type: string
+      downloaded_at:
+        type: string
+      file_size:
+        type: integer
+      id:
+        type: string
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+    type: object
   resolutionDTO.Resolution:
     properties:
       baseURL:
@@ -1130,46 +1235,6 @@ definitions:
       dtoName:
         type: string
       endpointPath:
-        type: string
-    type: object
-  storage.FileResponse:
-    properties:
-      contentType:
-        type: string
-      coursePhaseId:
-        type: string
-      createdAt:
-        type: string
-      description:
-        type: string
-      downloadUrl:
-        type: string
-      filename:
-        type: string
-      id:
-        type: string
-      originalFilename:
-        type: string
-      sizeBytes:
-        type: integer
-      storageKey:
-        type: string
-      tags:
-        items:
-          type: string
-        type: array
-      updatedAt:
-        type: string
-      uploadedByEmail:
-        type: string
-      uploadedByUserId:
-        type: string
-    type: object
-  storage.PresignUploadResponse:
-    properties:
-      storageKey:
-        type: string
-      uploadUrl:
         type: string
     type: object
   studentDTO.CourseEnrollmentDTO:
@@ -1857,7 +1922,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/storage.FileResponse'
+            $ref: '#/definitions/files.FileResponse'
         "400":
           description: Bad Request
           schema:
@@ -1893,7 +1958,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/storage.PresignUploadResponse'
+            $ref: '#/definitions/files.PresignUploadResponse'
         "400":
           description: Bad Request
           schema:
@@ -2042,7 +2107,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/storage.FileResponse'
+            $ref: '#/definitions/files.FileResponse'
         "400":
           description: Bad Request
           schema:
@@ -2084,7 +2149,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/storage.PresignUploadResponse'
+            $ref: '#/definitions/files.PresignUploadResponse'
         "400":
           description: Bad Request
           schema:
@@ -3641,6 +3706,152 @@ paths:
       summary: Manually trigger custom mails for a selected recipient list
       tags:
       - mailing
+  /privacy/admin/data-exports:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/privacyDTO.AdminPrivacyExport'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all data exports (admin only)
+      tags:
+      - privacy
+  /privacy/data-export:
+    get:
+      description: 'Returns {status: "exists", export: ...} when a valid export exists,
+        {status: "rate_limited", retry_after: ...} when rate limited, or 204 when
+        no export exists'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "204":
+          description: No recent export
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current user's latest export
+      tags:
+      - privacy
+    post:
+      description: Get an export of all student data from core and all microservices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyExport'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export all student related data
+      tags:
+      - privacy
+  /privacy/data-export/{uuid}:
+    get:
+      description: Get the current status and all ids of the export record and all
+        export docs. needed so client knows what docs exist to be able to download
+        them
+      parameters:
+      - description: Export UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyExport'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "405":
+          description: Method Not Allowed
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all Ids and status of export and export docs
+      tags:
+      - privacy
+  /privacy/data-export/{uuid}/docs/{docID}/download-url:
+    get:
+      description: Returns a short-lived presigned URL to download a specific export
+        document after validating ownership and validity
+      parameters:
+      - description: Export UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Export Document UUID
+        in: path
+        name: docID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get download URL for an export document
+      tags:
+      - privacy
   /students/:
     get:
       description: Get a list of all students

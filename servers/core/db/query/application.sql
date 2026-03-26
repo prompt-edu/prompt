@@ -352,10 +352,40 @@ WHERE aqfu.course_phase_id = $1 AND aafu.course_participation_id = $2;
 SELECT * FROM application_answer_file_upload
 WHERE application_question_id = $1 AND course_participation_id = $2;
 
--- name: CreateOrOverwriteApplicationAnswerFileUpload :exec 
+-- name: CreateOrOverwriteApplicationAnswerFileUpload :exec
 INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (course_participation_id, application_question_id)
 DO UPDATE
 SET file_id = EXCLUDED.file_id;
+
+-- name: GetAllApplicationAnswersTextByCourseParticipationIDs :many
+SELECT aat.*, aqt.title AS question_title, aqt.description AS question_description
+FROM application_answer_text aat
+JOIN application_question_text aqt ON aat.application_question_id = aqt.id
+WHERE aat.course_participation_id = ANY($1::uuid[]);
+
+-- name: GetAllApplicationAnswersMultiSelectByCourseParticipationIDs :many
+SELECT aams.*, aqms.title AS question_title, aqms.description AS question_description
+FROM application_answer_multi_select aams
+JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
+WHERE aams.course_participation_id = ANY($1::uuid[]);
+
+-- name: GetAllApplicationAnswersFileUploadByCourseParticipationIDs :many
+SELECT aafu.*, aqfu.title AS question_title, aqfu.description AS question_description
+FROM application_answer_file_upload aafu
+JOIN application_question_file_upload aqfu ON aafu.application_question_id = aqfu.id
+WHERE aafu.course_participation_id = ANY($1::uuid[]);
+
+-- name: GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs :many
+SELECT aafu.*, aqfu.title AS question_title, aqfu.description AS question_description, f.*
+FROM application_answer_file_upload aafu, files f, application_question_file_upload aqfu
+WHERE aafu.course_participation_id = ANY($1::uuid[])
+AND aafu.application_question_id = aqfu.id
+AND f.id = aafu.file_id;
+
+-- name: GetAllApplicationAssessmentsByCourseParticipationIDs :many
+SELECT aa.*
+FROM application_assessment aa
+WHERE aa.course_participation_id = ANY($1::uuid[]);
 

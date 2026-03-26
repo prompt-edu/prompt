@@ -16,7 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnsw
 		}
 
 		if includeDownloadURL {
-			file, err := storage.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
+			file, err := files.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
 			if err != nil {
 				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
 			} else {
@@ -117,7 +117,7 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 	if len(fileIDs) == 0 {
 		return
 	}
-	if storage.StorageServiceSingleton == nil {
+	if files.StorageServiceSingleton == nil {
 		return
 	}
 
@@ -131,7 +131,7 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 		}
 		seenFileIDs[fileID] = struct{}{}
 
-		if err := storage.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}
 	}
@@ -704,6 +704,101 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		AnswersMultiSelect: applicationDTO.GetAnswersMultiSelectDTOFromDBModels(answersMultiSelect),
 		AnswersFileUpload:  buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, false),
 	}, nil
+}
+
+type ApplicationDataExportPerCourseParticipation struct {
+	CourseParticipationID uuid.UUID                                                           `json:"courseParticipationId"`
+	AnswersText           []db.GetAllApplicationAnswersTextByCourseParticipationIDsRow        `json:"answersText"`
+	AnswersMultiSelect    []db.GetAllApplicationAnswersMultiSelectByCourseParticipationIDsRow `json:"answersMultiSelect"`
+	AnswersFileUpload     []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow  `json:"answersFileUpload"`
+	Assessments           []db.ApplicationAssessment                                          `json:"assessments"`
+}
+
+func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]ApplicationDataExportPerCourseParticipation, error) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	answersText, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application text answers")
+	}
+
+	answersMultiSelect, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application multi-select answers")
+	}
+
+	answersFileUpload, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application file upload answers")
+	}
+
+	assessments, err := ApplicationServiceSingleton.queries.GetAllApplicationAssessmentsByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	if err != nil {
+		log.Error(err)
+		return nil, errors.New("could not get application assessments")
+	}
+
+	// Group by course participation ID
+	grouped := make(map[uuid.UUID]*ApplicationDataExportPerCourseParticipation)
+	getOrCreate := func(cpID uuid.UUID) *ApplicationDataExportPerCourseParticipation {
+		if entry, ok := grouped[cpID]; ok {
+			return entry
+		}
+		entry := &ApplicationDataExportPerCourseParticipation{CourseParticipationID: cpID}
+		grouped[cpID] = entry
+		return entry
+	}
+
+	for _, a := range answersText {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersText = append(entry.AnswersText, a)
+	}
+	for _, a := range answersMultiSelect {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersMultiSelect = append(entry.AnswersMultiSelect, a)
+	}
+	for _, a := range answersFileUpload {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.AnswersFileUpload = append(entry.AnswersFileUpload, a)
+	}
+	for _, a := range assessments {
+		entry := getOrCreate(a.CourseParticipationID)
+		entry.Assessments = append(entry.Assessments, a)
+	}
+
+	result := make([]ApplicationDataExportPerCourseParticipation, 0, len(grouped))
+	for _, entry := range grouped {
+		result = append(result, *entry)
+	}
+	return result, nil
+}
+
+func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow{
+  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+  defer cancel()
+
+  answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+  return answers
+}
+
+func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
+  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+  defer cancel()
+
+  answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+  return answersWithFileRecords
 }
 
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {

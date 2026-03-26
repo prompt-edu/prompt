@@ -1,4 +1,5 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, Shield } from 'lucide-react'
+
 import {
   Button,
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { NavAvatar } from './NavAvatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useNavigate } from 'react-router-dom'
 
 interface NavUserProps {
   onLogout: () => void
@@ -17,6 +19,7 @@ interface NavUserProps {
 }
 
 export function NavUserMenu({ onLogout, showThemeToggle = true }: NavUserProps) {
+  const navigate = useNavigate()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -48,6 +51,10 @@ export function NavUserMenu({ onLogout, showThemeToggle = true }: NavUserProps) 
           </div>
         )}
         {showThemeToggle && <DropdownMenuSeparator />}
+        <DropdownMenuItem onClick={() => navigate('/management/privacy')}>
+          <Shield />
+          Privacy
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onLogout}>
           <LogOut />
           Log out

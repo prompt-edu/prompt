@@ -9,7 +9,6 @@ import { CleanWebpackPlugin } from 'clean-webpack-plugin'
 import ExternalTemplateRemotesPlugin from 'external-remotes-plugin'
 import packageJson from '../package.json' with { type: 'json' }
 import { fileURLToPath } from 'url'
-import container from 'webpack'
 import webpack from 'webpack'
 
 const { ModuleFederationPlugin } = webpack.container
@@ -18,8 +17,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // TODO: specify the version for react in shared dependencies
-const config: (env: Record<string, string>) => container.Configuration = (env) => {
-  const getVariable = (name: string) => env[name] // These variables are all determined at build time
+const config = (env) => {
+  const getVariable = (name) => env[name] // These variables are all determined at build time
 
   const IS_DEV = getVariable('NODE_ENV') !== 'production'
   const IS_PERF = getVariable('BUNDLE_SIZE') === 'true'

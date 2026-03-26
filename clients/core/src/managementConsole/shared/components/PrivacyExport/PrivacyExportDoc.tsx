@@ -26,7 +26,7 @@ export function PrivacyExportDocument({
     setIsDownloading(true)
     try {
       const url = await getExportDocDownloadURL(exportId, privacy_export_document.id)
-      window.open(url, '_blank')
+      window.location.assign(url)
     } catch {
       toast({
         title: 'Download failed',

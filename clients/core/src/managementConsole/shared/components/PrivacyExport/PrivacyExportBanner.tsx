@@ -36,7 +36,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
 
         try {
           const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
-          window.open(downloadURL, '_blank')
+          window.location.assign(downloadURL)
         } catch {
           failed++
         }

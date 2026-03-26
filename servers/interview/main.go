@@ -53,6 +53,7 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 }
+
 // @title           PROMPT Interview API
 // @version         1.0
 // @description     This is the interview server of PROMPT.

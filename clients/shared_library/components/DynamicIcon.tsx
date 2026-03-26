@@ -27,7 +27,7 @@ const toPascalCase = (value: string) =>
     .join('')
 
 for (const [exportName, icon] of Object.entries(LucideIcons)) {
-  if (typeof icon !== 'function') {
+  if (typeof icon !== 'function' && typeof icon !== 'object') {
     continue
   }
 

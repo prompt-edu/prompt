@@ -2,12 +2,13 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { PromptTable } from '@tumaet/prompt-ui-components'
-import { Course } from '@tumaet/prompt-shared-state'
+import { Course, Role } from '@tumaet/prompt-shared-state'
 import { ArrowRight, Settings } from 'lucide-react'
 import { RowAction, TableFilter } from '@tumaet/prompt-ui-components'
 import { CourseTableColumns } from './CourseTableColumns'
 import { CourseTableActions } from './CourseTableActions'
 import { CourseTableFilters } from './CourseTableFilters'
+import { useHasRolePermission } from '../ShowForRole'
 
 interface CourseTableProps {
   courses: Course[]
@@ -15,6 +16,7 @@ interface CourseTableProps {
 
 export const CourseTable = ({ courses }: CourseTableProps) => {
   const navigate = useNavigate()
+  const showActions = useHasRolePermission({ roles: [Role.PROMPT_ADMIN, Role.PROMPT_LECTURER] })
 
   const columns: ColumnDef<Course>[] = useMemo(() => CourseTableColumns, [])
 
@@ -47,7 +49,7 @@ export const CourseTable = ({ courses }: CourseTableProps) => {
       data={courses}
       columns={columns}
       onRowClick={onRowClick}
-      actions={courseTableActions}
+      actions={showActions ? courseTableActions : undefined}
       filters={courseTableFilters}
     />
   )

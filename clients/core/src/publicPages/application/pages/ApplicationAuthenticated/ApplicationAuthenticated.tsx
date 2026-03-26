@@ -17,6 +17,7 @@ import { GetApplication } from '@core/interfaces/application/getApplication'
 import { PostApplication } from '@core/interfaces/application/postApplication'
 import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
 import { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 
 export const ApplicationAuthenticated = () => {
@@ -45,6 +46,7 @@ export const ApplicationAuthenticated = () => {
   } = useQuery<GetApplication>({
     queryKey: ['application', phaseId, user?.email],
     queryFn: () => getApplication(phaseId ?? ''),
+    enabled: !!phaseId && !!user?.email && !!localStorage.getItem('jwt_token'),
   })
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({
@@ -65,11 +67,13 @@ export const ApplicationAuthenticated = () => {
     student: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
+    answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => {
     const modifiedApplication: PostApplication = {
       student,
       answersText: answersText,
       answersMultiSelect: answersMultiSelect,
+      answersFileUpload: answersFileUpload,
     }
     setShowDialog('saving')
     mutateSendApplication(modifiedApplication)
@@ -137,9 +141,13 @@ export const ApplicationAuthenticated = () => {
         <ApplicationFormView
           questionsText={applicationForm.questionsText}
           questionsMultiSelect={applicationForm.questionsMultiSelect}
+          questionsFileUpload={applicationForm.questionsFileUpload}
           initialAnswersMultiSelect={application.answersMultiSelect}
           initialAnswersText={application.answersText}
+          initialAnswersFileUpload={application.answersFileUpload}
           student={student}
+          applicationId={application.id}
+          coursePhaseId={phaseId}
           onSubmit={handleSubmit}
         />
       </div>

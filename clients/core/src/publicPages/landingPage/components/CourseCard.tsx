@@ -23,7 +23,7 @@ export const CourseCard = ({ courseDetails }: CourseCardProps) => {
   return (
     <Card
       key={courseDetails.id}
-      className='group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card'
+      className='group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-card flex flex-col'
     >
       <CardHeader className='relative pb-3'>
         <div className='flex items-start justify-between gap-3'>
@@ -33,40 +33,45 @@ export const CourseCard = ({ courseDetails }: CourseCardProps) => {
         </div>
       </CardHeader>
 
-      <CardContent className='relative space-y-4'>
-        {courseDetails.shortDescription && (
-          <p className='text-sm text-muted-foreground leading-relaxed whitespace-pre-line'>
-            {courseDetails.shortDescription}
-          </p>
-        )}
-        {/* Course Type and ECTS Badges */}
-        <div className='flex items-center justify-between gap-3'>
-          <Badge variant='secondary' className='text-sm font-medium'>
-            {CourseTypeDetails[courseDetails.courseType].name}
-          </Badge>
-          <div className='flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-full border'>
-            <BookOpen className='h-4 w-4' />
-            {courseDetails.ects} ECTS
-          </div>
-        </div>
-
-        <div className='p-3 space-y-4'>
-          <div className='flex items-center space-x-2'>
-            <Calendar className='h-4 w-4 flex-shrink-0' />
-            <div className='flex gap-4 flex-1 text-sm font-medium text-gray-600'>
-              <div className='flex-1'>
-                <span className='font-semibold text-slate-600'>Course Start</span>
-                <div className='text-slate-900'>
-                  {format(courseDetails.startDate, 'MMM d, yyyy')}
-                </div>
-              </div>
-              <div className='flex-1'>
-                <span className='font-semibold text-slate-600'>Course End</span>
-                <div className='text-slate-900'>{format(courseDetails.endDate, 'MMM d, yyyy')}</div>
-              </div>
+      <CardContent className='relative space-y-4 flex flex-col justify-between flex-grow'>
+        <div>
+          {/* Course Type and ECTS Badges */}
+          <div className='flex items-center justify-between gap-3'>
+            <Badge variant='secondary' className='text-sm font-medium'>
+              {CourseTypeDetails[courseDetails.courseType].name}
+            </Badge>
+            <div className='flex items-center gap-2 text-sm font-medium px-3 py-1 rounded-full border'>
+              <BookOpen className='h-4 w-4' />
+              {courseDetails.ects} ECTS
             </div>
           </div>
-          <DeadlineInfo deadline={courseDetails.applicationDeadline} />
+
+          <div className='p-3 space-y-4'>
+            <div className='flex items-center space-x-2'>
+              <Calendar className='h-4 w-4 flex-shrink-0' />
+              <div className='flex gap-4 flex-1 text-sm font-medium text-gray-600'>
+                <div className='flex-1'>
+                  <span className='font-semibold text-slate-600'>Course Start</span>
+                  <div className='text-slate-900'>
+                    {format(courseDetails.startDate, 'MMM d, yyyy')}
+                  </div>
+                </div>
+                <div className='flex-1'>
+                  <span className='font-semibold text-slate-600'>Course End</span>
+                  <div className='text-slate-900'>
+                    {format(courseDetails.endDate, 'MMM d, yyyy')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DeadlineInfo deadline={courseDetails.applicationDeadline} />
+          </div>
+
+          {courseDetails.shortDescription && (
+            <p className='text-sm text-muted-foreground leading-relaxed whitespace-pre-line'>
+              {courseDetails.shortDescription}
+            </p>
+          )}
         </div>
 
         {/* Apply Button */}

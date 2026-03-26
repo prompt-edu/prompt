@@ -1,6 +1,6 @@
 # This is the base dockerfile. Here the base image is pulled and the ras setup is done for the project.
 # Make sure to include the base setup for lerna here.
-FROM node:23.11 AS base
+FROM node:23.11.1 AS base
 ENV YARN_VERSION=4.0.1
 RUN yarn policies set-version $YARN_VERSION
 RUN yarn config set httpTimeout 300000

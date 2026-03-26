@@ -4,11 +4,16 @@ import { UpdateApplicationForm } from '../../../interfaces/form/updateApplicatio
 import { ApplicationQuestionCardRef } from '../FormPages/ApplicationQuestionCard'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 
 interface handleSubmitAllQuestionsProps {
   questionRefs: React.MutableRefObject<(ApplicationQuestionCardRef | null | undefined)[]>
   fetchedForm: ApplicationForm
-  applicationQuestions: (ApplicationQuestionMultiSelect | ApplicationQuestionText)[]
+  applicationQuestions: (
+    | ApplicationQuestionMultiSelect
+    | ApplicationQuestionText
+    | ApplicationQuestionFileUpload
+  )[]
   setSubmitAttempted: (state: boolean) => void
   mutateApplicationForm: (updateForm: UpdateApplicationForm) => void
 }
@@ -40,6 +45,10 @@ export const handleSubmitAllQuestions = async ({
       .filter((q) => !applicationQuestions.some((aq) => aq.id === q.id))
       .map((q) => q.id)
 
+    const deletedFileUploadQuestion = fetchedForm?.questionsFileUpload
+      .filter((q) => !applicationQuestions.some((aq) => aq.id === q.id))
+      .map((q) => q.id)
+
     const questionsMultiSelect = applicationQuestions
       .filter((q) => 'options' in q)
       .map((q) => q as ApplicationQuestionMultiSelect)
@@ -55,8 +64,22 @@ export const handleSubmitAllQuestions = async ({
       })
 
     const questionsText = applicationQuestions
-      .filter((q) => !('options' in q))
+      .filter((q) => !('options' in q) && !('allowedFileTypes' in q))
       .map((q) => q as ApplicationQuestionText)
+      .map((q) => {
+        if (!q.accessibleForOtherPhases) {
+          return {
+            ...q,
+            accessKey: '', // Do not modify access key (is not shown if export switched off)
+          }
+        } else {
+          return q
+        }
+      })
+
+    const questionsFileUpload = applicationQuestions
+      .filter((q) => 'allowedFileTypes' in q)
+      .map((q) => q as ApplicationQuestionFileUpload)
       .map((q) => {
         if (!q.accessibleForOtherPhases) {
           return {
@@ -71,12 +94,19 @@ export const handleSubmitAllQuestions = async ({
     const updateForm: UpdateApplicationForm = {
       deleteQuestionsText: deletedTextQuestion ?? [],
       deleteQuestionsMultiSelect: deletedMultiSelectQuestion ?? [],
+      deleteQuestionsFileUpload: deletedFileUploadQuestion ?? [],
       createQuestionsText: questionsText.filter((q) => q.id.startsWith('not-valid-id-question-')),
       createQuestionsMultiSelect: questionsMultiSelect.filter((q) =>
         q.id.startsWith('not-valid-id-question-'),
       ),
+      createQuestionsFileUpload: questionsFileUpload.filter((q) =>
+        q.id.startsWith('not-valid-id-question-'),
+      ),
       updateQuestionsText: questionsText.filter((q) => !q.id.startsWith('not-valid-id-question-')),
       updateQuestionsMultiSelect: questionsMultiSelect.filter(
+        (q) => !q.id.startsWith('not-valid-id-question-'),
+      ),
+      updateQuestionsFileUpload: questionsFileUpload.filter(
         (q) => !q.id.startsWith('not-valid-id-question-'),
       ),
     }

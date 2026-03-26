@@ -7,13 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
+
+func getScoreLevelSpecificationBytes() ([]byte, error) {
+	scoreLevelSpecificationJson := meta.MetaData{}
+	scoreLevelSpecificationJson["type"] = "string"
+	scoreLevelSpecificationJson["enum"] = []string{"veryBad", "bad", "ok", "good", "veryGood"}
+	return scoreLevelSpecificationJson.GetDBModel()
+}
 
 func InitApplicationAdministrationModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	setupApplicationRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, keycloakTokenVerifier.ApplicationMiddleware, checkAccessControlByIDWrapper)
@@ -48,7 +55,7 @@ func initializeApplicationCoursePhaseType() error {
 		if err != nil {
 			return err
 		}
-		defer promptSDK.DeferDBRollback(tx, ctx)
+		defer sdkUtils.DeferRollback(tx, ctx)
 		qtx := ApplicationServiceSingleton.queries.WithTx(tx)
 
 		// 2.) create the application module
@@ -73,6 +80,12 @@ func initializeApplicationCoursePhaseType() error {
 			return err
 		}
 
+		scoreLevelSpecificationBytes, err := getScoreLevelSpecificationBytes()
+		if err != nil {
+			log.Error("failed to parse score level specification")
+			return err
+		}
+
 		newProvidedOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
 			ID:                uuid.New(),
 			CoursePhaseTypeID: newApplicationPhaseType.ID,
@@ -84,6 +97,20 @@ func initializeApplicationCoursePhaseType() error {
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
 		if err != nil {
 			log.Error("failed to create required score input: ", err)
+			return err
+		}
+
+		newProvidedScoreLevelOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
+			ID:                uuid.New(),
+			CoursePhaseTypeID: newApplicationPhaseType.ID,
+			DtoName:           "scoreLevel",
+			Specification:     scoreLevelSpecificationBytes,
+			VersionNumber:     1,
+			EndpointPath:      "core",
+		}
+		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
+		if err != nil {
+			log.Error("failed to create score level output: ", err)
 			return err
 		}
 

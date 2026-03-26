@@ -19,6 +19,8 @@ export const useCourseForm = (courseId: string, setCurrentStep: (step: DialogSte
         from: undefined,
         to: undefined,
       },
+      shortDescription: course?.shortDescription ?? '',
+      longDescription: course?.longDescription ?? '',
     },
   })
 

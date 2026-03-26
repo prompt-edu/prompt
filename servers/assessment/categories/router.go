@@ -1,12 +1,14 @@
 package categories
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
@@ -26,9 +28,9 @@ func setupCategoryRouter(routerGroup *gin.RouterGroup, authMiddleware func(allow
 	categoryRouter.GET("/peer/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getPeerEvaluationCategoriesWithCompetencies)
 	categoryRouter.GET("/tutor/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getTutorEvaluationCategoriesWithCompetencies)
 
-	categoryRouter.POST("", authMiddleware(promptSDK.PromptAdmin), createCategory)
-	categoryRouter.PUT("/:categoryID", authMiddleware(promptSDK.PromptAdmin), updateCategory)
-	categoryRouter.DELETE("/:categoryID", authMiddleware(promptSDK.PromptAdmin), deleteCategory)
+	categoryRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createCategory)
+	categoryRouter.PUT("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateCategory)
+	categoryRouter.DELETE("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteCategory)
 }
 
 // getAllCategories godoc
@@ -42,7 +44,13 @@ func setupCategoryRouter(routerGroup *gin.RouterGroup, authMiddleware func(allow
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category [get]
 func getAllCategories(c *gin.Context) {
-	categories, err := ListCategories(c)
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	categories, err := ListCategoriesForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -75,6 +83,10 @@ func createCategory(c *gin.Context) {
 	}
 	err = CreateCategory(c, coursePhaseID, request)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -115,6 +127,10 @@ func updateCategory(c *gin.Context) {
 
 	err = UpdateCategory(c, categoryID, coursePhaseID, request)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -147,6 +163,10 @@ func deleteCategory(c *gin.Context) {
 
 	err = DeleteCategory(c, categoryID, coursePhaseID)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}

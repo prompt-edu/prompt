@@ -9,6 +9,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
     ports:
       - "8080:8080"
     extra_hosts:
@@ -37,35 +39,15 @@ services:
       - SENDER_NAME
       - SENTRY_DSN_CORE
       - SENTRY_ENABLED
-
-  server-intro-course:
-    build:
-      context: ./servers/intro_course
-      dockerfile: ../Dockerfile
-    container_name: prompt-server-intro-course
-    depends_on:
-      db-intro-course:
-        condition: service_healthy
-    ports:
-      - "8082:8080"
-    extra_hosts:
-      - "localhost:host-gateway"
-    environment:
-      - CORE_HOST
-      - SERVER_CORE_HOST
-      - SERVER_ADDRESS
-      - DB_HOST=${DB_INTRO_COURSE_HOST}
-      - DB_PORT=${DB_INTRO_COURSE_PORT}
-      - DB_NAME=${DB_INTRO_COURSE_NAME}
-      - DB_USER=${DB_INTRO_COURSE_USER}
-      - DB_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
-      - KEYCLOAK_AUTHORIZED_PARTY
-      - KEYCLOAK_CLIENT_ID
-      - DEBUG
-      - SENTRY_DSN_INTRO_COURSE
-      - SENTRY_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+    restart: unless-stopped
 
   server-team-allocation:
     build:
@@ -145,6 +127,32 @@ services:
       - SENTRY_DSN_ASSESSMENT
       - SENTRY_ENABLED
 
+  server-certificate:
+    build:
+      context: ./servers/certificate
+      dockerfile: Dockerfile
+    container_name: prompt-server-certificate
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+    ports:
+      - "8088:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_USER=${DB_CERTIFICATE_USER}
+      - DB_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
+      - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - DB_NAME=${DB_CERTIFICATE_NAME}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_CERTIFICATE
+
   # Template server (example service)
   server-template:
     build:
@@ -162,7 +170,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_TEMPLATE_HOST}  
+      - DB_HOST=${DB_TEMPLATE_HOST}
       - DB_PORT=${DB_TEMPLATE_PORT}
       - DB_NAME=${DB_TEMPLATE_NAME}
       - DB_USER=${DB_TEMPLATE_USER}
@@ -240,16 +248,6 @@ services:
     depends_on:
       - clients-base
 
-  client-intro-course-developer-component:
-    build:
-      context: ./clients/intro_course_developer_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-intro-course-developer-component
-    ports:
-      - "3004:80"
-    depends_on:
-      - clients-base
-
   client-interview-component:
     build:
       context: ./clients/interview_component
@@ -290,6 +288,16 @@ services:
     depends_on:
       - clients-base
 
+  client-certificate:
+    build:
+      context: ./clients/certificate_component
+      dockerfile: Dockerfile
+    container_name: prompt-client-certificate
+    ports:
+      - "3009:80"
+    depends_on:
+      - clients-base
+
   clients-base:
     build:
       context: ./clients
@@ -297,7 +305,7 @@ services:
     image: base:latest
 
   db:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -314,26 +322,8 @@ services:
     ports:
       - "5432:5432"
 
-  db-intro-course:
-    image: "postgres:15.16-alpine"
-    container_name: prompt-db-intro-course
-    environment:
-      - POSTGRES_USER=${DB_INTRO_COURSE_USER}
-      - POSTGRES_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
-      - POSTGRES_DB=${DB_INTRO_COURSE_NAME}
-      - TZ=Europe/Berlin
-    volumes:
-      - ./postgres_intro_course_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_INTRO_COURSE_NAME} -U ${DB_INTRO_COURSE_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "5433:5432"
-
   db-team-allocation:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -343,7 +333,11 @@ services:
     volumes:
       - ./postgres_team_allocation_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -351,7 +345,7 @@ services:
       - "5434:5432"
 
   db-assessment:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -361,7 +355,11 @@ services:
     volumes:
       - ./postgres_assessment_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -370,7 +368,7 @@ services:
 
   # Database for the template server
   db-template-server:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db-template-server
     environment:
       - POSTGRES_USER=${DB_TEMPLATE_USER:-prompt-postgres}
@@ -380,14 +378,18 @@ services:
     volumes:
       - ./postgres_template_server_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_TEMPLATE_NAME:-prompt} -U ${DB_TEMPLATE_USER:-prompt-postgres}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEMPLATE_NAME:-prompt} -U ${DB_TEMPLATE_USER:-prompt-postgres}",
+        ]
       timeout: 5s
       retries: 5
     ports:
       - "5437:5432"
 
   db-interview:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
@@ -397,14 +399,18 @@ services:
     volumes:
       - ./postgres_interview_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_INTERVIEW_NAME:-prompt} -U ${DB_INTERVIEW_USER:-prompt-postgres}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTERVIEW_NAME:-prompt} -U ${DB_INTERVIEW_USER:-prompt-postgres}",
+        ]
       timeout: 5s
       retries: 5
     ports:
       - "5438:5432"
 
   db-self-team-allocation:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -414,15 +420,41 @@ services:
     volumes:
       - ./postgres_self_team_allocation_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
     ports:
       - "5436:5432"
 
+  db-certificate:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_CERTIFICATE_USER}
+      - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - POSTGRES_DB=${DB_CERTIFICATE_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_certificate_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_CERTIFICATE_NAME} -U ${DB_CERTIFICATE_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5439:5432"
+
   keycloak-db:
-    image: "postgres:15.16-alpine"
+    image: "postgres:15.17-alpine"
     container_name: prompt-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -432,7 +464,11 @@ services:
     volumes:
       - ./keycloak_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -472,4 +508,107 @@ services:
       timeout: 10s
       retries: 1
       start_period: 90s
+
+  # SeaweedFS Master Server
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-master
+    ports:
+      - "9333:9333"   # Master API
+      - "19333:19333" # Master gRPC
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_master_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9333/cluster/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS Volume Server
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-volume
+    ports:
+      - "8333:8080"   # Volume API
+      - "18080:18080" # Volume gRPC
+    command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
+    volumes:
+      - ./seaweedfs_volume_data:/data
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS S3 Gateway
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-s3
+    ports:
+      - "8334:8333"   # S3 API
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        cat >/tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "prompt-s3",
+              "credentials": [
+                {
+                  "accessKey": "$$WEED_S3_DEFAULT_USER",
+                  "secretKey": "$$WEED_S3_DEFAULT_PWD"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write"]
+            }
+          ]
+        }
+        EOF
+        exec weed s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/tmp/s3.json
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+      seaweedfs-filer:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - WEED_S3_DEFAULT_USER=admin
+      - WEED_S3_DEFAULT_PWD=admin123
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "code=$(wget --server-response --spider -q http://localhost:8333/ 2>&1 | grep -Eo \"HTTP/[0-9.]+ [0-9]+\" | tail -1 | cut -d\" \" -f2); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"403\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # SeaweedFS Filer (required for S3)
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-filer
+    ports:
+      - "8888:8888"   # Filer API
+    command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_filer_data:/data
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   

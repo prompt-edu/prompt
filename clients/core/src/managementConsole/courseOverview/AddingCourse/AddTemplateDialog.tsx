@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect } from 'react'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -92,10 +96,7 @@ export const AddTemplateDialog = ({
       longDescription: templatePropertiesFormValues?.longDescription || '',
       template: true,
     }
-    // todo API call
     mutate(course)
-    setCurrentPage(1)
-    setTemplatePropertiesFormValues(null) // reset the page 1 form
   }
 
   const handleNext = (data: TemplateFormValues) => {
@@ -133,6 +134,31 @@ export const AddTemplateDialog = ({
       <DialogContent className='sm:max-w-[550px]'>
         {isPending ? (
           <DialogLoadingDisplay customMessage='Updating template data...' />
+        ) : isError && (error as any)?.response?.status === 409 ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className='text-2xl font-bold text-center'>
+                Add a New Template
+              </DialogTitle>
+            </DialogHeader>
+            <Alert variant='destructive'>
+              <AlertTitle>Name already taken</AlertTitle>
+              <AlertDescription>
+                A template with this name already exists. Please choose a different name.
+              </AlertDescription>
+            </Alert>
+            <div className='flex justify-end pt-2'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  reset()
+                  setCurrentPage(1)
+                }}
+              >
+                Go Back
+              </Button>
+            </div>
+          </>
         ) : isError ? (
           <DialogErrorDisplay error={error} />
         ) : (

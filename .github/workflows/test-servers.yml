@@ -33,7 +33,7 @@ jobs:
         run: cd servers/${{ matrix.directory }} && go test ./... -json > TestResults-${{ matrix.directory }}.json
       - name: Upload Go test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Go-results-${{ matrix.directory }}
           path: ./servers/${{ matrix.directory }}/TestResults-${{ matrix.directory }}.json

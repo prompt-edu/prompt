@@ -12,6 +12,7 @@ import { ApplicationFormView } from './pages/ApplicationForm/ApplicationFormView
 import { Student } from '@tumaet/prompt-shared-state'
 import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
 import { PostApplication } from '@core/interfaces/application/postApplication'
 import { postNewApplicationExtern } from '@core/network/mutations/postApplicationExtern'
 import { ApplicationSavingDialog } from './components/ApplicationSavingDialog'
@@ -52,11 +53,13 @@ export const ApplicationLoginPage = () => {
     student: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
+    answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => {
     const application: PostApplication = {
       student,
       answersText: answersText,
       answersMultiSelect: answersMultiSelect,
+      answersFileUpload: answersFileUpload,
     }
     setShowDialog('saving')
     mutateSendApplication(application)
@@ -108,6 +111,8 @@ export const ApplicationLoginPage = () => {
             <ApplicationFormView
               questionsText={applicationForm.questionsText}
               questionsMultiSelect={applicationForm.questionsMultiSelect}
+              questionsFileUpload={applicationForm.questionsFileUpload}
+              coursePhaseId={phaseId}
               onSubmit={handleSubmit}
             />
           ) : (
@@ -115,6 +120,8 @@ export const ApplicationLoginPage = () => {
             <ApplicationFormView
               questionsText={applicationForm.questionsText}
               questionsMultiSelect={applicationForm.questionsMultiSelect}
+              questionsFileUpload={applicationForm.questionsFileUpload}
+              coursePhaseId={phaseId}
               onSubmit={handleSubmit}
               allowEditUniversityData={true}
               student={{

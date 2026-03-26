@@ -1,5 +1,5 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
-import { Course } from '@tumaet/prompt-shared-state'
+import { Course, Role } from '@tumaet/prompt-shared-state'
 import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import DynamicIcon from '@/components/DynamicIcon'
@@ -7,6 +7,7 @@ import { formatDate } from '@core/utils/formatDate'
 import { CourseArchiveButton } from './CourseArchiveButton'
 import { useNavigate } from 'react-router-dom'
 import { CourseSettingsButton } from './CourseSettingsButton'
+import { ShowForRole } from '../ShowForRole'
 
 type CourseMetaItemProps = {
   icon: React.ReactNode
@@ -52,10 +53,12 @@ export const CourseCard = ({ course }: CourseCardProps) => {
             </CardTitle>
           </div>
 
-          <div className='flex gap-2'>
-            <CourseArchiveButton courseID={course.id} archived={course.archived} />
-            <CourseSettingsButton courseID={course.id} />
-          </div>
+          <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <div className='flex gap-2'>
+              <CourseArchiveButton courseID={course.id} archived={course.archived} />
+              <CourseSettingsButton courseID={course.id} />
+            </div>
+          </ShowForRole>
         </div>
       </CardHeader>
 

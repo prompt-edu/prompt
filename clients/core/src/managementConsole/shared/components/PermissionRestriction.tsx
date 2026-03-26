@@ -40,9 +40,13 @@ export const PermissionRestriction = ({
 
   // This means something /general
   if (!courseId) {
-    // TODO: refine at later stage
-    // has at least some prompt permission
-    return <>{permissions.length > 0 ? children : <UnauthorizedPage onLogout={logout} />}</>
+    if (requiredPermissions.length === 0) {
+      return <>{permissions.length > 0 ? children : <UnauthorizedPage onLogout={logout} />}</>
+    }
+    const hasPermission = requiredPermissions.some((role) =>
+      permissions.includes(getPermissionString(role)),
+    )
+    return <>{hasPermission ? children : <UnauthorizedPage onLogout={logout} />}</>
   }
 
   if (isStudent && isCourseParticipationPending) {

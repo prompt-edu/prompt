@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE course_phase_config
+ADD COLUMN updated_by TEXT,
+ADD COLUMN release_date TIMESTAMP WITH TIME ZONE;
+
+COMMIT;

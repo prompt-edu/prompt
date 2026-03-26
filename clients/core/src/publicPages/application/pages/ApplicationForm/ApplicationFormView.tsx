@@ -8,53 +8,71 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { ApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/applicationAnswerText'
 import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import { ApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/applicationAnswerMultiSelect'
 import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
+import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
 import { Student } from '@tumaet/prompt-shared-state'
 import { useEffect, useRef, useState } from 'react'
 import { StudentForm } from './components/StudentForm/StudentForm'
 import { ApplicationQuestionTextForm } from './components/TextForm/ApplicationQuestionTextForm'
+import { ApplicationQuestionFileUploadForm } from './components/FileUploadForm/ApplicationQuestionFileUploadForm'
 import { QuestionTextFormRef } from './utils/QuestionTextFormRef'
 import { QuestionMultiSelectFormRef } from './utils/QuestionMultiSelectFormRef'
+import { QuestionFileUploadFormRef } from './utils/QuestionFileUploadFormRef'
 import { StudentComponentRef } from './utils/StudentComponentRef'
 import { ApplicationQuestionMultiSelectForm } from './components/MultiSelectForm/ApplicationQuestionMultiSelectForm'
 
 interface ApplicationFormProps {
   questionsText: ApplicationQuestionText[]
   questionsMultiSelect: ApplicationQuestionMultiSelect[]
+  questionsFileUpload: ApplicationQuestionFileUpload[]
   initialAnswersText?: ApplicationAnswerText[]
   initialAnswersMultiSelect?: ApplicationAnswerMultiSelect[]
+  initialAnswersFileUpload?: ApplicationAnswerFileUpload[]
   student?: Student
   isInstructorView?: boolean
   allowEditUniversityData?: boolean
+  applicationId?: string
+  coursePhaseId?: string
   onSubmit: (
     student: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
+    answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => void
 }
 
 export const ApplicationFormView = ({
   questionsText,
   questionsMultiSelect,
+  questionsFileUpload,
   initialAnswersMultiSelect,
   initialAnswersText,
+  initialAnswersFileUpload,
   student,
   isInstructorView = false,
   allowEditUniversityData = false,
+  applicationId,
+  coursePhaseId,
   onSubmit,
 }: ApplicationFormProps) => {
-  const questions: (ApplicationQuestionText | ApplicationQuestionMultiSelect)[] = [
-    ...questionsText,
-    ...questionsMultiSelect,
-  ].sort((a, b) => a.orderNum - b.orderNum)
+  const questions: (
+    | ApplicationQuestionText
+    | ApplicationQuestionMultiSelect
+    | ApplicationQuestionFileUpload
+  )[] = [...questionsText, ...questionsMultiSelect, ...questionsFileUpload].sort(
+    (a, b) => a.orderNum - b.orderNum,
+  )
 
   const [studentData, setStudentData] = useState<Student>(student ?? ({} as Student))
   const studentRef = useRef<StudentComponentRef>(null)
   const questionTextRefs = useRef<Array<QuestionTextFormRef | null | undefined>>([])
   const questionMultiSelectRefs = useRef<Array<QuestionMultiSelectFormRef | null | undefined>>([])
+  const questionFileUploadRefs = useRef<Array<QuestionFileUploadFormRef | null | undefined>>([])
   const [validationFailed, setValidationFailed] = useState(false)
 
   // correctly propagate student data changes
@@ -103,6 +121,20 @@ export const ApplicationFormView = ({
       }
     }
 
+    const answersFileUpload: CreateApplicationAnswerFileUpload[] = []
+    for (const ref of questionFileUploadRefs.current) {
+      if (!ref) continue
+      const isValid = await ref.validate()
+      if (isValid) {
+        const value = ref.getValues()
+        if (value.fileID) {
+          answersFileUpload.push(value)
+        }
+      } else {
+        allValid = false
+      }
+    }
+
     if (!allValid) {
       setValidationFailed(true)
       return
@@ -110,7 +142,7 @@ export const ApplicationFormView = ({
       setValidationFailed(false)
     }
     // call onSubmit
-    onSubmit(studentData, answersText, answersMultiSelect)
+    onSubmit(studentData, answersText, answersMultiSelect, answersFileUpload)
   }
 
   return (
@@ -167,6 +199,19 @@ export const ApplicationFormView = ({
                       questionMultiSelectRefs.current[index] = el
                     }}
                     isInstructorView={isInstructorView}
+                  />
+                ) : 'allowedFileTypes' in question ? (
+                  <ApplicationQuestionFileUploadForm
+                    question={question}
+                    answer={initialAnswersFileUpload?.find(
+                      (a) => a.applicationQuestionID === question.id,
+                    )}
+                    ref={(el) => {
+                      questionFileUploadRefs.current[index] = el
+                    }}
+                    isInstructorView={isInstructorView}
+                    applicationId={applicationId}
+                    coursePhaseId={coursePhaseId}
                   />
                 ) : (
                   <ApplicationQuestionTextForm

@@ -1,9 +1,8 @@
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
 import { Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
+import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
 import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
 import { Team } from '@tumaet/prompt-shared-state'
 import { getAllTeams } from '../../network/queries/getAllTeams'
@@ -23,10 +22,7 @@ export const TeamAllocationParticipantsPage = () => {
     isPending: isCoursePhaseParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
-  })
+  } = useGetCoursePhaseParticipants()
 
   const {
     data: teams,

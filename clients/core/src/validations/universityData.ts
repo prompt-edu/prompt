@@ -9,8 +9,8 @@ export const formSchemaUniversityData = z.object({
   email: z.string().email('Invalid email address'),
   matriculationNumber: z
     .string()
-    .regex(
-      matriculationNumberRegex,
+    .refine(
+      (val) => val === '' || matriculationNumberRegex.test(val),
       `Matriculation number must follow the pattern ${translations.university.matriculationExample}`,
     ),
   universityLogin: z

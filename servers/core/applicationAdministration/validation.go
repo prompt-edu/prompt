@@ -42,6 +42,11 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 		return errors.New("could not validate the application form")
 	}
 
+	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		return errors.New("could not validate the application form")
+	}
+
 	// Transform questions into map for more efficient lockup
 	textQuestionsMap := make(map[uuid.UUID]bool)
 	for _, question := range applicationQuestionsText {
@@ -53,6 +58,11 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 		multiSelectQuestionsMap[question.ID] = true
 	}
 
+	fileUploadQuestionsMap := make(map[uuid.UUID]bool)
+	for _, question := range applicationQuestionsFileUpload {
+		fileUploadQuestionsMap[question.ID] = true
+	}
+
 	// 1. DELETE: Check that all deleted questions are from this course
 	for _, questionID := range updateForm.DeleteQuestionsText {
 		if !textQuestionsMap[questionID] {
@@ -62,6 +72,12 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 
 	for _, questionID := range updateForm.DeleteQuestionsMultiSelect {
 		if !multiSelectQuestionsMap[questionID] {
+			return errors.New("question does not belong to this course")
+		}
+	}
+
+	for _, questionID := range updateForm.DeleteQuestionsFileUpload {
+		if !fileUploadQuestionsMap[questionID] {
 			return errors.New("question does not belong to this course")
 		}
 	}
@@ -86,6 +102,16 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 		}
 	}
 
+	for _, question := range updateForm.CreateQuestionsFileUpload {
+		if question.CoursePhaseID != coursePhaseID {
+			return errors.New("course phase id is not correct")
+		}
+		err := validateQuestionFileUpload(question.Title, question.AllowedFileTypes, question.MaxFileSizeMB, question.AccessibleForOtherPhases, question.AccessKey)
+		if err != nil {
+			return err
+		}
+	}
+
 	// 3. Update: The course phase id is correct and the same for all questions
 	for _, question := range updateForm.UpdateQuestionsText {
 		if question.CoursePhaseID != coursePhaseID || !textQuestionsMap[question.ID] {
@@ -102,6 +128,16 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 			return errors.New("course phase id is not correct")
 		}
 		err := validateQuestionMultiSelect(question.Title, question.MinSelect, question.MaxSelect, question.Options, question.AccessibleForOtherPhases, question.AccessKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, question := range updateForm.UpdateQuestionsFileUpload {
+		if question.CoursePhaseID != coursePhaseID || !fileUploadQuestionsMap[question.ID] {
+			return errors.New("course phase id is not correct")
+		}
+		err := validateQuestionFileUpload(question.Title, question.AllowedFileTypes, question.MaxFileSizeMB, question.AccessibleForOtherPhases, question.AccessKey)
 		if err != nil {
 			return err
 		}
@@ -167,6 +203,34 @@ func validateQuestionMultiSelect(title string, minSelect, maxSelect int, options
 	for _, option := range options {
 		if len(option) == 0 {
 			return errors.New("option cannot be an empty string")
+		}
+	}
+
+	err := validateExportSettings(accessibleForOtherPhases, accessKey)
+	if err != nil {
+		return err
+	}
+
+	// No issues, return nil
+	return nil
+}
+
+func validateQuestionFileUpload(title, allowedFileTypes string, maxFileSizeMB int, accessibleForOtherPhases pgtype.Bool, accessKey pgtype.Text) error {
+	// Check that the title is not empty
+	if len(title) == 0 {
+		return errors.New("title is required")
+	}
+
+	// Validate max file size if provided
+	if maxFileSizeMB < 0 {
+		return errors.New("maximum file size must be at least 1 MB")
+	}
+	if maxFileSizeMB > 0 {
+		if maxFileSizeMB < 1 {
+			return errors.New("maximum file size must be at least 1 MB")
+		}
+		if maxFileSizeMB > 100 {
+			return errors.New("maximum file size cannot exceed 100 MB")
 		}
 	}
 
@@ -251,6 +315,11 @@ func validateAnswers(ctx context.Context, coursePhaseID uuid.UUID, application a
 		return errors.New("could not validate the application")
 	}
 
+	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return errors.New("could not validate the application")
+	}
+
 	// 3. Validate all the answers
 	err = validateTextAnswers(applicationQuestionsText, application.AnswersText)
 	if err != nil {
@@ -260,6 +329,42 @@ func validateAnswers(ctx context.Context, coursePhaseID uuid.UUID, application a
 	err = validateMultiSelectAnswers(applicationQuestionsMultiSelect, application.AnswersMultiSelect)
 	if err != nil {
 		return err
+	}
+
+	err = validateFileUploadAnswers(applicationQuestionsFileUpload, application.AnswersFileUpload)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateFileUploadAnswers(fileUploadQuestions []db.ApplicationQuestionFileUpload, fileUploadAnswers []applicationDTO.CreateAnswerFileUpload) error {
+	questionMap := make(map[uuid.UUID]db.ApplicationQuestionFileUpload, len(fileUploadQuestions))
+	for _, question := range fileUploadQuestions {
+		questionMap[question.ID] = question
+	}
+
+	answerMap := make(map[uuid.UUID]uuid.UUID, len(fileUploadAnswers))
+	for _, answer := range fileUploadAnswers {
+		question, exists := questionMap[answer.ApplicationQuestionID]
+		if !exists {
+			return errors.New("all answers must correspond to existing questions")
+		}
+		if answer.FileID == uuid.Nil {
+			return fmt.Errorf("file upload answer for question %q has no file id", question.Title)
+		}
+		if _, duplicate := answerMap[answer.ApplicationQuestionID]; duplicate {
+			return errors.New("duplicate file upload answer for question")
+		}
+		answerMap[answer.ApplicationQuestionID] = answer.FileID
+	}
+
+	for _, question := range fileUploadQuestions {
+		answerFileID, exists := answerMap[question.ID]
+		if question.IsRequired && (!exists || answerFileID == uuid.Nil) {
+			return errors.New("all required questions must be answered")
+		}
 	}
 
 	return nil

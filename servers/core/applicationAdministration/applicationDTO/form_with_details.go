@@ -6,9 +6,10 @@ type FormWithDetails struct {
 	ApplicationPhase     OpenApplication       `json:"applicationPhase"`
 	QuestionsText        []QuestionText        `json:"questionsText"`
 	QuestionsMultiSelect []QuestionMultiSelect `json:"questionsMultiSelect"`
+	QuestionsFileUpload  []QuestionFileUpload  `json:"questionsFileUpload"`
 }
 
-func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhaseRow, questionsText []db.ApplicationQuestionText, questionsMultiSelect []db.ApplicationQuestionMultiSelect) FormWithDetails {
+func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhaseRow, questionsText []db.ApplicationQuestionText, questionsMultiSelect []db.ApplicationQuestionMultiSelect, questionsFileUpload []db.ApplicationQuestionFileUpload) FormWithDetails {
 	var shortDesc *string
 	if applicationPhase.ShortDescription.Valid {
 		shortDesc = &applicationPhase.ShortDescription.String
@@ -37,6 +38,7 @@ func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhas
 		ApplicationPhase:     applicationPhaseDTO,
 		QuestionsText:        make([]QuestionText, 0, len(questionsText)),
 		QuestionsMultiSelect: make([]QuestionMultiSelect, 0, len(questionsMultiSelect)),
+		QuestionsFileUpload:  make([]QuestionFileUpload, 0, len(questionsFileUpload)),
 	}
 
 	for _, question := range questionsText {
@@ -45,6 +47,10 @@ func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhas
 
 	for _, question := range questionsMultiSelect {
 		applicationFormDTO.QuestionsMultiSelect = append(applicationFormDTO.QuestionsMultiSelect, GetQuestionMultiSelectDTOFromDBModel(question))
+	}
+
+	for _, question := range questionsFileUpload {
+		applicationFormDTO.QuestionsFileUpload = append(applicationFormDTO.QuestionsFileUpload, GetQuestionFileUploadDTOFromDBModel(question))
 	}
 
 	return applicationFormDTO

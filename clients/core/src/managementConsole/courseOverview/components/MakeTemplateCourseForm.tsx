@@ -9,7 +9,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
   Input,
+  Textarea,
   Button,
 } from '@tumaet/prompt-ui-components'
 import type { UseFormReturn } from 'react-hook-form'
@@ -44,6 +46,43 @@ export const MakeTemplateCourseForm = ({
                 <FormLabel>Template Name</FormLabel>
                 <FormControl>
                   <Input placeholder='Enter template name' {...field} className='w-full' />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='shortDescription'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Short Description</FormLabel>
+                <FormControl>
+                  <Input placeholder='Enter a short description' {...field} className='w-full' />
+                </FormControl>
+                <FormDescription>
+                  Brief summary of the template (max 255 characters).
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='longDescription'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Long Description{' '}
+                  <span className='text-muted-foreground font-normal'>(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder='Enter a detailed description'
+                    className='w-full resize-none'
+                    rows={4}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

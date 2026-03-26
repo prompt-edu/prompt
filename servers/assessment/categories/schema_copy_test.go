@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -24,9 +26,9 @@ type SchemaCopyTestSuite struct {
 	categoryService CategoryService
 }
 
-func (suite *SchemaCopyTestSuite) SetupSuite() {
+func (suite *SchemaCopyTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/schema_copy_tests.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/schema_copy_tests.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -48,7 +50,7 @@ func (suite *SchemaCopyTestSuite) SetupSuite() {
 }
 
 // initializeServiceSingletons is a helper to set up service singletons for testing
-func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *testutils.TestDB) {
+func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *sdkTestUtils.TestDB[*db.Queries]) {
 	// Create temporary minimal router for init
 	router := gin.New()
 	group := router.Group("")
@@ -56,7 +58,7 @@ func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *testutils.
 	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
 }
 
-func (suite *SchemaCopyTestSuite) TearDownSuite() {
+func (suite *SchemaCopyTestSuite) TearDownTest() {
 	if suite.mockCoreCleanup != nil {
 		suite.mockCoreCleanup()
 	}
@@ -65,8 +67,8 @@ func (suite *SchemaCopyTestSuite) TearDownSuite() {
 	}
 }
 
-// TestUpdateCategory_NoAssessments tests updating a category when there are no assessments
-// in any course phase. In this case, the schema should NOT be copied.
+// TestUpdateCategory_NoAssessments tests updating a category in a phase that consumes a
+// global/shared schema. The phase should get its own schema copy before modification.
 func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 	// Use Phase 1 which has no assessments/evaluations
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
@@ -90,29 +92,39 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 	err = UpdateCategory(suite.suiteCtx, categoryID, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Updating category should not produce an error")
 
-	// Count schemas after update - should be the same
+	// Count schemas after update - should have one additional copied schema
 	schemasAfter, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountAfter := len(schemasAfter)
 
-	assert.Equal(suite.T(), schemasCountBefore, schemasCountAfter,
-		"No new schema should be created when there are no assessments in other phases")
+	assert.Equal(suite.T(), schemasCountBefore+1, schemasCountAfter,
+		"A consumer phase should get a copied schema before modifying shared/global schema data")
 
-	// Verify the category was updated
-	updatedCategory, err := GetCategory(suite.suiteCtx, categoryID)
+	// Original category should remain unchanged in the original schema.
+	originalCategory, err := GetCategory(suite.suiteCtx, categoryID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), req.Name, updatedCategory.Name, "Category name should be updated")
-	assert.Equal(suite.T(), req.Weight, updatedCategory.Weight, "Category weight should be updated")
+	assert.Equal(suite.T(), "Test Category 1", originalCategory.Name, "Original category should remain unchanged")
+	assert.Equal(suite.T(), int32(1), originalCategory.Weight, "Original category weight should remain unchanged")
 
-	// Verify the category still belongs to the original schema
-	assert.Equal(suite.T(), originalSchemaID, updatedCategory.AssessmentSchemaID,
-		"Category should still belong to the original schema")
-
-	// Verify course phase config still points to original schema
+	// Verify course phase config now points to a copied schema.
 	config, err := coursePhaseConfig.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), originalSchemaID, config.AssessmentSchemaID,
-		"Course phase config should still point to original schema")
+	assert.NotEqual(suite.T(), originalSchemaID, config.AssessmentSchemaID,
+		"Course phase config should point to the copied schema")
+
+	// Verify the updated category exists in the copied schema.
+	allCategories, err := ListCategories(suite.suiteCtx)
+	assert.NoError(suite.T(), err)
+
+	updatedFound := false
+	for _, cat := range allCategories {
+		if cat.AssessmentSchemaID == config.AssessmentSchemaID && cat.Name == req.Name {
+			updatedFound = true
+			assert.Equal(suite.T(), req.Weight, cat.Weight)
+			break
+		}
+	}
+	assert.True(suite.T(), updatedFound, "Updated category should be present in the copied schema")
 }
 
 // TestUpdateCategory_WithAssessmentsInOtherPhase tests updating a category when there are

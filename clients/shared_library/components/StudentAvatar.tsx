@@ -1,7 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@tumaet/prompt-ui-components'
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
 import { Link } from 'react-router-dom'
 import { ReactNode } from 'react'
+import { ProfilePicture } from './StudentProfilePicture'
 
 interface MinimalStudent {
   id?: string
@@ -17,16 +16,13 @@ interface StudentAvatarProps {
 export const StudentAvatar = ({ student }: StudentAvatarProps) => {
   const avatar = (
     <>
-      <Avatar className='h-6 w-6'>
-        <AvatarImage
-          src={getGravatarUrl(student.email)}
-          alt={`${student.firstName} ${student.lastName}`}
-        />
-        <AvatarFallback className='text-[0.6rem] font-medium'>
-          {student.firstName[0]}
-          {student.lastName[0]}
-        </AvatarFallback>
-      </Avatar>
+      <ProfilePicture
+        email={student.email}
+        firstName={student.firstName}
+        lastName={student.lastName}
+        size='sm'
+      />
+
       <span className='text-xs transition-colors'>
         {student.firstName} {student.lastName}
       </span>

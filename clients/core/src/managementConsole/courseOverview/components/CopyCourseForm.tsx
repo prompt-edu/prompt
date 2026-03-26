@@ -11,6 +11,7 @@ import {
   FormMessage,
   FormDescription,
   Input,
+  Textarea,
   Button,
   DatePickerWithRange,
 } from '@tumaet/prompt-ui-components'
@@ -91,6 +92,41 @@ export const CopyCourseForm = ({
                   className='w-full'
                 />
                 <FormDescription>Select the start and end dates for your course.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='shortDescription'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Short Description</FormLabel>
+                <FormControl>
+                  <Input placeholder='Enter a short description' {...field} className='w-full' />
+                </FormControl>
+                <FormDescription>Brief summary of the course (max 255 characters).</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='longDescription'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Long Description{' '}
+                  <span className='text-muted-foreground font-normal'>(optional)</span>
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder='Enter a detailed description'
+                    className='w-full resize-none'
+                    rows={4}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

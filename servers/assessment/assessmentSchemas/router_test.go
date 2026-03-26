@@ -10,8 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/testutils"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -24,9 +26,11 @@ type AssessmentSchemaRouterTestSuite struct {
 	assessmentSchemaService AssessmentSchemaService
 }
 
-func (suite *AssessmentSchemaRouterTestSuite) SetupSuite() {
+const testCoursePhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+
+func (suite *AssessmentSchemaRouterTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -37,21 +41,21 @@ func (suite *AssessmentSchemaRouterTestSuite) SetupSuite() {
 	}
 	AssessmentSchemaServiceSingleton = &suite.assessmentSchemaService
 	suite.router = gin.Default()
-	api := suite.router.Group("/api")
+	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "12345678", "admin123")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "12345678", "admin123")
 	}
 	SetupAssessmentSchemaRouter(api, testMiddleware)
 }
 
-func (suite *AssessmentSchemaRouterTestSuite) TearDownSuite() {
+func (suite *AssessmentSchemaRouterTestSuite) TearDownTest() {
 	if suite.cleanup != nil {
 		suite.cleanup()
 	}
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestGetAllAssessmentSchemas() {
-	req, _ := http.NewRequest("GET", "/api/assessment-schema", nil)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema", nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
@@ -71,7 +75,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestCreateAssessmentSchema() {
 		Description: "This is a test schema for router testing",
 	}
 	body, _ := json.Marshal(createReq)
-	req, _ := http.NewRequest("POST", "/api/assessment-schema", bytes.NewBuffer(body))
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -87,7 +91,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestCreateAssessmentSchema() {
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestCreateAssessmentSchemaInvalidJSON() {
-	req, _ := http.NewRequest("POST", "/api/assessment-schema", bytes.NewBuffer([]byte("invalid json")))
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema", bytes.NewBuffer([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -107,11 +111,11 @@ func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchema() {
 		Name:        "Test Schema for Get",
 		Description: "Schema to test GET endpoint",
 	}
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test GET endpoint
-	req, _ := http.NewRequest("GET", "/api/assessment-schema/"+schema.ID.String(), nil)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+schema.ID.String(), nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
@@ -126,7 +130,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchema() {
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchemaInvalidUUID() {
-	req, _ := http.NewRequest("GET", "/api/assessment-schema/invalid-uuid", nil)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/invalid-uuid", nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
@@ -140,11 +144,11 @@ func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchemaInvalidUUID
 
 func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchemaNotFound() {
 	nonExistentID := uuid.New()
-	req, _ := http.NewRequest("GET", "/api/assessment-schema/"+nonExistentID.String(), nil)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+nonExistentID.String(), nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchema() {
@@ -153,7 +157,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchema() {
 		Name:        "Original Schema",
 		Description: "Original description",
 	}
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test update
@@ -162,7 +166,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchema() {
 		Description: "Updated description",
 	}
 	body, _ := json.Marshal(updateReq)
-	req, _ := http.NewRequest("PUT", "/api/assessment-schema/"+schema.ID.String(), bytes.NewBuffer(body))
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+schema.ID.String(), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -181,7 +185,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidU
 		Description: "Updated description",
 	}
 	body, _ := json.Marshal(updateReq)
-	req, _ := http.NewRequest("PUT", "/api/assessment-schema/invalid-uuid", bytes.NewBuffer(body))
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/invalid-uuid", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -191,7 +195,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidU
 
 func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidJSON() {
 	schemaID := uuid.New()
-	req, _ := http.NewRequest("PUT", "/api/assessment-schema/"+schemaID.String(), bytes.NewBuffer([]byte("invalid json")))
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+schemaID.String(), bytes.NewBuffer([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
@@ -205,11 +209,11 @@ func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchema() {
 		Name:        "Schema to Delete",
 		Description: "This schema will be deleted",
 	}
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test delete
-	req, _ := http.NewRequest("DELETE", "/api/assessment-schema/"+schema.ID.String(), nil)
+	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+schema.ID.String(), nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
@@ -222,7 +226,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchema() {
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchemaInvalidUUID() {
-	req, _ := http.NewRequest("DELETE", "/api/assessment-schema/invalid-uuid", nil)
+	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/invalid-uuid", nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
@@ -231,7 +235,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchemaInvalidU
 
 func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchemaNotFound() {
 	nonExistentID := uuid.New()
-	req, _ := http.NewRequest("DELETE", "/api/assessment-schema/"+nonExistentID.String(), nil)
+	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+nonExistentID.String(), nil)
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)

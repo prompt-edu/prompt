@@ -69,8 +69,11 @@ func validateUniversityData(hasUniversityAccount bool, matriculationNumber, univ
 		// Schema for TUM ID
 		universityLoginRegex := `^[a-zA-Z]{2}\d{2}[a-zA-Z]{3}$`
 
-		if matched, _ := regexp.MatchString(matriculationNumberRegex, matriculationNumber); !matched {
-			return errors.New("invalid matriculation number")
+		// Matriculation number is optional (external TUM members may not have one)
+		if matriculationNumber != "" {
+			if matched, _ := regexp.MatchString(matriculationNumberRegex, matriculationNumber); !matched {
+				return errors.New("invalid matriculation number")
+			}
 		}
 
 		if matched, _ := regexp.MatchString(universityLoginRegex, universityLogin); !matched {
@@ -82,3 +85,4 @@ func validateUniversityData(hasUniversityAccount bool, matriculationNumber, univ
 
 	return nil
 }
+

@@ -12,6 +12,44 @@ SELECT *
 FROM assessment_schema
 ORDER BY name ASC;
 
+-- name: ListAssessmentSchemasForCoursePhase :many
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = sqlc.arg(course_phase_id)
+)
+SELECT DISTINCT s.*
+FROM assessment_schema s
+LEFT JOIN phase_config pc ON TRUE
+WHERE s.source_phase_id IS NULL
+   OR s.source_phase_id = sqlc.arg(course_phase_id)
+   OR s.id = pc.assessment_schema_id
+   OR s.id = pc.self_evaluation_schema
+   OR s.id = pc.peer_evaluation_schema
+   OR s.id = pc.tutor_evaluation_schema
+ORDER BY s.name ASC;
+
+-- name: CheckSchemaAccessibleForCoursePhase :one
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = sqlc.arg(course_phase_id)
+)
+SELECT EXISTS(
+    SELECT 1
+    FROM assessment_schema s
+    LEFT JOIN phase_config pc ON TRUE
+    WHERE s.id = sqlc.arg(schema_id)
+      AND (
+        s.source_phase_id IS NULL
+        OR s.source_phase_id = sqlc.arg(course_phase_id)
+        OR s.id = pc.assessment_schema_id
+        OR s.id = pc.self_evaluation_schema
+        OR s.id = pc.peer_evaluation_schema
+        OR s.id = pc.tutor_evaluation_schema
+      )
+);
+
 -- name: UpdateAssessmentSchema :exec
 UPDATE assessment_schema
 SET name        = $2,
@@ -30,12 +68,11 @@ FROM assessment_schema
 WHERE name = $1;
 
 -- name: CopyAssessmentSchema :one
-WITH cfg AS (SELECT assessment_schema_id
-             FROM course_phase_config
-             WHERE course_phase_id = sqlc.arg(course_phase_id)),
-     src_schema AS (SELECT s.*
-                    FROM assessment_schema s
-                             JOIN cfg ON s.id = cfg.assessment_schema_id),
+WITH src_schema AS (
+         SELECT *
+         FROM assessment_schema
+         WHERE assessment_schema.id = sqlc.arg(source_schema_id)
+     ),
      new_schema AS (
          INSERT INTO assessment_schema (id, name, description, created_at, updated_at, source_phase_id)
              SELECT gen_random_uuid()    AS id,
@@ -53,7 +90,7 @@ WITH cfg AS (SELECT assessment_schema_id
                         c.weight,
                         c.short_name
                  FROM category c
-                          JOIN cfg ON c.assessment_schema_id = cfg.assessment_schema_id),
+                          JOIN src_schema ss ON c.assessment_schema_id = ss.id),
      inserted_categories AS (
          INSERT INTO category (id, name, description, weight, short_name, assessment_schema_id)
              SELECT cm.new_id,
@@ -135,10 +172,10 @@ WHERE cat.assessment_schema_id = sqlc.arg(new_schema_id)
 
 -- name: CheckSchemaOwnership :one
 SELECT EXISTS(
-    SELECT 1 
-    FROM assessment_schema 
-    WHERE id = $1 
-    AND (source_phase_id = $2 OR source_phase_id IS NULL)
+    SELECT 1
+    FROM assessment_schema
+    WHERE id = $1
+      AND source_phase_id = $2
 );
 
 -- name: GetConsumerPhases :many

@@ -8,6 +8,7 @@ window.env = {
   ASSESSMENT_HOST: 'http://localhost:8085',
   DEVOPS_CHALLENGE_HOST: 'http://localhost:9000',
   INTERVIEW_HOST: 'http://localhost:8087',
+  CERTIFICATE_HOST: 'http://localhost:8088',
   KEYCLOAK_HOST: 'http://localhost:8081',
   KEYCLOAK_REALM_NAME: 'prompt',
   CHAIR_NAME_LONG: 'TUM Research Group for Applied Education Technologies',

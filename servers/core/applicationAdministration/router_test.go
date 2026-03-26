@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
@@ -19,7 +21,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
-	"github.com/prompt-edu/prompt/servers/core/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -32,11 +33,16 @@ type ApplicationAdminRouterTestSuite struct {
 	applicationAdminService ApplicationService
 }
 
+var (
+	requiredFileUploadQuestionID = uuid.MustParse("b1b04042-95d1-4765-8592-caf9560c8c3d")
+	seededUploadFileID           = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c3f")
+)
+
 func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -51,9 +57,9 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func() gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupApplicationRouter(api, testMiddleware, testMiddleware, testutils.MockPermissionMiddleware)
+	setupApplicationRouter(api, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
@@ -216,6 +222,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -278,6 +290,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	jsonBody, err := json.Marshal(application)
@@ -321,6 +339,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 				Answer:                []string{"MacBook"},
 			},
 		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
 	}
 
 	// Apply once
@@ -343,6 +367,61 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 	err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "already applied", responseBody["error"])
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_UniversityStudent_Success() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "New",
+			LastName:             "UniversityStudent",
+			Email:                "newunistudent@tum.de",
+			Gender:               db.GenderMale,
+			HasUniversityAccount: true,
+			MatriculationNumber:  "03799999",
+			UniversityLogin:      "zz99zzz",
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 3},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+		AnswersText: []applicationDTO.CreateAnswerText{
+			{
+				ApplicationQuestionID: uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c"),
+				Answer:                "Valid motivation answer.",
+			},
+		},
+		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{
+			{
+				ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"),
+				Answer:                []string{"MacBook"},
+			},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{
+				ApplicationQuestionID: requiredFileUploadQuestionID,
+				FileID:                seededUploadFileID,
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(application)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/applications/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	suite.T().Logf("Response code: %d", resp.Code)
+	suite.T().Logf("Response body: %s", resp.Body.String())
+
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	var responseBody map[string]interface{}
+	err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "application posted", responseBody["message"])
 }
 
 func TestApplicationAdminRouterTestSuite(t *testing.T) {

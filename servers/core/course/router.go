@@ -41,6 +41,8 @@ func setupCourseRouter(router *gin.RouterGroup, authMiddleware func() gin.Handle
 
 	course.GET("/template", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getTemplateCourses)
 
+	course.GET("/check-name", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), checkCourseNameAvailability)
+
 	course.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteCourse)
 }
 
@@ -153,11 +155,44 @@ func createCourse(c *gin.Context) {
 
 	course, err := CreateCourse(c, newCourse, userID)
 	if err != nil {
+		if errors.Is(err, ErrDuplicateCourseIdentifier) {
+			handleError(c, http.StatusConflict, err)
+			return
+		}
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to create course"))
 		return
 	}
 	c.IndentedJSON(http.StatusCreated, course)
+}
+
+// checkCourseNameAvailability godoc
+// @Summary Check course name availability
+// @Description Check if a course name is already taken for a given semester tag
+// @Tags courses
+// @Produce json
+// @Param name query string true "Course name"
+// @Param semesterTag query string true "Semester tag"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /courses/check-name [get]
+func checkCourseNameAvailability(c *gin.Context) {
+	name := c.Query("name")
+	semesterTag := c.Query("semesterTag")
+	if name == "" || semesterTag == "" {
+		handleError(c, http.StatusBadRequest, errors.New("name and semesterTag are required"))
+		return
+	}
+
+	exists, err := CheckCourseNameExists(c, name, semesterTag)
+	if err != nil {
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("failed to check course name availability"))
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"exists": exists})
 }
 
 // getCoursePhaseGraph godoc
@@ -392,6 +427,7 @@ func archiveCourse(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedCourse)
 }
+
 // updateCourseData godoc
 // @Summary Update course data
 // @Description Update the data for a course

@@ -25,12 +25,11 @@ const getTsConfigPaths = () => {
     'shared_library',
     'interview_component',
     'matching_component',
-    'intro_course_tutor_component',
-    'intro_course_developer_component',
     'assessment_component',
     'devops_challenge_component',
     'team_allocation_component',
     'self_team_allocation_component',
+    'certificate_component',
   ] // TODO: replace with dynamic workspace detection
   return workspaceFolders
     .map((folder) => {
@@ -55,6 +54,9 @@ export default [
       'node_modules/**', // Ignore node_modules
       '**/dist/**', // Ignore distribution folders
       '**/build/**', // Ignore build folders
+      '**/postcss.config.js',
+      '**/env.js',
+      '**/env.template.js',
     ],
 
     plugins: {

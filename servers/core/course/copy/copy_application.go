@@ -53,13 +53,31 @@ func copyApplicationForm(c *gin.Context, qtx *db.Queries, sourceCoursePhaseID, t
 		})
 	}
 
+	createQuestionsFileUpload := make([]applicationDTO.CreateQuestionFileUpload, 0, len(applicationForm.QuestionsFileUpload))
+	for _, question := range applicationForm.QuestionsFileUpload {
+		createQuestionsFileUpload = append(createQuestionsFileUpload, applicationDTO.CreateQuestionFileUpload{
+			CoursePhaseID:            targetCoursePhaseID,
+			Title:                    question.Title,
+			Description:              question.Description,
+			IsRequired:               question.IsRequired,
+			AllowedFileTypes:         question.AllowedFileTypes,
+			MaxFileSizeMB:            question.MaxFileSizeMB,
+			OrderNum:                 question.OrderNum,
+			AccessibleForOtherPhases: question.AccessibleForOtherPhases,
+			AccessKey:                question.AccessKey,
+		})
+	}
+
 	form := applicationDTO.UpdateForm{
 		DeleteQuestionsText:        []uuid.UUID{},
 		DeleteQuestionsMultiSelect: []uuid.UUID{},
+		DeleteQuestionsFileUpload:  []uuid.UUID{},
 		CreateQuestionsText:        createQuestionsText,
 		CreateQuestionsMultiSelect: createQuestionsMultiSelect,
+		CreateQuestionsFileUpload:  createQuestionsFileUpload,
 		UpdateQuestionsText:        []applicationDTO.QuestionText{},
 		UpdateQuestionsMultiSelect: []applicationDTO.QuestionMultiSelect{},
+		UpdateQuestionsFileUpload:  []applicationDTO.QuestionFileUpload{},
 	}
 
 	if err := updateApplicationFormHelper(c, qtx, targetCoursePhaseID, form); err != nil {
@@ -93,6 +111,12 @@ func updateApplicationFormHelper(c *gin.Context, qtx *db.Queries, coursePhaseId 
 			return fmt.Errorf("could not delete text question: %w", err)
 		}
 	}
+	for _, questionID := range form.DeleteQuestionsFileUpload {
+		if err := qtx.DeleteApplicationQuestionFileUpload(c, questionID); err != nil {
+			log.Error(err)
+			return fmt.Errorf("could not delete file upload question: %w", err)
+		}
+	}
 
 	for _, question := range form.CreateQuestionsText {
 		model := question.GetDBModel()
@@ -112,6 +136,15 @@ func updateApplicationFormHelper(c *gin.Context, qtx *db.Queries, coursePhaseId 
 			return fmt.Errorf("could not create multi-select question: %w", err)
 		}
 	}
+	for _, question := range form.CreateQuestionsFileUpload {
+		model := question.GetDBModel()
+		model.ID = uuid.New()
+		model.CoursePhaseID = coursePhaseId
+		if err := qtx.CreateApplicationQuestionFileUpload(c, model); err != nil {
+			log.Error(err)
+			return fmt.Errorf("could not create file upload question: %w", err)
+		}
+	}
 
 	for _, question := range form.UpdateQuestionsMultiSelect {
 		if err := qtx.UpdateApplicationQuestionMultiSelect(c, question.GetDBModel()); err != nil {
@@ -123,6 +156,12 @@ func updateApplicationFormHelper(c *gin.Context, qtx *db.Queries, coursePhaseId 
 		if err := qtx.UpdateApplicationQuestionText(c, question.GetDBModel()); err != nil {
 			log.Error(err)
 			return fmt.Errorf("could not update text question: %w", err)
+		}
+	}
+	for _, question := range form.UpdateQuestionsFileUpload {
+		if err := qtx.UpdateApplicationQuestionFileUpload(c, question.GetDBModel()); err != nil {
+			log.Error(err)
+			return fmt.Errorf("could not update file upload question: %w", err)
 		}
 	}
 
@@ -153,5 +192,10 @@ func getApplicationFormHelper(c *gin.Context, qtx *db.Queries, coursePhaseID uui
 		return applicationDTO.Form{}, fmt.Errorf("failed to get multi-select questions: %w", err)
 	}
 
-	return applicationDTO.GetFormDTOFromDBModel(questionsText, questionsMultiSelect), nil
+	questionsFileUpload, err := qtx.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		return applicationDTO.Form{}, fmt.Errorf("failed to get file upload questions: %w", err)
+	}
+
+	return applicationDTO.GetFormDTOFromDBModel(questionsText, questionsMultiSelect, questionsFileUpload), nil
 }

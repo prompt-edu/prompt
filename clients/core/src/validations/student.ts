@@ -18,7 +18,7 @@ export const studentBaseSchema = z.object({
     .number()
     .int('Please enter your current semester')
     .min(1, 'Please select a semester.')
-    .max(20, 'Please enter a number lower than 20'),
+    .max(20, 'Please enter a number lower than or equal to 20'),
   hasUniversityAccount: z.literal(false), // Explicit literal for base case
 })
 
@@ -35,12 +35,12 @@ export const studentUniversitySchema = z.object({
     .number()
     .int('Please enter your current semester')
     .min(1, 'Please select a semester.')
-    .max(20, 'Please enter a current semester number lower than 20'),
+    .max(20, 'Please enter a current semester number lower than or equal to 20'),
   hasUniversityAccount: z.literal(true), // Explicit literal for university case
   matriculationNumber: z
     .string()
-    .regex(
-      matriculationNumberRegex,
+    .refine(
+      (val) => val === '' || matriculationNumberRegex.test(val),
       `Matriculation number must follow the pattern ${translations.university.matriculationExample}`,
     ),
   universityLogin: z

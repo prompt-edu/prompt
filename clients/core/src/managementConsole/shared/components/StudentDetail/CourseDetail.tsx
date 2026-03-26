@@ -1,7 +1,7 @@
 import { CourseAvatar } from '@core/managementConsole/layout/Sidebar/CourseSwitchSidebar/components/CourseAvatar'
-import { CourseEnrollment } from '@core/network/queries/getStudentEnrollments'
 import { LinkHeading } from './LinkHeading'
 import { formatDate } from './util/formatDate'
+import { CourseEnrollment } from '../../interfaces/StudentEnrollment'
 
 interface CourseDetailProps {
   studentCourseEnrollment: CourseEnrollment

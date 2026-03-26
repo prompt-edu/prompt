@@ -11,9 +11,6 @@ on:
       server_core_image_tag:
         description: "The tag of the image that was built"
         value: ${{ jobs.core.outputs.image_tag }}
-      server_intro_course_image_tag:
-        description: "The tag of the image that was built"
-        value: ${{ jobs.intro-course.outputs.image_tag }}
       server_team_allocation_image_tag:
         description: "The tag of the image that was built"
         value: ${{ jobs.team-allocation.outputs.image_tag }}
@@ -26,6 +23,9 @@ on:
       server_interview_image_tag:
         description: "The tag of the interview server image that was built"
         value: ${{ jobs.interview.outputs.image_tag }}
+      server_certificate_image_tag:
+        description: "The tag of the certificate server image that was built"
+        value: ${{ jobs.certificate.outputs.image_tag }}
 
 permissions:
   contents: read
@@ -38,14 +38,6 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-core # Defaults to the repository name
       docker-file: servers/Dockerfile # Defaults to Dockerfile
       docker-context: ./servers/core
-      tags: ${{ inputs.release_tag }}
-    secrets: inherit
-  intro-course:
-    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
-    with:
-      image-name: ghcr.io/prompt-edu/prompt/prompt-server-intro-course
-      docker-file: servers/Dockerfile
-      docker-context: ./servers/intro_course
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   team-allocation:
@@ -78,5 +70,13 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-interview
       docker-file: servers/Dockerfile
       docker-context: ./servers/interview
+      tags: ${{ inputs.release_tag }}
+    secrets: inherit
+  certificate:
+    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
+    with:
+      image-name: ghcr.io/prompt-edu/prompt/prompt-server-certificate
+      docker-file: servers/certificate/Dockerfile
+      docker-context: ./servers/certificate
       tags: ${{ inputs.release_tag }}
     secrets: inherit

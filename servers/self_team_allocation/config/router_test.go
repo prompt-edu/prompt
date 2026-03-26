@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prompt-edu/prompt/servers/self_team_allocation/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -17,7 +19,7 @@ type ConfigRouterTestSuite struct {
 	suite.Suite
 	ctx     context.Context
 	router  *gin.Engine
-	testDB  *testutils.TestDB
+	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 }
 
@@ -25,7 +27,7 @@ func (suite *ConfigRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/base.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
 	suite.testDB = testDB
 	suite.cleanup = cleanup
@@ -37,7 +39,10 @@ func (suite *ConfigRouterTestSuite) SetupSuite() {
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
-	setupConfigRouter(api, testutils.DefaultMockAuthMiddleware())
+	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
+		return sdkTestUtils.DefaultMockAuthMiddleware()
+	}
+	setupConfigRouter(api, authMiddleware)
 }
 
 func (suite *ConfigRouterTestSuite) TearDownSuite() {

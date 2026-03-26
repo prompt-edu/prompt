@@ -1,7 +1,7 @@
 import React, { forwardRef, useImperativeHandle } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@tumaet/prompt-ui-components'
+import { Form, FormField, FormItem, FormMessage } from '@tumaet/prompt-ui-components'
 import { QuestionMultiSelectFormRef } from '../../utils/QuestionMultiSelectFormRef'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { createValidationSchema } from './validationSchema'
@@ -47,33 +47,29 @@ export const ApplicationQuestionMultiSelectForm = forwardRef(
     return (
       <Form {...form}>
         <form>
-          <FormItem>
-            <FormControl>
-              <FormField
-                control={form.control}
-                name='answers'
-                render={({ fieldState }) => (
-                  <>
-                    {isCheckboxQuestion ? (
-                      <CheckboxQuestion
-                        form={form}
-                        question={question}
-                        isInstructorView={isInstructorView}
-                      />
-                    ) : (
-                      <MultiSelectQuestion
-                        form={form}
-                        question={question}
-                        initialAnswers={initialAnswers}
-                        isInstructorView={isInstructorView}
-                      />
-                    )}
-                    <FormMessage>{fieldState.error?.message}</FormMessage>
-                  </>
+          <FormField
+            control={form.control}
+            name='answers'
+            render={({ fieldState }) => (
+              <FormItem>
+                {isCheckboxQuestion ? (
+                  <CheckboxQuestion
+                    form={form}
+                    question={question}
+                    isInstructorView={isInstructorView}
+                  />
+                ) : (
+                  <MultiSelectQuestion
+                    form={form}
+                    question={question}
+                    initialAnswers={initialAnswers}
+                    isInstructorView={isInstructorView}
+                  />
                 )}
-              />
-            </FormControl>
-          </FormItem>
+                <FormMessage>{fieldState.error?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
         </form>
       </Form>
     )

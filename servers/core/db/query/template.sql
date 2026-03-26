@@ -79,6 +79,11 @@ GROUP BY
 ORDER BY
   ucr.semester_tag, ucr.name DESC;
 
+-- name: CheckCourseNameExists :one
+SELECT EXISTS(
+    SELECT 1 FROM course WHERE name = $1 AND semester_tag = $2
+) AS "exists";
+
 -- name: CheckCourseTemplateStatus :one
 SELECT template
 FROM course

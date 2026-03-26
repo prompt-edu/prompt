@@ -1,17 +1,22 @@
-import { useState } from 'react'
-import { Send, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Trash2, X } from 'lucide-react'
 import {
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Input,
   Label,
   Separator,
-  Textarea,
+  ScoreLevelSelector,
 } from '@tumaet/prompt-ui-components'
-import { PassStatus, useAuthStore } from '@tumaet/prompt-shared-state'
+import {
+  mapNumberToScoreLevel,
+  mapScoreLevelToNumber,
+  PassStatus,
+  ScoreLevel,
+  useAuthStore,
+} from '@tumaet/prompt-shared-state'
 import { InstructorComment } from '../../../../../interfaces/instructorComment'
 import { useModifyAssessment } from '../hooks/mutateAssessment'
 import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
@@ -23,6 +28,27 @@ interface AssessmentCardProps {
   courseParticipationID: string
 }
 
+const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
+  [ScoreLevel.VeryGood]: 'Very Good',
+  [ScoreLevel.Good]: 'Good',
+  [ScoreLevel.Ok]: 'Okay',
+  [ScoreLevel.Bad]: 'Bad',
+  [ScoreLevel.VeryBad]: 'Very Bad',
+}
+
+const SCORE_LEVEL_DESCRIPTIONS: Record<ScoreLevel, string> = {
+  [ScoreLevel.VeryGood]: 'Outstanding final application assessment.',
+  [ScoreLevel.Good]: 'Strong application assessment with minor reservations.',
+  [ScoreLevel.Ok]: 'Neutral application assessment.',
+  [ScoreLevel.Bad]: 'Weak application assessment with notable concerns.',
+  [ScoreLevel.VeryBad]: 'Do not recommend based on the application.',
+}
+
+const mapStoredScoreToScoreLevel = (score: number | null): ScoreLevel | undefined =>
+  score !== null && Number.isInteger(score) && score >= 1 && score <= 5
+    ? mapNumberToScoreLevel(score)
+    : undefined
+
 export const AssessmentCard = ({
   score,
   restrictedData,
@@ -30,12 +56,15 @@ export const AssessmentCard = ({
   courseParticipationID,
 }: AssessmentCardProps) => {
   const [currentScore, setCurrentScore] = useState<number | null>(score)
-  const [newComment, setNewComment] = useState<string>('')
   const comments = (restrictedData.comments as InstructorComment[]) ?? []
   const { user } = useAuthStore()
   const author = `${user?.firstName} ${user?.lastName}`
 
-  const { mutate: mutateAssessment } = useModifyAssessment(courseParticipationID)
+  const { mutate: mutateAssessment, isPending } = useModifyAssessment(courseParticipationID)
+
+  useEffect(() => {
+    setCurrentScore(score)
+  }, [score])
 
   const handleScoreSubmit = (newScore: number) => {
     const assessment: ApplicationAssessment = {
@@ -49,25 +78,6 @@ export const AssessmentCard = ({
       passStatus: newStatus,
     }
     mutateAssessment(assessment)
-  }
-
-  const handleCommentSubmit = (comment: string) => {
-    comments.push({
-      text: comment,
-      timestamp: new Date().toISOString(),
-      author: author,
-    })
-    const assessment: ApplicationAssessment = {
-      restrictedData: {
-        comments,
-      },
-    }
-    mutateAssessment(assessment)
-  }
-
-  const submitComment = () => {
-    handleCommentSubmit(newComment)
-    setNewComment('')
   }
 
   const handleDeleteComment = (comment: InstructorComment) => {
@@ -88,123 +98,103 @@ export const AssessmentCard = ({
       <CardHeader>
         <CardTitle>Assessment</CardTitle>
       </CardHeader>
-      <CardContent className='space-y-6'>
-        <div className='space-y-4'>
+      <CardContent>
+        <div className='space-y-6'>
           <div>
-            <Label htmlFor='new-score' className='text-sm font-medium'>
-              Application Score
-            </Label>
-            <div className='flex items-center space-x-2 mt-1'>
-              <Input
-                id='new-score'
-                title='Assessment Score'
-                type='number'
-                value={currentScore ?? ''}
-                placeholder='New score'
-                onChange={(e) =>
-                  setCurrentScore(e.target.value === '' ? null : Number(e.target.value))
-                }
-                className='w-28'
+            <Label className='text-sm font-medium'>Application Score</Label>
+            <div className='mt-1 space-y-2'>
+              <ScoreLevelSelector
+                className='grid gap-2 xl:grid-cols-5'
+                selectedScore={mapStoredScoreToScoreLevel(currentScore)}
+                onScoreChange={(value) => {
+                  if (isPending) {
+                    return
+                  }
+                  const nextScore = mapScoreLevelToNumber(value)
+                  setCurrentScore(nextScore)
+                  handleScoreSubmit(nextScore)
+                }}
+                completed={false}
+                descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
+                labelsByLevel={SCORE_LEVEL_LABELS}
+                showIndicators={false}
+                hideUnselectedOnDesktop={false}
               />
-              <Button
-                disabled={!currentScore || currentScore === score}
-                onClick={() => handleScoreSubmit(currentScore ?? 0)}
-                size='sm'
-              >
-                Submit
-              </Button>
+              {currentScore !== null &&
+                (!Number.isInteger(currentScore) || currentScore < 1 || currentScore > 5) && (
+                  <p className='text-sm text-muted-foreground'>
+                    Existing numeric score {currentScore} is outside the 1-5 selector range.
+                    Selecting a level will replace it.
+                  </p>
+                )}
             </div>
           </div>
           <div>
             <Label htmlFor='resolution' className='text-sm font-medium'>
               Resolution
             </Label>
-            <div className='flex items-center space-x-4 mt-2'>
+            <div className='mt-1 flex flex-wrap items-center gap-4'>
               <Button
                 variant='outline'
-                size='lg'
-                disabled={acceptanceStatus === PassStatus.FAILED}
-                className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
+                size='sm'
+                disabled={isPending || acceptanceStatus === PassStatus.FAILED}
                 onClick={() => handleAcceptanceStatusChange(PassStatus.FAILED)}
               >
+                <X />
                 Reject
               </Button>
               <Button
                 variant='default'
-                size='lg'
-                disabled={acceptanceStatus === PassStatus.PASSED}
-                className='bg-green-500 hover:bg-green-600 text-white'
+                size='sm'
+                disabled={isPending || acceptanceStatus === PassStatus.PASSED}
                 onClick={() => handleAcceptanceStatusChange(PassStatus.PASSED)}
               >
+                <Check />
                 Accept
               </Button>
             </div>
           </div>
         </div>
 
-        <Separator />
-
         {comments && comments.length > 0 && (
-          <div className='space-y-2'>
-            <Label className='text-sm font-medium'>Previous Comments</Label>
-            <div className='space-y-2 max-h-60 overflow-y-auto'>
-              {comments.map((comment, index) => (
-                <div
-                  key={index}
-                  className='border border-border p-3 rounded-md bg-secondary text-card-foreground flex justify-between items-start'
-                >
-                  <div>
-                    <p className='text-sm text-muted-foreground mb-1'>
-                      <strong className='font-medium text-foreground'>{comment.author}</strong>{' '}
-                      {comment.timestamp && (
-                        <span className='text-muted-foreground'>
-                          - {new Date(comment.timestamp).toLocaleString()}
-                        </span>
-                      )}
-                    </p>
-                    <p className='text-foreground whitespace-pre-line'>{comment.text}</p>
+          <>
+            <Separator />
+            <div className='space-y-2'>
+              <Label className='text-sm font-medium'>Previous Comments</Label>
+              <div className='space-y-2 max-h-60 overflow-y-auto'>
+                {comments.map((comment, index) => (
+                  <div
+                    key={index}
+                    className='border border-border p-3 rounded-md bg-secondary text-card-foreground flex justify-between items-start'
+                  >
+                    <div>
+                      <p className='text-sm text-muted-foreground mb-1'>
+                        <strong className='font-medium text-foreground'>{comment.author}</strong>{' '}
+                        {comment.timestamp && (
+                          <span className='text-muted-foreground'>
+                            - {new Date(comment.timestamp).toLocaleString()}
+                          </span>
+                        )}
+                      </p>
+                      <p className='text-foreground whitespace-pre-line'>{comment.text}</p>
+                    </div>
+                    {comment.author === author && (
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        disabled={isPending}
+                        onClick={() => handleDeleteComment(comment)}
+                        className='text-red-500 hover:text-red-600 hover:bg-red-50'
+                      >
+                        <Trash2 className='h-4 w-4' />
+                      </Button>
+                    )}
                   </div>
-                  {comment.author === author && (
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => handleDeleteComment(comment)}
-                      className='text-red-500 hover:text-red-600 hover:bg-red-50'
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
-
-        <div>
-          <Label htmlFor='new-comment' className='text-sm font-medium'>
-            Add Comment
-          </Label>
-          <div className='flex items-start space-x-2 mt-1'>
-            <Textarea
-              id='new-comment'
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && newComment.trim()) {
-                  e.preventDefault()
-                  submitComment()
-                }
-              }}
-              placeholder='Type your comment here...'
-              className='flex-grow'
-              rows={3}
-            />
-            <Button size='sm' disabled={!newComment} onClick={submitComment}>
-              <Send className='h-4 w-4 mr-2' />
-              Send
-            </Button>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

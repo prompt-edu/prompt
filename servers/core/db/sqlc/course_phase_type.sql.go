@@ -37,8 +37,15 @@ func (q *Queries) CreateCoursePhaseType(ctx context.Context, arg CreateCoursePha
 }
 
 const createCoursePhaseTypeProvidedOutput = `-- name: CreateCoursePhaseTypeProvidedOutput :exec
-INSERT INTO course_phase_type_participation_provided_output_dto (id, course_phase_type_id, dto_name, version_number,
-                                                                 endpoint_path, specification)
+INSERT INTO
+    course_phase_type_participation_provided_output_dto (
+        id,
+        course_phase_type_id,
+        dto_name,
+        version_number,
+        endpoint_path,
+        specification
+    )
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
@@ -64,7 +71,13 @@ func (q *Queries) CreateCoursePhaseTypeProvidedOutput(ctx context.Context, arg C
 }
 
 const createCoursePhaseTypeRequiredInput = `-- name: CreateCoursePhaseTypeRequiredInput :exec
-INSERT INTO course_phase_type_participation_required_input_dto (id, course_phase_type_id, dto_name, specification)
+INSERT INTO
+    course_phase_type_participation_required_input_dto (
+        id,
+        course_phase_type_id,
+        dto_name,
+        specification
+    )
 VALUES ($1, $2, $3, $4)
 `
 
@@ -184,8 +197,7 @@ func (q *Queries) CreateRequiredDevices(ctx context.Context, coursePhaseTypeID u
 }
 
 const getAllCoursePhaseTypes = `-- name: GetAllCoursePhaseTypes :many
-SELECT id, name, initial_phase, base_url, description
-FROM course_phase_type
+SELECT id, name, initial_phase, base_url, description FROM course_phase_type
 `
 
 func (q *Queries) GetAllCoursePhaseTypes(ctx context.Context) ([]CoursePhaseType, error) {
@@ -216,8 +228,10 @@ func (q *Queries) GetAllCoursePhaseTypes(ctx context.Context) ([]CoursePhaseType
 
 const getCoursePhaseProvidedParticipationOutputs = `-- name: GetCoursePhaseProvidedParticipationOutputs :many
 SELECT id, course_phase_type_id, dto_name, version_number, endpoint_path, specification
-FROM course_phase_type_participation_provided_output_dto
-WHERE course_phase_type_id = $1
+FROM
+    course_phase_type_participation_provided_output_dto
+WHERE
+    course_phase_type_id = $1
 `
 
 func (q *Queries) GetCoursePhaseProvidedParticipationOutputs(ctx context.Context, coursePhaseTypeID uuid.UUID) ([]CoursePhaseTypeParticipationProvidedOutputDto, error) {
@@ -249,8 +263,10 @@ func (q *Queries) GetCoursePhaseProvidedParticipationOutputs(ctx context.Context
 
 const getCoursePhaseProvidedPhaseOutputs = `-- name: GetCoursePhaseProvidedPhaseOutputs :many
 SELECT id, course_phase_type_id, dto_name, version_number, endpoint_path, specification
-FROM course_phase_type_phase_provided_output_dto
-WHERE course_phase_type_id = $1
+FROM
+    course_phase_type_phase_provided_output_dto
+WHERE
+    course_phase_type_id = $1
 `
 
 func (q *Queries) GetCoursePhaseProvidedPhaseOutputs(ctx context.Context, coursePhaseTypeID uuid.UUID) ([]CoursePhaseTypePhaseProvidedOutputDto, error) {
@@ -282,8 +298,10 @@ func (q *Queries) GetCoursePhaseProvidedPhaseOutputs(ctx context.Context, course
 
 const getCoursePhaseRequiredParticipationInputs = `-- name: GetCoursePhaseRequiredParticipationInputs :many
 SELECT id, course_phase_type_id, dto_name, specification
-FROM course_phase_type_participation_required_input_dto
-WHERE course_phase_type_id = $1
+FROM
+    course_phase_type_participation_required_input_dto
+WHERE
+    course_phase_type_id = $1
 `
 
 func (q *Queries) GetCoursePhaseRequiredParticipationInputs(ctx context.Context, coursePhaseTypeID uuid.UUID) ([]CoursePhaseTypeParticipationRequiredInputDto, error) {
@@ -313,8 +331,10 @@ func (q *Queries) GetCoursePhaseRequiredParticipationInputs(ctx context.Context,
 
 const getCoursePhaseRequiredPhaseInputs = `-- name: GetCoursePhaseRequiredPhaseInputs :many
 SELECT id, course_phase_type_id, dto_name, specification
-FROM course_phase_type_phase_required_input_dto
-WHERE course_phase_type_id = $1
+FROM
+    course_phase_type_phase_required_input_dto
+WHERE
+    course_phase_type_id = $1
 `
 
 func (q *Queries) GetCoursePhaseRequiredPhaseInputs(ctx context.Context, coursePhaseTypeID uuid.UUID) ([]CoursePhaseTypePhaseRequiredInputDto, error) {
@@ -343,9 +363,7 @@ func (q *Queries) GetCoursePhaseRequiredPhaseInputs(ctx context.Context, courseP
 }
 
 const getCoursePhaseTypeByID = `-- name: GetCoursePhaseTypeByID :one
-SELECT id, name, initial_phase, base_url, description
-FROM course_phase_type
-WHERE id = $1
+SELECT id, name, initial_phase, base_url, description FROM course_phase_type WHERE id = $1
 `
 
 func (q *Queries) GetCoursePhaseTypeByID(ctx context.Context, id uuid.UUID) (CoursePhaseType, error) {
@@ -394,10 +412,10 @@ VALUES (gen_random_uuid(),
           "type": "string",
           "enum": [
             "veryBad",
-            "Bad",
-            "Ok",
-            "Good",
-            "VeryGood"
+            "bad",
+            "ok",
+            "good",
+            "veryGood"
           ]
         }'::jsonb)
 `
@@ -416,10 +434,10 @@ VALUES (gen_random_uuid(),
           "type": "string",
           "enum": [
             "veryBad",
-            "Bad",
-            "Ok",
-            "Good",
-            "VeryGood"
+            "bad",
+            "ok",
+            "good",
+            "veryGood"
           ]
         }'::jsonb)
 `
@@ -682,9 +700,12 @@ func (q *Queries) InsertTeamRequiredInput(ctx context.Context, coursePhaseTypeID
 }
 
 const testApplicationPhaseTypeExists = `-- name: TestApplicationPhaseTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Application') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Application'
+    ) AS does_exist
 `
 
 func (q *Queries) TestApplicationPhaseTypeExists(ctx context.Context) (bool, error) {
@@ -695,13 +716,32 @@ func (q *Queries) TestApplicationPhaseTypeExists(ctx context.Context) (bool, err
 }
 
 const testAssessmentTypeExists = `-- name: TestAssessmentTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Assessment') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Assessment'
+    ) AS does_exist
 `
 
 func (q *Queries) TestAssessmentTypeExists(ctx context.Context) (bool, error) {
 	row := q.db.QueryRow(ctx, testAssessmentTypeExists)
+	var does_exist bool
+	err := row.Scan(&does_exist)
+	return does_exist, err
+}
+
+const testCertificateTypeExists = `-- name: TestCertificateTypeExists :one
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Certificate'
+    ) AS does_exist
+`
+
+func (q *Queries) TestCertificateTypeExists(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, testCertificateTypeExists)
 	var does_exist bool
 	err := row.Scan(&does_exist)
 	return does_exist, err
@@ -721,9 +761,12 @@ func (q *Queries) TestDevOpsChallengeTypeExists(ctx context.Context) (bool, erro
 }
 
 const testInterviewPhaseTypeExists = `-- name: TestInterviewPhaseTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Interview') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Interview'
+    ) AS does_exist
 `
 
 func (q *Queries) TestInterviewPhaseTypeExists(ctx context.Context) (bool, error) {
@@ -746,23 +789,13 @@ func (q *Queries) TestIntroCourseDeveloperPhaseTypeExists(ctx context.Context) (
 	return does_exist, err
 }
 
-const testIntroCourseTutorPhaseTypeExists = `-- name: TestIntroCourseTutorPhaseTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'IntroCourseTutor') AS does_exist
-`
-
-func (q *Queries) TestIntroCourseTutorPhaseTypeExists(ctx context.Context) (bool, error) {
-	row := q.db.QueryRow(ctx, testIntroCourseTutorPhaseTypeExists)
-	var does_exist bool
-	err := row.Scan(&does_exist)
-	return does_exist, err
-}
-
 const testMatchingPhaseTypeExists = `-- name: TestMatchingPhaseTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Matching') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Matching'
+    ) AS does_exist
 `
 
 func (q *Queries) TestMatchingPhaseTypeExists(ctx context.Context) (bool, error) {
@@ -773,9 +806,12 @@ func (q *Queries) TestMatchingPhaseTypeExists(ctx context.Context) (bool, error)
 }
 
 const testSelfTeamAllocationTypeExists = `-- name: TestSelfTeamAllocationTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Self Team Allocation') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Self Team Allocation'
+    ) AS does_exist
 `
 
 func (q *Queries) TestSelfTeamAllocationTypeExists(ctx context.Context) (bool, error) {
@@ -786,9 +822,12 @@ func (q *Queries) TestSelfTeamAllocationTypeExists(ctx context.Context) (bool, e
 }
 
 const testTeamAllocationTypeExists = `-- name: TestTeamAllocationTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'Team Allocation') AS does_exist
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Team Allocation'
+    ) AS does_exist
 `
 
 func (q *Queries) TestTeamAllocationTypeExists(ctx context.Context) (bool, error) {

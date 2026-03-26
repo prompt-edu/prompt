@@ -6,7 +6,7 @@
 This project follows a microservices architecture using Go (Golang) as the primary backend language. Please adhere to Go best practices, the project's architectural patterns, and the conventions described in the Architecture Documentation.
 
 **Shared Code:**  
-Utilities shared between microservices should be implemented in the [Prompt SDK](https://github.com/ls1intum/Prompt-SDK).
+Utilities shared between microservices should be implemented in the [Prompt SDK](https://github.com/prompt-edu/Prompt-SDK).
 
 ## 1. Naming Conventions
 
@@ -79,7 +79,7 @@ The project uses several standard dependencies across services:
 
 ### 3.2 Prompt SDK
 
-- Use the internal `Prompt-SDK` ([github.com/ls1intum/Prompt-SDK](https://github.com/ls1intum/Prompt-SDK)) for:
+- Use the internal `Prompt-SDK` ([github.com/prompt-edu/Prompt-SDK](https://github.com/prompt-edu/Prompt-SDK)) for:
   - Authentication middleware (Keycloak integration)
   - Authorization roles and permissions (RBAC)
   - CORS configuration

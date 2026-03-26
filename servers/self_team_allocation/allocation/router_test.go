@@ -9,8 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
-	"github.com/prompt-edu/prompt/servers/self_team_allocation/testutils"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,7 +28,7 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/base.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
 	suite.cleanup = cleanup
 
@@ -37,7 +39,10 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
-	setupAllocationRouter(api, testutils.DefaultMockAuthMiddleware())
+	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
+		return sdkTestUtils.DefaultMockAuthMiddleware()
+	}
+	setupAllocationRouter(api, authMiddleware)
 }
 
 func (suite *AllocationRouterTestSuite) TearDownSuite() {

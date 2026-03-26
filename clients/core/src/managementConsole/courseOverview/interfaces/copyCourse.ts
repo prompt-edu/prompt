@@ -4,6 +4,8 @@ export interface CopyCourse {
   startDate: Date
   endDate: Date
   template: boolean
+  shortDescription?: string
+  longDescription?: string
 }
 
 // Helper function to format Date as YYYY-MM-DD

@@ -22,6 +22,7 @@ import { courseFormSchema, type CourseFormValues } from '@core/validations/cours
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
 
 interface AddCoursePropertiesProps {
   onNext: (data: CourseFormValues) => void
@@ -64,6 +65,30 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
   const handleSemesterTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const filteredValue = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '')
     form.setValue('semesterTag', filteredValue, { shouldValidate: true })
+    form.clearErrors('name')
+    form.clearErrors('semesterTag')
+  }
+
+  const checkNameAvailability = async () => {
+    const name = form.getValues('name')
+    const semesterTag = form.getValues('semesterTag')
+    if (!name || !semesterTag) return
+    try {
+      const exists = await checkCourseNameExists(name, semesterTag)
+      if (exists) {
+        form.setError('name', {
+          type: 'manual',
+          message: `A course with name "${name}" and semester tag "${semesterTag}" already exists. Please
+                choose a different name or semester tag.`,
+        })
+        form.setError('semesterTag', {
+          type: 'manual',
+          message: 'Part of a conflicting name + semester tag combination.',
+        })
+      }
+    } catch {
+      // silently ignore network errors — server-side 409 handles it
+    }
   }
 
   return (
@@ -76,7 +101,20 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
             <FormItem>
               <FormLabel>Course Name</FormLabel>
               <FormControl>
-                <Input placeholder='Enter a course name' {...field} className='w-full' />
+                <Input
+                  placeholder='Enter a course name'
+                  {...field}
+                  className='w-full'
+                  onChange={(e) => {
+                    field.onChange(e)
+                    form.clearErrors('name')
+                    form.clearErrors('semesterTag')
+                  }}
+                  onBlur={async () => {
+                    field.onBlur()
+                    await checkNameAvailability()
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,6 +193,10 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
                   placeholder='Enter a semester tag'
                   value={field.value}
                   onChange={handleSemesterTagChange}
+                  onBlur={async () => {
+                    field.onBlur()
+                    await checkNameAvailability()
+                  }}
                   className='w-full'
                 />
               </FormControl>

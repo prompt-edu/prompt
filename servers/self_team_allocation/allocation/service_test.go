@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/self_team_allocation/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -13,13 +15,13 @@ import (
 type AllocationServiceTestSuite struct {
 	suite.Suite
 	ctx     context.Context
-	testDB  *testutils.TestDB
+	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 }
 
 func (suite *AllocationServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/base.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
 
 	suite.testDB = testDB

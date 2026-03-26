@@ -10,10 +10,10 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
-	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
@@ -22,7 +22,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
 	teams "github.com/prompt-edu/prompt/servers/team_allocation/team"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease"
-	"github.com/prompt-edu/prompt/servers/team_allocation/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -58,65 +57,6 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 }
-
-func initSentry() bool {
-	if promptSDK.GetEnv("SENTRY_ENABLED", "false") != "true" {
-		log.Info("Sentry is disabled (SENTRY_ENABLED != true)")
-		return false
-	}
-
-	sentryDsn := promptSDK.GetEnv("SENTRY_DSN_TEAM_ALLOCATION", "")
-	if sentryDsn == "" {
-		log.Warn("Sentry is enabled but SENTRY_DSN_TEAM_ALLOCATION is not configured, skipping initialization")
-		return false
-	}
-
-	transport := sentry.NewHTTPTransport()
-	transport.Timeout = 2 * time.Second
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              sentryDsn,
-		Environment:      promptSDK.GetEnv("ENVIRONMENT", "development"),
-		Debug:            false,
-		Transport:        transport,
-		EnableLogs:       true,
-		AttachStacktrace: true,
-		SendDefaultPII:   true,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		log.Errorf("Sentry initialization failed: %v", err)
-		return false
-	}
-
-	client := sentry.CurrentHub().Client()
-	if client == nil {
-		log.Error("Sentry client is nil")
-		return false
-	}
-
-	logHook := sentrylogrus.NewLogHookFromClient(
-		[]log.Level{log.InfoLevel, log.WarnLevel},
-		client,
-	)
-
-	eventHook := sentrylogrus.NewEventHookFromClient(
-		[]log.Level{log.ErrorLevel, log.FatalLevel, log.PanicLevel},
-		client,
-	)
-
-	log.AddHook(logHook)
-	log.AddHook(eventHook)
-
-	log.RegisterExitHandler(func() {
-		eventHook.Flush(5 * time.Second)
-		logHook.Flush(5 * time.Second)
-	})
-
-	log.Info("Sentry initialized successfully")
-	return true
-}
-
 func initKeycloak(queries db.Queries) {
 	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
@@ -126,7 +66,7 @@ func initKeycloak(queries db.Queries) {
 
 	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -134,8 +74,9 @@ func initKeycloak(queries db.Queries) {
 }
 
 func main() {
-	sentryEnabled := initSentry()
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
 	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_TEAM_ALLOCATION", ""))
 		defer sentry.Flush(2 * time.Second)
 	}
 

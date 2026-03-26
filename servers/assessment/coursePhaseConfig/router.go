@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -88,6 +89,10 @@ func createOrUpdateCoursePhaseConfig(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, ErrCannotChangeSchemaWithData) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
 		log.WithError(err).Error("Failed to create or update course phase config")

@@ -18,13 +18,7 @@ on:
       matching_image_tag:
         required: true
         type: string
-      intro_course_developer_image_tag:
-        required: true
-        type: string
       server_core_image_tag:
-        required: true
-        type: string
-      server_intro_course_image_tag:
         required: true
         type: string
       server_team_allocation_image_tag:
@@ -51,6 +45,12 @@ on:
       self_team_allocation_image_tag:
         required: true
         type: string
+      server_certificate_image_tag:
+        required: true
+        type: string
+      certificate_image_tag:
+        required: true
+        type: string
 
     secrets:
       VM_SSH_PRIVATE_KEY:
@@ -62,6 +62,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   deploy:
@@ -84,7 +85,7 @@ jobs:
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
             # Define services to stop/remove (all except reverse-proxy and maintenance)
-            SERVICES="server-core server-intro-course server-team-allocation server-self-team-allocation server-assessment server-interview client-core client-assessment-component client-devops-challenge-component client-intro-course-developer-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-template-component"
+            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate client-core client-assessment-component client-devops-challenge-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-template-component client-certificate-component"
             # Stop all services except reverse-proxy and maintenance (keep fallback active)
             docker compose -f docker-compose.prod.yml --env-file=.env.prod stop $SERVICES
             # Remove stopped containers
@@ -99,7 +100,7 @@ jobs:
           sha256sum maintenance.tar.gz > maintenance.tar.gz.sha256
 
       - name: Copy file to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -114,7 +115,7 @@ jobs:
           target: /home/${{ vars.VM_USERNAME }}
 
       - name: Copy maintenance tarball to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -134,7 +135,7 @@ jobs:
           echo "${{ vars.POSTFIX_MASTER_CF }}" > master.cf
 
       - name: Copy main.cf to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -149,7 +150,7 @@ jobs:
           target: /home/${{ vars.VM_USERNAME }}/postfix-config/
 
       - name: Copy master.cf to VM Host
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.VM_HOST }}
           username: ${{ vars.VM_USERNAME }}
@@ -211,8 +212,6 @@ jobs:
             echo "DB_NAME=${{ vars.DB_NAME }}" >> .env.prod
             echo "DB_USER=${{ vars.DB_USER }}" >> .env.prod
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env.prod
-            echo "DB_HOST_INTRO_COURSE=${{ vars.DB_HOST_INTRO_COURSE }}" >> .env.prod
-            echo "DB_PORT_INTRO_COURSE=${{ vars.DB_PORT_INTRO_COURSE }}" >> .env.prod
             echo "DB_HOST_TEAM_ALLOCATION=${{ vars.DB_HOST_TEAM_ALLOCATION }}" >> .env.prod
             echo "DB_PORT_TEAM_ALLOCATION=${{ vars.DB_PORT_TEAM_ALLOCATION }}" >> .env.prod
             echo "DB_HOST_SELF_TEAM_ALLOCATION=${{ vars.DB_HOST_SELF_TEAM_ALLOCATION }}" >> .env.prod
@@ -221,6 +220,8 @@ jobs:
             echo "DB_PORT_INTERVIEW=${{ vars.DB_PORT_INTERVIEW }}" >> .env.prod
             echo "DB_HOST_ASSESSMENT=${{ vars.DB_HOST_ASSESSMENT }}" >> .env.prod
             echo "DB_PORT_ASSESSMENT=${{ vars.DB_PORT_ASSESSMENT }}" >> .env.prod
+            echo "DB_HOST_CERTIFICATE=${{ vars.DB_HOST_CERTIFICATE }}" >> .env.prod
+            echo "DB_PORT_CERTIFICATE=${{ vars.DB_PORT_CERTIFICATE }}" >> .env.prod
 
             echo "KEYCLOAK_HOST=${{ vars.KEYCLOAK_HOST }}" >> .env.prod
             echo "KEYCLOAK_REALM_NAME=${{ vars.KEYCLOAK_REALM_NAME }}" >> .env.prod
@@ -232,21 +233,21 @@ jobs:
             echo "GITHUB_SHA=${{ github.sha }}" >> .env.prod
             echo "GITHUB_REF=${{ github.ref != '' && github.ref || github.head_ref }}" >> .env.prod
             echo "SERVER_CORE_IMAGE_TAG=${{ inputs.server_core_image_tag }}" >> .env.prod
-            echo "SERVER_INTRO_COURSE_IMAGE_TAG=${{ inputs.server_intro_course_image_tag }}" >> .env.prod
             echo "SERVER_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.server_team_allocation_image_tag }}" >> .env.prod
             echo "SERVER_ASSESSMENT_IMAGE_TAG=${{ inputs.server_assessment_image_tag }}" >> .env.prod
             echo "SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.server_self_team_allocation_image_tag }}" >> .env.prod
             echo "SERVER_INTERVIEW_IMAGE_TAG=${{ inputs.server_interview_image_tag }}" >> .env.prod
+            echo "SERVER_CERTIFICATE_IMAGE_TAG=${{ inputs.server_certificate_image_tag }}" >> .env.prod
 
             echo "CORE_IMAGE_TAG=${{ inputs.core_image_tag }}" >> .env.prod
             echo "TEMPLATE_IMAGE_TAG=${{ inputs.template_image_tag }}" >> .env.prod
             echo "INTERVIEW_IMAGE_TAG=${{ inputs.interview_image_tag }}" >> .env.prod
             echo "MATCHING_IMAGE_TAG=${{ inputs.matching_image_tag }}" >> .env.prod
-            echo "INTRO_COURSE_DEVELOPER_IMAGE_TAG=${{ inputs.intro_course_developer_image_tag }}" >> .env.prod
             echo "ASSESSMENT_IMAGE_TAG=${{ inputs.assessment_image_tag }}" >> .env.prod
             echo "DEVOPS_CHALLENGE_IMAGE_TAG=${{ inputs.devops_challenge_image_tag }}" >> .env.prod
             echo "TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.team_allocation_image_tag }}" >> .env.prod
             echo "SELF_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.self_team_allocation_image_tag }}" >> .env.prod
+            echo "CERTIFICATE_IMAGE_TAG=${{ inputs.certificate_image_tag }}" >> .env.prod
 
 
             echo "SENDER_EMAIL=${{ vars.SENDER_EMAIL_ADDRESS }}" >> .env.prod
@@ -260,14 +261,24 @@ jobs:
             # Uncomment to reenable
             # 
             # echo "SENTRY_DSN_CORE=${{ vars.SENTRY_DSN_CORE }}" >> .env.prod
-            # echo "SENTRY_DSN_INTRO_COURSE=${{ vars.SENTRY_DSN_INTRO_COURSE }}" >> .env.prod
             # echo "SENTRY_DSN_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_TEAM_ALLOCATION }}" >> .env.prod
             # echo "SENTRY_DSN_SELF_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_SELF_TEAM_ALLOCATION }}" >> .env.prod
             # echo "SENTRY_DSN_ASSESSMENT=${{ vars.SENTRY_DSN_ASSESSMENT }}" >> .env.prod
             # echo "SENTRY_DSN_INTERVIEW=${{ vars.SENTRY_DSN_INTERVIEW }}" >> .env.prod
 
             echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env.prod
-            echo "GITLAB_ACCESS_TOKEN=${{ vars.GITLAB_ACCESS_TOKEN }}" >> .env.prod
+
+            echo "S3_BUCKET=${{ vars.S3_BUCKET }}" >> .env.prod
+            echo "S3_REGION=${{ vars.S3_REGION }}" >> .env.prod
+            echo "S3_ENDPOINT=${{ vars.S3_ENDPOINT }}" >> .env.prod
+            echo "S3_PUBLIC_ENDPOINT=${{ vars.S3_PUBLIC_ENDPOINT }}" >> .env.prod
+            echo "S3_ACCESS_KEY=${{ vars.S3_ACCESS_KEY }}" >> .env.prod
+            echo "S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }}" >> .env.prod
+            echo "S3_FORCE_PATH_STYLE=${{ vars.S3_FORCE_PATH_STYLE }}" >> .env.prod
+            echo "S3_PRESIGN_UPLOAD_TTL_SECONDS=60" >> .env.prod
+            echo "S3_PRESIGN_DOWNLOAD_TTL_SECONDS=30" >> .env.prod
+            echo "MAX_FILE_UPLOAD_SIZE_MB=${{ vars.MAX_FILE_UPLOAD_SIZE_MB }}" >> .env.prod
+            echo "ALLOWED_FILE_TYPES=${{ vars.ALLOWED_FILE_TYPES }}" >> .env.prod
 
       - name: SSH to VM and Execute Docker-Compose Up
         uses: appleboy/ssh-action@v1.2.5

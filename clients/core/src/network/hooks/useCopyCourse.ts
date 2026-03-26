@@ -75,6 +75,8 @@ export const useCopyCourse = (
       startDate: formData.dateRange?.from ?? new Date(),
       endDate: formData.dateRange?.to ?? new Date(),
       template: createTemplate ? true : false,
+      shortDescription: formData.shortDescription,
+      longDescription: formData.longDescription || undefined,
     }
     mutateCopyCourse(copyData)
   }

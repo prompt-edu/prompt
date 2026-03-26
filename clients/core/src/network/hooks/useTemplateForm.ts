@@ -16,6 +16,8 @@ export const useTemplateForm = (courseId: string, setCurrentStep: (step: DialogS
     defaultValues: {
       name: course?.name,
       semesterTag: 'template',
+      shortDescription: course?.shortDescription ?? '',
+      longDescription: course?.longDescription ?? '',
     },
   })
 

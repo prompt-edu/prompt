@@ -55,6 +55,49 @@ func (ns NullCourseType) Value() (driver.Value, error) {
 	return string(ns.CourseType), nil
 }
 
+type ExportStatus string
+
+const (
+	ExportStatusPending  ExportStatus = "pending"
+	ExportStatusComplete ExportStatus = "complete"
+	ExportStatusFailed   ExportStatus = "failed"
+)
+
+func (e *ExportStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExportStatus(s)
+	case string:
+		*e = ExportStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExportStatus: %T", src)
+	}
+	return nil
+}
+
+type NullExportStatus struct {
+	ExportStatus ExportStatus `json:"export_status"`
+	Valid        bool         `json:"valid"` // Valid is true if ExportStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExportStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExportStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExportStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExportStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExportStatus), nil
+}
+
 type Gender string
 
 const (
@@ -97,6 +140,52 @@ func (ns NullGender) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.Gender), nil
+}
+
+type NoteTagColor string
+
+const (
+	NoteTagColorBlue   NoteTagColor = "blue"
+	NoteTagColorGreen  NoteTagColor = "green"
+	NoteTagColorRed    NoteTagColor = "red"
+	NoteTagColorYellow NoteTagColor = "yellow"
+	NoteTagColorOrange NoteTagColor = "orange"
+	NoteTagColorPink   NoteTagColor = "pink"
+)
+
+func (e *NoteTagColor) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NoteTagColor(s)
+	case string:
+		*e = NoteTagColor(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NoteTagColor: %T", src)
+	}
+	return nil
+}
+
+type NullNoteTagColor struct {
+	NoteTagColor NoteTagColor `json:"note_tag_color"`
+	Valid        bool         `json:"valid"` // Valid is true if NoteTagColor is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNoteTagColor) Scan(value interface{}) error {
+	if value == nil {
+		ns.NoteTagColor, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NoteTagColor.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNoteTagColor) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NoteTagColor), nil
 }
 
 type PassStatus string
@@ -184,6 +273,13 @@ func (ns NullStudyDegree) Value() (driver.Value, error) {
 	return string(ns.StudyDegree), nil
 }
 
+type ApplicationAnswerFileUpload struct {
+	ID                    uuid.UUID `json:"id"`
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	FileID                uuid.UUID `json:"file_id"`
+}
+
 type ApplicationAnswerMultiSelect struct {
 	ID                    uuid.UUID `json:"id"`
 	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
@@ -203,6 +299,19 @@ type ApplicationAssessment struct {
 	Score                 pgtype.Int4 `json:"score"`
 	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+}
+
+type ApplicationQuestionFileUpload struct {
+	ID                       uuid.UUID   `json:"id"`
+	CoursePhaseID            uuid.UUID   `json:"course_phase_id"`
+	Title                    string      `json:"title"`
+	Description              pgtype.Text `json:"description"`
+	IsRequired               bool        `json:"is_required"`
+	AllowedFileTypes         pgtype.Text `json:"allowed_file_types"`
+	MaxFileSizeMb            pgtype.Int4 `json:"max_file_size_mb"`
+	OrderNum                 int32       `json:"order_num"`
+	AccessibleForOtherPhases bool        `json:"accessible_for_other_phases"`
+	AccessKey                pgtype.Text `json:"access_key"`
 }
 
 type ApplicationQuestionMultiSelect struct {
@@ -323,6 +432,67 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	Specification     []byte    `json:"specification"`
 }
 
+type File struct {
+	ID               uuid.UUID        `json:"id"`
+	Filename         string           `json:"filename"`
+	OriginalFilename string           `json:"original_filename"`
+	ContentType      string           `json:"content_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	StorageKey       string           `json:"storage_key"`
+	StorageProvider  string           `json:"storage_provider"`
+	UploadedByUserID string           `json:"uploaded_by_user_id"`
+	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
+	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
+	Description      pgtype.Text      `json:"description"`
+	Tags             []string         `json:"tags"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
+}
+
+type Note struct {
+	ID          uuid.UUID          `json:"id"`
+	ForStudent  uuid.UUID          `json:"for_student"`
+	Author      uuid.UUID          `json:"author"`
+	AuthorName  string             `json:"author_name"`
+	AuthorEmail string             `json:"author_email"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	DateDeleted pgtype.Timestamptz `json:"date_deleted"`
+	DeletedBy   pgtype.UUID        `json:"deleted_by"`
+}
+
+type NoteTag struct {
+	ID    uuid.UUID    `json:"id"`
+	Name  string       `json:"name"`
+	Color NoteTagColor `json:"color"`
+}
+
+type NoteTagRelation struct {
+	NoteID uuid.UUID `json:"note_id"`
+	TagID  uuid.UUID `json:"tag_id"`
+}
+
+type NoteVersion struct {
+	ID            uuid.UUID          `json:"id"`
+	Content       string             `json:"content"`
+	DateCreated   pgtype.Timestamptz `json:"date_created"`
+	VersionNumber int32              `json:"version_number"`
+	ForNote       uuid.UUID          `json:"for_note"`
+}
+
+type NoteWithVersion struct {
+	ID          uuid.UUID          `json:"id"`
+	Author      uuid.UUID          `json:"author"`
+	AuthorName  string             `json:"author_name"`
+	AuthorEmail string             `json:"author_email"`
+	ForStudent  uuid.UUID          `json:"for_student"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	DateDeleted pgtype.Timestamptz `json:"date_deleted"`
+	DeletedBy   pgtype.UUID        `json:"deleted_by"`
+	Versions    []byte             `json:"versions"`
+	Tags        []byte             `json:"tags"`
+}
+
 type ParticipationDataDependencyGraph struct {
 	FromCoursePhaseID    uuid.UUID `json:"from_course_phase_id"`
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`
@@ -335,6 +505,36 @@ type PhaseDataDependencyGraph struct {
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`
 	FromCoursePhaseDtoID uuid.UUID `json:"from_course_phase_dto_id"`
 	ToCoursePhaseDtoID   uuid.UUID `json:"to_course_phase_dto_id"`
+}
+
+type PrivacyExport struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+}
+
+type PrivacyExportDocument struct {
+	ID           uuid.UUID          `json:"id"`
+	ExportID     pgtype.UUID        `json:"export_id"`
+	DateCreated  pgtype.Timestamptz `json:"date_created"`
+	SourceName   string             `json:"source_name"`
+	ObjectKey    string             `json:"object_key"`
+	Status       ExportStatus       `json:"status"`
+	FileSize     pgtype.Int8        `json:"file_size"`
+	DownloadedAt pgtype.Timestamptz `json:"downloaded_at"`
+}
+
+type PrivacyExportWithDoc struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+	Documents   interface{}        `json:"documents"`
 }
 
 type Student struct {

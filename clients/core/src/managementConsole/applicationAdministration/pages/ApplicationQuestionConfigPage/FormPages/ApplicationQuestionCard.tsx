@@ -16,6 +16,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import {
   QuestionConfigFormData,
   QuestionConfigFormDataMultiSelect,
@@ -35,6 +36,8 @@ import {
   ErrorMessageField,
   ValidationRegexField,
   ExportSettingsFields,
+  AllowedFileTypesField,
+  MaxFileSizeField,
 } from './FormFields'
 
 // If you plan to expose methods via this ref, define them here:
@@ -44,10 +47,19 @@ export interface ApplicationQuestionCardRef {
 }
 
 interface ApplicationQuestionCardProps {
-  question: ApplicationQuestionMultiSelect | ApplicationQuestionText
-  originalQuestion: ApplicationQuestionMultiSelect | ApplicationQuestionText | undefined
+  question: ApplicationQuestionMultiSelect | ApplicationQuestionText | ApplicationQuestionFileUpload
+  originalQuestion:
+    | ApplicationQuestionMultiSelect
+    | ApplicationQuestionText
+    | ApplicationQuestionFileUpload
+    | undefined
   index: number
-  onUpdate: (updatedQuestion: ApplicationQuestionMultiSelect | ApplicationQuestionText) => void
+  onUpdate: (
+    updatedQuestion:
+      | ApplicationQuestionMultiSelect
+      | ApplicationQuestionText
+      | ApplicationQuestionFileUpload,
+  ) => void
   submitAttempted: boolean
   onDelete: (id: string) => void
   dragHandleProps?: DraggableProvidedDragHandleProps | null
@@ -63,6 +75,7 @@ export const ApplicationQuestionCard = forwardRef<
   const isNewQuestion = question.title === '' ? true : false
   const [isExpanded, setIsExpanded] = useState(isNewQuestion)
   const isMultiSelectType = 'options' in question
+  const isFileUploadType = 'allowedFileTypes' in question
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false)
 
@@ -72,9 +85,15 @@ export const ApplicationQuestionCard = forwardRef<
       : 'modified'
     : 'new'
 
+  const questionType = isMultiSelectType
+    ? 'multi-select'
+    : isFileUploadType
+      ? 'file-upload'
+      : 'text'
+
   const form = useForm<QuestionConfigFormData>({
     resolver: zodResolver(questionConfigSchema),
-    defaultValues: { type: isMultiSelectType ? 'multi-select' : 'text', ...question },
+    defaultValues: { type: questionType, ...question },
     mode: 'onTouched',
   })
 
@@ -142,11 +161,13 @@ export const ApplicationQuestionCard = forwardRef<
                 <CardTitle>{question.title || `Untitled Question`}</CardTitle>
                 <p className='text-sm text-muted-foreground mt-1'>
                   Question {index + 1}:{' '}
-                  {isMultiSelectType
-                    ? isCheckboxQuestion
-                      ? 'Checkbox'
-                      : 'Multi-select question'
-                    : 'Text question'}
+                  {isFileUploadType
+                    ? 'File upload question'
+                    : isMultiSelectType
+                      ? isCheckboxQuestion
+                        ? 'Checkbox'
+                        : 'Multi-select question'
+                      : 'Text question'}
                 </p>
               </div>
             </div>
@@ -183,7 +204,14 @@ export const ApplicationQuestionCard = forwardRef<
 
                   <DescriptionField form={form} initialDescription={question.description} />
 
-                  {!isMultiSelectType && <AllowedLengthField form={form} />}
+                  {!isMultiSelectType && !isFileUploadType && <AllowedLengthField form={form} />}
+
+                  {isFileUploadType && (
+                    <>
+                      <AllowedFileTypesField form={form} />
+                      <MaxFileSizeField form={form} />
+                    </>
+                  )}
 
                   {isMultiSelectType && !isCheckboxQuestion && (
                     <MultiSelectConfig
@@ -206,12 +234,14 @@ export const ApplicationQuestionCard = forwardRef<
                   </CollapsibleTrigger>
                   <CollapsibleContent className='space-y-4'>
                     {/** Checkbox Questions do not have a placeholder */}
-                    {!isCheckboxQuestion && <PlaceholderField form={form} />}
+                    {!isCheckboxQuestion && !isFileUploadType && <PlaceholderField form={form} />}
 
-                    {!isMultiSelectType && <ValidationRegexField form={form} />}
+                    {!isMultiSelectType && !isFileUploadType && (
+                      <ValidationRegexField form={form} />
+                    )}
 
                     {/** For multi-select question there is no need to specify an error message - it will be determined by max and min error */}
-                    {!isActualMultiSelect && (
+                    {!isActualMultiSelect && !isFileUploadType && (
                       <ErrorMessageField
                         form={form}
                         isCheckboxQuestion={isCheckboxQuestion}

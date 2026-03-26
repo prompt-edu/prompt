@@ -61,49 +61,47 @@ export const ApplicationQuestionTextForm = forwardRef(function ApplicationQuesti
   return (
     <Form {...form}>
       <form>
-        <FormItem>
-          <FormControl>
-            <FormField
-              control={form.control}
-              name='answer'
-              render={({ field, fieldState }) => (
-                <>
-                  <FormLabel>
-                    {question.title}
-                    {question.isRequired ? <span className='text-destructive'> *</span> : ''}
-                  </FormLabel>
-                  {!isInstructorView && question.description && (
-                    <FormDescriptionHTML htmlCode={question.description} />
-                  )}
-                  <div className='relative'>
-                    {isTextArea ? (
-                      <Textarea
-                        {...field}
-                        placeholder={question.placeholder || ''}
-                        maxLength={question.allowedLength}
-                        className='pr-12'
-                        rows={isInstructorView ? 8 : 4}
-                        disabled={isInstructorView}
-                      />
-                    ) : (
-                      <Input
-                        {...field}
-                        placeholder={question.placeholder || ''}
-                        maxLength={question.allowedLength}
-                        className='pr-12'
-                        disabled={isInstructorView}
-                      />
-                    )}
-                    <div className='absolute right-2 bottom-2 text-sm text-gray-500'>
-                      {charCount}/{question.allowedLength || 255}
-                    </div>
-                  </div>
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
-                </>
+        <FormField
+          control={form.control}
+          name='answer'
+          render={({ field, fieldState }) => (
+            <FormItem>
+              <FormLabel>
+                {question.title}
+                {question.isRequired ? <span className='text-destructive'> *</span> : ''}
+              </FormLabel>
+              {!isInstructorView && question.description && (
+                <FormDescriptionHTML htmlCode={question.description} />
               )}
-            />
-          </FormControl>
-        </FormItem>
+              <FormControl>
+                <div className='relative'>
+                  {isTextArea ? (
+                    <Textarea
+                      {...field}
+                      placeholder={question.placeholder || ''}
+                      maxLength={question.allowedLength}
+                      className='pr-12'
+                      rows={isInstructorView ? 8 : 4}
+                      disabled={isInstructorView}
+                    />
+                  ) : (
+                    <Input
+                      {...field}
+                      placeholder={question.placeholder || ''}
+                      maxLength={question.allowedLength}
+                      className='pr-12'
+                      disabled={isInstructorView}
+                    />
+                  )}
+                  <div className='absolute right-2 bottom-2 text-sm text-gray-500'>
+                    {charCount}/{question.allowedLength || 255}
+                  </div>
+                </div>
+              </FormControl>
+              <FormMessage>{fieldState.error?.message}</FormMessage>
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   )

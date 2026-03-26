@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
 staged_files="$(git diff --cached --name-only)"
-if ! echo "${staged_files}" | grep -Eq '^servers/(core|template_server|self_team_allocation|intro_course|assessment|team_allocation|interview)/'; then
+if ! echo "${staged_files}" | grep -Eq '^servers/(core|template_server|self_team_allocation|assessment|team_allocation|interview)/'; then
   exit 0
 fi
 
@@ -16,6 +16,10 @@ else
   go_bin="$(go env GOBIN 2>/dev/null || true)"
   if [[ -z "${go_bin}" ]]; then
     go_bin="$(go env GOPATH 2>/dev/null || true)/bin"
+  fi
+  # Fallback to default Go install location when go is not on PATH
+  if [[ -z "${go_bin}" || ! -x "${go_bin}/swag" ]]; then
+    go_bin="${HOME}/go/bin"
   fi
   if [[ -n "${go_bin}" && -x "${go_bin}/swag" ]]; then
     swag_bin="${go_bin}/swag"
@@ -47,11 +51,6 @@ fi
 if echo "${staged_files}" | grep -Eq '^servers/team_allocation/'; then
   SWAG_BIN="${swag_bin}" ./scripts/generate-api-spec.sh team_allocation
   git add servers/team_allocation/docs
-fi
-
-if echo "${staged_files}" | grep -Eq '^servers/intro_course/'; then
-  SWAG_BIN="${swag_bin}" ./scripts/generate-api-spec.sh intro_course
-  git add servers/intro_course/docs
 fi
 
 if echo "${staged_files}" | grep -Eq '^servers/assessment/'; then

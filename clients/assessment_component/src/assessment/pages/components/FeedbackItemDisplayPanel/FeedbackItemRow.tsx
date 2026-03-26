@@ -51,7 +51,12 @@ export const FeedbackItemRow = ({ feedbackItem }: FeedbackItemRowProps) => {
   return (
     <div className='p-3 border rounded-md bg-muted/50 relative'>
       {showCopied && (
-        <div className='absolute inset-0 bg-black/10 dark:bg-white/10 backdrop-blur-sm rounded-md flex items-center justify-center z-10 animate-in fade-in-0 duration-150 animate-out fade-out-0 duration-200'>
+        <div
+          className={
+            'absolute inset-0 bg-black/10 dark:bg-white/10 backdrop-blur-sm rounded-md ' +
+            'flex items-center justify-center z-10 animate-in fade-in-0 duration-150 animate-out fade-out-0 duration-200'
+          }
+        >
           <div className='flex items-center gap-2 text-foreground font-medium text-sm'>
             <Check className='h-4 w-4' />
             <span>Copied to clipboard</span>

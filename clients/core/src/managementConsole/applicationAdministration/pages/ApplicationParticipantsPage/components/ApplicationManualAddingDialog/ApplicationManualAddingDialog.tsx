@@ -26,6 +26,7 @@ import { postNewApplicationManual } from '@core/network/mutations/postApplicatio
 import { PostApplication } from '@core/interfaces/application/postApplication'
 import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
 import { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
 
 interface ApplicationManualAddingDialog {
@@ -91,11 +92,13 @@ export const ApplicationManualAddingDialog = ({
     student: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
+    answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => {
     const manualApplication: PostApplication = {
       student: student,
       answersText: answersText,
       answersMultiSelect: answersMultiSelect,
+      answersFileUpload: answersFileUpload,
     }
     mutateSendApplication(manualApplication)
     resetStates()
@@ -126,6 +129,8 @@ export const ApplicationManualAddingDialog = ({
             <ApplicationFormView
               questionsText={fetchedApplicationForm?.questionsText ?? []}
               questionsMultiSelect={fetchedApplicationForm?.questionsMultiSelect ?? []}
+              questionsFileUpload={fetchedApplicationForm?.questionsFileUpload ?? []}
+              coursePhaseId={phaseId}
               onSubmit={submitManualApplication}
             />
           </ScrollArea>
@@ -136,6 +141,8 @@ export const ApplicationManualAddingDialog = ({
             <ApplicationFormView
               questionsText={fetchedApplicationForm?.questionsText ?? []}
               questionsMultiSelect={fetchedApplicationForm?.questionsMultiSelect ?? []}
+              questionsFileUpload={fetchedApplicationForm?.questionsFileUpload ?? []}
+              coursePhaseId={phaseId}
               student={
                 selectedStudent !== null
                   ? selectedStudent

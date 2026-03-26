@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/team_allocation/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,7 +21,7 @@ type SurveyServiceTestSuite struct {
 
 func (suite *SurveyServiceTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/complete_schema.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/complete_schema.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

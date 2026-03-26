@@ -11,9 +11,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
-	"github.com/prompt-edu/prompt/servers/team_allocation/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,7 +29,7 @@ type SurveyRouterTestSuite struct {
 
 func (suite *SurveyRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/complete_schema.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/complete_schema.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -41,7 +42,11 @@ func (suite *SurveyRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "student@example.com", "03711111", "ab12cde")
+		inner := sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "student@example.com", "03711111", "ab12cde")
+		return func(c *gin.Context) {
+			c.Set("courseParticipationID", uuid.MustParse("99999999-9999-9999-9999-999999999991"))
+			inner(c)
+		}
 	}
 	setupSurveyRouter(api, testMiddleware)
 }
@@ -140,12 +145,12 @@ func (suite *SurveyRouterTestSuite) TestSetSurveyTimeframe() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
 
-	// Re-setup router with lecturer middleware
-	suite.router = gin.Default()
-	api := suite.router.Group("/api/course_phase/:coursePhaseID")
+	// Use a local router to avoid overwriting the shared suite router
+	localRouter := gin.Default()
+	api := localRouter.Group("/api/course_phase/:coursePhaseID")
 	setupSurveyRouter(api, testMiddleware)
 
 	timeframeReq := surveyDTO.SurveyTimeframe{
@@ -158,7 +163,7 @@ func (suite *SurveyRouterTestSuite) TestSetSurveyTimeframe() {
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 
-	suite.router.ServeHTTP(resp, req)
+	localRouter.ServeHTTP(resp, req)
 
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 }

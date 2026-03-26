@@ -4,14 +4,13 @@ import { Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsWithResolution, Team } from '@tumaet/prompt-shared-state'
-
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
+import { Team } from '@tumaet/prompt-shared-state'
 
 import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
 
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
 
 export const SelfTeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -21,10 +20,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
     isPending: isCoursePhaseParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
-  })
+  } = useGetCoursePhaseParticipants()
 
   const {
     data: teams,

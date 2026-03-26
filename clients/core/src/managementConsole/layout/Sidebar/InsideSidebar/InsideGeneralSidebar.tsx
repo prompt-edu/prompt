@@ -1,7 +1,9 @@
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, File, FileText, Users } from 'lucide-react'
+import { Archive, File, FileText, Shield, Tag, Users } from 'lucide-react'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
+import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
+import { Role } from '@tumaet/prompt-shared-state'
 
 export const InsideGeneralSidebar = () => {
   return (
@@ -14,24 +16,46 @@ export const InsideGeneralSidebar = () => {
               goToPath={'/management/courses'}
               title='Courses'
             />
-            <InsideSidebarMenuItem
-              icon={<File />}
-              goToPath={'/management/course_templates'}
-              title='Template Courses'
-            />
-            <InsideSidebarMenuItem
-              icon={<Archive />}
-              goToPath={'/management/course_archive'}
-              title='Archived Courses'
-            />
+            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+              <InsideSidebarMenuItem
+                icon={<File />}
+                goToPath={'/management/course_templates'}
+                title='Template Courses'
+              />
+            </ShowForRole>
+            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+              <InsideSidebarMenuItem
+                icon={<Archive />}
+                goToPath={'/management/course_archive'}
+                title='Archived Courses'
+              />
+            </ShowForRole>
           </InsideSidebarVisualGroup>
-          <InsideSidebarVisualGroup title='Students'>
-            <InsideSidebarMenuItem
-              icon={<Users />}
-              goToPath={'/management/students'}
-              title='Students'
-            />
-          </InsideSidebarVisualGroup>
+          <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <InsideSidebarVisualGroup title='Students'>
+              <InsideSidebarMenuItem
+                icon={<Users />}
+                goToPath={'/management/students'}
+                title='Students'
+              />
+              <ShowForRole roles={[Role.PROMPT_ADMIN]}>
+                <InsideSidebarMenuItem
+                  icon={<Tag />}
+                  goToPath={'/management/student-note-tags'}
+                  title='Tags'
+                />
+              </ShowForRole>
+            </InsideSidebarVisualGroup>
+          </ShowForRole>
+          <ShowForRole roles={[Role.PROMPT_ADMIN]}>
+            <InsideSidebarVisualGroup title='Admin'>
+              <InsideSidebarMenuItem
+                icon={<Shield />}
+                goToPath={'/management/admin/privacy'}
+                title='Privacy Dashboard'
+              />
+            </InsideSidebarVisualGroup>
+          </ShowForRole>
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarMenu>

@@ -1,11 +1,14 @@
 import { FormDescription } from '@tumaet/prompt-ui-components'
 import DOMPurify from 'dompurify'
+import { useFormContext } from 'react-hook-form'
 
 interface FormDescriptionHTMLProps {
   htmlCode: string
 }
 
 export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
+  const formContext = useFormContext()
+
   // allowing _blank in links, but only with noopener
   DOMPurify.addHook('afterSanitizeAttributes', function (node) {
     // set all elements owning target to target=_blank
@@ -16,9 +19,8 @@ export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
   })
 
   const sanitizedHtmlCode = DOMPurify.sanitize(htmlCode)
-
-  return (
-    <FormDescription>
+  const content = (
+    <>
       <style>
         {`
           .descriptionText a {
@@ -76,6 +78,12 @@ export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
         `}
       </style>
       <div className='descriptionText' dangerouslySetInnerHTML={{ __html: sanitizedHtmlCode }} />
-    </FormDescription>
+    </>
   )
+
+  if (!formContext) {
+    return <div className='text-sm text-muted-foreground'>{content}</div>
+  }
+
+  return <FormDescription>{content}</FormDescription>
 }

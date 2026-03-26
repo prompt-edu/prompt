@@ -27,7 +27,7 @@ export const AuthenticatedPageWrapper = ({
   withLoginButton = true,
 }: NonAuthenticatedPageWrapper) => {
   const { keycloak } = useKeycloak()
-  const { user, logout } = useAuthStore()
+  const { logout } = useAuthStore()
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
 
   const openLogoutDialog = () => setIsLogoutDialogOpen(true)
@@ -44,12 +44,7 @@ export const AuthenticatedPageWrapper = ({
     <div className='min-h-screen flex flex-col'>
       <main className='flex-grow w-full px-4 sm:px-6 lg:px-8 py-12'>
         <div className='max-w-[1400px] mx-auto'>
-          <Header
-            withLoginButton={withLoginButton}
-            userName={user?.username}
-            onLogout={openLogoutDialog}
-          />
-
+          <Header withLoginButton={withLoginButton} onLogout={openLogoutDialog} />
           {children}
         </div>
       </main>

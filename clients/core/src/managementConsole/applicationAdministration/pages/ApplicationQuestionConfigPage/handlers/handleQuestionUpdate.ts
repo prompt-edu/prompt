@@ -1,10 +1,16 @@
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 
 export const handleQuestionUpdate = (
-  updatedQuestion: ApplicationQuestionText | ApplicationQuestionMultiSelect,
+  updatedQuestion:
+    | ApplicationQuestionText
+    | ApplicationQuestionMultiSelect
+    | ApplicationQuestionFileUpload,
   setApplicationQuestions: React.Dispatch<
-    React.SetStateAction<(ApplicationQuestionText | ApplicationQuestionMultiSelect)[]>
+    React.SetStateAction<
+      (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
+    >
   >,
 ) => {
   setApplicationQuestions((prev) => {

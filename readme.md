@@ -1,6 +1,6 @@
 # PROMPT 2.0: A Modular and Scalable Management Platform for Project-Based Teaching
 
-[![Discord](https://img.shields.io/discord/1345423854160445580?style=for-the-badge&logo=discord&logoColor=white&label=Join%20our%20Community)](https://discord.gg/eybNUqD8gf)
+[![Discord](https://img.shields.io/badge/Join%20our%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/eybNUqD8gf)
 
 ## What is PROMPT?
 
@@ -90,13 +90,13 @@ This section is for **developers and contributors** looking to run PROMPT locall
 
 #### Prerequisites
 
-| Tool | Version | Installation |
-| ---- | ------- | ------------ |
-| **Go** | 1.26+ | [go.dev/doc/install](https://go.dev/doc/install) |
-| **Node.js** | 22.10.0 - 22.x | [nodejs.org](https://nodejs.org/) |
-| **Docker** | Latest | [docker.com](https://www.docker.com/) |
-| **golang-migrate** | Latest | [github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate) |
-| **sqlc** | Latest | [docs.sqlc.dev](https://docs.sqlc.dev/en/latest/overview/install.html) |
+| Tool               | Version        | Installation                                                                   |
+| ------------------ | -------------- | ------------------------------------------------------------------------------ |
+| **Go**             | 1.26+          | [go.dev/doc/install](https://go.dev/doc/install)                               |
+| **Node.js**        | 22.10.0 - 22.x | [nodejs.org](https://nodejs.org/)                                              |
+| **Docker**         | Latest         | [docker.com](https://www.docker.com/)                                          |
+| **golang-migrate** | Latest         | [github.com/golang-migrate/migrate](https://github.com/golang-migrate/migrate) |
+| **sqlc**           | Latest         | [docs.sqlc.dev](https://docs.sqlc.dev/en/latest/overview/install.html)         |
 
 #### 1. Enable Corepack (for Yarn 4)
 
@@ -153,12 +153,13 @@ docker compose up -d db keycloak
    - Click **Add mapper** → **By configuration** → **User Attribute**
    - Create mappers for each attribute:
 
-     | Name | User Attribute | Token Claim Name | Claim JSON Type |
-     | ---- | -------------- | ---------------- | --------------- |
-     | university_login | university_login | university_login | String |
-     | matriculation_number | matriculation_number | matriculation_number | String |
+     | Name                 | User Attribute       | Token Claim Name     | Claim JSON Type |
+     | -------------------- | -------------------- | -------------------- | --------------- |
+     | university_login     | university_login     | university_login     | String          |
+     | matriculation_number | matriculation_number | matriculation_number | String          |
 
    - Ensure **Add to ID token** and **Add to access token** are enabled
+
 6. Generate a client secret:
    - Go to **Clients** → `prompt-server` → **Credentials**
    - Click **Regenerate** and copy the secret
@@ -173,6 +174,7 @@ The `.env` file is not automatically loaded by Go. Use one of these methods:
    ```bash
    make server
    ```
+
 2. **Manual export** (bash/zsh only):
 
    ```bash
@@ -226,12 +228,12 @@ go install github.com/swaggo/swag/cmd/swag@latest
 
 ### Ports Reference
 
-| Service | Port |
-| ------- | ---- |
+| Service     | Port |
+| ----------- | ---- |
 | Core Client | 3000 |
-| Keycloak | 8081 |
+| Keycloak    | 8081 |
 | Core Server | 8080 |
-| PostgreSQL | 5432 |
+| PostgreSQL  | 5432 |
 
 ---
 
@@ -240,8 +242,8 @@ go install github.com/swaggo/swag/cmd/swag@latest
 We are building a community around PROMPT! Whether you are an instructor using the platform or a developer looking to contribute, we'd love to have you.
 
 - **Discord**: Join our [Discord Server](https://discord.gg/eybNUqD8gf) for real-time discussion and support.
-- **GitHub Issues**: Report bugs or request features on our [Issue Tracker](https://github.com/ls1intum/prompt2/issues).
-- **Documentation**: Visit our [Documentation Portal](https://ls1intum.github.io/prompt2/) for detailed guides.
+- **GitHub Issues**: Report bugs or request features on our [Issue Tracker](https://github.com/prompt-edu/prompt/issues).
+- **Documentation**: Visit our [Documentation Portal](https://prompt-edu.github.io/prompt/) for detailed guides.
 
 ## 🤝 Contributing
 

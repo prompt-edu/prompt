@@ -20,6 +20,7 @@ import { templateFormSchema, type TemplateFormValues } from '@core/validations/t
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
 
 interface AddTemplatePropertiesProps {
   onNext: (data: TemplateFormValues) => void
@@ -44,12 +45,30 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
     },
   })
 
-  const onSubmit = (data: TemplateFormValues) => {
+  const onSubmit = async (data: TemplateFormValues) => {
+    if (await checkTemplateExistsAndUpdateForm(data.name)) {
+      return
+    }
     onNext(data)
   }
 
   const selectedCourseType = form.watch('courseType')
   const isEctsDisabled = CourseTypeDetails[selectedCourseType]?.ects !== undefined
+
+  const checkTemplateExistsAndUpdateForm = async (val) => {
+    try {
+      const exists = await checkCourseNameExists(val, 'template')
+      if (exists) {
+        form.setError('name', {
+          type: 'manual',
+          message: 'A template with this name already exists.',
+        })
+      }
+      return exists
+    } catch {
+      return false
+    }
+  }
 
   useEffect(() => {
     const ectsValue = CourseTypeDetails[selectedCourseType]?.ects
@@ -68,7 +87,21 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
             <FormItem>
               <FormLabel>Template Name</FormLabel>
               <FormControl>
-                <Input placeholder='Enter a template name' {...field} className='w-full' />
+                <Input
+                  placeholder='Enter a template name'
+                  {...field}
+                  className='w-full'
+                  onChange={(e) => {
+                    field.onChange(e)
+                    form.clearErrors('name')
+                  }}
+                  onBlur={async () => {
+                    field.onBlur()
+                    const value = form.getValues('name')
+                    if (!value) return
+                    checkTemplateExistsAndUpdateForm(value)
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

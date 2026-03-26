@@ -5,6 +5,7 @@ import { ReactNode } from 'react'
 interface StudentDetailContentProps {
   courseEnrollment: ReactNode
   instructorNotes: ReactNode
+  defaultTab?: 'courseEnrollment' | 'instructorNotes'
 }
 
 interface SideBySideViewProps extends StudentDetailContentProps {
@@ -40,16 +41,25 @@ function SideBySideView({
 }: SideBySideViewProps) {
   return (
     <div className={`grid grid-cols-2 mt-4 ${className}`}>
-      <div className=' lg:pr-2 xl:pr-4'>{courseEnrollment}</div>
-      <div>{instructorNotes}</div>
+      <div className='lg:pr-2 xl:pr-4'>
+        <Card className='p-3'>{courseEnrollment}</Card>
+      </div>
+      <div>
+        <Card className='p-3'>{instructorNotes}</Card>
+      </div>
     </div>
   )
 }
 
-function TabView({ courseEnrollment, instructorNotes, className = '' }: TabViewProps) {
+function TabView({
+  courseEnrollment,
+  instructorNotes,
+  defaultTab = 'courseEnrollment',
+  className = '',
+}: TabViewProps) {
   return (
     <div className={className}>
-      <Tabs defaultValue='courseEnrollment'>
+      <Tabs defaultValue={defaultTab}>
         <TabsList className='w-full'>
           <TabsTrigger value='courseEnrollment' className='flex-1'>
             <CourseEnrollmentDescriptor />
@@ -72,6 +82,7 @@ function TabView({ courseEnrollment, instructorNotes, className = '' }: TabViewP
 export function StudentDetailContentLayout({
   courseEnrollment,
   instructorNotes,
+  defaultTab,
 }: StudentDetailContentProps) {
   return (
     <>
@@ -79,6 +90,7 @@ export function StudentDetailContentLayout({
         className='lg:hidden'
         courseEnrollment={courseEnrollment}
         instructorNotes={instructorNotes}
+        defaultTab={defaultTab}
       />
       <SideBySideView
         className='hidden lg:grid'

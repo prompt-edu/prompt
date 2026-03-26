@@ -32,6 +32,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationManual)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteApplications)
+	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
 
 	application.GET("/:coursePhaseID/:courseParticipationID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationByCPID)
 	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationAssessment)
@@ -43,10 +44,15 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	apply.GET("", getAllOpenApplications)
 	apply.GET("/:coursePhaseID", getApplicationFormWithCourseDetails)
 	apply.POST("/:coursePhaseID", postApplicationExtern)
+	apply.POST("/:coursePhaseID/files/presign", presignApplicationUploadExternal)
+	apply.POST("/:coursePhaseID/files/complete", completeApplicationUploadExternal)
 
 	applyAuthenticated := router.Group("/apply/authenticated", applicationMiddleware())
 	applyAuthenticated.GET("/:coursePhaseID", getApplicationAuthenticated)
 	applyAuthenticated.POST("/:coursePhaseID", postApplicationAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/presign", presignApplicationUploadAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/complete", completeApplicationUploadAuthenticated)
+	applyAuthenticated.DELETE("/:coursePhaseID/files/:fileId", deleteApplicationFileAuthenticated)
 
 }
 
@@ -189,10 +195,6 @@ func getApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 	matriculationNumber := c.GetString("matriculationNumber")
-	if matriculationNumber == "" {
-		handleError(c, http.StatusUnauthorized, errors.New("no matriculation number found"))
-		return
-	}
 
 	universityLogin := c.GetString("universityLogin")
 	if universityLogin == "" {

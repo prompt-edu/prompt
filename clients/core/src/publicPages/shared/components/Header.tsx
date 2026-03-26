@@ -1,17 +1,20 @@
 import { Button } from '@tumaet/prompt-ui-components'
-import { LogIn, LogOut } from 'lucide-react'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import packageJSON from '../../../../package.json'
+import { NavUserMenu } from '@managementConsole/layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 
 interface HeaderProps {
   withLoginButton?: boolean
-  userName?: string
   onLogout?: () => void
 }
 
-export const Header = ({ withLoginButton = true, userName, onLogout }: HeaderProps) => {
+export const Header = ({ withLoginButton = true, onLogout }: HeaderProps) => {
   const navigate = useNavigate()
   const version = packageJSON.version
+  const { user } = useAuthStore()
+
   return (
     <div className='flex flex-col sm:flex-row justify-between items-center mb-12 gap-4'>
       <div className='flex items-center space-x-4'>
@@ -23,7 +26,7 @@ export const Header = ({ withLoginButton = true, userName, onLogout }: HeaderPro
           <span className='ml-1 text-s font-normal text-gray-400'>{version}</span>
         </div>
       </div>
-      {withLoginButton && !userName && (
+      {withLoginButton && !user && (
         <Button
           variant='outline'
           className='flex items-center space-x-2'
@@ -33,13 +36,17 @@ export const Header = ({ withLoginButton = true, userName, onLogout }: HeaderPro
           <span>Login</span>
         </Button>
       )}
-      {userName && (
-        <div className='flex items-center space-x-4'>
-          <span className='text-sm text-muted-foreground'>Logged in as: {userName}</span>
-          <Button variant='outline' className='flex items-center space-x-2' onClick={onLogout}>
-            <LogOut className='h-4 w-4' />
-            <span>Logout</span>
+      {user && (
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            className='flex items-center space-x-2'
+            onClick={() => navigate('/management')}
+          >
+            <LogIn className='h-4 w-4' />
+            <span>Go to App</span>
           </Button>
+          <NavUserMenu onLogout={onLogout ?? (() => {})} showThemeToggle={false} />
         </div>
       )}
     </div>

@@ -6,13 +6,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
-	sentrylogrus "github.com/getsentry/sentry-go/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -55,70 +53,6 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 }
-
-func initSentry() bool {
-	if promptSDK.GetEnv("SENTRY_ENABLED", "false") != "true" {
-		log.Info("Sentry is disabled (SENTRY_ENABLED != true)")
-		return false
-	}
-
-	sentryDsn := promptSDK.GetEnv("SENTRY_DSN_INTERVIEW", "")
-	if sentryDsn == "" {
-		log.Warn("Sentry is enabled but SENTRY_DSN_INTERVIEW is not configured, skipping initialization")
-		return false
-	}
-
-	transport := sentry.NewHTTPTransport()
-	transport.Timeout = 2 * time.Second
-	sendDefaultPII, err := strconv.ParseBool(promptSDK.GetEnv("SENTRY_SEND_DEFAULT_PII", "false"))
-	if err != nil {
-		log.Warnf("Invalid SENTRY_SEND_DEFAULT_PII value, defaulting to false: %v", err)
-		sendDefaultPII = false
-	}
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:              sentryDsn,
-		Environment:      promptSDK.GetEnv("ENVIRONMENT", "development"),
-		Debug:            false,
-		Transport:        transport,
-		EnableLogs:       true,
-		AttachStacktrace: true,
-		SendDefaultPII:   sendDefaultPII,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		log.Errorf("Sentry initialization failed: %v", err)
-		return false
-	}
-
-	client := sentry.CurrentHub().Client()
-	if client == nil {
-		log.Error("Sentry client is nil")
-		return false
-	}
-
-	logHook := sentrylogrus.NewLogHookFromClient(
-		[]log.Level{log.InfoLevel, log.WarnLevel},
-		client,
-	)
-
-	eventHook := sentrylogrus.NewEventHookFromClient(
-		[]log.Level{log.ErrorLevel, log.FatalLevel, log.PanicLevel},
-		client,
-	)
-
-	log.AddHook(logHook)
-	log.AddHook(eventHook)
-
-	log.RegisterExitHandler(func() {
-		eventHook.Flush(5 * time.Second)
-		logHook.Flush(5 * time.Second)
-	})
-
-	log.Info("Sentry initialized successfully")
-	return true
-}
-
 // @title           PROMPT Interview API
 // @version         1.0
 // @description     This is the interview server of PROMPT.
@@ -147,8 +81,9 @@ func initKeycloak(queries db.Queries) {
 }
 
 func main() {
-	sentryEnabled := initSentry()
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
 	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_INTERVIEW", ""))
 		defer sentry.Flush(2 * time.Second)
 	}
 

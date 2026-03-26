@@ -13,10 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 type FeedbackItemRouterTestSuite struct {
@@ -29,7 +30,7 @@ type FeedbackItemRouterTestSuite struct {
 
 func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../../database_dumps/feedbackItems.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/feedbackItems.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -54,7 +55,7 @@ func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
 
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "student1@example.com", "1234", "id")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "student1@example.com", "1234", "id")
 	}
 
 	// Setup router with middleware
@@ -80,7 +81,7 @@ func (suite *FeedbackItemRouterTestSuite) createLecturerRouter() *gin.Engine {
 
 	api := router.Group("/api/course_phase/:coursePhaseID")
 	lecturerMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return testutils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "1234", "lecturer_id")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "1234", "lecturer_id")
 	}
 	setupFeedbackItemRouter(api, lecturerMiddleware)
 	return router

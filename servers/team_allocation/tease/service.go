@@ -9,10 +9,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
-	"github.com/prompt-edu/prompt/servers/team_allocation/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func GetTeamAllocationCoursePhases(
 	userPermissions map[string]bool,
 ) ([]teaseDTO.TeasePhase, error) {
 	// 1. Request from core to get all relevant courses
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	courses, err := coreRequests.GetCourses(coreURL, authHeader)
 	if err != nil {
 		log.Error("could not get courses from core: ", err)
@@ -103,7 +103,7 @@ func GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, cour
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coreURL := utils.GetCoreUrl()
+	coreURL := sdkUtils.GetCoreUrl()
 	coursePhaseParticipations, err := promptSDK.FetchAndMergeParticipationsWithResolutions(coreURL, authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not get students from core: ", err)

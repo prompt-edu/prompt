@@ -1,11 +1,13 @@
 package competencies
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
@@ -21,9 +23,9 @@ func setupCompetencyRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 	competencyRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listCompetencies)
 	competencyRouter.GET("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getCompetency)
 	competencyRouter.GET("/category/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listCompetenciesByCategory)
-	competencyRouter.POST("", authMiddleware(promptSDK.PromptAdmin), createCompetency)
-	competencyRouter.PUT("/:competencyID", authMiddleware(promptSDK.PromptAdmin), updateCompetency)
-	competencyRouter.DELETE("/:competencyID", authMiddleware(promptSDK.PromptAdmin), deleteCompetency)
+	competencyRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createCompetency)
+	competencyRouter.PUT("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateCompetency)
+	competencyRouter.DELETE("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteCompetency)
 }
 
 // listCompetencies godoc
@@ -37,7 +39,13 @@ func setupCompetencyRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency [get]
 func listCompetencies(c *gin.Context) {
-	competencies, err := ListCompetencies(c)
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	competencies, err := ListCompetenciesForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -57,13 +65,23 @@ func listCompetencies(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/{competencyID} [get]
 func getCompetency(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	competencyID, err := uuid.Parse(c.Param("competencyID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	competency, err := GetCompetency(c, competencyID)
+	competency, err := GetCompetencyForCoursePhase(c, coursePhaseID, competencyID)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -82,13 +100,23 @@ func getCompetency(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/category/{categoryID} [get]
 func listCompetenciesByCategory(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	categoryID, err := uuid.Parse(c.Param("categoryID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	competencies, err := ListCompetenciesByCategory(c, categoryID)
+	competencies, err := ListCompetenciesByCategoryForCoursePhase(c, coursePhaseID, categoryID)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -121,6 +149,10 @@ func createCompetency(c *gin.Context) {
 
 	err = CreateCompetency(c, coursePhaseID, req)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -160,6 +192,10 @@ func updateCompetency(c *gin.Context) {
 
 	err = UpdateCompetency(c, competencyID, coursePhaseID, req)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -191,6 +227,10 @@ func deleteCompetency(c *gin.Context) {
 
 	err = DeleteCompetency(c, competencyID, coursePhaseID)
 	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}

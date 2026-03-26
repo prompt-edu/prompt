@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -24,10 +26,10 @@ type CompetencyServiceTestSuite struct {
 	competencyService CompetencyService
 }
 
-func (suite *CompetencyServiceTestSuite) SetupSuite() {
+func (suite *CompetencyServiceTestSuite) SetupTest() {
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/categories.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -54,7 +56,7 @@ func (suite *CompetencyServiceTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 }
 
-func (suite *CompetencyServiceTestSuite) TearDownSuite() {
+func (suite *CompetencyServiceTestSuite) TearDownTest() {
 	if suite.mockCoreCleanup != nil {
 		suite.mockCoreCleanup()
 	}
@@ -148,7 +150,7 @@ func (suite *CompetencyServiceTestSuite) TestCreateCompetency() {
 
 	found := false
 	for _, competency := range competencies {
-		if competency.Name == newCompetency.Name && competency.CategoryID == newCompetency.CategoryID {
+		if competency.Name == newCompetency.Name {
 			found = true
 			assert.Equal(suite.T(), newCompetency.Description, competency.Description.String)
 			assert.Equal(suite.T(), newCompetency.DescriptionVeryBad, competency.DescriptionVeryBad)

@@ -38,7 +38,7 @@ PROMPT uses Keycloak for authentication and user rights management. In particula
     - **`<SemesterTag>-<CourseName>-Lecturer`**  
       Group: `Lecturer` (a subgroup of the course group). This role grants admin rights on the course. The course creator is automatically added to this role.
     - **`<SemesterTag>-<CourseName>-Editor`**  
-    Group: `Editor` (a subgroup of the course group). This role has limited user rights. For more details, refer to the [Contributor Guide](/contributor/setup).
+      Group: `Editor` (a subgroup of the course group). This role has limited user rights. For more details, refer to the [Contributor Guide](/contributor/setup).
 
 There are two options for setting up Keycloak:
 
@@ -52,10 +52,10 @@ Follow these steps:
    Add your client domain to the following fields. All URLs must be prefixed with `https`.
    - **Root URL**
    - **Home URL**
-   - **Valid Redirect URLs**    (must be postfixed with `/*`)
-   - **Valid Logout URLs**      (must be postfixed with `/*`)
+   - **Valid Redirect URLs** (must be postfixed with `/*`)
+   - **Valid Logout URLs** (must be postfixed with `/*`)
    - **Web-Origin URLs**
-    IMPORTANT: Only postfix Valid Redirect and Logout URLs.
+     IMPORTANT: Only postfix Valid Redirect and Logout URLs.
 2. **Add Mappers for User Attributes**  
    PROMPT authenticates students using their `matriculation_number` and `university_login`. To include these in the token:
    - Navigate to **Client Scopes** for `prompt-client`.
@@ -75,7 +75,7 @@ Follow these steps:
    - **Root URL**
    - **Home URL**
    - **Valid Redirect URI**
-   - **Valid Post Logout Redirect URI**  
+   - **Valid Post Logout Redirect URI**
 
    Each URL must start with `https` and ALL must be postfixed with `/*` (note that the postfixes might differ from those in `prompt-client`).
 
@@ -101,10 +101,10 @@ Keep in mind:
 
 - The `docker-compose.extern.yml` includes a sample setup with a Docker container for Keycloak and a database instance to persist Keycloak data.
 - **Domain Setup:**  
-  Configure a separate domain for your Keycloak instance (this can be a subdomain but **not** a subpath).  
-  - **Valid Examples:**  
+  Configure a separate domain for your Keycloak instance (this can be a subdomain but **not** a subpath).
+  - **Valid Examples:**
     - `prompt.<yourDomain>.de` and `keycloak.prompt.<yourDomain>.de`
-  - **Invalid Example:**  
+  - **Invalid Example:**
     - `prompt.<yourDomain>.de` and `prompt.<yourDomain>.de/keycloak`
 - Follow the Contributor Guide closely and copy the `KEYCLOAK_CLIENT_SECRET` into your environment file as described.
 - To support student login, your Keycloak instance must allow authentication with `matriculation_number` and `university_login` attributes. Without these, student-specific management console features will not be available (although this does not affect the application module).
@@ -226,6 +226,46 @@ Set these according to your deployment version (default is `main`).
 - **`SMTP_PASSWORD`** (Optional)  
   Password for SMTP authentication. Leave empty if your SMTP server doesn't require authentication.
 
+#### File Storage (S3-Compatible) Variables
+
+PROMPT now stores uploaded files in an S3-compatible bucket (SeaweedFS S3 gateway, AWS S3, MinIO, etc.). The storage service uses presigned URLs, so you must configure both internal and public endpoints.
+
+- **`S3_BUCKET`**  
+  Bucket name for uploaded files (e.g., `prompt-files`).
+
+- **`S3_REGION`**  
+  Region for your S3-compatible backend. Use `us-east-1` for SeaweedFS.
+
+- **`S3_ENDPOINT`**  
+  Internal endpoint used by the server to reach the S3 API.  
+  Example (SeaweedFS S3 gateway): `http://seaweedfs-s3:8333`.
+
+- **`S3_PUBLIC_ENDPOINT`**  
+  Public endpoint used in presigned URLs that clients access.  
+  Example (production): `https://s3.<your-domain>`  
+  Example (local): `http://localhost:8334`.
+
+- **`S3_ACCESS_KEY`** / **`S3_SECRET_KEY`**  
+  Credentials for the S3 API. Used by both the core server and the SeaweedFS S3 gateway. The access key acts as an identifier (e.g., `prompt-s3-user`), while the secret key should be a strong random value.
+
+- **`S3_FORCE_PATH_STYLE`**  
+  Set to `true` for SeaweedFS/MinIO. Set to `false` for AWS S3.
+
+- **`S3_PRESIGN_UPLOAD_TTL_SECONDS`**  
+  Presigned upload URL TTL in seconds (default: `60`).
+
+- **`S3_PRESIGN_DOWNLOAD_TTL_SECONDS`**  
+  Presigned download URL TTL in seconds (default: `30`).
+
+- **`S3_PRESIGN_TTL_SECONDS`** (Legacy optional)  
+  Fallback TTL used only if the specific upload/download TTL variables are not set.
+
+- **`MAX_FILE_UPLOAD_SIZE_MB`**  
+  Maximum allowed file size for uploads (default: `50`).
+
+- **`ALLOWED_FILE_TYPES`**  
+  Comma-separated list of allowed MIME types. Leave empty to allow all.
+
 ---
 
 ### 3.2 Select the Appropriate Docker Compose File
@@ -236,9 +276,14 @@ Set these according to your deployment version (default is `main`).
 - **`docker-compose.extern.prod.yml`**  
   Includes a Keycloak container. Refer to the Keycloak configuration above for details.
 
+### 3.3 File Bucket Notes
+
+- The S3-compatible adapter checks for the bucket at startup and will attempt to create it if it does not exist (when the backend supports it).
+- For production, ensure your DNS and TLS are set up for the `S3_PUBLIC_ENDPOINT` so presigned URLs are reachable by clients.
+
 ---
 
-### 3.3 Start the Docker Containers
+### 3.4 Start the Docker Containers
 
 To start the docker containers, run the following command (adjust `<path to your env file>` as needed):
 

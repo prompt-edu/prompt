@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
@@ -23,7 +24,23 @@ type CategoryService struct {
 
 var CategoryServiceSingleton *CategoryService
 
+func ensureSchemaAccessible(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID) error {
+	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	if err != nil {
+		return err
+	}
+	if !isAccessible {
+		return assessmentSchemas.ErrSchemaNotAccessible
+	}
+
+	return nil
+}
+
 func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.CreateCategoryRequest) error {
+	if err := ensureSchemaAccessible(ctx, coursePhaseID, req.AssessmentSchemaID); err != nil {
+		return err
+	}
+
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
 		CategoryServiceSingleton.queries,
@@ -82,6 +99,33 @@ func ListCategories(ctx context.Context) ([]db.Category, error) {
 	return categories, nil
 }
 
+func ListCategoriesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Category, error) {
+	categories, err := CategoryServiceSingleton.queries.ListCategories(ctx)
+	if err != nil {
+		log.Error("could not list categories: ", err)
+		return nil, errors.New("could not list categories")
+	}
+
+	accessibleSchemas, err := assessmentSchemas.ListAssessmentSchemasForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+
+	accessibleSchemaIDs := make(map[uuid.UUID]struct{}, len(accessibleSchemas))
+	for _, schema := range accessibleSchemas {
+		accessibleSchemaIDs[schema.ID] = struct{}{}
+	}
+
+	filtered := make([]db.Category, 0, len(categories))
+	for _, category := range categories {
+		if _, ok := accessibleSchemaIDs[category.AssessmentSchemaID]; ok {
+			filtered = append(filtered, category)
+		}
+	}
+
+	return filtered, nil
+}
+
 func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req categoryDTO.UpdateCategoryRequest) error {
 	currentCategory, err := CategoryServiceSingleton.queries.GetCategory(ctx, id)
 	if err != nil {
@@ -92,6 +136,10 @@ func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, 
 		return errors.New("failed to get current category")
 	}
 	currentSchemaID := currentCategory.AssessmentSchemaID
+
+	if err := ensureSchemaAccessible(ctx, coursePhaseID, currentSchemaID); err != nil {
+		return err
+	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
@@ -144,6 +192,10 @@ func DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) 
 		return errors.New("could not get category")
 	}
 	currentSchemaID := currentCategory.AssessmentSchemaID
+
+	if err := ensureSchemaAccessible(ctx, coursePhaseID, currentSchemaID); err != nil {
+		return err
+	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,

@@ -49,7 +49,7 @@ func getAllStudents(c *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/with-courses [get]
 func getAllStudentsWithCourses(c *gin.Context) {
-  studentsWithCourses, err := GetAllStudentsWithCourses(c)
+	studentsWithCourses, err := GetAllStudentsWithCourses(c)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -182,13 +182,6 @@ func searchStudents(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, students)
 }
 
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{
-		Error: err.Error(),
-	})
-}
-
-
 // getStudentEnrollments godoc
 // @Summary Get student enrollments by ID
 // @Description Get all of a students enrollments, provide student UUID
@@ -200,17 +193,21 @@ func handleError(c *gin.Context, statusCode int, err error) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/{uuid}/enrollments [get]
 func getStudentEnrollments(c *gin.Context) {
-  id, err := uuid.Parse(c.Param("uuid"))
-  if err != nil {
-    handleError(c, http.StatusBadRequest, err)
-    return
-  }
-
+	id, parseErr := uuid.Parse(c.Param("uuid"))
+	if parseErr != nil {
+		handleError(c, http.StatusBadRequest, parseErr)
+		return
+	}
   studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
-
 	c.IndentedJSON(http.StatusOK, studentEnrollments)
+}
+
+func handleError(c *gin.Context, statusCode int, err error) {
+	c.JSON(statusCode, utils.ErrorResponse{
+		Error: err.Error(),
+	})
 }

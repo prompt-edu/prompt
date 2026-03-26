@@ -116,7 +116,9 @@ export function MultiSelectConfig({
                 </FormMessage>
               )}
             {form.formState.errors.options &&
+              !Array.isArray(form.formState.errors.options) &&
               typeof form.formState.errors.options === 'object' &&
+              'message' in form.formState.errors.options &&
               typeof form.formState.errors.options.message === 'string' && (
                 <FormMessage className='text-red-500'>
                   {form.formState.errors.options.message}

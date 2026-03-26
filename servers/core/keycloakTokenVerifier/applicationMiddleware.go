@@ -71,12 +71,12 @@ func ApplicationMiddleware() gin.HandlerFunc {
 		}
 
 		// Store the extracted roles in the context
-		c.Set("userID", userID)
-		c.Set("userEmail", userEmail)
-		c.Set("matriculationNumber", matriculationNumber)
-		c.Set("universityLogin", universityLogin)
-		c.Set("firstName", firstName)
-		c.Set("lastName", lastName)
+		c.Set(CtxUserID, userID)
+		c.Set(CtxUserEmail, userEmail)
+		c.Set(CtxMatriculationNumber, matriculationNumber)
+		c.Set(CtxUniversityLogin, universityLogin)
+		c.Set(CtxFirstName, firstName)
+		c.Set(CtxLastName, lastName)
 		c.Next()
 	}
 }

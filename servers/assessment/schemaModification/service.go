@@ -21,7 +21,7 @@ type PrepareSchemaModificationResult struct {
 }
 
 // GetOrCopySchemaForWrite handles all schema copying logic before any modification operation (category/competency).
-// It determines if the schema owner is modifying (copy for consumers) or if a consumer is modifying (copy for themselves).
+// It determines if the phase owns the schema or is consuming a shared/global schema copy.
 // For CREATE operations: pass schemaID and set entityID to uuid.Nil
 // For UPDATE/DELETE operations: pass both schemaID and entityID
 func GetOrCopySchemaForWrite(
@@ -55,7 +55,7 @@ func GetOrCopySchemaForWrite(
 	}
 	hasConsumers := len(consumerPhases) > 0
 
-	// SCENARIO 1: Owner modifying with consumers → Copy schema for all consumers with assessment data
+	// SCENARIO 1: Phase owner modifying with consumers -> Copy schema for consumers with assessment data
 	if isSchemaOwner && hasConsumers {
 		// Copy schema for all consumers and update their assessment/evaluation references
 		// This will automatically handle all categories and their competencies
@@ -70,7 +70,7 @@ func GetOrCopySchemaForWrite(
 		}, nil
 	}
 
-	// SCENARIO 2: Consumer modifying shared schema → Copy schema for this consumer only
+	// SCENARIO 2: Consumer modifying shared/global schema -> Copy schema for this phase only
 	if !isSchemaOwner {
 		newSchemaID, err := copySchemaForConsumer(ctx, queries, schemaID, coursePhaseID)
 		if err != nil {
@@ -126,7 +126,7 @@ func copySchemaForConsumer(ctx context.Context, queries db.Queries, oldSchemaID 
 		return uuid.Nil, errors.New("failed to get course identifier")
 	}
 
-	copiedSchema, err := assessmentSchemas.CopyAssessmentSchema(ctx, coursePhaseID, courseIdentifier)
+	copiedSchema, err := assessmentSchemas.CopyAssessmentSchema(ctx, coursePhaseID, oldSchemaID, courseIdentifier)
 	if err != nil {
 		log.WithError(err).Error("Failed to copy assessment schema")
 		return uuid.Nil, errors.New("failed to copy assessment schema")

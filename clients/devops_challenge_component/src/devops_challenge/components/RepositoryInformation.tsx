@@ -10,7 +10,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@tumaet/prompt-ui-components'
-import { Github, ExternalLink, Clipboard, Check, AlertCircle } from 'lucide-react'
+import { FolderGit2, ExternalLink, Clipboard, Check, AlertCircle } from 'lucide-react'
 
 export const RepositoryInformation = () => {
   const developerQuery = useGetDeveloperProfile()
@@ -32,7 +32,7 @@ export const RepositoryInformation = () => {
     <Card>
       <CardHeader className='pb-2'>
         <CardTitle className='text-xl flex items-center'>
-          <Github className='mr-2 h-5 w-5' />
+          <FolderGit2 className='mr-2 h-5 w-5' />
           Repository Information
         </CardTitle>
       </CardHeader>
@@ -76,7 +76,7 @@ export const RepositoryInformation = () => {
             </div>
             <div className='h-2 bg-slate-200' />
             <h3 className='text-lg font-semibold mb-2 flex items-center'>
-              <Github className='mr-2 h-5 w-5 text-slate-700' />
+              <FolderGit2 className='mr-2 h-5 w-5 text-slate-700' />
               Repository URL
             </h3>
             <div className='flex items-center gap-2'>

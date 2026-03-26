@@ -412,10 +412,10 @@ VALUES (gen_random_uuid(),
           "type": "string",
           "enum": [
             "veryBad",
-            "Bad",
-            "Ok",
-            "Good",
-            "VeryGood"
+            "bad",
+            "ok",
+            "good",
+            "veryGood"
           ]
         }'::jsonb)
 `
@@ -434,10 +434,10 @@ VALUES (gen_random_uuid(),
           "type": "string",
           "enum": [
             "veryBad",
-            "Bad",
-            "Ok",
-            "Good",
-            "VeryGood"
+            "bad",
+            "ok",
+            "good",
+            "veryGood"
           ]
         }'::jsonb)
 `

@@ -227,7 +227,7 @@ log.Error("Error occurred: ", err)
 
 ### Module Federation (Frontend)
 
-**Exporting a Component** (`<component>/webpack.config.ts`):
+**Exporting a Component** (`<component>/webpack.config.mjs`):
 
 ```typescript
 new ModuleFederationPlugin({
@@ -240,7 +240,7 @@ new ModuleFederationPlugin({
 });
 ```
 
-**Importing in Core** (`core/webpack.config.ts`):
+**Importing in Core** (`core/webpack.config.mjs`):
 
 ```typescript
 remotes: {
@@ -303,10 +303,10 @@ serverAddress := utils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 ### Frontend Component
 
 1. Copy `clients/template_component/` to `clients/your_component/`
-2. Update `webpack.config.ts` with unique port and component name
+2. Update `webpack.config.mjs` with unique port and component name
 3. Add to `clients/lerna.json` packages array
 4. Add to `clients/package.json` workspaces
-5. Register in `core/webpack.config.ts` remotes
+5. Register in `core/webpack.config.mjs` remotes
 6. Import in core with `React.lazy()`
 
 ### Backend Service

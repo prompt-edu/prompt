@@ -10,6 +10,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
+import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 
 interface BreadcrumbProps {
   title: string
@@ -25,6 +26,7 @@ export const Breadcrumbs: React.FC = () => {
   const navigate = useNavigate()
   const { courses } = useCourseStore()
   const { studentsById } = useStudentStore()
+  const { participations } = useApplicationStore()
 
   const breadcrumbList = useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -84,7 +86,6 @@ export const Breadcrumbs: React.FC = () => {
               })
             }
             pathSegments.slice(4).forEach((segment, index) => {
-              // TODO: this might require a more sophisticated process in the future!
               // we assume that longer items are courseParticipationIDs
               if (segment.length < 20) {
                 breadcrumbs.push({
@@ -93,8 +94,14 @@ export const Breadcrumbs: React.FC = () => {
                 })
               } else {
                 // This is likely a courseParticipationID (long UUID)
+                const participation = participations.find(
+                  (p) => p.courseParticipationID === segment,
+                )
+                const title = participation
+                  ? `${participation.student.firstName} ${participation.student.lastName}`
+                  : 'Participant'
                 breadcrumbs.push({
-                  title: 'Participant',
+                  title,
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               }
@@ -105,7 +112,7 @@ export const Breadcrumbs: React.FC = () => {
     }
 
     return breadcrumbs
-  }, [location.pathname, courses, studentsById])
+  }, [location.pathname, courses, studentsById, participations])
 
   if (breadcrumbList.length === 0) {
     return null

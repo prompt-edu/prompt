@@ -55,6 +55,49 @@ func (ns NullCourseType) Value() (driver.Value, error) {
 	return string(ns.CourseType), nil
 }
 
+type ExportStatus string
+
+const (
+	ExportStatusPending  ExportStatus = "pending"
+	ExportStatusComplete ExportStatus = "complete"
+	ExportStatusFailed   ExportStatus = "failed"
+)
+
+func (e *ExportStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExportStatus(s)
+	case string:
+		*e = ExportStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExportStatus: %T", src)
+	}
+	return nil
+}
+
+type NullExportStatus struct {
+	ExportStatus ExportStatus `json:"export_status"`
+	Valid        bool         `json:"valid"` // Valid is true if ExportStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExportStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExportStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExportStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExportStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExportStatus), nil
+}
+
 type Gender string
 
 const (
@@ -389,6 +432,24 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	Specification     []byte    `json:"specification"`
 }
 
+type File struct {
+	ID               uuid.UUID        `json:"id"`
+	Filename         string           `json:"filename"`
+	OriginalFilename string           `json:"original_filename"`
+	ContentType      string           `json:"content_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	StorageKey       string           `json:"storage_key"`
+	StorageProvider  string           `json:"storage_provider"`
+	UploadedByUserID string           `json:"uploaded_by_user_id"`
+	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
+	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
+	Description      pgtype.Text      `json:"description"`
+	Tags             []string         `json:"tags"`
+	CreatedAt        pgtype.Timestamp `json:"created_at"`
+	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
+	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
+}
+
 type Note struct {
 	ID          uuid.UUID          `json:"id"`
 	ForStudent  uuid.UUID          `json:"for_student"`
@@ -432,24 +493,6 @@ type NoteWithVersion struct {
 	Tags        []byte             `json:"tags"`
 }
 
-type File struct {
-	ID               uuid.UUID        `json:"id"`
-	Filename         string           `json:"filename"`
-	OriginalFilename string           `json:"original_filename"`
-	ContentType      string           `json:"content_type"`
-	SizeBytes        int64            `json:"size_bytes"`
-	StorageKey       string           `json:"storage_key"`
-	StorageProvider  string           `json:"storage_provider"`
-	UploadedByUserID string           `json:"uploaded_by_user_id"`
-	UploadedByEmail  pgtype.Text      `json:"uploaded_by_email"`
-	CoursePhaseID    pgtype.UUID      `json:"course_phase_id"`
-	Description      pgtype.Text      `json:"description"`
-	Tags             []string         `json:"tags"`
-	CreatedAt        pgtype.Timestamp `json:"created_at"`
-	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
-	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
-}
-
 type ParticipationDataDependencyGraph struct {
 	FromCoursePhaseID    uuid.UUID `json:"from_course_phase_id"`
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`
@@ -462,6 +505,36 @@ type PhaseDataDependencyGraph struct {
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`
 	FromCoursePhaseDtoID uuid.UUID `json:"from_course_phase_dto_id"`
 	ToCoursePhaseDtoID   uuid.UUID `json:"to_course_phase_dto_id"`
+}
+
+type PrivacyExport struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+}
+
+type PrivacyExportDocument struct {
+	ID           uuid.UUID          `json:"id"`
+	ExportID     pgtype.UUID        `json:"export_id"`
+	DateCreated  pgtype.Timestamptz `json:"date_created"`
+	SourceName   string             `json:"source_name"`
+	ObjectKey    string             `json:"object_key"`
+	Status       ExportStatus       `json:"status"`
+	FileSize     pgtype.Int8        `json:"file_size"`
+	DownloadedAt pgtype.Timestamptz `json:"downloaded_at"`
+}
+
+type PrivacyExportWithDoc struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	StudentID   pgtype.UUID        `json:"student_id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+	Documents   interface{}        `json:"documents"`
 }
 
 type Student struct {

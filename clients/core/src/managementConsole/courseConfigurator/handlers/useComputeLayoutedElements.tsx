@@ -20,7 +20,7 @@ export const useComputeLayoutedElements = () => {
       id: 'person-edge-' + item.fromCoursePhaseID + '-' + item.toCoursePhaseID,
       source: item.fromCoursePhaseID,
       target: item.toCoursePhaseID,
-      type: 'iconEdge',
+      type: 'selectableEdge',
     }
   })
 
@@ -39,7 +39,7 @@ export const useComputeLayoutedElements = () => {
       sourceHandle: `participation-data-out-phase-${item.fromCoursePhaseID}-dto-${item.fromCoursePhaseDtoID}`,
       targetHandle: `participation-data-in-phase-${item.toCoursePhaseID}-dto-${item.toCoursePhaseDtoID}`,
       target: item.toCoursePhaseID,
-      type: 'iconEdge',
+      type: 'selectableEdge',
     }
   })
 
@@ -58,7 +58,7 @@ export const useComputeLayoutedElements = () => {
       sourceHandle: `phase-data-out-phase-${item.fromCoursePhaseID}-dto-${item.fromCoursePhaseDtoID}`,
       targetHandle: `phase-data-in-phase-${item.toCoursePhaseID}-dto-${item.toCoursePhaseDtoID}`,
       target: item.toCoursePhaseID,
-      type: 'iconEdge',
+      type: 'selectableEdge',
     }
   })
 

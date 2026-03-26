@@ -96,7 +96,7 @@ Start by importing the essential components required for the page, including:
 
 ### 6. Ensure Styling
 
-To ensure proper styling for the `CoursePhaseMailing` component, you need to include the `index.css` file from the `minimal-tiptap` styles directory in the Webpack configuration (`webpack.config.ts` of the component where the Mailing Page should be added).
+To ensure proper styling for the `CoursePhaseMailing` component, you need to include the `index.css` file from the `minimal-tiptap` styles directory in the Webpack configuration (`webpack.config.mjs` of the component where the Mailing Page should be added).
 
 #### Steps to Modify Webpack Configuration
 

@@ -6,25 +6,31 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 )
 
 type ExportRequest struct {
-  Preparation Export
-  Result      ExportResult
+	Preparation Export
+	Result      ExportResult
 }
 
 type Export struct {
 	Record          privacyDTO.PrivacyExport
-  Subject         sdk.SubjectIdentifiers
+	Subject         sdk.SubjectIdentifiers
 	CoreExport      ServiceExportRequest
 	ExternalExports []ServiceExportRequest
 }
 
+func PrepareDataExport(c *gin.Context) (Export, error) {
+	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
+	if err != nil {
+		return Export{}, err
+	}
 
-func PrepareDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (Export, error) {
 	exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
 	if err != nil {
 		return Export{}, err
@@ -47,7 +53,7 @@ func PrepareDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers
   for _, cpt := range coursePhaseTypes {
     _, err := url.ParseRequestURI(cpt.BaseUrl)
     if err != nil { continue }
-    comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl)
+    comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
     if err != nil { continue }
     externalExportDocs = append(externalExportDocs, comparedoc)
   }
@@ -63,6 +69,7 @@ func PrepareDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers
 func RunDataExport(c *gin.Context, exportState Export) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	authHeader := c.GetHeader("Authorization")
 
 	// core export
 	wg.Go(func() {
@@ -70,7 +77,7 @@ func RunDataExport(c *gin.Context, exportState Export) {
 
 		err := AggregateSubjectDataFromCore(cCopy, exportState.CoreExport, exportState.Subject)
 		UpdateExportDocStatus(err, cCopy, exportState.CoreExport.ExportDoc.ID)
-    UpdateExportDocFileSize(cCopy, exportState.CoreExport.ExportDoc.ID)
+		UpdateExportDocFileSize(cCopy, exportState.CoreExport.ExportDoc.ID)
 		mu.Lock()
 		updateExportStateForRequest(err, &exportState.CoreExport)
 		mu.Unlock()
@@ -83,7 +90,7 @@ func RunDataExport(c *gin.Context, exportState Export) {
 		wg.Go(func() {
 			cCopy := c.Copy()
 
-			callErr := RequestExportFromCPM(exportState.ExternalExports[i], exportState.Subject)
+			callErr := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
 
 			UpdateExportDocStatus(callErr, cCopy, exportState.ExternalExports[i].ExportDoc.ID)
       UpdateExportDocFileSize(cCopy, exportState.ExternalExports[i].ExportDoc.ID)

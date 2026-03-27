@@ -42,13 +42,7 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
 func studentDataExport(c *gin.Context) {
-	subjectIdentifiers, errSI := service.GetSubjectIdentifiers(c)
-	if errSI != nil {
-    utils.HandleError(c, http.StatusBadRequest, errSI);
-		return
-	}
-
-  export, err := service.PrepareDataExport(c, subjectIdentifiers)
+  export, err := service.PrepareDataExport(c)
 	if err != nil {
     log.Error("student data export failed: ", err)
     utils.HandleError(c, http.StatusInternalServerError, err)

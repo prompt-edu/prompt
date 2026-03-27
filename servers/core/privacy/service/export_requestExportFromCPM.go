@@ -11,19 +11,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func RequestExportFromCPM(exportDoc ServiceExportRequest, authHeader string) error {
+	requestBody := sdk.PrivacyDataExportRequest{
+		PreSignedURL: exportDoc.PresignedUploadURL,
+	}
 
-func RequestExportFromCPM(exportDoc ServiceExportRequest, subject sdk.SubjectIdentifiers) (error) {
-  requestBody := sdk.PrivacyDataExportRequest{
-    Subject: subject,
-    PreSignedURL: exportDoc.PresignedUploadURL,
-  }
+	marshalledBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
 
-  marshalledBody, err := json.Marshal(requestBody)
-  if err != nil { return err }
-
-  req, err := http.NewRequest("POST", exportDoc.APIURL, bytes.NewBuffer(marshalledBody))
-  if err != nil { return err }
-  req.Header.Set("Content-Type", "application/json")
+	req, err := http.NewRequest("POST", exportDoc.APIURL, bytes.NewBuffer(marshalledBody))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", authHeader)
 
   client := &http.Client{}
 

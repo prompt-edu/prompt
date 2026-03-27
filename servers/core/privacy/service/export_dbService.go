@@ -94,16 +94,27 @@ func CreateExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string
 	})
 }
 
-type PreparedExportDoc struct {
-	URL       string
-	ExportDoc privacyDTO.PrivacyExportDocument
+type ServiceExportRequest struct {
+  APIURL    string
+	PresignedUploadURL string
+	ExportDoc          privacyDTO.PrivacyExportDocument
+  Result             ExportResult
 }
 
-func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string) (PreparedExportDoc, error) {
+type ExportResult int
+
+const (
+  Successful ExportResult = iota
+  SuccessfulNoData
+  Failed
+  Pending
+)
+
+func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string, apiURL string) (ServiceExportRequest, error) {
 
   dbDoc, errDoc := CreateExportRecordDoc(c, exportID, sourceName)
   if errDoc != nil {
-  	return PreparedExportDoc{}, errDoc
+  	return ServiceExportRequest{}, errDoc
   }
 
   url, errUrl := privacyexport.GetUploadURL(c, exportID.String(), sourceName)
@@ -111,10 +122,15 @@ func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName strin
     if setErr := SetExportDocStatus(c, dbDoc.ID, db.ExportStatusFailed); setErr != nil {
       log.WithError(setErr).Error("failed to mark export doc as failed after presign error")
     }
-    return PreparedExportDoc{}, errUrl
+    return ServiceExportRequest{}, errUrl
   }
 
-  return PreparedExportDoc{URL: url, ExportDoc: privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc)}, nil
+  return ServiceExportRequest{
+    PresignedUploadURL: url, 
+    ExportDoc: privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc), 
+    APIURL: apiURL,
+    Result: Pending,
+  }, nil
 }
 
 
@@ -222,17 +238,27 @@ func UpdateExportStatus(err error, c *gin.Context, exportID uuid.UUID) {
   }
 }
 
-func UpdateExportDocStatus(err error, c *gin.Context, exportDoc privacyDTO.PrivacyExportDocument) {
+func UpdateExportDocStatus(err error, c *gin.Context, exportDocID uuid.UUID) {
+  var targetStatus db.ExportStatus
   if err != nil {
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusFailed); setErr != nil {
-      log.WithError(setErr).Error("failed to set export doc status to failed")
-    }
-    return
+    targetStatus = db.ExportStatusFailed
+  } else {
+    targetStatus = db.ExportStatusComplete
   }
 
-  objectKey, keyErr := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, exportDoc.ID)
+  if _, setErr := PrivacyServiceSingleton.queries.SetExportDocStatus(c, db.SetExportDocStatusParams{
+    ID: exportDocID, 
+    Status: targetStatus,
+  }) ; setErr != nil {
+    log.WithError(setErr).Error("failed to update export doc result")
+  }
+}
+
+
+func UpdateExportDocFileSize(c *gin.Context, exportDocID uuid.UUID) {
+  objectKey, keyErr := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, exportDocID)
   if keyErr != nil {
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {
+    if setErr := SetExportDocStatus(c, exportDocID, db.ExportStatusComplete); setErr != nil {
       log.WithError(setErr).Error("failed to set export doc status to complete")
     }
     return
@@ -240,18 +266,14 @@ func UpdateExportDocStatus(err error, c *gin.Context, exportDoc privacyDTO.Priva
 
   fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
   if sizeErr != nil {
-    // file size is non-critical, fall back to status-only update
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {
-      log.WithError(setErr).Error("failed to set export doc status to complete")
-    }
-    return
+      log.WithError(sizeErr).Error("failed to get file size from s3 obj")
+      return
   }
 
-  if _, setErr := PrivacyServiceSingleton.queries.UpdateExportDocResult(c, db.UpdateExportDocResultParams{
-    ID:       exportDoc.ID,
-    Status:   db.ExportStatusComplete,
-    FileSize: pgtype.Int8{Int64: fileSize, Valid: true},
-  }); setErr != nil {
+  if _, setErr := PrivacyServiceSingleton.queries.SetExportDocFileSize(c, db.SetExportDocFileSizeParams{
+    ID: exportDocID, 
+    FileSize: pgtype.Int8{ Int64: fileSize, Valid: true },
+  }) ; setErr != nil {
     log.WithError(setErr).Error("failed to update export doc result")
   }
 }

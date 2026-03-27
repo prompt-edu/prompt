@@ -14,8 +14,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 )
 
-func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
-  defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc) }()
+func AggregateSubjectDataFromCore(c *gin.Context, doc ServiceExportRequest, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
+  defer func() { UpdateExportDocStatus(err, c, doc.ExportDoc.ID) }()
 
   ex, err := utils.NewExport()
   if err != nil { return; }
@@ -28,7 +28,7 @@ func AggregateSubjectDataFromCore(c *gin.Context, doc PreparedExportDoc, subject
     getSubjectDataForStudent(c, ex, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs)
   }
 
-  err = ex.UploadTo(c, doc.URL)
+  err = ex.UploadTo(c, doc.PresignedUploadURL)
   return
 }
 

@@ -19,6 +19,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
+	"github.com/prompt-edu/prompt/servers/certificate/privacy"
 	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -90,15 +91,17 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("certificate/api/course_phase/:coursePhaseID")
+	api := router.Group("certificate/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	initKeycloak()
 
-	api.GET("/hello", helloCertificate)
+	coursePhaseApi.GET("/hello", helloCertificate)
 
 	// Initialize modules
-	config.InitConfigModule(api, *query, conn)
-	participants.InitParticipantsModule(api, *query)
-	generator.InitGeneratorModule(api, *query)
+	config.InitConfigModule(coursePhaseApi, *query, conn)
+	participants.InitParticipantsModule(coursePhaseApi, *query)
+	generator.InitGeneratorModule(coursePhaseApi, *query)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8088")
 	log.Info("Certificate Server started")

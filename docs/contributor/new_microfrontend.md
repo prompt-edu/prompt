@@ -25,9 +25,9 @@ This guide explains how to add a new microfrontend component (ending with `_comp
    - Copy the entire `template_component` folder.
    - Rename it to your new component’s name, ensuring you include the `_component` suffix.
 
-3. **Update `webpack.config.ts`**
+3. **Update `webpack.config.mjs`**
 
-   - In your new component’s `webpack.config.ts`, update the following constants:
+   - In your new component’s `webpack.config.mjs`, update the following constants:
      - `COMPONENT_NAME` (set this to your component’s name)
      - `COMPONENT_DEV_PORT` (assign a unique port for local development, e.g. `3001`. Make sure it does not collide with other components in this repo.)
 
@@ -70,7 +70,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
 ## 2. Integrate Your Microfrontend with the Core
 
-### 2.1. Update `core/webpack.config.ts`
+### 2.1. Update `core/webpack.config.mjs`
 
 1. Determine the URL of your new microfrontend (e.g., via an environment variable).
 2. In the `ModuleFederationPlugin > remotes` section, add an entry for your new microfrontend so it can be dynamically loaded.
@@ -134,7 +134,7 @@ The course phase types are stored in the DB. We assume here that you already hav
 
 **Note:**
 
-- For an external component, the `shared_library` must be published in full, and you must adjust the `publicPath` accordingly in `webpack.config.ts`.
+- For an external component, the `shared_library` must be published in full, and you must adjust the `publicPath` accordingly in `webpack.config.mjs`.
 
 ---
 

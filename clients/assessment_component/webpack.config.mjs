@@ -3,7 +3,6 @@ import 'webpack-dev-server'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import packageJson from '../package.json' with { type: 'json' }
 import webpack from 'webpack'
-import container from 'webpack'
 import { fileURLToPath } from 'url'
 import CopyPlugin from 'copy-webpack-plugin'
 
@@ -18,8 +17,8 @@ const COMPONENT_DEV_PORT = 3007
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const config: (env: Record<string, string>) => container.Configuration = (env) => {
-  const getVariable = (name: string) => env[name]
+const config = (env) => {
+  const getVariable = (name) => env[name]
 
   const IS_DEV = getVariable('NODE_ENV') !== 'production'
   const deps = packageJson.dependencies

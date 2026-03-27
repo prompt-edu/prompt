@@ -82,8 +82,11 @@ func initKeycloak(queries db.Queries) {
 }
 
 func main() {
-	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_INTERVIEW", ""))
-	defer sentry.Flush(2 * time.Second)
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_INTERVIEW", ""))
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	databaseURL := getDatabaseURL()
 	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
@@ -101,7 +104,9 @@ func main() {
 	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("interview/api/course_phase/:coursePhaseID")

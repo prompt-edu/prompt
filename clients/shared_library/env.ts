@@ -23,5 +23,6 @@ type EnvType = {
   TEMPLATE_HOST: string
   CERTIFICATE_HOST: string
   SENTRY_DSN_CLIENT: string
+  SENTRY_ENABLED: string
 }
 export const env: EnvType = { ...window.env }

@@ -5,8 +5,8 @@ import { env } from '@/env'
 
 import App from './App'
 
-// Initialize Sentry if DSN is provided
-if (env.SENTRY_DSN_CLIENT) {
+// Initialize Sentry if enabled and DSN is provided
+if (env.SENTRY_ENABLED === 'true' && env.SENTRY_DSN_CLIENT) {
   Sentry.init({
     dsn: env.SENTRY_DSN_CLIENT,
     environment: env.ENVIRONMENT || 'development',

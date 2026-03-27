@@ -3,12 +3,11 @@ module github.com/prompt-edu/prompt/servers/assessment
 go 1.26
 
 require (
-	github.com/getsentry/sentry-go v0.43.0
-	github.com/getsentry/sentry-go/logrus v0.43.0
+	github.com/getsentry/sentry-go v0.44.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.1
-	github.com/prompt-edu/prompt-sdk v1.1.2
+	github.com/prompt-edu/prompt-sdk v1.1.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/swaggo/swag v1.16.6
 )
@@ -22,6 +21,7 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
@@ -34,6 +34,7 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/getsentry/sentry-go/logrus v0.44.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect

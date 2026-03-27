@@ -40,8 +40,8 @@ export function PrivacyExportDocument({
 
   return (
     <Card className='border border-border'>
-      <CardContent className='p-4 relative'>
-        <div className='flex items-start gap-3'>
+      <CardContent className='p-4'>
+        <div className='flex items-center gap-3'>
           <div className='shrink-0'>
             <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
           </div>
@@ -52,26 +52,22 @@ export function PrivacyExportDocument({
             <p className='text-xs text-muted-foreground mt-0.5'>
               {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
             </p>
-            <p className='text-xs text-muted-foreground mt-0.5'>
-              {privacy_export_document.file_size == null
-                ? '-'
-                : formatFileSize(privacy_export_document.file_size)}
-            </p>
           </div>
-        </div>
-        <div className='absolute bottom-4 right-4'>
           <Button
             size='sm'
             disabled={!isComplete || isDownloading}
-            variant={'outline'}
+            variant='outline'
             onClick={handleDownload}
+            className='shrink-0'
           >
             {isDownloading ? (
               <Loader2 className='h-4 w-4 animate-spin' />
             ) : (
               <Download className='h-4 w-4' />
             )}
-            <div className='hidden xl:inline-block'>Download</div>
+            {privacy_export_document.file_size != null && (
+              <span className='text-xs'>{formatFileSize(privacy_export_document.file_size)}</span>
+            )}
           </Button>
         </div>
       </CardContent>

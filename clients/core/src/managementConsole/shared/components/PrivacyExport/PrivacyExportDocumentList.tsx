@@ -5,11 +5,12 @@ import {
 } from '@core/network/queries/privacyStudentDataExport'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@tumaet/prompt-ui-components'
 import { ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PrivacyExportDocument as PrivacyExportDocumentCard } from './PrivacyExportDoc'
 
 interface PrivacyExportDocumentListProps {
   privacyExport: PrivacyExport
+  inProgress: boolean
 }
 
 function CollapsibleDocSection({
@@ -17,24 +18,36 @@ function CollapsibleDocSection({
   description,
   docs,
   exportId,
+  inProgress,
+  closeOnComplete,
 }: {
   title: string
   description: string
   docs: PrivacyExportDocument[]
   exportId: string
+  inProgress: boolean
+  closeOnComplete: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(inProgress)
+
+  useEffect(() => {
+    if (inProgress) {
+      setOpen(true)
+    } else if (closeOnComplete) {
+      setOpen(false)
+    }
+  }, [inProgress, closeOnComplete])
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className='flex items-center gap-1.5 cursor-pointer py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors'>
+      <CollapsibleTrigger className='flex items-center gap-1.5 cursor-pointer py-2 font-medium text-muted-foreground hover:text-foreground transition-colors'>
+        <span>
+          {title} ({docs.length})
+        </span>
         <ChevronDown
           className='h-4 w-4 transition-transform duration-200'
           style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
         />
-        <span>
-          {title} ({docs.length})
-        </span>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <p className='text-muted-foreground pb-2'>{description}</p>
@@ -52,7 +65,7 @@ function CollapsibleDocSection({
   )
 }
 
-export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocumentListProps) {
+export function PrivacyExportDocumentList({ privacyExport, inProgress }: PrivacyExportDocumentListProps) {
   const { documents, id: exportId } = privacyExport
 
   const mainDocs = documents.filter(
@@ -78,13 +91,15 @@ export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocume
       )}
 
       {(noDataDocs.length > 0 || failedDocs.length > 0) && (
-        <div className='space-y-1'>
+        <div className='space-y-3'>
           {noDataDocs.length > 0 && (
             <CollapsibleDocSection
               title='No data'
               description='The export request was successful. There is no data stored about you on these microservices.'
               docs={noDataDocs}
               exportId={exportId}
+              inProgress={inProgress}
+              closeOnComplete={true}
             />
           )}
           {failedDocs.length > 0 && (
@@ -93,6 +108,8 @@ export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocume
               description="These microservices returned an error. Please contact an administrator or Prompt's Privacy Contact."
               docs={failedDocs}
               exportId={exportId}
+              inProgress={inProgress}
+              closeOnComplete={false}
             />
           )}
         </div>

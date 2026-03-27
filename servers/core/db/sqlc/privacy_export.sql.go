@@ -230,6 +230,31 @@ func (q *Queries) SetExportDocDownloadedAt(ctx context.Context, id uuid.UUID) er
 	return err
 }
 
+const setExportDocFileSize = `-- name: SetExportDocFileSize :one
+UPDATE privacy_export_document SET file_size = $2 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
+`
+
+type SetExportDocFileSizeParams struct {
+	ID       uuid.UUID   `json:"id"`
+	FileSize pgtype.Int8 `json:"file_size"`
+}
+
+func (q *Queries) SetExportDocFileSize(ctx context.Context, arg SetExportDocFileSizeParams) (PrivacyExportDocument, error) {
+	row := q.db.QueryRow(ctx, setExportDocFileSize, arg.ID, arg.FileSize)
+	var i PrivacyExportDocument
+	err := row.Scan(
+		&i.ID,
+		&i.ExportID,
+		&i.DateCreated,
+		&i.SourceName,
+		&i.ObjectKey,
+		&i.Status,
+		&i.FileSize,
+		&i.DownloadedAt,
+	)
+	return i, err
+}
+
 const setExportDocStatus = `-- name: SetExportDocStatus :one
 UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
 `
@@ -274,32 +299,6 @@ func (q *Queries) SetExportStatus(ctx context.Context, arg SetExportStatusParams
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
-	)
-	return i, err
-}
-
-const updateExportDocResult = `-- name: UpdateExportDocResult :one
-UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
-`
-
-type UpdateExportDocResultParams struct {
-	ID       uuid.UUID    `json:"id"`
-	Status   ExportStatus `json:"status"`
-	FileSize pgtype.Int8  `json:"file_size"`
-}
-
-func (q *Queries) UpdateExportDocResult(ctx context.Context, arg UpdateExportDocResultParams) (PrivacyExportDocument, error) {
-	row := q.db.QueryRow(ctx, updateExportDocResult, arg.ID, arg.Status, arg.FileSize)
-	var i PrivacyExportDocument
-	err := row.Scan(
-		&i.ID,
-		&i.ExportID,
-		&i.DateCreated,
-		&i.SourceName,
-		&i.ObjectKey,
-		&i.Status,
-		&i.FileSize,
-		&i.DownloadedAt,
 	)
 	return i, err
 }

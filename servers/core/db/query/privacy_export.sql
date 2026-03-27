@@ -23,8 +23,8 @@ UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING *;
 -- name: SetExportDocStatus :one
 UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING *;
 
--- name: UpdateExportDocResult :one
-UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING *;
+-- name: SetExportDocFileSize :one
+UPDATE privacy_export_document SET file_size = $2 WHERE id = $1 RETURNING *;
 
 -- name: GetExportDocObjectKey :one
 SELECT object_key FROM privacy_export_document WHERE id = $1;

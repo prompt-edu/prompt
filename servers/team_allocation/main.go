@@ -18,6 +18,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/privacy"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
 	teams "github.com/prompt-edu/prompt/servers/team_allocation/team"
@@ -114,6 +115,8 @@ func main() {
 	copy.InitCopyModule(copyApi, *query, conn)
 
 	config.InitConfigModule(api, *query, conn)
+
+  privacy.InitPrivacyModule(api, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8083")
 	log.Info("Team Allocation Server started")

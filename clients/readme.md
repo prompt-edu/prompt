@@ -16,7 +16,7 @@ The main application that provides the foundational framework for the system:
 ### `shared_library`
 A library of reusable code and assets shared across all components, structured as follows:
 - **Usage**:
-  - The library is loaded in the `webpack.config.ts` of every component
+  - The library is loaded in the `webpack.config.mjs` of every component
   - `@` is configured and an alias for the path of the shared library, to make imports easier and cleaner
     - i.e. `import { Button } from @/components/ui/button`
 - **Structure:**
@@ -79,7 +79,7 @@ Only dependencies specific to your component shall be added in the subfolder.
 ### Webpack Module Federation
 The clients are built using **Webpack**, leveraging **module federation** to dynamically load course phase components:
 - **Exporting `<your_component>`**
-    All exporting configs are set in `<your_component>/webpack.config.ts`
+    All exporting configs are set in `<your_component>/webpack.config.mjs`
     ```ts
     devServer: {
       port: 3001, // set this to a free port
@@ -100,7 +100,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
     ````
 
 - **Loading `<your_component>` in the `core`**
-  1. Add `<your_component>` to the `core/webpack.config.ts`
+  1. Add `<your_component>` to the `core/webpack.config.mjs`
     ```ts
         new container.ModuleFederationPlugin({
             name: 'core',

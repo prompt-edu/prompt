@@ -3,7 +3,6 @@ import 'webpack-dev-server'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import packageJson from '../package.json' with { type: 'json' }
 import webpack from 'webpack'
-import container from 'webpack'
 import { fileURLToPath } from 'url'
 import CopyPlugin from 'copy-webpack-plugin'
 
@@ -12,14 +11,14 @@ const { ModuleFederationPlugin } = webpack.container
 // ########################################
 // ### Component specific configuration ###
 // ########################################
-const COMPONENT_NAME = 'devops_challenge_component'
-const COMPONENT_DEV_PORT = 3006
+const COMPONENT_NAME = 'matching_component'
+const COMPONENT_DEV_PORT = 3003
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const config: (env: Record<string, string>) => container.Configuration = (env) => {
-  const getVariable = (name: string) => env[name]
+const config = (env) => {
+  const getVariable = (name) => env[name]
 
   const IS_DEV = getVariable('NODE_ENV') !== 'production'
   const deps = packageJson.dependencies
@@ -88,10 +87,6 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
           '@tanstack/react-query': {
             singleton: true,
             requiredVersion: deps['@tanstack/react-query'],
-          },
-          '@tumaet/prompt-shared-state': {
-            singleton: true,
-            requiredVersion: deps['@tumaet/prompt-shared-state'],
           },
         },
       }),

@@ -12,6 +12,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getScoreLevelSpecificationBytes() ([]byte, error) {
+	scoreLevelSpecificationJson := meta.MetaData{}
+	scoreLevelSpecificationJson["type"] = "string"
+	scoreLevelSpecificationJson["enum"] = []string{"veryBad", "bad", "ok", "good", "veryGood"}
+	return scoreLevelSpecificationJson.GetDBModel()
+}
+
 func initInterview() error {
 	ctx := context.Background()
 	exists, err := CoursePhaseTypeServiceSingleton.queries.TestInterviewPhaseTypeExists(ctx)
@@ -55,6 +62,12 @@ func initInterview() error {
 			return err
 		}
 
+		scoreLevelSpecificationBytes, err := getScoreLevelSpecificationBytes()
+		if err != nil {
+			log.Error("failed to parse score level specification")
+			return err
+		}
+
 		newRequiredScoreInput := db.CreateCoursePhaseTypeRequiredInputParams{
 			ID:                uuid.New(),
 			CoursePhaseTypeID: newInterviewPhase.ID,
@@ -80,11 +93,25 @@ func initInterview() error {
 			DtoName:           "score",
 			Specification:     scoreSpecificationBytes,
 			VersionNumber:     1,
-			EndpointPath:      baseURL,
+			EndpointPath:      "core",
 		}
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
 		if err != nil {
 			log.Error("failed to create required score input: ", err)
+			return err
+		}
+
+		newProvidedScoreLevelOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
+			ID:                uuid.New(),
+			CoursePhaseTypeID: newInterviewPhase.ID,
+			DtoName:           "scoreLevel",
+			Specification:     scoreLevelSpecificationBytes,
+			VersionNumber:     1,
+			EndpointPath:      "core",
+		}
+		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
+		if err != nil {
+			log.Error("failed to create score level output: ", err)
 			return err
 		}
 

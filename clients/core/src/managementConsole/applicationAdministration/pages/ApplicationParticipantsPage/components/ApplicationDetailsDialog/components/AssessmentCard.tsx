@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, Trash2, X } from 'lucide-react'
 import {
   Button,
@@ -6,11 +6,17 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Input,
   Label,
   Separator,
+  ScoreLevelSelector,
 } from '@tumaet/prompt-ui-components'
-import { PassStatus, useAuthStore } from '@tumaet/prompt-shared-state'
+import {
+  mapNumberToScoreLevel,
+  mapScoreLevelToNumber,
+  PassStatus,
+  ScoreLevel,
+  useAuthStore,
+} from '@tumaet/prompt-shared-state'
 import { InstructorComment } from '../../../../../interfaces/instructorComment'
 import { useModifyAssessment } from '../hooks/mutateAssessment'
 import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
@@ -21,6 +27,27 @@ interface AssessmentCardProps {
   acceptanceStatus: PassStatus
   courseParticipationID: string
 }
+
+const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
+  [ScoreLevel.VeryGood]: 'Very Good',
+  [ScoreLevel.Good]: 'Good',
+  [ScoreLevel.Ok]: 'Okay',
+  [ScoreLevel.Bad]: 'Bad',
+  [ScoreLevel.VeryBad]: 'Very Bad',
+}
+
+const SCORE_LEVEL_DESCRIPTIONS: Record<ScoreLevel, string> = {
+  [ScoreLevel.VeryGood]: 'Outstanding final application assessment.',
+  [ScoreLevel.Good]: 'Strong application assessment with minor reservations.',
+  [ScoreLevel.Ok]: 'Neutral application assessment.',
+  [ScoreLevel.Bad]: 'Weak application assessment with notable concerns.',
+  [ScoreLevel.VeryBad]: 'Do not recommend based on the application.',
+}
+
+const mapStoredScoreToScoreLevel = (score: number | null): ScoreLevel | undefined =>
+  score !== null && Number.isInteger(score) && score >= 1 && score <= 5
+    ? mapNumberToScoreLevel(score)
+    : undefined
 
 export const AssessmentCard = ({
   score,
@@ -33,7 +60,11 @@ export const AssessmentCard = ({
   const { user } = useAuthStore()
   const author = `${user?.firstName} ${user?.lastName}`
 
-  const { mutate: mutateAssessment } = useModifyAssessment(courseParticipationID)
+  const { mutate: mutateAssessment, isPending } = useModifyAssessment(courseParticipationID)
+
+  useEffect(() => {
+    setCurrentScore(score)
+  }, [score])
 
   const handleScoreSubmit = (newScore: number) => {
     const assessment: ApplicationAssessment = {
@@ -68,42 +99,45 @@ export const AssessmentCard = ({
         <CardTitle>Assessment</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className='grid grid-cols-2'>
+        <div className='space-y-6'>
           <div>
-            <Label htmlFor='new-score' className='text-sm font-medium'>
-              Application Score
-            </Label>
-            <div className='flex items-center space-x-2 mt-1'>
-              <Input
-                id='new-score'
-                title='Assessment Score'
-                type='number'
-                value={currentScore ?? ''}
-                placeholder='New score'
-                onChange={(e) =>
-                  setCurrentScore(e.target.value === '' ? null : Number(e.target.value))
-                }
-                className='w-28 h-9'
+            <Label className='text-sm font-medium'>Application Score</Label>
+            <div className='mt-1 space-y-2'>
+              <ScoreLevelSelector
+                className='grid gap-2 xl:grid-cols-5'
+                selectedScore={mapStoredScoreToScoreLevel(currentScore)}
+                onScoreChange={(value) => {
+                  if (isPending) {
+                    return
+                  }
+                  const nextScore = mapScoreLevelToNumber(value)
+                  setCurrentScore(nextScore)
+                  handleScoreSubmit(nextScore)
+                }}
+                completed={false}
+                descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
+                labelsByLevel={SCORE_LEVEL_LABELS}
+                showIndicators={false}
+                hideUnselectedOnDesktop={false}
               />
-              <Button
-                disabled={!currentScore || currentScore === score}
-                onClick={() => handleScoreSubmit(currentScore ?? 0)}
-                size='sm'
-              >
-                Submit
-              </Button>
+              {currentScore !== null &&
+                (!Number.isInteger(currentScore) || currentScore < 1 || currentScore > 5) && (
+                  <p className='text-sm text-muted-foreground'>
+                    Existing numeric score {currentScore} is outside the 1-5 selector range.
+                    Selecting a level will replace it.
+                  </p>
+                )}
             </div>
           </div>
           <div>
             <Label htmlFor='resolution' className='text-sm font-medium'>
               Resolution
             </Label>
-            <div className='flex items-center space-x-4 mt-1'>
+            <div className='mt-1 flex flex-wrap items-center gap-4'>
               <Button
                 variant='outline'
                 size='sm'
-                disabled={acceptanceStatus === PassStatus.FAILED}
-                // className='border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600'
+                disabled={isPending || acceptanceStatus === PassStatus.FAILED}
                 onClick={() => handleAcceptanceStatusChange(PassStatus.FAILED)}
               >
                 <X />
@@ -112,8 +146,7 @@ export const AssessmentCard = ({
               <Button
                 variant='default'
                 size='sm'
-                disabled={acceptanceStatus === PassStatus.PASSED}
-                // className='bg-green-500 hover:bg-green-600 text-white'
+                disabled={isPending || acceptanceStatus === PassStatus.PASSED}
                 onClick={() => handleAcceptanceStatusChange(PassStatus.PASSED)}
               >
                 <Check />
@@ -149,6 +182,7 @@ export const AssessmentCard = ({
                       <Button
                         variant='ghost'
                         size='sm'
+                        disabled={isPending}
                         onClick={() => handleDeleteComment(comment)}
                         className='text-red-500 hover:text-red-600 hover:bg-red-50'
                       >

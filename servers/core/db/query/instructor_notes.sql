@@ -1,6 +1,9 @@
 -- name: GetStudentNotesForStudent :many
 SELECT * FROM note_with_versions WHERE for_student = $1 ORDER BY date_created ASC;
 
+-- name: GetStudentNotesForAuthor :many
+SELECT * FROM note_with_versions WHERE author = $1 ORDER BY date_created ASC;
+
 -- name: GetAllStudentNotes :many
 SELECT * FROM note_with_versions ORDER BY date_created DESC;
 

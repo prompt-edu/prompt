@@ -1,5 +1,6 @@
-import { Download, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
 import {
+  ExportStatus,
   getExportDocDownloadURL,
   PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
@@ -23,6 +24,7 @@ function getTotalFileSize(privacyExport: PrivacyExport): number | null {
 
 export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExportBannerProps) {
   const [downloading, setDownloading] = useState(-1)
+  const completeDocs = privacyExport.documents.filter((doc) => doc.status == ExportStatus.complete)
   const { toast } = useToast()
   const totalSize = !inProgress ? getTotalFileSize(privacyExport) : null
 
@@ -31,8 +33,8 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
     let failed = 0
 
     try {
-      for (let i = 0; i < privacyExport.documents.length; i++) {
-        const expDoc = privacyExport.documents[i]
+      for (let i = 0; i < completeDocs.length; i++) {
+        const expDoc = completeDocs[i]
 
         try {
           const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
@@ -43,7 +45,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
 
         setDownloading(i + 1)
 
-        if (i < privacyExport.documents.length - 1) {
+        if (i < completeDocs.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000))
         }
       }
@@ -60,6 +62,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   }
 
   const isDownloading = downloading != -1
+  const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
   return (
     <div className='rounded-lg border border-border bg-muted p-4 flex items-center justify-between'>
@@ -67,18 +70,20 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
         <div className='lg:mx-2'>
           {inProgress ? (
             <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
+          ) : isFailed ? (
+            <AlertTriangle className='h-5 w-5 text-muted-foreground' />
           ) : (
             <ShieldCheck className='h-5 w-5 text-muted-foreground' />
           )}
         </div>
         <div>
           <p className='font-semibold text-foreground'>
-            {inProgress ? 'Collecting your data…' : 'Export ready'}
+            {inProgress ? 'Collecting your data…' : isFailed ? 'There was a problem with your Export' : 'Export ready'}
           </p>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            Requested on {new Date(privacyExport.date_created).toLocaleString()}
+            {isFailed ? 'Review below' : `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`}
           </p>
-          {!inProgress && (
+          {!inProgress && !isFailed && (
             <>
               <p className='text-xs text-muted-foreground mt-0.5'>
                 Files available until {new Date(privacyExport.valid_until).toLocaleString()}
@@ -90,12 +95,12 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
           )}
         </div>
       </div>
-      {!inProgress && (
+      {!inProgress && !isFailed && (
         <Button onClick={handleDownloadAll} disabled={isDownloading}>
           {isDownloading ? (
             <>
               <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-              Downloading {downloading}/{privacyExport.documents.length}
+              Downloading {downloading}/{completeDocs.length}
             </>
           ) : (
             <>

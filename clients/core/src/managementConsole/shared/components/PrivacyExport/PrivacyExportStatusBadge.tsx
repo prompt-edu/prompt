@@ -1,10 +1,4 @@
 import { ExportStatus } from '@core/network/queries/privacyStudentDataExport'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@tumaet/prompt-ui-components'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CircleCheck, CircleDashed, CircleX } from 'lucide-react'
 
@@ -27,14 +21,6 @@ const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
   [ExportStatus.no_data]: <CircleCheck size={size} />,
 })
 
-const statusDescription: Record<ExportStatus, string> = {
-  [ExportStatus.failed]:
-    "The microservice returned with an error. Please contact an administrator or Prompt's Privacy Contact ",
-  [ExportStatus.pending]: 'The Export is currently ongoing',
-  [ExportStatus.complete]: 'The Export finished succesfully and can be downloaded',
-  [ExportStatus.no_data]:
-    'The Export request was successful. There is no data stored about you or related to you on this microservice',
-}
 
 export function PrivacyExportStatus({
   privacy_export_status,
@@ -49,14 +35,7 @@ export function PrivacyExportStatus({
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       >
-        <Tooltip>
-          <TooltipTrigger className='flex'>
-            {statusIcons(size)[privacy_export_status]}
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className='max-w-80'>{statusDescription[privacy_export_status]}</p>
-          </TooltipContent>
-        </Tooltip>
+        {statusIcons(size)[privacy_export_status]}
       </motion.div>
     </AnimatePresence>
   )

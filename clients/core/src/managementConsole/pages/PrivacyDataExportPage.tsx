@@ -8,8 +8,8 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
-import { PrivacyExportDocument } from '../shared/components/PrivacyExport/PrivacyExportDoc'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
+import { PrivacyExportDocumentList } from '../shared/components/PrivacyExport/PrivacyExportDocumentList'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
 import { PrivacyExportTrigger } from '../shared/components/PrivacyExport/PrivacyExportTrigger'
@@ -81,18 +81,7 @@ export function PrivacyDataExportPage() {
       {statusQuery.data && (
         <div className='mt-8 space-y-4'>
           <PrivacyExportBanner inProgress={isPolling} privacyExport={statusQuery.data} />
-
-          {statusQuery.data.documents.length > 0 && (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-              {statusQuery.data.documents.map((doc) => (
-                <PrivacyExportDocument
-                  key={doc.id}
-                  exportId={statusQuery.data.id}
-                  privacy_export_document={doc}
-                />
-              ))}
-            </div>
-          )}
+          <PrivacyExportDocumentList privacyExport={statusQuery.data} />
         </div>
       )}
 

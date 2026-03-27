@@ -48,16 +48,16 @@ func studentDataExport(c *gin.Context) {
 		return
 	}
 
-  prep, err := service.PrepareStudentDataExport(c, subjectIdentifiers)
+  export, err := service.PrepareDataExport(c, subjectIdentifiers)
 	if err != nil {
     log.Error("student data export failed: ", err)
     utils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, prep.Record)
+	c.JSON(http.StatusOK, export.Record)
 
-  service.RunStudentDataExport(c, prep, subjectIdentifiers)
+  service.RunDataExport(c, export)
 }
 
 // getLatestExport returns the most recent export for the requesting user if one exists

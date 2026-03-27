@@ -218,6 +218,17 @@ func SetExportDocStatus(c *gin.Context, docID uuid.UUID, status db.ExportStatus)
   return err
 }
 
+func exportResultToDBStatus(result ExportResult) db.ExportStatus {
+  switch result {
+  case Successful:
+    return db.ExportStatusComplete
+  case SuccessfulNoData:
+    return db.ExportStatusNoData
+  default:
+    return db.ExportStatusFailed
+  }
+}
+
 func SetExportStatus(c *gin.Context, exportID uuid.UUID, status db.ExportStatus) error {
   _, err := PrivacyServiceSingleton.queries.SetExportStatus(c, db.SetExportStatusParams{
     ID: exportID,

@@ -12,6 +12,7 @@ export const requestStudentDataExport = async (): Promise<PrivacyExport> => {
 export enum ExportStatus {
   pending = 'pending',
   complete = 'complete',
+  no_data = 'no_data',
   failed = 'failed',
 }
 

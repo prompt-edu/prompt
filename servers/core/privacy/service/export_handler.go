@@ -11,6 +11,7 @@ import (
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
+	log "github.com/sirupsen/logrus"
 )
 
 type ExportRequest struct {
@@ -90,13 +91,17 @@ func RunDataExport(c *gin.Context, exportState Export) {
 		wg.Go(func() {
 			cCopy := c.Copy()
 
-			callErr := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
+			result := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
 
-			UpdateExportDocStatus(callErr, cCopy, exportState.ExternalExports[i].ExportDoc.ID)
-      UpdateExportDocFileSize(cCopy, exportState.ExternalExports[i].ExportDoc.ID)
+			if setErr := SetExportDocStatus(cCopy, exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
+				log.WithError(setErr).Error("failed to set export doc status")
+			}
+			if result == Successful {
+				UpdateExportDocFileSize(cCopy, exportState.ExternalExports[i].ExportDoc.ID)
+			}
 
 			mu.Lock()
-			updateExportStateForRequest(callErr, &exportState.ExternalExports[i])
+			exportState.ExternalExports[i].Result = result
 			mu.Unlock()
 		})
 	}
@@ -124,16 +129,18 @@ func updateExportState(c *gin.Context, e *Export) {
 	for i := range e.ExternalExports {
 		if e.ExternalExports[i].Result == Failed || e.ExternalExports[i].Result == Pending {
 			failed++
-
-			err := fmt.Errorf("state failed or still pending even though request finished")
-			UpdateExportDocStatus(err, c, e.ExternalExports[i].ExportDoc.ID)
-			updateExportStateForRequest(err, &e.ExternalExports[i])
+			if e.ExternalExports[i].Result == Pending {
+				log.Errorf("export doc %s still pending after request finished", e.ExternalExports[i].ExportDoc.ID)
+				if setErr := SetExportDocStatus(c, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
+					log.WithError(setErr).Error("failed to mark pending export doc as failed")
+				}
+			}
 		}
 	}
 
 	if failed > 0 {
-    UpdateExportStatus(fmt.Errorf("at least one request failed"), c, e.Record.ID)
+		UpdateExportStatus(fmt.Errorf("at least one request failed"), c, e.Record.ID)
 	} else {
-    UpdateExportStatus(nil, c, e.Record.ID)
+		UpdateExportStatus(nil, c, e.Record.ID)
 	}
 }

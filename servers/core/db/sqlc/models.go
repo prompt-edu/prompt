@@ -60,6 +60,7 @@ type ExportStatus string
 const (
 	ExportStatusPending  ExportStatus = "pending"
 	ExportStatusComplete ExportStatus = "complete"
+	ExportStatusNoData   ExportStatus = "no_data"
 	ExportStatusFailed   ExportStatus = "failed"
 )
 

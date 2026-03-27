@@ -41,7 +41,7 @@ export function PrivacyDataExportPage() {
     enabled: !!exportID,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      if (status === ExportStatus.complete || status === ExportStatus.failed) return false
+      if (status === ExportStatus.complete || status === ExportStatus.no_data || status === ExportStatus.failed) return false
       return 3000
     },
   })
@@ -53,6 +53,7 @@ export function PrivacyDataExportPage() {
 
   const isPolling =
     statusQuery.data?.status !== ExportStatus.complete &&
+    statusQuery.data?.status !== ExportStatus.no_data &&
     statusQuery.data?.status !== ExportStatus.failed &&
     !!exportID
 

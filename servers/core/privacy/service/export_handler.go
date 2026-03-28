@@ -6,8 +6,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
-	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
@@ -54,7 +53,7 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
   for _, cpt := range coursePhaseTypes {
     _, err := url.ParseRequestURI(cpt.BaseUrl)
     if err != nil { continue }
-    comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
+    comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdk.PrivacyRouteDataExport)
     if err != nil { continue }
     externalExportDocs = append(externalExportDocs, comparedoc)
   }

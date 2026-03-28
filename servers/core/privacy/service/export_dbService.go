@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
@@ -41,7 +41,7 @@ func exportExpiry() time.Duration {
 // CreateExportRecord atomically checks that the user is allowed to create a new export
 // (no valid export exists, not rate-limited) and inserts the record.
 // Uses SELECT ... FOR UPDATE to prevent concurrent duplicate exports.
-func CreateExportRecord(c *gin.Context, subject sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
+func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
 	tx, err := PrivacyServiceSingleton.conn.Begin(c)
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to begin transaction: %w", err)
@@ -50,7 +50,7 @@ func CreateExportRecord(c *gin.Context, subject sdk.SubjectIdentifiers) (privacy
 
 	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
 
-	latestExport, err := txQueries.GetLatestExportForUserForUpdate(c, subject.UserID)
+	latestExport, err := txQueries.GetLatestExportForUserForUpdate(c, subjectIdentifiers.UserID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to check existing exports: %w", err)
 	}
@@ -68,8 +68,8 @@ func CreateExportRecord(c *gin.Context, subject sdk.SubjectIdentifiers) (privacy
 
 	exp, err := txQueries.CreateNewExport(c, db.CreateNewExportParams{
 		ID:         uuid.New(),
-		UserID:     subject.UserID,
-		StudentID:  pgtype.UUID{Bytes: subject.StudentID, Valid: subject.StudentID != uuid.Nil},
+		UserID:     subjectIdentifiers.UserID,
+		StudentID:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
 		Status:     db.ExportStatusPending,
 		ValidUntil: pgtype.Timestamptz{Time: time.Now().Add(exportExpiry()), Valid: true},
 	})
@@ -126,8 +126,8 @@ func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName strin
   }
 
   return ServiceExportRequest{
-    PresignedUploadURL: url, 
-    ExportDoc: privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc), 
+    PresignedUploadURL: url,
+    ExportDoc: privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc),
     APIURL: apiURL,
     Result: Pending,
   }, nil
@@ -258,7 +258,7 @@ func UpdateExportDocStatus(err error, c *gin.Context, exportDocID uuid.UUID) {
   }
 
   if _, setErr := PrivacyServiceSingleton.queries.SetExportDocStatus(c, db.SetExportDocStatusParams{
-    ID: exportDocID, 
+    ID: exportDocID,
     Status: targetStatus,
   }) ; setErr != nil {
     log.WithError(setErr).Error("failed to update export doc result")
@@ -277,12 +277,12 @@ func UpdateExportDocFileSize(c *gin.Context, exportDocID uuid.UUID) {
 
   fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
   if sizeErr != nil {
-      log.WithError(sizeErr).Error("failed to get file size from s3 obj")
-      return
+    log.WithError(sizeErr).Error("failed to get file size from s3 obj")
+    return
   }
 
   if _, setErr := PrivacyServiceSingleton.queries.SetExportDocFileSize(c, db.SetExportDocFileSizeParams{
-    ID: exportDocID, 
+    ID: exportDocID,
     FileSize: pgtype.Int8{ Int64: fileSize, Valid: true },
   }) ; setErr != nil {
     log.WithError(setErr).Error("failed to update export doc result")

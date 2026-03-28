@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
@@ -76,4 +76,3 @@ func addApplicationFiles(c *gin.Context, ex *utils.Export, courseParticipationUU
     )
   }
 }
-

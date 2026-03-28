@@ -40,7 +40,7 @@
     ]
   },
   "engines": {
-    "node": ">=20.20.1"
+    "node": ">=20.20.2"
   },
   "packageManager": "yarn@4.13.0",
   "resolutions": {

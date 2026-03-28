@@ -44,7 +44,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/gin v0.43.0
-	github.com/getsentry/sentry-go/logrus v0.44.1 // indirect
+	github.com/getsentry/sentry-go/logrus v0.44.1
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

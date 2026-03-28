@@ -6,6 +6,7 @@
     "resolveJsonModule": true,
     "module": "esnext",
     "target": "es6",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "allowJs": true,
     "moduleResolution": "node",

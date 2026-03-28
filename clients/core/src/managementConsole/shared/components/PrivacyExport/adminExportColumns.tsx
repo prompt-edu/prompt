@@ -1,6 +1,5 @@
 import { type AdminPrivacyExport } from '@core/network/queries/privacyStudentDataExport'
 import { ColumnDef } from '@tanstack/react-table'
-import { X } from 'lucide-react'
 
 export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {

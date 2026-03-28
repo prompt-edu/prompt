@@ -1708,6 +1708,128 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/config/reminders/incomplete": {
+            "get": {
+                "description": "Returns authors who have not fully completed evaluations for the selected type.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "course_phase_config"
+                ],
+                "summary": "List incomplete reminder recipients by evaluation type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Evaluation type (self|peer|tutor)",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.EvaluationReminderRecipients"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/config/reminders/send": {
+            "post": {
+                "description": "Computes incomplete recipients in assessment and triggers core manual mailing for the selected type.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "course_phase_config"
+                ],
+                "summary": "Send evaluation reminders",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Evaluation reminder send request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.SendEvaluationReminderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.EvaluationReminderSendReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/config/teams": {
             "get": {
                 "description": "Get teams for a course phase from core service.",
@@ -5027,6 +5149,84 @@ const docTemplate = `{
                 },
                 "tutorEvaluationStart": {
                     "type": "string"
+                }
+            }
+        },
+        "coursePhaseConfigDTO.EvaluationReminderRecipients": {
+            "type": "object",
+            "properties": {
+                "completedAuthors": {
+                    "type": "integer"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "deadlinePassed": {
+                    "type": "boolean"
+                },
+                "evaluationDeadlinePlaceholder": {
+                    "type": "string"
+                },
+                "evaluationEnabled": {
+                    "type": "boolean"
+                },
+                "evaluationType": {
+                    "$ref": "#/definitions/assessmentType.AssessmentType"
+                },
+                "evaluationTypeLabel": {
+                    "type": "string"
+                },
+                "incompleteAuthorCourseParticipationIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "totalAuthors": {
+                    "type": "integer"
+                }
+            }
+        },
+        "coursePhaseConfigDTO.EvaluationReminderSendReport": {
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "deadlinePassed": {
+                    "type": "boolean"
+                },
+                "evaluationType": {
+                    "$ref": "#/definitions/assessmentType.AssessmentType"
+                },
+                "failedEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "previousSentAt": {
+                    "type": "string"
+                },
+                "requestedRecipients": {
+                    "type": "integer"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "successfulEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.SendEvaluationReminderRequest": {
+            "type": "object",
+            "properties": {
+                "evaluationType": {
+                    "$ref": "#/definitions/assessmentType.AssessmentType"
                 }
             }
         },

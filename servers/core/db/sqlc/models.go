@@ -60,8 +60,9 @@ type ExportStatus string
 const (
 	ExportStatusPending  ExportStatus = "pending"
 	ExportStatusComplete ExportStatus = "complete"
-	ExportStatusNoData   ExportStatus = "no_data"
 	ExportStatusFailed   ExportStatus = "failed"
+	ExportStatusNoData   ExportStatus = "no_data"
+	ExportStatusArchived ExportStatus = "archived"
 )
 
 func (e *ExportStatus) Scan(src interface{}) error {

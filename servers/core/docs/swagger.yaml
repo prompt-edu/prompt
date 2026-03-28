@@ -920,14 +920,16 @@ definitions:
     enum:
     - pending
     - complete
-    - no_data
     - failed
+    - no_data
+    - archived
     type: string
     x-enum-varnames:
     - ExportStatusPending
     - ExportStatusComplete
-    - ExportStatusNoData
     - ExportStatusFailed
+    - ExportStatusNoData
+    - ExportStatusArchived
   db.Gender:
     enum:
     - male

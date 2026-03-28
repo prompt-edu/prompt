@@ -5353,14 +5353,16 @@ const docTemplate = `{
             "enum": [
                 "pending",
                 "complete",
+                "failed",
                 "no_data",
-                "failed"
+                "archived"
             ],
             "x-enum-varnames": [
                 "ExportStatusPending",
                 "ExportStatusComplete",
+                "ExportStatusFailed",
                 "ExportStatusNoData",
-                "ExportStatusFailed"
+                "ExportStatusArchived"
             ]
         },
         "db.Gender": {

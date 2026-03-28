@@ -39,9 +39,19 @@ SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT
 SELECT
   e.*,
   COUNT(ed.id)::int AS total_docs,
-  COUNT(ed.downloaded_at)::int AS downloaded_docs,
+  COUNT(CASE WHEN ed.status IN ('complete', 'no_data') THEN 1 END)::int AS downloaded_docs,
   MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id
 ORDER BY e.date_created DESC;
+
+-- name: GetInvalidExports :many
+SELECT * FROM privacy_export WHERE now() >= valid_until;
+
+-- name: GetExportDocObjectKeysByExportID :many
+SELECT object_key FROM privacy_export_document WHERE export_id = $1;
+
+-- name: SetExportDocStatusByExportID :exec
+UPDATE privacy_export_document SET status = $2 WHERE export_id = $1;
+

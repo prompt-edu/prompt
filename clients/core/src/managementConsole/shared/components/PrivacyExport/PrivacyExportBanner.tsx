@@ -81,7 +81,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
             {inProgress
               ? 'Collecting your data…'
               : isFailed
-                ? 'There was a problem with your Export'
+                ? 'Export finished with problems'
                 : 'Export ready'}
           </p>
           <p className='text-xs text-muted-foreground mt-0.5'>
@@ -101,7 +101,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
           <Button
             onClick={handleDownloadAll}
             disabled={isDownloading}
-            className={isDownloading ? '' : 'mt-2'}
+            className={isDownloading ? '' : 'mt-3'}
           >
             {isDownloading ? (
               <>
@@ -116,7 +116,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
             )}
           </Button>
           {completeSize != null && (
-            <span className='text-xs text-muted-foreground text-center'>
+            <span className='text-xs text-muted-foreground text-center w-full -mt-0.5'>
               ~{formatFileSize(completeSize)}
             </span>
           )}

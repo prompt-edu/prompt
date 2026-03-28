@@ -13,9 +13,9 @@ interface PrivacyExportBannerProps {
   privacyExport: PrivacyExport
 }
 
-function getTotalFileSize(privacyExport: PrivacyExport): number | null {
+function getCompleteDocsFileSize(docs: PrivacyExport['documents']): number | null {
   let total = 0
-  for (const doc of privacyExport.documents) {
+  for (const doc of docs) {
     if (doc.file_size == null) return null
     total += doc.file_size
   }
@@ -26,7 +26,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   const [downloading, setDownloading] = useState(-1)
   const completeDocs = privacyExport.documents.filter((doc) => doc.status == ExportStatus.complete)
   const { toast } = useToast()
-  const totalSize = !inProgress ? getTotalFileSize(privacyExport) : null
+  const completeSize = !inProgress ? getCompleteDocsFileSize(completeDocs) : null
 
   const handleDownloadAll = async () => {
     setDownloading(1)
@@ -78,37 +78,49 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
         </div>
         <div>
           <p className='font-semibold text-foreground'>
-            {inProgress ? 'Collecting your data…' : isFailed ? 'There was a problem with your Export' : 'Export ready'}
+            {inProgress
+              ? 'Collecting your data…'
+              : isFailed
+                ? 'There was a problem with your Export'
+                : 'Export ready'}
           </p>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            {isFailed ? 'Review below' : `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`}
+            {isFailed
+              ? 'Review below'
+              : `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`}
           </p>
-          {!inProgress && !isFailed && (
-            <>
-              <p className='text-xs text-muted-foreground mt-0.5'>
-                Files available until {new Date(privacyExport.valid_until).toLocaleString()}
-              </p>
-              {totalSize != null && (
-                <p className='text-xs text-muted-foreground mt-0.5'>~{formatFileSize(totalSize)}</p>
-              )}
-            </>
+          {!inProgress && (
+            <p className='text-xs text-muted-foreground mt-0.5'>
+              Files available until {new Date(privacyExport.valid_until).toLocaleString()}
+            </p>
           )}
         </div>
       </div>
-      {!inProgress && !isFailed && (
-        <Button onClick={handleDownloadAll} disabled={isDownloading}>
-          {isDownloading ? (
-            <>
-              <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-              Downloading {downloading}/{completeDocs.length}
-            </>
-          ) : (
-            <>
-              <Download className='mr-2 h-4 w-4' />
-              Download All
-            </>
+      {!inProgress && completeDocs.length > 0 && (
+        <div className='flex flex-col items-end gap-1'>
+          <Button
+            onClick={handleDownloadAll}
+            disabled={isDownloading}
+            className={isDownloading ? '' : 'mt-2'}
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
+                Downloading {downloading}/{completeDocs.length}
+              </>
+            ) : (
+              <>
+                <Download className='mr-2 h-4 w-4' />
+                Download All
+              </>
+            )}
+          </Button>
+          {completeSize != null && (
+            <span className='text-xs text-muted-foreground text-center'>
+              ~{formatFileSize(completeSize)}
+            </span>
           )}
-        </Button>
+        </div>
       )}
     </div>
   )

@@ -81,6 +81,11 @@ export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {
   }
 }
 
+// DEV ONLY - delete later
+export const devResetExports = async (): Promise<void> => {
+  await axiosInstance.delete('/api/privacy/dev/reset-exports')
+}
+
 export const getLatestStudentDataExport = async (): Promise<LatestExportResponse> => {
   try {
     const response = await axiosInstance.get('/api/privacy/data-export')

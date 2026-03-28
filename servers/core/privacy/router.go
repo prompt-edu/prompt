@@ -28,6 +28,22 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 
 	// Admin-only routes
 	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
+
+	// DEV ONLY - delete later
+	router.DELETE("/privacy/dev/reset-exports", devResetExports)
+}
+
+// DEV ONLY - delete later
+func devResetExports(c *gin.Context) {
+	_, err := service.PrivacyServiceSingleton.GetConn().Exec(c, `
+		DELETE FROM privacy_export_document;
+		DELETE FROM privacy_export;
+	`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // studentDataExport exports all student related data from core and all microservices.
@@ -42,16 +58,16 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
 func studentDataExport(c *gin.Context) {
-  export, err := service.PrepareDataExport(c)
+	export, err := service.PrepareDataExport(c)
 	if err != nil {
-    log.Error("student data export failed: ", err)
-    utils.HandleError(c, http.StatusInternalServerError, err)
+		log.Error("student data export failed: ", err)
+		utils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, export.Record)
 
-  service.RunDataExport(c, export)
+	service.RunDataExport(c, export)
 }
 
 // getLatestExport returns the most recent export for the requesting user if one exists
@@ -125,15 +141,15 @@ func getExportDocDownloadURL(c *gin.Context) {
 		return
 	}
 
-  if valErr := service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
+	if valErr := service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
 		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
-  }
+	}
 
-  if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
 		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
-  }
+	}
 
 	downloadURL, err := service.GetDownloadURLForDoc(c, docID)
 	if err != nil {
@@ -185,22 +201,22 @@ func getExport(c *gin.Context) {
 		return
 	}
 
-  valErr := service.ValidateExportBelongsToRequester(c, exportID)
+	valErr := service.ValidateExportBelongsToRequester(c, exportID)
 	if valErr != nil {
 		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
 		return
 	}
 
-  if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
 		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
 		return
-  }
+	}
 
-  expWithDocs, expErr := service.GetExportWithDocs(c, exportID)
+	expWithDocs, expErr := service.GetExportWithDocs(c, exportID)
 	if expErr != nil {
 		utils.HandleError(c, http.StatusInternalServerError, expErr)
 		return
 	}
 
-  c.JSON(200, expWithDocs)
+	c.JSON(200, expWithDocs)
 }

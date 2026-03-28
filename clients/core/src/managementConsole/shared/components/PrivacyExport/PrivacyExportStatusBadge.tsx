@@ -21,7 +21,6 @@ const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
   [ExportStatus.no_data]: <CircleCheck size={size} />,
 })
 
-
 export function PrivacyExportStatus({
   privacy_export_status,
   size = 20,

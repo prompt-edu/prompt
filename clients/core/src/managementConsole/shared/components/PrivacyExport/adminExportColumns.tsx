@@ -1,15 +1,7 @@
 import { type AdminPrivacyExport } from '@core/network/queries/privacyStudentDataExport'
 import { ColumnDef } from '@tanstack/react-table'
-import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
 
 export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
-  {
-    id: 'status_icon',
-    header: '',
-    cell: ({ row }) => (
-      <PrivacyExportStatus privacy_export_status={row.original.status} size={16} />
-    ),
-  },
   {
     accessorKey: 'status',
     header: 'Status',

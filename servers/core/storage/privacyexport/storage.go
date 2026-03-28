@@ -77,6 +77,14 @@ func GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
 	return adapter.GetURL(ctx, objectKey, int(presignTTL.Seconds()))
 }
 
+// DeleteFile removes a GDPR export ZIP from storage.
+func DeleteFile(ctx context.Context, objectKey string) error {
+	if adapter == nil {
+		return fmt.Errorf("privacy export storage not initialized")
+	}
+	return adapter.Delete(ctx, objectKey)
+}
+
 // GetFileSize returns the size of the stored object in bytes.
 func GetFileSize(ctx context.Context, objectKey string) (int64, error) {
 	if adapter == nil {

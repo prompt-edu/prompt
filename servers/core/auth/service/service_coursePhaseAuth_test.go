@@ -1,4 +1,4 @@
-package coursePhaseAuth
+package service
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type CoursePhaseAuthTestSuite struct {
 	suite.Suite
 	ctx                    context.Context
 	cleanup                func()
-	coursePhaseAuthService CoursePhaseAuthService
+	authService AuthService
 }
 
 func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
@@ -29,11 +29,11 @@ func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseAuthService = CoursePhaseAuthService{
+	suite.authService = AuthService{
 		queries: *testDB.Queries,
 		conn:    testDB.Conn,
 	}
-	CoursePhaseAuthServiceSingleton = &suite.coursePhaseAuthService
+	AuthServiceSingleton = &suite.authService
 }
 
 func (suite *CoursePhaseAuthTestSuite) TearDownSuite() {

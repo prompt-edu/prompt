@@ -97,12 +97,8 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
         </div>
       </div>
       {!inProgress && completeDocs.length > 0 && (
-        <div className='flex flex-col items-end gap-1'>
-          <Button
-            onClick={handleDownloadAll}
-            disabled={isDownloading}
-            className={isDownloading ? '' : 'mt-3'}
-          >
+        <div className='flex flex-col items-end gap-1 relative'>
+          <Button onClick={handleDownloadAll} disabled={isDownloading}>
             {isDownloading ? (
               <>
                 <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
@@ -115,11 +111,9 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
               </>
             )}
           </Button>
-          {completeSize != null && (
-            <span className='text-xs text-muted-foreground text-center w-full -mt-0.5'>
-              ~{formatFileSize(completeSize)}
-            </span>
-          )}
+          <span className='text-xs text-muted-foreground text-center w-full absolute top-10'>
+            {completeSize == null ? '' : '~' + formatFileSize(completeSize)}
+          </span>
         </div>
       )}
     </div>

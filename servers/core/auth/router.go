@@ -9,12 +9,12 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
-// setupCoursePhaseAuthRouter sets up the course phase auth endpoints
-// @Summary Course Phase Auth Endpoints
-// @Description Endpoints for course phase authentication and participation
+// setupAuthRouter sets up the auth endpoints
+// @Summary Auth Endpoints
+// @Description Endpoints for authentication and participation
 // @Tags auth
 // @Security BearerAuth
-func setupCoursePhaseAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func setupAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	auth := router.Group("/auth", authMiddleware())
 
 	coursePhaseauth := auth.Group("/course_phase/:coursePhaseID", authMiddleware())

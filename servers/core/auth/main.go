@@ -9,8 +9,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
-func InitCoursePhaseAuthModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
-	setupCoursePhaseAuthRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByCourseIDWrapper)
+func InitAuthModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
+	setupAuthRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByCourseIDWrapper)
   service.InitAuthService(queries, conn)
 }
 

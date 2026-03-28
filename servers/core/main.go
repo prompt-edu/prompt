@@ -164,7 +164,7 @@ func main() {
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolution.InitResolutionModule(coreHost)
 
-	auth.InitCoursePhaseAuthModule(api, *query, conn)
+	auth.InitAuthModule(api, *query, conn)
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
 	course.InitCourseModule(api, *query, conn)

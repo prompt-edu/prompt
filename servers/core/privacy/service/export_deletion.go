@@ -31,6 +31,7 @@ func StartExportDeletionRoutine(ctx context.Context) {
 }
 
 func DeleteExpiredExportFiles(c context.Context) {
+	log.Info("gdpr export deletion started.")
 	exports, err := PrivacyServiceSingleton.queries.GetInvalidExports(c)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch invalid exports for deletion")

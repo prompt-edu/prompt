@@ -20,7 +20,7 @@ import (
 func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	privacyRouter := router.Group("/privacy", authMiddleware())
 
-	privacyRouter.POST("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), studentDataExport)
+	privacyRouter.POST("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), handleNewSubjectDataExport)
 	privacyRouter.GET("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestExport)
 
 	privacyRouter.GET("/data-export/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
@@ -46,7 +46,7 @@ func devResetExports(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// studentDataExport exports all student related data from core and all microservices.
+// handleNewSubjectDataExport exports all student related data from core and all microservices.
 //
 // @Summary Export all student related data
 // @Description Get an export of all student data from core and all microservices
@@ -57,7 +57,7 @@ func devResetExports(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
-func studentDataExport(c *gin.Context) {
+func handleNewSubjectDataExport(c *gin.Context) {
 	export, err := service.PrepareDataExport(c)
 	if err != nil {
 		log.Error("student data export failed: ", err)

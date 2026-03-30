@@ -85,8 +85,8 @@ func (q *Queries) CreateNewExportDoc(ctx context.Context, arg CreateNewExportDoc
 const getAllExports = `-- name: GetAllExports :many
 SELECT
   e.id, e.user_id, e.student_id, e.status, e.date_created, e.valid_until,
-  COUNT(ed.id)::int AS total_docs,
-  COUNT(CASE WHEN ed.status IN ('complete', 'no_data') THEN 1 END)::int AS downloaded_docs,
+  COUNT(CASE WHEN ed.status = 'complete' THEN 1 END)::int AS total_docs,
+  COUNT(CASE WHEN ed.downloaded_at IS NOT NULL THEN 1 END)::int AS downloaded_docs,
   MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id

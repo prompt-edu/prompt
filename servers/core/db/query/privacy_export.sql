@@ -38,8 +38,8 @@ SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT
 -- name: GetAllExports :many
 SELECT
   e.*,
-  COUNT(ed.id)::int AS total_docs,
-  COUNT(CASE WHEN ed.status IN ('complete', 'no_data') THEN 1 END)::int AS downloaded_docs,
+  COUNT(CASE WHEN ed.status = 'complete' THEN 1 END)::int AS total_docs,
+  COUNT(CASE WHEN ed.downloaded_at IS NOT NULL THEN 1 END)::int AS downloaded_docs,
   MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id

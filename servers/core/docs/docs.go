@@ -5721,6 +5721,12 @@ const docTemplate = `{
                 "downloaded_docs": {
                     "type": "integer"
                 },
+                "failed_docs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "id": {
                     "type": "string"
                 },

@@ -70,6 +70,7 @@ export interface AdminPrivacyExport {
   total_docs: number
   downloaded_docs: number
   last_downloaded_at: string | null
+  failed_docs: string[]
 }
 
 export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {

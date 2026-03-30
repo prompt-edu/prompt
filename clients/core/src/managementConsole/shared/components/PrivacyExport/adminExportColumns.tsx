@@ -48,4 +48,17 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
       )
     },
   },
+  {
+    accessorKey: 'failed_docs',
+    header: 'Errors',
+    cell: ({ row }) => {
+      const failed = row.original.failed_docs
+      if (failed.length === 0) return null
+      return (
+        <span className='text-red-800'>
+          {failed.join(', ')}
+        </span>
+      )
+    },
+  },
 ]

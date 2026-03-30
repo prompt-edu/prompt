@@ -38,6 +38,7 @@ type AdminPrivacyExport struct {
 	TotalDocs        int32           `json:"total_docs"`
 	DownloadedDocs   int32           `json:"downloaded_docs"`
 	LastDownloadedAt *time.Time      `json:"last_downloaded_at"`
+	FailedDocs       []string        `json:"failed_docs"`
 }
 
 func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) AdminPrivacyExport {
@@ -45,6 +46,15 @@ func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) AdminPrivacy
 	if model.StudentID.Valid {
 		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
 		studentID = &id
+	}
+
+	failedDocs := []string{}
+	if arr, ok := model.FailedDocs.([]interface{}); ok {
+		for _, v := range arr {
+			if s, ok := v.(string); ok {
+				failedDocs = append(failedDocs, s)
+			}
+		}
 	}
 
 	dto := AdminPrivacyExport{
@@ -56,6 +66,7 @@ func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) AdminPrivacy
 		ValidUntil:     model.ValidUntil.Time,
 		TotalDocs:      model.TotalDocs,
 		DownloadedDocs: model.DownloadedDocs,
+		FailedDocs:     failedDocs,
 	}
 	if model.LastDownloadedAt.Valid {
 		dto.LastDownloadedAt = &model.LastDownloadedAt.Time

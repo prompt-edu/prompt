@@ -40,7 +40,8 @@ SELECT
   e.*,
   COUNT(CASE WHEN ed.status = 'complete' THEN 1 END)::int AS total_docs,
   COUNT(CASE WHEN ed.downloaded_at IS NOT NULL THEN 1 END)::int AS downloaded_docs,
-  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
+  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at,
+  COALESCE(ARRAY_AGG(ed.source_name) FILTER (WHERE ed.status = 'failed'), '{}'::text[]) AS failed_docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id

@@ -1173,6 +1173,10 @@ definitions:
         type: string
       downloaded_docs:
         type: integer
+      failed_docs:
+        items:
+          type: string
+        type: array
       id:
         type: string
       last_downloaded_at:

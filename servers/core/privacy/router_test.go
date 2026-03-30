@@ -151,6 +151,7 @@ var (
 		ValidUntil:     export1.ValidUntil,
 		TotalDocs:      1, // only 'complete' docs
 		DownloadedDocs: 0, // none have downloaded_at set
+		FailedDocs:     []string{},
 	}
 	adminExport2 = privacyDTO.AdminPrivacyExport{
 		ID:             export2.ID,
@@ -161,6 +162,7 @@ var (
 		ValidUntil:     export2.ValidUntil,
 		TotalDocs:      1, // only 'complete' docs (no_data + failed excluded)
 		DownloadedDocs: 0, // none have downloaded_at set
+		FailedDocs:     []string{"MicroserviceB"},
 	}
 	adminExport3 = privacyDTO.AdminPrivacyExport{
 		ID:             export3.ID,
@@ -171,6 +173,7 @@ var (
 		ValidUntil:     export3.ValidUntil,
 		TotalDocs:      0, // archived docs are not 'complete'
 		DownloadedDocs: 0, // none have downloaded_at set
+		FailedDocs:     []string{},
 	}
 	adminExport4 = privacyDTO.AdminPrivacyExport{
 		ID:             export4.ID,
@@ -179,6 +182,7 @@ var (
 		Status:         export4.Status,
 		TotalDocs:      1,
 		DownloadedDocs: 0,
+		FailedDocs:     []string{},
 	}
 )
 
@@ -193,7 +197,6 @@ type RouterTestSuite struct {
 	router         *gin.Engine
 	ctx            context.Context
 	cleanup        func()
-	privacySerivce service.PrivacyService
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -265,6 +268,7 @@ func (suite *RouterTestSuite) TestRouterGetAllExportsAdmin() {
 		assert.Equal(suite.T(), exp.Status, exports[i].Status)
 		assert.Equal(suite.T(), exp.TotalDocs, exports[i].TotalDocs)
 		assert.Equal(suite.T(), exp.DownloadedDocs, exports[i].DownloadedDocs)
+		assert.Equal(suite.T(), exp.FailedDocs, exports[i].FailedDocs)
 		assert.Nil(suite.T(), exports[i].LastDownloadedAt)
 	}
 }

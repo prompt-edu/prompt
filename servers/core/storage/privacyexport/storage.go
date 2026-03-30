@@ -16,6 +16,11 @@ const objectKeyFormat = "%s/prompt_%s_%s.zip" // {exportRequestID}/prompt_{expor
 
 var adapter storage.StorageAdapter
 
+// InitWithAdapter sets the storage adapter directly. Intended for testing.
+func InitWithAdapter(a storage.StorageAdapter) {
+	adapter = a
+}
+
 // Init initializes the privacy export storage adapter.
 // It reuses the same S3 credentials and endpoint as the main storage module
 // but targets a dedicated bucket (S3_PRIVACY_EXPORT_BUCKET, default "prompt-privacy-exports").

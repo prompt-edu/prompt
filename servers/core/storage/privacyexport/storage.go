@@ -11,7 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const presignTTL = 15 * time.Minute
+const uploadPresignTTL = 15 * time.Minute
+const downloadPresignTTL = 5 * time.Minute
 const objectKeyFormat = "%s/prompt_%s_%s.zip" // {exportRequestID}/prompt_{exportRequestID[:6]}_{serviceName}.zip
 
 var adapter storage.StorageAdapter
@@ -50,7 +51,8 @@ func Init() error {
 	log.WithFields(log.Fields{
 		"bucket":   bucket,
 		"endpoint": endpoint,
-		"ttl":      presignTTL,
+		"uploadTTL":   uploadPresignTTL,
+		"downloadTTL": downloadPresignTTL,
 	}).Info("Privacy export storage adapter initialized")
 
 	return nil
@@ -69,7 +71,7 @@ func GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (str
 	}
 
 	key := MakeObjectURL(exportRequestID, serviceName)
-	return adapter.GetUploadURL(ctx, key, "application/zip", int(presignTTL.Seconds()))
+	return adapter.GetUploadURL(ctx, key, "application/zip", int(uploadPresignTTL.Seconds()))
 }
 
 // GetDownloadURL generates a presigned S3 GET URL for downloading a GDPR export ZIP.
@@ -79,7 +81,7 @@ func GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
 		return "", fmt.Errorf("privacy export storage not initialized")
 	}
 
-	return adapter.GetURL(ctx, objectKey, int(presignTTL.Seconds()))
+	return adapter.GetURL(ctx, objectKey, int(downloadPresignTTL.Seconds()))
 }
 
 // DeleteFile removes a GDPR export ZIP from storage.

@@ -47,7 +47,7 @@ GROUP BY e.id
 ORDER BY e.date_created DESC;
 
 -- name: GetInvalidExports :many
-SELECT * FROM privacy_export WHERE now() >= valid_until;
+SELECT * FROM privacy_export WHERE now() >= valid_until AND status != 'archived';
 
 -- name: GetExportDocObjectKeysByExportID :many
 SELECT object_key FROM privacy_export_document WHERE export_id = $1;

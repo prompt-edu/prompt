@@ -3,13 +3,13 @@ module github.com/prompt-edu/prompt/servers/certificate
 go 1.26
 
 require (
-	github.com/getsentry/sentry-go v0.43.0
+	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/gin v0.43.0
-	github.com/getsentry/sentry-go/logrus v0.43.0
+	github.com/getsentry/sentry-go/logrus v0.44.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.1
-	github.com/prompt-edu/prompt-sdk v1.1.2
+	github.com/prompt-edu/prompt-sdk v1.1.3
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.41.0

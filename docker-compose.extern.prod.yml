@@ -63,6 +63,8 @@ services:
       - SMTP_PASSWORD
       - SENDER_EMAIL
       - SENDER_NAME
+      - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -190,6 +192,8 @@ services:
       - GITHUB_SHA
       - GITHUB_REF
       - SERVER_CORE_IMAGE_TAG
+      - SENTRY_DSN_CLIENT
+      - SENTRY_ENABLED
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

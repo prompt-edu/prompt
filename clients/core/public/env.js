@@ -17,4 +17,5 @@ window.env = {
   GITHUB_REF: '$GITHUB_REF - Will be here in Production',
   SERVER_IMAGE_TAG: '$SERVER_IMAGE_TAG - Image Tag',
   SENTRY_DSN_CLIENT: '', // Sentry DSN for core client - leave empty for local development
+  SENTRY_ENABLED: '', // Set to 'true' to enable Sentry error tracking
 }

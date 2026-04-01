@@ -1126,6 +1126,36 @@ definitions:
           type: string
         type: array
     type: object
+  mailingDTO.ManualMailReport:
+    properties:
+      failedEmails:
+        items:
+          type: string
+        type: array
+      requestedRecipients:
+        type: integer
+      sentAt:
+        type: string
+      successfulEmails:
+        items:
+          type: string
+        type: array
+    type: object
+  mailingDTO.SendManualMailRequest:
+    properties:
+      additionalPlaceholders:
+        additionalProperties:
+          type: string
+        type: object
+      content:
+        type: string
+      recipientCourseParticipationIDs:
+        items:
+          type: string
+        type: array
+      subject:
+        type: string
+    type: object
   mailingDTO.SendStatusMail:
     properties:
       statusMailToBeSend:
@@ -3638,6 +3668,42 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Manually trigger status mail for a course phase
+      tags:
+      - mailing
+  /mailing/{coursePhaseID}/manual:
+    post:
+      consumes:
+      - application/json
+      description: Sends mails to the provided course participations using the provided
+        template and placeholders
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Manual mail request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/mailingDTO.SendManualMailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/mailingDTO.ManualMailReport'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Manually trigger custom mails for a selected recipient list
       tags:
       - mailing
   /privacy/admin/data-exports:

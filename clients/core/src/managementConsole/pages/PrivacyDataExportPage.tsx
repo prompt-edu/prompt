@@ -86,7 +86,7 @@ export function PrivacyDataExportPage() {
       {statusQuery.data && (
         <div className='mt-8 space-y-4'>
           <PrivacyExportBanner inProgress={isPolling} privacyExport={statusQuery.data} />
-          <PrivacyExportDocumentList privacyExport={statusQuery.data} inProgress={isPolling} />
+          <PrivacyExportDocumentList privacyExport={statusQuery.data} />
         </div>
       )}
 

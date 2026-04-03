@@ -80,3 +80,10 @@ SELECT (SELECT total FROM total_competencies) - (SELECT assessed FROM assessed_c
                )
        )                                                                                     AS categories
 FROM remaining_per_category rpc;
+
+
+-- name: GetAllAssessmentsByCourseParticipationIDs :many
+SELECT * 
+FROM assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+

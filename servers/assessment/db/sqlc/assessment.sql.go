@@ -114,6 +114,42 @@ func (q *Queries) DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAllAssessmentsByCourseParticipationIDs = `-- name: GetAllAssessmentsByCourseParticipationIDs :many
+SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples 
+FROM assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Assessment, error) {
+	rows, err := q.db.Query(ctx, getAllAssessmentsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Assessment
+	for rows.Next() {
+		var i Assessment
+		if err := rows.Scan(
+			&i.ID,
+			&i.CourseParticipationID,
+			&i.CoursePhaseID,
+			&i.CompetencyID,
+			&i.Comment,
+			&i.AssessedAt,
+			&i.Author,
+			&i.ScoreLevel,
+			&i.Examples,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAssessment = `-- name: GetAssessment :one
 SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples
 FROM assessment

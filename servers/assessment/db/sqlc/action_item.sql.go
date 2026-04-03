@@ -89,6 +89,39 @@ func (q *Queries) GetActionItem(ctx context.Context, id uuid.UUID) (ActionItem, 
 	return i, err
 }
 
+const getAllActionItemsByCourseParticipationIDs = `-- name: GetAllActionItemsByCourseParticipationIDs :many
+SELECT id, course_phase_id, course_participation_id, action, created_at, author 
+FROM action_item
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllActionItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]ActionItem, error) {
+	rows, err := q.db.Query(ctx, getAllActionItemsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ActionItem
+	for rows.Next() {
+		var i ActionItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.Action,
+			&i.CreatedAt,
+			&i.Author,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllActionItemsForCoursePhaseCommunication = `-- name: GetAllActionItemsForCoursePhaseCommunication :many
 SELECT course_participation_id, ARRAY_AGG(action ORDER BY created_at)::TEXT[] AS action_items
 FROM action_item

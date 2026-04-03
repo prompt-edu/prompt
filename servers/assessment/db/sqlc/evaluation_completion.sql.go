@@ -88,6 +88,40 @@ func (q *Queries) DeleteEvaluationCompletion(ctx context.Context, arg DeleteEval
 	return err
 }
 
+const getAllEvaluationCompletionsByCourseParticipationIDs = `-- name: GetAllEvaluationCompletionsByCourseParticipationIDs :many
+SELECT id, course_participation_id, course_phase_id, author_course_participation_id, completed_at, completed, type 
+FROM evaluation_completion
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllEvaluationCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]EvaluationCompletion, error) {
+	rows, err := q.db.Query(ctx, getAllEvaluationCompletionsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EvaluationCompletion
+	for rows.Next() {
+		var i EvaluationCompletion
+		if err := rows.Scan(
+			&i.ID,
+			&i.CourseParticipationID,
+			&i.CoursePhaseID,
+			&i.AuthorCourseParticipationID,
+			&i.CompletedAt,
+			&i.Completed,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEvaluationCompletion = `-- name: GetEvaluationCompletion :one
 SELECT id, course_participation_id, course_phase_id, author_course_participation_id, completed_at, completed, type
 FROM evaluation_completion

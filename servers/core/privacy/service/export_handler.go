@@ -37,31 +37,35 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
 		return Export{}, err
 	}
 
-  // prepare core
+	// prepare core
 	coreDoc, err := PrepareExportRecordDoc(c, exportRecord.ID, "Core", "")
 	if err != nil {
 		return Export{}, err
 	}
 
-  coursePhaseTypes, err := coursePhaseType.GetAllCoursePhaseTypes(c)
+	coursePhaseTypes, err := coursePhaseType.GetAllCoursePhaseTypes(c)
 	if err != nil {
 		return Export{}, err
 	}
 
-  externalExportDocs := make([]ServiceExportRequest, 0)
+	externalExportDocs := make([]ServiceExportRequest, 0)
 
-  // prepare External Exports
-  for _, cpt := range coursePhaseTypes {
-    _, err := url.ParseRequestURI(cpt.BaseUrl)
-    if err != nil { continue }
-    comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
-    if err != nil { continue }
-    externalExportDocs = append(externalExportDocs, comparedoc)
-  }
+	// prepare External Exports
+	for _, cpt := range coursePhaseTypes {
+		_, err := url.ParseRequestURI(cpt.BaseUrl)
+		if err != nil {
+			continue
+		}
+		comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
+		if err != nil {
+			continue
+		}
+		externalExportDocs = append(externalExportDocs, comparedoc)
+	}
 
 	return Export{
-		Record:       exportRecord,
-    Subject:      subjectIdentifiers,
+		Record:          exportRecord,
+		Subject:         subjectIdentifiers,
 		CoreExport:      coreDoc,
 		ExternalExports: externalExportDocs,
 	}, nil

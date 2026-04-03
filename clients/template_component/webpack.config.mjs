@@ -3,7 +3,6 @@ import 'webpack-dev-server'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import packageJson from '../package.json' with { type: 'json' }
 import webpack from 'webpack'
-import container from 'webpack'
 import { fileURLToPath } from 'url'
 import CopyPlugin from 'copy-webpack-plugin'
 
@@ -12,14 +11,14 @@ const { ModuleFederationPlugin } = webpack.container
 // ########################################
 // ### Component specific configuration ###
 // ########################################
-const COMPONENT_NAME = 'certificate_component'
-const COMPONENT_DEV_PORT = 3010
+const COMPONENT_NAME = 'template_component'
+const COMPONENT_DEV_PORT = 3001
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const config: (env: Record<string, string>) => container.Configuration = (env) => {
-  const getVariable = (name: string) => env[name]
+const config = (env) => {
+  const getVariable = (name) => env[name]
 
   const IS_DEV = getVariable('NODE_ENV') !== 'production'
   const deps = packageJson.dependencies
@@ -52,11 +51,11 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
         {
           test: /\.css$/i,
           use: ['style-loader', 'css-loader', 'postcss-loader'],
-          exclude: /node_modules/,
+          exclude: /node_modules/, // 🛠 Only apply postcss-loader to your src/
         },
         {
           test: /\.css$/i,
-          include: /node_modules/,
+          include: /node_modules/, // 🛠 Load node_modules CSS without postcss-loader
           use: ['style-loader', 'css-loader'],
         },
       ],
@@ -64,7 +63,7 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
     output: {
       filename: '[name].[contenthash].js',
       path: path.resolve(__dirname, 'build'),
-      publicPath: 'auto',
+      publicPath: 'auto', // Whole Domain is crucial when deployed under other domain!
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
@@ -74,7 +73,7 @@ const config: (env: Record<string, string>) => container.Configuration = (env) =
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: COMPONENT_NAME,
+        name: COMPONENT_NAME, // TODO: rename this to your component name
         filename: 'remoteEntry.js',
         exposes: {
           './routes': './routes',

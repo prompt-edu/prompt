@@ -39,6 +39,39 @@ func GetStudentNotesByID(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO
   return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
 }
 
+func GetStudentNotesByIDWithoutAuthor(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  notes, err := GetStudentNotesByID(ctx, id)
+  if err != nil {
+    return nil, err
+  }
+  for i := range notes {
+    notes[i].Author = uuid.Nil
+    notes[i].AuthorName = ""
+    notes[i].AuthorEmail = ""
+  }
+  return notes, nil
+}
+
+func GetStudentNotesForAuthor(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  instructorNotes, err := InstructorNoteServiceSingleton.queries.GetStudentNotesForAuthor(ctx, authorID)
+  if err != nil {
+    return nil, err
+  }
+  return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
+}
+
+func GetStudentNotesForAuthorWithoutStudent(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  notes, err := GetStudentNotesForAuthor(ctx, authorID)
+  if err != nil {
+    return nil, err
+  }
+  for i := range notes {
+    notes[i].ForStudent = uuid.Nil
+  }
+  return notes, nil
+}
+
+
 func GetAllTags(ctx context.Context) ([]instructorNoteDTO.NoteTag, error) {
   tags, err := InstructorNoteServiceSingleton.queries.GetAllTags(ctx)
   if err != nil {

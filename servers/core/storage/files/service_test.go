@@ -1,4 +1,4 @@
-package storage
+package files
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ func (suite *StorageServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up test database
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../database_dumps/storage_test.sql", func(pool *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../../database_dumps/storage_test.sql", func(pool *pgxpool.Pool) *db.Queries {
 		return db.New(pool)
 	})
 	if err != nil {

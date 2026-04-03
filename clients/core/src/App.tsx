@@ -26,6 +26,10 @@ import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
 import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
 import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
+import { PrivacyOverviewPage } from './managementConsole/pages/PrivacyOverviewPage'
+import { PrivacyDataExportPage } from './managementConsole/pages/PrivacyDataExportPage'
+import { PrivacyDataDeletionPage } from './managementConsole/pages/PrivacyDataDeletionPage'
+import { AdminPrivacyPage } from './managementConsole/pages/AdminPrivacyPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -121,6 +125,70 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
                     <StudentNoteTagsPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/privacy'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.PROMPT_LECTURER,
+                      Role.COURSE_STUDENT,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <PrivacyOverviewPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/privacy/data-export'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.PROMPT_LECTURER,
+                      Role.COURSE_STUDENT,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <PrivacyDataExportPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/privacy/data-deletion'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.PROMPT_LECTURER,
+                      Role.COURSE_STUDENT,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <PrivacyDataDeletionPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/admin/privacy'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AdminPrivacyPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

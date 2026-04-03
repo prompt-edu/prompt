@@ -2,6 +2,8 @@ module github.com/prompt-edu/prompt/servers/team_allocation
 
 go 1.26
 
+replace github.com/prompt-edu/prompt-sdk => ../../../prompt-sdk
+
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
@@ -12,7 +14,10 @@ require (
 	github.com/swaggo/swag v1.16.6
 )
 
-require github.com/testcontainers/testcontainers-go v0.41.0 // indirect
+require (
+	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
+	github.com/testcontainers/testcontainers-go v0.41.0 // indirect
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -43,7 +48,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/getsentry/sentry-go/gin v0.43.0
-	github.com/getsentry/sentry-go/logrus v0.44.1
+	github.com/getsentry/sentry-go/logrus v0.44.1 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

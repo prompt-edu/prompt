@@ -18,6 +18,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/copy"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/privacy"
 	teams "github.com/prompt-edu/prompt/servers/self_team_allocation/team"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe"
 
@@ -97,21 +98,22 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("self-team-allocation/api/course_phase/:coursePhaseID")
+	api := router.Group("self-team-allocation/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
-	api.GET("/hello", func(c *gin.Context) {
+	coursePhaseApi.GET("/hello", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Hello from team self assignment service"})
 	})
 
-	teams.InitTeamModule(api, *query, conn)
-	timeframe.InitTimeframeModule(api, *query, conn)
-	allocation.InitAllocationModule(api, *query, conn)
-	copyApi := router.Group("self-team-allocation/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	teams.InitTeamModule(coursePhaseApi, *query, conn)
+	timeframe.InitTimeframeModule(coursePhaseApi, *query, conn)
+	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
+	copy.InitCopyModule(api, *query, conn)
+	privacy.InitPrivacyModule(api, *query, conn)
 
-	config.InitConfigModule(api, *query, conn)
+	config.InitConfigModule(coursePhaseApi, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8084")
 	log.Info("Self Team Allocation Server started")

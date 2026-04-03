@@ -1,17 +1,17 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
@@ -41,7 +41,7 @@ func exportExpiry() time.Duration {
 // CreateExportRecord atomically checks that the user is allowed to create a new export
 // (no valid export exists, not rate-limited) and inserts the record.
 // Uses SELECT ... FOR UPDATE to prevent concurrent duplicate exports.
-func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
+func CreateExportRecord(c context.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
 	tx, err := PrivacyServiceSingleton.conn.Begin(c)
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to begin transaction: %w", err)
@@ -84,7 +84,7 @@ func CreateExportRecord(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifier
 	return privacyDTO.GetPrivacyExportDTOFromDBModel(exp), nil
 }
 
-func CreateExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string) (db.PrivacyExportDocument, error) {
+func CreateExportRecordDoc(c context.Context, exportID uuid.UUID, sourceName string) (db.PrivacyExportDocument, error) {
 	return PrivacyServiceSingleton.queries.CreateNewExportDoc(c, db.CreateNewExportDocParams{
 		ID:         uuid.New(),
 		ExportID:   pgtype.UUID{Bytes: exportID, Valid: true},
@@ -94,31 +94,46 @@ func CreateExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string
 	})
 }
 
-type PreparedExportDoc struct {
-	URL       string
-	ExportDoc privacyDTO.PrivacyExportDocument
+type ServiceExportRequest struct {
+	APIURL             string
+	PresignedUploadURL string
+	ExportDoc          privacyDTO.PrivacyExportDocument
+	Result             ExportResult
 }
 
-func PrepareExportRecordDoc(c *gin.Context, exportID uuid.UUID, sourceName string) (PreparedExportDoc, error) {
+type ExportResult int
 
-  dbDoc, errDoc := CreateExportRecordDoc(c, exportID, sourceName)
-  if errDoc != nil {
-  	return PreparedExportDoc{}, errDoc
-  }
+const (
+	Successful ExportResult = iota
+	SuccessfulNoData
+	Failed
+	Pending
+)
 
-  url, errUrl := privacyexport.GetUploadURL(c, exportID.String(), sourceName)
-  if errUrl != nil {
-    if setErr := SetExportDocStatus(c, dbDoc.ID, db.ExportStatusFailed); setErr != nil {
-      log.WithError(setErr).Error("failed to mark export doc as failed after presign error")
-    }
-    return PreparedExportDoc{}, errUrl
-  }
+func PrepareExportRecordDoc(c context.Context, exportID uuid.UUID, sourceName string, apiURL string) (ServiceExportRequest, error) {
 
-  return PreparedExportDoc{URL: url, ExportDoc: privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc)}, nil
+	dbDoc, errDoc := CreateExportRecordDoc(c, exportID, sourceName)
+	if errDoc != nil {
+		return ServiceExportRequest{}, errDoc
+	}
+
+	url, errUrl := privacyexport.GetUploadURL(c, exportID.String(), sourceName)
+	if errUrl != nil {
+		if setErr := SetExportDocStatus(c, dbDoc.ID, db.ExportStatusFailed); setErr != nil {
+			log.WithError(setErr).Error("failed to mark export doc as failed after presign error")
+		}
+		return ServiceExportRequest{}, errUrl
+	}
+
+	return ServiceExportRequest{
+		PresignedUploadURL: url,
+		ExportDoc:          privacyDTO.GetPrivacyExportDocDTOFromDBModel(dbDoc),
+		APIURL:             apiURL,
+		Result:             Pending,
+	}, nil
 }
 
-
-func GetExportWithDocs(c *gin.Context, exportID uuid.UUID) (privacyDTO.PrivacyExport, error) {
+func GetExportWithDocs(c context.Context, exportID uuid.UUID) (privacyDTO.PrivacyExport, error) {
 	dbExp, err := PrivacyServiceSingleton.queries.GetExportRecordByIDWithDocs(c, exportID)
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, err
@@ -131,7 +146,7 @@ func GetExportWithDocs(c *gin.Context, exportID uuid.UUID) (privacyDTO.PrivacyEx
 	return exp, nil
 }
 
-func GetLatestExportWithDocs(c *gin.Context, userID uuid.UUID) (*privacyDTO.PrivacyExport, error) {
+func GetLatestExportWithDocs(c context.Context, userID uuid.UUID) (*privacyDTO.PrivacyExport, error) {
 	dbExp, err := PrivacyServiceSingleton.queries.GetLatestExportForUserWithDocs(c, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -150,12 +165,12 @@ func GetLatestExportWithDocs(c *gin.Context, userID uuid.UUID) (*privacyDTO.Priv
 type ExportAvailability int
 
 const (
-	ExportReadyForNew   ExportAvailability = iota // no export or expired + not rate limited
-	ExportExistsAndValid                          // export exists and files are still available, (implies rate limited)
-	ExportRateLimited                             // export expired but still within rate limit window
+	ExportReadyForNew    ExportAvailability = iota // no export or expired + not rate limited
+	ExportExistsAndValid                           // export exists and files are still available, (implies rate limited)
+	ExportRateLimited                              // export expired but still within rate limit window
 )
 
-func GetExportAvailability(c *gin.Context, userID uuid.UUID) (ExportAvailability, *privacyDTO.PrivacyExport, error) {
+func GetExportAvailability(c context.Context, userID uuid.UUID) (ExportAvailability, *privacyDTO.PrivacyExport, error) {
 	exp, err := GetLatestExportWithDocs(c, userID)
 	if err != nil {
 		return ExportReadyForNew, nil, err
@@ -177,7 +192,7 @@ func GetExportAvailability(c *gin.Context, userID uuid.UUID) (ExportAvailability
 	return ExportReadyForNew, nil, nil
 }
 
-func GetAllExports(c *gin.Context) ([]privacyDTO.AdminPrivacyExport, error) {
+func GetAllExports(c context.Context) ([]privacyDTO.AdminPrivacyExport, error) {
 	dbExports, err := PrivacyServiceSingleton.queries.GetAllExports(c)
 	if err != nil {
 		return nil, err
@@ -194,64 +209,80 @@ func RateLimitEndForExport(exp privacyDTO.PrivacyExport) time.Time {
 	return exp.DateCreated.Add(exportRateLimit())
 }
 
-func SetExportDocStatus(c *gin.Context, docID uuid.UUID, status db.ExportStatus) error {
-  _, err := PrivacyServiceSingleton.queries.SetExportDocStatus(c, db.SetExportDocStatusParams{
-    ID: docID,
-    Status: status,
-  })
-  return err
+func SetExportDocStatus(c context.Context, docID uuid.UUID, status db.ExportStatus) error {
+	_, err := PrivacyServiceSingleton.queries.SetExportDocStatus(c, db.SetExportDocStatusParams{
+		ID:     docID,
+		Status: status,
+	})
+	return err
 }
 
-func SetExportStatus(c *gin.Context, exportID uuid.UUID, status db.ExportStatus) error {
-  _, err := PrivacyServiceSingleton.queries.SetExportStatus(c, db.SetExportStatusParams{
-    ID: exportID,
-    Status: status,
-  })
-  return err
+func exportResultToDBStatus(result ExportResult) db.ExportStatus {
+	switch result {
+	case Successful:
+		return db.ExportStatusComplete
+	case SuccessfulNoData:
+		return db.ExportStatusNoData
+	default:
+		return db.ExportStatusFailed
+	}
 }
 
-func UpdateExportStatus(err error, c *gin.Context, exportID uuid.UUID) {
-  if err != nil {
-    if setErr := SetExportStatus(c, exportID, db.ExportStatusFailed); setErr != nil {
-      log.WithError(setErr).Error("failed to set export status to failed")
-    }
-  } else {
-    if setErr := SetExportStatus(c, exportID, db.ExportStatusComplete); setErr != nil {
-      log.WithError(setErr).Error("failed to set export status to complete")
-    }
-  }
+func SetExportStatus(c context.Context, exportID uuid.UUID, status db.ExportStatus) error {
+	_, err := PrivacyServiceSingleton.queries.SetExportStatus(c, db.SetExportStatusParams{
+		ID:     exportID,
+		Status: status,
+	})
+	return err
 }
 
-func UpdateExportDocStatus(err error, c *gin.Context, exportDoc privacyDTO.PrivacyExportDocument) {
-  if err != nil {
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusFailed); setErr != nil {
-      log.WithError(setErr).Error("failed to set export doc status to failed")
-    }
-    return
-  }
+func UpdateExportStatus(err error, c context.Context, exportID uuid.UUID) {
+	if err != nil {
+		if setErr := SetExportStatus(c, exportID, db.ExportStatusFailed); setErr != nil {
+			log.WithError(setErr).Error("failed to set export status to failed")
+		}
+	} else {
+		if setErr := SetExportStatus(c, exportID, db.ExportStatusComplete); setErr != nil {
+			log.WithError(setErr).Error("failed to set export status to complete")
+		}
+	}
+}
 
-  objectKey, keyErr := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, exportDoc.ID)
-  if keyErr != nil {
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {
-      log.WithError(setErr).Error("failed to set export doc status to complete")
-    }
-    return
-  }
+func UpdateExportDocStatus(err error, c context.Context, exportDocID uuid.UUID) {
+	var targetStatus db.ExportStatus
+	if err != nil {
+		targetStatus = db.ExportStatusFailed
+	} else {
+		targetStatus = db.ExportStatusComplete
+	}
 
-  fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
-  if sizeErr != nil {
-    // file size is non-critical, fall back to status-only update
-    if setErr := SetExportDocStatus(c, exportDoc.ID, db.ExportStatusComplete); setErr != nil {
-      log.WithError(setErr).Error("failed to set export doc status to complete")
-    }
-    return
-  }
+	if _, setErr := PrivacyServiceSingleton.queries.SetExportDocStatus(c, db.SetExportDocStatusParams{
+		ID:     exportDocID,
+		Status: targetStatus,
+	}); setErr != nil {
+		log.WithError(setErr).Error("failed to update export doc result")
+	}
+}
 
-  if _, setErr := PrivacyServiceSingleton.queries.UpdateExportDocResult(c, db.UpdateExportDocResultParams{
-    ID:       exportDoc.ID,
-    Status:   db.ExportStatusComplete,
-    FileSize: pgtype.Int8{Int64: fileSize, Valid: true},
-  }); setErr != nil {
-    log.WithError(setErr).Error("failed to update export doc result")
-  }
+func UpdateExportDocFileSize(c context.Context, exportDocID uuid.UUID) {
+	objectKey, keyErr := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, exportDocID)
+	if keyErr != nil {
+		if setErr := SetExportDocStatus(c, exportDocID, db.ExportStatusComplete); setErr != nil {
+			log.WithError(setErr).Error("failed to set export doc status to complete")
+		}
+		return
+	}
+
+	fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
+	if sizeErr != nil {
+		log.WithError(sizeErr).Error("failed to get file size from s3 obj")
+		return
+	}
+
+	if _, setErr := PrivacyServiceSingleton.queries.SetExportDocFileSize(c, db.SetExportDocFileSizeParams{
+		ID:       exportDocID,
+		FileSize: pgtype.Int8{Int64: fileSize, Valid: true},
+	}); setErr != nil {
+		log.WithError(setErr).Error("failed to update export doc result")
+	}
 }

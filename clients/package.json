@@ -84,7 +84,7 @@
     "tar": "^7.5.13"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.3",
+    "@eslint/compat": "^2.0.4",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@types/copy-webpack-plugin": "^10.1.3",

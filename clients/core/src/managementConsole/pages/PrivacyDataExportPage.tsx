@@ -8,8 +8,8 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
-import { PrivacyExportDocument } from '../shared/components/PrivacyExport/PrivacyExportDoc'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
+import { PrivacyExportDocumentList } from '../shared/components/PrivacyExport/PrivacyExportDocumentList'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
 import { PrivacyExportTrigger } from '../shared/components/PrivacyExport/PrivacyExportTrigger'
@@ -41,7 +41,12 @@ export function PrivacyDataExportPage() {
     enabled: !!exportID,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      if (status === ExportStatus.complete || status === ExportStatus.failed) return false
+      if (
+        status === ExportStatus.complete ||
+        status === ExportStatus.no_data ||
+        status === ExportStatus.failed
+      )
+        return false
       return 3000
     },
   })
@@ -53,6 +58,7 @@ export function PrivacyDataExportPage() {
 
   const isPolling =
     statusQuery.data?.status !== ExportStatus.complete &&
+    statusQuery.data?.status !== ExportStatus.no_data &&
     statusQuery.data?.status !== ExportStatus.failed &&
     !!exportID
 
@@ -80,18 +86,7 @@ export function PrivacyDataExportPage() {
       {statusQuery.data && (
         <div className='mt-8 space-y-4'>
           <PrivacyExportBanner inProgress={isPolling} privacyExport={statusQuery.data} />
-
-          {statusQuery.data.documents.length > 0 && (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-              {statusQuery.data.documents.map((doc) => (
-                <PrivacyExportDocument
-                  key={doc.id}
-                  exportId={statusQuery.data.id}
-                  privacy_export_document={doc}
-                />
-              ))}
-            </div>
-          )}
+          <PrivacyExportDocumentList privacyExport={statusQuery.data} inProgress={isPolling} />
         </div>
       )}
 

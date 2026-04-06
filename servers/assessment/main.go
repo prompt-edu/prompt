@@ -23,6 +23,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -110,20 +111,21 @@ func main() {
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("assessment/api/course_phase/:coursePhaseID")
+	api := router.Group("assessment/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
-	api.GET("/hello", helloAssessment)
+	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(api, *query, conn)
-	categories.InitCategoryModule(api, *query, conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(api, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(api, *query, conn)
-	assessments.InitAssessmentModule(api, *query, conn)
-	evaluations.InitEvaluationModule(api, *query, conn)
+	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
+	categories.InitCategoryModule(coursePhaseApi, *query, conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
+	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
+	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
+	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
-	copyApi := router.Group("assessment/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.InitCopyModule(api, *query, conn)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8085")
 	log.Info("Assessment Server started")

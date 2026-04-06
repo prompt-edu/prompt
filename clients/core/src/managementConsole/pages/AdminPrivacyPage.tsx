@@ -1,7 +1,11 @@
-import { ExportStatus, getAllExports } from '@core/network/queries/privacyStudentDataExport'
-import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import {
+  devResetExports,
+  ExportStatus,
+  getAllExports,
+} from '@core/network/queries/privacyStudentDataExport'
+import { Button, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
 import { adminExportColumns } from '../shared/components/PrivacyExport/adminExportColumns'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 export function AdminPrivacyPage() {
   const allExportsQuery = useQuery({
@@ -9,8 +13,20 @@ export function AdminPrivacyPage() {
     queryFn: getAllExports,
   })
 
+  const queryClient = useQueryClient()
+
+  // DEV ONLY - delete later
+  const handleDevReset = async () => {
+    await devResetExports()
+    queryClient.clear()
+  }
+
   return (
     <div>
+      {/* DEV ONLY - delete later */}
+      <Button variant='destructive' size='sm' onClick={handleDevReset} className='mb-4'>
+        [DEV] Reset all exports
+      </Button>
       <ManagementPageHeader>Privacy Dashboard</ManagementPageHeader>
       <p className='mb-8 text-muted-foreground'>
         Monitor and manage privacy-related requests from users.

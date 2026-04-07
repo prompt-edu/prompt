@@ -14161,7 +14161,7 @@ __metadata:
     react: "npm:^19.2.4"
     react-dom: "npm:^19.2.4"
     react-hook-form: "npm:^7.72.1"
-    react-medium-image-zoom: "npm:^5.4.1"
+    react-medium-image-zoom: "npm:^5.4.3"
     react-router-dom: "npm:^7.13.2"
     sass-loader: "npm:^16.0.7"
     sonner: "npm:^2.0.7"
@@ -14643,6 +14643,16 @@ __metadata:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
   checksum: 10c0/513cd9126cd0d54500e6022847e9f8bf70140bf6983fa44fcd1608b264eb30d09d1047abce114173647ebe9a278843b2f76c1b05bf2410c0dc29919ac38c7b45
+  languageName: node
+  linkType: hard
+
+"react-medium-image-zoom@npm:^5.4.3":
+  version: 5.4.3
+  resolution: "react-medium-image-zoom@npm:5.4.3"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/a7c3e12ce71a3daffdea447fea8741195b83b51322eab4f4d99f8c955fa83df30992fd83ce69d1af5d5e45ff4a5968586dd675ee2f6220575ed98af5c0e1cafa
   languageName: node
   linkType: hard
 

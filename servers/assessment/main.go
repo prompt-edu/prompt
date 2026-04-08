@@ -46,7 +46,6 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 }
-
 func initKeycloak(queries db.Queries) {
 	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
@@ -87,8 +86,11 @@ func helloAssessment(c *gin.Context) {
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
-	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_ASSESSMENT", ""))
-	defer sentry.Flush(2 * time.Second)
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_ASSESSMENT", ""))
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	databaseURL := getDatabaseURL()
 	log.Debug("Connecting to database at:", databaseURL)
@@ -107,7 +109,9 @@ func main() {
 	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("assessment/api/course_phase/:coursePhaseID")

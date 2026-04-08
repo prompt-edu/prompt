@@ -3,6 +3,7 @@ import Keycloak from 'keycloak-js'
 import { KeycloakContext } from './KeycloakProvider'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { jwtDecode } from 'jwt-decode'
+import { env } from '@/env'
 
 // Helper function to decode JWT safely
 const parseJwt = (token: string) => {
@@ -56,8 +57,16 @@ export const useKeycloak = (): {
         })
     }
 
+    // Check if passkeys are enabled via feature toggle
+    const enablePasskeys = env.ENABLE_PASSKEYS === 'true'
+
     void keycloak
-      .init({ onLoad: 'login-required' })
+      .init({
+        onLoad: 'login-required',
+        ...(enablePasskeys && {
+          action: 'webauthn-register-passwordless:skip_if_exists',
+        }),
+      })
       .then(() => {
         localStorage.setItem('jwt_token', keycloak.token ?? '')
         localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')

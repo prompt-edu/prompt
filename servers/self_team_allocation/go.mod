@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/self_team_allocation
 
-go 1.26
+go 1.26.2
 
 require (
 	github.com/gin-gonic/gin v1.12.0

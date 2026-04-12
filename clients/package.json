@@ -58,7 +58,7 @@
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.7.0",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.9",
     "postcss-loader": "8.2.1",
     "postcss-preset-env": "^11.2.0",
     "react": "^19.2.4",

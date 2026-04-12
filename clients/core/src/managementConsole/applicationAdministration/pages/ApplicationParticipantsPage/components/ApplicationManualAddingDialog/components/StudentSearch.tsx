@@ -83,7 +83,7 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
           <AlertDescription>Failed to search university users. {error?.message}</AlertDescription>
         </Alert>
       ) : enteredSearchString.length > 0 && users && users.length > 0 ? (
-        <ScrollArea className='max-h-[calc(40vh)-150px]'>
+        <ScrollArea className='max-h-[calc(40vh-150px)]'>
           <Table>
             <TableHeader>
               <TableRow>

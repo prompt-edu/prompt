@@ -232,16 +232,6 @@ services:
     depends_on:
       - clients-base
 
-  client-devops-challenge-component:
-    build:
-      context: ./clients/devops_challenge_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-devops-challenge-component
-    ports:
-      - "3003:80"
-    depends_on:
-      - clients-base
-
   client-interview-component:
     build:
       context: ./clients/interview_component

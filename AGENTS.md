@@ -27,9 +27,9 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
-    - devops_challenge_component (port 3006)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
+    - devops_challenge_component (served by prompt-github-challenge)
 
 servers/
   core/                    # Main Go service (port 8080)

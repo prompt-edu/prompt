@@ -103,8 +103,8 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
     } else if (
       [
         '/management/courses',
-        '/management/course_templates',
-        '/management/course_archive',
+        '/management/course-templates',
+        '/management/course-archive',
       ].includes(path) ||
       (courseId && !courseExists)
     ) {

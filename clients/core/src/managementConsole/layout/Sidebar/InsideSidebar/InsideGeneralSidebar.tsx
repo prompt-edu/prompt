@@ -1,5 +1,5 @@
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, File, FileText, Shield, Tag, Users } from 'lucide-react'
+import { Archive, File, FileText, Shield, Activity, Tag, Users } from 'lucide-react'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
@@ -50,9 +50,14 @@ export const InsideGeneralSidebar = () => {
           <ShowForRole roles={[Role.PROMPT_ADMIN]}>
             <InsideSidebarVisualGroup title='Admin'>
               <InsideSidebarMenuItem
+                icon={<Activity />}
+                goToPath={'/management/system-status'}
+                title='Status'
+              />
+              <InsideSidebarMenuItem
                 icon={<Shield />}
                 goToPath={'/management/admin/privacy'}
-                title='Privacy Dashboard'
+                title='Privacy Audit'
               />
             </InsideSidebarVisualGroup>
           </ShowForRole>

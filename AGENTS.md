@@ -375,7 +375,7 @@ import { Button, Card, ManagementPageHeader, ... } from '@tumaet/prompt-ui-compo
 
 ### Client: `@tumaet/prompt-shared-state`
 
-Shared types, stores, and state management (source: `../prompt-lib/prompt-shared-state/`). Import as:
+Shared types, stores, and state management (published package source: [`prompt-shared-state`](https://github.com/prompt-edu/prompt-shared-state)). Import as:
 
 ```typescript
 import { Role, PassStatus, useCourseStore, ... } from '@tumaet/prompt-shared-state'

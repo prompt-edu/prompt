@@ -4,7 +4,7 @@ import { ExternalRoutes } from './ExternalRoutes'
 import { LoadingError } from '../utils/LoadingError'
 
 export const DevOpsChallengeRoutes = React.lazy(() =>
-  import('devops_challenge_component/routes')
+  import('github_challenge_component/routes')
     .then((module): { default: React.FC } => ({
       default: () => {
         const routes: ExtendedRouteObject[] = module.default || []

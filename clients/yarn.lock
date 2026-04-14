@@ -8136,15 +8136,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"devops_challenge_component@workspace:devops_challenge_component":
-  version: 0.0.0-use.local
-  resolution: "devops_challenge_component@workspace:devops_challenge_component"
-  dependencies:
-    webpack: "npm:^5.106.1"
-    webpack-cli: "npm:^7.0.2"
-  languageName: unknown
-  linkType: soft
-
 "diacritics@npm:1.3.0":
   version: 1.3.0
   resolution: "diacritics@npm:1.3.0"

@@ -96,7 +96,6 @@ lint-clients: ## Lint all clients
 	cd clients && yarn eslint "core" --config "core/eslint.config.mjs"
 	cd clients && yarn eslint "shared_library" --config "shared_library/eslint.config.mjs"
 	cd clients && yarn eslint "assessment_component" --config "assessment_component/eslint.config.mjs"
-	cd clients && yarn eslint "devops_challenge_component" --config "devops_challenge_component/eslint.config.mjs"
 	cd clients && yarn eslint "interview_component" --config "interview_component/eslint.config.mjs"
 	cd clients && yarn eslint "matching_component" --config "matching_component/eslint.config.mjs"
 	cd clients && yarn eslint "self_team_allocation_component" --config "self_team_allocation_component/eslint.config.mjs"

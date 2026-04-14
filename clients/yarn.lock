@@ -14615,7 +14615,7 @@ __metadata:
     react-dom: "npm:^19.2.5"
     react-hook-form: "npm:^7.72.1"
     react-medium-image-zoom: "npm:^5.4.3"
-    react-router-dom: "npm:^7.13.2"
+    react-router-dom: "npm:^7.14.1"
     sass-loader: "npm:^16.0.7"
     sonner: "npm:^2.0.7"
     style-loader: "npm:^4.0.0"
@@ -15207,6 +15207,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-router-dom@npm:^7.14.1":
+  version: 7.14.1
+  resolution: "react-router-dom@npm:7.14.1"
+  dependencies:
+    react-router: "npm:7.14.1"
+  peerDependencies:
+    react: ">=18"
+    react-dom: ">=18"
+  checksum: 10c0/aa454069e43263c812424a92fc9c099083034e438f9747efc45558885ec48b3dba46ab55bf84b164feac08c24a65e6ac91a3f8a137fd5e79077c95b8c14ca50a
+  languageName: node
+  linkType: hard
+
 "react-router@npm:7.13.2":
   version: 7.13.2
   resolution: "react-router@npm:7.13.2"
@@ -15220,6 +15232,22 @@ __metadata:
     react-dom:
       optional: true
   checksum: 10c0/c7620565df0b444507cfceb76733adbd26e28a72fc4d52d344190bcb2e6483427313a3b6076c53d362e2682ccdb1262731bcaa6c3577cbbeea130291a38715f1
+  languageName: node
+  linkType: hard
+
+"react-router@npm:7.14.1":
+  version: 7.14.1
+  resolution: "react-router@npm:7.14.1"
+  dependencies:
+    cookie: "npm:^1.0.1"
+    set-cookie-parser: "npm:^2.6.0"
+  peerDependencies:
+    react: ">=18"
+    react-dom: ">=18"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+  checksum: 10c0/57b86accdc50b917509e4b21f821dd432807e3f62b5e978d0d5174fc7da3798ce57ce896cbf70a8ba8f6f3d53515a07021e759829908239b4eee34c804695120
   languageName: node
   linkType: hard
 

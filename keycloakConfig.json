@@ -546,6 +546,81 @@
         },
         "notBefore": 0,
         "groups": []
+      },
+      {
+        "username": "admin",
+        "email": "admin@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+        "attributes": {
+          "university_login": ["ad12min"],
+          "matriculation_number": ["00000001"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Admin"]
+        }
+      },
+      {
+        "username": "lecturer",
+        "email": "lecturer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["le50ctu"],
+          "matriculation_number": ["00000002"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Lecturer"]
+        }
+      },
+      {
+        "username": "course-lecturer",
+        "email": "of_course-lecturer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["co67lec"],
+          "matriculation_number": ["00000003"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Lecturer"]
+        }
+      },
+      {
+        "username": "course-editor",
+        "email": "best_edits@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-editor", "temporary": false }],
+        "attributes": {
+          "university_login": ["co69edt"],
+          "matriculation_number": ["00000004"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Editor"]
+        }
+      },
+      {
+        "username": "student",
+        "email": "pgdp_enjoyer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "student", "temporary": false }],
+        "attributes": {
+          "university_login": ["no42tum"],
+          "matriculation_number": ["00000005"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Student"]
+        }
       }
     ],
     "scopeMappings": [

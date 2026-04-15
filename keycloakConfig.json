@@ -839,6 +839,42 @@
         "publicClient": false,
         "frontchannelLogout": true,
         "protocol": "openid-connect",
+        "protocolMappers": [
+          {
+            "id": "c1a2b3c4-0001-4000-a000-000000000001",
+            "name": "university_login",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.attribute": "university_login",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "university_login",
+              "jsonType.label": "String",
+              "userinfo.token.claim": "true",
+              "aggregate.attrs": "false",
+              "multivalued": "false"
+            }
+          },
+          {
+            "id": "c1a2b3c4-0002-4000-a000-000000000002",
+            "name": "matriculation_number",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.attribute": "matriculation_number",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "matriculation_number",
+              "jsonType.label": "String",
+              "userinfo.token.claim": "true",
+              "aggregate.attrs": "false",
+              "multivalued": "false"
+            }
+          }
+        ],
         "attributes": {
           "client.secret.creation.time": "1690570774",
           "post.logout.redirect.uris": "http://localhost:8080/*##",

@@ -12,7 +12,7 @@
     "check-performance": "webpack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "webpack": "^5.105.4",
+    "webpack": "^5.106.1",
     "webpack-cli": "^7.0.2"
   },
   "packageManager": "yarn@4.13.0"

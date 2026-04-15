@@ -317,7 +317,7 @@
           {
           "id": "46f456ba-a162-4ea8-aa24-1f2c8be2ebea",
           "name": "PROMPT_Admin",
-          "description": "",
+          "description": "Full system access",
           "composite": false,
           "clientRole": true,
           "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
@@ -326,7 +326,34 @@
           {
             "id": "5d9d5ed1-d318-4b8f-af62-ae9b1e979905",
             "name": "PROMPT_Lecturer",
-            "description": "",
+            "description": "Can create courses, view student history",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "1a2b3c4d-5e6f-7a8b-9c0d-111111111111",
+            "name": "PROMPT_Course_Lecturer",
+            "description": "Course-specific management and grading",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "2b3c4d5e-6f7a-8b9c-0d1e-222222222222",
+            "name": "PROMPT_Course_Editor",
+            "description": "Can view participants and progress",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "3c4d5e6f-7a8b-9c0d-1e2f-333333333333",
+            "name": "PROMPT_Student",
+            "description": "Can apply and participate in courses",
             "composite": false,
             "clientRole": true,
             "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",

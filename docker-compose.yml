@@ -464,6 +464,7 @@ services:
     container_name: prompt-keycloak
     command:
       - start-dev
+      - --import-realm
       - --health-enabled=true
       - --hostname-strict=false
     environment:
@@ -479,6 +480,8 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
     depends_on:
       keycloak-db:
         condition: service_healthy

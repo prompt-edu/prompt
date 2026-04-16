@@ -167,7 +167,7 @@ This launches all micro-frontends simultaneously using Lerna. The app runs at [h
 To start a specific micro-frontend only, navigate to its subdirectory and run `yarn run dev` there.
 
 ---
-### Keycloak Passkey testing
+### Keycloak Passkey Testing
 #### 1. Enable Registration for a User
 To test the flow, you must force a specific user to register their biometric data:
 

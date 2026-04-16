@@ -38,7 +38,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Assign PR author
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const author = context.payload.pull_request.user.login;

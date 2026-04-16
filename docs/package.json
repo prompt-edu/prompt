@@ -41,7 +41,7 @@
     ]
   },
   "engines": {
-    "node": ">=20.20.2"
+    "node": ">=24.15.0"
   },
   "packageManager": "yarn@4.13.0",
   "resolutions": {

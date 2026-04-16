@@ -505,7 +505,7 @@
     "webAuthnPolicySignatureAlgorithms": [
       "ES256"
     ],
-    "webAuthnPolicyRpId": "",
+    "webAuthnPolicyRpId": "localhost",
     "webAuthnPolicyAttestationConveyancePreference": "not specified",
     "webAuthnPolicyAuthenticatorAttachment": "not specified",
     "webAuthnPolicyRequireResidentKey": "not specified",
@@ -520,7 +520,7 @@
     "webAuthnPolicyPasswordlessRpId": "",
     "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
     "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
-    "webAuthnPolicyPasswordlessRequireResidentKey": "not specified",
+    "webAuthnPolicyPasswordlessRequireResidentKey": "required",
     "webAuthnPolicyPasswordlessUserVerificationRequirement": "not specified",
     "webAuthnPolicyPasswordlessCreateTimeout": 0,
     "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
@@ -550,6 +550,8 @@
       {
         "username": "admin",
         "email": "admin@gmail.com",
+        "firstName": "Admin",
+        "lastName": "Admin",
         "createdTimestamp": 1737552859689,
         "emailVerified": true,
         "enabled": true,
@@ -559,11 +561,15 @@
           "matriculation_number": ["00000001"]
         },
         "clientRoles": {
-          "prompt-server": ["PROMPT_Admin"]
-        }
+          "prompt-server": ["PROMPT_Admin"],
+          "realm-management": ["realm-admin"]
+        },
+        "groups": ["Prompt-Admins"]
       },
       {
         "username": "lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
         "email": "lecturer@gmail.com",
         "createdTimestamp": 1737552859689,
         "emailVerified": true,
@@ -579,6 +585,8 @@
       },
       {
         "username": "course-lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
         "email": "of_course-lecturer@gmail.com",
         "createdTimestamp": 1737552859689,
         "emailVerified": true,
@@ -594,6 +602,8 @@
       },
       {
         "username": "course-editor",
+        "firstName": "Eduard",
+        "lastName": "Eduard",
         "email": "best_edits@gmail.com",
         "createdTimestamp": 1737552859689,
         "emailVerified": true,
@@ -609,6 +619,8 @@
       },
       {
         "username": "student",
+        "firstName": "Stan",
+        "lastName": "Stan",
         "email": "pgdp_enjoyer@gmail.com",
         "createdTimestamp": 1737552859689,
         "emailVerified": true,
@@ -926,7 +938,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "**********",
+        "secret": "secretsecret",
         "redirectUris": [
           "http://localhost:8080/*"
         ],
@@ -2145,6 +2157,34 @@
         ]
       },
       {
+        "id": "e1b2c3d4-5e6f-7a8b-9c0d-112233445566",
+        "alias": "browser-passkey",
+        "description": "Browser flow with Passkey support",
+        "providerId": "basic-flow",
+        "topLevel": true,
+        "builtIn": false,
+        "authenticationExecutions": [
+          {
+            "authenticator": "auth-cookie",
+            "requirement": "ALTERNATIVE",
+            "priority": 10,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "webauthn-authenticator-passwordless",
+            "requirement": "ALTERNATIVE",
+            "priority": 20,
+            "userSetupAllowed": true
+          },
+          {
+            "authenticator": "auth-username-password-form",
+            "requirement": "ALTERNATIVE",
+            "priority": 30,
+            "userSetupAllowed": false
+          }
+        ]
+      },
+      {
         "id": "40ac9e11-cbc8-4214-9816-cdf894fc2e95",
         "alias": "direct grant",
         "description": "OpenID Connect Resource Owner Grant",
@@ -2496,7 +2536,7 @@
         "config": {}
       }
     ],
-    "browserFlow": "browser",
+    "browserFlow": "browser-passkey",
     "registrationFlow": "registration",
     "directGrantFlow": "direct grant",
     "resetCredentialsFlow": "reset credentials",

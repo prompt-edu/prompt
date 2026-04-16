@@ -17,20 +17,20 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 
-import type { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
+import type { EvaluationCompletion } from '../../../../interfaces/evaluationCompletion'
 import type {
   AssessmentReminderMetaData,
   EvaluationReminderReport,
   EvaluationReminderType,
-} from '../../../interfaces/evaluationReminder'
-import { sendEvaluationReminder } from '../../../network/mutations/sendEvaluationReminder'
-import { getAllEvaluationCompletionsInPhase } from '../../../network/queries/getAllEvaluationCompletionsInPhase'
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../../zustand/useParticipationStore'
-import { useTeamStore } from '../../../zustand/useTeamStore'
-import { ManualReminderSendingSection } from './AssessmentReminderCard/components/ManualReminderSendingSection'
-import { ReminderSendConfirmationDialog } from './AssessmentReminderCard/components/ReminderSendConfirmationDialog'
-import { ReminderTemplateEditor } from './AssessmentReminderCard/components/ReminderTemplateEditor'
+} from '../../../../interfaces/evaluationReminder'
+import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
+import { getAllEvaluationCompletionsInPhase } from '../../../../network/queries/getAllEvaluationCompletionsInPhase'
+import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
+import { useParticipationStore } from '../../../../zustand/useParticipationStore'
+import { useTeamStore } from '../../../../zustand/useTeamStore'
+import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
+import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
+import { ReminderTemplateEditor } from './components/ReminderTemplateEditor'
 import {
   ASSESSMENT_REMINDER_PLACEHOLDERS,
   deadlinePassed,
@@ -38,7 +38,7 @@ import {
   formatDeadline,
   getReminderTypes,
   parseReminderMetaData,
-} from './AssessmentReminderCard/utils'
+} from './utils'
 
 interface ErrorResponse {
   error?: string
@@ -60,7 +60,6 @@ export const AssessmentReminderCard = () => {
   const [confirmationType, setConfirmationType] = useState<EvaluationReminderType | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [lastReport, setLastReport] = useState<EvaluationReminderReport | null>(null)
-  const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
   const initializedPhaseIdRef = useRef<string | null>(null)
 
   const {
@@ -133,13 +132,6 @@ export const AssessmentReminderCard = () => {
     initializedPhaseIdRef.current = currentPhaseId
   }, [coursePhase, phaseId])
 
-  useEffect(() => {
-    if (!contentTextareaRef.current) return
-
-    contentTextareaRef.current.style.height = 'auto'
-    contentTextareaRef.current.style.height = `${contentTextareaRef.current.scrollHeight}px`
-  }, [content])
-
   const currentReminderMetaData = useMemo(() => parseReminderMetaData(coursePhase), [coursePhase])
   const reminderTypes = useMemo(
     () => getReminderTypes(coursePhaseConfig, participations, teams, evaluationCompletions),
@@ -152,6 +144,7 @@ export const AssessmentReminderCard = () => {
 
   const isModified = subject !== initialMetaData.subject || content !== initialMetaData.content
   const templateComplete = subject.trim() !== '' && content.trim() !== ''
+  const templateReady = templateComplete && !isModified
 
   const handleSaveTemplate = () => {
     if (!phaseId || !coursePhase) return
@@ -234,14 +227,10 @@ export const AssessmentReminderCard = () => {
             )}
           </div>
           <p className='max-w-3xl text-sm leading-6 text-muted-foreground'>
-            Configure one shared reminder template and manually send reminders after each evaluation
-            deadline.
+            Write one reminder template, save it, and send it manually after an evaluation deadline.
+            Reminders are only sent to students with incomplete evaluations.
           </p>
         </div>
-
-        <AvailableMailPlaceholders
-          customAdditionalPlaceholders={ASSESSMENT_REMINDER_PLACEHOLDERS}
-        />
 
         {!courseMailingIsConfigured && (
           <Alert variant='destructive'>
@@ -259,36 +248,78 @@ export const AssessmentReminderCard = () => {
           </Alert>
         )}
 
-        {lastReport && (
+        {!templateComplete && !isCoursePhasePending && (
           <Alert>
-            <AlertTitle>Reminder send report</AlertTitle>
+            <AlertTitle>Template incomplete</AlertTitle>
             <AlertDescription>
-              Requested: {lastReport.requestedRecipients}, Successful:{' '}
-              {lastReport.successfulEmails.length}, Failed: {lastReport.failedEmails.length}
+              Add a subject and message before reminders can be sent.
             </AlertDescription>
           </Alert>
         )}
 
-        <ReminderTemplateEditor
-          subject={subject}
-          content={content}
-          onSubjectChange={setSubject}
-          onContentChange={setContent}
-          onSave={handleSaveTemplate}
-          isPending={isCoursePhasePending}
-          isSaving={isSavingTemplate}
-          isModified={isModified}
-          contentTextareaRef={contentTextareaRef}
-        />
+        {isModified && templateComplete && (
+          <Alert>
+            <AlertTitle>Template not saved yet</AlertTitle>
+            <AlertDescription>
+              Save your template changes before sending new reminders.
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <ManualReminderSendingSection
-          reminderTypes={reminderTypes}
-          lastSentAtByType={currentReminderMetaData.lastSentAtByType}
-          getDisableReason={getDisableReason}
-          isEvaluationCompletionsPending={isEvaluationCompletionsPending}
-          isSending={sendReminderMutation.isPending}
-          onSend={openConfirmationDialog}
-        />
+        <div className='grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]'>
+          <div className='space-y-4 rounded-lg border border-border bg-muted/20 p-4 sm:p-5'>
+            <ReminderTemplateEditor
+              subject={subject}
+              content={content}
+              onSubjectChange={setSubject}
+              onContentChange={setContent}
+              onSave={handleSaveTemplate}
+              isPending={isCoursePhasePending}
+              isSaving={isSavingTemplate}
+              isModified={isModified}
+            />
+
+            <div className='space-y-3 border-t border-border pt-4'>
+              <p className='text-xs leading-5 text-muted-foreground'>
+                Useful placeholders:{' '}
+                <span className='font-mono text-foreground'>{'{{firstName}}'}</span>,{' '}
+                <span className='font-mono text-foreground'>{'{{evaluationType}}'}</span>,{' '}
+                <span className='font-mono text-foreground'>{'{{evaluationDeadline}}'}</span>
+              </p>
+              <AvailableMailPlaceholders
+                customAdditionalPlaceholders={ASSESSMENT_REMINDER_PLACEHOLDERS}
+              />
+            </div>
+          </div>
+
+          <div className='space-y-4 rounded-lg border border-border bg-muted/20 p-4 sm:p-5'>
+            {lastReport && (
+              <Alert>
+                <AlertTitle>Latest send result</AlertTitle>
+                <AlertDescription>
+                  Requested: {lastReport.requestedRecipients}, Successful:{' '}
+                  {lastReport.successfulEmails.length}, Failed: {lastReport.failedEmails.length}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {templateReady && courseMailingIsConfigured && (
+              <p className='text-sm leading-6 text-muted-foreground'>
+                All sending prerequisites are met. Each reminder can still only be sent after its
+                own deadline has passed.
+              </p>
+            )}
+
+            <ManualReminderSendingSection
+              reminderTypes={reminderTypes}
+              lastSentAtByType={currentReminderMetaData.lastSentAtByType}
+              getDisableReason={getDisableReason}
+              isEvaluationCompletionsPending={isEvaluationCompletionsPending}
+              isSending={sendReminderMutation.isPending}
+              onSend={openConfirmationDialog}
+            />
+          </div>
+        </div>
       </div>
 
       <ReminderSendConfirmationDialog

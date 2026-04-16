@@ -1,9 +1,9 @@
-import { Badge, Button, Card, CardContent } from '@tumaet/prompt-ui-components'
+import { Badge, Button } from '@tumaet/prompt-ui-components'
 
 import type { EvaluationReminderType } from '../../../../../interfaces/evaluationReminder'
 import { DeadlineBadge } from '../../../../components/badges'
 import type { ReminderTypeConfig } from '../interfaces/ReminderTypeConfig'
-import { formatSentAt, mapReminderTypeToAssessmentType } from '../utils'
+import { formatDeadline, formatSentAt, mapReminderTypeToAssessmentType } from '../utils'
 
 interface ManualReminderSendingSectionProps {
   reminderTypes: ReminderTypeConfig[]
@@ -25,23 +25,25 @@ export function ManualReminderSendingSection({
   return (
     <div className='space-y-4'>
       <div className='space-y-1'>
-        <h3 className='text-sm font-semibold text-foreground'>Manual Reminder Sending</h3>
+        <h3 className='text-base font-semibold text-foreground'>2. Send reminders</h3>
+        <p className='text-sm leading-6 text-muted-foreground'>
+          Choose an evaluation type. Only students with incomplete evaluations receive a reminder.
+        </p>
       </div>
-      <p className='text-sm leading-6 text-muted-foreground'>
-        Only active evaluation types are shown. Reminders are sent to currently incomplete students
-        only.
-      </p>
 
-      <div className='grid gap-3 lg:grid-cols-2 xl:grid-cols-3'>
+      <div className='overflow-hidden rounded-lg border border-border'>
         {reminderTypes.map((reminderType) => {
           const lastSent = lastSentAtByType[reminderType.type]
           const disableReason = getDisableReason(reminderType)
           const disabled = !!disableReason || isSending
 
           return (
-            <Card key={reminderType.type} className='border-border shadow-sm'>
-              <CardContent className='flex h-full flex-col gap-4 p-4'>
-                <div className='flex items-start justify-between gap-3'>
+            <div
+              key={reminderType.type}
+              className='flex flex-col gap-4 border-b border-border bg-background p-4 last:border-b-0'
+            >
+              <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
+                <div className='min-w-0 space-y-3'>
                   <div className='flex flex-wrap items-center gap-2'>
                     <p className='font-medium leading-none'>{reminderType.label}</p>
                     {reminderType.deadline && (
@@ -50,37 +52,39 @@ export function ManualReminderSendingSection({
                         type={mapReminderTypeToAssessmentType(reminderType.type)}
                       />
                     )}
+                    <Badge variant='secondary'>
+                      {isEvaluationCompletionsPending
+                        ? 'Calculating recipients...'
+                        : `${reminderType.recipientCount} ${
+                            reminderType.recipientCount === 1 ? 'recipient' : 'recipients'
+                          }`}
+                    </Badge>
                   </div>
-                  <Badge variant='secondary'>
-                    {isEvaluationCompletionsPending
-                      ? 'Calculating...'
-                      : `${reminderType.recipientCount} ${
-                          reminderType.recipientCount === 1 ? 'mail' : 'mails'
-                        }`}
-                  </Badge>
-                </div>
 
-                <div className='space-y-1 text-sm text-muted-foreground'>
-                  <p>Last sent: {formatSentAt(lastSent)}</p>
-                  {!isEvaluationCompletionsPending && (
-                    <p>
-                      Would send: {reminderType.recipientCount}{' '}
-                      {reminderType.recipientCount === 1 ? 'mail' : 'mails'}
-                    </p>
-                  )}
-                  {disableReason && <p className='text-destructive'>{disableReason}</p>}
+                  <div className='grid gap-1 text-sm text-muted-foreground sm:grid-cols-2'>
+                    <p>Deadline: {formatDeadline(reminderType.deadline)}</p>
+                    <p>Last sent: {formatSentAt(lastSent)}</p>
+                    {!isEvaluationCompletionsPending && (
+                      <p className='sm:col-span-2'>
+                        Sending now would reach {reminderType.recipientCount}{' '}
+                        {reminderType.recipientCount === 1 ? 'student' : 'students'}.
+                      </p>
+                    )}
+                  </div>
+
+                  {disableReason && <p className='text-sm text-destructive'>{disableReason}</p>}
                 </div>
 
                 <Button
                   onClick={() => onSend(reminderType.type)}
                   disabled={disabled}
-                  className='mt-auto w-full'
+                  className='w-full lg:w-auto lg:min-w-[150px]'
                   size='sm'
                 >
                   Send Reminder
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )
         })}
       </div>

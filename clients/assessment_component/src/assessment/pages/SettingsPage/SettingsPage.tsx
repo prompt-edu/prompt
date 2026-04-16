@@ -1,7 +1,7 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { AssessmentReminderCard } from './components/AssessmentReminderCard'
+import { AssessmentReminderCard } from './components/AssessmentReminderCard/AssessmentReminderCard'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
 

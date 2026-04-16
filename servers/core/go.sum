@@ -256,6 +256,8 @@ github.com/prompt-edu/prompt-sdk v1.1.4 h1:0hREiFoIbEwx5IEiMmg3CibxqcDqMtzarztq7
 github.com/prompt-edu/prompt-sdk v1.1.4/go.mod h1:02GkdbTBw5fmSNxGYx6kibi+QIpBG5KlBRJzfn1QJwY=
 github.com/prompt-edu/prompt-sdk v1.1.5 h1:VFqv1XoMTZDWe+BdADVdMkKrislWJukhjypfv0W4qic=
 github.com/prompt-edu/prompt-sdk v1.1.5/go.mod h1:5guC+g+gTt6dkfCfSsKuH4JaEBzpcHQnKoOsqM0YNig=
+github.com/prompt-edu/prompt-sdk v1.1.6 h1:mayoHctr+D+sUoLPDbbKejAXoWTgEt8X9u/Zj6zTfEQ=
+github.com/prompt-edu/prompt-sdk v1.1.6/go.mod h1:5guC+g+gTt6dkfCfSsKuH4JaEBzpcHQnKoOsqM0YNig=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/quic-go/quic-go v0.59.0 h1:OLJkp1Mlm/aS7dpKgTc6cnpynnD2Xg7C1pwL6vy/SAw=

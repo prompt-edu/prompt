@@ -317,7 +317,7 @@
           {
           "id": "46f456ba-a162-4ea8-aa24-1f2c8be2ebea",
           "name": "PROMPT_Admin",
-          "description": "",
+          "description": "Full system access",
           "composite": false,
           "clientRole": true,
           "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
@@ -326,7 +326,34 @@
           {
             "id": "5d9d5ed1-d318-4b8f-af62-ae9b1e979905",
             "name": "PROMPT_Lecturer",
-            "description": "",
+            "description": "Can create courses, view student history",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "1a2b3c4d-5e6f-7a8b-9c0d-111111111111",
+            "name": "PROMPT_Course_Lecturer",
+            "description": "Course-specific management and grading",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "2b3c4d5e-6f7a-8b9c-0d1e-222222222222",
+            "name": "PROMPT_Course_Editor",
+            "description": "Can view participants and progress",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "3c4d5e6f-7a8b-9c0d-1e2f-333333333333",
+            "name": "PROMPT_Student",
+            "description": "Can apply and participate in courses",
             "composite": false,
             "clientRole": true,
             "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
@@ -478,7 +505,7 @@
     "webAuthnPolicySignatureAlgorithms": [
       "ES256"
     ],
-    "webAuthnPolicyRpId": "",
+    "webAuthnPolicyRpId": "localhost",
     "webAuthnPolicyAttestationConveyancePreference": "not specified",
     "webAuthnPolicyAuthenticatorAttachment": "not specified",
     "webAuthnPolicyRequireResidentKey": "not specified",
@@ -493,7 +520,7 @@
     "webAuthnPolicyPasswordlessRpId": "",
     "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
     "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
-    "webAuthnPolicyPasswordlessRequireResidentKey": "not specified",
+    "webAuthnPolicyPasswordlessRequireResidentKey": "required",
     "webAuthnPolicyPasswordlessUserVerificationRequirement": "not specified",
     "webAuthnPolicyPasswordlessCreateTimeout": 0,
     "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
@@ -519,6 +546,93 @@
         },
         "notBefore": 0,
         "groups": []
+      },
+      {
+        "username": "admin",
+        "email": "admin@gmail.com",
+        "firstName": "Admin",
+        "lastName": "Admin",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+        "attributes": {
+          "university_login": ["ad12min"],
+          "matriculation_number": ["00000001"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Admin"],
+          "realm-management": ["realm-admin"]
+        },
+        "groups": ["Prompt-Admins"]
+      },
+      {
+        "username": "lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
+        "email": "lecturer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["le50ctu"],
+          "matriculation_number": ["00000002"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Lecturer"]
+        }
+      },
+      {
+        "username": "course-lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
+        "email": "of_course-lecturer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["co67lec"],
+          "matriculation_number": ["00000003"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Lecturer"]
+        }
+      },
+      {
+        "username": "course-editor",
+        "firstName": "Eduard",
+        "lastName": "Eduard",
+        "email": "best_edits@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-editor", "temporary": false }],
+        "attributes": {
+          "university_login": ["co69edt"],
+          "matriculation_number": ["00000004"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Editor"]
+        }
+      },
+      {
+        "username": "student",
+        "firstName": "Stan",
+        "lastName": "Stan",
+        "email": "pgdp_enjoyer@gmail.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "student", "temporary": false }],
+        "attributes": {
+          "university_login": ["no42tum"],
+          "matriculation_number": ["00000005"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Student"]
+        }
       }
     ],
     "scopeMappings": [
@@ -824,7 +938,7 @@
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
-        "secret": "**********",
+        "secret": "secretsecret",
         "redirectUris": [
           "http://localhost:8080/*"
         ],
@@ -839,6 +953,42 @@
         "publicClient": false,
         "frontchannelLogout": true,
         "protocol": "openid-connect",
+        "protocolMappers": [
+          {
+            "id": "c1a2b3c4-0001-4000-a000-000000000001",
+            "name": "university_login",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.attribute": "university_login",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "university_login",
+              "jsonType.label": "String",
+              "userinfo.token.claim": "true",
+              "aggregate.attrs": "false",
+              "multivalued": "false"
+            }
+          },
+          {
+            "id": "c1a2b3c4-0002-4000-a000-000000000002",
+            "name": "matriculation_number",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-attribute-mapper",
+            "consentRequired": false,
+            "config": {
+              "user.attribute": "matriculation_number",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "matriculation_number",
+              "jsonType.label": "String",
+              "userinfo.token.claim": "true",
+              "aggregate.attrs": "false",
+              "multivalued": "false"
+            }
+          }
+        ],
         "attributes": {
           "client.secret.creation.time": "1690570774",
           "post.logout.redirect.uris": "http://localhost:8080/*##",
@@ -2007,6 +2157,34 @@
         ]
       },
       {
+        "id": "e1b2c3d4-5e6f-7a8b-9c0d-112233445566",
+        "alias": "browser-passkey",
+        "description": "Browser flow with Passkey support",
+        "providerId": "basic-flow",
+        "topLevel": true,
+        "builtIn": false,
+        "authenticationExecutions": [
+          {
+            "authenticator": "auth-cookie",
+            "requirement": "ALTERNATIVE",
+            "priority": 10,
+            "userSetupAllowed": false
+          },
+          {
+            "authenticator": "webauthn-authenticator-passwordless",
+            "requirement": "ALTERNATIVE",
+            "priority": 20,
+            "userSetupAllowed": true
+          },
+          {
+            "authenticator": "auth-username-password-form",
+            "requirement": "ALTERNATIVE",
+            "priority": 30,
+            "userSetupAllowed": false
+          }
+        ]
+      },
+      {
         "id": "40ac9e11-cbc8-4214-9816-cdf894fc2e95",
         "alias": "direct grant",
         "description": "OpenID Connect Resource Owner Grant",
@@ -2358,7 +2536,7 @@
         "config": {}
       }
     ],
-    "browserFlow": "browser",
+    "browserFlow": "browser-passkey",
     "registrationFlow": "registration",
     "directGrantFlow": "direct grant",
     "resetCredentialsFlow": "reset credentials",

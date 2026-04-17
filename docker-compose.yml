@@ -464,6 +464,7 @@ services:
     container_name: prompt-keycloak
     command:
       - start-dev
+      - --import-realm
       - --health-enabled=true
       - --hostname-strict=false
     environment:
@@ -472,6 +473,7 @@ services:
       KC_DB_URL_PORT: ${KEYCLOAK_DB_PORT}
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_IMPORT_REALM_STRATEGY: OVERWRITE
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: "localhost"
@@ -479,6 +481,8 @@ services:
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
     depends_on:
       keycloak-db:
         condition: service_healthy

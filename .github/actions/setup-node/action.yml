@@ -8,7 +8,7 @@ runs:
       shell: bash
     - uses: actions/setup-node@v6
       with:
-        node-version: "18"
+        node-version: "24.15.0"
         cache: "yarn"
         cache-dependency-path: ./clients/yarn.lock
     - run: yarn install

@@ -2166,20 +2166,23 @@
         "authenticationExecutions": [
           {
             "authenticator": "auth-cookie",
+            "authenticatorFlow": false,
             "requirement": "ALTERNATIVE",
             "priority": 10,
             "userSetupAllowed": false
           },
           {
             "authenticator": "webauthn-authenticator-passwordless",
+            "authenticatorFlow": false,
             "requirement": "ALTERNATIVE",
             "priority": 20,
             "userSetupAllowed": true
           },
           {
-            "authenticator": "auth-username-password-form",
+            "authenticatorFlow": true,
             "requirement": "ALTERNATIVE",
             "priority": 30,
+            "flowAlias": "forms",
             "userSetupAllowed": false
           }
         ]

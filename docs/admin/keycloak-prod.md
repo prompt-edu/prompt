@@ -8,10 +8,10 @@ When moving from development to production, Keycloak must be optimized for the Q
 ### Core Environment Variables
 | Variable | Value | Description |
 | :--- | :--- | :--- |
-| `KC_PROXY` | `edge` | Required for TLS termination behind Nginx/Traefik. |
+| `KC_PROXY_HEADERS` | `xforwarded` | Trust `X-Forwarded-*` headers from a TLS-terminating reverse proxy (Nginx/Traefik). |
 | `KC_HOSTNAME` | `sso.yourdomain.com` | Strict hostname for security and redirect validation. |
 | `KC_DB` | `postgres` | Database vendor. |
-| `KC_HTTP_ENABLED` | `false` | Disable non-encrypted traffic in production. |
+| `KC_HTTP_ENABLED` | `true` | Keep HTTP enabled behind the proxy; TLS is terminated at the reverse proxy. |
 
 ---
 

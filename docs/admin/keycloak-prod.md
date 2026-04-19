@@ -93,4 +93,20 @@ PROMPT is designed to integrate with institutional authentication systems.
 ### Database Backup (PostgreSQL)
 Run a daily cron job to dump the Keycloak database:
 ```bash
-docker exec prompt-keycloak-db pg_dump -U ${DB_USER} ${DB_NAME} > backup_$(date +%F).sql
+docker exec prompt-keycloak-db \
+  pg_dump -U "${KEYCLOAK_DB_USER}" "${KEYCLOAK_DB_NAME}" \
+  > backup_$(date +%F).sql
+ ```
+
+### Database Restore (PostgreSQL)
+Stop Keycloak, drop and recreate the database, then restore:
+```bash
+docker compose stop keycloak
+docker exec -i prompt-keycloak-db \
+  psql -U "${KEYCLOAK_DB_USER}" -d postgres \
+  -c "DROP DATABASE IF EXISTS ${KEYCLOAK_DB_NAME};" \
+  -c "CREATE DATABASE ${KEYCLOAK_DB_NAME};"
+docker exec -i prompt-keycloak-db \
+  psql -U "${KEYCLOAK_DB_USER}" -d "${KEYCLOAK_DB_NAME}" < backup_YYYY-MM-DD.sql
+docker compose start keycloak
+```

@@ -192,9 +192,9 @@ Open http://localhost:3000 and click "Login".
 
 Sign in using standard credentials (e.g., student / student).
 
-Keycloak will prompt you to register a Passkey.
+Keycloak will prompt you to register a passkey.
 
-Your browser/OS will prompt for biometric verification (TouchID/FaceID). Follow the prompts to complete registration.
+Your browser/OS will prompt for user verification, such as Touch ID, Face ID, Windows Hello, a PIN, or a security key. Follow the prompts to complete registration.
 
 #### 3. Verify Passwordless Login
 Log out or open a new Incognito/Private window.
@@ -205,7 +205,7 @@ Click "Try another way".
 
 Select "Passkey" → Sign in with Passkey.
 
-Use your TouchID/FaceID. You should be logged in instantly without entering a password.
+Use your new user verification method. You should be logged in instantly without entering a password.
 
 ---
 

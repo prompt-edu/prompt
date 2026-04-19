@@ -130,12 +130,11 @@ The `.env` file contains Docker/production configuration. The `.env.dev` file co
 docker compose up -d db keycloak
 ```
 
-#### 4. Configure Keycloak (first time only)
-
-   Generate a client secret:
-   - Go to **Clients** → `prompt-server` → **Credentials**
-   - Click **Regenerate** and copy the secret
-   - Paste the secret into your `.env.dev` and `.env` files as `KEYCLOAK_CLIENT_SECRET`
+#### 4. Configure Keycloak
+The realm configuration is auto-imported on startup.
+- **Default Client Secret:** The `prompt-server` uses `secretsecret` as a pre-configured secret for local development. 
+- **Environment:** Ensure your `.env.dev` has `KEYCLOAK_CLIENT_SECRET=secretsecret`.
+- **Note:** If you manually regenerate the secret in the Keycloak UI (Clients -> prompt-server -> Credentials), you must update your `.env` files accordingly.
 
 #### 5. Start the Server
 

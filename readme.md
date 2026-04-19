@@ -131,10 +131,13 @@ docker compose up -d db keycloak
 ```
 
 #### 4. Configure Keycloak
-The realm configuration is auto-imported on startup.
-- **Default Client Secret:** The `prompt-server` uses `secretsecret` as a pre-configured secret for local development. 
-- **Environment:** Ensure your `.env.dev` has `KEYCLOAK_CLIENT_SECRET=secretsecret`.
-- **Note:** If you manually regenerate the secret in the Keycloak UI (Clients -> prompt-server -> Credentials), you must update your `.env` files accordingly.
+The realm (including the `prompt-server` client) is auto-imported from `keycloakConfig.json`
+on first startup. Set the default client secret in both `.env` and `.env.dev`:
+```bash
+KEYCLOAK_CLIENT_SECRET=secretsecret
+```
+If you later regenerate the secret via **Clients → `prompt-server` → Credentials → Regenerate**,
+update both env files accordingly.
 
 #### 5. Start the Server
 

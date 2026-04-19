@@ -29,16 +29,32 @@ Protecting the Identity Provider is the foundation of PROMPT's security.
 ---
 
 ## 3. Role and Permission Management
-PROMPT uses **Role-Based Access Control (RBAC)** to manage system features.
 
-### Client Roles (prompt-server)
-Assign these roles under **Clients** -> **prompt-server** -> **Roles**:
-- `PROMPT_Admin`: Full system orchestration and global settings.
-- `PROMPT_Lecturer`: Course creation and departmental management.
-- `PROMPT_Course_Lecturer`: Management of assigned specific courses.
-- `PROMPT_Course_Editor`: Content modification rights for course phases.
-- `PROMPT_Student`: Basic participation and application rights.
+PROMPT uses a hybrid Role-Based Access Control (RBAC) model consisting of static global roles and dynamic course-level roles.
 
+### A. Global System Roles
+These roles are static and grant high-level permissions across the entire platform. Assign these directly in Keycloak:
+
+| Role Name | Description |
+| :--- | :--- |
+| `PROMPT_Admin` | Full system orchestration, global settings, and user management. |
+| `PROMPT_Lecturer` | Global teaching authority; allowed to create new courses and manage departments. |
+
+### B. Course-Specific Roles
+Permissions for specific courses are validated using a dynamic naming convention. The backend expects roles to be formatted exactly as:
+`<semester>-<course_name>-<role>`
+
+**Examples:**
+- `Winter2024-Algorithms101-Lecturer`
+- `Summer2025-MobileAppDev-Editor`
+- `Winter2024-Algorithms101-Student`
+
+> [!CAUTION]
+> **Do not use the `PROMPT_` prefix for course-level roles.** If a course is named "IntroToAI" in the "Summer2026" semester, the student role **must** be `Summer2026-IntroToAI-Student`. Any other format will result in an authorization failure.
+
+### C. Role Assignment Strategy
+1. **Global Roles:** Assign to permanent staff via **Role Mapping**.
+2. **Course Roles:** These are typically created and assigned dynamically during the course enrollment process. If manual setup is required, ensure the string matches the `<semester>-<course_name>-<role>` pattern defined in the backend configuration.
 ---
 
 ## 4. User Provisioning and Group Management

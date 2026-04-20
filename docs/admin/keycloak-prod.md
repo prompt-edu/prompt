@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **Scope of this Guide:** This documentation applies to repository-managed Keycloak instances and self-hosted production deployments. 
+> 
+> Note that the official **PROMPT** production instance managed by the **AET (Academic Education Technologies)** team uses an external identity provider. Changes to `keycloakConfig.json` in this repository do not affect the central AET Keycloak service.
+
 This document provides instructions for deploying, securing, and maintaining Keycloak in a production environment for the **PROMPT 2.0** platform.
 
 ---

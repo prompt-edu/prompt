@@ -36,9 +36,6 @@ on:
       assessment_image_tag:
         required: true
         type: string
-      devops_challenge_image_tag:
-        required: true
-        type: string
       team_allocation_image_tag:
         required: true
         type: string
@@ -85,7 +82,7 @@ jobs:
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
             # Define services to stop/remove (all except reverse-proxy and maintenance)
-            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate client-core client-assessment-component client-devops-challenge-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-template-component client-certificate-component"
+            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate client-core client-assessment-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-template-component client-certificate-component"
             # Stop all services except reverse-proxy and maintenance (keep fallback active)
             docker compose -f docker-compose.prod.yml --env-file=.env.prod stop $SERVICES
             # Remove stopped containers
@@ -244,7 +241,6 @@ jobs:
             echo "INTERVIEW_IMAGE_TAG=${{ inputs.interview_image_tag }}" >> .env.prod
             echo "MATCHING_IMAGE_TAG=${{ inputs.matching_image_tag }}" >> .env.prod
             echo "ASSESSMENT_IMAGE_TAG=${{ inputs.assessment_image_tag }}" >> .env.prod
-            echo "DEVOPS_CHALLENGE_IMAGE_TAG=${{ inputs.devops_challenge_image_tag }}" >> .env.prod
             echo "TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.team_allocation_image_tag }}" >> .env.prod
             echo "SELF_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.self_team_allocation_image_tag }}" >> .env.prod
             echo "CERTIFICATE_IMAGE_TAG=${{ inputs.certificate_image_tag }}" >> .env.prod

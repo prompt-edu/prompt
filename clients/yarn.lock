@@ -17935,7 +17935,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:^5.106.2":
+"webpack@npm:^5.106.1, webpack@npm:^5.106.2":
   version: 5.106.2
   resolution: "webpack@npm:5.106.2"
   dependencies:

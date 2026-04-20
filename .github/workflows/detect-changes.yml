@@ -104,13 +104,6 @@ jobs:
             echo "$list" | jq --arg v "$value" 'if contains([$v]) then . else . + [$v] end'
           }
 
-          client_workspace_modules=$(jq -cr '.workspaces.packages // []' clients/package.json)
-
-          is_client_workspace_module() {
-            local module="$1"
-            echo "$client_workspace_modules" | jq -e --arg v "$module" 'index($v) != null' >/dev/null
-          }
-
           server_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$server_root_changed" = "true" ] || [ "$force_all" = "true" ]; then
             if compgen -G "servers/*/" > /dev/null; then
@@ -134,13 +127,16 @@ jobs:
 
           client_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$client_dependencies_changed" = "true" ] || [ "$force_all" = "true" ]; then
-            while IFS= read -r module; do
-              [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
-            done < <(echo "$client_workspace_modules" | jq -r '.[]')
+            if compgen -G "clients/*/" > /dev/null; then
+              for dir in clients/*/; do
+                module=$(basename "$dir")
+                [ -f "$dir/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+              done
+            fi
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)
-              [ -n "$module" ] && is_client_workspace_module "$module" && [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+              [ -n "$module" ] && [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
             done < <(echo '${{ steps.changed-clients.outputs.all_changed_files }}' | jq -r '.[]')
           fi
 

@@ -517,7 +517,7 @@
     "webAuthnPolicyPasswordlessSignatureAlgorithms": [
       "ES256"
     ],
-    "webAuthnPolicyPasswordlessRpId": "",
+    "webAuthnPolicyPasswordlessRpId": "localhost",
     "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
     "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
     "webAuthnPolicyPasswordlessRequireResidentKey": "required",
@@ -628,6 +628,24 @@
         "credentials": [{ "type": "password", "value": "student", "temporary": false }],
         "attributes": {
           "university_login": ["no42tum"],
+          "matriculation_number": ["00000005"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Student"]
+        }
+      },
+      {
+        "username": "student-passkey",
+        "firstName": "Paskal",
+        "lastName": "Paskal",
+        "email": "passkey_enjoyer@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "requiredActions": ["webauthn-register-passwordless"], 
+        "credentials": [{ "type": "password", "value": "student-passkey", "temporary": false }],
+        "attributes": {
+          "university_login": ["no43tum"],
           "matriculation_number": ["00000005"]
         },
         "clientRoles": {
@@ -2525,7 +2543,7 @@
         "name": "Webauthn Register Passwordless",
         "providerId": "webauthn-register-passwordless",
         "enabled": true,
-        "defaultAction": false,
+        "defaultAction": true,
         "priority": 80,
         "config": {}
       },

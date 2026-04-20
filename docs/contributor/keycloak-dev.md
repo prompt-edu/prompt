@@ -16,6 +16,7 @@ The following accounts are included in `keycloakConfig.json` to facilitate testi
 | **course-lecturer** | `course-lecturer` | `co67lec` | `00000003` | `PROMPT_Course_Lecturer` |
 | **course-editor** | `course-editor` | `co69edt` | `00000004` | `PROMPT_Course_Editor` |
 | **student** | `student` | `no42tum` | `00000005` | `PROMPT_Student` |
+| **student-passkey** | `student-passkey` | `no43tum` | `00000005` | `PROMPT_Student` |
 
 ## 3. Modifying Users and Roles
 - **Adding Users:** Go to `Users` -> `Add user`. Required fields: Username, Email, First/Last Name.

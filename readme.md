@@ -170,6 +170,12 @@ To start a specific micro-frontend only, navigate to its subdirectory and run `y
 
 ---
 ### Keycloak Passkey Testing
+#### Option 1 (Preconfigured user with passkey): 
+Log in as a user with credentials  username: student-passkey | password: student-passkey
+You will be asked to register your passkey
+With next login you can use your registered passkey instead of password-based authentication
+
+#### Option 2 (Configure passkey manually):
 #### 1. Enable Registration for a User
 To test the flow, you must force a specific user to register their biometric data:
 

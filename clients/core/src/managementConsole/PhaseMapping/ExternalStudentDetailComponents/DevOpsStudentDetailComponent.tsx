@@ -3,6 +3,6 @@ import { safeFederatedLazyStudentDetail } from '../utils/safeFederatedLazy'
 
 export const DevOpsStudentDetailComponent =
   safeFederatedLazyStudentDetail<CoursePhaseStudentIdentifierProps>(
-    () => import('github_challenge_component/provide'),
+    () => import('devops_challenge_component/provide'),
     () => <></>,
   )

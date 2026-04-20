@@ -26,6 +26,7 @@ const getTsConfigPaths = () => {
     'interview_component',
     'matching_component',
     'assessment_component',
+    'devops_challenge_component',
     'team_allocation_component',
     'self_team_allocation_component',
     'certificate_component',

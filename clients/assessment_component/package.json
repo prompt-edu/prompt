@@ -1,6 +1,6 @@
 {
   "name": "assessment_component",
-  "version": "2.10.3",
+  "version": "2.11.0",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

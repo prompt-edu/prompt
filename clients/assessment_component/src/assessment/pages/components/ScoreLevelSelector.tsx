@@ -118,6 +118,7 @@ export const ScoreLevelSelector = ({
       descriptionsByLevel={mapCompetencyDescriptionsByLevel(competency)}
       showIndicators={showIndicators}
       indicators={indicators}
+      hideUnselectedOnDesktop={false}
     />
   )
 }

@@ -646,7 +646,7 @@
         "credentials": [{ "type": "password", "value": "student-passkey", "temporary": false }],
         "attributes": {
           "university_login": ["no43tum"],
-          "matriculation_number": ["00000005"]
+          "matriculation_number": ["00000006"]
         },
         "clientRoles": {
           "prompt-server": ["PROMPT_Student"]

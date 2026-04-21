@@ -490,7 +490,7 @@
     "webAuthnPolicyPasswordlessSignatureAlgorithms": [
       "ES256"
     ],
-    "webAuthnPolicyPasswordlessRpId": "",
+    "webAuthnPolicyPasswordlessRpId": "localhost",
     "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
     "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
     "webAuthnPolicyPasswordlessRequireResidentKey": "not specified",
@@ -519,6 +519,111 @@
         },
         "notBefore": 0,
         "groups": []
+      },
+      {
+        "username": "admin",
+        "email": "admin@example.com",
+        "firstName": "Admin",
+        "lastName": "Admin",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+        "attributes": {
+          "university_login": ["ad12min"],
+          "matriculation_number": ["00000001"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Admin"],
+          "realm-management": ["realm-admin"]
+        },
+        "groups": ["Prompt-Admins"]
+      },
+      {
+        "username": "lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
+        "email": "lecturer@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["le50ctu"],
+          "matriculation_number": ["00000002"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Lecturer"]
+        }
+      },
+      {
+        "username": "course-lecturer",
+        "firstName": "Lector",
+        "lastName": "Lector",
+        "email": "of_course-lecturer@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-lecturer", "temporary": false }],
+        "attributes": {
+          "university_login": ["co67lec"],
+          "matriculation_number": ["00000003"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Lecturer"]
+        }
+      },
+      {
+        "username": "course-editor",
+        "firstName": "Eduard",
+        "lastName": "Eduard",
+        "email": "best_edits@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "course-editor", "temporary": false }],
+        "attributes": {
+          "university_login": ["co69edt"],
+          "matriculation_number": ["00000004"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Course_Editor"]
+        }
+      },
+      {
+        "username": "student",
+        "firstName": "Stan",
+        "lastName": "Stan",
+        "email": "pgdp_enjoyer@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "credentials": [{ "type": "password", "value": "student", "temporary": false }],
+        "attributes": {
+          "university_login": ["no42tum"],
+          "matriculation_number": ["00000005"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Student"]
+        }
+      },
+      {
+        "username": "student-passkey",
+        "firstName": "Paskal",
+        "lastName": "Paskal",
+        "email": "passkey_enjoyer@example.com",
+        "createdTimestamp": 1737552859689,
+        "emailVerified": true,
+        "enabled": true,
+        "requiredActions": ["webauthn-register-passwordless"], 
+        "credentials": [{ "type": "password", "value": "student-passkey", "temporary": false }],
+        "attributes": {
+          "university_login": ["no43tum"],
+          "matriculation_number": ["00000006"]
+        },
+        "clientRoles": {
+          "prompt-server": ["PROMPT_Student"]
+        }
       }
     ],
     "scopeMappings": [
@@ -2344,7 +2449,7 @@
         "name": "Webauthn Register Passwordless",
         "providerId": "webauthn-register-passwordless",
         "enabled": true,
-        "defaultAction": false,
+        "defaultAction": true,
         "priority": 80,
         "config": {}
       },

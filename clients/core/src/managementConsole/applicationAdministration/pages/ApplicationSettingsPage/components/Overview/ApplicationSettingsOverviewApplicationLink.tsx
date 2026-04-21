@@ -7,9 +7,12 @@ export const ApplicationSettingsOverviewApplicationLink = () => {
   const { coursePhase } = useApplicationStore()
   const [copied, setCopied] = useState(false)
 
-  const applicationLink = `${window.location.origin}/apply/${coursePhase.id}`
+  const applicationLink = coursePhase?.id
+    ? `${window.location.origin}/apply/${coursePhase.id}`
+    : null
 
   const handleCopy = () => {
+    if (!applicationLink) return
     navigator.clipboard.writeText(applicationLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -23,9 +26,15 @@ export const ApplicationSettingsOverviewApplicationLink = () => {
       </div>
       <div className='flex items-center mt-2 gap-2'>
         <span className='text-sm text-muted-foreground truncate flex-1 font-mono bg-muted px-2 py-1 rounded'>
-          {applicationLink}
+          {applicationLink ?? 'Not available'}
         </span>
-        <Button variant='outline' size='sm' onClick={handleCopy} className='shrink-0'>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={handleCopy}
+          disabled={!applicationLink}
+          className='shrink-0'
+        >
           {copied ? <Check className='h-4 w-4 text-green-500' /> : <Copy className='h-4 w-4' />}
           {copied ? 'Copied!' : 'Copy'}
         </Button>

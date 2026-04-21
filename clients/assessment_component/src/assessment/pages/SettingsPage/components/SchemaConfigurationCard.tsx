@@ -195,16 +195,14 @@ export const SchemaConfigurationCard = ({
 
       {isActive && children}
 
-      {isActive && (
-        <div className='flex flex-wrap items-center gap-3 border-t border-border pt-4'>
-          <p className='flex-1 text-xs leading-5 text-muted-foreground'>
-            Save this card to apply its configuration changes for the current course phase.
-          </p>
-          <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
-            {isSaving ? 'Saving...' : `Save ${content.title}`}
-          </Button>
-        </div>
-      )}
+      <div className='flex flex-wrap items-center gap-3 border-t border-border pt-4'>
+        <p className='flex-1 text-xs leading-5 text-muted-foreground'>
+          Save this card to apply its configuration changes for the current course phase.
+        </p>
+        <Button onClick={onSave} disabled={saveDisabled} className='ml-auto min-w-[160px]'>
+          {isSaving ? 'Saving...' : `Save ${content.title}`}
+        </Button>
+      </div>
     </div>
   )
 

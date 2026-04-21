@@ -197,9 +197,9 @@ To start a specific micro-frontend only, navigate to its subdirectory and run `y
 ---
 ### Keycloak Passkey Testing
 #### Option 1 (Preconfigured user with passkey): 
-Log in as a user with credentials  username: student-passkey | password: student-passkey
-You will be asked to register your passkey
-With next login you can use your registered passkey instead of password-based authentication
+Log in as a user with credentials  username: student-passkey | password: student-passkey.
+You will be asked to register your passkey.
+With next login you can use your registered passkey instead of password-based authentication.
 
 #### Option 2 (Configure passkey manually):
 #### 1. Enable Registration for a User
@@ -295,6 +295,7 @@ We are building a community around PROMPT! Whether you are an instructor using t
 We welcome contributions of all kinds! Please see our [Contributing Guidelines](./CONTRIBUTING.md) to get started.
 
 ---
+
 ## Configuration
 
 PROMPT can be customized for your course by composing it from different modular phases. These configurations are handled at the course level and dynamically loaded on demand.

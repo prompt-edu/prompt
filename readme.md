@@ -130,40 +130,14 @@ The `.env` file contains Docker/production configuration. The `.env.dev` file co
 docker compose up -d db keycloak
 ```
 
-#### 4. Configure Keycloak (first time only)
-
-1. Navigate to [http://localhost:8081](http://localhost:8081)
-2. Login with username `admin` and password `admin`
-3. In the top-left dropdown, select **Create Realm** and upload `keycloakConfig.json`
-4. In the new Prompt realm, create a user:
-   - Go to **Users** → **Add user**
-   - Fill in **all required fields** (these are needed for token claims):
-     - Username
-     - Email (required)
-     - First name (required)
-     - Last name (required)
-   - Click **Join Groups** and select `PROMPT-Admins`
-   - Go to **Credentials** tab and set a password
-   - Go to **Attributes** tab and add:
-     - `university_login` → `ab12cde`
-     - `matriculation_number` → `01234567`
-5. Configure client mappers (to include user attributes in tokens):
-   - Go to **Clients** → `prompt-server` → **Client scopes** tab
-   - Click `prompt-server-dedicated`
-   - Click **Add mapper** → **By configuration** → **User Attribute**
-   - Create mappers for each attribute:
-
-     | Name                 | User Attribute       | Token Claim Name     | Claim JSON Type |
-     | -------------------- | -------------------- | -------------------- | --------------- |
-     | university_login     | university_login     | university_login     | String          |
-     | matriculation_number | matriculation_number | matriculation_number | String          |
-
-   - Ensure **Add to ID token** and **Add to access token** are enabled
-
-6. Generate a client secret:
-   - Go to **Clients** → `prompt-server` → **Credentials**
-   - Click **Regenerate** and copy the secret
-   - Paste the secret into your `.env.dev` and `.env` files as `KEYCLOAK_CLIENT_SECRET`
+#### 4. Configure Keycloak
+The realm (including the `prompt-server` client) is auto-imported from `keycloakConfig.json`
+on first startup. Set the default client secret in both `.env` and `.env.dev`:
+```bash
+KEYCLOAK_CLIENT_SECRET=secretsecret
+```
+If you later regenerate the secret via **Clients → `prompt-server` → Credentials → Regenerate**,
+update both env files accordingly.
 
 #### 5. Start the Server
 
@@ -193,6 +167,51 @@ cd clients && yarn install && yarn run dev
 This launches all micro-frontends simultaneously using Lerna. The app runs at [http://localhost:3000](http://localhost:3000).
 
 To start a specific micro-frontend only, navigate to its subdirectory and run `yarn run dev` there.
+
+---
+### Keycloak Passkey Testing
+#### Option 1 (Preconfigured user with passkey): 
+Log in as a user with credentials  username: student-passkey | password: student-passkey
+You will be asked to register your passkey
+With next login you can use your registered passkey instead of password-based authentication
+
+#### Option 2 (Configure passkey manually):
+#### 1. Enable Registration for a User
+To test the flow, you must force a specific user to register their biometric data:
+
+Access Keycloak Admin: Go to http://localhost:8081 (Login: admin / admin).
+
+Select Realm: Ensure the Prompt realm is selected in the top-left corner.
+
+#### Configure User:
+
+Navigate to "Users" → Click on the user (e.g., student).
+
+In the "Details" tab, find "Required user actions" field.
+
+Select "Webauthn Register Passwordless".
+
+Click "Save".
+
+#### 2. Register the Passkey
+Open http://localhost:3000 and click "Login".
+
+Sign in using standard credentials (e.g., student / student).
+
+Keycloak will prompt you to register a passkey.
+
+Your browser/OS will prompt for user verification, such as Touch ID, Face ID, Windows Hello, a PIN, or a security key. Follow the prompts to complete registration.
+
+#### 3. Verify Passwordless Login
+Log out or open a new Incognito/Private window.
+
+Go to http://localhost:3000 → Login.
+
+Click "Try another way".
+
+Select "Passkey" → Sign in with Passkey.
+
+Use your new user verification method. You should be logged in instantly without entering a password.
 
 ---
 

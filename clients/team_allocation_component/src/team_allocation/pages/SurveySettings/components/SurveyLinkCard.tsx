@@ -12,11 +12,19 @@ export const SurveyLinkCard = () => {
       ? `${window.location.origin}/management/course/${courseId}/${phaseId}`
       : null
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!surveyLink) return
-    navigator.clipboard.writeText(surveyLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (!navigator.clipboard) {
+      console.error('Clipboard API not available')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(surveyLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy survey link:', err)
+    }
   }
 
   return (

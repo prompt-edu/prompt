@@ -184,6 +184,11 @@ UPDATE course_phase_config
 SET assessment_schema_id = $2
 WHERE course_phase_id = $1;
 
+-- name: UpdateCoursePhaseConfigResultsReleased :exec
+UPDATE course_phase_config
+SET results_released = $2
+WHERE course_phase_id = $1;
+
 -- name: UpdateCoursePhaseConfigSelfEvaluationSchema :exec
 UPDATE course_phase_config
 SET self_evaluation_schema = $2

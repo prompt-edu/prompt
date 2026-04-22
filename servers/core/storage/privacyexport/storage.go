@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prompt-edu/prompt/servers/core/storage"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/storage"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +31,14 @@ func Init() error {
 
 	lowerEndpoint := strings.ToLower(endpoint)
 	isLocalEndpoint := strings.Contains(lowerEndpoint, "localhost") || strings.Contains(lowerEndpoint, "127.0.0.1")
-	if !isLocalEndpoint && (accessKey == "" || secretKey == "") {
+	if isLocalEndpoint {
+		if accessKey == "" {
+			accessKey = "admin"
+		}
+		if secretKey == "" {
+			secretKey = "admin123"
+		}
+	} else if accessKey == "" || secretKey == "" {
 		return fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
 	}
 
@@ -52,12 +59,11 @@ func Init() error {
 }
 
 func MakeObjectURL(exportRequestID string, serviceName string) string {
-  return fmt.Sprintf(objectKeyFormat, exportRequestID, exportRequestID[:6], serviceName)
+	return fmt.Sprintf(objectKeyFormat, exportRequestID, exportRequestID[:6], serviceName)
 }
 
 // GetUploadURL generates a presigned S3 PUT URL for a microservice to upload
 // its GDPR export ZIP. The URL is valid for 15 minutes.
-//
 func GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (string, error) {
 	if adapter == nil {
 		return "", fmt.Errorf("privacy export storage not initialized")

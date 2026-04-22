@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "2.10.3",
+  "version": "2.11.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
-    "@sentry/react": "^10.48.0",
+    "@sentry/react": "^10.49.0",
     "@xyflow/react": "^12.10.2",
     "date-fns-tz": "^3.2.0",
     "external-remotes-plugin": "^1.0.0",
@@ -24,8 +24,8 @@
     "clean-webpack-plugin": "^4.0.0",
     "compression-webpack-plugin": "^12.0.0",
     "css-minimizer-webpack-plugin": "^8.0.0",
-    "html-webpack-plugin": "^5.6.6",
-    "webpack": "^5.106.1",
+    "html-webpack-plugin": "^5.6.7",
+    "webpack": "^5.106.2",
     "webpack-bundle-analyzer": "^5.3.0",
     "webpack-cli": "^7.0.2"
   },

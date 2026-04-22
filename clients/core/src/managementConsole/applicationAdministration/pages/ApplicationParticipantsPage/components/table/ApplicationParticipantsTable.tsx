@@ -12,10 +12,14 @@ import { useUpdateCoursePhaseParticipationBatch } from '@/hooks/useUpdateCourseP
 import { ColumnDef } from '@tanstack/react-table'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
+import { downloadApplications } from '../../utils/downloadApplications'
+import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 
 export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): ReactNode => {
   const { courseId } = useParams()
-  const { participations, additionalScores } = useApplicationStore()
+  const { participations, additionalScores, coursePhase } = useApplicationStore()
   const { mutate: deleteApplications } = useDeleteApplications()
   const navigate = useNavigate()
   const tableContainerRef = useRef<HTMLDivElement | null>(null)
@@ -66,6 +70,38 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   const queryClient = useQueryClient()
   const { mutate: updateBatch } = useUpdateCoursePhaseParticipationBatch()
 
+  const exportApplications = useCallback(
+    async (rows: ApplicationRow[]) => {
+      const applicationForm = await queryClient.fetchQuery({
+        queryKey: ['application_form', phaseId],
+        queryFn: () => getApplicationForm(phaseId),
+      })
+
+      const applications = await Promise.all(
+        rows.map((row) =>
+          queryClient.fetchQuery({
+            queryKey: ['application', row.courseParticipationID],
+            queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
+          }),
+        ),
+      )
+
+      const applicationsByParticipationID = Object.fromEntries(
+        rows.map((row, index) => [row.courseParticipationID, applications[index]]),
+      )
+
+      downloadApplications(
+        rows,
+        additionalScores,
+        'application-export.csv',
+        applicationForm,
+        applicationsByParticipationID,
+        getApplicationCsvExportSettings(coursePhase?.restrictedData),
+      )
+    },
+    [additionalScores, coursePhase?.restrictedData, phaseId, queryClient],
+  )
+
   const actions = useMemo(() => {
     const setStatus = (status: PassStatus, rows: ApplicationRow[]) => {
       updateBatch(
@@ -88,8 +124,9 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     return getApplicationActions(deleteApplications, viewApplication, {
       setPassed: (r) => setStatus(PassStatus.PASSED, r),
       setFailed: (r) => setStatus(PassStatus.FAILED, r),
+      exportCsv: exportApplications,
     })
-  }, [deleteApplications, viewApplication, phaseId, updateBatch, queryClient])
+  }, [deleteApplications, viewApplication, phaseId, updateBatch, queryClient, exportApplications])
 
   return (
     <div ref={tableContainerRef}>

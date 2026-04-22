@@ -22,21 +22,32 @@ import { ApplicationForm } from '../../interfaces/form/applicationForm'
 import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
+import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
 import { computeQuestionsModified } from './handlers/computeQuestionsModified'
 import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
+import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import {
+  APPLICATION_CSV_EXPORT_SETTINGS_KEY,
+  ApplicationCsvExportSettings,
+  getApplicationCsvExportSettings,
+  shouldExportQuestionToCsv,
+} from '../../utils/applicationCsvExportSettings'
 
 export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const [applicationQuestions, setApplicationQuestions] = useState<
     (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
   >([])
+  const [csvExportSettings, setCsvExportSettings] = useState<ApplicationCsvExportSettings>({})
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const queryClient = useQueryClient()
+  const { coursePhase } = useApplicationStore()
 
   const {
     data: fetchedForm,
@@ -70,6 +81,15 @@ export const ApplicationQuestionConfig = () => {
     },
   })
 
+  const { mutate: mutateCoursePhase } = useMutation({
+    mutationFn: (coursePhaseUpdate: UpdateCoursePhase) => {
+      return updateCoursePhase(coursePhaseUpdate)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+    },
+  })
+
   const setQuestionsFromForm = (form: ApplicationForm) => {
     const combinedQuestions: (
       | ApplicationQuestionText
@@ -92,6 +112,29 @@ export const ApplicationQuestionConfig = () => {
       setQuestionsFromForm(fetchedForm)
     }
   }, [fetchedForm])
+
+  useEffect(() => {
+    setCsvExportSettings(getApplicationCsvExportSettings(coursePhase?.restrictedData))
+  }, [coursePhase?.restrictedData])
+
+  const handleCsvExportEnabledChange = (questionID: string, checked: boolean) => {
+    if (questionID.startsWith('not-valid-id-question-') || questionID.startsWith('no-valid-id')) {
+      return
+    }
+
+    const updatedSettings = {
+      ...csvExportSettings,
+      [questionID]: checked,
+    }
+
+    setCsvExportSettings(updatedSettings)
+    mutateCoursePhase({
+      id: phaseId ?? '',
+      restrictedData: {
+        [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,
+      },
+    })
+  }
 
   const handleRevertAllQuestions = () => {
     if (fetchedForm) {
@@ -198,6 +241,15 @@ export const ApplicationQuestionConfig = () => {
                               }}
                               submitAttempted={submitAttempted}
                               onDelete={handleDeleteQuestion}
+                              csvExportEnabled={shouldExportQuestionToCsv(
+                                csvExportSettings,
+                                question.id,
+                              )}
+                              csvExportDisabled={
+                                question.id.startsWith('not-valid-id-question-') ||
+                                question.id.startsWith('no-valid-id')
+                              }
+                              onCsvExportEnabledChange={handleCsvExportEnabledChange}
                             />
                           </div>
                         )}

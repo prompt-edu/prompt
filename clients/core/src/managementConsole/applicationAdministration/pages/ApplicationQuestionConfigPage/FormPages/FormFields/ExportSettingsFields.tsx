@@ -13,14 +13,43 @@ import { QuestionConfigFormData } from '@core/validations/questionConfig'
 
 interface ExportSettingsFieldsProps {
   form: UseFormReturn<QuestionConfigFormData>
+  csvExportEnabled: boolean
+  csvExportDisabled: boolean
+  onCsvExportEnabledChange: (checked: boolean) => void
 }
 
-export const ExportSettingsFields = ({ form }: ExportSettingsFieldsProps) => {
+export const ExportSettingsFields = ({
+  form,
+  csvExportEnabled,
+  csvExportDisabled,
+  onCsvExportEnabledChange,
+}: ExportSettingsFieldsProps) => {
   const accessible = useWatch({ control: form.control, name: 'accessibleForOtherPhases' })
   return (
     <>
       <div className='space-y-2'>
         <label className='text-sm font-medium leading-none'>Export Settings</label>
+        <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 bg-white dark:bg-black'>
+          <div className='space-y-0.5'>
+            <FormLabel className='text-base'>Export to CSV</FormLabel>
+            <FormDescription>
+              Include this question as a column in application CSV exports
+            </FormDescription>
+            {csvExportDisabled && (
+              <FormDescription>
+                Save this question before changing its CSV export setting
+              </FormDescription>
+            )}
+          </div>
+          <FormControl>
+            <Switch
+              checked={csvExportEnabled}
+              disabled={csvExportDisabled}
+              onCheckedChange={onCsvExportEnabledChange}
+              aria-label='Toggle CSV export for this question'
+            />
+          </FormControl>
+        </FormItem>
         <FormField
           control={form.control}
           name='accessibleForOtherPhases'

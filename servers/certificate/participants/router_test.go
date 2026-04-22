@@ -84,6 +84,10 @@ func (s *ParticipantsRouterTestSuite) TestGetParticipants() {
 			assert.True(s.T(), p.HasDownloaded)
 			assert.Equal(s.T(), int32(3), p.DownloadCount)
 			assert.NotEmpty(s.T(), p.PassStatus)
+			assert.Equal(s.T(), "03711111", p.Student.MatriculationNumber)
+			assert.Equal(s.T(), "ab12cde", p.Student.UniversityLogin)
+			assert.True(s.T(), p.Student.HasUniversityAccount)
+			assert.Equal(s.T(), "male", p.Student.Gender)
 		}
 	}
 }

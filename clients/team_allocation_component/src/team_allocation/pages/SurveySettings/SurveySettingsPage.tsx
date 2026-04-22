@@ -126,8 +126,8 @@ export const SurveySettingsPage = () => {
   return (
     <>
       <ManagementPageHeader>Survey Settings</ManagementPageHeader>
-      <SurveyLinkCard />
       <MissingSettings elements={missingConfigs} />
+      <SurveyLinkCard />
       {/* 1. Set the survey timeframe, skills and teams for this phase. */}
       <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
       {/* 2. Set up the teams */}

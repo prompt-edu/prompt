@@ -11,6 +11,7 @@ import { SurveyTimeframe } from '../../interfaces/timeframe'
 import { TeamSettings } from './components/TeamSettings'
 import { SkillSettings } from './components/SkillSettings'
 import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
+import { SurveyLinkCard } from './components/SurveyLinkCard'
 import { getConfig } from '../../network/queries/getConfig'
 import { MissingSettings, MissingSettingsItem } from '@/components/MissingSettings'
 import { useEffect, useState } from 'react'
@@ -125,6 +126,7 @@ export const SurveySettingsPage = () => {
   return (
     <>
       <ManagementPageHeader>Survey Settings</ManagementPageHeader>
+      <SurveyLinkCard />
       <MissingSettings elements={missingConfigs} />
       {/* 1. Set the survey timeframe, skills and teams for this phase. */}
       <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />

@@ -15663,7 +15663,7 @@ __metadata:
     react-day-picker: "npm:9.14.0"
     react-hook-form: "npm:^7.72.1"
     recharts: "npm:^3.8.1"
-    tailwindcss: "npm:^4.2.1"
+    tailwindcss: "npm:^4.2.4"
     webpack: "npm:^5.106.2"
     webpack-cli: "npm:^7.0.2"
     webpack-dev-server: "npm:^5.2.3"
@@ -16345,10 +16345,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:^4.2.1":
-  version: 4.2.1
-  resolution: "tailwindcss@npm:4.2.1"
-  checksum: 10c0/482d734b582e9da509042ff59c1d7564d99e39e238c50ae907c20fa56177a8a00c3902f6971329971bd6a1c5357026ac76a849b8f2c69c94f0f59be99530ba54
+"tailwindcss@npm:^4.2.4":
+  version: 4.2.4
+  resolution: "tailwindcss@npm:4.2.4"
+  checksum: 10c0/1069304b6bf2855daa029ac4af382abb95ed26ae4d05bc09ea01a56e6af3de8b6fb1b4d508d8bbb39abf30a69766e6f2f75835e112ac6fc39ed94ae5d4901048
   languageName: node
   linkType: hard
 

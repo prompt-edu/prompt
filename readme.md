@@ -195,6 +195,51 @@ This launches all micro-frontends simultaneously using Lerna. The app runs at [h
 To start a specific micro-frontend only, navigate to its subdirectory and run `yarn run dev` there.
 
 ---
+### Keycloak Passkey Testing
+#### Option 1 (Preconfigured user with passkey): 
+Log in as a user with credentials  username: student-passkey | password: student-passkey.
+You will be asked to register your passkey.
+With next login you can use your registered passkey instead of password-based authentication.
+
+#### Option 2 (Configure passkey manually):
+#### 1. Enable Registration for a User
+To test the flow, you must force a specific user to register their biometric data:
+
+Access Keycloak Admin: Go to http://localhost:8081 (Login: admin / admin).
+
+Select Realm: Ensure the Prompt realm is selected in the top-left corner.
+
+#### Configure User:
+
+Navigate to "Users" → Click on the user (e.g., student).
+
+In the "Details" tab, find "Required user actions" field.
+
+Select "Webauthn Register Passwordless".
+
+Click "Save".
+
+#### 2. Register the Passkey
+Open http://localhost:3000 and click "Login".
+
+Sign in using standard credentials (e.g., student / student).
+
+Keycloak will prompt you to register a passkey.
+
+Your browser/OS will prompt for user verification, such as Touch ID, Face ID, Windows Hello, a PIN, or a security key. Follow the prompts to complete registration.
+
+#### 3. Verify Passwordless Login
+Log out or open a new Incognito/Private window.
+
+Go to http://localhost:3000 → Login.
+
+Click "Try another way".
+
+Select "Passkey" → Sign in with Passkey.
+
+Use your new user verification method. You should be logged in instantly without entering a password.
+
+---
 
 ### Useful Commands
 

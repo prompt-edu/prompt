@@ -26,6 +26,11 @@ func setupTeaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedR
 
 	teaseCoursePhaseRouter.POST("/allocations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), postAllocations)
 	teaseCoursePhaseRouter.GET("/allocations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getAllocations)
+
+	// Phase 1 Tease ↔ PROMPT workspace integration.
+	teaseCoursePhaseRouter.GET("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeaseWorkspace)
+	teaseCoursePhaseRouter.PUT("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), putTeaseWorkspace)
+	teaseCoursePhaseRouter.POST("/save", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), postTeaseSave)
 }
 
 func getAllCoursePhases(c *gin.Context) {
@@ -148,4 +153,77 @@ func postAllocations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Allocations created successfully"})
+}
+
+// getTeaseWorkspace handles GET /tease/course_phase/{coursePhaseID}/workspace.
+// Returns 200 with the persisted workspace row, or 200 with empty defaults
+// if no row exists yet (per §4.2 of the Phase 1 plan).
+func getTeaseWorkspace(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		return
+	}
+
+	workspace, err := GetTeaseWorkspace(c, coursePhaseID)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, workspace)
+}
+
+// putTeaseWorkspace handles PUT /tease/course_phase/{coursePhaseID}/workspace.
+// Idempotent upsert. Does not touch the allocations table nor
+// last_exported_at.
+func putTeaseWorkspace(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		return
+	}
+
+	var req teaseDTO.TeaseWorkspaceRequest
+	if err := c.BindJSON(&req); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	workspace, err := UpsertTeaseWorkspace(c, coursePhaseID, req)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, workspace)
+}
+
+// postTeaseSave handles POST /tease/course_phase/{coursePhaseID}/save.
+// Atomic: upsert tease_workspace + upsert allocations + stamp
+// last_exported_at in one transaction. On any error the whole
+// transaction rolls back and a 500 is returned.
+func postTeaseSave(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		return
+	}
+
+	var req teaseDTO.TeaseSaveRequest
+	if err := c.BindJSON(&req); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	workspace, err := SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, workspace)
 }

@@ -171,8 +171,8 @@ export const StudentDataCheck = () => {
       )}
       <div className='mt-4 w-full'>
         <Button asChild className='gap-2 w-full'>
-          <a href='/tease'>
-            Go to TEASE
+          <a href={`/tease?coursePhaseId=${phaseId ?? ''}`}>
+            Launch Tease to Matchmake
             <ArrowRight className='ml-2 h-4 w-4' />
           </a>
         </Button>

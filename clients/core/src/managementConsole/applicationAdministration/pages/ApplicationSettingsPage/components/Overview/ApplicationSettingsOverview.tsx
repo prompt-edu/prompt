@@ -3,6 +3,7 @@ import { Card, CardContent } from '@tumaet/prompt-ui-components'
 import { ApplicationTimeline } from './ApplicationSettingsOverviewTimeline'
 import { ApplicationSettingsOverviewHeader } from './ApplicationSettingsOverviewHeader'
 import { ExternalStudentsStatusBadge } from './ApplicationSettingsOverviewExternalStudentsBadge'
+import { ApplicationSettingsOverviewApplicationLink } from './ApplicationSettingsOverviewApplicationLink'
 import { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 
 type Props = {
@@ -32,6 +33,7 @@ const ApplicationOverview = ({
             <ExternalStudentsStatusBadge
               externalStudentsAllowed={applicationMetaData?.externalStudentsAllowed ?? false}
             />
+            <ApplicationSettingsOverviewApplicationLink />
           </>
         )}
       </CardContent>

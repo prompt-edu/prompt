@@ -23,6 +23,7 @@ func setupCoursePhaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(al
 	coursePhaseRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getCoursePhaseConfig)
 	coursePhaseRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createOrUpdateCoursePhaseConfig)
 	coursePhaseRouter.POST("/release", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), releaseResults)
+	coursePhaseRouter.POST("/unrelease", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), unreleaseResults)
 
 	coursePhaseRouter.GET("participations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getParticipationsForCoursePhase)
 	coursePhaseRouter.GET("teams", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getTeamsForCoursePhase)
@@ -129,6 +130,34 @@ func releaseResults(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Results released successfully"})
+}
+
+// unreleaseResults godoc
+// @Summary Unrelease assessment results
+// @Description Unrelease assessment results for the course phase.
+// @Tags course_phase_config
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/config/unrelease [post]
+func unreleaseResults(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.WithError(err).Error("Failed to parse course phase ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	err = UnreleaseResults(c, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Error("Failed to unrelease results")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unrelease results"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Results unreleased successfully"})
 }
 
 // getParticipationsForCoursePhase godoc

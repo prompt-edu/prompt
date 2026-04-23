@@ -1,6 +1,7 @@
 // DO NOT REMOVE - this is required for eslint and shadcn to be able to add new components
 {
   "compilerOptions": {
+    "rootDir": "..",
     "outDir": "./dist/",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -10,15 +11,13 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
-    "typeRoots": ["./node_modules/@types", "./@types"],
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@/*": ["../shared_library/*"]
     }
   },
-
 }

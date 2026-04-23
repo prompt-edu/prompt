@@ -1,4 +1,6 @@
 // Matches all * _component files
+declare module '*.css'
+
 declare module '*_component/routes' {
   import { RouteObject } from 'react-router-dom'
 

@@ -123,12 +123,16 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(fun
   }))
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      onUpdate({ ...student, ...value })
+    const unsubscribe = form.subscribe({
+      formState: {
+        values: true,
+      },
+      callback: ({ values }) => {
+        onUpdate({ ...student, ...values })
+      },
     })
-    // Cleanup subscription on unmount
-    return () => subscription.unsubscribe()
-  }, [form.watch, student, onUpdate, form])
+    return unsubscribe
+  }, [form, student, onUpdate])
 
   const [otherStudyProgram, setOtherStudyProgram] = useState(false)
   const currStudyProgram = form.watch('studyProgram')
@@ -306,7 +310,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(fun
                               value={country.label}
                               key={country.value}
                               onSelect={() => {
-                                form.setValue('nationality', country.value)
+                                field.onChange(country.value)
                               }}
                             >
                               {country.label}
@@ -369,10 +373,10 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(fun
                   onValueChange={(value) => {
                     if (value === 'Other') {
                       setOtherStudyProgram(true)
-                      form.setValue('studyProgram', '')
+                      field.onChange('')
                     } else {
                       setOtherStudyProgram(false)
-                      form.setValue('studyProgram', value)
+                      field.onChange(value)
                     }
                   }}
                   defaultValue={field.value}

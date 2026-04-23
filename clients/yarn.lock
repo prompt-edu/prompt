@@ -4447,6 +4447,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tumaet/prompt-shared-state@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@tumaet/prompt-shared-state@npm:1.1.1"
+  dependencies:
+    axios: "npm:^1.15.2"
+    i18n-iso-countries: "npm:^7.14.0"
+    js-sha256: "npm:^0.11.1"
+    typescript: "npm:^5.9.3"
+    zustand: "npm:^5.0.12"
+  peerDependencies:
+    "@tanstack/react-query": ^5.99.2
+    react: ^19.2.5
+    react-router-dom: ^7.14.1
+  checksum: 10c0/147aa7deb44c9c7ef2175ebf93a7c256abae1c1a0b97c5323904f2aef5685e532e6d66f4390e77274f22bfa670f289508866923a7802b48c7fb8be920a9e5289
+  languageName: node
+  linkType: hard
+
 "@tumaet/prompt-ui-components@npm:^1.0.11":
   version: 1.0.11
   resolution: "@tumaet/prompt-ui-components@npm:1.0.11"
@@ -10827,7 +10844,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-sha256@npm:^0.11.0":
+"js-sha256@npm:^0.11.0, js-sha256@npm:^0.11.1":
   version: 0.11.1
   resolution: "js-sha256@npm:0.11.1"
   checksum: 10c0/ef8e294b6f38f218e4834cb653471dd1a76808cea93dc66eaffcb04124116bc36d6cebc4e8866753e184ab4e57892b6ef21918e8ab0450179a7e093ea962d974
@@ -14127,7 +14144,7 @@ __metadata:
     "@tiptap/pm": "npm:^3.22.4"
     "@tiptap/react": "npm:^3.22.4"
     "@tiptap/starter-kit": "npm:^3.22.4"
-    "@tumaet/prompt-shared-state": "npm:^1.0.13"
+    "@tumaet/prompt-shared-state": "npm:^1.1.1"
     "@tumaet/prompt-ui-components": "npm:^1.0.11"
     "@types/copy-webpack-plugin": "npm:^10.1.3"
     "@types/dotenv-webpack": "npm:^7.0.8"

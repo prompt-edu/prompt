@@ -65,17 +65,17 @@ const config = (env) => {
           include: [
             path.resolve(__dirname, 'src'),
             path.resolve(__dirname, '../node_modules/@xyflow/react/dist/style.css'),
-            path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist'),
-            path.resolve(
-              __dirname,
-              '../node_modules//prompt-ui-components/dist/components/minimal-tiptap/styles/index.css',
-            ),
           ],
           use: [
             'style-loader', // Injects styles into DOM
             'css-loader', // Resolves CSS imports
             'postcss-loader', // Processes Tailwind and other PostCSS plugins
           ],
+        },
+        {
+          test: /\.css$/,
+          include: [path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist')],
+          use: ['style-loader', 'css-loader'],
         },
       ],
     },

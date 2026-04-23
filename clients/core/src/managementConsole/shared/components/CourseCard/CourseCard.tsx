@@ -101,7 +101,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
 
         <button
           onClick={() => navigate(`/management/course/${course.id}`)}
-          className='text-sm font-medium text-primary flex items-center hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 rounded'
+          className='text-sm font-medium text-primary flex items-center hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 rounded-sm'
         >
           Go to course <ChevronRight className='ml-1 h-4 w-4' />
         </button>

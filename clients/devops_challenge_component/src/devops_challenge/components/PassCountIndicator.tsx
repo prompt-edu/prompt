@@ -67,7 +67,7 @@ export const PassCountIndicator = () => {
       </CardContent>
       <CardFooter className='pt-2 pb-3'>
         <div className='flex items-start gap-2 text-xs text-muted-foreground border-t pt-2 w-full'>
-          <AlertCircle className='h-3.5 w-3.5 flex-shrink-0 mt-0.5' />
+          <AlertCircle className='h-3.5 w-3.5 shrink-0 mt-0.5' />
           <p>
             This is just a rough indicator, not live data, and should only be used as guidance.
             Numbers may not reflect the current state and are updated periodically.

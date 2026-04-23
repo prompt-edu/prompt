@@ -43,18 +43,18 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
 
   return (
     <div key={category.id} className='mb-6'>
-      <div className='flex flex-grow items-center justify-center mb-4 gap-1'>
+      <div className='flex grow items-center justify-center mb-4 gap-1'>
         <div className='flex items-center justify-center w-full'>
           <button
             onClick={toggleExpand}
-            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm focus:outline-none'
+            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xs focus:outline-hidden'
             aria-expanded={isExpanded}
             aria-controls={`content-${category.id}`}
           >
             {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
           </button>
 
-          <h2 className='text-xl font-semibold tracking-tight flex-grow'>{category.name}</h2>
+          <h2 className='text-xl font-semibold tracking-tight grow'>{category.name}</h2>
         </div>
         <div className='flex items-center justify-center gap-1'>
           {evaluations.length > 0 && (
@@ -87,7 +87,7 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
                   {competencyEvaluations.map((evaluation) => (
                     <div key={evaluation.id} className='flex items-center gap-2'>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium cursor-help ${
+                        className={`px-2 py-1 rounded-sm text-xs font-medium cursor-help ${
                           getLevelConfig(evaluation.scoreLevel).selectedBg
                         }`}
                       >

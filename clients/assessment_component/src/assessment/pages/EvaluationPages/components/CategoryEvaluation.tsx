@@ -37,13 +37,13 @@ export const CategoryEvaluation = ({
       <div className='flex items-center mb-4'>
         <button
           onClick={toggleExpand}
-          className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm focus:outline-none'
+          className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xs focus:outline-hidden'
           aria-expanded={isExpanded}
           aria-controls={`content-${category.id}`}
         >
           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         </button>
-        <h2 className='text-xl font-semibold flex-grow'>{category.name}</h2>
+        <h2 className='text-xl font-semibold grow'>{category.name}</h2>
       </div>
 
       {isExpanded && (

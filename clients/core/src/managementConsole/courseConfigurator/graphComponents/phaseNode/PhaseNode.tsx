@@ -44,7 +44,7 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
       {/* Card Content */}
       <CardContent className='p-4 relative'>
         {/* 1. Participants Row */}
-        <div className='participants-row relative flex items-center justify-between bg-blue-100 p-2 rounded mb-4'>
+        <div className='participants-row relative flex items-center justify-between bg-blue-100 p-2 rounded-sm mb-4'>
           {!phaseType?.initialPhase && (
             <Handle
               type='target'

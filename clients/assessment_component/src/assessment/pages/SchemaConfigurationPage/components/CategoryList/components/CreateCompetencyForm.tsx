@@ -49,7 +49,7 @@ export const CreateCompetencyForm = ({
   }
 
   return (
-    <Card className='w-full shadow-sm'>
+    <Card className='w-full shadow-xs'>
       <CardHeader>
         <CardTitle>Create New Competency</CardTitle>
       </CardHeader>

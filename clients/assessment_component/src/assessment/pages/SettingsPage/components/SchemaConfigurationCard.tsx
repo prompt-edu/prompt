@@ -210,5 +210,5 @@ export const SchemaConfigurationCard = ({
     return contentBlock
   }
 
-  return <Card className='border-border shadow-sm'>{contentBlock}</Card>
+  return <Card className='border-border shadow-xs'>{contentBlock}</Card>
 }

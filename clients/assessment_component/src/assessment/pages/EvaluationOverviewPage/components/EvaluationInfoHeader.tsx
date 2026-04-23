@@ -59,10 +59,10 @@ export const EvaluationInfoHeader = ({
   }
 
   return (
-    <Card className='mb-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'>
+    <Card className='mb-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
       <CardContent className='p-6'>
         <div className='flex items-start gap-4'>
-          <div className='flex-shrink-0'>
+          <div className='shrink-0'>
             {resultsReleased ? (
               <CheckCircle2 className='h-8 w-8 text-blue-500 dark:text-blue-400' />
             ) : allEvaluationsCompleted ? (

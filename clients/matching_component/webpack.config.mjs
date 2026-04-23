@@ -67,8 +67,6 @@ const config = (env) => {
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
-      alias: {
-      },
     },
     plugins: [
       new ModuleFederationPlugin({

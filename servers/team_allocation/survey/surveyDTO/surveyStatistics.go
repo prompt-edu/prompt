@@ -54,6 +54,7 @@ func GetSurveyStatisticsDTOFromDBModels(
 	}
 
 	skillMap := make(map[uuid.UUID]*SkillDistributionStats)
+	var skillOrder []uuid.UUID
 	for _, row := range skillRows {
 		if _, exists := skillMap[row.SkillID]; !exists {
 			skillMap[row.SkillID] = &SkillDistributionStats{
@@ -61,13 +62,14 @@ func GetSurveyStatisticsDTOFromDBModels(
 				SkillName:   row.SkillName,
 				LevelCounts: make(map[db.SkillLevel]int64),
 			}
+			skillOrder = append(skillOrder, row.SkillID)
 		}
 		skillMap[row.SkillID].LevelCounts[row.SkillLevel] = row.Count
 	}
 
-	skillStats := make([]SkillDistributionStats, 0, len(skillMap))
-	for _, v := range skillMap {
-		skillStats = append(skillStats, *v)
+	skillStats := make([]SkillDistributionStats, 0, len(skillOrder))
+	for _, id := range skillOrder {
+		skillStats = append(skillStats, *skillMap[id])
 	}
 
 	return SurveyStatistics{

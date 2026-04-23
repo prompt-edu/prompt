@@ -24,7 +24,8 @@ export const SurveyStatisticsPage = () => {
     isError,
   } = useQuery<SurveyStatistics>({
     queryKey: ['team_allocation_survey_statistics', phaseId],
-    queryFn: () => getSurveyStatistics(phaseId ?? ''),
+    queryFn: () => getSurveyStatistics(phaseId!),
+    enabled: !!phaseId,
   })
 
   if (isError) {

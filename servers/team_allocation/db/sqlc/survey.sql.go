@@ -60,8 +60,8 @@ SELECT
     s.name AS skill_name,
     r.skill_level,
     COUNT(r.course_participation_id) AS count
-FROM student_skill_response r
-JOIN skill s ON s.id = r.skill_id
+FROM skill s
+JOIN student_skill_response r ON r.skill_id = s.id
 WHERE s.course_phase_id = $1
 GROUP BY s.id, s.name, r.skill_level
 ORDER BY s.name, r.skill_level
@@ -201,10 +201,10 @@ const getTeamPopularityStatistics = `-- name: GetTeamPopularityStatistics :many
 SELECT
     t.id AS team_id,
     t.name AS team_name,
-    AVG(r.preference)::float8 AS avg_preference,
-    COUNT(r.course_participation_id) AS response_count
-FROM student_team_preference_response r
-JOIN team t ON t.id = r.team_id
+    COALESCE(AVG(r.preference), 0)::float8 AS avg_preference,
+    COALESCE(COUNT(r.course_participation_id), 0)::bigint AS response_count
+FROM team t
+LEFT JOIN student_team_preference_response r ON r.team_id = t.id
 WHERE t.course_phase_id = $1
 GROUP BY t.id, t.name
 ORDER BY avg_preference ASC

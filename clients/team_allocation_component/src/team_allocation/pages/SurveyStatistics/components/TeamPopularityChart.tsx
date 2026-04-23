@@ -21,14 +21,24 @@ const chartConfig: ChartConfig = {
 }
 
 const ordinal = (n: number) => {
-  if (n === 1) return '1st'
-  if (n === 2) return '2nd'
-  if (n === 3) return '3rd'
-  return `${n}th`
+  const mod100 = n % 100
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`
+  switch (n % 10) {
+    case 1: return `${n}st`
+    case 2: return `${n}nd`
+    case 3: return `${n}rd`
+    default: return `${n}th`
+  }
 }
 
-const CustomTooltip = (props: any) => {
-  const { active, payload } = props
+type TooltipRow = TeamPopularityStats & { fill: string; preferenceCounts: PreferenceCount[] }
+
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: { payload: TooltipRow }[]
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (!active || !payload?.length) return null
   const { teamName, avgPreference, responseCount, fill, preferenceCounts } = payload[0].payload
   const sorted: PreferenceCount[] = [...(preferenceCounts ?? [])].sort((a, b) => a.rank - b.rank)

@@ -1,5 +1,5 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Rectangle } from 'recharts'
+import { BarChart, Bar, LabelList, XAxis, YAxis, Rectangle, RectangleProps } from 'recharts'
 import { SkillDistributionStats, SkillLevel } from '../../../interfaces/surveyStatistics'
 
 interface SkillDistributionChartProps {
@@ -11,7 +11,7 @@ const SKILL_LEVEL_ORDER: SkillLevel[] = ['very_bad', 'bad', 'ok', 'good', 'very_
 // Exact same colors as the assessment component's chartConfig
 const SKILL_LEVEL_COLORS: Record<SkillLevel, string> = {
   very_bad: '#fca5a5',  // red-300
-  bad: '#f97316',       // orange-500
+  bad: '#fdba74',       // orange-300
   ok: '#fde68a',        // amber-200
   good: '#86efac',      // green-300
   very_good: '#93c5fd', // blue-300
@@ -56,7 +56,7 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
     .sort((a, b) => a.dataKey.localeCompare(b.dataKey))
 
   const createRoundedShape = (level: SkillLevel) => {
-    const Shape = (props: any) => {
+    const Shape = (props: RectangleProps & { payload: Record<string, number> }) => {
       const { x, y, width, height, payload } = props
       const radius = getCornerRadius(payload, level)
       return (

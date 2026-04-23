@@ -11,7 +11,7 @@ import {
   ErrorPage,
   LoadingPage,
 } from '@tumaet/prompt-ui-components'
-import { getOwnCoursePhaseParticipation } from '@/network/queries/getOwnCoursePhaseParticipation'
+import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
 import { useCoursePhaseConfigStore } from '../zustand/useCoursePhaseConfigStore'
 import { useTeamStore } from '../zustand/useTeamStore'

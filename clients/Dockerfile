@@ -10,7 +10,6 @@ WORKDIR /app
 
 COPY package.json ./
 COPY yarn.lock ./
-COPY shared_library /app/shared_library
 COPY ./nginx /app/nginx
 
 RUN yarn install

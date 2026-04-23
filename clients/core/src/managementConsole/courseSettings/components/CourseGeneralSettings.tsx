@@ -36,7 +36,7 @@ import {
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
 import { IconSelector } from '@core/managementConsole/courseOverview/AddingCourse/components/IconSelector'
 import { FileText, Loader2, Save } from 'lucide-react'
-import { SettingsCard } from '@/components/SettingsCard'
+import { SettingsCard } from '@tumaet/prompt-ui-components'
 import { getAllCourses } from '@core/network/queries/course'
 
 export function CourseGeneralSettings() {

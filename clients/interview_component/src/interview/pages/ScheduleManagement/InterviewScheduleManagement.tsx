@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
+import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
 import {
   Button,

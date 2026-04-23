@@ -9,15 +9,17 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
     "typeRoots": ["./node_modules/@types", "./@types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../shared_library/*"],
-      "react-hook-form": ["../node_modules/react-hook-form"]
+      "react-hook-form": ["../node_modules/react-hook-form"],
+      "@hookform/resolvers": ["../node_modules/@hookform/resolvers"],
+      "@hookform/resolvers/zod": ["../node_modules/@hookform/resolvers/zod"],
+      "@hookform/resolvers/*": ["../node_modules/@hookform/resolvers/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "src/index.js",  "tailwind.config.js"]

@@ -1,5 +1,5 @@
 import { ApplicationFormWithDetails } from '../../interfaces/application/applicationFormWithDetails'
-import { notAuthenticatedAxiosInstance } from '@/network/configService'
+import { notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 
 export const getApplicationFormWithDetails = async (
   coursePhaseId: string,

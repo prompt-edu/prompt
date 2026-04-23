@@ -16,7 +16,6 @@
     "typeRoots": ["./node_modules/@types", "./@types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../shared_library/*"],
       "react-hook-form": ["../node_modules/react-hook-form"]
     }
   },

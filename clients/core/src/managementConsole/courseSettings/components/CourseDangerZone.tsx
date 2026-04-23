@@ -1,4 +1,4 @@
-import { SettingsCard } from '@/components/SettingsCard'
+import { SettingsCard } from '@tumaet/prompt-ui-components'
 import { CopyCourseDialog } from '@core/managementConsole/courseOverview/components/CopyCourseDialog'
 import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/components/ArchiveCourseConfirmationDialog'
 import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'

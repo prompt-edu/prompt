@@ -5,7 +5,7 @@ import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { StudentCard } from '../../components/StudentCard'
 import { InterviewCard } from '../../components/InterviewCard'
 import { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
-import { ExportedApplicationAnswerTable } from '@/components/ExportedApplicationAnswerTable'
+import { ExportedApplicationAnswerTable } from '@tumaet/prompt-ui-components'
 
 export const ProfileDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()

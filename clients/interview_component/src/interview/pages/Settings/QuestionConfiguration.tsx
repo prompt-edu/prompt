@@ -3,7 +3,7 @@ import { Loader2, Plus, GripVertical, Trash2 } from 'lucide-react'
 import { useDebouncedCallback } from 'use-debounce'
 import type { InterviewQuestion } from '../../interfaces/InterviewQuestion'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
-import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import {
   DeleteConfirmation,

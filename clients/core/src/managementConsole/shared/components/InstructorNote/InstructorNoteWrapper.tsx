@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { InstructorNote } from '../../interfaces/InstructorNote'
 import { formatNoteDate } from '@core/utils/formatDate'
-import { ProfilePicture } from '@/components/StudentProfilePicture'
+import { ProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteActionButtons } from './InstructorNoteActionButtons'
 import { InstructorNoteTags } from './InstructorNoteTag'
 

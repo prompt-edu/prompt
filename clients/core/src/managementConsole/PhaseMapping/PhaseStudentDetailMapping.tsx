@@ -6,7 +6,7 @@ import { IntroCourseDeveloperStudentDetailComponent } from './ExternalStudentDet
 import { MatchingStudentDetailComponent } from './ExternalStudentDetailComponents/MatchingStudentDetailComponent'
 import { SelfTeamAllocationStudentDetailComponent } from './ExternalStudentDetailComponents/SelfTeamAllocationStudentDetailComponent'
 import { TeamAllocationStudentDetailComponent } from './ExternalStudentDetailComponents/TeamAllocationStudentDetailComponent'
-import { CoursePhaseStudentIdentifierProps } from '@/interfaces/studentDetail'
+import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 
 function Fallback() {
   return <></>

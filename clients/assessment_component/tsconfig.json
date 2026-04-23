@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": "..",
     "outDir": "./dist/",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -13,8 +14,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
-    "typeRoots": ["./node_modules/@types", "./@types"],
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "react-hook-form": ["../node_modules/react-hook-form"],
       "@hookform/resolvers": ["../node_modules/@hookform/resolvers"],

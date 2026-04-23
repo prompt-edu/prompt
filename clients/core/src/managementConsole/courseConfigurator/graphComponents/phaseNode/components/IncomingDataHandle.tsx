@@ -99,7 +99,7 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className={`flex items-center p-2 rounded-md ${bgColor} ${textColor} relative shadow-sm transition-all duration-200 hover:shadow-md`}
+            className={`flex items-center p-2 rounded-md ${bgColor} ${textColor} relative shadow-xs transition-all duration-200 hover:shadow-md`}
           >
             <Handle
               type='target'
@@ -110,7 +110,7 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
                 top: '50%',
                 background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
               }}
-              className='!w-3 !h-3 rounded-full'
+              className='w-3! h-3! rounded-full'
             />
             <div className='flex items-center space-x-2'>
               {icon}

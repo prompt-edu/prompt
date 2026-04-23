@@ -61,7 +61,7 @@ export const HelpDialog = () => {
             <div className='space-y-3'>
               {/* Step 1 */}
               <div className='flex gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700'>
-                <div className='flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0 mt-0.5'>
+                <div className='flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full shrink-0 mt-0.5'>
                   <span className='text-xs font-medium text-gray-600 dark:text-gray-300'>1</span>
                 </div>
                 <div>
@@ -75,7 +75,7 @@ export const HelpDialog = () => {
 
               {/* Step 2 */}
               <div className='flex gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700'>
-                <div className='flex items-center justify-center w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex-shrink-0 mt-0.5'>
+                <div className='flex items-center justify-center w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full shrink-0 mt-0.5'>
                   <div className='text-xs font-medium text-blue-600 dark:text-blue-300'>2</div>
                 </div>
                 <div>
@@ -95,7 +95,7 @@ export const HelpDialog = () => {
 
               {/* Step 3 */}
               <div className='flex gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700'>
-                <div className='flex items-center justify-center w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex-shrink-0 mt-0.5'>
+                <div className='flex items-center justify-center w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full shrink-0 mt-0.5'>
                   <div className='text-xs font-medium text-green-600 dark:text-green-300'>3</div>
                 </div>
                 <div>

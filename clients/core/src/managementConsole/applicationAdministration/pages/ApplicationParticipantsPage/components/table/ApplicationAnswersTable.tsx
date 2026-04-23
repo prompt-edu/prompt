@@ -153,7 +153,7 @@ export const ApplicationAnswersTable = ({
                           ))}
                         </div>
                       ) : (
-                        <p className='whitespace-pre-wrap break-words'>{textAnswer}</p>
+                        <p className='whitespace-pre-wrap wrap-break-word'>{textAnswer}</p>
                       )}
                     </TableCell>
                   </TableRow>

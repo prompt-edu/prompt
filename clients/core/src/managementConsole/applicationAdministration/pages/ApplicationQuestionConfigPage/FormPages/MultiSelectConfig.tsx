@@ -80,7 +80,7 @@ export function MultiSelectConfig({
                                       <Input
                                         {...field}
                                         placeholder={`Option ${index + 1}`}
-                                        className='flex-grow'
+                                        className='grow'
                                       />
                                     )}
                                   />

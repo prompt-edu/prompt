@@ -379,7 +379,7 @@ export const SettingsPage = () => {
             </Button>
           </AlertTitle>
           <AlertDescription>
-            <pre className='mt-2 whitespace-pre-wrap break-words rounded bg-destructive/10 p-3 font-mono text-xs'>
+            <pre className='mt-2 whitespace-pre-wrap wrap-break-word rounded bg-destructive/10 p-3 font-mono text-xs'>
               {compilerError}
             </pre>
           </AlertDescription>

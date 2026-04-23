@@ -36,7 +36,7 @@ export const CourseSwitchSidebar = () => {
   return (
     <Sidebar
       collapsible='none'
-      className='!w-[calc(var(--sidebar-width-icon)_+_1px)] min-w-[calc(var(--sidebar-width-icon)_+_1px)] border-r'
+      className='w-[calc(var(--sidebar-width-icon)+1px)]! min-w-[calc(var(--sidebar-width-icon)+1px)] border-r'
     >
       <SidebarHeaderComponent />
       <SidebarContent>

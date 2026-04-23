@@ -51,7 +51,7 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
               position={Position.Left}
               id={`participants-in-${id}`}
               style={{ left: '-28px', background: EDGE_COLOR_BLUE }}
-              className='!w-3 !h-3 rounded-full'
+              className='w-3! h-3! rounded-full'
             />
           )}
           <div className='flex items-center justify-center w-full'>
@@ -63,7 +63,7 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
             position={Position.Right}
             id={`participants-out-${id}`}
             style={{ right: '-28px', background: EDGE_COLOR_BLUE }}
-            className='!w-3 !h-3 rounded-full'
+            className='w-3! h-3! rounded-full'
           />
         </div>
 

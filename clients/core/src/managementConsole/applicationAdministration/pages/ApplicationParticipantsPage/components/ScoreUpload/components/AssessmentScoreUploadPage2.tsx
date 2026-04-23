@@ -170,7 +170,7 @@ export const AssessmentScoreUploadPage2 = forwardRef<Page2Ref>(
 
             <div className='mt-4 h-[300px] sm:max-w-[850px] w-[85vw] overflow-hidden flex flex-col'>
               <h4 className='text-sm font-medium mb-2'>CSV Preview</h4>
-              <div className='overflow-x-auto overflow-y-auto flex-grow'>
+              <div className='overflow-x-auto overflow-y-auto grow'>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -185,7 +185,7 @@ export const AssessmentScoreUploadPage2 = forwardRef<Page2Ref>(
                     {csvData.slice(1).map((row, rowIndex) => (
                       <TableRow key={rowIndex}>
                         {row.map((cell, cellIndex) => (
-                          <TableCell key={cellIndex} className='break-words'>
+                          <TableCell key={cellIndex} className='wrap-break-word'>
                             {cell}
                           </TableCell>
                         ))}

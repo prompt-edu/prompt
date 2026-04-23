@@ -11,7 +11,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.18.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.1
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pkg/errors v0.9.1
 	github.com/prompt-edu/prompt-sdk v1.1.6
 	github.com/sirupsen/logrus v1.9.4

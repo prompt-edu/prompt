@@ -3,10 +3,10 @@ import { Loader2, TriangleAlert } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useCourseStore, CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
-import { getOwnCoursePhaseParticipation } from '@/network/queries/getOwnCoursePhaseParticipation'
+import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 import { useDevOpsChallengeStore } from './zustand/useDevOpsChallengeStore'
 import { useGetDeveloperProfile } from './pages/hooks/useGetDeveloperProfile'
-import UnauthorizedPage from '@/components/UnauthorizedPage'
+import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { Alert, AlertDescription, AlertTitle, ErrorPage } from '@tumaet/prompt-ui-components'
 
 interface DevOpsChallengeDataShellProps {

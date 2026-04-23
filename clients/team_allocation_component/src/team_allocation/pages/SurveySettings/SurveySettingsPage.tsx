@@ -13,7 +13,7 @@ import { SkillSettings } from './components/SkillSettings'
 import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
 import { SurveyLinkCard } from './components/SurveyLinkCard'
 import { getConfig } from '../../network/queries/getConfig'
-import { MissingSettings, MissingSettingsItem } from '@/components/MissingSettings'
+import { MissingSettings, MissingSettingsItem } from '@tumaet/prompt-ui-components'
 import { useEffect, useState } from 'react'
 
 export const SurveySettingsPage = () => {

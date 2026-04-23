@@ -66,7 +66,10 @@ const config = (env) => {
             path.resolve(__dirname, 'src'),
             path.resolve(__dirname, '../node_modules/@xyflow/react/dist/style.css'),
             path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist'),
-            path.resolve(__dirname, '../shared_library/components/minimal-tiptap/styles/index.css'),
+            path.resolve(
+              __dirname,
+              '../node_modules//prompt-ui-components/dist/components/minimal-tiptap/styles/index.css',
+            ),
           ],
           use: [
             'style-loader', // Injects styles into DOM
@@ -84,7 +87,6 @@ const config = (env) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
       alias: {
-        '@': path.resolve(__dirname, '../shared_library'),
         '@core': path.resolve(__dirname, 'src'),
         '@managementConsole': path.resolve(__dirname, 'src/managementConsole'),
       },

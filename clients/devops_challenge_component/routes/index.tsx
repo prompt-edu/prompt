@@ -1,4 +1,4 @@
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 import { DevOpsChallengePage } from '../src/devops_challenge/DevOpsChallengePage'
 import { DevOpsChallengeDataShell } from '../src/devops_challenge/DevOpsChallengeDataShell'

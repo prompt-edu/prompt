@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { ExternalRoutes } from './ExternalRoutes'
 import { LoadingError } from '../utils/LoadingError'
 

@@ -6,11 +6,11 @@ import { useQuery } from '@tanstack/react-query'
 import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
 import { Team } from '@tumaet/prompt-shared-state'
 
-import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
+import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
 
 import { getAllTeams } from '../../network/queries/getAllTeams'
-import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
-import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
+import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
+import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 
 export const SelfTeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

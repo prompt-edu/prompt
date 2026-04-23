@@ -2,9 +2,9 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
-import { getCoursePhase } from '@/network/queries/getCoursePhase'
+import { getCoursePhase } from '@tumaet/prompt-shared-state'
 import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseMailing } from '@/components/pages/Mailing/CoursePhaseMailing'
+import { CoursePhaseMailing } from '@tumaet/prompt-ui-components'
 
 export const MailingPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

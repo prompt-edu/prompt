@@ -16,9 +16,11 @@
     "noImplicitAny": false,
     "types": ["node"],
     "paths": {
-      "@/*": ["../shared_library/*"],
-      "react-hook-form": ["../node_modules/react-hook-form"]
+      "react-hook-form": ["../node_modules/react-hook-form"],
+      "@hookform/resolvers": ["../node_modules/@hookform/resolvers"],
+      "@hookform/resolvers/zod": ["../node_modules/@hookform/resolvers/zod"],
+      "@hookform/resolvers/*": ["../node_modules/@hookform/resolvers/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js",  "tailwind.config.js"]
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js"]
 }

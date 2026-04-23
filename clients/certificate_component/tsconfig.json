@@ -16,7 +16,6 @@
     "noImplicitAny": false,
     "types": ["node"],
     "paths": {
-      "@/*": ["../shared_library/*"],
       "react-hook-form": ["../node_modules/react-hook-form"]
     }
   },

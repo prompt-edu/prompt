@@ -1,9 +1,6 @@
 import { AssessmentCompletion } from '../../../interfaces/assessmentCompletion'
 import { GradeSuggestionBadge } from '../../components/badges'
-import {
-  ExtraParticipantColumn,
-  ParticipantRow,
-} from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
 
 export const createGradeSuggestionColumn = (
   assessmentCompletions: AssessmentCompletion[] | undefined,

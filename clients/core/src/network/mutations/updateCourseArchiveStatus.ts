@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type { CourseArchiveStatus } from '@core/interfaces/courseArchiveStatus'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import type { Course } from '@tumaet/prompt-shared-state'

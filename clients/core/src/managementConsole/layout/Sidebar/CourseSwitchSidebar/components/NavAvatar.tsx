@@ -1,6 +1,6 @@
 import { Avatar, AvatarImage, AvatarFallback } from '@tumaet/prompt-ui-components'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
+import { getGravatarUrl } from '@tumaet/prompt-shared-state'
 
 interface NavAvatarProps {
   avatarOnly?: boolean

@@ -1,5 +1,5 @@
 import React from 'react'
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,

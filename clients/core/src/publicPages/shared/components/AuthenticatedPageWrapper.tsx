@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
 
-import DarkModeProvider from '@/contexts/DarkModeProvider'
+import { DarkModeProvider } from '@tumaet/prompt-ui-components'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 
 interface NonAuthenticatedPageWrapper {

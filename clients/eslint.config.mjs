@@ -22,7 +22,6 @@ const getTsConfigPaths = () => {
   const workspaceFolders = [
     'core',
     'template_component',
-    'shared_library',
     'interview_component',
     'matching_component',
     'assessment_component',
@@ -40,6 +39,16 @@ const getTsConfigPaths = () => {
 }
 
 export default [
+  {
+    ignores: [
+      'node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/postcss.config.js',
+      '**/env.js',
+      '**/env.template.js',
+    ],
+  },
   ...fixupConfigRules(
     compat.extends(
       'plugin:react/recommended',
@@ -50,14 +59,6 @@ export default [
   ),
   {
     files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
-    ignores: [
-      'node_modules/**', // Ignore node_modules
-      '**/dist/**', // Ignore distribution folders
-      '**/build/**', // Ignore build folders
-      '**/postcss.config.js',
-      '**/env.js',
-      '**/env.template.js',
-    ],
 
     plugins: {
       '@typescript-eslint': fixupPluginRules(typescriptEslint),

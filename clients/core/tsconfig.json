@@ -16,11 +16,10 @@
     "typeRoots": ["./node_modules/@types", "./@types"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../shared_library/*"],
       "@core/*": ["src/*"],
       "@managementConsole/*": ["src/managementConsole/*"],
-      "react-hook-form": ["../node_modules/react-hook-form"],
+      "react-hook-form": ["../node_modules/react-hook-form"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js", "postcss.config.js"],
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js", "postcss.config.js"]
 }

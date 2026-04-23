@@ -1,5 +1,5 @@
 import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { formatDate } from '@core/utils/formatDate'
 import { ColumnDef } from '@tanstack/react-table'
 

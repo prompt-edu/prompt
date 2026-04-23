@@ -15,9 +15,7 @@
     "noImplicitAny": false,
     "typeRoots": ["./node_modules/@types", "./@types"],
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["../shared_library/*"]
-    }
+    "paths": {}
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js",  "tailwind.config.js"]
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js"]
 }

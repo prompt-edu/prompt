@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react'
 import type { ApplicationMailingMetaData } from '../../../interfaces/applicationMailingMetaData'
-import { useGetMailingIsConfigured } from '@/hooks/useGetMailingIsConfigured'
+import { useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
   Badge,
   Card,
@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { ManualMailSending } from '@/components/pages/Mailing/components/ManualMailSending'
+import { ManualMailSending } from '@tumaet/prompt-ui-components'
 
 interface SettingsCardProps {
   applicationMailingMetaData: ApplicationMailingMetaData

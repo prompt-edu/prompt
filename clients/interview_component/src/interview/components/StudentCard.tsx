@@ -13,8 +13,8 @@ import {
   getStudyDegreeString,
   CoursePhaseParticipationWithStudent,
 } from '@tumaet/prompt-shared-state'
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
-import { getStatusColor } from '@/lib/getStatusColor'
+import { getGravatarUrl } from '@tumaet/prompt-shared-state'
+import { getStatusColor } from '@tumaet/prompt-shared-state'
 import { format } from 'date-fns'
 
 interface InterviewSlotData {

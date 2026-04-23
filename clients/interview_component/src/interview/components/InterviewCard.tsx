@@ -25,7 +25,7 @@ import {
   ScoreLevel,
   useAuthStore,
 } from '@tumaet/prompt-shared-state'
-import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
+import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
 const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryGood]: 'Very Good',

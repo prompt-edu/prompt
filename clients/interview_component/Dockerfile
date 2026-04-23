@@ -6,7 +6,6 @@ ENV REACT_APP_CORE_HOST=$CORE_HOST
 
 WORKDIR /app/interview_component
 COPY . ./
-RUN yarn install
 
 RUN yarn build
 

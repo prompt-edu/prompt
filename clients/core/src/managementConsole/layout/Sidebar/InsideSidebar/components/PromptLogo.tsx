@@ -1,4 +1,4 @@
-import { env } from '@/env'
+import { env } from '@tumaet/prompt-shared-state'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import packageJSON from '../../../../../../package.json'

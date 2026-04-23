@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { MoreHorizontal, CheckCircle, XCircle } from 'lucide-react'
 import { RowModel } from '@tanstack/react-table'
 import { PassStatus, CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
-import { useUpdateCoursePhaseParticipationBatch } from '@/hooks/useUpdateCoursePhaseParticipationBatch'
+import { useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
 import { DeveloperWithInfo } from '../../../interfaces/DeveloperWithInfo'
-import { ActionDialog } from '@/components/table/GroupActionDialog'
+import { ActionDialog } from '@tumaet/prompt-ui-components'
 import {
   DropdownMenu,
   DropdownMenuContent,

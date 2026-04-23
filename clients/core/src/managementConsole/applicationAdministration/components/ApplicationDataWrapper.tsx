@@ -7,7 +7,7 @@ import { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
 import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { useGetApplicationParticipations } from '../hooks/useGetApplicationParticipations'
 import { useApplicationStore } from '../zustand/useApplicationStore'
-import { useGetCoursePhase } from '@/hooks/useGetCoursePhase'
+import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
 
 interface ApplicationDataWrapperProps {
   children: React.ReactNode

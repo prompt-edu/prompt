@@ -35,9 +35,9 @@ import {
   PopoverTrigger,
 } from '@tumaet/prompt-ui-components'
 import { studentSchema, StudentFormValues } from '@core/validations/student'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 import { Check, ChevronDown } from 'lucide-react'
-import { countriesArr } from '@/lib/getCountries'
+import { countriesArr } from '@tumaet/prompt-shared-state'
 
 const studyPrograms = translations.university.studyPrograms.concat('Other')
 

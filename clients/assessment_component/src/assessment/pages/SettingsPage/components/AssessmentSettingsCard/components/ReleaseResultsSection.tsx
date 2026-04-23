@@ -1,6 +1,7 @@
 import { Button } from '@tumaet/prompt-ui-components'
 
 import { ReleaseConfirmationDialog } from './ReleaseConfirmationDialog'
+import { UnreleaseConfirmationDialog } from './UnreleaseConfirmationDialog'
 import { useReleaseAssessmentResults } from '../hooks/useReleaseAssessmentResults'
 
 interface ReleaseResultsSectionProps {
@@ -12,9 +13,14 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     resultsReleased,
     showReleaseDialog,
     setShowReleaseDialog,
+    showUnreleaseDialog,
+    setShowUnreleaseDialog,
     confirmRelease,
+    confirmUnrelease,
     isReleasing,
+    isUnreleasing,
     releaseError,
+    unreleaseError,
     completedAssessments,
     totalAssessments,
     allAssessmentsCompleted,
@@ -24,14 +30,25 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     <>
       <div className='rounded-xl border border-border bg-muted/40 p-4'>
         {resultsReleased ? (
-          <div className='space-y-1'>
-            <h3 className='text-sm font-semibold text-emerald-800 dark:text-emerald-300'>
-              Results released
-            </h3>
-            <p className='text-sm leading-6 text-emerald-700 dark:text-emerald-400'>
-              Students in this phase can already view the released assessment results based on the
-              visibility settings above.
-            </p>
+          <div className='space-y-4'>
+            <div className='space-y-1'>
+              <h3 className='text-sm font-semibold text-emerald-800 dark:text-emerald-300'>
+                Results released
+              </h3>
+              <p className='text-sm leading-6 text-emerald-700 dark:text-emerald-400'>
+                Students in this phase can already view the released assessment results based on the
+                visibility settings above.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setShowUnreleaseDialog(true)}
+              disabled={isSaving || isUnreleasing}
+              variant='outline'
+              className='w-full'
+            >
+              {isUnreleasing ? 'Unreleasing...' : 'Unrelease Results'}
+            </Button>
           </div>
         ) : (
           <div className='space-y-4'>
@@ -39,7 +56,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
               <h3 className='text-sm font-semibold text-foreground'>Release results</h3>
               <p className='text-sm leading-6 text-muted-foreground'>
                 Release final assessment results to students after every assessment is marked as
-                final. This action cannot be undone.
+                final.
               </p>
             </div>
 
@@ -70,6 +87,14 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
         releaseError={releaseError}
         completedAssessments={completedAssessments}
         totalAssessments={totalAssessments}
+      />
+
+      <UnreleaseConfirmationDialog
+        open={showUnreleaseDialog}
+        onOpenChange={setShowUnreleaseDialog}
+        onConfirm={confirmUnrelease}
+        isUnreleasing={isUnreleasing}
+        unreleaseError={unreleaseError}
       />
     </>
   )

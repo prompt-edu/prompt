@@ -1,16 +1,12 @@
-# This is the base dockerfile. Here the base image is pulled and the ras setup is done for the project.
+# This is the base dockerfile. Here the base image is pulled and the base setup is done for the project.
 # Make sure to include the base setup for lerna here.
 FROM node:24.15.0 AS base
-ENV YARN_VERSION=4.0.1
-RUN yarn policies set-version $YARN_VERSION
-RUN yarn config set httpTimeout 300000
 
+RUN corepack enable
+RUN yarn config set httpTimeout 300000 --home
 
 WORKDIR /app
 
-COPY package.json ./
-COPY yarn.lock ./
-COPY ./nginx /app/nginx
+COPY . ./
 
-RUN yarn install
-COPY ./lerna.json ./
+RUN yarn install --immutable

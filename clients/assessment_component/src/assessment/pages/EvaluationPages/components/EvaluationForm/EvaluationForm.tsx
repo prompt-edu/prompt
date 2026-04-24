@@ -103,7 +103,7 @@ export const EvaluationForm = ({
       <div
         className={cn(
           'space-y-4 p-4 border rounded-md relative',
-          completed ?? 'bg-gray-700 border-gray-700',
+          completed && 'bg-gray-700 border-gray-700',
         )}
       >
         <CompetencyHeader

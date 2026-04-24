@@ -158,6 +158,7 @@ PROJECT_NAMES = [
 
 
 def weighted_choice(pairs):
+    """Pick a value from `pairs` ((value, weight) tuples) proportional to weight."""
     total = sum(w for _, w in pairs)
     r = random.uniform(0, total)
     upto = 0
@@ -169,6 +170,11 @@ def weighted_choice(pairs):
 
 
 def psql(container, sql):
+    """Execute `sql` inside the named Docker `container` via psql and return stdout.
+
+    Forces UTF-8 client encoding so non-ASCII names survive the shell round-trip.
+    Raises RuntimeError on a non-zero exit (ON_ERROR_STOP=1).
+    """
     # Force UTF-8 on both ends so names like "Müller" survive the shell.
     full_sql = "SET client_encoding = 'UTF8';\n" + sql
     result = subprocess.run(
@@ -184,6 +190,7 @@ def psql(container, sql):
 
 
 def sql_literal(v):
+    """Render a Python value as a PostgreSQL literal suitable for inline SQL."""
     if v is None:
         return "NULL"
     if isinstance(v, bool):
@@ -197,6 +204,7 @@ def sql_literal(v):
 
 
 def insert_many(container, table, columns, rows, chunk=500):
+    """Bulk-insert `rows` into `table`/`columns` in the given container, in chunks."""
     if not rows:
         return
     cols = ", ".join(columns)
@@ -213,6 +221,7 @@ def insert_many(container, table, columns, rows, chunk=500):
 
 
 def pick_first_name(gender):
+    """Return a random first name from the pool matching `gender` (mixed for diverse/other)."""
     if gender == "male":
         return random.choice(FIRST_NAMES_MALE)
     if gender == "female":
@@ -221,6 +230,7 @@ def pick_first_name(gender):
 
 
 def generate_student(idx):
+    """Build a synthetic student record with unique identifiers derived from `idx`."""
     gender = weighted_choice(GENDERS_WEIGHTED)
     first = pick_first_name(gender)
     last = random.choice(LAST_NAMES)
@@ -257,6 +267,7 @@ def generate_student(idx):
 
 
 def cleanup():
+    """Remove any data previously inserted by this seeder across both databases."""
     course_ids = ", ".join(f"'{c['id']}'" for c in COURSES)
     ta_phase_ids = ", ".join(f"'{c['ta_phase_id']}'" for c in COURSES)
 
@@ -286,6 +297,7 @@ def cleanup():
 
 
 def seed_core(course, students):
+    """Seed the core DB for `course`: course row, phases, participations, and application data."""
     # Course + phases. Team Allocation sits immediately after Application
     # via course_phase_graph.
     psql(CORE_CONTAINER, f"""
@@ -409,6 +421,7 @@ def seed_core(course, students):
 
 
 def seed_team_allocation(course, students):
+    """Seed the team-allocation DB: survey window, skills, teams, and per-student responses."""
     phase_id = course["ta_phase_id"]
 
     # Survey timeframe — currently open
@@ -469,6 +482,7 @@ def seed_team_allocation(course, students):
 
 
 def main():
+    """Entry point: clean up any prior seed, then seed both configured courses."""
     print("Cleaning up any prior seed…")
     cleanup()
 

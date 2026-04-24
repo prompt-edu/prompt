@@ -1,4 +1,4 @@
-import './styles.css'
+import './loadStyles'
 
 import('./bootstrap')
 

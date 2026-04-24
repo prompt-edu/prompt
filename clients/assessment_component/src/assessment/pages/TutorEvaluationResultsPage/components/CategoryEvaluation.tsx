@@ -102,9 +102,8 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
 
             return (
               <div key={competency.id} className='mb-6 last:mb-0'>
-                <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 items-start p-4 border rounded-md relative'>
+                <div className='space-y-4 p-4 border rounded-md relative'>
                   <CompetencyHeader
-                    className='lg:col-span-2'
                     assessmentType={AssessmentType.TUTOR}
                     competency={competency}
                     completed={true}
@@ -112,7 +111,7 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
                   />
 
                   <ScoreLevelSelector
-                    className='lg:col-span-2 grid grid-cols-1 lg:grid-cols-5 gap-1'
+                    className='grid grid-cols-1 gap-1 md:grid-cols-5'
                     assessmentType={AssessmentType.TUTOR}
                     competency={competency}
                     onScoreChange={() => {}}

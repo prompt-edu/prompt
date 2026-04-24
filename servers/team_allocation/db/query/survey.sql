@@ -51,17 +51,18 @@ INSERT INTO student_skill_response (course_participation_id, skill_id, skill_lev
 VALUES ($1, $2, $3);
 
 -- Returns team popularity as average preference rank per team (lower = more popular).
+-- Unrated teams (NULL avg) sort to the bottom via NULLS LAST.
 -- name: GetTeamPopularityStatistics :many
 SELECT
     t.id AS team_id,
     t.name AS team_name,
-    COALESCE(AVG(r.preference), 0)::float8 AS avg_preference,
+    AVG(r.preference)::float8 AS avg_preference,
     COALESCE(COUNT(r.course_participation_id), 0)::bigint AS response_count
 FROM team t
 LEFT JOIN student_team_preference_response r ON r.team_id = t.id
 WHERE t.course_phase_id = $1
 GROUP BY t.id, t.name
-ORDER BY avg_preference ASC;
+ORDER BY avg_preference ASC NULLS LAST;
 
 -- Returns per-rank student counts per team for tooltip breakdown.
 -- name: GetTeamPreferenceCounts :many

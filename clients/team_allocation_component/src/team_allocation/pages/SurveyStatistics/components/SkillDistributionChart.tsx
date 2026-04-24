@@ -50,15 +50,11 @@ function getCornerRadius(payload: Record<string, number>, segmentKey: string): C
 }
 
 export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) => {
-  const chartData = data
-    .map((skill) => ({
-      dataKey: skill.skillName,
-      ...Object.fromEntries(
-        SKILL_LEVEL_ORDER.map((level) => [level, skill.levelCounts[level] ?? 0]),
-      ),
-      total: Object.values(skill.levelCounts).reduce((sum, v) => sum + v, 0),
-    }))
-    .sort((a, b) => a.dataKey.localeCompare(b.dataKey))
+  const chartData = data.map((skill) => ({
+    dataKey: skill.skillName,
+    ...Object.fromEntries(SKILL_LEVEL_ORDER.map((level) => [level, skill.levelCounts[level] ?? 0])),
+    total: Object.values(skill.levelCounts).reduce((sum, v) => sum + v, 0),
+  }))
 
   const createRoundedShape = (level: SkillLevel) => {
     const Shape = (props: BarShapeProps) => {

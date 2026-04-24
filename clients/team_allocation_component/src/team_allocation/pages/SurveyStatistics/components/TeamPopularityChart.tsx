@@ -6,7 +6,8 @@ interface TeamPopularityChartProps {
   data: TeamPopularityStats[]
 }
 
-const getColor = (avg: number, min: number, max: number): string => {
+const getColor = (avg: number | null, min: number, max: number): string => {
+  if (avg === null) return '#e2e8f0' // slate-200 — no responses
   if (max === min) return '#5eead4'
   const normalized = (avg - min) / (max - min)
   if (normalized < 0.2) return '#5eead4' // teal-300   — most popular
@@ -52,7 +53,9 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
       <div className='flex items-center gap-2'>
         <span className='h-2.5 w-2.5 shrink-0 rounded-[2px]' style={{ backgroundColor: fill }} />
         <span className='text-muted-foreground'>Avg. choice rank</span>
-        <span className='ml-auto font-mono font-medium'>{avgPreference.toFixed(2)}</span>
+        <span className='ml-auto font-mono font-medium'>
+          {avgPreference !== null ? avgPreference.toFixed(2) : '—'}
+        </span>
       </div>
       <div className='flex items-center gap-2 mt-0.5'>
         <span className='h-2.5 w-2.5 shrink-0' />
@@ -76,9 +79,16 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 
 export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
   const numTeams = data.length
-  const sorted = [...data].sort((a, b) => a.avgPreference - b.avgPreference)
-  const min = sorted[0]?.avgPreference ?? 1
-  const max = sorted[sorted.length - 1]?.avgPreference ?? 1
+  // Sort rated teams first (ascending avg), unrated teams last
+  const sorted = [...data].sort((a, b) => {
+    if (a.avgPreference === null && b.avgPreference === null) return 0
+    if (a.avgPreference === null) return 1
+    if (b.avgPreference === null) return -1
+    return a.avgPreference - b.avgPreference
+  })
+  const ratedTeams = sorted.filter((t) => t.avgPreference !== null)
+  const min = ratedTeams[0]?.avgPreference ?? 1
+  const max = ratedTeams[ratedTeams.length - 1]?.avgPreference ?? 1
 
   const chartData = sorted.map((team) => {
     const countsByRank = new Map((team.preferenceCounts ?? []).map((pc) => [pc.rank, pc.count]))
@@ -112,7 +122,7 @@ export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
             offset={8}
             className='fill-foreground'
             fontSize={12}
-            formatter={(v) => (typeof v === 'number' ? v.toFixed(1) : v)}
+            formatter={(v) => (typeof v === 'number' ? v.toFixed(1) : '—')}
           />
         </Bar>
       </BarChart>

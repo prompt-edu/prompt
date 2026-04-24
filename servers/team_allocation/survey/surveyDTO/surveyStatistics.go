@@ -11,10 +11,10 @@ type PreferenceCount struct {
 }
 
 type TeamPopularityStats struct {
-	TeamID           uuid.UUID        `json:"teamId"`
-	TeamName         string           `json:"teamName"`
-	AvgPreference    float64          `json:"avgPreference"`
-	ResponseCount    int64            `json:"responseCount"`
+	TeamID           uuid.UUID         `json:"teamId"`
+	TeamName         string            `json:"teamName"`
+	AvgPreference    *float64          `json:"avgPreference"` // null when no responses yet
+	ResponseCount    int64             `json:"responseCount"`
 	PreferenceCounts []PreferenceCount `json:"preferenceCounts"`
 }
 
@@ -44,10 +44,15 @@ func GetSurveyStatisticsDTOFromDBModels(
 
 	teamStats := make([]TeamPopularityStats, 0, len(teamAvgRows))
 	for _, row := range teamAvgRows {
+		var avgPref *float64
+		if row.AvgPreference.Valid {
+			v := row.AvgPreference.Float64
+			avgPref = &v
+		}
 		teamStats = append(teamStats, TeamPopularityStats{
 			TeamID:           row.TeamID,
 			TeamName:         row.TeamName,
-			AvgPreference:    row.AvgPreference,
+			AvgPreference:    avgPref,
 			ResponseCount:    row.ResponseCount,
 			PreferenceCounts: prefCountMap[row.TeamID],
 		})

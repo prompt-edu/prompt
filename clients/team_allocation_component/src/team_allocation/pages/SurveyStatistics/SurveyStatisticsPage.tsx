@@ -9,11 +9,20 @@ import {
   ErrorPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { BarChart3, Star } from 'lucide-react'
+import { AxiosError } from 'axios'
+import { BarChart3, Clock, Star } from 'lucide-react'
 import { getSurveyStatistics } from '../../network/queries/getSurveyStatistics'
 import { SurveyStatistics } from '../../interfaces/surveyStatistics'
 import { TeamPopularityChart } from './components/TeamPopularityChart'
 import { SkillDistributionChart } from './components/SkillDistributionChart'
+
+const isSurveyStillOpenError = (error: unknown): boolean => {
+  if (error instanceof AxiosError) {
+    const message: string = (error.response?.data as { error?: string })?.error ?? ''
+    return message.includes('not available')
+  }
+  return false
+}
 
 export const SurveyStatisticsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -22,11 +31,37 @@ export const SurveyStatisticsPage = () => {
     data: statistics,
     isPending,
     isError,
+    error,
   } = useQuery<SurveyStatistics>({
     queryKey: ['team_allocation_survey_statistics', phaseId],
     queryFn: () => getSurveyStatistics(phaseId!),
     enabled: !!phaseId,
   })
+
+  if (isError && isSurveyStillOpenError(error)) {
+    return (
+      <div className='flex flex-col gap-6'>
+        <ManagementPageHeader>Survey Statistics</ManagementPageHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Clock className='h-5 w-5' />
+              Statistics Not Yet Available
+            </CardTitle>
+            <CardDescription>
+              Survey statistics will be available once the survey deadline has passed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className='text-sm text-muted-foreground'>
+              Please check back after the survey closes to view team popularity and skill
+              distribution data.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (isError) {
     return <ErrorPage />

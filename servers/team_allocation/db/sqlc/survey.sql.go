@@ -201,23 +201,24 @@ const getTeamPopularityStatistics = `-- name: GetTeamPopularityStatistics :many
 SELECT
     t.id AS team_id,
     t.name AS team_name,
-    COALESCE(AVG(r.preference), 0)::float8 AS avg_preference,
+    AVG(r.preference)::float8 AS avg_preference,
     COALESCE(COUNT(r.course_participation_id), 0)::bigint AS response_count
 FROM team t
 LEFT JOIN student_team_preference_response r ON r.team_id = t.id
 WHERE t.course_phase_id = $1
 GROUP BY t.id, t.name
-ORDER BY avg_preference ASC
+ORDER BY avg_preference ASC NULLS LAST
 `
 
 type GetTeamPopularityStatisticsRow struct {
-	TeamID        uuid.UUID `json:"team_id"`
-	TeamName      string    `json:"team_name"`
-	AvgPreference float64   `json:"avg_preference"`
-	ResponseCount int64     `json:"response_count"`
+	TeamID        uuid.UUID     `json:"team_id"`
+	TeamName      string        `json:"team_name"`
+	AvgPreference pgtype.Float8 `json:"avg_preference"` // nullable: NULL when no responses
+	ResponseCount int64         `json:"response_count"`
 }
 
 // Returns team popularity as average preference rank per team (lower = more popular).
+// Unrated teams (NULL avg) sort to the bottom via NULLS LAST.
 func (q *Queries) GetTeamPopularityStatistics(ctx context.Context, coursePhaseID uuid.UUID) ([]GetTeamPopularityStatisticsRow, error) {
 	rows, err := q.db.Query(ctx, getTeamPopularityStatistics, coursePhaseID)
 	if err != nil {

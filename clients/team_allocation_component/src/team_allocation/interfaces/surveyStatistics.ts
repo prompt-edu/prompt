@@ -8,7 +8,7 @@ export interface PreferenceCount {
 export interface TeamPopularityStats {
   teamId: string
   teamName: string
-  avgPreference: number
+  avgPreference: number | null // null when no responses yet
   responseCount: number
   preferenceCounts: PreferenceCount[]
 }

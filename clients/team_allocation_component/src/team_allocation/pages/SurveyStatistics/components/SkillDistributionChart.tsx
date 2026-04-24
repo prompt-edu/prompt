@@ -4,7 +4,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Rectangle, RectangleProps } from 'recharts'
+import { BarChart, Bar, LabelList, XAxis, YAxis, Rectangle, BarShapeProps } from 'recharts'
 import { SkillDistributionStats, SkillLevel } from '../../../interfaces/surveyStatistics'
 
 interface SkillDistributionChartProps {
@@ -61,9 +61,9 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
     .sort((a, b) => a.dataKey.localeCompare(b.dataKey))
 
   const createRoundedShape = (level: SkillLevel) => {
-    const Shape = (props: RectangleProps & { payload: Record<string, number> }) => {
+    const Shape = (props: BarShapeProps) => {
       const { x, y, width, height, payload } = props
-      const radius = getCornerRadius(payload, level)
+      const radius = getCornerRadius(payload as Record<string, number>, level)
       return (
         <Rectangle
           x={x}

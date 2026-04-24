@@ -4,6 +4,33 @@ FROM team
 WHERE course_phase_id = $1
 ORDER BY name;
 
+-- name: GetSurveyTeamsByCoursePhase :many
+SELECT *
+FROM team
+WHERE course_phase_id = $1
+  AND team_type IN ('standard', 'field_bucket')
+ORDER BY name;
+
+-- name: GetStandardTeamsByCoursePhase :many
+SELECT *
+FROM team
+WHERE course_phase_id = $1
+  AND team_type = 'standard'
+ORDER BY name;
+
+-- name: GetFieldBucketTeamsByCoursePhase :many
+SELECT *
+FROM team
+WHERE course_phase_id = $1
+  AND team_type = 'field_bucket'
+ORDER BY name;
+
+-- name: GetTeaseTeamsByCoursePhase :many
+SELECT *
+FROM team
+WHERE course_phase_id = $1
+  AND team_type IN ('standard', 'company_project')
+ORDER BY name;
 
 -- name: GetTeamByCoursePhaseAndTeamID :one
 -- ensuring to get only teams in the authenticated course_phase
@@ -13,8 +40,23 @@ WHERE id = $1
   AND course_phase_id = $2;
 
 -- name: CreateTeam :exec
-INSERT INTO team (id, name, course_phase_id)
-VALUES ($1, $2, $3);
+INSERT INTO team (id, name, course_phase_id, team_type, team_size_min, team_size_max)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (course_phase_id, name)
+DO UPDATE SET team_type = EXCLUDED.team_type,
+              team_size_min = EXCLUDED.team_size_min,
+              team_size_max = EXCLUDED.team_size_max;
+
+-- name: GetAllocationProfile :one
+SELECT profile
+FROM allocation_profile
+WHERE course_phase_id = $1;
+
+-- name: UpsertAllocationProfile :exec
+INSERT INTO allocation_profile (course_phase_id, profile)
+VALUES ($1, $2)
+ON CONFLICT (course_phase_id)
+DO UPDATE SET profile = EXCLUDED.profile;
 
 -- name: UpdateTeam :exec
 -- ensuring to update only teams in the authenticated course_phase

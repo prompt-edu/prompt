@@ -21,6 +21,8 @@ interface SurveyFormProps {
 
 export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: SurveyFormProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
+  const preferenceMode = surveyForm.preferenceMode ?? 'teams'
+  const isFieldMode = preferenceMode === 'fields'
 
   // Local state for ranking teams and rating skills
   const [teamRanking, setTeamRanking] = useState<string[]>([])
@@ -41,8 +43,12 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
     const currentTeamIDs = new Set(surveyForm.teams.map((t) => t.id))
 
     let newTeamRanking: string[]
-    if (surveyResponse?.teamPreferences?.length) {
-      const sorted = [...surveyResponse.teamPreferences].sort((a, b) => a.preference - b.preference)
+    const savedPreferences = isFieldMode
+      ? surveyResponse?.fieldPreferences
+      : surveyResponse?.teamPreferences
+
+    if (savedPreferences?.length) {
+      const sorted = [...savedPreferences].sort((a, b) => a.preference - b.preference)
       const savedTeamIDs = sorted.map((pref) => pref.teamID)
       const savedMatchCurrent =
         savedTeamIDs.length === surveyForm.teams.length &&
@@ -72,7 +78,7 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
 
     setSkillRatings(newSkillRatings)
     setInitialSkillRatings(newSkillRatings)
-  }, [surveyForm, surveyResponse])
+  }, [surveyForm, surveyResponse, isFieldMode])
 
   // Mutation for submitting the updated survey response.
   const updateSurveyResponseMutation = useMutation({
@@ -94,20 +100,24 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
     e.preventDefault()
 
     // Create team preferences from the ordering.
-    const teamPreferences: TeamPreference[] = teamRanking.map((teamID, index) => ({
+    const preferences: TeamPreference[] = teamRanking.map((teamID, index) => ({
       teamID,
       preference: index + 1, // rank 1 for the first item, 2 for second, etc.
     }))
 
     // Create skill responses from the ratings (include only the ones that are defined).
     const skillResponses: SkillResponse[] = Object.entries(skillRatings)
-      .filter(([skillLevel]) => skillLevel !== undefined) // only include selected ratings
+      .filter(([, skillLevel]) => skillLevel !== undefined) // only include selected ratings
       .map(([skillID, skillLevel]) => ({
         skillID,
         skillLevel: skillLevel!, // non-null assertion since we filtered out undefined
       }))
 
-    const response: SurveyResponse = { teamPreferences, skillResponses }
+    const response: SurveyResponse = {
+      skillResponses,
+      preferenceMode,
+      ...(isFieldMode ? { fieldPreferences: preferences } : { teamPreferences: preferences }),
+    }
     updateSurveyResponseMutation.mutate(response)
   }
 
@@ -162,6 +172,7 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
               teams={surveyForm.teams}
               setTeamRanking={setTeamRanking}
               disabled={!isStudent || updateSurveyResponseMutation.isPending || hasDeadlinePassed}
+              preferenceMode={preferenceMode}
             />
 
             {/* Skills Rating Section */}

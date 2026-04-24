@@ -48,8 +48,35 @@ const config = (env) => {
       hot: true,
       historyApiFallback: true,
       port: 3000,
+      webSocketServer: {
+        type: 'ws',
+        options: {
+          path: '/webpack-ws',
+        },
+      },
+      proxy: [
+        {
+          context: ['/tease'],
+          target: 'http://localhost:8091',
+          changeOrigin: true,
+        },
+        {
+          context: ['/ws'],
+          target: 'http://localhost:8092',
+          changeOrigin: true,
+          ws: true,
+        },
+        {
+          context: ['/team-allocation/api'],
+          target: 'http://localhost:8083',
+          changeOrigin: true,
+        },
+      ],
       client: {
         progress: true,
+        webSocketURL: {
+          pathname: '/webpack-ws',
+        },
       },
       open: false,
     },

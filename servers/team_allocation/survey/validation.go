@@ -15,7 +15,8 @@ func ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submi
 	/* ----------------------------------------------------------------
 	   1. Fetch course‑phase data
 	-----------------------------------------------------------------*/
-	validTeams, err := SurveyServiceSingleton.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
+	preferenceMode, _ := getPreferenceModeAndTeamType(ctx, coursePhaseID)
+	validTeams, err := GetActiveSurveyTeams(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch teams: ", err)
 		return fmt.Errorf("failed to fetch teams")
@@ -74,22 +75,40 @@ func ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submi
 	}
 
 	/* ----------------------------------------------------------------
-	   4. Validate team‑preference list (unchanged)
+	   4. Validate the active preference list
 	-----------------------------------------------------------------*/
-	if len(submission.TeamPreferences) != len(validTeams) {
+	if submission.PreferenceMode != "" && submission.PreferenceMode != preferenceMode {
+		return fmt.Errorf("submitted preference mode %s does not match active preference mode %s", submission.PreferenceMode, preferenceMode)
+	}
+
+	preferences := submission.TeamPreferences
+	preferenceLabel := "team"
+	preferencePluralLabel := "teams"
+	if preferenceMode == preferenceModeFields {
+		if len(submission.TeamPreferences) > 0 {
+			return fmt.Errorf("team preferences are not accepted in field preference mode")
+		}
+		preferences = submission.FieldPreferences
+		preferenceLabel = "field"
+		preferencePluralLabel = "fields"
+	} else if len(submission.FieldPreferences) > 0 {
+		return fmt.Errorf("field preferences are not accepted in team preference mode")
+	}
+
+	if len(preferences) != len(validTeams) {
 		return fmt.Errorf(
-			"team preferences count (%d) does not match number of available teams (%d)",
-			len(submission.TeamPreferences), len(validTeams),
+			"%s preferences count (%d) does not match number of available %s (%d)",
+			preferenceLabel, len(preferences), preferencePluralLabel, len(validTeams),
 		)
 	}
 
 	rankMap := make(map[int]bool, len(validTeams))
-	for _, tp := range submission.TeamPreferences {
+	for _, tp := range preferences {
 		if !validTeamIDs[tp.TeamID] {
-			return fmt.Errorf("team %s is not valid for this course phase", tp.TeamID)
+			return fmt.Errorf("%s %s is not valid for this course phase", preferenceLabel, tp.TeamID)
 		}
 		if tp.Preference < 1 || int(tp.Preference) > len(validTeams) {
-			return fmt.Errorf("invalid preference rank %d for team %s", tp.Preference, tp.TeamID)
+			return fmt.Errorf("invalid preference rank %d for %s %s", tp.Preference, preferenceLabel, tp.TeamID)
 		}
 		if rankMap[int(tp.Preference)] {
 			return fmt.Errorf("duplicate preference rank %d found", tp.Preference)

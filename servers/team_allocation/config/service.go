@@ -29,7 +29,7 @@ func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (config map[string]boo
 		return nil, err
 	}
 
-	teams, err := ConfigServiceSingleton.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
+	teams, err := survey.GetActiveSurveyTeams(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}

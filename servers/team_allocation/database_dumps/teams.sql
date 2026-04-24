@@ -13,6 +13,15 @@ CREATE TABLE
     CONSTRAINT team_id_course_phase_uk UNIQUE (id, course_phase_id)
 );
 
+ALTER TABLE team
+    ADD COLUMN team_type VARCHAR(32) NOT NULL DEFAULT 'standard';
+
+CREATE TABLE allocation_profile
+(
+    course_phase_id UUID        NOT NULL PRIMARY KEY,
+    profile         VARCHAR(64) NOT NULL DEFAULT 'standard'
+);
+
 CREATE TABLE
     IF NOT EXISTS allocations
 (
@@ -46,6 +55,10 @@ ALTER TABLE allocations
     ADD COLUMN student_last_name  TEXT NOT NULL DEFAULT '';
 
 -- Test data
+INSERT INTO allocation_profile (course_phase_id, profile)
+VALUES ('4179d58a-d00d-4fa7-94a5-397bc69fab02', 'standard'),
+       ('5179d58a-d00d-4fa7-94a5-397bc69fab03', 'standard');
+
 INSERT INTO team (id, name, course_phase_id)
 VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         'Team Alpha',

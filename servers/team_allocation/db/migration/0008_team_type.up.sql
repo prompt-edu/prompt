@@ -1,0 +1,2 @@
+ALTER TABLE team
+ADD COLUMN team_type VARCHAR(32) NOT NULL DEFAULT 'standard';

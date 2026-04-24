@@ -21,6 +21,17 @@ func GetTeaseStudentSkillResponseFromDBModel(skillResponses []db.GetStudentSkill
 	return skills
 }
 
+func GetTeaseStudentSkillResponseFromPreferenceModeDBModel(skillResponses []db.GetStudentSkillResponsesByPreferenceModeRow) []StudentSkillResponse {
+	skills := make([]StudentSkillResponse, 0, len(skillResponses))
+	for _, skillResponse := range skillResponses {
+		skills = append(skills, StudentSkillResponse{
+			ID:          skillResponse.SkillID,
+			Proficiency: getTeaseSkillLevel(skillResponse.SkillLevel),
+		})
+	}
+	return skills
+}
+
 // Tease defines the Skill Levels upper case, while the DB (and Assessment) defines them lower case
 func getTeaseSkillLevel(skillLevel db.SkillLevel) string {
 	switch skillLevel {

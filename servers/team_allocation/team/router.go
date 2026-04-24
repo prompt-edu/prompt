@@ -116,7 +116,14 @@ func createTeams(c *gin.Context) {
 		return
 	}
 
-	err = CreateNewTeams(c, request.TeamNames, coursePhaseID)
+	err = CreateNewTeams(
+		c,
+		request.TeamNames,
+		coursePhaseID,
+		request.TeamType,
+		request.ReplaceExisting,
+		request.TeamSizeConstraints,
+	)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

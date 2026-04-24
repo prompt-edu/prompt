@@ -11,9 +11,17 @@ import { SurveyTimeframe } from '../../interfaces/timeframe'
 import { TeamSettings } from './components/TeamSettings'
 import { SkillSettings } from './components/SkillSettings'
 import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
+import {
+  AllocationProfileSettings,
+  getTeamAllocationProfile,
+} from './components/AllocationProfileSettings'
+import { CompanyCsvImport } from './components/CompanyCsvImport'
+import { FieldAlignmentSettings } from './components/FieldAlignmentSettings'
 import { getConfig } from '../../network/queries/getConfig'
 import { MissingSettings, MissingSettingsItem } from '@/components/MissingSettings'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useGetCoursePhase } from '@/hooks/useGetCoursePhase'
+import { TEAM_ALLOCATION_PROFILE_1000_PLUS } from '../../interfaces/companyImport'
 
 export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -58,42 +66,65 @@ export const SurveySettingsPage = () => {
     queryFn: () => getConfig(phaseId ?? ''),
   })
 
+  const {
+    data: fetchedCoursePhase,
+    isPending: isCoursePhasePending,
+    isError: isCoursePhaseError,
+    refetch: refetchCoursePhase,
+  } = useGetCoursePhase()
+
   const [missingConfigs, setMissingConfigs] = useState<MissingSettingsItem[]>([])
 
-  const isPending = isSkillsPending || isTeamsPending || isSurveyTimeframePending || isConfigPending
-  const isError = isSkillsError || isTeamsError || isSurveyTimeframeError || isConfigError
+  const selectedProfile = getTeamAllocationProfile(fetchedCoursePhase)
+  const isProjectWeekProfile = selectedProfile === TEAM_ALLOCATION_PROFILE_1000_PLUS
+
+  const isPending =
+    isSkillsPending ||
+    isTeamsPending ||
+    isSurveyTimeframePending ||
+    isConfigPending ||
+    isCoursePhasePending
+  const isError =
+    isSkillsError || isTeamsError || isSurveyTimeframeError || isConfigError || isCoursePhaseError
   const refetch = () => {
     refetchSkills()
     refetchTeams()
     refetchTimeframe()
     refetchConfig()
+    refetchCoursePhase()
   }
 
-  const configToReadableTitle = (key: string): string => {
-    switch (key) {
-      case 'surveyTimeframe':
-        return 'Survey Timeframe'
-      case 'teams':
-        return 'Teams'
-      case 'skills':
-        return 'Skills'
-      default:
-        return key.charAt(0).toUpperCase() + key.slice(1)
-    }
-  }
+  const configToReadableTitle = useCallback(
+    (key: string): string => {
+      switch (key) {
+        case 'surveyTimeframe':
+          return 'Survey Timeframe'
+        case 'teams':
+          return isProjectWeekProfile ? 'Hidden Company Projects' : 'Teams'
+        case 'skills':
+          return 'Skills'
+        default:
+          return key.charAt(0).toUpperCase() + key.slice(1)
+      }
+    },
+    [isProjectWeekProfile],
+  )
 
-  const configToReadableDescription = (key: string): string => {
-    switch (key) {
-      case 'surveyTimeframe':
-        return 'survey timeframe'
-      case 'teams':
-        return 'teams'
-      case 'skills':
-        return 'skills'
-      default:
-        return key.slice(1)
-    }
-  }
+  const configToReadableDescription = useCallback(
+    (key: string): string => {
+      switch (key) {
+        case 'surveyTimeframe':
+          return 'survey timeframe'
+        case 'teams':
+          return isProjectWeekProfile ? 'hidden company projects' : 'teams'
+        case 'skills':
+          return 'skills'
+        default:
+          return key.slice(1)
+      }
+    },
+    [isProjectWeekProfile],
+  )
 
   useEffect(() => {
     if (!fetchedConfig) {
@@ -108,7 +139,7 @@ export const SurveySettingsPage = () => {
         description: `The ${configToReadableDescription(key)} configuration is missing.`,
       }))
     setMissingConfigs(items)
-  }, [fetchedConfig])
+  }, [fetchedConfig, configToReadableTitle, configToReadableDescription])
 
   if (isError) {
     return <ErrorPage onRetry={refetch} />
@@ -126,11 +157,16 @@ export const SurveySettingsPage = () => {
     <>
       <ManagementPageHeader>Survey Settings</ManagementPageHeader>
       <MissingSettings elements={missingConfigs} />
-      {/* 1. Set the survey timeframe, skills and teams for this phase. */}
+      <AllocationProfileSettings coursePhase={fetchedCoursePhase} />
       <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
-      {/* 2. Set up the teams */}
-      <TeamSettings teams={fetchedTeams} />
-      {/* 3. Set up the skills */}
+      {isProjectWeekProfile ? (
+        <>
+          <FieldAlignmentSettings coursePhase={fetchedCoursePhase} />
+          <CompanyCsvImport phaseId={phaseId ?? ''} coursePhase={fetchedCoursePhase} />
+        </>
+      ) : (
+        <TeamSettings teams={fetchedTeams} />
+      )}
       <SkillSettings skills={fetchedSkills} />
     </>
   )

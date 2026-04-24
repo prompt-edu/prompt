@@ -82,7 +82,7 @@ func (suite *TeamServiceTestSuite) TestCreateNewTeams() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	newTeamNames := []string{"Team Epsilon", "Team Zeta", "Team Eta"}
 
-	err := CreateNewTeams(suite.suiteCtx, newTeamNames, coursePhaseID)
+	err := CreateNewTeams(suite.suiteCtx, newTeamNames, coursePhaseID, "", false, nil)
 	assert.NoError(suite.T(), err)
 
 	// Note: We can't easily verify the teams were created without calling GetAllTeams
@@ -93,7 +93,7 @@ func (suite *TeamServiceTestSuite) TestCreateNewTeamsEmptyList() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	emptyTeamNames := []string{}
 
-	err := CreateNewTeams(suite.suiteCtx, emptyTeamNames, coursePhaseID)
+	err := CreateNewTeams(suite.suiteCtx, emptyTeamNames, coursePhaseID, "", false, nil)
 	assert.NoError(suite.T(), err, "Should not error for empty team list")
 }
 

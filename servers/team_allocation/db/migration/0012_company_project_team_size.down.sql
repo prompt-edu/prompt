@@ -1,0 +1,3 @@
+ALTER TABLE team
+DROP COLUMN IF EXISTS team_size_min,
+DROP COLUMN IF EXISTS team_size_max;

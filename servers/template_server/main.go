@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/template_server/config"
 	"github.com/prompt-edu/prompt/servers/template_server/copy"
 	db "github.com/prompt-edu/prompt/servers/template_server/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/template_server/importer"
 	"github.com/prompt-edu/prompt/servers/template_server/template"
 	log "github.com/sirupsen/logrus"
 )
@@ -95,6 +96,7 @@ func main() {
 
 	copyApi := router.Group("template-service/api")
 	copy.InitCopyModule(copyApi, *query, conn)
+	importer.InitImporterModule(copyApi, *query, conn)
 
 	config.InitConfigModule(api, *query, conn)
 

@@ -20,3 +20,14 @@ func GetStudentSkillResponsesDTOFromDBModel(skills []db.GetStudentSkillResponses
 	}
 	return skillDTOs
 }
+
+func GetStudentSkillResponsesDTOFromPreferenceModeDBModel(skills []db.GetStudentSkillResponsesByPreferenceModeRow) []StudentSkillResponse {
+	skillDTOs := make([]StudentSkillResponse, 0, len(skills))
+	for _, skill := range skills {
+		skillDTOs = append(skillDTOs, StudentSkillResponse{
+			SkillID:    skill.SkillID,
+			SkillLevel: skill.SkillLevel,
+		})
+	}
+	return skillDTOs
+}

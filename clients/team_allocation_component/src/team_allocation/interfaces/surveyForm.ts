@@ -6,4 +6,5 @@ export type SurveyForm = {
   teams: Team[]
   skills: Skill[]
   deadline: Date
+  preferenceMode?: 'teams' | 'fields'
 }

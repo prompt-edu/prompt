@@ -32,6 +32,15 @@ CREATE TABLE
     );
 
 CREATE TABLE
+    survey_timeframe_profile (
+        course_phase_id uuid NOT NULL,
+        profile VARCHAR(64) NOT NULL,
+        survey_start TIMESTAMP NOT NULL,
+        survey_deadline TIMESTAMP NOT NULL,
+        PRIMARY KEY (course_phase_id, profile)
+    );
+
+CREATE TABLE
     skill (
         id uuid NOT NULL PRIMARY KEY,
         course_phase_id uuid NOT NULL,
@@ -69,6 +78,23 @@ DROP COLUMN student_full_name,
 ADD COLUMN student_first_name TEXT NOT NULL DEFAULT '',
 ADD COLUMN student_last_name TEXT NOT NULL DEFAULT '';
 
+ALTER TABLE team
+ADD COLUMN team_type VARCHAR(32) NOT NULL DEFAULT 'standard';
+
+ALTER TABLE student_skill_response
+ADD COLUMN preference_mode VARCHAR(16) NOT NULL DEFAULT 'teams';
+
+ALTER TABLE student_skill_response
+DROP CONSTRAINT student_skill_response_pkey;
+
+ALTER TABLE student_skill_response
+ADD PRIMARY KEY (course_participation_id, skill_id, preference_mode);
+
+CREATE TABLE allocation_profile (
+    course_phase_id UUID NOT NULL PRIMARY KEY,
+    profile VARCHAR(64) NOT NULL DEFAULT 'standard'
+);
+
 -- Test data
 -- Course phase for testing
 INSERT INTO
@@ -79,6 +105,19 @@ VALUES
         '2024-01-01 00:00:00',
         '2030-12-31 23:59:59'
     );
+
+INSERT INTO
+    survey_timeframe_profile (course_phase_id, profile, survey_start, survey_deadline)
+VALUES
+    (
+        '4179d58a-d00d-4fa7-94a5-397bc69fab02',
+        'standard',
+        '2024-01-01 00:00:00',
+        '2030-12-31 23:59:59'
+    );
+
+INSERT INTO allocation_profile (course_phase_id, profile)
+VALUES ('4179d58a-d00d-4fa7-94a5-397bc69fab02', 'standard');
 
 -- Skills for testing
 INSERT INTO

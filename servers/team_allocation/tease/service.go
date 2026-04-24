@@ -12,6 +12,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -136,9 +137,15 @@ func GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, cour
 }
 
 func getTeaseProjectPreferences(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.ProjectPreference, error) {
-	teamPreferences, err := TeaseServiceSingleton.queries.GetStudentTeamPreferences(ctx, db.GetStudentTeamPreferencesParams{
+	teamType := "standard"
+	if survey.GetAllocationProfile(ctx, coursePhaseID) == "project_week_1000_plus" {
+		return []teaseDTO.ProjectPreference{}, nil
+	}
+
+	teamPreferences, err := TeaseServiceSingleton.queries.GetStudentPreferencesByTeamType(ctx, db.GetStudentPreferencesByTeamTypeParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
+		TeamType:              teamType,
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Error("could not get team preferences for course participation: ", err)
@@ -151,13 +158,19 @@ func getTeaseProjectPreferences(ctx context.Context, coursePhaseID uuid.UUID, co
 		return []teaseDTO.ProjectPreference{}, nil
 	}
 
-	return teaseDTO.GetProjectPreferenceFromDBModel(teamPreferences), nil
+	return teaseDTO.GetProjectPreferenceFromTypedDBModel(teamPreferences), nil
 }
 
 func getTeaseSkillLevel(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.StudentSkillResponse, error) {
-	skills, err := TeaseServiceSingleton.queries.GetStudentSkillResponses(ctx, db.GetStudentSkillResponsesParams{
+	preferenceMode := "teams"
+	if survey.GetAllocationProfile(ctx, coursePhaseID) == "project_week_1000_plus" {
+		preferenceMode = "fields"
+	}
+
+	skills, err := TeaseServiceSingleton.queries.GetStudentSkillResponsesByPreferenceMode(ctx, db.GetStudentSkillResponsesByPreferenceModeParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
+		PreferenceMode:        preferenceMode,
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Error("could not get skills for course participation: ", err)
@@ -170,7 +183,7 @@ func getTeaseSkillLevel(ctx context.Context, coursePhaseID uuid.UUID, coursePart
 		return []teaseDTO.StudentSkillResponse{}, nil
 	}
 
-	return teaseDTO.GetTeaseStudentSkillResponseFromDBModel(skills), nil
+	return teaseDTO.GetTeaseStudentSkillResponseFromPreferenceModeDBModel(skills), nil
 }
 
 func GetTeaseSkillsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.Skill, error) {
@@ -190,7 +203,37 @@ func GetTeaseTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	teams, err := TeaseServiceSingleton.queries.GetTeamsByCoursePhase(ctxWithTimeout, coursePhaseID)
+	var (
+		teams []db.Team
+		err   error
+	)
+	if survey.GetAllocationProfile(ctxWithTimeout, coursePhaseID) == "project_week_1000_plus" {
+		rows, queryErr := TeaseServiceSingleton.conn.Query(ctxWithTimeout, `
+			SELECT id, name, course_phase_id, created_at, team_type
+			FROM team
+			WHERE course_phase_id = $1 AND team_type = 'company_project'
+			ORDER BY name
+		`, coursePhaseID)
+		if queryErr != nil {
+			log.Error("failed to get teams for course phase: ", queryErr)
+			return nil, queryErr
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var team db.Team
+			if scanErr := rows.Scan(&team.ID, &team.Name, &team.CoursePhaseID, &team.CreatedAt, &team.TeamType); scanErr != nil {
+				log.Error("failed to scan teams for course phase: ", scanErr)
+				return nil, scanErr
+			}
+			teams = append(teams, team)
+		}
+		if err = rows.Err(); err != nil {
+			log.Error("failed to iterate teams for course phase: ", err)
+			return nil, err
+		}
+	} else {
+		teams, err = TeaseServiceSingleton.queries.GetStandardTeamsByCoursePhase(ctxWithTimeout, coursePhaseID)
+	}
 	if err != nil {
 		log.Error("failed to get teams for course phase: ", err)
 		return nil, err

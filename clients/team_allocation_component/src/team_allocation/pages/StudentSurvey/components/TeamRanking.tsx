@@ -15,9 +15,16 @@ interface TeamRankingProps {
   teams: Team[]
   setTeamRanking: (teamRanking: string[]) => void
   disabled: boolean
+  preferenceMode: 'teams' | 'fields'
 }
 
-export const TeamRanking = ({ teamRanking, teams, setTeamRanking, disabled }: TeamRankingProps) => {
+export const TeamRanking = ({
+  teamRanking,
+  teams,
+  setTeamRanking,
+  disabled,
+  preferenceMode,
+}: TeamRankingProps) => {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
     const newOrder = Array.from(teamRanking)
@@ -25,6 +32,7 @@ export const TeamRanking = ({ teamRanking, teams, setTeamRanking, disabled }: Te
     newOrder.splice(result.destination.index, 0, removed)
     setTeamRanking(newOrder)
   }
+  const isFieldMode = preferenceMode === 'fields'
 
   return (
     <Card>
@@ -33,10 +41,12 @@ export const TeamRanking = ({ teamRanking, teams, setTeamRanking, disabled }: Te
           <div>
             <CardTitle className='flex items-center gap-2'>
               <ClipboardList className='h-5 w-5 text-primary' />
-              Team Preferences
+              {isFieldMode ? 'Field Preferences' : 'Team Preferences'}
             </CardTitle>
             <CardDescription>
-              Rank the teams by your preference (1st is most preferred). Drag and drop to reorder.
+              {isFieldMode
+                ? 'Rank the fields by your preference (1st is most preferred). Drag and drop to reorder.'
+                : 'Rank the teams by your preference (1st is most preferred). Drag and drop to reorder.'}
             </CardDescription>
           </div>
         </div>

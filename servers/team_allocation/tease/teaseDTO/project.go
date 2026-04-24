@@ -20,3 +20,14 @@ func GetProjectPreferenceFromDBModel(teamPreferences []db.GetStudentTeamPreferen
 	}
 	return projectPreferences
 }
+
+func GetProjectPreferenceFromTypedDBModel(teamPreferences []db.GetStudentPreferencesByTeamTypeRow) []ProjectPreference {
+	projectPreferences := make([]ProjectPreference, 0, len(teamPreferences))
+	for _, teamPreference := range teamPreferences {
+		projectPreferences = append(projectPreferences, ProjectPreference{
+			ProjectID: teamPreference.TeamID,
+			Priority:  teamPreference.Preference - 1, // in tease 0 is the highest priority
+		})
+	}
+	return projectPreferences
+}

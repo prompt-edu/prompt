@@ -3,8 +3,10 @@ package surveyDTO
 import db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 
 type StudentSurveyResponse struct {
-	TeamPreferences []StudentTeamPreferenceResponse `json:"teamPreferences"`
-	SkillResponses  []StudentSkillResponse          `json:"skillResponses"`
+	TeamPreferences  []StudentTeamPreferenceResponse `json:"teamPreferences,omitempty"`
+	FieldPreferences []StudentTeamPreferenceResponse `json:"fieldPreferences,omitempty"`
+	SkillResponses   []StudentSkillResponse          `json:"skillResponses"`
+	PreferenceMode   string                          `json:"preferenceMode,omitempty"`
 }
 
 func GetStudentSurveyResponseDTOFromDBModels(teamPreferences []db.GetStudentTeamPreferencesRow, skillResponses []db.GetStudentSkillResponsesRow) StudentSurveyResponse {
@@ -15,4 +17,20 @@ func GetStudentSurveyResponseDTOFromDBModels(teamPreferences []db.GetStudentTeam
 		TeamPreferences: teamPreferencesDTO,
 		SkillResponses:  skillResponsesDTO,
 	}
+}
+
+func GetStudentSurveyResponseDTOFromTypedDBModels(preferences []db.GetStudentPreferencesByTeamTypeRow, skillResponses []db.GetStudentSkillResponsesByPreferenceModeRow, preferenceMode string) StudentSurveyResponse {
+	preferencesDTO := GetStudentPreferenceResponseDTOsFromTypedDBModel(preferences)
+	skillResponsesDTO := GetStudentSkillResponsesDTOFromPreferenceModeDBModel(skillResponses)
+
+	response := StudentSurveyResponse{
+		SkillResponses: skillResponsesDTO,
+		PreferenceMode: preferenceMode,
+	}
+	if preferenceMode == "fields" {
+		response.FieldPreferences = preferencesDTO
+	} else {
+		response.TeamPreferences = preferencesDTO
+	}
+	return response
 }

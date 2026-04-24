@@ -20,6 +20,7 @@ func setupSurveyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowed
 
 	surveyRouter.PUT("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), setSurveyTimeframe)
 	surveyRouter.GET("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSurveyTimeframe)
+	surveyRouter.PUT("/profile", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), setAllocationProfile)
 
 }
 
@@ -205,4 +206,25 @@ func getSurveyTimeframe(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, timeframe)
+}
+
+func setAllocationProfile(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req surveyDTO.AllocationProfile
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := SetAllocationProfile(c, coursePhaseID, req.Profile); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
 }

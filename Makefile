@@ -1,5 +1,5 @@
-.PHONY: help server servers client-core client-certificate client-assessment \
-	client-interview client-matching clients db db-down \
+.PHONY: help server servers servers-1000 client-core client-certificate client-assessment \
+	client-interview client-matching clients clients-1000 db db-template db-1000 db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-template \
 	server-certificate \
@@ -43,6 +43,15 @@ servers: ## Start all servers (core + all microservices)
 	@wait
 	@echo "All servers started."
 
+servers-1000: ## Start project week servers (core, team allocation, self team allocation, template)
+	@echo "Starting project week servers..."
+	@trap 'kill 0' INT TERM EXIT; \
+	$(MAKE) server-core SERVER_ADDRESS=0.0.0.0:8080 & \
+	$(MAKE) server-team-allocation SERVER_ADDRESS=0.0.0.0:8083 & \
+	$(MAKE) server-self-team-allocation SERVER_ADDRESS=0.0.0.0:8084 & \
+	$(MAKE) server-template SERVER_ADDRESS=0.0.0.0:8086 & \
+	wait
+
 server-core: ## Start core server (port 8080)
 	cd servers/core && go run main.go
 
@@ -59,13 +68,20 @@ server-self-team-allocation: ## Start self team allocation server (port 8084)
 	cd servers/self_team_allocation && go run main.go
 
 server-template: ## Start template server (port 8086)
-	cd servers/template_server && go run main.go
+	cd servers/template_server && SERVER_ADDRESS=0.0.0.0:8086 go run main.go
 
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
 
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
+
+clients-1000: ## Start only the core, team allocation, and self team allocation clients
+	@echo "Starting project week clients..."
+	( cd clients/core && yarn dev ) & \
+	( cd clients/team_allocation_component && yarn dev ) & \
+	( cd clients/self_team_allocation_component && yarn dev ) & \
+	wait
 
 client-core: ## Start only the core client
 	cd clients/core && yarn dev
@@ -82,11 +98,27 @@ client-interview: ## Start only the interview client
 client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
-db: ## Start database and Keycloak
-	docker compose up -d db keycloak
+db: ## Start database, template database, and Keycloak
+	docker compose up -d db db-template-server keycloak
 
-db-down: ## Stop database and Keycloak
-	docker compose stop db keycloak
+db-template: ## Start only the template server database
+	docker compose up -d db-template-server
+
+db-1000: ## Start databases and infrastructure needed for project week services, including template DB
+	docker compose up -d \
+	db \
+	db-template-server \
+	db-team-allocation \
+	db-self-team-allocation \
+	keycloak-db \
+	keycloak \
+	seaweedfs-master \
+	seaweedfs-volume \
+	seaweedfs-filer \
+	seaweedfs-s3
+
+db-down: ## Stop database, template database, and Keycloak
+	docker compose stop db db-template-server keycloak
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

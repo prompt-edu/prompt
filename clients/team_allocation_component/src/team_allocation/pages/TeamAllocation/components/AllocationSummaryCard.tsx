@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import { Badge, Button, Card, CardContent, CardHeader } from '@tumaet/prompt-ui-components'
 import { AlertCircle, ArrowRight, CheckCircle2, Users } from 'lucide-react'
 import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
@@ -14,6 +15,8 @@ export const AllocationSummaryCard = ({
   coursePhaseParticipations,
   teamAllocations,
 }: AllocationSummaryCardProps) => {
+  const { phaseId } = useParams<{ phaseId: string }>()
+
   const allocationStats = useMemo(() => {
     if (!coursePhaseParticipations || !teamAllocations) {
       return {
@@ -104,8 +107,8 @@ export const AllocationSummaryCard = ({
       <CardContent className='pt-0 pb-4 flex justify-between items-center'>
         <TutorImportDialog />
         <Button asChild>
-          <a href='/tease'>
-            Go to Tease
+          <a href={`/tease?coursePhaseId=${phaseId ?? ''}`}>
+            Launch Tease to Matchmake
             <ArrowRight className='ml-2 h-4 w-4' />
           </a>
         </Button>

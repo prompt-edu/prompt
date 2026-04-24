@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@tumaet/prompt-ui-components'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 
 export interface Page2Ref {
   validate: () => boolean

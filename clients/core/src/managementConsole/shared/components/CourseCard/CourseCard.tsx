@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/pr
 import { Course, Role } from '@tumaet/prompt-shared-state'
 import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { formatDate } from '@core/utils/formatDate'
 import { CourseArchiveButton } from './CourseArchiveButton'
 import { useNavigate } from 'react-router-dom'

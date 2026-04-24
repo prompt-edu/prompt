@@ -9,11 +9,11 @@ import type { Team } from '@tumaet/prompt-shared-state'
 import type { Allocation } from '../../interfaces/allocation'
 
 import { getAllTeams } from '../../network/queries/getAllTeams'
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
+import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
 import { AllocationSummaryCard } from './components/AllocationSummaryCard'
 
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
+import { getGravatarUrl } from '@tumaet/prompt-shared-state'
 
 import {
   ErrorPage,

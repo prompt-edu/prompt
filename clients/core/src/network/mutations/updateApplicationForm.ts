@@ -1,5 +1,5 @@
 import { UpdateApplicationForm } from '../../managementConsole/applicationAdministration/interfaces/form/updateApplicationForm'
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const updateApplicationForm = async (
   coursePhaseID: string,

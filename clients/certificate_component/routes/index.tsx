@@ -1,4 +1,4 @@
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 
 import { StudentOverviewPage } from '../src/certificate/pages/StudentOverviewPage'

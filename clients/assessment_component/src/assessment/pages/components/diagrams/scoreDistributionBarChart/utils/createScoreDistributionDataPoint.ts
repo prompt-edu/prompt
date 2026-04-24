@@ -28,7 +28,7 @@ export const createScoreDistributionDataPoint = (
     }
   }
 
-  const counts = Object.values(ScoreLevel).reduce(
+  const counts = (Object.values(ScoreLevel) as ScoreLevel[]).reduce<Record<ScoreLevel, number>>(
     (acc, scoreLevel) => {
       acc[scoreLevel] = scoreLevels.filter((level) => level === scoreLevel).length
       return acc

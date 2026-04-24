@@ -1,4 +1,4 @@
-import { MissingConfig } from '@/components/MissingConfig'
+import { MissingConfig } from '@tumaet/prompt-ui-components'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { useState } from 'react'
 import { ApplicationMetaData } from '../../interfaces/applicationMetaData'

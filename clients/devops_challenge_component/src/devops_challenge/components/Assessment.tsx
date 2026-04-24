@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { useTriggerAssessment } from '../pages/hooks/useTriggerAssessment'
 import { useGetDeveloperProfile } from '../pages/hooks/useGetDeveloperProfile'
-import { getOwnCoursePhaseParticipation } from '@/network/queries/getOwnCoursePhaseParticipation'
+import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Alert,

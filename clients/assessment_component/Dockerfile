@@ -4,7 +4,6 @@ FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 
 WORKDIR /app/assessment_component
 COPY . ./
-RUN yarn install
 
 RUN yarn build
 

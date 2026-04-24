@@ -1,6 +1,6 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseStudentIdentifierProps } from '@/interfaces/studentDetail'
+import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 
 import type { StudentAssessment } from '../assessment/interfaces/studentAssessment'
 

@@ -9,11 +9,11 @@ interface TeamPopularityChartProps {
 const getColor = (avg: number, min: number, max: number): string => {
   if (max === min) return '#5eead4'
   const normalized = (avg - min) / (max - min)
-  if (normalized < 0.2) return '#5eead4'  // teal-300   — most popular
-  if (normalized < 0.4) return '#7dd3fc'  // sky-300
-  if (normalized < 0.6) return '#a5b4fc'  // indigo-300
-  if (normalized < 0.8) return '#d8b4fe'  // purple-300
-  return '#f9a8d4'                         // pink-300   — least popular
+  if (normalized < 0.2) return '#5eead4' // teal-300   — most popular
+  if (normalized < 0.4) return '#7dd3fc' // sky-300
+  if (normalized < 0.6) return '#a5b4fc' // indigo-300
+  if (normalized < 0.8) return '#d8b4fe' // purple-300
+  return '#f9a8d4' // pink-300   — least popular
 }
 
 const chartConfig: ChartConfig = {
@@ -24,10 +24,14 @@ const ordinal = (n: number) => {
   const mod100 = n % 100
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`
   switch (n % 10) {
-    case 1: return `${n}st`
-    case 2: return `${n}nd`
-    case 3: return `${n}rd`
-    default: return `${n}th`
+    case 1:
+      return `${n}st`
+    case 2:
+      return `${n}nd`
+    case 3:
+      return `${n}rd`
+    default:
+      return `${n}th`
   }
 }
 

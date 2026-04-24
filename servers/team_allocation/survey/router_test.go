@@ -99,6 +99,14 @@ func (suite *SurveyRouterTestSuite) TestSubmitSurveyResponse() {
 				TeamID:     uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
 				Preference: 3,
 			},
+			{
+				TeamID:     uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+				Preference: 4,
+			},
+			{
+				TeamID:     uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+				Preference: 5,
+			},
 		},
 		SkillResponses: []surveyDTO.StudentSkillResponse{
 			{
@@ -116,10 +124,6 @@ func (suite *SurveyRouterTestSuite) TestSubmitSurveyResponse() {
 			{
 				SkillID:    uuid.MustParse("44444444-4444-4444-4444-444444444444"),
 				SkillLevel: db.SkillLevelVeryGood,
-			},
-			{
-				SkillID:    uuid.MustParse("55555555-5555-5555-5555-555555555555"),
-				SkillLevel: db.SkillLevelVeryBad,
 			},
 		},
 	}

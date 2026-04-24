@@ -32,10 +32,8 @@ export const SurveyStatisticsPage = () => {
     return <ErrorPage />
   }
 
-  const hasTeamData =
-    !isPending && (statistics?.teamPopularityStatistics ?? []).length > 0
-  const hasSkillData =
-    !isPending && (statistics?.skillDistributionStatistics ?? []).length > 0
+  const hasTeamData = !isPending && (statistics?.teamPopularityStatistics ?? []).length > 0
+  const hasSkillData = !isPending && (statistics?.skillDistributionStatistics ?? []).length > 0
 
   return (
     <div className='flex flex-col gap-6'>

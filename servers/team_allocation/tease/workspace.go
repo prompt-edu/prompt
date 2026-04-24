@@ -92,8 +92,22 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
 	}
 
-	// 2. Upsert allocations (matches the existing CreateOrUpdateAllocation
-	//    path in PostAllocations around service.go:220–259).
+	// 2. Replace the allocation set for this phase with the payload.
+	//    The save endpoint is the authoritative publish, so the incoming
+	//    `req.Allocations` is treated as the *complete* desired state — not
+	//    a partial upsert. We therefore delete every existing allocation
+	//    for the phase first so that:
+	//      - resetting allocations in the client and saving an empty
+	//        payload actually unallocates everyone, and
+	//      - removing a single student from a team in the client
+	//        propagates as a delete instead of being silently retained.
+	//    Both the delete and the subsequent inserts run inside the same
+	//    transaction, so concurrent readers never observe an empty board.
+	if err := qtx.DeleteAllocationsByPhase(ctx, coursePhaseID); err != nil {
+		log.Error("could not clear existing allocations within save transaction: ", err)
+		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not clear existing allocations: %w", err)
+	}
+
 	for _, allocation := range req.Allocations {
 		if allocation.ProjectID == uuid.Nil {
 			return teaseDTO.TeaseWorkspace{}, fmt.Errorf("invalid project ID in allocation")

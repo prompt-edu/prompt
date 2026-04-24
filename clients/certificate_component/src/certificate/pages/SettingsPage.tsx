@@ -291,7 +291,8 @@ export const SettingsPage = () => {
                       </li>
                       <li>
                         Available fields:{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>studentName</code>,{' '}
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>studentName</code>
+                        ,{' '}
                         <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>courseName</code>,{' '}
                         <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>teamName</code>,{' '}
                         <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>date</code>

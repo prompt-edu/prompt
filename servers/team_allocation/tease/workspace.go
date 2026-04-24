@@ -48,11 +48,11 @@ func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.T
 // (insert-or-update on course_phase_id) and returns the server-stamped
 // row. `last_exported_at` is left untouched — only the /save flow
 // stamps it.
-func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest) (teaseDTO.TeaseWorkspace, error) {
+func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	params := upsertParamsFromRequest(coursePhaseID, req)
+	params := upsertParamsFromRequest(coursePhaseID, req, updatedBy)
 
 	row, err := TeaseServiceSingleton.queries.UpsertTeaseWorkspace(ctxWithTimeout, params)
 	if err != nil {
@@ -67,7 +67,7 @@ func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teas
 // flow: in one transaction it upserts the tease_workspace row, upserts
 // every allocation row via CreateOrUpdateAllocation, and stamps
 // last_exported_at. Any error rolls the whole transaction back.
-func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest) (teaseDTO.TeaseWorkspace, error) {
+func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctx, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -85,8 +85,7 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 		LockedStudents:   req.LockedStudents,
 		AllocationsDraft: req.AllocationsDraft,
 		AlgorithmType:    req.AlgorithmType,
-		UpdatedBy:        req.UpdatedBy,
-	})
+	}, updatedBy)
 	if _, err := qtx.UpsertTeaseWorkspace(ctx, upsertParams); err != nil {
 		log.Error("could not upsert tease workspace within save transaction: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
@@ -184,18 +183,16 @@ func workspaceFromDB(row db.TeaseWorkspace) teaseDTO.TeaseWorkspace {
 	return ws
 }
 
-func upsertParamsFromRequest(coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest) db.UpsertTeaseWorkspaceParams {
+func upsertParamsFromRequest(coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) db.UpsertTeaseWorkspaceParams {
 	params := db.UpsertTeaseWorkspaceParams{
 		CoursePhaseID:    coursePhaseID,
 		Constraints:      jsonOrEmptyBytes(req.Constraints),
 		LockedStudents:   jsonOrEmptyBytes(req.LockedStudents),
 		AllocationsDraft: jsonOrEmptyBytes(req.AllocationsDraft),
+		UpdatedBy:        pgtype.UUID{Bytes: updatedBy, Valid: true},
 	}
 	if req.AlgorithmType != nil {
 		params.AlgorithmType = pgtype.Text{String: *req.AlgorithmType, Valid: true}
-	}
-	if req.UpdatedBy != nil {
-		params.UpdatedBy = pgtype.UUID{Bytes: *req.UpdatedBy, Valid: true}
 	}
 	return params
 }

@@ -13,7 +13,7 @@ student skill + team-preference responses so TEASE has data to render.
 Idempotent: deletes any prior seed by fixed course UUIDs before re-inserting.
 
 Run from the prompt/ directory:
-    python scripts/seed-test-data.py
+    python scripts/seed-test-data-application-team-allocation.py
 """
 
 import io

@@ -2,6 +2,7 @@ package tease
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -192,7 +193,13 @@ func putTeaseWorkspace(c *gin.Context) {
 		return
 	}
 
-	workspace, err := UpsertTeaseWorkspace(c, coursePhaseID, req)
+	updatedBy, err := getAuthenticatedUserID(c)
+	if err != nil {
+		handleError(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	workspace, err := UpsertTeaseWorkspace(c, coursePhaseID, req, updatedBy)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -219,11 +226,33 @@ func postTeaseSave(c *gin.Context) {
 		return
 	}
 
-	workspace, err := SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req)
+	updatedBy, err := getAuthenticatedUserID(c)
+	if err != nil {
+		handleError(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	workspace, err := SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req, updatedBy)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusCreated, workspace)
+}
+
+// getAuthenticatedUserID extracts the acting user's UUID from the
+// token already parsed by the auth middleware. We never trust a
+// client-supplied UpdatedBy for audit fields; the server stamps it
+// from the bearer token.
+func getAuthenticatedUserID(c *gin.Context) (uuid.UUID, error) {
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		return uuid.Nil, errors.New("user not found in context")
+	}
+	id, err := uuid.Parse(tokenUser.ID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID in token: %w", err)
+	}
+	return id, nil
 }

@@ -98,6 +98,17 @@ type Team struct {
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
 }
 
+type TeaseWorkspace struct {
+	CoursePhaseID    uuid.UUID        `json:"course_phase_id"`
+	Constraints      []byte           `json:"constraints"`
+	LockedStudents   []byte           `json:"locked_students"`
+	AllocationsDraft []byte           `json:"allocations_draft"`
+	AlgorithmType    pgtype.Text      `json:"algorithm_type"`
+	UpdatedBy        pgtype.UUID      `json:"updated_by"`
+	LastSavedAt      pgtype.Timestamp `json:"last_saved_at"`
+	LastExportedAt   pgtype.Timestamp `json:"last_exported_at"`
+}
+
 type Tutor struct {
 	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`

@@ -26,14 +26,14 @@ type TeaseWorkspace struct {
 }
 
 // TeaseWorkspaceRequest is the payload for PUT /workspace and the
-// workspace portion of POST /save. Server-managed timestamps are
-// intentionally omitted.
+// workspace portion of POST /save. Server-managed fields (timestamps,
+// UpdatedBy) are intentionally omitted — UpdatedBy is derived from the
+// authenticated token in the handler.
 type TeaseWorkspaceRequest struct {
 	Constraints      json.RawMessage `json:"constraints"`
 	LockedStudents   json.RawMessage `json:"lockedStudents"`
 	AllocationsDraft json.RawMessage `json:"allocationsDraft"`
 	AlgorithmType    *string         `json:"algorithmType"`
-	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 }
 
 // TeaseSaveRequest is the payload for POST /save. The client supplies
@@ -44,6 +44,5 @@ type TeaseSaveRequest struct {
 	LockedStudents   json.RawMessage `json:"lockedStudents"`
 	AllocationsDraft json.RawMessage `json:"allocationsDraft"`
 	AlgorithmType    *string         `json:"algorithmType"`
-	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 	Allocations      []Allocation    `json:"allocations"`
 }

@@ -133,17 +133,7 @@ export const App = () => {
               path='/management/privacy'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyOverviewPage />
-                  </PermissionRestriction>
+                  <PrivacyOverviewPage />
                 </ManagementRoot>
               }
             />

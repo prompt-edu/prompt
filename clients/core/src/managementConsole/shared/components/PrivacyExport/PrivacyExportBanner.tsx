@@ -107,13 +107,14 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
             ) : (
               <>
                 <Download className='h-4 w-4' />
-                Download All
+                <div className='flex gap-1'>
+                  <span>Download All</span>
+                  {completeSize != null && <span>({formatFileSize(completeSize)})</span>}
+                </div>
               </>
             )}
           </Button>
-          <span className='text-xs text-muted-foreground text-center w-full absolute top-10'>
-            {completeSize == null ? '' : '~' + formatFileSize(completeSize)}
-          </span>
+          <span className='text-xs text-muted-foreground text-center w-full absolute top-10'></span>
         </div>
       )}
     </div>

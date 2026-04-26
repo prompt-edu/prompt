@@ -36,7 +36,7 @@ export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocume
         {failedDocs.length > 0 && (
           <AnimatedDocSection
             title='Failed'
-            description='These microservices returned an error. Please contact an administrator or Prompts Privacy Contact.'
+            description='There was a problem exporting these parts. Please contact an administrator or Prompts Privacy Contact.'
             docs={failedDocs}
             exportId={exportId}
           />

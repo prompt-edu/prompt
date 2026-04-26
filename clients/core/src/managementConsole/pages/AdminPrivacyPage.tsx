@@ -29,7 +29,7 @@ export function AdminPrivacyPage() {
       </Button>
       <ManagementPageHeader>Privacy Dashboard</ManagementPageHeader>
       <p className='mb-8 text-muted-foreground'>
-        Monitor and manage privacy-related requests from users.
+        Monitor and manage Prompt&apos;s Privacy features
       </p>
 
       <div className='space-y-10'>

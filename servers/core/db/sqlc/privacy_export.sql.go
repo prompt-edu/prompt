@@ -84,11 +84,18 @@ func (q *Queries) CreateNewExportDoc(ctx context.Context, arg CreateNewExportDoc
 
 const getAllExports = `-- name: GetAllExports :many
 SELECT
-  e.id, e.user_id, e.student_id, e.status, e.date_created, e.valid_until,
-  COUNT(CASE WHEN ed.status = 'complete' THEN 1 END)::int AS total_docs,
-  COUNT(CASE WHEN ed.downloaded_at IS NOT NULL THEN 1 END)::int AS downloaded_docs,
-  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at,
-  COALESCE(ARRAY_AGG(ed.source_name) FILTER (WHERE ed.status = 'failed'), '{}'::text[]) AS failed_docs
+  e.id,
+  e.status,
+  e.date_created,
+  e.valid_until,
+  COALESCE(
+    JSON_AGG(JSON_BUILD_OBJECT(
+      'source_name', ed.source_name,
+      'status', ed.status,
+      'downloaded', ed.downloaded_at IS NOT NULL
+    ) ORDER BY ed.source_name) FILTER (WHERE ed.id IS NOT NULL),
+    '[]'::json
+  ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id
@@ -96,16 +103,11 @@ ORDER BY e.date_created DESC
 `
 
 type GetAllExportsRow struct {
-	ID               uuid.UUID          `json:"id"`
-	UserID           uuid.UUID          `json:"user_id"`
-	StudentID        pgtype.UUID        `json:"student_id"`
-	Status           ExportStatus       `json:"status"`
-	DateCreated      pgtype.Timestamptz `json:"date_created"`
-	ValidUntil       pgtype.Timestamptz `json:"valid_until"`
-	TotalDocs        int32              `json:"total_docs"`
-	DownloadedDocs   int32              `json:"downloaded_docs"`
-	LastDownloadedAt pgtype.Timestamptz `json:"last_downloaded_at"`
-	FailedDocs       interface{}        `json:"failed_docs"`
+	ID          uuid.UUID          `json:"id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+	Docs        interface{}        `json:"docs"`
 }
 
 func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error) {
@@ -119,15 +121,10 @@ func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error)
 		var i GetAllExportsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
-			&i.StudentID,
 			&i.Status,
 			&i.DateCreated,
 			&i.ValidUntil,
-			&i.TotalDocs,
-			&i.DownloadedDocs,
-			&i.LastDownloadedAt,
-			&i.FailedDocs,
+			&i.Docs,
 		); err != nil {
 			return nil, err
 		}

@@ -200,7 +200,11 @@ func GetAllExports(c context.Context) ([]privacyDTO.AdminPrivacyExport, error) {
 
 	exports := make([]privacyDTO.AdminPrivacyExport, 0, len(dbExports))
 	for _, dbExp := range dbExports {
-		exports = append(exports, privacyDTO.GetAdminPrivacyExportDTOFromDBModel(dbExp))
+		dto, err := privacyDTO.GetAdminPrivacyExportDTOFromDBModel(dbExp)
+		if err != nil {
+			return nil, err
+		}
+		exports = append(exports, dto)
 	}
 	return exports, nil
 }

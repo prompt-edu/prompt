@@ -1167,28 +1167,27 @@ definitions:
       valid:
         type: boolean
     type: object
+  privacyDTO.AdminExportDoc:
+    properties:
+      downloaded:
+        type: boolean
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+    type: object
   privacyDTO.AdminPrivacyExport:
     properties:
       date_created:
         type: string
-      downloaded_docs:
-        type: integer
-      failed_docs:
+      docs:
         items:
-          type: string
+          $ref: '#/definitions/privacyDTO.AdminExportDoc'
         type: array
       id:
         type: string
-      last_downloaded_at:
-        type: string
       status:
         $ref: '#/definitions/db.ExportStatus'
-      studentID:
-        type: string
-      total_docs:
-        type: integer
-      userID:
-        type: string
       valid_until:
         type: string
     type: object

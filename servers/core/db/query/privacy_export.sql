@@ -37,11 +37,18 @@ SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT
 
 -- name: GetAllExports :many
 SELECT
-  e.*,
-  COUNT(CASE WHEN ed.status = 'complete' THEN 1 END)::int AS total_docs,
-  COUNT(CASE WHEN ed.downloaded_at IS NOT NULL THEN 1 END)::int AS downloaded_docs,
-  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at,
-  COALESCE(ARRAY_AGG(ed.source_name) FILTER (WHERE ed.status = 'failed'), '{}'::text[]) AS failed_docs
+  e.id,
+  e.status,
+  e.date_created,
+  e.valid_until,
+  COALESCE(
+    JSON_AGG(JSON_BUILD_OBJECT(
+      'source_name', ed.source_name,
+      'status', ed.status,
+      'downloaded', ed.downloaded_at IS NOT NULL
+    ) ORDER BY ed.source_name) FILTER (WHERE ed.id IS NOT NULL),
+    '[]'::json
+  ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id

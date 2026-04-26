@@ -5712,38 +5712,37 @@ const docTemplate = `{
                 }
             }
         },
+        "privacyDTO.AdminExportDoc": {
+            "type": "object",
+            "properties": {
+                "downloaded": {
+                    "type": "boolean"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
         "privacyDTO.AdminPrivacyExport": {
             "type": "object",
             "properties": {
                 "date_created": {
                     "type": "string"
                 },
-                "downloaded_docs": {
-                    "type": "integer"
-                },
-                "failed_docs": {
+                "docs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/privacyDTO.AdminExportDoc"
                     }
                 },
                 "id": {
                     "type": "string"
                 },
-                "last_downloaded_at": {
-                    "type": "string"
-                },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
-                },
-                "studentID": {
-                    "type": "string"
-                },
-                "total_docs": {
-                    "type": "integer"
-                },
-                "userID": {
-                    "type": "string"
                 },
                 "valid_until": {
                     "type": "string"

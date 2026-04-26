@@ -139,50 +139,46 @@ var export3 = privacyDTO.PrivacyExport{
 	},
 }
 
-// AdminPrivacyExport variants – TotalDocs/DownloadedDocs are computed by the DB query.
-// None of the seed docs have downloaded_at set, so DownloadedDocs is 0 for all.
+// AdminPrivacyExport variants – Docs are returned as a minimal list ordered by source_name.
+// None of the seed docs have downloaded_at set, so Downloaded is false for all.
 var (
 	adminExport1 = privacyDTO.AdminPrivacyExport{
-		ID:             export1.ID,
-		UserID:         export1.UserID,
-		StudentID:      export1.StudentID,
-		Status:         export1.Status,
-		DateCreated:    export1.DateCreated,
-		ValidUntil:     export1.ValidUntil,
-		TotalDocs:      1, // only 'complete' docs
-		DownloadedDocs: 0, // none have downloaded_at set
-		FailedDocs:     []string{},
+		ID:          export1.ID,
+		Status:      export1.Status,
+		DateCreated: export1.DateCreated,
+		ValidUntil:  export1.ValidUntil,
+		Docs: []privacyDTO.AdminExportDoc{
+			{SourceName: "Core", Status: db.ExportStatusComplete, Downloaded: false},
+			{SourceName: "MicroserviceA", Status: db.ExportStatusNoData, Downloaded: false},
+		},
 	}
 	adminExport2 = privacyDTO.AdminPrivacyExport{
-		ID:             export2.ID,
-		UserID:         export2.UserID,
-		StudentID:      export2.StudentID,
-		Status:         export2.Status,
-		DateCreated:    export2.DateCreated,
-		ValidUntil:     export2.ValidUntil,
-		TotalDocs:      1, // only 'complete' docs (no_data + failed excluded)
-		DownloadedDocs: 0, // none have downloaded_at set
-		FailedDocs:     []string{"MicroserviceB"},
+		ID:          export2.ID,
+		Status:      export2.Status,
+		DateCreated: export2.DateCreated,
+		ValidUntil:  export2.ValidUntil,
+		Docs: []privacyDTO.AdminExportDoc{
+			{SourceName: "Core", Status: db.ExportStatusComplete, Downloaded: false},
+			{SourceName: "MicroserviceA", Status: db.ExportStatusNoData, Downloaded: false},
+			{SourceName: "MicroserviceB", Status: db.ExportStatusFailed, Downloaded: false},
+		},
 	}
 	adminExport3 = privacyDTO.AdminPrivacyExport{
-		ID:             export3.ID,
-		UserID:         export3.UserID,
-		StudentID:      export3.StudentID,
-		Status:         export3.Status,
-		DateCreated:    export3.DateCreated,
-		ValidUntil:     export3.ValidUntil,
-		TotalDocs:      0, // archived docs are not 'complete'
-		DownloadedDocs: 0, // none have downloaded_at set
-		FailedDocs:     []string{},
+		ID:          export3.ID,
+		Status:      export3.Status,
+		DateCreated: export3.DateCreated,
+		ValidUntil:  export3.ValidUntil,
+		Docs: []privacyDTO.AdminExportDoc{
+			{SourceName: "Core", Status: db.ExportStatusArchived, Downloaded: false},
+			{SourceName: "MicroserviceA", Status: db.ExportStatusArchived, Downloaded: false},
+		},
 	}
 	adminExport4 = privacyDTO.AdminPrivacyExport{
-		ID:             export4.ID,
-		UserID:         export4.UserID,
-		StudentID:      export4.StudentID,
-		Status:         export4.Status,
-		TotalDocs:      1,
-		DownloadedDocs: 0,
-		FailedDocs:     []string{},
+		ID:     export4.ID,
+		Status: export4.Status,
+		Docs: []privacyDTO.AdminExportDoc{
+			{SourceName: "Core", Status: db.ExportStatusComplete, Downloaded: false},
+		},
 	}
 )
 
@@ -263,13 +259,8 @@ func (suite *RouterTestSuite) TestRouterGetAllExportsAdmin() {
 	expected := []privacyDTO.AdminPrivacyExport{adminExport4, adminExport2, adminExport1, adminExport3}
 	for i, exp := range expected {
 		assert.Equal(suite.T(), exp.ID, exports[i].ID)
-		assert.Equal(suite.T(), exp.UserID, exports[i].UserID)
-		assert.Equal(suite.T(), exp.StudentID, exports[i].StudentID)
 		assert.Equal(suite.T(), exp.Status, exports[i].Status)
-		assert.Equal(suite.T(), exp.TotalDocs, exports[i].TotalDocs)
-		assert.Equal(suite.T(), exp.DownloadedDocs, exports[i].DownloadedDocs)
-		assert.Equal(suite.T(), exp.FailedDocs, exports[i].FailedDocs)
-		assert.Nil(suite.T(), exports[i].LastDownloadedAt)
+		assert.Equal(suite.T(), exp.Docs, exports[i].Docs)
 	}
 }
 

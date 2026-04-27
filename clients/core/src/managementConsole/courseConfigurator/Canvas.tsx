@@ -144,7 +144,7 @@ export function CourseConfigurator() {
   const isError = isMutationError
 
   return (
-    <div className='relative flex-grow h-full min-h-0'>
+    <div className='relative grow h-full min-h-0'>
       <CoursePhaseTypePanel canEdit={canEdit} />
       <div className='h-full flex flex-col' ref={reactFlowWrapper}>
         {isError && <ErrorPage message='Failed to save the changes' onRetry={handleRetry} />}

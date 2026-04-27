@@ -327,7 +327,7 @@ export function CourseGeneralSettings() {
                               <SelectItem key={color} value={color}>
                                 <div className='flex items-center gap-2'>
                                   <div
-                                    className={`w-5 h-5 rounded border border-border ${color}`}
+                                    className={`w-5 h-5 rounded-sm border border-border ${color}`}
                                   ></div>
                                   <span className='capitalize'>{color.split('-')[1]}</span>
                                 </div>

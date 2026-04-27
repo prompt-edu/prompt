@@ -5,27 +5,6 @@ import typography from '@tailwindcss/typography'
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
-  safelist: [
-    'dark',
-    'ProseMirror',
-    {
-      pattern: /^(dark:)?(bg|text|border)-[a-z]+(?:-[a-z]+)*(?:-\d{1,3})?$/,
-      variants: ['dark'],
-    },
-    {
-      pattern: /^grid-cols-\d+$/,
-      variants: ['sm', 'md', 'lg', 'xl', '2xl'],
-    },
-    {
-      pattern: /^col-span-\d+$/,
-      variants: ['sm', 'md', 'lg', 'xl', '2xl'],
-    },
-    {
-      pattern: /^flex/,
-      variants: ['sm', 'md', 'lg', 'xl', '2xl'],
-    },
-    'w-[120px]',
-  ],
   theme: {
     extend: {
       colors: {

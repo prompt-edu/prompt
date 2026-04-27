@@ -152,7 +152,7 @@ export const EvaluationOverviewPage = () => {
                   </h1>
                 </div>
               </div>
-              <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'>
+              <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
                 <EvaluationInfoCard
                   name='Self Evaluation'
                   navigationPath={`${path}/self-evaluation`}
@@ -181,7 +181,7 @@ export const EvaluationOverviewPage = () => {
                   .map((member) => (
                     <Card
                       key={member.id}
-                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'
+                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
                     >
                       <EvaluationInfoCard
                         name={member.firstName + ' ' + member.lastName}
@@ -219,7 +219,7 @@ export const EvaluationOverviewPage = () => {
                   .map((tutor) => (
                     <Card
                       key={tutor.id}
-                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'
+                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
                     >
                       <EvaluationInfoCard
                         name={tutor.firstName + ' ' + tutor.lastName}

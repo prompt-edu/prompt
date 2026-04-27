@@ -170,12 +170,19 @@ export const StudentDataCheck = () => {
         </p>
       )}
       <div className='mt-4 w-full'>
-        <Button asChild className='gap-2 w-full'>
-          <a href='/tease'>
-            Go to TEASE
+        {phaseId ? (
+          <Button asChild className='gap-2 w-full'>
+            <a href={`/tease?coursePhaseId=${phaseId}`} target='_blank' rel='noopener noreferrer'>
+              Launch Tease to Matchmake
+              <ArrowRight className='ml-2 h-4 w-4' />
+            </a>
+          </Button>
+        ) : (
+          <Button disabled className='gap-2 w-full'>
+            Launch Tease to Matchmake
             <ArrowRight className='ml-2 h-4 w-4' />
-          </a>
-        </Button>
+          </Button>
+        )}
       </div>
     </div>
   )

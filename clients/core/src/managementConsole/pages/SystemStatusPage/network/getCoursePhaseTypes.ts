@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { CoursePhaseType } from '../interfaces/coursePhaseType'
 
 export async function getCoursePhaseTypes(): Promise<CoursePhaseType[]> {

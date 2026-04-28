@@ -132,6 +132,40 @@ func TestSendEvaluationReminderManualTriggerDeadlineNotPassed(t *testing.T) {
 	assert.Contains(t, err.Error(), "deadline")
 }
 
+func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
+	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
+	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
+	t.Cleanup(func() {
+		getEvaluationReminderRecipientsForSendFn = oldRecipientsFn
+		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
+	})
+
+	getEvaluationReminderRecipientsForSendFn = func(
+		ctx context.Context,
+		authHeader string,
+		coursePhaseID uuid.UUID,
+		evaluationType assessmentType.AssessmentType,
+	) (coursePhaseConfigDTO.EvaluationReminderRecipients, error) {
+		return coursePhaseConfigDTO.EvaluationReminderRecipients{
+			EvaluationEnabled: true,
+			DeadlinePassed:    true,
+		}, nil
+	}
+
+	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
+		return coreCoursePhaseResponse{
+			ID:                  coursePhaseID,
+			Name:                "Assessment Phase",
+			RestrictedData:      map[string]any{},
+			StudentReadableData: map[string]any{},
+		}, nil
+	}
+
+	_, err := SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrReminderTemplateIncomplete)
+}
+
 func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testing.T) {
 	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn

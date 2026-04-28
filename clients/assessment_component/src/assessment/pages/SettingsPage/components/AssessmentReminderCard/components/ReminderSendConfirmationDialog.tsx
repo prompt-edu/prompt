@@ -32,14 +32,12 @@ export function ReminderSendConfirmationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm Reminder Send</DialogTitle>
+          <DialogTitle>Send reminder?</DialogTitle>
           <DialogDescription>
             {confirmationReminderType &&
-              `Send reminder emails for ${confirmationReminderType.label.toLowerCase()} to ${confirmationReminderType.recipientCount} currently incomplete ${
-                confirmationReminderType.recipientCount === 1 ? 'student' : 'students'
-              }?`}
+              `This sends ${confirmationReminderType.label.toLowerCase()} reminders to students who still have incomplete evaluations.`}
             {previousSentAt &&
-              ` A reminder for this type was already sent on ${formatSentAt(previousSentAt)}. Sending again will resend to currently incomplete students.`}
+              ` A reminder for this type was already sent on ${formatSentAt(previousSentAt)}.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

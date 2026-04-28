@@ -24,7 +24,7 @@ export function ReminderTemplateEditor({
   return (
     <div className='space-y-5'>
       <div className='space-y-1'>
-        <h3 className='text-base font-semibold text-foreground'>1. Write the reminder</h3>
+        <h3 className='text-base font-semibold text-foreground'>Reminder template</h3>
         <p className='text-sm leading-6 text-muted-foreground'>
           One shared template is used for self, peer, and tutor evaluation reminders.
         </p>
@@ -65,7 +65,7 @@ export function ReminderTemplateEditor({
           disabled={!isModified || isSaving || isPending}
           className='min-w-[160px]'
         >
-          {isSaving ? 'Saving...' : 'Save Template'}
+          {isSaving ? 'Saving...' : 'Save template'}
         </Button>
       </div>
     </div>

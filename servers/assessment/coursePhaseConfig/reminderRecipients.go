@@ -29,7 +29,7 @@ func GetEvaluationReminderRecipients(
 	}
 
 	evaluationEnabled, deadline := getEvaluationDeadlineConfig(config, evaluationType)
-	deadlinePassed := !deadline.Valid || !time.Now().Before(deadline.Time)
+	deadlinePassed := deadline.Valid && !time.Now().Before(deadline.Time)
 	var deadlineTime *time.Time
 	if deadline.Valid {
 		deadlineCopy := deadline.Time

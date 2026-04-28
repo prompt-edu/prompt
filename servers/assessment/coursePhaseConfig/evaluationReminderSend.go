@@ -26,6 +26,7 @@ var updateCoreCoursePhaseFn = updateCoreCoursePhase
 var (
 	ErrReminderEvaluationDisabled = errors.New("evaluation type is disabled for this course phase")
 	ErrReminderDeadlineNotPassed  = errors.New("evaluation deadline has not passed yet")
+	ErrReminderTemplateIncomplete = errors.New("assessment reminder template is incomplete")
 )
 
 const coreManualMailTimeout = 2 * time.Minute
@@ -85,7 +86,7 @@ func SendEvaluationReminderManualTrigger(
 		if recipients.Deadline != nil {
 			return report, fmt.Errorf("%w (deadline: %s)", ErrReminderDeadlineNotPassed, recipients.Deadline.Format(time.RFC3339))
 		}
-		return report, ErrReminderDeadlineNotPassed
+		return report, fmt.Errorf("%w: deadline is not configured", ErrReminderDeadlineNotPassed)
 	}
 
 	coursePhase, err := getCoreCoursePhaseFn(ctx, authHeader, coursePhaseID)
@@ -95,7 +96,7 @@ func SendEvaluationReminderManualTrigger(
 
 	subject, content, lastSentByType := getAssessmentReminderTemplate(coursePhase.RestrictedData)
 	if subject == "" || content == "" {
-		return report, fmt.Errorf("assessment reminder template incomplete: subject or content is empty")
+		return report, ErrReminderTemplateIncomplete
 	}
 	report.PreviousSentAt = getPreviousReminderSentAt(lastSentByType, evaluationType)
 

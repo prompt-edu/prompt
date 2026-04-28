@@ -4,5 +4,4 @@ export interface ReminderTypeConfig {
   type: EvaluationReminderType
   label: string
   deadline?: Date
-  recipientCount: number
 }

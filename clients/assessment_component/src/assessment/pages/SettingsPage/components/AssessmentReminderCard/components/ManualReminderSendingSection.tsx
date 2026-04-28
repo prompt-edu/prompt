@@ -9,7 +9,6 @@ interface ManualReminderSendingSectionProps {
   reminderTypes: ReminderTypeConfig[]
   lastSentAtByType: Partial<Record<EvaluationReminderType, string>>
   getDisableReason: (config: ReminderTypeConfig) => string | undefined
-  isEvaluationCompletionsPending: boolean
   isSending: boolean
   onSend: (type: EvaluationReminderType) => void
 }
@@ -18,16 +17,15 @@ export function ManualReminderSendingSection({
   reminderTypes,
   lastSentAtByType,
   getDisableReason,
-  isEvaluationCompletionsPending,
   isSending,
   onSend,
 }: ManualReminderSendingSectionProps) {
   return (
     <div className='space-y-4'>
       <div className='space-y-1'>
-        <h3 className='text-base font-semibold text-foreground'>2. Send reminders</h3>
+        <h3 className='text-base font-semibold text-foreground'>Send reminders</h3>
         <p className='text-sm leading-6 text-muted-foreground'>
-          Choose an evaluation type. Only students with incomplete evaluations receive a reminder.
+          Choose the evaluation type. Recipients are selected automatically when the mail is sent.
         </p>
       </div>
 
@@ -52,24 +50,14 @@ export function ManualReminderSendingSection({
                         type={mapReminderTypeToAssessmentType(reminderType.type)}
                       />
                     )}
-                    <Badge variant='secondary'>
-                      {isEvaluationCompletionsPending
-                        ? 'Calculating recipients...'
-                        : `${reminderType.recipientCount} ${
-                            reminderType.recipientCount === 1 ? 'recipient' : 'recipients'
-                          }`}
+                    <Badge variant={disabled ? 'outline' : 'secondary'}>
+                      {disabled ? 'Not ready' : 'Ready to send'}
                     </Badge>
                   </div>
 
                   <div className='grid gap-1 text-sm text-muted-foreground sm:grid-cols-2'>
                     <p>Deadline: {formatDeadline(reminderType.deadline)}</p>
                     <p>Last sent: {formatSentAt(lastSent)}</p>
-                    {!isEvaluationCompletionsPending && (
-                      <p className='sm:col-span-2'>
-                        Sending now would reach {reminderType.recipientCount}{' '}
-                        {reminderType.recipientCount === 1 ? 'student' : 'students'}.
-                      </p>
-                    )}
                   </div>
 
                   {disableReason && <p className='text-sm text-destructive'>{disableReason}</p>}
@@ -78,10 +66,10 @@ export function ManualReminderSendingSection({
                 <Button
                   onClick={() => onSend(reminderType.type)}
                   disabled={disabled}
-                  className='w-full lg:w-auto lg:min-w-[150px]'
+                  className='w-full lg:w-auto lg:min-w-[120px]'
                   size='sm'
                 >
-                  Send Reminder
+                  Send
                 </Button>
               </div>
             </div>

@@ -1,9 +1,7 @@
-import type { CoursePhaseWithMetaData, Team } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 import { format } from 'date-fns'
 
-import type { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
 import type { CoursePhaseConfig } from '../../../../interfaces/coursePhaseConfig'
-import type { EvaluationCompletion } from '../../../../interfaces/evaluationCompletion'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type {
   AssessmentReminderMetaData,
@@ -16,21 +14,6 @@ export const EMPTY_REMINDER_META: AssessmentReminderMetaData = {
   content: '',
   lastSentAtByType: {},
 }
-
-export const ASSESSMENT_REMINDER_PLACEHOLDERS = [
-  {
-    placeholder: '{{evaluationType}}',
-    description: 'Current evaluation type (Self Evaluation, Peer Evaluation, Tutor Evaluation)',
-  },
-  {
-    placeholder: '{{evaluationDeadline}}',
-    description: 'Deadline of the selected evaluation type',
-  },
-  {
-    placeholder: '{{coursePhaseName}}',
-    description: 'Name of the current course phase',
-  },
-]
 
 export const parseReminderMetaData = (
   coursePhase: CoursePhaseWithMetaData | undefined,
@@ -81,87 +64,9 @@ export const mapReminderTypeToAssessmentType = (
   }
 }
 
-const deduplicateIds = (ids: string[]) => [...new Set(ids)]
-
-const getCompletedTargetsByAuthor = (
-  evaluationCompletions: EvaluationCompletion[] | undefined,
-  reminderType: EvaluationReminderType,
-) => {
-  const completedTargetsByAuthor = new Map<string, Set<string>>()
-
-  evaluationCompletions?.forEach((completion) => {
-    if (completion.type !== reminderType || !completion.completed) return
-
-    const existingTargets = completedTargetsByAuthor.get(completion.authorCourseParticipationID)
-    if (existingTargets) {
-      existingTargets.add(completion.courseParticipationID)
-      return
-    }
-
-    completedTargetsByAuthor.set(
-      completion.authorCourseParticipationID,
-      new Set([completion.courseParticipationID]),
-    )
-  })
-
-  return completedTargetsByAuthor
-}
-
-const getExpectedTargets = (
-  reminderType: EvaluationReminderType,
-  courseParticipationID: string,
-  teamID: string,
-  teams: Team[],
-) => {
-  if (reminderType === 'self') {
-    return [courseParticipationID]
-  }
-
-  const team = teams.find((currentTeam) => currentTeam.id === teamID)
-  if (!team) return []
-
-  if (reminderType === 'peer') {
-    return deduplicateIds(
-      (team.members ?? [])
-        .map((member) => member.id)
-        .filter((id): id is string => !!id && id !== courseParticipationID),
-    )
-  }
-
-  return deduplicateIds(
-    (team.tutors ?? []).map((tutor) => tutor.id).filter((id): id is string => !!id),
-  )
-}
-
 export const getReminderTypes = (
   coursePhaseConfig: CoursePhaseConfig | undefined,
-  participations: AssessmentParticipationWithStudent[],
-  teams: Team[],
-  evaluationCompletions: EvaluationCompletion[] | undefined,
 ): ReminderTypeConfig[] => {
-  const getRecipientCount = (type: EvaluationReminderType) => {
-    const completedTargetsByAuthor = getCompletedTargetsByAuthor(evaluationCompletions, type)
-
-    return participations.filter((participation) => {
-      const expectedTargets = getExpectedTargets(
-        type,
-        participation.courseParticipationID,
-        participation.teamID,
-        teams,
-      )
-
-      if (expectedTargets.length === 0) {
-        return false
-      }
-
-      const authorCompletedTargets = completedTargetsByAuthor.get(
-        participation.courseParticipationID,
-      )
-
-      return expectedTargets.some((targetID) => !authorCompletedTargets?.has(targetID))
-    }).length
-  }
-
   const activeReminderTypes: ReminderTypeConfig[] = []
 
   if (coursePhaseConfig?.selfEvaluationEnabled) {
@@ -169,7 +74,6 @@ export const getReminderTypes = (
       type: 'self',
       label: 'Self Evaluation',
       deadline: coursePhaseConfig.selfEvaluationDeadline,
-      recipientCount: getRecipientCount('self'),
     })
   }
 
@@ -178,7 +82,6 @@ export const getReminderTypes = (
       type: 'peer',
       label: 'Peer Evaluation',
       deadline: coursePhaseConfig.peerEvaluationDeadline,
-      recipientCount: getRecipientCount('peer'),
     })
   }
 
@@ -187,7 +90,6 @@ export const getReminderTypes = (
       type: 'tutor',
       label: 'Tutor Evaluation',
       deadline: coursePhaseConfig.tutorEvaluationDeadline,
-      recipientCount: getRecipientCount('tutor'),
     })
   }
 

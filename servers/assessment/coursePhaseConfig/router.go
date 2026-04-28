@@ -336,7 +336,8 @@ func sendEvaluationReminder(c *gin.Context) {
 	)
 	if err != nil {
 		if errors.Is(err, ErrReminderDeadlineNotPassed) ||
-			errors.Is(err, ErrReminderEvaluationDisabled) {
+			errors.Is(err, ErrReminderEvaluationDisabled) ||
+			errors.Is(err, ErrReminderTemplateIncomplete) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}

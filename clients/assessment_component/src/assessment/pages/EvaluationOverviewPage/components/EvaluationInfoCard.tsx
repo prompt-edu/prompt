@@ -30,7 +30,7 @@ export const EvaluationInfoCard = ({
         <div className='flex-1'>
           <h2 className='text-xl font-semibold tracking-tight'>{name}</h2>
         </div>
-        <div className='flex-shrink-0'>
+        <div className='shrink-0'>
           <AssessmentStatusBadge
             remainingAssessments={competencyCount - (evaluations?.length || 0)}
             isFinalized={completed}

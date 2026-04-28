@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/pr
 import { Course, Role } from '@tumaet/prompt-shared-state'
 import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
 import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { formatDate } from '@core/utils/formatDate'
 import { CourseArchiveButton } from './CourseArchiveButton'
 import { useNavigate } from 'react-router-dom'
@@ -62,7 +62,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         </div>
       </CardHeader>
 
-      <CardContent className='p-6 flex-grow'>
+      <CardContent className='p-6 grow'>
         <div className='space-y-5'>
           <CourseMetaItem
             icon={<CalendarDays className='w-5 h-5 text-gray-700' />}
@@ -101,7 +101,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
 
         <button
           onClick={() => navigate(`/management/course/${course.id}`)}
-          className='text-sm font-medium text-primary flex items-center hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 rounded'
+          className='text-sm font-medium text-primary flex items-center hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 rounded-sm'
         >
           Go to course <ChevronRight className='ml-1 h-4 w-4' />
         </button>

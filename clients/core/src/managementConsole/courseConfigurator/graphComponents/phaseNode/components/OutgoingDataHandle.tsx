@@ -18,7 +18,7 @@ export const OutgoingDataHandle = ({ phaseID, dto, type }: OutgoingDataHandlePro
     <div
       className={`flex items-center justify-end p-2 rounded-md 
         ${isParticipationEdge ? 'bg-green-50 text-green-700' : 'bg-purple-50 text-purple-700'} 
-        relative shadow-sm transition-all duration-200`}
+        relative shadow-xs transition-all duration-200`}
     >
       <span className='mr-2 text-sm'>{camelToTitle(dto.dtoName)}</span>
       <Handle
@@ -30,7 +30,7 @@ export const OutgoingDataHandle = ({ phaseID, dto, type }: OutgoingDataHandlePro
           top: '50%',
           background: isParticipationEdge ? EDGE_COLOR_GREEN : EDGE_COLOR_PURPLE,
         }}
-        className='!w-3 !h-3 rounded-full'
+        className='w-3! h-3! rounded-full'
       />
     </div>
   )

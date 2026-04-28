@@ -2012,6 +2012,39 @@ paths:
       summary: List teams for course phase
       tags:
       - course_phase_config
+  /course_phase/{coursePhaseID}/config/unrelease:
+    post:
+      description: Unrelease assessment results for the course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unrelease assessment results
+      tags:
+      - course_phase_config
   /course_phase/{coursePhaseID}/evaluation:
     get:
       description: List evaluations for a course phase.

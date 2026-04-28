@@ -35,8 +35,8 @@ export function AssessmentStatusBadge({
       ),
     isInProgress &&
       cn(
-        'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-200',
-        'hover:bg-amber-100 hover:text-amber-800 hover:dark:bg-amber-800 hover:dark:text-amber-200',
+        'border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200',
+        'hover:bg-orange-200 hover:text-orange-900 dark:hover:bg-orange-950/55 dark:hover:text-orange-100',
       ),
     className,
   )

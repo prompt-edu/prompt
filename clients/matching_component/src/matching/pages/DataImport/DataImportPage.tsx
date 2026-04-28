@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMatchingStore } from '../../zustand/useMatchingStore'
 import MatchingResults from './components/MatchingResults'
 import { useStudentImportMatching } from './hooks/useStudentImportMatching'
-import { useUpdateCoursePhaseParticipationBatch } from '@/hooks/useUpdateCoursePhaseParticipationBatch'
+import { useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
 import { PassStatus, UpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 import {
   Button,

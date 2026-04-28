@@ -269,6 +269,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - KEYCLOAK_AUTHORIZED_PARTY
       - SENTRY_DSN_CERTIFICATE
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 

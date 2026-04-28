@@ -5,10 +5,21 @@ import { env } from '@tumaet/prompt-shared-state'
 
 import App from './App'
 
+declare const __LOCAL_SENTRY_DSN_CLIENT__: string
+declare const __LOCAL_SENTRY_ENABLED__: string
+
+const sentryEnv = env as typeof env & {
+  SENTRY_DSN_CLIENT?: string
+  SENTRY_ENABLED?: string
+}
+
 // Initialize Sentry if enabled and DSN is provided
-if (env.SENTRY_ENABLED === 'true' && env.SENTRY_DSN_CLIENT) {
+const sentryEnabled = (sentryEnv.SENTRY_ENABLED || __LOCAL_SENTRY_ENABLED__) === 'true'
+const sentryDsn = sentryEnv.SENTRY_DSN_CLIENT || __LOCAL_SENTRY_DSN_CLIENT__
+
+if (sentryEnabled && sentryDsn) {
   Sentry.init({
-    dsn: env.SENTRY_DSN_CLIENT,
+    dsn: sentryDsn,
     environment: env.ENVIRONMENT || 'development',
     sendDefaultPii: true,
   })

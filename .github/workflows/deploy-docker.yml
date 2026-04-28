@@ -202,6 +202,9 @@ jobs:
             echo "TEAM_ALLOCATION_HOST=${{ vars.TEAM_ALLOCATION_HOST }}" >> .env.prod
             echo "SELF_TEAM_ALLOCATION_HOST=${{ vars.SELF_TEAM_ALLOCATION_HOST }}" >> .env.prod
             echo "ASSESSMENT_HOST=${{ vars.ASSESSMENT_HOST }}" >> .env.prod
+            echo "TEMPLATE_HOST=${{ vars.TEMPLATE_HOST != '' && vars.TEMPLATE_HOST || vars.CORE_HOST }}" >> .env.prod
+            echo "INTERVIEW_HOST=${{ vars.INTERVIEW_HOST != '' && vars.INTERVIEW_HOST || vars.CORE_HOST }}" >> .env.prod
+            echo "CERTIFICATE_HOST=${{ vars.CERTIFICATE_HOST != '' && vars.CERTIFICATE_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "CHAIR_NAME_SHORT=${{ vars.CHAIR_NAME_SHORT }}" >> .env.prod
             echo "CHAIR_NAME_LONG=${{ vars.CHAIR_NAME_LONG }}" >> .env.prod
 
@@ -265,6 +268,7 @@ jobs:
             # echo "SENTRY_DSN_SELF_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_SELF_TEAM_ALLOCATION }}" >> .env.prod
             # echo "SENTRY_DSN_ASSESSMENT=${{ vars.SENTRY_DSN_ASSESSMENT }}" >> .env.prod
             # echo "SENTRY_DSN_INTERVIEW=${{ vars.SENTRY_DSN_INTERVIEW }}" >> .env.prod
+            echo "SENTRY_DSN_CLIENT=${{ vars.SENTRY_DSN_CLIENT != '' && vars.SENTRY_DSN_CLIENT || 'disabled' }}" >> .env.prod
 
             echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env.prod
 

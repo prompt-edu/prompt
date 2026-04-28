@@ -554,6 +554,7 @@ services:
     container_name: prompt-client-core
     environment:
       - TZ=Europe/Berlin
+      - ENVIRONMENT
       - CORE_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
@@ -567,6 +568,10 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - SENTRY_DSN_CLIENT
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

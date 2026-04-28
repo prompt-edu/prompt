@@ -27,6 +27,9 @@ export const ServiceStatusCard = ({
   isPending,
   isError,
 }: ServiceStatusCardProps) => {
+  const capabilities = data?.capabilities ?? {}
+  const isHealthy = data?.healthy === true
+
   return (
     <Card>
       <CardHeader className='pb-3'>
@@ -43,7 +46,7 @@ export const ServiceStatusCard = ({
                 if (isError || data == null) {
                   return 'Offline'
                 }
-                if (!data?.healthy) {
+                if (!isHealthy) {
                   return 'OnlineUnhealthy'
                 } else {
                   return 'Online'
@@ -62,10 +65,10 @@ export const ServiceStatusCard = ({
           <>
             <dl className='grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm'>
               <dt className='text-muted-foreground'>Version</dt>
-              <dd>{data!.version ? `${data!.version}` : 'n/a'}</dd>
+              <dd>{data?.version ? `${data.version}` : 'n/a'}</dd>
               <dt className='text-muted-foreground'>Health</dt>
-              <dd className={data!.healthy ? 'text-green-600' : 'text-yellow-600'}>
-                {data!.healthy ? 'Healthy' : 'Degraded'}
+              <dd className={isHealthy ? 'text-green-600' : 'text-yellow-600'}>
+                {isHealthy ? 'Healthy' : 'Degraded'}
               </dd>
             </dl>
             <Separator />
@@ -75,7 +78,7 @@ export const ServiceStatusCard = ({
               </p>
               <ul className='flex flex-col gap-1.5'>
                 {ALL_KNOWN_CAPABILITIES.map((key) => {
-                  const supported = data!.capabilities[key] === true
+                  const supported = capabilities[key] === true
                   return (
                     <li key={key} className='flex items-center gap-2 text-sm'>
                       {supported ? (

@@ -1,4 +1,4 @@
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 
 interface CourseTemplateIconProps {
   iconName: string

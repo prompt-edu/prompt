@@ -1,4 +1,6 @@
 // Matches all * _component files
+declare module '*.css'
+
 declare module '*_component/routes' {
   import { RouteObject } from 'react-router-dom'
 
@@ -7,7 +9,7 @@ declare module '*_component/routes' {
 }
 
 declare module '*_component/sidebar' {
-  import { SidebarMenuItemProps } from '@/interfaces/sidebar'
+  import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 
   const sidebar: SidebarMenuItemProps
   export default sidebar

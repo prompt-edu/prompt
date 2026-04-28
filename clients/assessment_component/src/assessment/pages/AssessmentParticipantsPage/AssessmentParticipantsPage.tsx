@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 
 import { ManagementPageHeader, ErrorPage, TableFilter } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
+import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
@@ -28,7 +28,7 @@ import {
   createPeerEvalStatusColumn,
   createTutorEvalStatusColumn,
 } from './columns'
-import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
 
 export const AssessmentParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

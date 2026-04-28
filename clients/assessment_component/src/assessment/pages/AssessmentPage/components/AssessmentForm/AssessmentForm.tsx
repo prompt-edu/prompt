@@ -211,9 +211,8 @@ export const AssessmentForm = ({
 
   return (
     <Form {...form}>
-      <div className={'grid grid-cols-1 lg:grid-cols-2 gap-4 items-start p-4 border rounded-md'}>
+      <div className='space-y-4 p-4 border rounded-md'>
         <CompetencyHeader
-          className='lg:col-span-2'
           competency={competency}
           competencyScore={assessment}
           completed={completed}
@@ -221,7 +220,7 @@ export const AssessmentForm = ({
         />
 
         <ScoreLevelSelector
-          className='lg:col-span-2 grid grid-cols-1 lg:grid-cols-5 gap-1'
+          className='grid grid-cols-1 gap-1 md:grid-cols-5'
           competency={competency}
           selectedScore={selectedScore}
           onScoreChange={handleScoreChange}
@@ -246,7 +245,7 @@ export const AssessmentForm = ({
         />
 
         {!shouldHideCommentAndExample && (
-          <>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <AssessmentTextField
               control={form.control}
               name='examples'
@@ -264,7 +263,7 @@ export const AssessmentForm = ({
               getScoreLevel={() => form.getValues('scoreLevel')}
               onBlur={saveAssessment}
             />
-          </>
+          </div>
         )}
 
         {error && !completed && <FormMessage className='mt-2'>{error}</FormMessage>}

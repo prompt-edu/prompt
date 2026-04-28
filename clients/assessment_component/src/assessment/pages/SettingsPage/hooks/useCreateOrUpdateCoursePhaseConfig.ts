@@ -32,6 +32,10 @@ export const useCreateOrUpdateCoursePhaseConfig = (
       createOrUpdateCoursePhaseConfig(phaseId ?? '', request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coursePhaseConfig', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
       options?.onSuccess?.()
     },
     onError: (error: unknown) => {

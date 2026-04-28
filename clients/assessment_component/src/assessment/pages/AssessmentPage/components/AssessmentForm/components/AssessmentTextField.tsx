@@ -54,8 +54,8 @@ export const AssessmentTextField = <T extends FieldValues>({
           },
         }}
         render={({ field, fieldState }) => (
-          <FormItem className='flex flex-col flex-grow'>
-            <FormControl className='flex-grow'>
+          <FormItem className='flex flex-col grow'>
+            <FormControl className='grow'>
               <Textarea
                 placeholder={completed ? '' : placeholder}
                 className={cn(

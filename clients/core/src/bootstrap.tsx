@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 
 import * as Sentry from '@sentry/react'
-import { env } from '@/env'
+import { env } from '@tumaet/prompt-shared-state'
 
 import App from './App'
 

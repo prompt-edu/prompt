@@ -24,7 +24,7 @@ export function InstructorNotesCreateForm({
           lastName={user?.lastName ?? ''}
         />
       </div>
-      <div className='w-full'>
+      <div className='flex-1 min-w-0'>
         <div className='text-sm font-medium'>
           <span className='font-semibold'>
             {user?.firstName} {user?.lastName}

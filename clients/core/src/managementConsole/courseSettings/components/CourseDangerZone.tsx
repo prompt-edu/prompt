@@ -16,7 +16,7 @@ interface CourseDangeZoneActionProps {
   description: string
   action: () => void
   label: string
-  variant?: 'link' | 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost'
+  variant?: 'link' | 'default' | 'destructive' | 'outline-solid' | 'secondary' | 'ghost'
   disabled?: boolean
 }
 

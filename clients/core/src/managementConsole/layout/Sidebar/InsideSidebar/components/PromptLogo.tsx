@@ -28,10 +28,10 @@ export const PromptLogo = () => {
       <img
         src='/prompt_logo.svg'
         alt='Prompt logo'
-        className={`size-8 -mr-1 ${hasMigration ? '[filter:sepia(1)_saturate(5)_hue-rotate(330deg)]' : ''}`}
+        className={`size-8 -mr-1 ${hasMigration ? 'filter-[sepia(1)_saturate(5)_hue-rotate(330deg)]' : ''}`}
       />
       <div className='relative flex items-baseline'>
-        <span className='text-lg font-extrabold tracking-wide text-primary drop-shadow-sm'>
+        <span className='text-lg font-extrabold tracking-wide text-primary drop-shadow-xs'>
           PROMPT
         </span>
         <span className='ml-1 text-xs font-normal text-gray-400'>{pr ? `#${pr}` : version}</span>

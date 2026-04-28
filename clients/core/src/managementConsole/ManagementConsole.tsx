@@ -142,21 +142,27 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
 
   return (
     <DarkModeProvider>
-      <SidebarProvider>
+      <SidebarProvider
+        style={
+          {
+            '--sidebar-width': 'calc(var(--sidebar-width-icon) + 222px + 1px)',
+          } as React.CSSProperties
+        }
+      >
         <AppSidebar />
         <SidebarInset>
           {courseId && !courseExists && <CourseNotFound courseId={courseId || ''} />}
-          <header className='fixed top-0 z-10 flex h-14 w-full shrink-0 items-center gap-2 border-b bg-background px-4'>
-            <SidebarTrigger className='-ml-1' />
-            <Separator orientation='vertical' className='mr-2 h-4' />
-            <Breadcrumbs />
-          </header>
-          <div className='fixed top-0 right-0 z-20 flex h-14 items-center pr-4'>
+          <header className='sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4'>
+            <div className='flex min-w-0 items-center gap-2'>
+              <SidebarTrigger className='-ml-1' />
+              <Separator orientation='vertical' className='mr-2 h-4' />
+              <Breadcrumbs />
+            </div>
             <NavUserMenu onLogout={() => logout()} />
-          </div>
+          </header>
           <div
             id='management-children'
-            className='flex flex-1 flex-col gap-4 p-6 pt-20 overflow-auto'
+            className='flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6'
           >
             {hasChildren ? children : <EmptyPage />}
           </div>

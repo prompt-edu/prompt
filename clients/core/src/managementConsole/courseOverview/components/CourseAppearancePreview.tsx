@@ -26,7 +26,7 @@ export const CourseAppearancePreview = ({
         <div
           className={[
             'relative flex aspect-square size-14 items-center justify-center',
-            'after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-primary after:shadow-sm',
+            'after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-primary after:shadow-xs',
           ].join(' ')}
         >
           <div

@@ -1,4 +1,4 @@
-import '@tumaet/prompt-ui-components/index.css'
+import './styles.css'
 
 import('./bootstrap')
 

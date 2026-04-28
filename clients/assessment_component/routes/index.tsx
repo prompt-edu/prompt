@@ -1,3 +1,5 @@
+import '../src/loadStyles'
+
 import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 

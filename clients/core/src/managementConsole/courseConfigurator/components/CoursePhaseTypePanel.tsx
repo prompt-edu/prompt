@@ -43,7 +43,7 @@ export const CoursePhaseTypePanel = ({ canEdit }: CoursePhaseTypePanelProps) => 
         transition={{ duration: 0.1 }}
       >
         <ChevronRight className='h-4 w-4' />
-        <span className='transform -rotate-90 text-nowrap mt-12 -translate-x-[2px]'>
+        <span className='transform -rotate-90 text-nowrap mt-12 translate-x-[-2px]'>
           Course phases
         </span>
       </motion.div>

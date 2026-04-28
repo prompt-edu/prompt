@@ -44,14 +44,14 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
       {/* Card Content */}
       <CardContent className='p-4 relative'>
         {/* 1. Participants Row */}
-        <div className='participants-row relative flex items-center justify-between bg-blue-100 p-2 rounded mb-4'>
+        <div className='participants-row relative flex items-center justify-between bg-blue-100 p-2 rounded-sm mb-4'>
           {!phaseType?.initialPhase && (
             <Handle
               type='target'
               position={Position.Left}
               id={`participants-in-${id}`}
               style={{ left: '-28px', background: EDGE_COLOR_BLUE }}
-              className='!w-3 !h-3 rounded-full'
+              className='w-3! h-3! rounded-full'
             />
           )}
           <div className='flex items-center justify-center w-full'>
@@ -63,7 +63,7 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
             position={Position.Right}
             id={`participants-out-${id}`}
             style={{ right: '-28px', background: EDGE_COLOR_BLUE }}
-            className='!w-3 !h-3 rounded-full'
+            className='w-3! h-3! rounded-full'
           />
         </div>
 

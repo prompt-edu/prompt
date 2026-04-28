@@ -269,7 +269,7 @@ export const InterviewCard = () => {
                   output='html'
                   placeholder='Type your answer here...'
                   editable={true}
-                  editorClassName='focus:outline-none'
+                  editorClassName='focus:outline-hidden'
                 />
               </TooltipProvider>
               {index < interviewQuestions.length - 1 && <Separator className='mt-3 mb-3' />}

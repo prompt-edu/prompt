@@ -133,21 +133,24 @@ export const ApplicationQuestionConfig = () => {
       return
     }
 
-    const updatedSettings = pruneCsvExportSettings(
-      {
-        ...csvExportSettings,
-        [questionID]: checked,
-      },
-      applicationQuestions,
-      originalQuestions,
-    )
+    setCsvExportSettings((prev) => {
+      const updatedSettings = pruneCsvExportSettings(
+        {
+          ...prev,
+          [questionID]: checked,
+        },
+        applicationQuestions,
+        originalQuestions,
+      )
 
-    setCsvExportSettings(updatedSettings)
-    updateCoursePhaseMetaData({
-      id: phaseId ?? '',
-      restrictedData: {
-        [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,
-      },
+      updateCoursePhaseMetaData({
+        id: phaseId ?? '',
+        restrictedData: {
+          [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,
+        },
+      })
+
+      return updatedSettings
     })
   }
 

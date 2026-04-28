@@ -6,14 +6,14 @@ export const CheckItem = ({ check }: { check: ValidationResult }) => {
   return (
     <Card className={`border-l-4 ${check.isValid ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
       <CardContent className='flex items-center gap-4 p-4'>
-        <div className='flex-shrink-0'>
+        <div className='shrink-0'>
           {check.isValid ? (
             <CheckCircle className='h-6 w-6 text-green-500' />
           ) : (
             <AlertCircle className='h-6 w-6 text-yellow-500' />
           )}
         </div>
-        <div className='flex-grow'>
+        <div className='grow'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-2'>
               {check.icon}

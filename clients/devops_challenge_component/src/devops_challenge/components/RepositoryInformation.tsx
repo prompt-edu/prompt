@@ -89,7 +89,7 @@ export const RepositoryInformation = () => {
                 >
                   {repoUrl}
                 </a>
-                <ExternalLink className='h-3 w-3 flex-shrink-0' />
+                <ExternalLink className='h-3 w-3 shrink-0' />
               </div>
               <Button
                 variant='ghost'

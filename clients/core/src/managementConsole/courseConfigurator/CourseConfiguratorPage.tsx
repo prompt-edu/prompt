@@ -16,7 +16,7 @@ export default function CourseConfiguratorPage() {
         <HelpDialog />
       </div>
 
-      <Card className='flex-grow min-h-0 flex flex-col overflow-hidden'>
+      <Card className='grow min-h-0 flex flex-col overflow-hidden'>
         {isError ? (
           <ErrorPage
             title='Error'

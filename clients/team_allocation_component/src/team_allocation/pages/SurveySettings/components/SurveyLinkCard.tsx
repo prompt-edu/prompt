@@ -34,7 +34,7 @@ export const SurveyLinkCard = () => {
         <span className='text-sm text-secondary-foreground font-medium'>Survey Link</span>
       </div>
       <div className='flex items-center mt-2 gap-2'>
-        <span className='text-sm text-muted-foreground truncate flex-1 font-mono bg-muted px-2 py-1 rounded'>
+        <span className='text-sm text-muted-foreground truncate flex-1 font-mono bg-muted px-2 py-1 rounded-sm'>
           {surveyLink ?? 'Not available'}
         </span>
         <Button

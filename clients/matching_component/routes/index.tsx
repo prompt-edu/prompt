@@ -1,6 +1,6 @@
 import { DataExportPage } from '../src/matching/pages/DataExport/DataExportPage'
 import { MatchingOverviewPage } from '../src/matching/MatchingOverviewPage'
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 import { MatchingParticipantsPage } from '../src/matching/pages/MatchingParticipantsPage/MatchingParticipantsPage'
 import { DataImportPage } from '../src/matching/pages/DataImport/DataImportPage'

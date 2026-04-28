@@ -49,7 +49,7 @@ export const CreateCompetencyForm = ({
   }
 
   return (
-    <Card className='w-full shadow-sm'>
+    <Card className='w-full shadow-xs'>
       <CardHeader>
         <CardTitle>Create New Competency</CardTitle>
       </CardHeader>
@@ -124,7 +124,7 @@ export const CreateCompetencyForm = ({
           <div className='space-y-2'>
             <h3 className='text-sm font-medium text-muted-foreground'>Proficiency Levels</h3>
 
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5'>
               <div className='space-y-2'>
                 <Label htmlFor='descriptionVeryBad' className='font-medium'>
                   Very Bad

@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { InstructorNote } from '../../interfaces/InstructorNote'
 import { formatNoteDate } from '@core/utils/formatDate'
-import { ProfilePicture } from '@/components/StudentProfilePicture'
+import { ProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteActionButtons } from './InstructorNoteActionButtons'
 import { InstructorNoteTags } from './InstructorNoteTag'
 
@@ -70,7 +70,7 @@ export function NoteWrapper({
       {!showVersions && (
         <div
           className={`absolute right-0 top-0 flex items-center gap-1 px-1 h-6
-          bg-background [box-shadow:-12px_0_12px_2px_hsl(var(--background))] [clip-path:inset(0_0_0_-50px)] transform -translate-y-[2px]
+          bg-background [box-shadow:-12px_0_12px_2px_hsl(var(--background))] [clip-path:inset(0_0_0_-50px)] transform translate-y-[-2px]
           transition-opacity ${isHovered && !isEditing ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         >
           {latestVersion && (

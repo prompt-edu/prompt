@@ -69,7 +69,7 @@ export function MultiSelectConfig({
                                 <div className='flex items-center space-x-2 p-2'>
                                   <div
                                     {...prov.dragHandleProps}
-                                    className='cursor-move p-2 hover:bg-muted rounded transition-colors'
+                                    className='cursor-move p-2 hover:bg-muted rounded-sm transition-colors'
                                   >
                                     <GripVertical className='h-5 w-5 text-muted-foreground' />
                                   </div>
@@ -80,7 +80,7 @@ export function MultiSelectConfig({
                                       <Input
                                         {...field}
                                         placeholder={`Option ${index + 1}`}
-                                        className='flex-grow'
+                                        className='grow'
                                       />
                                     )}
                                   />

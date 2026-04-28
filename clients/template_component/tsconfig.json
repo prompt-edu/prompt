@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": "..",
     "outDir": "./dist/",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -9,15 +10,12 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "allowJs": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
-    "typeRoots": ["./node_modules/@types", "./@types"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["../shared_library/*"]
-    }
+    "types": ["node"],
+    "paths": {}
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js",  "tailwind.config.js"]
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js"]
 }

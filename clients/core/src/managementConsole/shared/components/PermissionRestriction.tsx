@@ -1,7 +1,7 @@
 import { useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
 import { Role, getPermissionString } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
-import UnauthorizedPage from '@/components/UnauthorizedPage'
+import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { CourseParticipation } from '../interfaces/CourseParticipation'

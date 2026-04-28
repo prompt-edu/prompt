@@ -25,7 +25,7 @@ export const ApplicationSettingsOverviewApplicationLink = () => {
         <span className='text-sm text-secondary-foreground font-medium'>Application Link</span>
       </div>
       <div className='flex items-center mt-2 gap-2'>
-        <span className='text-sm text-muted-foreground truncate flex-1 font-mono bg-muted px-2 py-1 rounded'>
+        <span className='text-sm text-muted-foreground truncate flex-1 font-mono bg-muted px-2 py-1 rounded-sm'>
           {applicationLink ?? 'Not available'}
         </span>
         <Button

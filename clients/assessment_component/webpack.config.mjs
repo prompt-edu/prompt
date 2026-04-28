@@ -68,7 +68,11 @@ const config = (env) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
       alias: {
-        '@': path.resolve('../shared_library'),
+        '@hookform/resolvers': path.resolve(__dirname, '../node_modules/@hookform/resolvers'),
+        '@hookform/resolvers/zod': path.resolve(
+          __dirname,
+          '../node_modules/@hookform/resolvers/zod',
+        ),
       },
     },
     plugins: [

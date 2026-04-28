@@ -71,7 +71,7 @@ export const GithubUsernameInput = () => {
               className='text-primary hover:underline inline-flex items-center mr-1 truncate'
             >
               {'https://github.com/signup'}
-              <ExternalLink className='h-3 w-3 flex-shrink-0 ml-1' />
+              <ExternalLink className='h-3 w-3 shrink-0 ml-1' />
             </a>
             <br />
             Make sure to enter your full name and use a picture of yourself in your Github account

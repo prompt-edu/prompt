@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { useParams } from 'react-router-dom'
 import { getConfig } from '../../network/queries/getConfig'
-import { MissingSettings, MissingSettingsItem } from '@/components/MissingSettings'
+import { MissingSettings, MissingSettingsItem } from '@tumaet/prompt-ui-components'
 import { useEffect, useState } from 'react'
 
 export const SettingsPage = () => {

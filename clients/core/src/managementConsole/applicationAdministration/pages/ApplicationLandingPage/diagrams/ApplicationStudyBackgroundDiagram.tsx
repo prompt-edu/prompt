@@ -7,7 +7,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { useMemo } from 'react'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 import { StackedBarChartWithPassStatus } from './StackedBarChartWithPassStatus'
 
 const programsWithOther = translations.university.studyPrograms.concat('Other')

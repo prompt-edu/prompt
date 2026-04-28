@@ -242,6 +242,30 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestUpdateCoursePhaseConfig_CanT
 	assert.True(suite.T(), updatedConfig.ActionItemsVisible, "ActionItemsVisible should be TRUE")
 }
 
+func (suite *CoursePhaseConfigServiceTestSuite) TestReleaseAndUnreleaseResults() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		"INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, results_released) VALUES ($1, $2, $3)",
+		schemaID, testID, false)
+	assert.NoError(suite.T(), err)
+
+	err = ReleaseResults(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), config.ResultsReleased)
+
+	err = UnreleaseResults(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+
+	config, err = GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.ResultsReleased)
+}
+
 func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_CannotChangeSchemaWithData() {
 	// Test that we cannot change schemas when assessment or evaluation data exists
 	testID := uuid.New()

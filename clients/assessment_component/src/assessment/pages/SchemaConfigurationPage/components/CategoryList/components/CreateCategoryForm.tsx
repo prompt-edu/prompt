@@ -41,7 +41,7 @@ export const CreateCategoryForm = ({
   }
 
   return (
-    <Card className='shadow-sm transition-all hover:shadow-md'>
+    <Card className='shadow-xs transition-all hover:shadow-md'>
       <CardHeader className='pb-3'>
         <CardTitle className='text-lg font-medium flex items-center gap-2'>
           <Plus className='h-4 w-4 text-muted-foreground' />

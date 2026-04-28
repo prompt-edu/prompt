@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { SendStatusMail, MailingReport } from '@tumaet/prompt-shared-state'
 
 export const sendStatusMail = async (

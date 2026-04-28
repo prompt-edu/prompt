@@ -350,11 +350,66 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess
 		strings.NewReader(`{"evaluationType":"self"}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
+
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 	assert.Contains(suite.T(), resp.Body.String(), "alice@example.com")
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResults() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		"INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, results_released) VALUES ($1, $2, $3)",
+		schemaID, testID, false)
+	assert.NoError(suite.T(), err)
+
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/course_phase/%s/config/release", testID.String()), nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), config.ResultsReleased)
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResultsInvalidID() {
+	req, _ := http.NewRequest("POST", "/api/course_phase/invalid-uuid/config/release", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestUnreleaseResults() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		"INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, results_released) VALUES ($1, $2, $3)",
+		schemaID, testID, true)
+	assert.NoError(suite.T(), err)
+
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/course_phase/%s/config/unrelease", testID.String()), nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.ResultsReleased)
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestUnreleaseResultsInvalidID() {
+	req, _ := http.NewRequest("POST", "/api/course_phase/invalid-uuid/config/unrelease", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
 func TestCoursePhaseConfigRouterTestSuite(t *testing.T) {

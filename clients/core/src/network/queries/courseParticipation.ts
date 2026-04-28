@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
 
 export const getCourseParticipation = async (courseId: string): Promise<CourseParticipation> => {

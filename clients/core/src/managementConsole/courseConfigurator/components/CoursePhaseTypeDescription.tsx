@@ -89,7 +89,7 @@ export const CoursePhaseTypeDescription = ({ phase }: CoursePhaseTypeDescription
       {open &&
         coords &&
         createPortal(
-          <div className='fixed z-[99]' style={{ top: coords.top, left: coords.left }}>
+          <div className='fixed z-99' style={{ top: coords.top, left: coords.left }}>
             <Card className='w-64 shadow-lg'>
               <CardContent className='p-4'>
                 <p className='font-semibold'>{phase.name}</p>

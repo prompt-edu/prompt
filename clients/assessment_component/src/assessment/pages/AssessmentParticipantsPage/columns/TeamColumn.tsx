@@ -1,9 +1,6 @@
 import { Team } from '@tumaet/prompt-shared-state'
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import {
-  ExtraParticipantColumn,
-  ParticipantRow,
-} from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
 
 export const createTeamColumn = (
   teams: Team[],
@@ -24,7 +21,7 @@ export const createTeamColumn = (
     accessorFn: (row: ParticipantRow) => getTeamName(row.courseParticipationID),
 
     cell: ({ getValue }) => {
-      const teamName = getValue<string>()
+      const teamName = getValue()
       return teamName || null
     },
 

@@ -1,5 +1,5 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { CoursePhaseMailing } from '@/components/pages/Mailing/CoursePhaseMailing'
+import { CoursePhaseMailing } from '@tumaet/prompt-ui-components'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
 
 export const MailingPage = () => {

@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { getCountryName } from '@/lib/getCountries'
+import { getCountryName } from '@tumaet/prompt-shared-state'
 
 import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'

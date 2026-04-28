@@ -1,4 +1,4 @@
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Route, Routes } from 'react-router-dom'
 import ErrorBoundary from '../../shared/components/ErrorBoundary'
 import { PermissionRestriction } from '../../shared/components/PermissionRestriction'

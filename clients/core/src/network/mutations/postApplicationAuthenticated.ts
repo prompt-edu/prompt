@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { PostApplication } from '../../interfaces/application/postApplication'
 import { PostApplicationResponse } from '@core/publicPages/application/interfaces/postApplicationConfirmation'
 

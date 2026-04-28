@@ -54,7 +54,7 @@ export const useUpdateCoursePhaseMetaData = (): UseMutationResult<
       queryClient.invalidateQueries({ queryKey: ['participants', phaseId] })
       toast({
         title: 'Success',
-        description: 'Successfully updated the interview questions.',
+        description: 'Successfully updated the course phase settings.',
       })
     },
     onError: (error, _newCoursePhase, context) => {
@@ -64,7 +64,7 @@ export const useUpdateCoursePhaseMetaData = (): UseMutationResult<
       }
       toast({
         title: 'Error',
-        description: 'Failed to update the interview questions.',
+        description: 'Failed to update the course phase settings.',
         variant: 'destructive',
       })
     },

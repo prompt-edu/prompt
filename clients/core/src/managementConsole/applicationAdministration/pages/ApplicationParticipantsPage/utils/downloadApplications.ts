@@ -31,6 +31,24 @@ const getApplicationQuestions = (applicationForm?: ApplicationForm): Application
   ].sort((a, b) => a.orderNum - b.orderNum)
 }
 
+const getUniqueHeader = (
+  preferredHeader: string | undefined,
+  fallbackHeader: string,
+  usedHeaders: Set<string>,
+): string => {
+  const baseHeader = preferredHeader?.trim() || fallbackHeader
+  let header = baseHeader
+  let duplicateIndex = 2
+
+  while (usedHeaders.has(header)) {
+    header = `${baseHeader} (${duplicateIndex})`
+    duplicateIndex += 1
+  }
+
+  usedHeaders.add(header)
+  return header
+}
+
 const getQuestionAnswerValue = (
   question: ApplicationQuestion,
   application: GetApplication | undefined,
@@ -84,10 +102,14 @@ export const buildApplicationCsvContent = (
     getValue: (row) => row.restrictedData?.[score.key],
   }))
 
+  const usedHeaders = new Set(
+    [...baseColumns, ...additionalScoreColumns].map(({ header }) => header),
+  )
+
   const questionColumns: CsvColumn[] = getApplicationQuestions(applicationForm)
     .filter((question) => shouldExportQuestionToCsv(csvExportSettings, question.id))
     .map((question) => ({
-      header: question.title,
+      header: getUniqueHeader(question.title, question.id, usedHeaders),
       getValue: (row) =>
         getQuestionAnswerValue(question, applicationsByParticipationID[row.courseParticipationID]),
     }))

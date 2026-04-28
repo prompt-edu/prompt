@@ -22,14 +22,13 @@ import { ApplicationForm } from '../../interfaces/form/applicationForm'
 import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
 import { computeQuestionsModified } from './handlers/computeQuestionsModified'
 import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
-import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
 import {
   APPLICATION_CSV_EXPORT_SETTINGS_KEY,
   ApplicationCsvExportSettings,
@@ -37,11 +36,34 @@ import {
   shouldExportQuestionToCsv,
 } from '../../utils/applicationCsvExportSettings'
 
+type ApplicationQuestion =
+  | ApplicationQuestionText
+  | ApplicationQuestionMultiSelect
+  | ApplicationQuestionFileUpload
+
+const isPersistedQuestionID = (questionID: string): boolean => {
+  return !questionID.startsWith('not-valid-id-question-') && !questionID.startsWith('no-valid-id')
+}
+
+const pruneCsvExportSettings = (
+  settings: ApplicationCsvExportSettings,
+  questions: ApplicationQuestion[],
+  originalQuestions: ApplicationQuestion[],
+): ApplicationCsvExportSettings => {
+  const persistedQuestionIDs = new Set(
+    [...questions, ...originalQuestions]
+      .map((question) => question.id)
+      .filter((questionID) => isPersistedQuestionID(questionID)),
+  )
+
+  return Object.fromEntries(
+    Object.entries(settings).filter(([questionID]) => persistedQuestionIDs.has(questionID)),
+  )
+}
+
 export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const [applicationQuestions, setApplicationQuestions] = useState<
-    (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
-  >([])
+  const [applicationQuestions, setApplicationQuestions] = useState<ApplicationQuestion[]>([])
   const [csvExportSettings, setCsvExportSettings] = useState<ApplicationCsvExportSettings>({})
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
@@ -81,21 +103,10 @@ export const ApplicationQuestionConfig = () => {
     },
   })
 
-  const { mutate: mutateCoursePhase } = useMutation({
-    mutationFn: (coursePhaseUpdate: UpdateCoursePhase) => {
-      return updateCoursePhase(coursePhaseUpdate)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
-    },
-  })
+  const { mutate: updateCoursePhaseMetaData } = useUpdateCoursePhaseMetaData()
 
   const setQuestionsFromForm = (form: ApplicationForm) => {
-    const combinedQuestions: (
-      | ApplicationQuestionText
-      | ApplicationQuestionMultiSelect
-      | ApplicationQuestionFileUpload
-    )[] = [
+    const combinedQuestions: ApplicationQuestion[] = [
       ...(form.questionsMultiSelect ?? []),
       ...(form.questionsText ?? []),
       ...(form.questionsFileUpload ?? []),
@@ -118,17 +129,21 @@ export const ApplicationQuestionConfig = () => {
   }, [coursePhase?.restrictedData])
 
   const handleCsvExportEnabledChange = (questionID: string, checked: boolean) => {
-    if (questionID.startsWith('not-valid-id-question-') || questionID.startsWith('no-valid-id')) {
+    if (!isPersistedQuestionID(questionID)) {
       return
     }
 
-    const updatedSettings = {
-      ...csvExportSettings,
-      [questionID]: checked,
-    }
+    const updatedSettings = pruneCsvExportSettings(
+      {
+        ...csvExportSettings,
+        [questionID]: checked,
+      },
+      applicationQuestions,
+      originalQuestions,
+    )
 
     setCsvExportSettings(updatedSettings)
-    mutateCoursePhase({
+    updateCoursePhaseMetaData({
       id: phaseId ?? '',
       restrictedData: {
         [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,

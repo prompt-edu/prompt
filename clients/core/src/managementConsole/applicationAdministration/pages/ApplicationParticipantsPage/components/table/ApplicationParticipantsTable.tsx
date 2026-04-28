@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useRef } from 'react'
-import { PromptTable, TableFilter } from '@tumaet/prompt-ui-components'
+import { PromptTable, TableFilter, useToast } from '@tumaet/prompt-ui-components'
 
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
@@ -17,12 +17,47 @@ import { getApplicationAssessment } from '@core/network/queries/applicationAsses
 import { downloadApplications } from '../../utils/downloadApplications'
 import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 
+const APPLICATION_EXPORT_CONCURRENCY = 10
+
+const fetchWithConcurrencyLimit = async <TItem, TResult>(
+  items: TItem[],
+  limit: number,
+  fetchItem: (item: TItem) => Promise<TResult>,
+): Promise<PromiseSettledResult<TResult>[]> => {
+  const results = new Array<PromiseSettledResult<TResult>>(items.length)
+  let nextIndex = 0
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+
+      try {
+        results[currentIndex] = {
+          status: 'fulfilled',
+          value: await fetchItem(items[currentIndex]),
+        }
+      } catch (reason) {
+        results[currentIndex] = {
+          status: 'rejected',
+          reason,
+        }
+      }
+    }
+  })
+
+  await Promise.all(workers)
+
+  return results
+}
+
 export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): ReactNode => {
   const { courseId } = useParams()
   const { participations, additionalScores, coursePhase } = useApplicationStore()
   const { mutate: deleteApplications } = useDeleteApplications()
   const navigate = useNavigate()
   const tableContainerRef = useRef<HTMLDivElement | null>(null)
+  const { toast } = useToast()
 
   const data = useMemo(
     () => buildApplicationRows(participations, additionalScores),
@@ -72,34 +107,62 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
 
   const exportApplications = useCallback(
     async (rows: ApplicationRow[]) => {
-      const applicationForm = await queryClient.fetchQuery({
-        queryKey: ['application_form', phaseId],
-        queryFn: () => getApplicationForm(phaseId),
-      })
+      try {
+        const applicationForm = await queryClient.fetchQuery({
+          queryKey: ['application_form', phaseId],
+          queryFn: () => getApplicationForm(phaseId),
+        })
 
-      const applications = await Promise.all(
-        rows.map((row) =>
-          queryClient.fetchQuery({
-            queryKey: ['application', row.courseParticipationID],
-            queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
+        const applicationResults = await fetchWithConcurrencyLimit(
+          rows,
+          APPLICATION_EXPORT_CONCURRENCY,
+          (row) =>
+            queryClient.fetchQuery({
+              queryKey: ['application', phaseId, row.courseParticipationID],
+              queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
+            }),
+        )
+
+        const applicationsByParticipationID = Object.fromEntries(
+          rows.flatMap((row, index) => {
+            const result = applicationResults[index]
+            return result.status === 'fulfilled' ? [[row.courseParticipationID, result.value]] : []
           }),
-        ),
-      )
+        )
+        const failedCount = applicationResults.filter(
+          (result) => result.status === 'rejected',
+        ).length
 
-      const applicationsByParticipationID = Object.fromEntries(
-        rows.map((row, index) => [row.courseParticipationID, applications[index]]),
-      )
+        downloadApplications(
+          rows,
+          additionalScores,
+          'application-export.csv',
+          applicationForm,
+          applicationsByParticipationID,
+          getApplicationCsvExportSettings(coursePhase?.restrictedData),
+        )
 
-      downloadApplications(
-        rows,
-        additionalScores,
-        'application-export.csv',
-        applicationForm,
-        applicationsByParticipationID,
-        getApplicationCsvExportSettings(coursePhase?.restrictedData),
-      )
+        if (failedCount > 0) {
+          toast({
+            title: 'Export completed with missing application answers.',
+            description: `${failedCount} application${failedCount === 1 ? '' : 's'} could not be loaded. Base participant data was still exported.`,
+            variant: 'destructive',
+          })
+          return
+        }
+
+        toast({
+          title: 'Successfully exported applications.',
+        })
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Failed to export applications.',
+          variant: 'destructive',
+        })
+      }
     },
-    [additionalScores, coursePhase?.restrictedData, phaseId, queryClient],
+    [additionalScores, coursePhase?.restrictedData, phaseId, queryClient, toast],
   )
 
   const actions = useMemo(() => {

@@ -29,27 +29,25 @@ export const ExportSettingsFields = ({
     <>
       <div className='space-y-2'>
         <label className='text-sm font-medium leading-none'>Export Settings</label>
-        <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 bg-white dark:bg-black'>
+        <div className='flex flex-row items-center justify-between rounded-lg border p-4 bg-white dark:bg-black'>
           <div className='space-y-0.5'>
-            <FormLabel className='text-base'>Export to CSV</FormLabel>
-            <FormDescription>
+            <label className='text-base font-medium leading-none'>Export to CSV</label>
+            <p className='text-sm text-muted-foreground'>
               Include this question as a column in application CSV exports
-            </FormDescription>
+            </p>
             {csvExportDisabled && (
-              <FormDescription>
+              <p className='text-sm text-muted-foreground'>
                 Save this question before changing its CSV export setting
-              </FormDescription>
+              </p>
             )}
           </div>
-          <FormControl>
-            <Switch
-              checked={csvExportEnabled}
-              disabled={csvExportDisabled}
-              onCheckedChange={onCsvExportEnabledChange}
-              aria-label='Toggle CSV export for this question'
-            />
-          </FormControl>
-        </FormItem>
+          <Switch
+            checked={csvExportEnabled}
+            disabled={csvExportDisabled}
+            onCheckedChange={onCsvExportEnabledChange}
+            aria-label='Toggle CSV export for this question'
+          />
+        </div>
         <FormField
           control={form.control}
           name='accessibleForOtherPhases'

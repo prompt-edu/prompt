@@ -27,16 +27,49 @@ import { computeQuestionsModified } from './handlers/computeQuestionsModified'
 import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
+import {
+  APPLICATION_CSV_EXPORT_SETTINGS_KEY,
+  ApplicationCsvExportSettings,
+  getApplicationCsvExportSettings,
+  shouldExportQuestionToCsv,
+} from '../../utils/applicationCsvExportSettings'
+
+type ApplicationQuestion =
+  | ApplicationQuestionText
+  | ApplicationQuestionMultiSelect
+  | ApplicationQuestionFileUpload
+
+const isPersistedQuestionID = (questionID: string): boolean => {
+  return !questionID.startsWith('not-valid-id-question-') && !questionID.startsWith('no-valid-id')
+}
+
+const pruneCsvExportSettings = (
+  settings: ApplicationCsvExportSettings,
+  questions: ApplicationQuestion[],
+  originalQuestions: ApplicationQuestion[],
+): ApplicationCsvExportSettings => {
+  const persistedQuestionIDs = new Set(
+    [...questions, ...originalQuestions]
+      .map((question) => question.id)
+      .filter((questionID) => isPersistedQuestionID(questionID)),
+  )
+
+  return Object.fromEntries(
+    Object.entries(settings).filter(([questionID]) => persistedQuestionIDs.has(questionID)),
+  )
+}
 
 export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const [applicationQuestions, setApplicationQuestions] = useState<
-    (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
-  >([])
+  const [applicationQuestions, setApplicationQuestions] = useState<ApplicationQuestion[]>([])
+  const [csvExportSettings, setCsvExportSettings] = useState<ApplicationCsvExportSettings>({})
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const queryClient = useQueryClient()
+  const { coursePhase } = useApplicationStore()
 
   const {
     data: fetchedForm,
@@ -70,12 +103,10 @@ export const ApplicationQuestionConfig = () => {
     },
   })
 
+  const { mutate: updateCoursePhaseMetaData } = useUpdateCoursePhaseMetaData()
+
   const setQuestionsFromForm = (form: ApplicationForm) => {
-    const combinedQuestions: (
-      | ApplicationQuestionText
-      | ApplicationQuestionMultiSelect
-      | ApplicationQuestionFileUpload
-    )[] = [
+    const combinedQuestions: ApplicationQuestion[] = [
       ...(form.questionsMultiSelect ?? []),
       ...(form.questionsText ?? []),
       ...(form.questionsFileUpload ?? []),
@@ -92,6 +123,36 @@ export const ApplicationQuestionConfig = () => {
       setQuestionsFromForm(fetchedForm)
     }
   }, [fetchedForm])
+
+  useEffect(() => {
+    setCsvExportSettings(getApplicationCsvExportSettings(coursePhase?.restrictedData))
+  }, [coursePhase?.restrictedData])
+
+  const handleCsvExportEnabledChange = (questionID: string, checked: boolean) => {
+    if (!isPersistedQuestionID(questionID)) {
+      return
+    }
+
+    setCsvExportSettings((prev) => {
+      const updatedSettings = pruneCsvExportSettings(
+        {
+          ...prev,
+          [questionID]: checked,
+        },
+        applicationQuestions,
+        originalQuestions,
+      )
+
+      updateCoursePhaseMetaData({
+        id: phaseId ?? '',
+        restrictedData: {
+          [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,
+        },
+      })
+
+      return updatedSettings
+    })
+  }
 
   const handleRevertAllQuestions = () => {
     if (fetchedForm) {
@@ -198,6 +259,15 @@ export const ApplicationQuestionConfig = () => {
                               }}
                               submitAttempted={submitAttempted}
                               onDelete={handleDeleteQuestion}
+                              csvExportEnabled={shouldExportQuestionToCsv(
+                                csvExportSettings,
+                                question.id,
+                              )}
+                              csvExportDisabled={
+                                question.id.startsWith('not-valid-id-question-') ||
+                                question.id.startsWith('no-valid-id')
+                              }
+                              onCsvExportEnabledChange={handleCsvExportEnabledChange}
                             />
                           </div>
                         )}

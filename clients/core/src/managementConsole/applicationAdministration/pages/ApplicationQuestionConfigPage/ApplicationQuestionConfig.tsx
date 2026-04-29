@@ -28,7 +28,7 @@ import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
-import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import {
   APPLICATION_CSV_EXPORT_SETTINGS_KEY,
   ApplicationCsvExportSettings,

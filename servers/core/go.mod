@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/core
 
-go 1.26
+go 1.26.2
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0

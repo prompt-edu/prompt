@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/certificate
 
-go 1.26
+go 1.26.2
 
 require (
 	github.com/getsentry/sentry-go v0.45.1

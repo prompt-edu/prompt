@@ -1,6 +1,6 @@
 {
   "name": "template_component",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

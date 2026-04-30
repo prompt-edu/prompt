@@ -21,10 +21,11 @@ interface SkillRankingProps {
 }
 
 const skillLevelOptions = [
-  { label: 'Novice', value: SkillLevel.NOVICE },
-  { label: 'Intermediate', value: SkillLevel.INTERMEDIATE },
-  { label: 'Advanced', value: SkillLevel.ADVANCED },
-  { label: 'Expert', value: SkillLevel.EXPERT },
+  { label: 'Very Bad', value: SkillLevel.VERY_BAD },
+  { label: 'Bad', value: SkillLevel.BAD },
+  { label: 'Ok', value: SkillLevel.OK },
+  { label: 'Good', value: SkillLevel.GOOD },
+  { label: 'Very Good', value: SkillLevel.VERY_GOOD },
 ]
 
 export const SkillRanking = ({

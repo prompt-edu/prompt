@@ -4,8 +4,9 @@ export type SkillResponse = {
 }
 
 export enum SkillLevel {
-  NOVICE = 'novice',
-  INTERMEDIATE = 'intermediate',
-  ADVANCED = 'advanced',
-  EXPERT = 'expert',
+  VERY_BAD = 'very_bad',
+  BAD = 'bad',
+  OK = 'ok',
+  GOOD = 'good',
+  VERY_GOOD = 'very_good',
 }

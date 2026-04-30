@@ -156,7 +156,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
                     bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-red-800`}
                 role='alert'
               >
-                <AlertCircle className='flex-shrink-0 inline w-4 h-4 mr-3' />
+                <AlertCircle className='shrink-0 inline w-4 h-4 mr-3' />
                 <span className='sr-only'>Error</span>
                 <div>
                   <span className='font-medium'>Validation error:</span> {dateError}

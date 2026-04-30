@@ -1,6 +1,6 @@
 {
   "name": "template_component",
-  "version": "2.11.1",
+  "version": "2.11.3",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -14,5 +14,5 @@
     "webpack": "^5.106.2",
     "webpack-cli": "^7.0.2"
   },
-  "packageManager": "yarn@4.13.0"
+  "packageManager": "yarn@4.14.1"
 }

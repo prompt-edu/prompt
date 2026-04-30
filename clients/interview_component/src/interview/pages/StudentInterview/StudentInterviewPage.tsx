@@ -246,7 +246,7 @@ export const StudentInterviewPage = () => {
                 <CardContent className='space-y-3'>
                   {slot.location && (
                     <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                      <MapPin className='h-4 w-4 flex-shrink-0' />
+                      <MapPin className='h-4 w-4 shrink-0' />
                       {slot.location.match(/^https?:\/\//) ? (
                         <a
                           href={slot.location}

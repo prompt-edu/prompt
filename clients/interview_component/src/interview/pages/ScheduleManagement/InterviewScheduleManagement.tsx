@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
-import { getCoursePhaseParticipations } from '@/network/queries/getCoursePhaseParticipations'
+import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -538,7 +538,7 @@ export const InterviewScheduleManagement = () => {
                       <TableCell>
                         {slot.location ? (
                           <div className='flex items-center gap-2'>
-                            <MapPin className='h-4 w-4 text-muted-foreground flex-shrink-0' />
+                            <MapPin className='h-4 w-4 text-muted-foreground shrink-0' />
                             {slot.location.match(/^https?:\/\//) ? (
                               <a
                                 href={slot.location}

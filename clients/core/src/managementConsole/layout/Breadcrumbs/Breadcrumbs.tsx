@@ -41,10 +41,10 @@ export const Breadcrumbs: React.FC = () => {
             path: `/management/courses/${pathSegments.slice(2, index + 3).join('/')}`,
           })
         })
-      } else if (pathSegments[1] === 'course_templates') {
-        breadcrumbs.push({ title: 'Template Courses', path: '/management/course_templates' })
-      } else if (pathSegments[1] === 'course_archive') {
-        breadcrumbs.push({ title: 'Archived Courses', path: '/management/course_archive' })
+      } else if (pathSegments[1] === 'course-templates') {
+        breadcrumbs.push({ title: 'Template Courses', path: '/management/course-templates' })
+      } else if (pathSegments[1] === 'course-archive') {
+        breadcrumbs.push({ title: 'Archived Courses', path: '/management/course-archive' })
       } else if (pathSegments[1] === 'privacy') {
         breadcrumbs.push({ title: 'Privacy', path: '/management/privacy' })
         if (pathSegments[2] === 'data-export') {

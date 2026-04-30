@@ -20,7 +20,7 @@ export const Header = ({ withLoginButton = true, onLogout }: HeaderProps) => {
       <div className='flex items-center space-x-4'>
         <img src='/prompt_logo.svg' alt='PROMPT Logo' className='h-12 w-12' />
         <div className='relative flex items-baseline'>
-          <span className='text-2xl font-extrabold tracking-wide text-primary drop-shadow-sm'>
+          <span className='text-2xl font-extrabold tracking-wide text-primary drop-shadow-xs'>
             PROMPT
           </span>
           <span className='ml-1 text-s font-normal text-gray-400'>{version}</span>

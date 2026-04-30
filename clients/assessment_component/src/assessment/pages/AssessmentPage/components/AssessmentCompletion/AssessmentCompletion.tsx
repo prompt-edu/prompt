@@ -161,7 +161,7 @@ export const AssessmentCompletion = ({
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
         <div className='grid grid-cols-1 gap-4'>
-          <Card className='flex flex-col flex-grow'>
+          <Card className='flex flex-col grow'>
             <CardHeader>
               <CardTitle>General Remarks</CardTitle>
               {coursePhaseConfig?.actionItemsVisible && !readOnly && (
@@ -170,7 +170,7 @@ export const AssessmentCompletion = ({
                 </p>
               )}
             </CardHeader>
-            <CardContent className='flex flex-col flex-grow'>
+            <CardContent className='flex flex-col grow'>
               <Textarea
                 ref={textareaRef}
                 placeholder='What did this person do particularly well?'

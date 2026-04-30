@@ -207,6 +207,25 @@ services:
       context: ./clients/core
       dockerfile: Dockerfile
     container_name: prompt-client-core
+    environment:
+      - ENVIRONMENT
+      - CORE_HOST
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - ASSESSMENT_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - CHAIR_NAME_SHORT
+      - CHAIR_NAME_LONG
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
+      - SENTRY_DSN_CLIENT
     ports:
       - "3000:80"
     depends_on:
@@ -464,6 +483,7 @@ services:
     container_name: prompt-keycloak
     command:
       - start-dev
+      - --import-realm
       - --health-enabled=true
       - --hostname-strict=false
     environment:
@@ -474,6 +494,7 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_IMPORT_REALM: /opt/keycloak/data/import/realm.json
       KC_HOSTNAME: "localhost"
       KC_HOSTNAME_PORT: "8081"
       KC_HOSTNAME_STRICT: "false"
@@ -486,6 +507,8 @@ services:
     ports:
       - "8081:8080"
       - "9000:9000"
+    volumes:
+      - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 4<>/dev/tcp/localhost/9000"]
       interval: 30s

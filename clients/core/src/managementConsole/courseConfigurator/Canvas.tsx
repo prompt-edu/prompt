@@ -15,7 +15,7 @@ import { SelectableEdge } from './graphComponents/edges/SelectableEdge'
 import { useConnect } from './handlers/useConnect'
 import { useValidation } from './handlers/useValidation'
 import { useDrop } from './handlers/useDrop'
-import { useDarkMode } from '@/contexts/DarkModeProvider'
+import { useDarkMode } from '@tumaet/prompt-ui-components'
 import { useCourseConfigurationState } from './zustand/useCourseConfigurationStore'
 import { useQueryClient } from '@tanstack/react-query'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
@@ -144,7 +144,7 @@ export function CourseConfigurator() {
   const isError = isMutationError
 
   return (
-    <div className='relative flex-grow h-full min-h-0'>
+    <div className='relative grow h-full min-h-0'>
       <CoursePhaseTypePanel canEdit={canEdit} />
       <div className='h-full flex flex-col' ref={reactFlowWrapper}>
         {isError && <ErrorPage message='Failed to save the changes' onRetry={handleRetry} />}

@@ -1,7 +1,4 @@
-import {
-  AvailableMailPlaceholders,
-  availablePlaceholders,
-} from '@/components/pages/Mailing/components/AvailableMailPlaceholders'
+import { AvailableMailPlaceholders, availablePlaceholders } from '@tumaet/prompt-ui-components'
 
 const additionalMailPlacerholders = [
   {

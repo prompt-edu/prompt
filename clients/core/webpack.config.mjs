@@ -65,14 +65,17 @@ const config = (env) => {
           include: [
             path.resolve(__dirname, 'src'),
             path.resolve(__dirname, '../node_modules/@xyflow/react/dist/style.css'),
-            path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist'),
-            path.resolve(__dirname, '../shared_library/components/minimal-tiptap/styles/index.css'),
           ],
           use: [
             'style-loader', // Injects styles into DOM
             'css-loader', // Resolves CSS imports
             'postcss-loader', // Processes Tailwind and other PostCSS plugins
           ],
+        },
+        {
+          test: /\.css$/,
+          include: [path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist')],
+          use: ['style-loader', 'css-loader'],
         },
       ],
     },
@@ -84,7 +87,6 @@ const config = (env) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
       alias: {
-        '@': path.resolve(__dirname, '../shared_library'),
         '@core': path.resolve(__dirname, 'src'),
         '@managementConsole': path.resolve(__dirname, 'src/managementConsole'),
       },

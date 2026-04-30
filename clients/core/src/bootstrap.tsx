@@ -1,12 +1,12 @@
 import { createRoot } from 'react-dom/client'
 
 import * as Sentry from '@sentry/react'
-import { env } from '@/env'
+import { env } from '@tumaet/prompt-shared-state'
 
 import App from './App'
 
-// Initialize Sentry if DSN is provided
-if (env.SENTRY_DSN_CLIENT) {
+// Initialize Sentry if a real DSN is provided.
+if (env.SENTRY_DSN_CLIENT.startsWith('http')) {
   Sentry.init({
     dsn: env.SENTRY_DSN_CLIENT,
     environment: env.ENVIRONMENT || 'development',

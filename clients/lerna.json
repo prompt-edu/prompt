@@ -6,7 +6,6 @@
     "interview_component",
     "matching_component",
     "template_component",
-    "shared_library",
     "assessment_component",
     "team_allocation_component",
     "self_team_allocation_component",

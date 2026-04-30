@@ -1,4 +1,4 @@
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 import { InterviewDataShell } from '../src/interview/pages/InterviewDataShell'
 import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'

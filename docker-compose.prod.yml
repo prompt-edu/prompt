@@ -267,6 +267,36 @@ services:
     networks:
       - prompt-network
 
+  server-infrastructure-setup:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-infrastructure-setup:${SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG}"
+    container_name: prompt-server-infrastructure-setup
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-infrastructure-setup.rule=Host(`${CORE_HOST}`) && PathPrefix(`/infrastructure-setup/api`)"
+      - "traefik.http.services.server-infrastructure-setup.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-infrastructure-setup.entrypoints=websecure"
+      - "traefik.http.routers.server-infrastructure-setup.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.server-infrastructure-setup.middlewares=api-ratelimit"
+    depends_on:
+      db-infrastructure-setup:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_INFRASTRUCTURE_SETUP=db-infrastructure-setup
+      - DB_PORT_INFRASTRUCTURE_SETUP=5432
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+    networks:
+      - prompt-network
+
   db:
     image: "postgres:15.17-alpine"
     container_name: prompt-db
@@ -384,6 +414,26 @@ services:
       retries: 5
     ports:
       - "127.0.0.1:5439:5432"
+    networks:
+      - prompt-network
+
+  db-infrastructure-setup:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-infrastructure-setup
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_infrastructure_setup_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5440:5432"
     networks:
       - prompt-network
 
@@ -549,6 +599,27 @@ services:
     networks:
       - prompt-network
 
+  client-infrastructure-setup-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-infrastructure-setup-component:${INFRASTRUCTURE_SETUP_IMAGE_TAG}"
+    container_name: prompt-client-infrastructure-setup-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.infrastructure-setup.rule=Host(`${CORE_HOST}`) && PathPrefix(`/infrastructure-setup`)"
+      - "traefik.http.routers.infrastructure-setup.entrypoints=websecure"
+      - "traefik.http.routers.infrastructure-setup.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.infrastructure-setup-strip-prefix.stripPrefix.prefixes=/infrastructure-setup"
+      - "traefik.http.routers.infrastructure-setup.middlewares=infrastructure-setup-strip-prefix,infrastructure-setup-compress"
+      - "traefik.http.middlewares.infrastructure-setup-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-infrastructure-setup
+    networks:
+      - prompt-network
+
   client-core:
     image: "ghcr.io/prompt-edu/prompt/prompt-clients-core:${CORE_IMAGE_TAG}"
     container_name: prompt-client-core
@@ -567,6 +638,8 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
+      - CERTIFICATE_HOST
+      - INFRASTRUCTURE_SETUP_HOST
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

@@ -562,3 +562,52 @@ func initCertificate() error {
 
 	return nil
 }
+
+func initInfrastructureSetup() error {
+	ctx := context.Background()
+	exists, err := CoursePhaseTypeServiceSingleton.queries.TestInfrastructureSetupTypeExists(ctx)
+
+	if err != nil {
+		log.Error("failed to check if infrastructure setup phase type exists: ", err)
+		return err
+	}
+	if !exists {
+		// Begin transaction
+		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		if err != nil {
+			log.Error("failed to begin transaction: ", err)
+			return err
+		}
+		defer sdkUtils.DeferRollback(tx, ctx)
+		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+
+		// 1.) Create the phase
+		baseURL := "{CORE_HOST}/infrastructure-setup/api"
+		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+			baseURL = "http://localhost:8091/infrastructure-setup/api"
+		}
+
+		newInfrastructureSetup := db.CreateCoursePhaseTypeParams{
+			ID:           uuid.New(),
+			Name:         "Infrastructure Setup",
+			Description:  pgtype.Text{String: "Automated provisioning of external resources (GitLab, Slack, Outline, etc.) per team or student.", Valid: true},
+			InitialPhase: false,
+			BaseUrl:      baseURL,
+		}
+		err = qtx.CreateCoursePhaseType(ctx, newInfrastructureSetup)
+		if err != nil {
+			log.Error("failed to create infrastructure setup phase type: ", err)
+			return err
+		}
+
+		// 2.) Commit the transaction
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+	} else {
+		log.Debug("infrastructure setup phase type already exists")
+	}
+
+	return nil
+}

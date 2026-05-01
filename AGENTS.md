@@ -27,9 +27,9 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
-    - devops_challenge_component (port 3006)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
+    - devops_challenge_component (served by prompt-github-challenge)
 
 servers/
   core/                    # Main Go service (port 8080)
@@ -375,7 +375,7 @@ import { Button, Card, ManagementPageHeader, ... } from '@tumaet/prompt-ui-compo
 
 ### Client: `@tumaet/prompt-shared-state`
 
-Shared types, stores, and state management (source: `../prompt-lib/prompt-shared-state/`). Import as:
+Shared types, stores, and state management (published package source: [`prompt-shared-state`](https://github.com/prompt-edu/prompt-shared-state)). Import as:
 
 ```typescript
 import { Role, PassStatus, useCourseStore, ... } from '@tumaet/prompt-shared-state'

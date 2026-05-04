@@ -66,7 +66,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-hook-form": "^7.74.0",
-    "react-medium-image-zoom": "^5.4.3",
+    "react-medium-image-zoom": "^5.4.5",
     "react-router-dom": "^7.14.2",
     "sass-loader": "^16.0.7",
     "sonner": "^2.0.7",

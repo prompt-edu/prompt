@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
@@ -78,7 +79,8 @@ func main() {
 
 	runMigrations(databaseURL)
 
-	conn, err := pgxpool.New(context.Background(), databaseURL)
+	ctx := context.Background()
+	conn, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 		os.Exit(1)
@@ -95,7 +97,8 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("certificate/api/course_phase/:coursePhaseID")
+	apiBase := router.Group("certificate/api")
+	api := apiBase.Group("/course_phase/:coursePhaseID")
 	initKeycloak()
 
 	api.GET("/hello", helloCertificate)
@@ -104,6 +107,22 @@ func main() {
 	config.InitConfigModule(api, *query, conn)
 	participants.InitParticipantsModule(api, *query)
 	generator.InitGeneratorModule(api, *query)
+
+	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
+		ServiceName: "certificate",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPhaseCopy:       false,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+	}, func() bool {
+		ctt, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer cancel()
+		return conn.Ping(ctt) == nil
+	},
+	)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8088")
 	log.Info("Certificate Server started")
@@ -114,6 +133,7 @@ func main() {
 }
 
 func helloCertificate(c *gin.Context) {
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Hello from certificate service",
 	})

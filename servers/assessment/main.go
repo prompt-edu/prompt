@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments"
@@ -114,20 +115,34 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("assessment/api/course_phase/:coursePhaseID")
+	apiBase := router.Group("/assessment/api")
+	coursePhaseApi := apiBase.Group("/course_phase/:coursePhaseID")
+
 	initKeycloak(*query)
 
-	api.GET("/hello", helloAssessment)
+	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(api, *query, conn)
-	categories.InitCategoryModule(api, *query, conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(api, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(api, *query, conn)
-	assessments.InitAssessmentModule(api, *query, conn)
-	evaluations.InitEvaluationModule(api, *query, conn)
+	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
+	categories.InitCategoryModule(coursePhaseApi, *query, conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
+	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
+	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
+	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
-	copyApi := router.Group("assessment/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.InitCopyModule(apiBase, *query, conn)
+
+	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
+		ServiceName: "assessment",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8085")
 	log.Info("Assessment Server started")

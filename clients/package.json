@@ -60,7 +60,7 @@
     "jwt-decode": "^4.0.0",
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
-    "lucide-react": "^1.11.0",
+    "lucide-react": "^1.14.0",
     "postcss": "^8.5.14",
     "postcss-loader": "8.2.1",
     "react": "^19.2.5",

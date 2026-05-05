@@ -19,8 +19,9 @@ Run from the prompt/ directory:
 import io
 import random
 import subprocess
+import unicodedata
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # --- Config ------------------------------------------------------------------
 
@@ -232,9 +233,9 @@ def generate_student(idx):
     # Unique fields
     matric = f"{10000000 + idx:08d}"
     login = f"tst{idx:05d}"
-    # Strip accents crudely for email
-    email_first = "".join(c for c in first.lower() if c.isalpha())
-    email_last = "".join(c for c in last.lower() if c.isalpha())
+    # Strip accents for ASCII-safe email local parts
+    email_first = ascii_letters(first)
+    email_last = ascii_letters(last)
     email = f"{email_first}.{email_last}.{idx}@test.tum.de"
 
     return {
@@ -251,6 +252,11 @@ def generate_student(idx):
         "study_degree": degree,
         "current_semester": semester,
     }
+
+
+def ascii_letters(text):
+    normalized = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in normalized if c.isascii() and c.isalpha())
 
 
 # --- Seeding -----------------------------------------------------------------
@@ -412,8 +418,9 @@ def seed_team_allocation(course, students):
     phase_id = course["ta_phase_id"]
 
     # Survey timeframe — currently open
-    start = datetime.utcnow() - timedelta(days=7)
-    deadline = datetime.utcnow() + timedelta(days=7)
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=7)
+    deadline = now + timedelta(days=7)
     psql(TA_CONTAINER, f"""
         INSERT INTO survey_timeframe (course_phase_id, survey_start, survey_deadline)
         VALUES ('{phase_id}',

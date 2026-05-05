@@ -7,8 +7,8 @@ CREATE TABLE tease_workspace (
     allocations_draft      jsonb NOT NULL DEFAULT '[]'::jsonb,
     algorithm_type         varchar(64),
     updated_by             uuid,
-    last_saved_at          timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    last_exported_at       timestamp
+    last_saved_at          timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_exported_at       timestamptz
 );
 
 COMMIT;

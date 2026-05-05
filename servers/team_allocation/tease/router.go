@@ -3,6 +3,7 @@ package tease
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+const maxTeaseWorkspaceBodyBytes = 5 << 20
 
 func setupTeaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	teaseRouter := routerGroup.Group("/tease")
@@ -188,8 +191,7 @@ func putTeaseWorkspace(c *gin.Context) {
 	}
 
 	var req teaseDTO.TeaseWorkspaceRequest
-	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+	if !bindTeaseJSON(c, &req) {
 		return
 	}
 
@@ -210,8 +212,8 @@ func putTeaseWorkspace(c *gin.Context) {
 
 // postTeaseSave handles POST /tease/course_phase/{coursePhaseID}/save.
 // Atomic: upsert tease_workspace + upsert allocations + stamp
-// last_exported_at in one transaction. On any error the whole
-// transaction rolls back and a 500 is returned.
+// last_exported_at in one transaction. Invalid allocation payloads
+// return 400; persistence errors roll back and return 500.
 func postTeaseSave(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -221,8 +223,7 @@ func postTeaseSave(c *gin.Context) {
 	}
 
 	var req teaseDTO.TeaseSaveRequest
-	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+	if !bindTeaseJSON(c, &req) {
 		return
 	}
 
@@ -234,11 +235,33 @@ func postTeaseSave(c *gin.Context) {
 
 	workspace, err := SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req, updatedBy)
 	if err != nil {
+		if errors.Is(err, errInvalidAllocation) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, workspace)
+	c.JSON(http.StatusOK, workspace)
+}
+
+func bindTeaseJSON(c *gin.Context, dst any) bool {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxTeaseWorkspaceBodyBytes)
+	if err := c.ShouldBindJSON(dst); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			handleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxTeaseWorkspaceBodyBytes))
+			return false
+		}
+		if errors.Is(err, io.EOF) {
+			handleError(c, http.StatusBadRequest, errors.New("request body is required"))
+			return false
+		}
+		handleError(c, http.StatusBadRequest, err)
+		return false
+	}
+	return true
 }
 
 // getAuthenticatedUserID extracts the acting user's UUID from the

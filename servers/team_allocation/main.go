@@ -97,7 +97,7 @@ func main() {
 
 	router := gin.Default()
 	router.Use(sentrygin.New(sentrygin.Options{}))
-	router.Use(multiOriginCORS(clientHost))
+	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("team-allocation/api/course_phase/:coursePhaseID")
 	initKeycloak(*query)

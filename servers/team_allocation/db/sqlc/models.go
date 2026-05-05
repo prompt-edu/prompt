@@ -99,14 +99,14 @@ type Team struct {
 }
 
 type TeaseWorkspace struct {
-	CoursePhaseID    uuid.UUID        `json:"course_phase_id"`
-	Constraints      []byte           `json:"constraints"`
-	LockedStudents   []byte           `json:"locked_students"`
-	AllocationsDraft []byte           `json:"allocations_draft"`
-	AlgorithmType    pgtype.Text      `json:"algorithm_type"`
-	UpdatedBy        pgtype.UUID      `json:"updated_by"`
-	LastSavedAt      pgtype.Timestamp `json:"last_saved_at"`
-	LastExportedAt   pgtype.Timestamp `json:"last_exported_at"`
+	CoursePhaseID    uuid.UUID          `json:"course_phase_id"`
+	Constraints      []byte             `json:"constraints"`
+	LockedStudents   []byte             `json:"locked_students"`
+	AllocationsDraft []byte             `json:"allocations_draft"`
+	AlgorithmType    pgtype.Text        `json:"algorithm_type"`
+	UpdatedBy        pgtype.UUID        `json:"updated_by"`
+	LastSavedAt      pgtype.Timestamptz `json:"last_saved_at"`
+	LastExportedAt   pgtype.Timestamptz `json:"last_exported_at"`
 }
 
 type Tutor struct {

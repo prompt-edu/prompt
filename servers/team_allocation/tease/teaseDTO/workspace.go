@@ -40,9 +40,6 @@ type TeaseWorkspaceRequest struct {
 // the workspace snapshot plus the finalised allocations to write to
 // the `allocations` table in the same transaction.
 type TeaseSaveRequest struct {
-	Constraints      json.RawMessage `json:"constraints"`
-	LockedStudents   json.RawMessage `json:"lockedStudents"`
-	AllocationsDraft json.RawMessage `json:"allocationsDraft"`
-	AlgorithmType    *string         `json:"algorithmType"`
-	Allocations      []Allocation    `json:"allocations"`
+	TeaseWorkspaceRequest
+	Allocations []Allocation `json:"allocations"`
 }

@@ -19,6 +19,8 @@ import (
 // snapshot fields on PUT / POST requests. Matches the column default.
 var defaultEmptyJSONArray = json.RawMessage("[]")
 
+var errInvalidAllocation = errors.New("invalid allocation")
+
 // GetTeaseWorkspace returns the persisted workspace for a course phase.
 // If no row exists, it returns a zero-value response with empty default
 // arrays (per §4.2 of the Phase 1 plan).
@@ -68,6 +70,10 @@ func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teas
 // every allocation row via CreateOrUpdateAllocation, and stamps
 // last_exported_at. Any error rolls the whole transaction back.
 func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
+	if err := validateAllocations(req.Allocations); err != nil {
+		return teaseDTO.TeaseWorkspace{}, err
+	}
+
 	ctx, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -80,12 +86,7 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 	qtx := TeaseServiceSingleton.queries.WithTx(tx)
 
 	// 1. Upsert the workspace row.
-	upsertParams := upsertParamsFromRequest(coursePhaseID, teaseDTO.TeaseWorkspaceRequest{
-		Constraints:      req.Constraints,
-		LockedStudents:   req.LockedStudents,
-		AllocationsDraft: req.AllocationsDraft,
-		AlgorithmType:    req.AlgorithmType,
-	}, updatedBy)
+	upsertParams := upsertParamsFromRequest(coursePhaseID, req.TeaseWorkspaceRequest, updatedBy)
 	if _, err := qtx.UpsertTeaseWorkspace(ctx, upsertParams); err != nil {
 		log.Error("could not upsert tease workspace within save transaction: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
@@ -103,22 +104,16 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 	//    Both the delete and the subsequent inserts run inside the same
 	//    transaction, so concurrent readers never observe an empty board.
 	if err := qtx.DeleteAllocationsByPhase(ctx, coursePhaseID); err != nil {
-		log.Error("could not clear existing allocations within save transaction: ", err)
-		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not clear existing allocations: %w", err)
+		log.WithField("course_phase_id", coursePhaseID).Error("could not clear existing allocations within save transaction: ", err)
+		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not clear existing allocations for course phase %s: %w", coursePhaseID, err)
 	}
 
 	for _, allocation := range req.Allocations {
-		if allocation.ProjectID == uuid.Nil {
-			return teaseDTO.TeaseWorkspace{}, fmt.Errorf("invalid project ID in allocation")
-		}
 		if len(allocation.Students) == 0 {
 			log.Warn("allocation with no students: ", allocation.ProjectID)
 			continue
 		}
 		for _, studentID := range allocation.Students {
-			if studentID == uuid.Nil {
-				return teaseDTO.TeaseWorkspace{}, fmt.Errorf("invalid student ID in allocation")
-			}
 			err = qtx.CreateOrUpdateAllocation(ctx, db.CreateOrUpdateAllocationParams{
 				ID:                    uuid.New(),
 				CourseParticipationID: studentID,
@@ -126,8 +121,12 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 				CoursePhaseID:         coursePhaseID,
 			})
 			if err != nil {
-				log.Error("could not create or update allocation: ", err)
-				return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not create or update allocation: %w", err)
+				log.WithFields(log.Fields{
+					"course_phase_id":         coursePhaseID,
+					"team_id":                 allocation.ProjectID,
+					"course_participation_id": studentID,
+				}).Error("could not create or update allocation: ", err)
+				return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not create or update allocation for student %s in team %s: %w", studentID, allocation.ProjectID, err)
 			}
 		}
 	}
@@ -152,6 +151,25 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 	}
 
 	return workspaceFromDB(finalRow), nil
+}
+
+func validateAllocations(allocations []teaseDTO.Allocation) error {
+	seen := make(map[uuid.UUID]uuid.UUID)
+	for i, allocation := range allocations {
+		if allocation.ProjectID == uuid.Nil {
+			return fmt.Errorf("%w: invalid project ID at allocation %d", errInvalidAllocation, i)
+		}
+		for j, studentID := range allocation.Students {
+			if studentID == uuid.Nil {
+				return fmt.Errorf("%w: invalid student ID at allocation %d student %d", errInvalidAllocation, i, j)
+			}
+			if previousProjectID, exists := seen[studentID]; exists && previousProjectID != allocation.ProjectID {
+				return fmt.Errorf("%w: student %s assigned to multiple teams (%s and %s)", errInvalidAllocation, studentID, previousProjectID, allocation.ProjectID)
+			}
+			seen[studentID] = allocation.ProjectID
+		}
+	}
+	return nil
 }
 
 // workspaceFromDB maps the sqlc-style row to the over-the-wire DTO,
@@ -186,9 +204,9 @@ func workspaceFromDB(row db.TeaseWorkspace) teaseDTO.TeaseWorkspace {
 func upsertParamsFromRequest(coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) db.UpsertTeaseWorkspaceParams {
 	params := db.UpsertTeaseWorkspaceParams{
 		CoursePhaseID:    coursePhaseID,
-		Constraints:      jsonOrEmptyBytes(req.Constraints),
-		LockedStudents:   jsonOrEmptyBytes(req.LockedStudents),
-		AllocationsDraft: jsonOrEmptyBytes(req.AllocationsDraft),
+		Constraints:      []byte(jsonOrEmpty(req.Constraints)),
+		LockedStudents:   []byte(jsonOrEmpty(req.LockedStudents)),
+		AllocationsDraft: []byte(jsonOrEmpty(req.AllocationsDraft)),
 		UpdatedBy:        pgtype.UUID{Bytes: updatedBy, Valid: true},
 	}
 	if req.AlgorithmType != nil {
@@ -202,11 +220,4 @@ func jsonOrEmpty(b []byte) json.RawMessage {
 		return defaultEmptyJSONArray
 	}
 	return json.RawMessage(b)
-}
-
-func jsonOrEmptyBytes(b []byte) []byte {
-	if len(b) == 0 {
-		return []byte("[]")
-	}
-	return b
 }

@@ -46,7 +46,7 @@ require (
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
-	github.com/getsentry/sentry-go v0.45.1
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/getsentry/sentry-go/gin v0.45.1
 	github.com/getsentry/sentry-go/logrus v0.45.1 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect

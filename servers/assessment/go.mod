@@ -3,7 +3,7 @@ module github.com/prompt-edu/prompt/servers/assessment
 go 1.26
 
 require (
-	github.com/getsentry/sentry-go v0.45.1
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2

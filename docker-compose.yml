@@ -214,9 +214,6 @@ services:
       context: ./clients/core
       dockerfile: Dockerfile
     container_name: prompt-client-core
-    environment:
-      - SENTRY_DSN_CLIENT
-      - SENTRY_ENABLED
     ports:
       - "3000:80"
     depends_on:

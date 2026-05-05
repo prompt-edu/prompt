@@ -573,8 +573,6 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
-      - SENTRY_DSN_CLIENT
-      - SENTRY_ENABLED
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

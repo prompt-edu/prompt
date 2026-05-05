@@ -3470,76 +3470,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry-internal/browser-utils@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry-internal/browser-utils@npm:10.49.0"
-  dependencies:
-    "@sentry/core": "npm:10.49.0"
-  checksum: 10c0/8789beb5d28116627aabbf359043a10f51ab27b6d3bb60069a2d0825c9d23634ea1ae8add99ba388dad46ff33a37c5875f48378305df8c073cf17cc0c7e75d7b
-  languageName: node
-  linkType: hard
-
-"@sentry-internal/feedback@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry-internal/feedback@npm:10.49.0"
-  dependencies:
-    "@sentry/core": "npm:10.49.0"
-  checksum: 10c0/458424905420e08f7eb91b2f1dc76d6c97415110f20f25b763478d6500a4d636e930b1a343c685c21143e7259239579d21e6c8ffc7afa00761afbfa3fb85157d
-  languageName: node
-  linkType: hard
-
-"@sentry-internal/replay-canvas@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry-internal/replay-canvas@npm:10.49.0"
-  dependencies:
-    "@sentry-internal/replay": "npm:10.49.0"
-    "@sentry/core": "npm:10.49.0"
-  checksum: 10c0/1bac9d005e5cf45751563b0db46b381184e62eb9d58c1f8572639a9f3a847f7bf81514182ae84d4b1aa6941be5fde700e8a3d3c1d7ca269bc9f557476582ff40
-  languageName: node
-  linkType: hard
-
-"@sentry-internal/replay@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry-internal/replay@npm:10.49.0"
-  dependencies:
-    "@sentry-internal/browser-utils": "npm:10.49.0"
-    "@sentry/core": "npm:10.49.0"
-  checksum: 10c0/ef475292700c7fccd31c336a109c9ca98dd5cdb5d1b0c77739db98ad528d410b26cc36c22b47c5c8760edb01131d1e540e052aa69ebbf6ae534ae23c5515a1b5
-  languageName: node
-  linkType: hard
-
-"@sentry/browser@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry/browser@npm:10.49.0"
-  dependencies:
-    "@sentry-internal/browser-utils": "npm:10.49.0"
-    "@sentry-internal/feedback": "npm:10.49.0"
-    "@sentry-internal/replay": "npm:10.49.0"
-    "@sentry-internal/replay-canvas": "npm:10.49.0"
-    "@sentry/core": "npm:10.49.0"
-  checksum: 10c0/a276047ac1ebff8c6a3c5927e94d83a9f480801e571d74b8681992b47c2a1c5c60438679ab08d31b21e9058f887385ab1f99de9d0aa3b05fa31b98caa690ae0b
-  languageName: node
-  linkType: hard
-
-"@sentry/core@npm:10.49.0":
-  version: 10.49.0
-  resolution: "@sentry/core@npm:10.49.0"
-  checksum: 10c0/fc2eb9e62a3f8d86982872560f853c2732c57e199b8f072744a79ade06e353798eb0e6ad3bfde0af0f1dcbafb12307cd7ba64c2601a8307f446b5a4517331472
-  languageName: node
-  linkType: hard
-
-"@sentry/react@npm:^10.49.0":
-  version: 10.49.0
-  resolution: "@sentry/react@npm:10.49.0"
-  dependencies:
-    "@sentry/browser": "npm:10.49.0"
-    "@sentry/core": "npm:10.49.0"
-  peerDependencies:
-    react: ^16.14.0 || 17.x || 18.x || 19.x
-  checksum: 10c0/b383312385d0778a8f51ab5f785fd1359b9230dc3e4ae6e30611f427142e73f5e438deee5b9aa82f087f626fb481c56d41ae2277dc934dd84bba682c770c73db
-  languageName: node
-  linkType: hard
-
 "@sigstore/bundle@npm:^4.0.0":
   version: 4.0.0
   resolution: "@sigstore/bundle@npm:4.0.0"
@@ -6315,7 +6245,6 @@ __metadata:
   resolution: "client@workspace:core"
   dependencies:
     "@dagrejs/dagre": "npm:^3.0.0"
-    "@sentry/react": "npm:^10.49.0"
     "@xyflow/react": "npm:^12.10.2"
     clean-webpack-plugin: "npm:^4.0.0"
     compression-webpack-plugin: "npm:^12.0.0"

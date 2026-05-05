@@ -139,10 +139,6 @@ const config = (env) => {
       new CopyPlugin({
         patterns: [{ from: 'public' }], // Copies env.js to your output root
       }),
-      new webpack.DefinePlugin({
-        __LOCAL_SENTRY_DSN_CLIENT__: JSON.stringify(getVariable('SENTRY_DSN_CLIENT') || ''),
-        __LOCAL_SENTRY_ENABLED__: JSON.stringify(getVariable('SENTRY_ENABLED') || ''),
-      }),
       IS_PERF && new BundleAnalyzerPlugin(),
       new CleanWebpackPlugin(),
       !IS_DEV &&

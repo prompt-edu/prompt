@@ -15,15 +15,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// defaultEmptyJSONArray is used when a caller omits one of the JSON
-// snapshot fields on PUT / POST requests. Matches the column default.
 var defaultEmptyJSONArray = json.RawMessage("[]")
 
 var errInvalidAllocation = errors.New("invalid allocation")
 
 // GetTeaseWorkspace returns the persisted workspace for a course phase.
-// If no row exists, it returns a zero-value response with empty default
-// arrays (per §4.2 of the Phase 1 plan).
 func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -31,7 +27,6 @@ func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.T
 	row, err := TeaseServiceSingleton.queries.GetTeaseWorkspace(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// No workspace yet for this course phase → return empty defaults.
 			return teaseDTO.TeaseWorkspace{
 				CoursePhaseID:    coursePhaseID,
 				Constraints:      defaultEmptyJSONArray,
@@ -46,10 +41,7 @@ func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.T
 	return workspaceFromDB(row), nil
 }
 
-// UpsertTeaseWorkspace writes the payload to the tease_workspace table
-// (insert-or-update on course_phase_id) and returns the server-stamped
-// row. `last_exported_at` is left untouched — only the /save flow
-// stamps it.
+// UpsertTeaseWorkspace saves a draft workspace without publishing allocations.
 func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -65,10 +57,7 @@ func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teas
 	return workspaceFromDB(row), nil
 }
 
-// SaveTeaseWorkspaceAndAllocations performs the atomic "Save to PROMPT"
-// flow: in one transaction it upserts the tease_workspace row, upserts
-// every allocation row via CreateOrUpdateAllocation, and stamps
-// last_exported_at. Any error rolls the whole transaction back.
+// SaveTeaseWorkspaceAndAllocations publishes a workspace and replaces allocations.
 func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	if err := validateAllocations(req.Allocations); err != nil {
 		return teaseDTO.TeaseWorkspace{}, err
@@ -85,24 +74,12 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 
 	qtx := TeaseServiceSingleton.queries.WithTx(tx)
 
-	// 1. Upsert the workspace row.
 	upsertParams := upsertParamsFromRequest(coursePhaseID, req.TeaseWorkspaceRequest, updatedBy)
 	if _, err := qtx.UpsertTeaseWorkspace(ctx, upsertParams); err != nil {
 		log.Error("could not upsert tease workspace within save transaction: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
 	}
 
-	// 2. Replace the allocation set for this phase with the payload.
-	//    The save endpoint is the authoritative publish, so the incoming
-	//    `req.Allocations` is treated as the *complete* desired state — not
-	//    a partial upsert. We therefore delete every existing allocation
-	//    for the phase first so that:
-	//      - resetting allocations in the client and saving an empty
-	//        payload actually unallocates everyone, and
-	//      - removing a single student from a team in the client
-	//        propagates as a delete instead of being silently retained.
-	//    Both the delete and the subsequent inserts run inside the same
-	//    transaction, so concurrent readers never observe an empty board.
 	if err := qtx.DeleteAllocationsByPhase(ctx, coursePhaseID); err != nil {
 		log.WithField("course_phase_id", coursePhaseID).Error("could not clear existing allocations within save transaction: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not clear existing allocations for course phase %s: %w", coursePhaseID, err)
@@ -131,14 +108,11 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 		}
 	}
 
-	// 3. Stamp last_exported_at = now() on the workspace row we just
-	//    upserted in step 1.
 	if err := qtx.StampTeaseWorkspaceExportedAt(ctx, coursePhaseID); err != nil {
 		log.Error("could not stamp last_exported_at on tease workspace: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not stamp last_exported_at: %w", err)
 	}
 
-	// Re-read so we return the final stamped row.
 	finalRow, err := qtx.GetTeaseWorkspace(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not read back tease workspace after save: ", err)
@@ -172,9 +146,6 @@ func validateAllocations(allocations []teaseDTO.Allocation) error {
 	return nil
 }
 
-// workspaceFromDB maps the sqlc-style row to the over-the-wire DTO,
-// substituting SQL nulls with Go nil pointers and stored jsonb nulls
-// with empty JSON arrays.
 func workspaceFromDB(row db.TeaseWorkspace) teaseDTO.TeaseWorkspace {
 	ws := teaseDTO.TeaseWorkspace{
 		CoursePhaseID:    row.CoursePhaseID,

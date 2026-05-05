@@ -201,7 +201,6 @@ services:
       - TEMPLATE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
-      - SENTRY_DSN_CLIENT
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

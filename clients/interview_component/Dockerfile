@@ -7,7 +7,8 @@ ENV REACT_APP_CORE_HOST=$CORE_HOST
 WORKDIR /app/interview_component
 COPY . ./
 
-RUN yarn build
+ARG NODE_ENV=production
+RUN yarn webpack --mode=${NODE_ENV} --env NODE_ENV=${NODE_ENV}
 
 # Build the final image
 FROM nginx:stable-alpine

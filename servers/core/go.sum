@@ -191,6 +191,8 @@ github.com/getsentry/sentry-go/logrus v0.44.1 h1:xBHYXJmOLK+ZcGI5DjvDHtatoMqRMwD
 github.com/getsentry/sentry-go/logrus v0.44.1/go.mod h1:ImbTyrg3rvfYOyz5zYRRMe9jM1TVHwW0teVnsWLPRqw=
 github.com/getsentry/sentry-go/logrus v0.45.1 h1:6a0Zo2onDtAjj4omqsUsK+bCtcb7OdhsT9THIAzDlvE=
 github.com/getsentry/sentry-go/logrus v0.45.1/go.mod h1:U3+P/d89ekGtsEB1tmcINe9mOXNTHD8+VzNaxyIMN6Q=
+github.com/getsentry/sentry-go/logrus v0.46.2 h1:pfk8T2t86aZ4McvtD5jVRv9/anmwVxllYwdeqBOao2E=
+github.com/getsentry/sentry-go/logrus v0.46.2/go.mod h1:QXlyChb+1+jf8rhT9I3QW1dX1th5ZSP9CH4X2MeurkM=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
 github.com/gin-contrib/sse v1.1.0/go.mod h1:hxRZ5gVpWMT7Z0B0gSNYqqsSCNIJMjzvm6fqCz9vjwM=
 github.com/gin-gonic/gin v1.12.0 h1:b3YAbrZtnf8N//yjKeU2+MQsh2mY5htkZidOM7O0wG8=

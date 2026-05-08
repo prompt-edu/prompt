@@ -68,8 +68,11 @@ func initKeycloak() {
 }
 
 func main() {
-	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_CERTIFICATE", ""))
-	defer sentry.Flush(2 * time.Second)
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_CERTIFICATE", ""))
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	databaseURL := getDatabaseURL()
 	log.Debug("Connecting to database")
@@ -89,7 +92,9 @@ func main() {
 	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	apiBase := router.Group("certificate/api")

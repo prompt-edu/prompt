@@ -96,6 +96,7 @@ services:
       - SENDER_EMAIL
       - SENDER_NAME
       - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -137,6 +138,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_TEAM_ALLOCATION
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -168,6 +170,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_SELF_TEAM_ALLOCATION
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -199,6 +202,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_ASSESSMENT
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -231,6 +235,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_INTERVIEW
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -264,6 +269,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - KEYCLOAK_AUTHORIZED_PARTY
       - SENTRY_DSN_CERTIFICATE
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -571,7 +577,6 @@ services:
       - TEMPLATE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
-      - SENTRY_DSN_CLIENT
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"
@@ -587,7 +592,7 @@ services:
 
   # SeaweedFS Master Server
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.22
+    image: chrislusf/seaweedfs:4.23
     container_name: prompt-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     volumes:
@@ -608,7 +613,7 @@ services:
 
   # SeaweedFS Volume Server
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.22
+    image: chrislusf/seaweedfs:4.23
     container_name: prompt-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     volumes:
@@ -631,7 +636,7 @@ services:
 
   # SeaweedFS Filer (required for S3)
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.22
+    image: chrislusf/seaweedfs:4.23
     container_name: prompt-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     volumes:
@@ -651,7 +656,7 @@ services:
 
   # SeaweedFS S3 Gateway (public access via presigned URLs only)
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.22
+    image: chrislusf/seaweedfs:4.23
     container_name: prompt-seaweedfs-s3
     entrypoint:
       - /bin/sh

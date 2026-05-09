@@ -56,8 +56,16 @@ function TabView({
 export function ApplicationDetailPageLayout({ left, right }: ApplicationDetailPageLayoutProps) {
   return (
     <>
-      <TabView className='lg:hidden' left={left} right={right} />
-      <SideBySideView className='hidden lg:grid' left={left} right={right} />
+      <style>{`
+        .app-detail-tab-view { display: block }
+        .app-detail-side-by-side { display: none }
+        @media (min-width: 1024px) {
+          .app-detail-tab-view { display: none }
+          .app-detail-side-by-side { display: grid }
+        }
+      `}</style>
+      <TabView className='app-detail-tab-view' left={left} right={right} />
+      <SideBySideView className='app-detail-side-by-side' left={left} right={right} />
     </>
   )
 }

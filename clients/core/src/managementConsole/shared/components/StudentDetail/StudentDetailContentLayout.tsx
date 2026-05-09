@@ -86,14 +86,22 @@ export function StudentDetailContentLayout({
 }: StudentDetailContentProps) {
   return (
     <>
+      <style>{`
+        .student-detail-tab-view { display: block }
+        .student-detail-side-by-side { display: none }
+        @media (min-width: 1024px) {
+          .student-detail-tab-view { display: none }
+          .student-detail-side-by-side { display: grid }
+        }
+      `}</style>
       <TabView
-        className='lg:hidden'
+        className='student-detail-tab-view'
         courseEnrollment={courseEnrollment}
         instructorNotes={instructorNotes}
         defaultTab={defaultTab}
       />
       <SideBySideView
-        className='hidden lg:grid'
+        className='student-detail-side-by-side'
         courseEnrollment={courseEnrollment}
         instructorNotes={instructorNotes}
       />

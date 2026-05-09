@@ -141,17 +141,7 @@ export const App = () => {
               path='/management/privacy/data-export'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyDataExportPage />
-                  </PermissionRestriction>
+                  <PrivacyDataExportPage />
                 </ManagementRoot>
               }
             />
@@ -159,17 +149,7 @@ export const App = () => {
               path='/management/privacy/data-deletion'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyDataDeletionPage />
-                  </PermissionRestriction>
+                  <PrivacyDataDeletionPage />
                 </ManagementRoot>
               }
             />

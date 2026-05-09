@@ -1,23 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tumaet/prompt-ui-components'
 import { ClipboardList, NotepadText } from 'lucide-react'
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode } from 'react'
+import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
 
 interface ApplicationDetailPageLayoutProps {
   left: ReactNode
   right: ReactNode
-}
-
-function useIsLargeScreen() {
-  const [isLarge, setIsLarge] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    const handler = (e: MediaQueryListEvent) => setIsLarge(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-
-  return isLarge
 }
 
 function SideBySideView({ left, right }: ApplicationDetailPageLayoutProps) {

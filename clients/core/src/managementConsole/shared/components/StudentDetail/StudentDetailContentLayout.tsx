@@ -1,24 +1,12 @@
 import { Card, Tabs, TabsContent, TabsList, TabsTrigger } from '@tumaet/prompt-ui-components'
 import { GalleryVerticalEnd, NotepadText } from 'lucide-react'
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode } from 'react'
+import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
 
 interface StudentDetailContentProps {
   courseEnrollment: ReactNode
   instructorNotes: ReactNode
   defaultTab?: 'courseEnrollment' | 'instructorNotes'
-}
-
-function useIsLargeScreen() {
-  const [isLarge, setIsLarge] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    const handler = (e: MediaQueryListEvent) => setIsLarge(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-
-  return isLarge
 }
 
 function CourseEnrollmentDescriptor() {

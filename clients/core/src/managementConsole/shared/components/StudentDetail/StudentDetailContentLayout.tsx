@@ -40,12 +40,14 @@ function SideBySideView({
   className = '',
 }: SideBySideViewProps) {
   return (
-    <div className={`grid grid-cols-2 mt-4 ${className}`}>
-      <div className='lg:pr-2 xl:pr-4'>
-        <Card className='p-3'>{courseEnrollment}</Card>
-      </div>
-      <div>
-        <Card className='p-3'>{instructorNotes}</Card>
+    <div className={className}>
+      <div className='grid grid-cols-2 mt-4'>
+        <div className='lg:pr-2 xl:pr-4'>
+          <Card className='p-3'>{courseEnrollment}</Card>
+        </div>
+        <div>
+          <Card className='p-3'>{instructorNotes}</Card>
+        </div>
       </div>
     </div>
   )
@@ -93,7 +95,7 @@ export function StudentDetailContentLayout({
         defaultTab={defaultTab}
       />
       <SideBySideView
-        className='hidden lg:grid'
+        className='hidden lg:block'
         courseEnrollment={courseEnrollment}
         instructorNotes={instructorNotes}
       />

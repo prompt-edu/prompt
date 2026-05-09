@@ -177,7 +177,7 @@ const config = (env) => {
           },
         },
       },
-      minimizer: [`...`, new CssMinimizerPlugin()],
+      minimizer: [`...`, new CssMinimizerPlugin({ minify: CssMinimizerPlugin.lightningCssMinify })],
     },
     cache: {
       type: 'filesystem',

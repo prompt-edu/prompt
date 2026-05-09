@@ -120,8 +120,11 @@ func main() {
 	}
 
 	// initialize Sentry
-	_ = sdkUtils.InitSentry(sdkUtils.GetEnv("SENTRY_DSN_CORE", ""))
-	defer sentry.Flush(2 * time.Second) // Flush buffered events before exiting (2 seconds timeout)
+	sentryEnabled := sdkUtils.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(sdkUtils.GetEnv("SENTRY_DSN_CORE", ""))
+		defer sentry.Flush(2 * time.Second) // Flush buffered events before exiting (2 seconds timeout)
+	}
 
 	// establish database connection
 	databaseURL := getDatabaseURL()
@@ -141,7 +144,9 @@ func main() {
 	query := db.New(conn)
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	localHost := "http://localhost:3000"
 	clientHost := sdkUtils.GetEnv("CORE_HOST", localHost)
 	router.Use(sdkUtils.CORS(clientHost))

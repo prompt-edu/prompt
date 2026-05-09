@@ -31,7 +31,7 @@ export function PrivacyOverviewPage() {
             key={option.path}
             role='button'
             tabIndex={0}
-            className='border border-border cursor-pointer hover:border-muted-foreground/40 hover:shadow-sm transition-all'
+            className='border border-border cursor-pointer hover:border-muted-foreground/40 hover:shadow-xs transition-all'
             onClick={() => navigate(option.path)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {

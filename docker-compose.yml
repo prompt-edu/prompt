@@ -38,6 +38,7 @@ services:
       - SENDER_EMAIL
       - SENDER_NAME
       - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -72,6 +73,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_TEAM_ALLOCATION
+      - SENTRY_ENABLED
 
   server-self-team-allocation:
     build:
@@ -97,6 +99,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_SELF_TEAM_ALLOCATION
+      - SENTRY_ENABLED
 
   server-assessment:
     build:
@@ -122,6 +125,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_ASSESSMENT
+      - SENTRY_ENABLED
 
   server-certificate:
     build:
@@ -148,6 +152,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_CERTIFICATE
+      - SENTRY_ENABLED
 
   # Template server (example service)
   server-template:
@@ -175,6 +180,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_TEMPLATE_SERVER
+      - SENTRY_ENABLED
 
   server-interview:
     build:
@@ -201,12 +207,31 @@ services:
       - KEYCLOAK_REALM_NAME
       - DEBUG
       - SENTRY_DSN_INTERVIEW
+      - SENTRY_ENABLED
 
   client-core:
     build:
       context: ./clients/core
       dockerfile: Dockerfile
     container_name: prompt-client-core
+    environment:
+      - ENVIRONMENT
+      - CORE_HOST
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - ASSESSMENT_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - CHAIR_NAME_SHORT
+      - CHAIR_NAME_LONG
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
     ports:
       - "3000:80"
     depends_on:
@@ -470,10 +495,11 @@ services:
       - "5431:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.7
+    image: quay.io/keycloak/keycloak:26.6.1
     container_name: prompt-keycloak
     command:
       - start-dev
+      - --import-realm
       - --health-enabled=true
       - --hostname-strict=false
     environment:
@@ -484,6 +510,7 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_IMPORT_REALM: /opt/keycloak/data/import/realm.json
       KC_HOSTNAME: "localhost"
       KC_HOSTNAME_PORT: "8081"
       KC_HOSTNAME_STRICT: "false"
@@ -496,6 +523,8 @@ services:
     ports:
       - "8081:8080"
       - "9000:9000"
+    volumes:
+      - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 4<>/dev/tcp/localhost/9000"]
       interval: 30s

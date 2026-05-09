@@ -72,7 +72,7 @@ export function ReleaseConfirmationDialog({
           <AlertDialogDescription>
             Are you sure you want to release the assessment results to students? This will make{' '}
             {getVisibilityDescription()} for all final assessments ({completedAssessments}/
-            {totalAssessments}) visible to students. This action cannot be undone.
+            {totalAssessments}) visible to students.
           </AlertDialogDescription>
           {releaseError && (
             <p className='text-sm font-medium text-destructive' role='alert'>

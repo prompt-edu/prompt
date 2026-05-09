@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { GetApplication } from '../../interfaces/application/getApplication'
 
 export const getApplication = async (coursePhaseId: string): Promise<GetApplication> => {

@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const deleteCoursePhase = async (coursePhaseID: string): Promise<string | undefined> => {
   try {

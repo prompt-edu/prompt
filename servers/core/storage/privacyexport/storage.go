@@ -81,7 +81,7 @@ func GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (str
 }
 
 // GetDownloadURL generates a presigned S3 GET URL for downloading a GDPR export ZIP.
-// The URL is valid for 15 minutes.
+// The URL is valid for 5 minutes.
 func GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
 	if adapter == nil {
 		return "", fmt.Errorf("privacy export storage not initialized")

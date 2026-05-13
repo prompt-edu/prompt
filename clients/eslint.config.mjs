@@ -29,6 +29,7 @@ const getTsConfigPaths = () => {
     'team_allocation_component',
     'self_team_allocation_component',
     'certificate_component',
+    'infrastructure_setup_component',
   ] // TODO: replace with dynamic workspace detection
   return workspaceFolders
     .map((folder) => {

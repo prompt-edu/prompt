@@ -15,7 +15,9 @@ export const OverviewPage = () => {
           <Server className='h-6 w-6 text-blue-500' />
           <CardTitle className='text-2xl'>Infrastructure Setup</CardTitle>
         </div>
-        <CardDescription>Manage infrastructure providers, resource configurations, and execution</CardDescription>
+        <CardDescription>
+          Manage infrastructure providers, resource configurations, and execution
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className='p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500'>

@@ -1,6 +1,6 @@
 services:
   reverse-proxy:
-    image: traefik:v2.10
+    image: traefik:v2.11
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -63,6 +63,8 @@ services:
       - SMTP_PASSWORD
       - SENDER_EMAIL
       - SENDER_NAME
+      - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
     networks:
       - prompt-network
 
@@ -103,7 +105,7 @@ services:
       - prompt-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.7
+    image: quay.io/keycloak/keycloak:26.6.1
     container_name: prompt-keycloak
     labels:
       - "traefik.enable=true"
@@ -182,6 +184,7 @@ services:
     container_name: prompt-client-core
     environment:
       - TZ=Europe/Berlin
+      - ENVIRONMENT
       - CORE_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
@@ -190,6 +193,14 @@ services:
       - GITHUB_SHA
       - GITHUB_REF
       - SERVER_CORE_IMAGE_TAG
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - ASSESSMENT_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

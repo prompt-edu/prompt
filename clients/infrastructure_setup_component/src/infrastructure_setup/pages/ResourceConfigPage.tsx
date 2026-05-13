@@ -20,7 +20,11 @@ const fetchResourceConfigs = async (coursePhaseID: string): Promise<ResourceConf
 export const ResourceConfigPage = () => {
   const { coursePhaseID } = useParams<{ coursePhaseID: string }>()
 
-  const { data: resourceConfigs, isLoading, isError } = useQuery({
+  const {
+    data: resourceConfigs,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['resource-configs', coursePhaseID],
     queryFn: () => fetchResourceConfigs(coursePhaseID!),
     enabled: !!coursePhaseID,

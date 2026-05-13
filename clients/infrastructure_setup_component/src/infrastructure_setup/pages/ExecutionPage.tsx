@@ -27,7 +27,12 @@ export const ExecutionPage = () => {
   const { coursePhaseID } = useParams<{ coursePhaseID: string }>()
   const queryClient = useQueryClient()
 
-  const { data: instances, isLoading, isError, refetch } = useQuery({
+  const {
+    data: instances,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['instances', coursePhaseID],
     queryFn: () => fetchInstances(coursePhaseID!),
     enabled: !!coursePhaseID,
@@ -84,7 +89,10 @@ export const ExecutionPage = () => {
         <div className='space-y-2'>
           {/* TODO: Render instance cards/rows with status indicators */}
           {instances?.map((instance) => (
-            <div key={instance.id} className='p-4 border border-gray-200 rounded-lg flex items-center justify-between'>
+            <div
+              key={instance.id}
+              className='p-4 border border-gray-200 rounded-lg flex items-center justify-between'
+            >
               <div>
                 <p className='font-medium text-sm font-mono'>{instance.id}</p>
                 <p className='text-sm text-gray-500'>{instance.createdAt}</p>

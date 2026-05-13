@@ -20,7 +20,11 @@ const fetchProviderConfigs = async (coursePhaseID: string): Promise<ProviderConf
 export const ProvidersPage = () => {
   const { coursePhaseID } = useParams<{ coursePhaseID: string }>()
 
-  const { data: providers, isLoading, isError } = useQuery({
+  const {
+    data: providers,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['provider-configs', coursePhaseID],
     queryFn: () => fetchProviderConfigs(coursePhaseID!),
     enabled: !!coursePhaseID,
@@ -55,7 +59,10 @@ export const ProvidersPage = () => {
         <div className='space-y-2'>
           {/* TODO: Render provider cards/rows */}
           {providers?.map((provider) => (
-            <div key={provider.id} className='p-4 border border-gray-200 rounded-lg flex items-center justify-between'>
+            <div
+              key={provider.id}
+              className='p-4 border border-gray-200 rounded-lg flex items-center justify-between'
+            >
               <div>
                 <p className='font-medium'>{provider.name}</p>
                 <p className='text-sm text-gray-500'>{provider.type}</p>

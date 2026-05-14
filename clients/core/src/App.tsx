@@ -24,6 +24,7 @@ import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPa
 import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPage'
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
+import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
 import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
 import { PrivacyOverviewPage } from './managementConsole/pages/PrivacyOverviewPage'
 import { PrivacyDataExportPage } from './managementConsole/pages/PrivacyDataExportPage'
@@ -63,7 +64,7 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course_templates'
+              path='/management/course-templates'
               element={
                 <ManagementRoot>
                   <TemplateCoursesPage />
@@ -71,7 +72,7 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course_archive'
+              path='/management/course-archive'
               element={
                 <ManagementRoot>
                   <ArchivedCoursesPage />
@@ -90,7 +91,11 @@ export const App = () => {
               path='/management/students'
               element={
                 <ManagementRoot>
-                  <StudentsPage />
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.PROMPT_LECTURER]}
+                  >
+                    <StudentsPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />
@@ -98,7 +103,19 @@ export const App = () => {
               path='/management/students/:studentId'
               element={
                 <ManagementRoot>
-                  <StudentDetailPage />
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <StudentDetailPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/system-status'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <SystemStatusPage />
+                  </PermissionRestriction>
                 </ManagementRoot>
               }
             />
@@ -116,17 +133,7 @@ export const App = () => {
               path='/management/privacy'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyOverviewPage />
-                  </PermissionRestriction>
+                  <PrivacyOverviewPage />
                 </ManagementRoot>
               }
             />
@@ -134,17 +141,7 @@ export const App = () => {
               path='/management/privacy/data-export'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyDataExportPage />
-                  </PermissionRestriction>
+                  <PrivacyDataExportPage />
                 </ManagementRoot>
               }
             />
@@ -152,17 +149,7 @@ export const App = () => {
               path='/management/privacy/data-deletion'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.PROMPT_LECTURER,
-                      Role.COURSE_STUDENT,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
-                    <PrivacyDataDeletionPage />
-                  </PermissionRestriction>
+                  <PrivacyDataDeletionPage />
                 </ManagementRoot>
               }
             />

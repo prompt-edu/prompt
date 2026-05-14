@@ -7,6 +7,7 @@ window.env = {
   SELF_TEAM_ALLOCATION_HOST: 'http://localhost:8084',
   ASSESSMENT_HOST: 'http://localhost:8085',
   DEVOPS_CHALLENGE_HOST: 'http://localhost:9000',
+  TEMPLATE_HOST: 'http://localhost:8086',
   INTERVIEW_HOST: 'http://localhost:8087',
   CERTIFICATE_HOST: 'http://localhost:8088',
   KEYCLOAK_HOST: 'http://localhost:8081',
@@ -16,5 +17,4 @@ window.env = {
   GITHUB_SHA: 'GITHUB_SHA - Will be here in Production',
   GITHUB_REF: '$GITHUB_REF - Will be here in Production',
   SERVER_IMAGE_TAG: '$SERVER_IMAGE_TAG - Image Tag',
-  SENTRY_DSN_CLIENT: '', // Sentry DSN for core client - leave empty for local development
 }

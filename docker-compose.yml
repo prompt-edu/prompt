@@ -1,3 +1,10 @@
+x-client-build-args: &client-build-args
+  IMAGE_TAG: local
+  NODE_ENV: development
+
+x-client-additional-contexts: &client-additional-contexts
+  "ghcr.io/prompt-edu/prompt/prompt-clients-base:local": "service:clients-base"
+
 services:
   server-core:
     build:
@@ -213,25 +220,28 @@ services:
     build:
       context: ./clients/core
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-core
     environment:
-      - ENVIRONMENT
-      - CORE_HOST
-      - INTRO_COURSE_HOST
-      - DEVOPS_CHALLENGE_HOST
-      - TEAM_ALLOCATION_HOST
-      - SELF_TEAM_ALLOCATION_HOST
-      - ASSESSMENT_HOST
-      - TEMPLATE_HOST
-      - INTERVIEW_HOST
-      - CERTIFICATE_HOST
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
+      - ENVIRONMENT=${ENVIRONMENT}
+      - CORE_HOST=${CLIENT_CORE_HOST}
+      - INTRO_COURSE_HOST=${CLIENT_INTRO_COURSE_HOST}
+      - DEVOPS_CHALLENGE_HOST=${CLIENT_DEVOPS_CHALLENGE_HOST}
+      - TEAM_ALLOCATION_HOST=${CLIENT_TEAM_ALLOCATION_HOST}
+      - SELF_TEAM_ALLOCATION_HOST=${CLIENT_SELF_TEAM_ALLOCATION_HOST}
+      - ASSESSMENT_HOST=${CLIENT_ASSESSMENT_HOST}
+      - TEMPLATE_HOST=${CLIENT_TEMPLATE_HOST}
+      - INTERVIEW_HOST=${CLIENT_INTERVIEW_HOST}
+      - CERTIFICATE_HOST=${CLIENT_CERTIFICATE_HOST}
+      - KEYCLOAK_HOST=${CLIENT_KEYCLOAK_HOST}
+      - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
       - CHAIR_NAME_SHORT
       - CHAIR_NAME_LONG
-      - GITHUB_SHA
-      - GITHUB_REF
-      - SERVER_CORE_IMAGE_TAG
+      - GITHUB_SHA=${GITHUB_SHA}
+      - GITHUB_REF=${GITHUB_REF}
+      - SERVER_CORE_IMAGE_TAG=${SERVER_CORE_IMAGE_TAG}
+      - SENTRY_DSN_CLIENT=${SENTRY_DSN_CLIENT}
     ports:
       - "3000:80"
     depends_on:
@@ -241,29 +251,11 @@ services:
     build:
       context: ./clients/template_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-template-component
     ports:
       - "3001:80"
-    depends_on:
-      - clients-base
-
-  client-assessment-component:
-    build:
-      context: ./clients/assessment_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-assessment-component
-    ports:
-      - "3002:80"
-    depends_on:
-      - clients-base
-
-  client-devops-challenge-component:
-    build:
-      context: ./clients/devops_challenge_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-devops-challenge-component
-    ports:
-      - "3003:80"
     depends_on:
       - clients-base
 
@@ -271,9 +263,11 @@ services:
     build:
       context: ./clients/interview_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-interview-component
     ports:
-      - "3005:80"
+      - "3002:80"
     depends_on:
       - clients-base
 
@@ -281,9 +275,35 @@ services:
     build:
       context: ./clients/matching_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-matching-component
     ports:
+      - "3003:80"
+    depends_on:
+      - clients-base
+
+  client-devops-challenge-component:
+    build:
+      context: ./clients/devops_challenge_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-devops-challenge-component
+    ports:
       - "3006:80"
+    depends_on:
+      - clients-base
+
+  client-assessment-component:
+    build:
+      context: ./clients/assessment_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-assessment-component
+    ports:
+      - "3007:80"
     depends_on:
       - clients-base
 
@@ -291,9 +311,11 @@ services:
     build:
       context: ./clients/team_allocation_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-team-allocation-component
     ports:
-      - "3007:80"
+      - "3008:80"
     depends_on:
       - clients-base
 
@@ -301,9 +323,11 @@ services:
     build:
       context: ./clients/self_team_allocation_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-self-team-allocation-component
     ports:
-      - "3008:80"
+      - "3009:80"
     depends_on:
       - clients-base
 
@@ -311,9 +335,11 @@ services:
     build:
       context: ./clients/certificate_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-certificate
     ports:
-      - "3009:80"
+      - "3010:80"
     depends_on:
       - clients-base
 
@@ -321,7 +347,7 @@ services:
     build:
       context: ./clients
       dockerfile: Dockerfile
-    image: base:latest
+    image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
 
   db:
     image: "postgres:15.17-alpine"
@@ -634,4 +660,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-  

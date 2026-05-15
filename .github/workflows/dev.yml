@@ -41,13 +41,23 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const author = context.payload.pull_request.user.login;
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              assignees: [author]
-            });
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const authorType = pr.user.type;
+            if (authorType === 'Bot') {
+              console.log(`Skipping assignment: PR author "${author}" is a bot.`);
+              return;
+            }
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                assignees: [author]
+              });
+            } catch (error) {
+              console.log(`Could not assign author "${author}": ${error.message}`);
+            }
 
   detect-migrations:
     if: github.event_name == 'pull_request'

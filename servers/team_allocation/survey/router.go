@@ -20,6 +20,7 @@ func setupSurveyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowed
 
 	surveyRouter.PUT("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), setSurveyTimeframe)
 	surveyRouter.GET("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSurveyTimeframe)
+	surveyRouter.GET("/statistics", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSurveyStatistics)
 
 }
 
@@ -205,4 +206,31 @@ func getSurveyTimeframe(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, timeframe)
+}
+
+// getSurveyStatistics godoc
+// @Summary Get survey statistics
+// @Description Get aggregated team preference and skill distribution statistics for a course phase
+// @Tags survey
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} surveyDTO.SurveyStatistics
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/survey/statistics [get]
+func getSurveyStatistics(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	statistics, err := GetSurveyStatistics(c, coursePhaseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, statistics)
 }

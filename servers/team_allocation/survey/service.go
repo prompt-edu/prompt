@@ -169,6 +169,36 @@ func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStar
 	return nil
 }
 
+// GetSurveyStatistics returns aggregated team preference and skill distribution statistics.
+// Statistics are only available after the survey deadline has passed.
+func GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyStatistics, error) {
+	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get survey timeframe for statistics: ", err)
+		return surveyDTO.SurveyStatistics{}, errors.New("could not get survey timeframe")
+	}
+	if time.Now().Before(timeframe.SurveyDeadline.Time) {
+		return surveyDTO.SurveyStatistics{}, errors.New("survey statistics are not available until the survey deadline has passed")
+	}
+
+	teamRows, err := SurveyServiceSingleton.queries.GetTeamPopularityStatistics(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get team popularity statistics: ", err)
+		return surveyDTO.SurveyStatistics{}, errors.New("could not get team popularity statistics")
+	}
+	teamCountRows, err := SurveyServiceSingleton.queries.GetTeamPreferenceCounts(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get team preference counts: ", err)
+		return surveyDTO.SurveyStatistics{}, errors.New("could not get team preference counts")
+	}
+	skillRows, err := SurveyServiceSingleton.queries.GetSkillDistributionStatistics(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get skill distribution statistics: ", err)
+		return surveyDTO.SurveyStatistics{}, errors.New("could not get skill distribution statistics")
+	}
+	return surveyDTO.GetSurveyStatisticsDTOFromDBModels(teamRows, teamCountRows, skillRows), nil
+}
+
 func GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error) {
 	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {

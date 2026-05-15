@@ -414,26 +414,6 @@ services:
     networks:
       - prompt-network
 
-  client-devops-challenge-component:
-    image: "ghcr.io/prompt-edu/prompt/prompt-clients-devops-challenge-component:${DEVOPS_CHALLENGE_IMAGE_TAG}"
-    container_name: prompt-client-devops-challenge-component
-    environment:
-      - TZ=Europe/Berlin
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.devops-challenge.rule=Host(`${CORE_HOST}`) && PathPrefix(`/devops-challenge`)"
-      - "traefik.http.routers.devops-challenge.entrypoints=websecure"
-      - "traefik.http.routers.devops-challenge.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.devops-challenge-strip-prefix.stripPrefix.prefixes=/devops-challenge"
-      - "traefik.http.routers.devops-challenge.middlewares=devops-challenge-strip-prefix,devops-challenge-compress"
-      - "traefik.http.middlewares.devops-challenge-compress.compress=true"
-    expose:
-      - "80"
-    depends_on:
-      - server-core
-    networks:
-      - prompt-network
-
   client-interview-component:
     image: "ghcr.io/prompt-edu/prompt/prompt-clients-interview-component:${INTERVIEW_IMAGE_TAG}"
     container_name: prompt-client-interview-component

@@ -274,7 +274,7 @@ services:
       - prompt-network
 
   db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -294,7 +294,7 @@ services:
       - prompt-network
 
   db-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -314,7 +314,7 @@ services:
       - prompt-network
 
   db-self-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -334,7 +334,7 @@ services:
       - prompt-network
 
   db-interview:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -354,7 +354,7 @@ services:
       - prompt-network
 
   db-assessment:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -374,7 +374,7 @@ services:
       - prompt-network
 
   db-certificate:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-certificate
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -572,7 +572,7 @@ services:
 
   # SeaweedFS Master Server
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.24
+    image: chrislusf/seaweedfs:4.25
     container_name: prompt-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     volumes:
@@ -593,7 +593,7 @@ services:
 
   # SeaweedFS Volume Server
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.24
+    image: chrislusf/seaweedfs:4.25
     container_name: prompt-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     volumes:
@@ -616,7 +616,7 @@ services:
 
   # SeaweedFS Filer (required for S3)
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.24
+    image: chrislusf/seaweedfs:4.25
     container_name: prompt-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     volumes:
@@ -636,7 +636,7 @@ services:
 
   # SeaweedFS S3 Gateway (public access via presigned URLs only)
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.24
+    image: chrislusf/seaweedfs:4.25
     container_name: prompt-seaweedfs-s3
     entrypoint:
       - /bin/sh

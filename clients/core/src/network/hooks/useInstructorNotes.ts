@@ -20,9 +20,6 @@ export const useDeleteInstructorNote = (studentId?: string) => {
   return useMutation({
     mutationFn: (noteId: string) => deleteInstructorNote(noteId),
     onSuccess: () => {
-      toast({
-        title: 'Note deleted successfully',
-      })
       queryClient.invalidateQueries({ queryKey: ['instructorNotes', studentId] })
     },
     onError: () => {
@@ -42,9 +39,6 @@ export const useCreateInstructorNote = (studentId: string) => {
   return useMutation({
     mutationFn: (note: CreateInstructorNote) => postInstructorNote(studentId, note),
     onSuccess: () => {
-      toast({
-        title: 'Note saved successfully',
-      })
       queryClient.invalidateQueries({ queryKey: ['instructorNotes', studentId] })
     },
     onError: () => {

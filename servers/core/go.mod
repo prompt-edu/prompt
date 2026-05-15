@@ -3,7 +3,7 @@ module github.com/prompt-edu/prompt/servers/core
 go 1.26.3
 
 require (
-	github.com/Nerzal/gocloak/v13 v13.9.0
+	github.com/Nerzal/gocloak/v14 v14.0.3
 	github.com/Nerzal/gocloak/v14 v14.0.3
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.17

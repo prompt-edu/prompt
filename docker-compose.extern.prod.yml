@@ -1,6 +1,6 @@
 services:
   reverse-proxy:
-    image: traefik:v2.10
+    image: traefik:v2.11
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -105,7 +105,7 @@ services:
       - prompt-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.7
+    image: quay.io/keycloak/keycloak:26.6.1
     container_name: prompt-keycloak
     labels:
       - "traefik.enable=true"

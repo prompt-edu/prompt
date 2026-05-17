@@ -112,8 +112,8 @@ func (p *Provider) findOrCreateProject(ctx context.Context, name string) (string
 
 	var listResp struct {
 		Data []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
+			ID    string `json:"id"`
+			Name  string `json:"name"`
 			Links struct {
 				Self string `json:"self"`
 			} `json:"links"`
@@ -160,9 +160,9 @@ func (p *Provider) addMember(ctx context.Context, projectID, email, roleTemplate
 	}
 
 	payload := map[string]interface{}{
-		"projectId":              projectID,
-		"userPrincipalId":        "local://" + userID,
-		"roleTemplateId":         roleTemplateID,
+		"projectId":       projectID,
+		"userPrincipalId": "local://" + userID,
+		"roleTemplateId":  roleTemplateID,
 	}
 	_, err = p.post(ctx, "/v3/projectroletemplatebindings", payload)
 	return err

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,20 +32,25 @@ func (q *Queries) CreateResourceInstance(ctx context.Context, arg CreateResource
 	const sql = `
 		INSERT INTO resource_instance (id, resource_config_id, course_phase_id, team_id, course_participation_id)
 		VALUES (gen_random_uuid(), $1, $2, $3, $4)
+		ON CONFLICT DO NOTHING
 		RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, retry_count, created_at, updated_at`
 
 	row := q.db.QueryRow(ctx, sql, arg.ResourceConfigID, arg.CoursePhaseID, arg.TeamID, arg.CourseParticipationID)
-	return scanResourceInstance(row)
+	instance, err := scanResourceInstance(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ResourceInstance{}, nil
+	}
+	return instance, err
 }
 
-// GetResourceInstance retrieves a resource instance by ID.
-func (q *Queries) GetResourceInstance(ctx context.Context, id uuid.UUID) (ResourceInstance, error) {
+// GetResourceInstance retrieves a resource instance by ID and phase.
+func (q *Queries) GetResourceInstance(ctx context.Context, id, coursePhaseID uuid.UUID) (ResourceInstance, error) {
 	const sql = `
 		SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, retry_count, created_at, updated_at
 		FROM resource_instance
-		WHERE id = $1`
+		WHERE id = $1 AND course_phase_id = $2`
 
-	row := q.db.QueryRow(ctx, sql, id)
+	row := q.db.QueryRow(ctx, sql, id, coursePhaseID)
 	return scanResourceInstance(row)
 }
 
@@ -84,10 +90,10 @@ func (q *Queries) UpdateResourceInstanceStatus(ctx context.Context, arg UpdateRe
 	return err
 }
 
-// DeleteResourceInstance removes a resource instance by ID.
-func (q *Queries) DeleteResourceInstance(ctx context.Context, id uuid.UUID) error {
-	const sql = `DELETE FROM resource_instance WHERE id = $1`
-	_, err := q.db.Exec(ctx, sql, id)
+// DeleteResourceInstance removes a resource instance by ID and phase.
+func (q *Queries) DeleteResourceInstance(ctx context.Context, id, coursePhaseID uuid.UUID) error {
+	const sql = `DELETE FROM resource_instance WHERE id = $1 AND course_phase_id = $2`
+	_, err := q.db.Exec(ctx, sql, id, coursePhaseID)
 	return err
 }
 
@@ -136,12 +142,12 @@ func (q *Queries) ResetInProgressToPending(ctx context.Context) error {
 }
 
 // ResetFailedInstanceToPending resets a single failed instance to pending for retry.
-func (q *Queries) ResetFailedInstanceToPending(ctx context.Context, id uuid.UUID) error {
+func (q *Queries) ResetFailedInstanceToPending(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 	const sql = `
 		UPDATE resource_instance
 		SET status = 'pending', error_message = NULL, updated_at = NOW()
-		WHERE id = $1 AND status = 'failed'`
-	_, err := q.db.Exec(ctx, sql, id)
+		WHERE id = $1 AND course_phase_id = $2 AND status = 'failed'`
+	_, err := q.db.Exec(ctx, sql, id, coursePhaseID)
 	return err
 }
 

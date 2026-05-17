@@ -2,16 +2,14 @@
 package copy
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -50,23 +48,42 @@ func (h *InfrastructureSetupCopyHandler) HandlePhaseCopy(c *gin.Context, req pro
 	return nil
 }
 
-// ConfigHandler implements the PhaseConfigHandler interface (empty config for this phase).
+// ConfigHandler implements the PhaseConfigHandler interface for core config status checks.
 type ConfigHandler struct{}
 
-func (h *ConfigHandler) GetPhaseConfig(_ context.Context, _ uuid.UUID) (json.RawMessage, error) {
-	return json.RawMessage("{}"), nil
-}
+func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
+	if CopyServiceSingleton == nil {
+		return map[string]bool{
+			"sourcePhase": false,
+			"semesterTag": false,
+		}, nil
+	}
 
-func (h *ConfigHandler) UpdatePhaseConfig(_ context.Context, _ uuid.UUID, _ json.RawMessage) error {
-	return nil
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := CopyServiceSingleton.queries.GetCoursePhaseConfig(c.Request.Context(), coursePhaseID)
+	if err != nil {
+		return map[string]bool{
+			"sourcePhase": false,
+			"semesterTag": false,
+		}, nil
+	}
+
+	return map[string]bool{
+		"sourcePhase": cfg.TeamSourceCoursePhaseID != nil || cfg.StudentSourceCoursePhaseID != nil,
+		"semesterTag": cfg.SemesterTag != "",
+	}, nil
 }
 
 // InitCopyModule registers copy routes and initialises the singleton.
 func InitCopyModule(routerGroup *gin.RouterGroup, conn *pgxpool.Pool) {
 	promptTypes.RegisterCopyEndpoint(routerGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &InfrastructureSetupCopyHandler{})
+	promptTypes.RegisterConfigEndpoint(routerGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), &ConfigHandler{})
 	CopyServiceSingleton = &CopyService{
 		queries: db.New(conn),
 		conn:    conn,
 	}
 }
-

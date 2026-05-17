@@ -27,30 +27,37 @@ var Registry = map[string]func(credentials []byte) (provider.Provider, error){}
 // Worker processes pending resource instances.
 // It is safe to call concurrently: a semaphore limits parallelism to maxWorkers.
 type Worker struct {
-	pool    *pgxpool.Pool
-	queries *db.Queries
+	pool     *pgxpool.Pool
+	queries  *db.Queries
+	resolver TargetResolver
 }
 
 // NewWorker creates a Worker.
 func NewWorker(pool *pgxpool.Pool) *Worker {
-	return &Worker{pool: pool, queries: db.New(pool)}
+	queries := db.New(pool)
+	return &Worker{pool: pool, queries: queries, resolver: NewCoreTargetResolver(queries)}
+}
+
+// NewWorkerWithResolver creates a Worker with an injected resolver for tests.
+func NewWorkerWithResolver(pool *pgxpool.Pool, resolver TargetResolver) *Worker {
+	return &Worker{pool: pool, queries: db.New(pool), resolver: resolver}
 }
 
 // RunPendingInstances processes all pending instances for the given course phase.
 // Spawning is done in a goroutine so the HTTP handler returns immediately.
-func (w *Worker) RunPendingInstances(coursePhaseID uuid.UUID) {
+func (w *Worker) RunPendingInstances(authHeader string, coursePhaseID uuid.UUID) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 
-		if err := w.processPhase(ctx, coursePhaseID); err != nil {
+		if err := w.processPhase(ctx, authHeader, coursePhaseID); err != nil {
 			log.WithError(err).WithField("coursePhaseID", coursePhaseID).
 				Error("execution worker: processPhase failed")
 		}
 	}()
 }
 
-func (w *Worker) processPhase(ctx context.Context, coursePhaseID uuid.UUID) error {
+func (w *Worker) processPhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) error {
 	// Retrieve pending instances from DB.
 	instances, err := w.queries.ListPendingInstances(ctx, coursePhaseID)
 	if err != nil {
@@ -73,7 +80,7 @@ func (w *Worker) processPhase(ctx context.Context, coursePhaseID uuid.UUID) erro
 				<-sem
 				done <- struct{}{}
 			}()
-			if err := w.processInstance(ctx, inst); err != nil {
+			if err := w.processInstance(ctx, authHeader, inst); err != nil {
 				log.WithError(err).WithField("instanceID", inst.ID).
 					Error("execution worker: processInstance failed")
 			}
@@ -88,7 +95,7 @@ func (w *Worker) processPhase(ctx context.Context, coursePhaseID uuid.UUID) erro
 }
 
 // processInstance executes a single resource instance with retry/backoff.
-func (w *Worker) processInstance(ctx context.Context, inst db.ResourceInstance) error {
+func (w *Worker) processInstance(ctx context.Context, authHeader string, inst db.ResourceInstance) error {
 	if err := w.queries.UpdateResourceInstanceStatus(ctx, db.UpdateResourceInstanceStatusParams{
 		ID:     inst.ID,
 		Status: db.ResourceStatusInProgress,
@@ -118,11 +125,13 @@ func (w *Worker) processInstance(ctx context.Context, inst db.ResourceInstance) 
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("build provider: %v", err))
 	}
 
-	// Build template data.
-	tmplData := w.buildTemplateData(inst)
+	target, err := w.resolver.ResolveInstanceTarget(ctx, authHeader, inst)
+	if err != nil {
+		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve target: %v", err))
+	}
 
 	// Resolve resource name.
-	resolvedName, err := ResolveName(config.NameTemplate, tmplData)
+	resolvedName, err := ResolveName(config.NameTemplate, target.TemplateData)
 	if err != nil {
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve name: %v", err))
 	}
@@ -137,13 +146,10 @@ func (w *Worker) processInstance(ctx context.Context, inst db.ResourceInstance) 
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("parse extra config: %v", err))
 	}
 
-	// Build members list.
-	members := w.buildMemberList(inst)
-
 	input := provider.CreateResourceInput{
 		Name:              resolvedName,
 		ResourceType:      config.ResourceType,
-		Members:           members,
+		Members:           target.Members,
 		PermissionMapping: permissionMap,
 		ExtraConfig:       extraConfig,
 	}
@@ -188,30 +194,4 @@ func (w *Worker) failInstance(ctx context.Context, id uuid.UUID, msg string) err
 		Status:       db.ResourceStatusFailed,
 		ErrorMessage: &msg,
 	})
-}
-
-// buildTemplateData constructs a TemplateData from a resource instance.
-// Team/student names are filled with placeholder values; extend this to load
-// real names from the core API if needed.
-func (w *Worker) buildTemplateData(inst db.ResourceInstance) TemplateData {
-	data := TemplateData{}
-	if inst.TeamID != nil {
-		data.TeamName = inst.TeamID.String()[:8]
-	}
-	if inst.CourseParticipationID != nil {
-		data.StudentLogin = inst.CourseParticipationID.String()[:8]
-	}
-	return data
-}
-
-// buildMemberList assembles the members list for resource creation.
-// For per_student resources it returns the student; for per_team resources
-// it returns an empty list (teams are handled by member lookup in the provider).
-func (w *Worker) buildMemberList(inst db.ResourceInstance) []provider.Member {
-	if inst.CourseParticipationID != nil {
-		return []provider.Member{
-			{Email: fmt.Sprintf("student+%s@placeholder.local", inst.CourseParticipationID), Role: "student"},
-		}
-	}
-	return []provider.Member{}
 }

@@ -3,11 +3,9 @@ import { useParams } from 'react-router-dom'
 import { Server } from 'lucide-react'
 import { infrastructureSetupAxiosInstance } from '../network/infrastructureSetupServerConfig'
 
-// TODO: Define ProviderConfig interface once the API shape is known
 interface ProviderConfig {
   id: string
-  name: string
-  type: string
+  providerType: string
 }
 
 const fetchProviderConfigs = async (coursePhaseID: string): Promise<ProviderConfig[]> => {
@@ -64,8 +62,8 @@ export const ProvidersPage = () => {
               className='p-4 border border-gray-200 rounded-lg flex items-center justify-between'
             >
               <div>
-                <p className='font-medium'>{provider.name}</p>
-                <p className='text-sm text-gray-500'>{provider.type}</p>
+                <p className='font-medium'>{provider.providerType}</p>
+                <p className='text-sm text-gray-500'>{provider.id}</p>
               </div>
               {/* TODO: Add edit/delete actions */}
             </div>

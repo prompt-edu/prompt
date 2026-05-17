@@ -12,6 +12,11 @@ const sidebarItems: SidebarMenuItemProps = {
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
     },
     {
+      title: 'Setup',
+      goToPath: '/setup',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
       title: 'Resource Configs',
       goToPath: '/resource-configs',
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

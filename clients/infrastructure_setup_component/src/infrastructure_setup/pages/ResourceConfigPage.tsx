@@ -3,11 +3,12 @@ import { useParams } from 'react-router-dom'
 import { Settings } from 'lucide-react'
 import { infrastructureSetupAxiosInstance } from '../network/infrastructureSetupServerConfig'
 
-// TODO: Define ResourceConfig interface once the API shape is known
 interface ResourceConfig {
   id: string
-  name: string
-  providerConfigId: string
+  providerType: string
+  resourceType: string
+  scope: 'per_team' | 'per_student'
+  nameTemplate: string
 }
 
 const fetchResourceConfigs = async (coursePhaseID: string): Promise<ResourceConfig[]> => {
@@ -54,8 +55,10 @@ export const ResourceConfigPage = () => {
           {/* TODO: Render resource config cards/rows */}
           {resourceConfigs?.map((config) => (
             <div key={config.id} className='p-4 border border-gray-200 rounded-lg'>
-              <p className='font-medium'>{config.name}</p>
-              <p className='text-sm text-gray-500'>Provider: {config.providerConfigId}</p>
+              <p className='font-medium'>{config.nameTemplate}</p>
+              <p className='text-sm text-gray-500'>
+                {config.providerType} / {config.resourceType} / {config.scope}
+              </p>
               {/* TODO: Add edit/delete actions */}
             </div>
           ))}

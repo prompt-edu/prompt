@@ -35,7 +35,7 @@ type CreateResourceInput struct {
 type AuthField struct {
 	Name        string `json:"name"`
 	Label       string `json:"label"`
-	Type        string `json:"type"`        // "text" or "password"
+	Type        string `json:"type"` // "text" or "password"
 	Required    bool   `json:"required"`
 	Description string `json:"description"`
 }

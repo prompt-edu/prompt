@@ -62,12 +62,20 @@ const (
 	ResourceStatusFailed     ResourceStatus = "failed"
 )
 
+// CoursePhaseConfig is the row type for infrastructure setup phase configuration.
+type CoursePhaseConfig struct {
+	CoursePhaseID              uuid.UUID  `json:"coursePhaseId"`
+	TeamSourceCoursePhaseID    *uuid.UUID `json:"teamSourceCoursePhaseId,omitempty"`
+	StudentSourceCoursePhaseID *uuid.UUID `json:"studentSourceCoursePhaseId,omitempty"`
+	SemesterTag                string     `json:"semesterTag"`
+}
+
 // ProviderConfig is the row type for the provider_config table.
 type ProviderConfig struct {
-	ID             uuid.UUID    `json:"id"`
-	CoursePhaseID  uuid.UUID    `json:"coursePhaseId"`
-	ProviderType   ProviderType `json:"providerType"`
-	Credentials    []byte       `json:"-"` // never serialized in API responses
+	ID            uuid.UUID    `json:"id"`
+	CoursePhaseID uuid.UUID    `json:"coursePhaseId"`
+	ProviderType  ProviderType `json:"providerType"`
+	Credentials   []byte       `json:"-"` // never serialized in API responses
 }
 
 // ResourceConfig is the row type for the resource_config table.

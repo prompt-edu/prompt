@@ -16,8 +16,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/execution"
-	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig"
 	log "github.com/sirupsen/logrus"
 )
@@ -71,10 +72,10 @@ func registerProviderFactories() {
 		}
 	}
 
-	execution.Registry["gitlab"]   = makeFactory("gitlab")
-	execution.Registry["slack"]    = makeFactory("slack")
-	execution.Registry["outline"]  = makeFactory("outline")
-	execution.Registry["rancher"]  = makeFactory("rancher")
+	execution.Registry["gitlab"] = makeFactory("gitlab")
+	execution.Registry["slack"] = makeFactory("slack")
+	execution.Registry["outline"] = makeFactory("outline")
+	execution.Registry["rancher"] = makeFactory("rancher")
 	execution.Registry["keycloak"] = makeFactory("keycloak")
 }
 
@@ -122,6 +123,7 @@ func main() {
 
 	providerconfig.RegisterRoutes(api, providerconfig.NewService(conn))
 	resourceconfig.RegisterRoutes(api, resourceconfig.NewService(conn))
+	phaseconfig.RegisterRoutes(api, phaseconfig.NewService(conn))
 	execution.RegisterRoutes(api, execution.NewService(conn))
 
 	// Copy endpoint (global, not phase-scoped).

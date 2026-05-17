@@ -129,9 +129,9 @@ func (p *Provider) findOrCreateCollection(ctx context.Context, name string) (str
 		} `json:"data"`
 	}
 	if err := p.call(ctx, "collections.create", map[string]interface{}{
-		"name":        name,
-		"sharing":     false,
-		"permission":  "read",
+		"name":       name,
+		"sharing":    false,
+		"permission": "read",
 	}, &createResp); err != nil {
 		return "", "", err
 	}

@@ -24,6 +24,18 @@ func TestResolveName(t *testing.T) {
 			expected: "ipraktikum-ga12abc",
 		},
 		{
+			name:     "lowercase student placeholders",
+			tmpl:     "{{studentFirstName}}-{{studentLastName}}-{{studentEmail}}",
+			data:     TemplateData{StudentFirstName: "Max", StudentLastName: "Muster", StudentEmail: "max@example.com"},
+			expected: "max-muster-maxexample.com",
+		},
+		{
+			name:     "lowercase team and semester placeholders",
+			tmpl:     "{{teamName}}-{{semesterTag}}",
+			data:     TemplateData{TeamName: "Team Alpha", SemesterTag: "ios26"},
+			expected: "team-alpha-ios26",
+		},
+		{
 			name:     "spaces in course name become hyphens",
 			tmpl:     "{{.CourseName}}-group",
 			data:     TemplateData{CourseName: "My Course"},

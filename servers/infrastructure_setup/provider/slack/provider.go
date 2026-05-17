@@ -106,7 +106,7 @@ func (p *Provider) findOrCreateChannel(ctx context.Context, name string) (string
 	}
 
 	if err := p.callAPI(ctx, "conversations.create", map[string]interface{}{
-		"name":      name,
+		"name":       name,
 		"is_private": true,
 	}, &createResp); err != nil {
 		return "", "", err

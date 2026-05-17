@@ -40,7 +40,7 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
 			return
 		}
-		if err := svc.TriggerExecution(c.Request.Context(), coursePhaseID); err != nil {
+		if err := svc.TriggerExecution(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID); err != nil {
 			log.WithError(err).Error("trigger execution")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -61,7 +61,7 @@ func retryInstance(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid instanceID"})
 			return
 		}
-		if err := svc.RetryFailedInstance(c.Request.Context(), coursePhaseID, instanceID); err != nil {
+		if err := svc.RetryFailedInstanceWithAuth(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID, instanceID); err != nil {
 			log.WithError(err).Error("retry instance")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -72,12 +72,18 @@ func retryInstance(svc *Service) gin.HandlerFunc {
 
 func deleteInstance(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
+			return
+		}
+
 		instanceID, err := uuid.Parse(c.Param("instanceID"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid instanceID"})
 			return
 		}
-		if err := svc.DeleteInstance(c.Request.Context(), instanceID); err != nil {
+		if err := svc.DeleteInstance(c.Request.Context(), coursePhaseID, instanceID); err != nil {
 			log.WithError(err).Error("delete instance")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

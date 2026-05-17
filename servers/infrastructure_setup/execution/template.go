@@ -11,13 +11,17 @@ import (
 
 // TemplateData holds the variables available for name template substitution.
 type TemplateData struct {
-	CourseName  string
-	TeamName    string
-	TeamIndex   int
-	StudentName string
-	StudentLogin string
-	Semester    string
-	Year        string
+	CourseName       string
+	TeamName         string
+	TeamIndex        int
+	StudentName      string
+	StudentFirstName string
+	StudentLastName  string
+	StudentEmail     string
+	StudentLogin     string
+	SemesterTag      string
+	Semester         string
+	Year             string
 }
 
 // ResolveName resolves a name template string against the provided data.
@@ -26,13 +30,19 @@ type TemplateData struct {
 // Braces-style (not Go text/template) keeps the server dependency-light.
 func ResolveName(tmpl string, data TemplateData) (string, error) {
 	replacements := map[string]string{
-		"{{.CourseName}}":   sanitize(data.CourseName),
-		"{{.TeamName}}":     sanitize(data.TeamName),
-		"{{.TeamIndex}}":    fmt.Sprintf("%d", data.TeamIndex),
-		"{{.StudentName}}":  sanitize(data.StudentName),
-		"{{.StudentLogin}}": sanitize(data.StudentLogin),
-		"{{.Semester}}":     sanitize(data.Semester),
-		"{{.Year}}":         sanitize(data.Year),
+		"{{.CourseName}}":      sanitize(data.CourseName),
+		"{{.TeamName}}":        sanitize(data.TeamName),
+		"{{teamName}}":         sanitize(data.TeamName),
+		"{{.TeamIndex}}":       fmt.Sprintf("%d", data.TeamIndex),
+		"{{.StudentName}}":     sanitize(data.StudentName),
+		"{{studentFirstName}}": sanitize(data.StudentFirstName),
+		"{{studentLastName}}":  sanitize(data.StudentLastName),
+		"{{studentEmail}}":     sanitize(data.StudentEmail),
+		"{{.StudentLogin}}":    sanitize(data.StudentLogin),
+		"{{studentLogin}}":     sanitize(data.StudentLogin),
+		"{{semesterTag}}":      sanitize(data.SemesterTag),
+		"{{.Semester}}":        sanitize(data.Semester),
+		"{{.Year}}":            sanitize(data.Year),
 	}
 
 	result := tmpl

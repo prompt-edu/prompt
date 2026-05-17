@@ -41,13 +41,23 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
-            const author = context.payload.pull_request.user.login;
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              assignees: [author]
-            });
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const authorType = pr.user.type;
+            if (authorType === 'Bot') {
+              console.log(`Skipping assignment: PR author "${author}" is a bot.`);
+              return;
+            }
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                assignees: [author]
+              });
+            } catch (error) {
+              console.log(`Could not assign author "${author}": ${error.message}`);
+            }
 
   detect-migrations:
     if: github.event_name == 'pull_request'
@@ -121,7 +131,6 @@ jobs:
       server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag }}
       server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag }}
       server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag }}
-      devops_challenge_image_tag: ${{ needs.build-clients.outputs.devops_challenge_image_tag }}
       server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag }}
       server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag }}
       certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag }}

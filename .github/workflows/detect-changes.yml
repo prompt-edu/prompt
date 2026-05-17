@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-servers
         with:
           files: servers/**
@@ -42,7 +42,7 @@ jobs:
           json: true
           escape_json: false
           base_sha: ${{ inputs.base_sha }}
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-clients
         with:
           files: clients/**
@@ -51,12 +51,12 @@ jobs:
           json: true
           escape_json: false
           base_sha: ${{ inputs.base_sha }}
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-workflows
         with:
           files: .github/workflows/**
           base_sha: ${{ inputs.base_sha }}
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-docker-compose
         with:
           files: |
@@ -64,7 +64,7 @@ jobs:
             docker-compose.prod.yml
             docker-compose.extern.prod.yml
           base_sha: ${{ inputs.base_sha }}
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-client-dependencies
         with:
           files: |
@@ -74,7 +74,7 @@ jobs:
             clients/Dockerfile
             clients/eslint.config.mjs
           base_sha: ${{ inputs.base_sha }}
-      - uses: tj-actions/changed-files@v45
+      - uses: tj-actions/changed-files@v47
         id: changed-server-dependencies
         with:
           files: |
@@ -104,6 +104,13 @@ jobs:
             echo "$list" | jq --arg v "$value" 'if contains([$v]) then . else . + [$v] end'
           }
 
+          client_workspace_modules=$(jq -cr '.workspaces.packages // []' clients/package.json)
+
+          is_client_workspace_module() {
+            local module="$1"
+            echo "$client_workspace_modules" | jq -e --arg v "$module" 'index($v) != null' >/dev/null
+          }
+
           server_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$server_root_changed" = "true" ] || [ "$force_all" = "true" ]; then
             if compgen -G "servers/*/" > /dev/null; then
@@ -127,16 +134,13 @@ jobs:
 
           client_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$client_dependencies_changed" = "true" ] || [ "$force_all" = "true" ]; then
-            if compgen -G "clients/*/" > /dev/null; then
-              for dir in clients/*/; do
-                module=$(basename "$dir")
-                [ -f "$dir/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
-              done
-            fi
+            while IFS= read -r module; do
+              [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+            done < <(echo "$client_workspace_modules" | jq -r '.[]')
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)
-              [ -n "$module" ] && [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+              [ -n "$module" ] && is_client_workspace_module "$module" && [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
             done < <(echo '${{ steps.changed-clients.outputs.all_changed_files }}' | jq -r '.[]')
           fi
 

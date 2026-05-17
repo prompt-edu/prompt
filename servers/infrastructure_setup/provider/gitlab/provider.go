@@ -89,7 +89,7 @@ func (p *Provider) DeleteResource(ctx context.Context, externalID string) error 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusAccepted {
 		return nil
@@ -217,7 +217,7 @@ func (p *Provider) get(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -248,7 +248,7 @@ func (p *Provider) post(ctx context.Context, path string, payload interface{}) (
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

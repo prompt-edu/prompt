@@ -3,7 +3,6 @@ package encryption
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"os"
 	"testing"
 )
 
@@ -105,7 +104,7 @@ func TestDecryptShortDataFails(t *testing.T) {
 }
 
 func TestEncryptWithoutKeyFails(t *testing.T) {
-	os.Unsetenv("ENCRYPTION_KEY")
+	t.Setenv("ENCRYPTION_KEY", "")
 
 	_, err := Encrypt([]byte("data"))
 	if err == nil {

@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "rspack serve --open --mode development",
+    "dev": "rspack serve --mode development",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
     "build": "rspack --mode=production --env NODE_ENV=production",

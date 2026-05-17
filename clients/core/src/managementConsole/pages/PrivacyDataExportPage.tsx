@@ -6,13 +6,13 @@ import {
   type LatestExportResponse,
 } from '@core/network/queries/privacyStudentDataExport'
 import { useQuery } from '@tanstack/react-query'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
 import { PrivacyExportDocumentList } from '../shared/components/PrivacyExport/PrivacyExportDocumentList'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
-import { PrivacyExportTrigger } from '../shared/components/PrivacyExport/PrivacyExportTrigger'
 
 function getExportIDFromLatest(latest: LatestExportResponse | undefined): string | undefined {
   if (latest?.status === 'exists') return latest.export.id
@@ -76,11 +76,23 @@ export function PrivacyDataExportPage() {
       )}
 
       {!statusQuery.data && (
-        <PrivacyExportTrigger
-          progressOngoing={exportQuery.isFetching}
-          rateLimited={isRateLimited}
-          openDialog={() => setExportConfirmDialogOpen(true)}
-        />
+        <>
+          <p className='text-muted-foreground'>
+            Download a copy of all personal data stored about you in our systems.
+          </p>
+          <p className='text-muted-foreground'>
+            You must wait 30 days before requesting another export.
+          </p>
+          <div className='mt-6 flex flex-col items-start gap-2'>
+            <Button
+              disabled={exportQuery.isFetching || isRateLimited}
+              onClick={() => setExportConfirmDialogOpen(true)}
+            >
+              {exportQuery.isFetching && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
+              Request data export
+            </Button>
+          </div>
+        </>
       )}
 
       {statusQuery.data && (

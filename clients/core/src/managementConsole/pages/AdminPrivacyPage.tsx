@@ -3,9 +3,18 @@ import {
   ExportStatus,
   getAllExports,
 } from '@core/network/queries/privacyStudentDataExport'
-import { Button, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  ManagementPageHeader,
+  PromptTable,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@tumaet/prompt-ui-components'
 import { adminExportColumns } from '../shared/components/PrivacyExport/adminExportColumns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Download, Trash2 } from 'lucide-react'
 
 export function AdminPrivacyPage() {
   const allExportsQuery = useQuery({
@@ -23,22 +32,24 @@ export function AdminPrivacyPage() {
 
   return (
     <div>
-      {/* DEV ONLY - delete later */}
-      <Button variant='destructive' size='sm' onClick={handleDevReset} className='mb-4'>
-        [DEV] Reset all exports
-      </Button>
-      <ManagementPageHeader>Privacy Dashboard</ManagementPageHeader>
-      <p className='mb-8 text-muted-foreground'>
-        Monitor and manage Prompt&apos;s Privacy features
-      </p>
-
-      <div className='space-y-10'>
-        <section>
-          <h2 className='text-lg font-semibold text-foreground mb-4'>Deletion Requests</h2>
-          <PromptTable data={[]} columns={[]} pageSize={10} />
-        </section>
-        <section>
-          <h2 className='text-lg font-semibold text-foreground mb-4'>Data Exports</h2>
+      <ManagementPageHeader>Privacy Audit</ManagementPageHeader>
+      <Tabs defaultValue='deletion' className='-mt-3'>
+        <TabsList className='w-full'>
+          <TabsTrigger value='deletion' className='flex-1 flex gap-1'>
+            <Trash2 className='w-5 h-5' />
+            Deletion
+          </TabsTrigger>
+          <TabsTrigger value='export' className='flex-1 flex gap-1'>
+            <Download className='w-5 h-5' />
+            Export
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value='deletion'>
+          <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Deletion Requests</h2>
+          <PromptTable data={[]} columns={[]} pageSize={20} />
+        </TabsContent>
+        <TabsContent value='export'>
+          <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Data Exports</h2>
           {allExportsQuery.isLoading && <p>Loading...</p>}
           {allExportsQuery.isSuccess && (
             <PromptTable
@@ -52,11 +63,16 @@ export function AdminPrivacyPage() {
                   options: Object.values(ExportStatus),
                 },
               ]}
-              pageSize={10}
+              pageSize={20}
             />
           )}
-        </section>
-      </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* TODO: DEV ONLY - delete later */}
+      <Button variant='destructive' size='sm' onClick={handleDevReset} className='mt-4'>
+        [DEV] Reset all exports
+      </Button>
     </div>
   )
 }

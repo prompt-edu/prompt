@@ -8,6 +8,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from '@tumaet/prompt-ui-components'
+import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
 
 interface PrivacyExportConfirmationDialogProps {
   isOpen: boolean
@@ -26,12 +27,17 @@ export function PrivacyExportConfirmationDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Request Data Export</AlertDialogTitle>
           <AlertDialogDescription className='mt-2 space-y-1'>
-            <p>You can only request a data export every 30 days.</p>
-            <p>
-              The export will be available for you to download for 7 days and permanently deleted
-              after.
-            </p>
-            <p>The export process might take a few minutes.</p>
+            <div>
+              <p>You can only request a data export every 30 days.</p>
+              <p>
+                The export will be available for you to download for 7 days and permanently deleted
+                after.
+              </p>
+              <p>The export process might take a few minutes.</p>
+            </div>
+            <div className='mt-2'>
+              <PrivacyServiceAvailability />
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

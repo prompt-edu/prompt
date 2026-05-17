@@ -65,7 +65,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
   return (
-    <div className='rounded-lg border border-border bg-muted p-4 flex items-center justify-between'>
+    <div className='rounded-lg border border-border bg-muted p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
       <div className='flex items-center gap-3'>
         <div className='lg:mx-2'>
           {inProgress ? (
@@ -85,9 +85,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
                 : 'Export ready'}
           </p>
           <p className='text-xs text-muted-foreground mt-0.5'>
-            {isFailed
-              ? 'Review below'
-              : `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`}
+            Requested on {new Date(privacyExport.date_created).toLocaleString()}
           </p>
           {!inProgress && (
             <p className='text-xs text-muted-foreground mt-0.5'>
@@ -97,25 +95,22 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
         </div>
       </div>
       {!inProgress && completeDocs.length > 0 && (
-        <div className='flex flex-col items-end gap-1 relative'>
-          <Button onClick={handleDownloadAll} disabled={isDownloading}>
-            {isDownloading ? (
-              <>
-                <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-                Downloading {downloading}/{completeDocs.length}
-              </>
-            ) : (
-              <>
-                <Download className='h-4 w-4' />
-                <div className='flex gap-1'>
-                  <span>Download All</span>
-                  {completeSize != null && <span>({formatFileSize(completeSize)})</span>}
-                </div>
-              </>
-            )}
-          </Button>
-          <span className='text-xs text-muted-foreground text-center w-full absolute top-10'></span>
-        </div>
+        <Button onClick={handleDownloadAll} disabled={isDownloading} className='w-full sm:w-auto'>
+          {isDownloading ? (
+            <>
+              <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
+              Downloading {downloading}/{completeDocs.length}
+            </>
+          ) : (
+            <>
+              <Download className='h-4 w-4' />
+              <div className='flex gap-1'>
+                <span>Download All</span>
+                {completeSize != null && <span>({formatFileSize(completeSize)})</span>}
+              </div>
+            </>
+          )}
+        </Button>
       )}
     </div>
   )

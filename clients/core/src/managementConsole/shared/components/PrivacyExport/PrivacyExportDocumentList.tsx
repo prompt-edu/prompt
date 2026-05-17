@@ -1,6 +1,5 @@
 import { ExportStatus, type PrivacyExport } from '@core/network/queries/privacyStudentDataExport'
-import { AnimatePresence, motion } from 'framer-motion'
-import { AnimatedDocSection } from './PrivacyExportDocSection'
+import { CollapsibleDocSection } from './PrivacyExportDocSection'
 
 interface PrivacyExportDocumentListProps {
   privacyExport: PrivacyExport
@@ -18,30 +17,26 @@ export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocume
   if (documents.length === 0) return null
 
   return (
-    <motion.div layout className='space-y-1'>
-      <AnimatePresence initial={false}>
-        {mainDocs.length > 0 && (
-          <AnimatedDocSection title='Ready' docs={mainDocs} exportId={exportId} />
-        )}
-
-        {noDataDocs.length > 0 && (
-          <AnimatedDocSection
-            title='No data'
-            description='The export request was successful. There is no data stored about you on these microservices.'
-            docs={noDataDocs}
-            exportId={exportId}
-          />
-        )}
-
-        {failedDocs.length > 0 && (
-          <AnimatedDocSection
-            title='Failed'
-            description='There was a problem exporting these parts. Please contact an administrator or Prompts Privacy Contact.'
-            docs={failedDocs}
-            exportId={exportId}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+    <div className='space-y-1'>
+      {mainDocs.length > 0 && (
+        <CollapsibleDocSection title='Ready' docs={mainDocs} exportId={exportId} />
+      )}
+      {noDataDocs.length > 0 && (
+        <CollapsibleDocSection
+          title='No data'
+          description='The export request was successful. There is no data stored about you on these microservices.'
+          docs={noDataDocs}
+          exportId={exportId}
+        />
+      )}
+      {failedDocs.length > 0 && (
+        <CollapsibleDocSection
+          title='Failed'
+          description='There was a problem exporting these parts. Please contact an administrator or Prompts Privacy Contact.'
+          docs={failedDocs}
+          exportId={exportId}
+        />
+      )}
+    </div>
   )
 }

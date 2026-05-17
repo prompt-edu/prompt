@@ -1,13 +1,14 @@
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  Separator,
 } from '@tumaet/prompt-ui-components'
+import { Clock, Download, Timer } from 'lucide-react'
 import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
 
 interface PrivacyExportConfirmationDialogProps {
@@ -26,19 +27,25 @@ export function PrivacyExportConfirmationDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Request Data Export</AlertDialogTitle>
-          <AlertDialogDescription className='mt-2 space-y-1'>
-            <div>
-              <p>You can only request a data export every 30 days.</p>
-              <p>
-                The export will be available for you to download for 7 days and permanently deleted
-                after.
-              </p>
-              <p>The export process might take a few minutes.</p>
-            </div>
-            <div className='mt-2'>
-              <PrivacyServiceAvailability />
-            </div>
-          </AlertDialogDescription>
+          <div className='flex flex-col gap-4 mt-2 text-sm'>
+            <ul className='flex flex-col gap-2.5'>
+              <li className='flex items-start gap-3'>
+                <Clock className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
+                <span>You can request an export once every 30 days.</span>
+              </li>
+              <li className='flex items-start gap-3'>
+                <Download className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
+                <span>
+                  The export is available to download for 7 days, then permanently deleted.
+                </span>
+              </li>
+              <li className='flex items-start gap-3'>
+                <Timer className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
+                <span>The export process may take a few minutes.</span>
+              </li>
+            </ul>
+            <PrivacyServiceAvailability />
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>

@@ -78,14 +78,23 @@ func (s *ParticipantsRouterTestSuite) TestGetParticipants() {
 	assert.NoError(s.T(), err)
 	assert.Len(s.T(), participants, 2)
 
+	targetStudentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
+	foundTargetStudent := false
+
 	// Check that download status is enriched from DB
 	for _, p := range participants {
-		if p.Student.ID == uuid.MustParse("30000000-0000-0000-0000-000000000001") {
+		if p.Student.ID == targetStudentID {
+			foundTargetStudent = true
 			assert.True(s.T(), p.HasDownloaded)
 			assert.Equal(s.T(), int32(3), p.DownloadCount)
 			assert.NotEmpty(s.T(), p.PassStatus)
+			assert.Equal(s.T(), "03711111", p.Student.MatriculationNumber)
+			assert.Equal(s.T(), "ab12cde", p.Student.UniversityLogin)
+			assert.True(s.T(), p.Student.HasUniversityAccount)
+			assert.Equal(s.T(), "male", p.Student.Gender)
 		}
 	}
+	assert.True(s.T(), foundTargetStudent)
 }
 
 func (s *ParticipantsRouterTestSuite) TestGetParticipants_InvalidID() {

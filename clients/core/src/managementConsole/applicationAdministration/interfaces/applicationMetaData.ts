@@ -5,4 +5,5 @@ export type ApplicationMetaData = {
   universityLoginAvailable?: boolean
   autoAccept?: boolean
   useCustomScores?: boolean
+  applicationCsvExportSettings?: Record<string, boolean>
 }

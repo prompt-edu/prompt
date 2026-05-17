@@ -10042,6 +10042,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"infrastructure_setup_component@workspace:infrastructure_setup_component":
+  version: 0.0.0-use.local
+  resolution: "infrastructure_setup_component@workspace:infrastructure_setup_component"
+  dependencies:
+    webpack: "npm:^5.106.2"
+    webpack-cli: "npm:^7.0.2"
+  languageName: unknown
+  linkType: soft
+
 "inherits@npm:2, inherits@npm:^2.0.1, inherits@npm:^2.0.3, inherits@npm:^2.0.4, inherits@npm:~2.0.3, inherits@npm:~2.0.4":
   version: 2.0.4
   resolution: "inherits@npm:2.0.4"

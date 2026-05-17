@@ -154,6 +154,31 @@ services:
       - SENTRY_DSN_CERTIFICATE
       - SENTRY_ENABLED
 
+  server-infrastructure-setup:
+    build:
+      context: ./servers/infrastructure_setup
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-infrastructure-setup
+    depends_on:
+      db-infrastructure-setup:
+        condition: service_healthy
+    ports:
+      - "8091:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_USER=${DB_INFRASTRUCTURE_SETUP_USER}
+      - DB_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
+      - DB_HOST_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_HOST}
+      - DB_PORT_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_PORT}
+      - DB_NAME=${DB_INFRASTRUCTURE_SETUP_NAME}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+
   # Template server (example service)
   server-template:
     build:
@@ -304,6 +329,16 @@ services:
     container_name: prompt-client-certificate
     ports:
       - "3009:80"
+    depends_on:
+      - clients-base
+
+  client-infrastructure-setup:
+    build:
+      context: ./clients/infrastructure_setup_component
+      dockerfile: Dockerfile
+    container_name: prompt-client-infrastructure-setup
+    ports:
+      - "3011:80"
     depends_on:
       - clients-base
 
@@ -461,6 +496,28 @@ services:
       retries: 5
     ports:
       - "5439:5432"
+
+  db-infrastructure-setup:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-infrastructure-setup
+    environment:
+      - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
+      - POSTGRES_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
+      - POSTGRES_DB=${DB_INFRASTRUCTURE_SETUP_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_infrastructure_setup_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INFRASTRUCTURE_SETUP_NAME} -U ${DB_INFRASTRUCTURE_SETUP_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5440:5432"
 
   keycloak-db:
     image: "postgres:15.18-alpine"

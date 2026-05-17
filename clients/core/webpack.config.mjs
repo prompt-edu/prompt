@@ -34,6 +34,7 @@ const config = (env) => {
   const teamAllocationURL = IS_DEV ? `http://localhost:3008` : `/team-allocation`
   const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
   const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
+  const infrastructureSetupURL = IS_DEV ? `http://localhost:3011` : `/infrastructure-setup`
 
   return {
     target: 'web',
@@ -105,6 +106,7 @@ const config = (env) => {
           team_allocation_component: `team_allocation_component@${teamAllocationURL}/remoteEntry.js?${Date.now()}`,
           self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
           certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
+          infrastructure_setup_component: `infrastructure_setup_component@${infrastructureSetupURL}/remoteEntry.js?${Date.now()}`,
         },
         shared: {
           react: { singleton: true, requiredVersion: deps.react },

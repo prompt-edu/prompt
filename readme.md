@@ -124,10 +124,16 @@ cp .env.dev.template .env.dev  # Local development overrides
 
 The `.env` file contains Docker/production configuration. The `.env.dev` file contains local development overrides (localhost instead of Docker hostnames) and is loaded by `make server`.
 
-#### 3. Start Database, Keycloak and File Storage
+#### 3. Start Dependencies (Database, Keycloak, SeaweedFS)
 
 ```bash
-docker compose up -d db keycloak seaweedfs-volume seaweedfs-s3
+make deps
+```
+
+This starts the core database, Keycloak, and all SeaweedFS services (master, volume, filer, S3 gateway) in detached mode. To stop them later:
+
+```bash
+make deps-down
 ```
 
 #### 4. Configure Keycloak (first time only)
@@ -280,12 +286,24 @@ go install github.com/swaggo/swag/cmd/swag@latest
 
 ### Ports Reference
 
-| Service     | Port |
-| ----------- | ---- |
-| Core Client | 3000 |
-| Keycloak    | 8081 |
-| Core Server | 8080 |
-| PostgreSQL  | 5432 |
+| Service                          | Port |
+| -------------------------------- | ---- |
+| Core Client                      | 3000 |
+| Infrastructure Setup Client      | 3011 |
+| Keycloak                         | 8081 |
+| Core Server                      | 8080 |
+| Interview Server                 | 8087 |
+| Team Allocation Server           | 8083 |
+| Self Team Allocation Server      | 8084 |
+| Assessment Server                | 8085 |
+| Template Server                  | 8086 |
+| Certificate Server               | 8088 |
+| Infrastructure Setup Server      | 8091 |
+| PostgreSQL (core)                | 5432 |
+| PostgreSQL (infrastructure setup)| 5440 |
+| SeaweedFS Master                 | 9333 |
+| SeaweedFS Volume                 | 8888 |
+| SeaweedFS S3 Gateway             | 8333 |
 
 ---
 

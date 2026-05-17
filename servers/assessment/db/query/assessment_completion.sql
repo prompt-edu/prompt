@@ -65,3 +65,8 @@ SELECT EXISTS (SELECT 1
                FROM assessment_completion
                WHERE course_participation_id = $1
                  AND course_phase_id = $2);
+
+-- name: GetAllAssessmentCompletionsByCourseParticipationIDs :many
+SELECT * 
+FROM assessment_completion
+WHERE course_participation_id = ANY($1::uuid[]);

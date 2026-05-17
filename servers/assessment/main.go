@@ -24,6 +24,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -115,8 +116,9 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	apiBase := router.Group("/assessment/api")
-	coursePhaseApi := apiBase.Group("/course_phase/:coursePhaseID")
+	api := router.Group("/assessment/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
+
 
 	initKeycloak(*query)
 
@@ -129,9 +131,10 @@ func main() {
 	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
 	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
-	copy.InitCopyModule(apiBase, *query, conn)
+	copy.InitCopyModule(api, *query, conn)
+	privacy.InitPrivacyModule(api, *query, conn)
 
-	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "assessment",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{

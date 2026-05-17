@@ -21,6 +21,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interview_assignment "github.com/prompt-edu/prompt/servers/interview/interviewAssignment"
 	interview_slot "github.com/prompt-edu/prompt/servers/interview/interviewSlot"
+	"github.com/prompt-edu/prompt/servers/interview/privacy"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -110,10 +111,11 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("interview/api/course_phase/:coursePhaseID")
+	api := router.Group("interview/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
-	api.GET("/hello", promptSDK.AuthenticationMiddleware(
+	coursePhaseApi.GET("/hello", promptSDK.AuthenticationMiddleware(
 		promptSDK.PromptAdmin,
 		promptSDK.PromptLecturer,
 		promptSDK.CourseLecturer,
@@ -121,10 +123,12 @@ func main() {
 		promptSDK.CourseStudent,
 	), helloInterviewServer)
 
-	copyApi := router.Group("interview/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.InitCopyModule(api, *query, conn)
+	privacy.InitPrivacyModule(api, *query, conn)
 
-	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+	config.InitConfigModule(coursePhaseApi, *query, conn)
+
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "interview",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
@@ -139,10 +143,8 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	config.InitConfigModule(api, *query, conn)
-
-	interview_slot.InitInterviewSlotModule(api, *query, conn)
-	interview_assignment.InitInterviewAssignmentModule(api, *query, conn)
+	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
+	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

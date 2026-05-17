@@ -20,7 +20,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
-	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth"
+	"github.com/prompt-edu/prompt/servers/core/auth"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
@@ -169,7 +169,7 @@ func main() {
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolution.InitResolutionModule(coreHost)
 
-	coursePhaseAuth.InitCoursePhaseAuthModule(api, *query, conn)
+	auth.InitAuthModule(api, *query, conn)
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
 	course.InitCourseModule(api, *query, conn)

@@ -84,10 +84,18 @@ func (q *Queries) CreateNewExportDoc(ctx context.Context, arg CreateNewExportDoc
 
 const getAllExports = `-- name: GetAllExports :many
 SELECT
-  e.id, e.user_id, e.student_id, e.status, e.date_created, e.valid_until,
-  COUNT(ed.id)::int AS total_docs,
-  COUNT(ed.downloaded_at)::int AS downloaded_docs,
-  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
+  e.id,
+  e.status,
+  e.date_created,
+  e.valid_until,
+  COALESCE(
+    JSON_AGG(JSON_BUILD_OBJECT(
+      'source_name', ed.source_name,
+      'status', ed.status,
+      'downloaded', ed.downloaded_at IS NOT NULL
+    ) ORDER BY ed.source_name) FILTER (WHERE ed.id IS NOT NULL),
+    '[]'::json
+  ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id
@@ -95,15 +103,11 @@ ORDER BY e.date_created DESC
 `
 
 type GetAllExportsRow struct {
-	ID               uuid.UUID          `json:"id"`
-	UserID           uuid.UUID          `json:"user_id"`
-	StudentID        pgtype.UUID        `json:"student_id"`
-	Status           ExportStatus       `json:"status"`
-	DateCreated      pgtype.Timestamptz `json:"date_created"`
-	ValidUntil       pgtype.Timestamptz `json:"valid_until"`
-	TotalDocs        int32              `json:"total_docs"`
-	DownloadedDocs   int32              `json:"downloaded_docs"`
-	LastDownloadedAt pgtype.Timestamptz `json:"last_downloaded_at"`
+	ID          uuid.UUID          `json:"id"`
+	Status      ExportStatus       `json:"status"`
+	DateCreated pgtype.Timestamptz `json:"date_created"`
+	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+	Docs        interface{}        `json:"docs"`
 }
 
 func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error) {
@@ -117,14 +121,10 @@ func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error)
 		var i GetAllExportsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
-			&i.StudentID,
 			&i.Status,
 			&i.DateCreated,
 			&i.ValidUntil,
-			&i.TotalDocs,
-			&i.DownloadedDocs,
-			&i.LastDownloadedAt,
+			&i.Docs,
 		); err != nil {
 			return nil, err
 		}
@@ -145,6 +145,30 @@ func (q *Queries) GetExportDocObjectKey(ctx context.Context, id uuid.UUID) (stri
 	var object_key string
 	err := row.Scan(&object_key)
 	return object_key, err
+}
+
+const getExportDocObjectKeysByExportID = `-- name: GetExportDocObjectKeysByExportID :many
+SELECT object_key FROM privacy_export_document WHERE export_id = $1
+`
+
+func (q *Queries) GetExportDocObjectKeysByExportID(ctx context.Context, exportID pgtype.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, getExportDocObjectKeysByExportID, exportID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var object_key string
+		if err := rows.Scan(&object_key); err != nil {
+			return nil, err
+		}
+		items = append(items, object_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getExportRecordByID = `-- name: GetExportRecordByID :one
@@ -182,6 +206,37 @@ func (q *Queries) GetExportRecordByIDWithDocs(ctx context.Context, id uuid.UUID)
 		&i.Documents,
 	)
 	return i, err
+}
+
+const getInvalidExports = `-- name: GetInvalidExports :many
+SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE now() >= valid_until AND status != 'archived'
+`
+
+func (q *Queries) GetInvalidExports(ctx context.Context) ([]PrivacyExport, error) {
+	rows, err := q.db.Query(ctx, getInvalidExports)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PrivacyExport
+	for rows.Next() {
+		var i PrivacyExport
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.StudentID,
+			&i.Status,
+			&i.DateCreated,
+			&i.ValidUntil,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getLatestExportForUserForUpdate = `-- name: GetLatestExportForUserForUpdate :one
@@ -230,6 +285,31 @@ func (q *Queries) SetExportDocDownloadedAt(ctx context.Context, id uuid.UUID) er
 	return err
 }
 
+const setExportDocFileSize = `-- name: SetExportDocFileSize :one
+UPDATE privacy_export_document SET file_size = $2 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
+`
+
+type SetExportDocFileSizeParams struct {
+	ID       uuid.UUID   `json:"id"`
+	FileSize pgtype.Int8 `json:"file_size"`
+}
+
+func (q *Queries) SetExportDocFileSize(ctx context.Context, arg SetExportDocFileSizeParams) (PrivacyExportDocument, error) {
+	row := q.db.QueryRow(ctx, setExportDocFileSize, arg.ID, arg.FileSize)
+	var i PrivacyExportDocument
+	err := row.Scan(
+		&i.ID,
+		&i.ExportID,
+		&i.DateCreated,
+		&i.SourceName,
+		&i.ObjectKey,
+		&i.Status,
+		&i.FileSize,
+		&i.DownloadedAt,
+	)
+	return i, err
+}
+
 const setExportDocStatus = `-- name: SetExportDocStatus :one
 UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
 `
@@ -255,6 +335,20 @@ func (q *Queries) SetExportDocStatus(ctx context.Context, arg SetExportDocStatus
 	return i, err
 }
 
+const setExportDocStatusByExportID = `-- name: SetExportDocStatusByExportID :exec
+UPDATE privacy_export_document SET status = $2 WHERE export_id = $1
+`
+
+type SetExportDocStatusByExportIDParams struct {
+	ExportID pgtype.UUID  `json:"export_id"`
+	Status   ExportStatus `json:"status"`
+}
+
+func (q *Queries) SetExportDocStatusByExportID(ctx context.Context, arg SetExportDocStatusByExportIDParams) error {
+	_, err := q.db.Exec(ctx, setExportDocStatusByExportID, arg.ExportID, arg.Status)
+	return err
+}
+
 const setExportStatus = `-- name: SetExportStatus :one
 UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING id, user_id, student_id, status, date_created, valid_until
 `
@@ -274,32 +368,6 @@ func (q *Queries) SetExportStatus(ctx context.Context, arg SetExportStatusParams
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
-	)
-	return i, err
-}
-
-const updateExportDocResult = `-- name: UpdateExportDocResult :one
-UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING id, export_id, date_created, source_name, object_key, status, file_size, downloaded_at
-`
-
-type UpdateExportDocResultParams struct {
-	ID       uuid.UUID    `json:"id"`
-	Status   ExportStatus `json:"status"`
-	FileSize pgtype.Int8  `json:"file_size"`
-}
-
-func (q *Queries) UpdateExportDocResult(ctx context.Context, arg UpdateExportDocResultParams) (PrivacyExportDocument, error) {
-	row := q.db.QueryRow(ctx, updateExportDocResult, arg.ID, arg.Status, arg.FileSize)
-	var i PrivacyExportDocument
-	err := row.Scan(
-		&i.ID,
-		&i.ExportID,
-		&i.DateCreated,
-		&i.SourceName,
-		&i.ObjectKey,
-		&i.Status,
-		&i.FileSize,
-		&i.DownloadedAt,
 	)
 	return i, err
 }

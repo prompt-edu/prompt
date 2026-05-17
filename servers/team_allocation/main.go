@@ -19,6 +19,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/privacy"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
 	teams "github.com/prompt-edu/prompt/servers/team_allocation/team"
@@ -103,20 +104,25 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("team-allocation/api/course_phase/:coursePhaseID")
+	api := router.Group("/team-allocation/api")
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	initKeycloak(*query)
 
 	// No health endpoint; health checks are handled externally.
 
-	skills.InitSkillModule(api, *query, conn)
-	teams.InitTeamModule(api, *query, conn)
-	survey.InitSurveyModule(api, *query, conn)
-	allocation.InitAllocationModule(api, *query, conn)
+	skills.InitSkillModule(coursePhaseApi, *query, conn)
+	teams.InitTeamModule(coursePhaseApi, *query, conn)
+	survey.InitSurveyModule(coursePhaseApi, *query, conn)
+	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
 
 	tease.InitTeaseModule(router.Group("team-allocation/api"), *query, conn) // some tease endpoint are coursePhase independent
 
 	copyApi := router.Group("team-allocation/api")
 	copy.InitCopyModule(copyApi, *query, conn)
+
+	config.InitConfigModule(coursePhaseApi, *query, conn)
+
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",
@@ -130,8 +136,6 @@ func main() {
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil
 	})
-
-	config.InitConfigModule(api, *query, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8083")
 	log.Info("Team Allocation Server started")

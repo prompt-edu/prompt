@@ -23,8 +23,8 @@ UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING *;
 -- name: SetExportDocStatus :one
 UPDATE privacy_export_document SET status = $2 WHERE id = $1 RETURNING *;
 
--- name: UpdateExportDocResult :one
-UPDATE privacy_export_document SET status = $2, file_size = $3 WHERE id = $1 RETURNING *;
+-- name: SetExportDocFileSize :one
+UPDATE privacy_export_document SET file_size = $2 WHERE id = $1 RETURNING *;
 
 -- name: GetExportDocObjectKey :one
 SELECT object_key FROM privacy_export_document WHERE id = $1;
@@ -37,11 +37,29 @@ SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT
 
 -- name: GetAllExports :many
 SELECT
-  e.*,
-  COUNT(ed.id)::int AS total_docs,
-  COUNT(ed.downloaded_at)::int AS downloaded_docs,
-  MAX(ed.downloaded_at)::timestamptz AS last_downloaded_at
+  e.id,
+  e.status,
+  e.date_created,
+  e.valid_until,
+  COALESCE(
+    JSON_AGG(JSON_BUILD_OBJECT(
+      'source_name', ed.source_name,
+      'status', ed.status,
+      'downloaded', ed.downloaded_at IS NOT NULL
+    ) ORDER BY ed.source_name) FILTER (WHERE ed.id IS NOT NULL),
+    '[]'::json
+  ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id
 ORDER BY e.date_created DESC;
+
+-- name: GetInvalidExports :many
+SELECT * FROM privacy_export WHERE now() >= valid_until AND status != 'archived';
+
+-- name: GetExportDocObjectKeysByExportID :many
+SELECT object_key FROM privacy_export_document WHERE export_id = $1;
+
+-- name: SetExportDocStatusByExportID :exec
+UPDATE privacy_export_document SET status = $2 WHERE export_id = $1;
+

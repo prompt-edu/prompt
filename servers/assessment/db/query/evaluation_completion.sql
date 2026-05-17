@@ -78,3 +78,8 @@ WHERE course_participation_id = $1
   AND course_phase_id = $2
   AND author_course_participation_id = $3
   AND type = $4;
+
+-- name: GetAllEvaluationCompletionsByCourseParticipationIDs :many
+SELECT * 
+FROM evaluation_completion
+WHERE course_participation_id = ANY($1::uuid[]);

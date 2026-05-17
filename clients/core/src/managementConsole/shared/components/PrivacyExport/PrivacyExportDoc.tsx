@@ -19,6 +19,7 @@ export function PrivacyExportDocument({
   privacy_export_document,
 }: PrivacyExportDocumentProps) {
   const isComplete = privacy_export_document.status === ExportStatus.complete
+  const hasDownloadOrPending = isComplete || privacy_export_document.status === ExportStatus.pending
   const [isDownloading, setIsDownloading] = useState(false)
   const { toast } = useToast()
 
@@ -40,8 +41,8 @@ export function PrivacyExportDocument({
 
   return (
     <Card className='border border-border'>
-      <CardContent className='p-4 relative'>
-        <div className='flex items-start gap-3'>
+      <CardContent className='p-4'>
+        <div className='flex items-center gap-3'>
           <div className='shrink-0'>
             <PrivacyExportStatus privacy_export_status={privacy_export_document.status} />
           </div>
@@ -49,30 +50,28 @@ export function PrivacyExportDocument({
             <p className='font-semibold text-foreground truncate'>
               {privacy_export_document.source_name}
             </p>
-            <p className='text-xs text-muted-foreground mt-0.5'>
+            <p className='text-xs text-muted-foreground mt-0.5 text-nowrap truncate'>
               {new Date(privacy_export_document.date_created).toLocaleString('de-DE')}
             </p>
-            <p className='text-xs text-muted-foreground mt-0.5'>
-              {privacy_export_document.file_size == null
-                ? '-'
-                : formatFileSize(privacy_export_document.file_size)}
-            </p>
           </div>
-        </div>
-        <div className='absolute bottom-4 right-4'>
-          <Button
-            size='sm'
-            disabled={!isComplete || isDownloading}
-            variant={'outline'}
-            onClick={handleDownload}
-          >
-            {isDownloading ? (
-              <Loader2 className='h-4 w-4 animate-spin' />
-            ) : (
-              <Download className='h-4 w-4' />
-            )}
-            <div className='hidden xl:inline-block'>Download</div>
-          </Button>
+          {hasDownloadOrPending && (
+            <Button
+              size='sm'
+              disabled={!isComplete || isDownloading}
+              variant='outline'
+              onClick={handleDownload}
+              className='shrink-0'
+            >
+              {isDownloading ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Download className='h-4 w-4' />
+              )}
+              {privacy_export_document.file_size != null && (
+                <span className='text-xs'>{formatFileSize(privacy_export_document.file_size)}</span>
+              )}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

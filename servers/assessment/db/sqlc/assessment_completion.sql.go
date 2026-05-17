@@ -89,6 +89,40 @@ func (q *Queries) DeleteAssessmentCompletion(ctx context.Context, arg DeleteAsse
 	return err
 }
 
+const getAllAssessmentCompletionsByCourseParticipationIDs = `-- name: GetAllAssessmentCompletionsByCourseParticipationIDs :many
+SELECT course_participation_id, course_phase_id, completed_at, author, comment, grade_suggestion, completed 
+FROM assessment_completion
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllAssessmentCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]AssessmentCompletion, error) {
+	rows, err := q.db.Query(ctx, getAllAssessmentCompletionsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AssessmentCompletion
+	for rows.Next() {
+		var i AssessmentCompletion
+		if err := rows.Scan(
+			&i.CourseParticipationID,
+			&i.CoursePhaseID,
+			&i.CompletedAt,
+			&i.Author,
+			&i.Comment,
+			&i.GradeSuggestion,
+			&i.Completed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllGrades = `-- name: GetAllGrades :many
 SELECT course_participation_id, grade_suggestion
 FROM assessment_completion

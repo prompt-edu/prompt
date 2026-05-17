@@ -56,6 +56,41 @@ func (q *Queries) DeleteFeedbackItem(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAllFeedbackItemsByCourseParticipationIDs = `-- name: GetAllFeedbackItemsByCourseParticipationIDs :many
+SELECT id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id, created_at, type 
+FROM feedback_items
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllFeedbackItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]FeedbackItem, error) {
+	rows, err := q.db.Query(ctx, getAllFeedbackItemsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FeedbackItem
+	for rows.Next() {
+		var i FeedbackItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.FeedbackType,
+			&i.FeedbackText,
+			&i.CourseParticipationID,
+			&i.CoursePhaseID,
+			&i.AuthorCourseParticipationID,
+			&i.CreatedAt,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFeedbackItem = `-- name: GetFeedbackItem :one
 SELECT id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id, created_at, type
 FROM feedback_items

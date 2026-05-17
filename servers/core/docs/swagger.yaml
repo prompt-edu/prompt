@@ -452,6 +452,22 @@ definitions:
           $ref: '#/definitions/applicationDTO.QuestionText'
         type: array
     type: object
+  authDTO.GetCoursePhaseParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      isStudentOfCoursePhase:
+        type: boolean
+    type: object
+  authDTO.GetCourseRoles:
+    properties:
+      courseEditorRole:
+        type: string
+      courseLecturerRole:
+        type: string
+      customRolePrefix:
+        type: string
+    type: object
   courseCopyDTO.CheckCourseCopyableResponse:
     properties:
       copyable:
@@ -637,22 +653,6 @@ definitions:
       isStudentOfCourse:
         type: boolean
       studentID:
-        type: string
-    type: object
-  coursePhaseAuthDTO.GetCoursePhaseParticipation:
-    properties:
-      courseParticipationID:
-        type: string
-      isStudentOfCoursePhase:
-        type: boolean
-    type: object
-  coursePhaseAuthDTO.GetCourseRoles:
-    properties:
-      courseEditorRole:
-        type: string
-      courseLecturerRole:
-        type: string
-      customRolePrefix:
         type: string
     type: object
   coursePhaseDTO.CoursePhase:
@@ -921,11 +921,15 @@ definitions:
     - pending
     - complete
     - failed
+    - no_data
+    - archived
     type: string
     x-enum-varnames:
     - ExportStatusPending
     - ExportStatusComplete
     - ExportStatusFailed
+    - ExportStatusNoData
+    - ExportStatusArchived
   db.Gender:
     enum:
     - male
@@ -1070,6 +1074,28 @@ definitions:
       name:
         type: string
     type: object
+  keycloakCoreRequests.SubjectIdentifiers:
+    properties:
+      courseParticipationIDs:
+        description: |-
+          CourseParticipationIDs lists the IDs of all course participations belonging to the student.
+          Only populated for student subjects — empty for platform users.
+        items:
+          type: string
+        type: array
+      studentID:
+        description: |-
+          StudentID is the unique identifier of the student record.
+          Only set for student subjects — uuid.Nil indicates a platform user with no student record.
+        type: string
+      userID:
+        description: |-
+          UserID is the platform-wide unique identifier of the user account.
+          Always present regardless of subject type.
+        type: string
+    required:
+    - userID
+    type: object
   keycloakRealmDTO.AddStudentsToGroup:
     properties:
       studentsToAdd:
@@ -1141,24 +1167,27 @@ definitions:
       valid:
         type: boolean
     type: object
+  privacyDTO.AdminExportDoc:
+    properties:
+      downloaded:
+        type: boolean
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.ExportStatus'
+    type: object
   privacyDTO.AdminPrivacyExport:
     properties:
       date_created:
         type: string
-      downloaded_docs:
-        type: integer
+      docs:
+        items:
+          $ref: '#/definitions/privacyDTO.AdminExportDoc'
+        type: array
       id:
-        type: string
-      last_downloaded_at:
         type: string
       status:
         $ref: '#/definitions/db.ExportStatus'
-      studentID:
-        type: string
-      total_docs:
-        type: integer
-      userID:
-        type: string
       valid_until:
         type: string
     type: object
@@ -2152,7 +2181,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/coursePhaseAuthDTO.GetCoursePhaseParticipation'
+            $ref: '#/definitions/authDTO.GetCoursePhaseParticipation'
         "400":
           description: Bad Request
           schema:
@@ -2163,7 +2192,7 @@ paths:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Get course phase participation
       tags:
-      - course_phase_auth
+      - auth
   /auth/course_phase/{coursePhaseID}/roles:
     get:
       description: Get the role mapping for a course phase
@@ -2179,7 +2208,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/coursePhaseAuthDTO.GetCourseRoles'
+            $ref: '#/definitions/authDTO.GetCourseRoles'
         "400":
           description: Bad Request
           schema:
@@ -2190,7 +2219,29 @@ paths:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Get course phase roles
       tags:
-      - course_phase_auth
+      - auth
+  /auth/subject_identifiers:
+    get:
+      description: 'For the user with the passed auth token, get the subject identifiers:
+        userID, studentID, courseParticipationIDs'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/keycloakCoreRequests.SubjectIdentifiers'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get subject identifiers
+      tags:
+      - auth
   /course_phase_types:
     get:
       description: Get a list of all available course phase types

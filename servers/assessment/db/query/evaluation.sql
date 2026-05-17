@@ -83,3 +83,9 @@ WITH total_competencies AS (SELECT COUNT(*) AS total
                                   AND e.type = $4::assessment_type
                                   AND cpc.course_phase_id = $3)
 SELECT (SELECT total FROM total_competencies) - (SELECT evaluated FROM evaluated_competencies) AS remaining_evaluations;
+
+
+-- name: GetAllEvaluationsByCourseParticipationIDs :many
+SELECT * 
+FROM evaluation
+WHERE course_participation_id = ANY($1::uuid[]);

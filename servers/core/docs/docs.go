@@ -1161,7 +1161,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "course_phase_auth"
+                    "auth"
                 ],
                 "summary": "Get course phase participation",
                 "parameters": [
@@ -1177,7 +1177,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/coursePhaseAuthDTO.GetCoursePhaseParticipation"
+                            "$ref": "#/definitions/authDTO.GetCoursePhaseParticipation"
                         }
                     },
                     "400": {
@@ -1202,7 +1202,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "course_phase_auth"
+                    "auth"
                 ],
                 "summary": "Get course phase roles",
                 "parameters": [
@@ -1218,7 +1218,39 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/coursePhaseAuthDTO.GetCourseRoles"
+                            "$ref": "#/definitions/authDTO.GetCourseRoles"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/subject_identifiers": {
+            "get": {
+                "description": "For the user with the passed auth token, get the subject identifiers: userID, studentID, courseParticipationIDs",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get subject identifiers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/keycloakCoreRequests.SubjectIdentifiers"
                         }
                     },
                     "400": {
@@ -4602,6 +4634,31 @@ const docTemplate = `{
                 }
             }
         },
+        "authDTO.GetCoursePhaseParticipation": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "isStudentOfCoursePhase": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authDTO.GetCourseRoles": {
+            "type": "object",
+            "properties": {
+                "courseEditorRole": {
+                    "type": "string"
+                },
+                "courseLecturerRole": {
+                    "type": "string"
+                },
+                "customRolePrefix": {
+                    "type": "string"
+                }
+            }
+        },
         "courseCopyDTO.CheckCourseCopyableResponse": {
             "type": "object",
             "properties": {
@@ -4885,31 +4942,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "studentID": {
-                    "type": "string"
-                }
-            }
-        },
-        "coursePhaseAuthDTO.GetCoursePhaseParticipation": {
-            "type": "object",
-            "properties": {
-                "courseParticipationID": {
-                    "type": "string"
-                },
-                "isStudentOfCoursePhase": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "coursePhaseAuthDTO.GetCourseRoles": {
-            "type": "object",
-            "properties": {
-                "courseEditorRole": {
-                    "type": "string"
-                },
-                "courseLecturerRole": {
-                    "type": "string"
-                },
-                "customRolePrefix": {
                     "type": "string"
                 }
             }
@@ -5321,12 +5353,16 @@ const docTemplate = `{
             "enum": [
                 "pending",
                 "complete",
-                "failed"
+                "failed",
+                "no_data",
+                "archived"
             ],
             "x-enum-varnames": [
                 "ExportStatusPending",
                 "ExportStatusComplete",
-                "ExportStatusFailed"
+                "ExportStatusFailed",
+                "ExportStatusNoData",
+                "ExportStatusArchived"
             ]
         },
         "db.Gender": {
@@ -5543,6 +5579,29 @@ const docTemplate = `{
                 }
             }
         },
+        "keycloakCoreRequests.SubjectIdentifiers": {
+            "type": "object",
+            "required": [
+                "userID"
+            ],
+            "properties": {
+                "courseParticipationIDs": {
+                    "description": "CourseParticipationIDs lists the IDs of all course participations belonging to the student.\nOnly populated for student subjects — empty for platform users.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "studentID": {
+                    "description": "StudentID is the unique identifier of the student record.\nOnly set for student subjects — uuid.Nil indicates a platform user with no student record.",
+                    "type": "string"
+                },
+                "userID": {
+                    "description": "UserID is the platform-wide unique identifier of the user account.\nAlways present regardless of subject type.",
+                    "type": "string"
+                }
+            }
+        },
         "keycloakRealmDTO.AddStudentsToGroup": {
             "type": "object",
             "properties": {
@@ -5653,32 +5712,37 @@ const docTemplate = `{
                 }
             }
         },
+        "privacyDTO.AdminExportDoc": {
+            "type": "object",
+            "properties": {
+                "downloaded": {
+                    "type": "boolean"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
         "privacyDTO.AdminPrivacyExport": {
             "type": "object",
             "properties": {
                 "date_created": {
                     "type": "string"
                 },
-                "downloaded_docs": {
-                    "type": "integer"
+                "docs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/privacyDTO.AdminExportDoc"
+                    }
                 },
                 "id": {
                     "type": "string"
                 },
-                "last_downloaded_at": {
-                    "type": "string"
-                },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
-                },
-                "studentID": {
-                    "type": "string"
-                },
-                "total_docs": {
-                    "type": "integer"
-                },
-                "userID": {
-                    "type": "string"
                 },
                 "valid_until": {
                     "type": "string"

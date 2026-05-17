@@ -96,10 +96,14 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"restrictedData":       gin.H{},
 				"studentReadableData":  gin.H{},
 				"student": gin.H{
-					"id":        "30000000-0000-0000-0000-000000000001",
-					"firstName": "John",
-					"lastName":  "Doe",
-					"email":     "john.doe@example.com",
+					"id":                   "30000000-0000-0000-0000-000000000001",
+					"firstName":            "John",
+					"lastName":             "Doe",
+					"email":                "john.doe@example.com",
+					"matriculationNumber":  "03012345",
+					"universityLogin":      "ge12abc",
+					"hasUniversityAccount": true,
+					"gender":               "MALE",
 				},
 			},
 			{
@@ -110,10 +114,14 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"restrictedData":       gin.H{},
 				"studentReadableData":  gin.H{},
 				"student": gin.H{
-					"id":        "30000000-0000-0000-0000-000000000002",
-					"firstName": "Jane",
-					"lastName":  "Smith",
-					"email":     "jane.smith@example.com",
+					"id":                   "30000000-0000-0000-0000-000000000002",
+					"firstName":            "Jane",
+					"lastName":             "Smith",
+					"email":                "jane.smith@example.com",
+					"matriculationNumber":  "",
+					"universityLogin":      "ge67xyz",
+					"hasUniversityAccount": true,
+					"gender":               "FEMALE",
 				},
 			},
 		}
@@ -155,10 +163,14 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 			"id":                    "40000000-0000-0000-0000-000000000001",
 			"courseParticipationId": "50000000-0000-0000-0000-000000000001",
 			"student": gin.H{
-				"id":        studentID,
-				"firstName": "John",
-				"lastName":  "Doe",
-				"email":     "john.doe@example.com",
+				"id":                   studentID,
+				"firstName":            "John",
+				"lastName":             "Doe",
+				"email":                "john.doe@example.com",
+				"matriculationNumber":  "03012345",
+				"universityLogin":      "ge12abc",
+				"hasUniversityAccount": true,
+				"gender":               "MALE",
 			},
 		})
 	})
@@ -167,16 +179,24 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 	router.GET("/api/course_phases/:id/participations/students", func(c *gin.Context) {
 		c.JSON(http.StatusOK, []gin.H{
 			{
-				"id":        "30000000-0000-0000-0000-000000000001",
-				"firstName": "John",
-				"lastName":  "Doe",
-				"email":     "john.doe@example.com",
+				"id":                   "30000000-0000-0000-0000-000000000001",
+				"firstName":            "John",
+				"lastName":             "Doe",
+				"email":                "john.doe@example.com",
+				"matriculationNumber":  "03012345",
+				"universityLogin":      "ge12abc",
+				"hasUniversityAccount": true,
+				"gender":               "MALE",
 			},
 			{
-				"id":        "30000000-0000-0000-0000-000000000002",
-				"firstName": "Jane",
-				"lastName":  "Smith",
-				"email":     "jane.smith@example.com",
+				"id":                   "30000000-0000-0000-0000-000000000002",
+				"firstName":            "Jane",
+				"lastName":             "Smith",
+				"email":                "jane.smith@example.com",
+				"matriculationNumber":  "",
+				"universityLogin":      "ge67xyz",
+				"hasUniversityAccount": true,
+				"gender":               "FEMALE",
 			},
 		})
 	})
@@ -189,10 +209,14 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 			"coursePhaseID":         phaseID,
 			"courseParticipationID": "50000000-0000-0000-0000-000000000001",
 			"student": gin.H{
-				"id":        "30000000-0000-0000-0000-000000000001",
-				"firstName": "John",
-				"lastName":  "Doe",
-				"email":     "john.doe@example.com",
+				"id":                   "30000000-0000-0000-0000-000000000001",
+				"firstName":            "John",
+				"lastName":             "Doe",
+				"email":                "john.doe@example.com",
+				"matriculationNumber":  "03012345",
+				"universityLogin":      "ge12abc",
+				"hasUniversityAccount": true,
+				"gender":               "MALE",
 			},
 		})
 	})

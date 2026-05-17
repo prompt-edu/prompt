@@ -7,11 +7,14 @@ import (
 )
 
 type Student struct {
-	ID        uuid.UUID `json:"id"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-	Email     string    `json:"email"`
-	MatrNr    *string   `json:"matrNr,omitempty"`
+	ID                   uuid.UUID `json:"id"`
+	FirstName            string    `json:"firstName"`
+	LastName             string    `json:"lastName"`
+	Email                string    `json:"email"`
+	MatriculationNumber  string    `json:"matriculationNumber"`
+	UniversityLogin      string    `json:"universityLogin"`
+	HasUniversityAccount bool      `json:"hasUniversityAccount"`
+	Gender               string    `json:"gender"`
 }
 
 type CoursePhaseParticipation struct {

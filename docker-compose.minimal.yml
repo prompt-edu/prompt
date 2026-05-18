@@ -131,7 +131,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-team-allocation-component
     ports:
-      - "3008:80"
+      - "3007:80"
     depends_on:
       - clients-base
 
@@ -194,7 +194,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-self-team-allocation-component
     ports:
-      - "3009:80"
+      - "3008:80"
     depends_on:
       - clients-base
 
@@ -257,7 +257,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-assessment-component
     ports:
-      - "3007:80"
+      - "3002:80"
     depends_on:
       - clients-base
 
@@ -321,7 +321,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-interview-component
     ports:
-      - "3002:80"
+      - "3005:80"
     depends_on:
       - clients-base
 

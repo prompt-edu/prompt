@@ -271,6 +271,16 @@ services:
     depends_on:
       - clients-base
 
+  client-assessment-component:
+    build:
+      context: ./clients/assessment_component
+      dockerfile: Dockerfile
+    container_name: prompt-client-assessment-component
+    ports:
+      - "3002:80"
+    depends_on:
+      - clients-base
+
   client-interview-component:
     build:
       context: ./clients/interview_component
@@ -279,7 +289,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-interview-component
     ports:
-      - "3002:80"
+      - "3005:80"
     depends_on:
       - clients-base
 
@@ -291,31 +301,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-matching-component
     ports:
-      - "3003:80"
-    depends_on:
-      - clients-base
-
-  client-devops-challenge-component:
-    build:
-      context: ./clients/devops_challenge_component
-      dockerfile: Dockerfile
-      args: *client-build-args
-      additional_contexts: *client-additional-contexts
-    container_name: prompt-client-devops-challenge-component
-    ports:
       - "3006:80"
-    depends_on:
-      - clients-base
-
-  client-assessment-component:
-    build:
-      context: ./clients/assessment_component
-      dockerfile: Dockerfile
-      args: *client-build-args
-      additional_contexts: *client-additional-contexts
-    container_name: prompt-client-assessment-component
-    ports:
-      - "3007:80"
     depends_on:
       - clients-base
 
@@ -327,7 +313,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-team-allocation-component
     ports:
-      - "3008:80"
+      - "3007:80"
     depends_on:
       - clients-base
 
@@ -339,7 +325,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-self-team-allocation-component
     ports:
-      - "3009:80"
+      - "3008:80"
     depends_on:
       - clients-base
 
@@ -351,7 +337,7 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-certificate
     ports:
-      - "3010:80"
+      - "3009:80"
     depends_on:
       - clients-base
 
@@ -362,7 +348,7 @@ services:
     image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
 
   db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -380,7 +366,7 @@ services:
       - "5432:5432"
 
   db-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -402,7 +388,7 @@ services:
       - "5434:5432"
 
   db-assessment:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -425,7 +411,7 @@ services:
 
   # Database for the template server
   db-template-server:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-template-server
     environment:
       - POSTGRES_USER=${DB_TEMPLATE_USER:-prompt-postgres}
@@ -446,7 +432,7 @@ services:
       - "5437:5432"
 
   db-interview:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
@@ -467,7 +453,7 @@ services:
       - "5438:5432"
 
   db-self-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -489,7 +475,7 @@ services:
       - "5436:5432"
 
   db-certificate:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -511,7 +497,7 @@ services:
       - "5439:5432"
 
   keycloak-db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}

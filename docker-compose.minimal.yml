@@ -71,24 +71,24 @@ services:
       additional_contexts: *client-additional-contexts
     container_name: prompt-client-core
     environment:
-      - ENVIRONMENT=${ENVIRONMENT}
-      - CORE_HOST=${CLIENT_CORE_HOST}
-      - INTRO_COURSE_HOST=${CLIENT_INTRO_COURSE_HOST}
-      - DEVOPS_CHALLENGE_HOST=${CLIENT_DEVOPS_CHALLENGE_HOST}
-      - TEAM_ALLOCATION_HOST=${CLIENT_TEAM_ALLOCATION_HOST}
-      - SELF_TEAM_ALLOCATION_HOST=${CLIENT_SELF_TEAM_ALLOCATION_HOST}
-      - ASSESSMENT_HOST=${CLIENT_ASSESSMENT_HOST}
-      - TEMPLATE_HOST=${CLIENT_TEMPLATE_HOST}
-      - INTERVIEW_HOST=${CLIENT_INTERVIEW_HOST}
-      - CERTIFICATE_HOST=${CLIENT_CERTIFICATE_HOST}
-      - KEYCLOAK_HOST=${CLIENT_KEYCLOAK_HOST}
-      - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
+      - ENVIRONMENT
+      - CORE_HOST=${CORE_API_HOST}
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - ASSESSMENT_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
       - CHAIR_NAME_SHORT
       - CHAIR_NAME_LONG
-      - GITHUB_SHA=${GITHUB_SHA}
-      - GITHUB_REF=${GITHUB_REF}
-      - SERVER_CORE_IMAGE_TAG=${SERVER_CORE_IMAGE_TAG}
-      - SENTRY_DSN_CLIENT=${SENTRY_DSN_CLIENT}
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
+      - SENTRY_DSN_CLIENT
     ports:
       - "3000:80"
     depends_on:
@@ -103,6 +103,8 @@ services:
     depends_on:
       db-team-allocation:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8083:8080"
     extra_hosts:
@@ -111,8 +113,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_TEAM_ALLOCATION_HOST}
-      - DB_PORT=${DB_TEAM_ALLOCATION_PORT}
+      - DB_HOST_TEAM_ALLOCATION
+      - DB_PORT_TEAM_ALLOCATION
       - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
       - DB_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
       - KEYCLOAK_HOST
@@ -164,6 +166,8 @@ services:
     depends_on:
       db-self-team-allocation:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8084:8080"
     extra_hosts:
@@ -172,8 +176,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_SELF_TEAM_ALLOCATION_HOST}
-      - DB_PORT=${DB_SELF_TEAM_ALLOCATION_PORT}
+      - DB_HOST_SELF_TEAM_ALLOCATION
+      - DB_PORT_SELF_TEAM_ALLOCATION
       - DB_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
       - DB_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
       - KEYCLOAK_HOST
@@ -225,6 +229,8 @@ services:
     depends_on:
       db-assessment:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8085:8080"
     extra_hosts:
@@ -233,8 +239,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_ASSESSMENT_HOST}
-      - DB_PORT=${DB_ASSESSMENT_PORT}
+      - DB_HOST_ASSESSMENT
+      - DB_PORT_ASSESSMENT
       - DB_NAME=${DB_ASSESSMENT_NAME}
       - DB_PASSWORD=${DB_ASSESSMENT_PASSWORD}
       - KEYCLOAK_HOST
@@ -286,6 +292,8 @@ services:
     depends_on:
       db-interview:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8087:8080"
     extra_hosts:
@@ -294,8 +302,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST_INTERVIEW=${DB_INTERVIEW_HOST}
-      - DB_PORT_INTERVIEW=${DB_INTERVIEW_PORT}
+      - DB_HOST_INTERVIEW
+      - DB_PORT_INTERVIEW
       - DB_NAME=${DB_INTERVIEW_NAME}
       - DB_USER=${DB_INTERVIEW_USER}
       - DB_PASSWORD=${DB_INTERVIEW_PASSWORD}

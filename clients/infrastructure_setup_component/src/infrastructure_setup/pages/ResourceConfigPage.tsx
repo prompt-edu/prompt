@@ -1,25 +1,19 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Settings } from 'lucide-react'
-import { infrastructureSetupAxiosInstance } from '../network/infrastructureSetupServerConfig'
+import { Button } from '@tumaet/prompt-ui-components'
+import { PlusCircle, Settings } from 'lucide-react'
 
-interface ResourceConfig {
-  id: string
-  providerType: string
-  resourceType: string
-  scope: 'per_team' | 'per_student'
-  nameTemplate: string
-}
-
-const fetchResourceConfigs = async (coursePhaseID: string): Promise<ResourceConfig[]> => {
-  const response = await infrastructureSetupAxiosInstance.get(
-    `infrastructure-setup/api/course_phase/${coursePhaseID}/resource-configs`,
-  )
-  return response.data
-}
+import { getProviderConfigs } from '../network/queries/getProviderConfigs'
+import { getResourceConfigs } from '../network/queries/getResourceConfigs'
+import { ResourceConfig } from '../interfaces/resourceConfig'
+import { ResourceConfigCard } from '../components/ResourceConfigCard'
+import { ResourceConfigUpsertDialog } from '../dialogs/ResourceConfigUpsertDialog'
 
 export const ResourceConfigPage = () => {
-  const { coursePhaseID } = useParams<{ coursePhaseID: string }>()
+  const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<ResourceConfig | undefined>(undefined)
 
   const {
     data: resourceConfigs,
@@ -27,42 +21,79 @@ export const ResourceConfigPage = () => {
     isError,
   } = useQuery({
     queryKey: ['resource-configs', coursePhaseID],
-    queryFn: () => fetchResourceConfigs(coursePhaseID!),
+    queryFn: () => getResourceConfigs(coursePhaseID!),
+    enabled: !!coursePhaseID,
+  })
+
+  const { data: providers } = useQuery({
+    queryKey: ['provider-configs', coursePhaseID],
+    queryFn: () => getProviderConfigs(coursePhaseID!),
     enabled: !!coursePhaseID,
   })
 
   if (isLoading) {
-    return <div className='p-4 text-gray-500'>Loading resource configurations...</div>
+    return <div className='p-4 text-muted-foreground'>Loading resource configurations…</div>
+  }
+  if (isError) {
+    return <div className='p-4 text-red-600'>Failed to load resource configurations.</div>
   }
 
-  if (isError) {
-    return <div className='p-4 text-red-500'>Failed to load resource configurations.</div>
+  const openCreate = () => {
+    setEditing(undefined)
+    setDialogOpen(true)
   }
+
+  const openEdit = (config: ResourceConfig) => {
+    setEditing(config)
+    setDialogOpen(true)
+  }
+
+  const availableProviderTypes = (providers ?? []).map((p) => p.providerType)
 
   return (
-    <div className='p-6 space-y-4'>
-      <div className='flex items-center space-x-2'>
-        <Settings className='h-5 w-5 text-blue-500' />
-        <h1 className='text-xl font-semibold'>Resource Configurations</h1>
+    <div className='space-y-4 p-6'>
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
+          <Settings className='h-5 w-5 text-blue-500' />
+          <h1 className='text-xl font-semibold'>Resource configurations</h1>
+        </div>
+        <Button onClick={openCreate} disabled={availableProviderTypes.length === 0}>
+          <PlusCircle className='mr-2 h-4 w-4' />
+          New resource config
+        </Button>
       </div>
 
-      {resourceConfigs && resourceConfigs.length === 0 ? (
-        <div className='p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500'>
+      {availableProviderTypes.length === 0 && (
+        <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900'>
+          Add at least one provider before creating resource configurations.
+        </div>
+      )}
+
+      {!resourceConfigs || resourceConfigs.length === 0 ? (
+        <div className='rounded-lg border-2 border-dashed border-gray-300 p-4 text-muted-foreground'>
           No resource configurations found.
         </div>
       ) : (
         <div className='space-y-2'>
-          {/* TODO: Render resource config cards/rows */}
-          {resourceConfigs?.map((config) => (
-            <div key={config.id} className='p-4 border border-gray-200 rounded-lg'>
-              <p className='font-medium'>{config.nameTemplate}</p>
-              <p className='text-sm text-gray-500'>
-                {config.providerType} / {config.resourceType} / {config.scope}
-              </p>
-              {/* TODO: Add edit/delete actions */}
-            </div>
+          {resourceConfigs.map((config) => (
+            <ResourceConfigCard
+              key={config.id}
+              coursePhaseID={coursePhaseID!}
+              config={config}
+              onEdit={openEdit}
+            />
           ))}
         </div>
+      )}
+
+      {coursePhaseID && (
+        <ResourceConfigUpsertDialog
+          coursePhaseID={coursePhaseID}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          existing={editing}
+          availableProviderTypes={availableProviderTypes}
+        />
       )}
     </div>
   )

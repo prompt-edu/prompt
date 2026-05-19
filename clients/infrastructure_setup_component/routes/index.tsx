@@ -1,3 +1,4 @@
+import { OverviewPage } from '../src/OverviewPage'
 import { ProvidersPage } from '../src/infrastructure_setup/pages/ProvidersPage'
 import { ResourceConfigPage } from '../src/infrastructure_setup/pages/ResourceConfigPage'
 import { ExecutionPage } from '../src/infrastructure_setup/pages/ExecutionPage'
@@ -7,6 +8,11 @@ import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 const routes: ExtendedRouteObject[] = [
   {
     path: '',
+    element: <OverviewPage />,
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/providers',
     element: <ProvidersPage />,
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
   },

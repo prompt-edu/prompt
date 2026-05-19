@@ -7,13 +7,18 @@ const sidebarItems: SidebarMenuItemProps = {
   goToPath: '',
   subitems: [
     {
-      title: 'Providers',
+      title: 'Overview',
       goToPath: '',
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
     },
     {
       title: 'Setup',
       goToPath: '/setup',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
+      title: 'Providers',
+      goToPath: '/providers',
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
     },
     {

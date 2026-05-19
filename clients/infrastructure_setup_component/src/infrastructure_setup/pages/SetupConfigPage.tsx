@@ -1,53 +1,45 @@
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import {
+  Button,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  useToast,
+} from '@tumaet/prompt-ui-components'
 import { Save, Settings } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { infrastructureSetupAxiosInstance } from '../network/infrastructureSetupServerConfig'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 
-interface SetupConfig {
-  coursePhaseId: string
-  teamSourceCoursePhaseId?: string
-  studentSourceCoursePhaseId?: string
-  semesterTag: string
-}
+import { getSetupConfig } from '../network/queries/getSetupConfig'
+import { updateSetupConfig } from '../network/mutations/updateSetupConfig'
 
-const emptyToNull = (value: string): string | null => {
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
-}
-
-const fetchSetupConfig = async (coursePhaseID: string): Promise<SetupConfig> => {
-  const response = await infrastructureSetupAxiosInstance.get(
-    `infrastructure-setup/api/course_phase/${coursePhaseID}/setup-config`,
-  )
-  return response.data
-}
-
-const updateSetupConfig = async (
-  coursePhaseID: string,
-  config: Omit<SetupConfig, 'coursePhaseId'>,
-): Promise<SetupConfig> => {
-  const response = await infrastructureSetupAxiosInstance.put(
-    `infrastructure-setup/api/course_phase/${coursePhaseID}/setup-config`,
-    {
-      teamSourceCoursePhaseId: emptyToNull(config.teamSourceCoursePhaseId ?? ''),
-      studentSourceCoursePhaseId: emptyToNull(config.studentSourceCoursePhaseId ?? ''),
-      semesterTag: config.semesterTag.trim(),
-    },
-  )
-  return response.data
-}
+const UNSET = '__none__'
 
 export const SetupConfigPage = () => {
-  const { coursePhaseID } = useParams<{ coursePhaseID: string }>()
+  const { courseId, phaseId: coursePhaseID } = useParams<{
+    courseId: string
+    phaseId: string
+  }>()
   const queryClient = useQueryClient()
-  const [teamSourceCoursePhaseID, setTeamSourceCoursePhaseID] = useState('')
-  const [studentSourceCoursePhaseID, setStudentSourceCoursePhaseID] = useState('')
+  const { toast } = useToast()
+  const { courses } = useCourseStore()
+
+  const course = courses.find((c) => c.id === courseId)
+  // Sibling phases that could supply team or student source data — exclude self.
+  const siblingPhases = (course?.coursePhases ?? []).filter((p) => p.id !== coursePhaseID)
+
+  const [teamSourceCoursePhaseID, setTeamSourceCoursePhaseID] = useState<string>('')
+  const [studentSourceCoursePhaseID, setStudentSourceCoursePhaseID] = useState<string>('')
   const [semesterTag, setSemesterTag] = useState('')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['setup-config', coursePhaseID],
-    queryFn: () => fetchSetupConfig(coursePhaseID!),
+    queryFn: () => getSetupConfig(coursePhaseID!),
     enabled: !!coursePhaseID,
   })
 
@@ -58,73 +50,108 @@ export const SetupConfigPage = () => {
     setSemesterTag(data.semesterTag ?? '')
   }, [data])
 
-  const { mutate: saveConfig, isPending } = useMutation({
+  // Prefill semester tag from the parent course if not set yet.
+  useEffect(() => {
+    if (!course || semesterTag) return
+    setSemesterTag(course.semesterTag ?? '')
+  }, [course, semesterTag])
+
+  const { mutate: save, isPending } = useMutation({
     mutationFn: () =>
       updateSetupConfig(coursePhaseID!, {
-        teamSourceCoursePhaseId: teamSourceCoursePhaseID,
-        studentSourceCoursePhaseId: studentSourceCoursePhaseID,
-        semesterTag,
+        teamSourceCoursePhaseId: teamSourceCoursePhaseID || null,
+        studentSourceCoursePhaseId: studentSourceCoursePhaseID || null,
+        semesterTag: semesterTag.trim(),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['setup-config', coursePhaseID] })
+      toast({ title: 'Setup configuration saved' })
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Failed to save setup configuration',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      })
     },
   })
 
   if (isLoading) {
-    return <div className='p-4 text-gray-500'>Loading setup configuration...</div>
+    return <div className='p-4 text-muted-foreground'>Loading setup configuration…</div>
+  }
+  if (isError) {
+    return <div className='p-4 text-red-600'>Failed to load setup configuration.</div>
   }
 
-  if (isError) {
-    return <div className='p-4 text-red-500'>Failed to load setup configuration.</div>
-  }
+  const phaseSelect = (value: string, onChange: (value: string) => void, placeholder: string) => (
+    <Select
+      value={value === '' ? UNSET : value}
+      onValueChange={(v) => onChange(v === UNSET ? '' : v)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={UNSET}>— none —</SelectItem>
+        {siblingPhases.map((phase) => (
+          <SelectItem key={phase.id} value={phase.id}>
+            {phase.name} ({phase.coursePhaseType})
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
 
   return (
-    <div className='p-6 space-y-4 max-w-3xl'>
+    <div className='max-w-3xl space-y-4 p-6'>
       <div className='flex items-center justify-between'>
-        <div className='flex items-center space-x-2'>
+        <div className='flex items-center gap-2'>
           <Settings className='h-5 w-5 text-blue-500' />
           <h1 className='text-xl font-semibold'>Setup</h1>
         </div>
-        <button
-          onClick={() => saveConfig()}
-          disabled={isPending}
-          className='px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50 flex items-center space-x-1'
-        >
-          <Save className='h-4 w-4' />
-          <span>{isPending ? 'Saving...' : 'Save'}</span>
-        </button>
+        <Button onClick={() => save()} disabled={isPending}>
+          <Save className='mr-2 h-4 w-4' />
+          {isPending ? 'Saving…' : 'Save'}
+        </Button>
       </div>
 
       <div className='space-y-4'>
-        <label className='block space-y-1'>
-          <span className='text-sm font-medium text-gray-700'>Team source course phase ID</span>
-          <input
-            value={teamSourceCoursePhaseID}
-            onChange={(event) => setTeamSourceCoursePhaseID(event.target.value)}
-            className='w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono'
-            placeholder='00000000-0000-0000-0000-000000000000'
-          />
-        </label>
+        <div className='space-y-1'>
+          <Label>Team source phase</Label>
+          {phaseSelect(
+            teamSourceCoursePhaseID,
+            setTeamSourceCoursePhaseID,
+            'Select a phase that provides teams',
+          )}
+          <p className='text-xs text-muted-foreground'>
+            Phase whose teams are read for <code>per_team</code> resource configs.
+          </p>
+        </div>
 
-        <label className='block space-y-1'>
-          <span className='text-sm font-medium text-gray-700'>Student source course phase ID</span>
-          <input
-            value={studentSourceCoursePhaseID}
-            onChange={(event) => setStudentSourceCoursePhaseID(event.target.value)}
-            className='w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono'
-            placeholder='00000000-0000-0000-0000-000000000000'
-          />
-        </label>
+        <div className='space-y-1'>
+          <Label>Student source phase</Label>
+          {phaseSelect(
+            studentSourceCoursePhaseID,
+            setStudentSourceCoursePhaseID,
+            'Select a phase that provides students',
+          )}
+          <p className='text-xs text-muted-foreground'>
+            Phase whose participants are read for <code>per_student</code> resource configs.
+          </p>
+        </div>
 
-        <label className='block space-y-1'>
-          <span className='text-sm font-medium text-gray-700'>Semester tag</span>
-          <input
+        <div className='space-y-1'>
+          <Label htmlFor='semesterTag'>Semester tag</Label>
+          <Input
+            id='semesterTag'
             value={semesterTag}
             onChange={(event) => setSemesterTag(event.target.value)}
-            className='w-full rounded border border-gray-300 px-3 py-2 text-sm'
             placeholder='ios26'
           />
-        </label>
+          <p className='text-xs text-muted-foreground'>
+            Used as <code>{`{{semesterTag}}`}</code> in resource name templates.
+          </p>
+        </div>
       </div>
     </div>
   )

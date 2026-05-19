@@ -33,12 +33,18 @@ func (h *InfrastructureSetupCopyHandler) HandlePhaseCopy(c *gin.Context, req pro
 	}
 	ctx := c.Request.Context()
 
-	if err := CopyServiceSingleton.queries.CopyProviderConfigsWithEmptyCredentials(ctx, req.SourceCoursePhaseID, req.TargetCoursePhaseID); err != nil {
+	if err := CopyServiceSingleton.queries.CopyProviderConfigsWithEmptyCredentials(ctx, db.CopyProviderConfigsWithEmptyCredentialsParams{
+		SourceCoursePhaseID: req.SourceCoursePhaseID,
+		TargetCoursePhaseID: req.TargetCoursePhaseID,
+	}); err != nil {
 		log.WithError(err).Error("copy provider configs")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return err
 	}
-	if err := CopyServiceSingleton.queries.CopyResourceConfigs(ctx, req.SourceCoursePhaseID, req.TargetCoursePhaseID); err != nil {
+	if err := CopyServiceSingleton.queries.CopyResourceConfigs(ctx, db.CopyResourceConfigsParams{
+		SourceCoursePhaseID: req.SourceCoursePhaseID,
+		TargetCoursePhaseID: req.TargetCoursePhaseID,
+	}); err != nil {
 		log.WithError(err).Error("copy resource configs")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return err

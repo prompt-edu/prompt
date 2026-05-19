@@ -51,7 +51,6 @@ CREATE TABLE resource_instance (
     external_id             text,
     external_url            text,
     error_message           text,
-    retry_count             integer NOT NULL DEFAULT 0,
     created_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

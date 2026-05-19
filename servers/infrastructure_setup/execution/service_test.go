@@ -148,10 +148,16 @@ func TestDeleteAndRetryAreScopedByCoursePhase(t *testing.T) {
 		t.Fatalf("mark failed: %v", err)
 	}
 
-	if err := testDB.Queries.ResetFailedInstanceToPending(context.Background(), instance.ID, otherCoursePhaseID); err != nil {
+	if err := testDB.Queries.ResetFailedInstanceToPending(context.Background(), db.ResetFailedInstanceToPendingParams{
+		ID:            instance.ID,
+		CoursePhaseID: otherCoursePhaseID,
+	}); err != nil {
 		t.Fatalf("retry wrong phase: %v", err)
 	}
-	got, err := testDB.Queries.GetResourceInstance(context.Background(), instance.ID, coursePhaseID)
+	got, err := testDB.Queries.GetResourceInstance(context.Background(), db.GetResourceInstanceParams{
+		ID:            instance.ID,
+		CoursePhaseID: coursePhaseID,
+	})
 	if err != nil {
 		t.Fatalf("get instance after wrong retry: %v", err)
 	}
@@ -159,10 +165,16 @@ func TestDeleteAndRetryAreScopedByCoursePhase(t *testing.T) {
 		t.Fatalf("status after wrong-phase retry = %s, want failed", got.Status)
 	}
 
-	if err := testDB.Queries.ResetFailedInstanceToPending(context.Background(), instance.ID, coursePhaseID); err != nil {
+	if err := testDB.Queries.ResetFailedInstanceToPending(context.Background(), db.ResetFailedInstanceToPendingParams{
+		ID:            instance.ID,
+		CoursePhaseID: coursePhaseID,
+	}); err != nil {
 		t.Fatalf("retry correct phase: %v", err)
 	}
-	got, err = testDB.Queries.GetResourceInstance(context.Background(), instance.ID, coursePhaseID)
+	got, err = testDB.Queries.GetResourceInstance(context.Background(), db.GetResourceInstanceParams{
+		ID:            instance.ID,
+		CoursePhaseID: coursePhaseID,
+	})
 	if err != nil {
 		t.Fatalf("get instance after correct retry: %v", err)
 	}
@@ -170,7 +182,10 @@ func TestDeleteAndRetryAreScopedByCoursePhase(t *testing.T) {
 		t.Fatalf("status after correct retry = %s, want pending", got.Status)
 	}
 
-	if err := testDB.Queries.DeleteResourceInstance(context.Background(), instance.ID, otherCoursePhaseID); err != nil {
+	if err := testDB.Queries.DeleteResourceInstance(context.Background(), db.DeleteResourceInstanceParams{
+		ID:            instance.ID,
+		CoursePhaseID: otherCoursePhaseID,
+	}); err != nil {
 		t.Fatalf("delete wrong phase: %v", err)
 	}
 	instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
@@ -181,7 +196,10 @@ func TestDeleteAndRetryAreScopedByCoursePhase(t *testing.T) {
 		t.Fatalf("instances after wrong-phase delete = %d, want 1", len(instances))
 	}
 
-	if err := testDB.Queries.DeleteResourceInstance(context.Background(), instance.ID, coursePhaseID); err != nil {
+	if err := testDB.Queries.DeleteResourceInstance(context.Background(), db.DeleteResourceInstanceParams{
+		ID:            instance.ID,
+		CoursePhaseID: coursePhaseID,
+	}); err != nil {
 		t.Fatalf("delete correct phase: %v", err)
 	}
 	instances, err = testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)

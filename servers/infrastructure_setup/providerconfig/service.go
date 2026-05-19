@@ -83,9 +83,22 @@ func (s *Service) ListProviderConfigs(ctx context.Context, coursePhaseID uuid.UU
 	return result, nil
 }
 
+// DeleteProviderConfig removes the credentials for a provider type on a phase.
+// This cascades through fk_resource_config_provider, removing all resource_config
+// rows for this provider on the phase (and any resource_instance rows beneath them).
+func (s *Service) DeleteProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, providerType string) error {
+	return s.queries.DeleteProviderConfig(ctx, db.DeleteProviderConfigParams{
+		CoursePhaseID: coursePhaseID,
+		ProviderType:  db.ProviderType(providerType),
+	})
+}
+
 // ValidateProviderConfig decrypts credentials and calls ValidateCredentials on the provider.
 func (s *Service) ValidateProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, providerType string) error {
-	pc, err := s.queries.GetProviderConfig(ctx, coursePhaseID, db.ProviderType(providerType))
+	pc, err := s.queries.GetProviderConfig(ctx, db.GetProviderConfigParams{
+		CoursePhaseID: coursePhaseID,
+		ProviderType:  db.ProviderType(providerType),
+	})
 	if err != nil {
 		return fmt.Errorf("provider config not found: %w", err)
 	}

@@ -2,8 +2,10 @@ package execution
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 )
@@ -65,6 +67,9 @@ func (s *Service) createInstancesForConfig(ctx context.Context, authHeader strin
 
 	for _, target := range targets {
 		if _, err := s.queries.CreateResourceInstance(ctx, createResourceInstanceParams(cfg, coursePhaseID, target)); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
 			return err
 		}
 	}
@@ -93,7 +98,10 @@ func (s *Service) RetryFailedInstance(ctx context.Context, coursePhaseID, instan
 
 // RetryFailedInstanceWithAuth resets a failed instance back to pending and triggers execution.
 func (s *Service) RetryFailedInstanceWithAuth(ctx context.Context, authHeader string, coursePhaseID, instanceID uuid.UUID) error {
-	if err := s.queries.ResetFailedInstanceToPending(ctx, instanceID, coursePhaseID); err != nil {
+	if err := s.queries.ResetFailedInstanceToPending(ctx, db.ResetFailedInstanceToPendingParams{
+		ID:            instanceID,
+		CoursePhaseID: coursePhaseID,
+	}); err != nil {
 		return err
 	}
 	s.worker.RunPendingInstances(authHeader, coursePhaseID)
@@ -102,5 +110,8 @@ func (s *Service) RetryFailedInstanceWithAuth(ctx context.Context, authHeader st
 
 // DeleteInstance removes a resource instance.
 func (s *Service) DeleteInstance(ctx context.Context, coursePhaseID, instanceID uuid.UUID) error {
-	return s.queries.DeleteResourceInstance(ctx, instanceID, coursePhaseID)
+	return s.queries.DeleteResourceInstance(ctx, db.DeleteResourceInstanceParams{
+		ID:            instanceID,
+		CoursePhaseID: coursePhaseID,
+	})
 }

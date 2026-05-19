@@ -69,7 +69,10 @@ func (r *CoreTargetResolver) ResolveTargets(ctx context.Context, authHeader stri
 }
 
 func (r *CoreTargetResolver) ResolveInstanceTarget(ctx context.Context, authHeader string, instance db.ResourceInstance) (ProvisioningTarget, error) {
-	config, err := r.queries.GetResourceConfig(ctx, instance.ResourceConfigID, instance.CoursePhaseID)
+	config, err := r.queries.GetResourceConfig(ctx, db.GetResourceConfigParams{
+		ID:            instance.ResourceConfigID,
+		CoursePhaseID: instance.CoursePhaseID,
+	})
 	if err != nil {
 		return ProvisioningTarget{}, fmt.Errorf("load resource config: %w", err)
 	}

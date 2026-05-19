@@ -13,8 +13,32 @@ import (
 func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 	rg.GET("/provider-configs", listProviderConfigs(svc))
 	rg.PUT("/provider-configs", upsertProviderConfig(svc))
+	rg.DELETE("/provider-configs/:providerType", deleteProviderConfig(svc))
 	rg.POST("/provider-configs/:providerType/validate", validateProviderConfig(svc))
 	rg.GET("/provider-configs/:providerType/fields", getAuthFields())
+}
+
+func deleteProviderConfig(svc *Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
+			return
+		}
+
+		providerType := c.Param("providerType")
+		if _, err := GetAuthFields(providerType); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := svc.DeleteProviderConfig(c.Request.Context(), coursePhaseID, providerType); err != nil {
+			log.WithError(err).Error("delete provider config")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusNoContent, nil)
+	}
 }
 
 func listProviderConfigs(svc *Service) gin.HandlerFunc {

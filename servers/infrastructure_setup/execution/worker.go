@@ -104,13 +104,19 @@ func (w *Worker) processInstance(ctx context.Context, authHeader string, inst db
 	}
 
 	// Load resource config.
-	config, err := w.queries.GetResourceConfig(ctx, inst.ResourceConfigID, inst.CoursePhaseID)
+	config, err := w.queries.GetResourceConfig(ctx, db.GetResourceConfigParams{
+		ID:            inst.ResourceConfigID,
+		CoursePhaseID: inst.CoursePhaseID,
+	})
 	if err != nil {
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("load resource config: %v", err))
 	}
 
 	// Load provider config.
-	providerCfg, err := w.queries.GetProviderConfig(ctx, inst.CoursePhaseID, config.ProviderType)
+	providerCfg, err := w.queries.GetProviderConfig(ctx, db.GetProviderConfigParams{
+		CoursePhaseID: inst.CoursePhaseID,
+		ProviderType:  config.ProviderType,
+	})
 	if err != nil {
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("load provider config: %v", err))
 	}
@@ -184,7 +190,7 @@ func (w *Worker) processInstance(ctx context.Context, authHeader string, inst db
 		ID:          inst.ID,
 		Status:      db.ResourceStatusCreated,
 		ExternalID:  &resource.ExternalID,
-		ExternalURL: &resource.ExternalURL,
+		ExternalUrl: &resource.ExternalURL,
 	})
 }
 

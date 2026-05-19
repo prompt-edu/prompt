@@ -71,11 +71,6 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
               </div>
               <div className='text-sm'>
                 target: <span className='font-mono'>{target}</span>
-                {instance.retryCount > 0 && (
-                  <span className='ml-2 text-xs text-muted-foreground'>
-                    retries: {instance.retryCount}
-                  </span>
-                )}
               </div>
               {instance.externalUrl && (
                 <a

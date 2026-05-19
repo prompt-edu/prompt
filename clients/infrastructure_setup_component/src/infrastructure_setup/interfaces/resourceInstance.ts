@@ -10,7 +10,6 @@ export interface ResourceInstance {
   externalId?: string
   externalUrl?: string
   errorMessage?: string
-  retryCount: number
   createdAt: string
   updatedAt: string
 }

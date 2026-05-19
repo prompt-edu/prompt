@@ -60,7 +60,10 @@ func (s *Service) ListResourceConfigs(ctx context.Context, coursePhaseID uuid.UU
 
 // GetResourceConfig retrieves a single resource config.
 func (s *Service) GetResourceConfig(ctx context.Context, coursePhaseID, id uuid.UUID) (ResourceConfigResponse, error) {
-	rc, err := s.queries.GetResourceConfig(ctx, id, coursePhaseID)
+	rc, err := s.queries.GetResourceConfig(ctx, db.GetResourceConfigParams{
+		ID:            id,
+		CoursePhaseID: coursePhaseID,
+	})
 	if err != nil {
 		return ResourceConfigResponse{}, err
 	}
@@ -95,7 +98,10 @@ func (s *Service) UpdateResourceConfig(ctx context.Context, coursePhaseID, id uu
 
 // DeleteResourceConfig removes a resource configuration.
 func (s *Service) DeleteResourceConfig(ctx context.Context, coursePhaseID, id uuid.UUID) error {
-	return s.queries.DeleteResourceConfig(ctx, id, coursePhaseID)
+	return s.queries.DeleteResourceConfig(ctx, db.DeleteResourceConfigParams{
+		ID:            id,
+		CoursePhaseID: coursePhaseID,
+	})
 }
 
 func toResponse(rc db.ResourceConfig) ResourceConfigResponse {

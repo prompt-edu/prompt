@@ -44,7 +44,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
 
       if (!team) return 'No Team'
 
-      return teamNameById.get(team.id) ?? 'No Team'
+      return team.name
     }
 
     const teamNameExtraData = teams.flatMap(({ id, members }) => {

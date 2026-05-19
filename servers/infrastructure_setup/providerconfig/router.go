@@ -18,6 +18,18 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 	rg.GET("/provider-configs/:providerType/fields", getAuthFields())
 }
 
+// deleteProviderConfig godoc
+// @Summary Delete provider configuration
+// @Description Removes stored credentials for a provider type. Resource configurations and instances for that provider cascade-delete.
+// @Tags provider-configs
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param providerType path string true "Provider type" Enums(gitlab, slack, outline, rancher, keycloak)
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs/{providerType} [delete]
 func deleteProviderConfig(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -41,6 +53,17 @@ func deleteProviderConfig(svc *Service) gin.HandlerFunc {
 	}
 }
 
+// listProviderConfigs godoc
+// @Summary List provider configurations
+// @Description Lists configured infrastructure providers for a course phase. Credentials are redacted.
+// @Tags provider-configs
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} ProviderConfigResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs [get]
 func listProviderConfigs(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -59,6 +82,19 @@ func listProviderConfigs(svc *Service) gin.HandlerFunc {
 	}
 }
 
+// upsertProviderConfig godoc
+// @Summary Create or update provider configuration
+// @Description Encrypts and stores credentials for an infrastructure provider.
+// @Tags provider-configs
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param providerConfig body UpsertRequest true "Provider configuration"
+// @Success 200 {object} ProviderConfigResponse
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs [put]
 func upsertProviderConfig(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -83,6 +119,17 @@ func upsertProviderConfig(svc *Service) gin.HandlerFunc {
 	}
 }
 
+// validateProviderConfig godoc
+// @Summary Validate provider credentials
+// @Description Decrypts the stored provider credentials and validates them against the external provider.
+// @Tags provider-configs
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param providerType path string true "Provider type" Enums(gitlab, slack, outline, rancher, keycloak)
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs/{providerType}/validate [post]
 func validateProviderConfig(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -100,6 +147,17 @@ func validateProviderConfig(svc *Service) gin.HandlerFunc {
 	}
 }
 
+// getAuthFields godoc
+// @Summary Get provider credential fields
+// @Description Returns the credential fields required to configure a provider type.
+// @Tags provider-configs
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param providerType path string true "Provider type" Enums(gitlab, slack, outline, rancher, keycloak)
+// @Success 200 {array} AuthField
+// @Failure 400 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs/{providerType}/fields [get]
 func getAuthFields() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		providerType := c.Param("providerType")

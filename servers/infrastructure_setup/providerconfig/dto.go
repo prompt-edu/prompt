@@ -1,6 +1,12 @@
 package providerconfig
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
+)
+
+// AuthField describes a credential field required by an infrastructure provider.
+type AuthField = provider.AuthField
 
 // UpsertRequest is the request body for saving provider credentials.
 type UpsertRequest struct {

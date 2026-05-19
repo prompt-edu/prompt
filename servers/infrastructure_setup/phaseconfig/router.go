@@ -14,6 +14,17 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 	rg.PUT("/setup-config", upsertConfig(svc))
 }
 
+// getConfig godoc
+// @Summary Get infrastructure setup configuration
+// @Description Returns the source phase and semester tag configuration for an infrastructure setup course phase.
+// @Tags infrastructure-setup-config
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} Response
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/setup-config [get]
 func getConfig(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -31,6 +42,19 @@ func getConfig(svc *Service) gin.HandlerFunc {
 	}
 }
 
+// upsertConfig godoc
+// @Summary Create or update infrastructure setup configuration
+// @Description Saves the source phase and semester tag configuration for an infrastructure setup course phase.
+// @Tags infrastructure-setup-config
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param config body UpsertRequest true "Infrastructure setup configuration"
+// @Success 200 {object} Response
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/setup-config [put]
 func upsertConfig(svc *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))

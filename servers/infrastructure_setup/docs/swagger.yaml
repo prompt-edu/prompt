@@ -1,0 +1,803 @@
+basePath: /infrastructure-setup/api
+definitions:
+  db.ResourceStatus:
+    enum:
+    - pending
+    - in_progress
+    - created
+    - failed
+    type: string
+    x-enum-varnames:
+    - ResourceStatusPending
+    - ResourceStatusInProgress
+    - ResourceStatusCreated
+    - ResourceStatusFailed
+  execution.ResourceInstanceResponse:
+    properties:
+      courseParticipationId:
+        type: string
+      coursePhaseId:
+        type: string
+      createdAt:
+        type: string
+      errorMessage:
+        type: string
+      externalId:
+        type: string
+      externalUrl:
+        type: string
+      id:
+        type: string
+      resourceConfigId:
+        type: string
+      status:
+        $ref: '#/definitions/db.ResourceStatus'
+      teamId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  phaseconfig.Response:
+    properties:
+      coursePhaseId:
+        type: string
+      semesterTag:
+        type: string
+      studentSourceCoursePhaseId:
+        type: string
+      teamSourceCoursePhaseId:
+        type: string
+    type: object
+  phaseconfig.UpsertRequest:
+    properties:
+      semesterTag:
+        type: string
+      studentSourceCoursePhaseId:
+        type: string
+      teamSourceCoursePhaseId:
+        type: string
+    type: object
+  providerconfig.AuthField:
+    properties:
+      description:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        description: '"text" or "password"'
+        type: string
+    type: object
+  providerconfig.ProviderConfigResponse:
+    properties:
+      id:
+        type: string
+      providerType:
+        type: string
+    type: object
+  providerconfig.UpsertRequest:
+    properties:
+      credentials:
+        additionalProperties: true
+        type: object
+      providerType:
+        type: string
+    required:
+    - credentials
+    - providerType
+    type: object
+  resourceconfig.CreateRequest:
+    properties:
+      nameTemplate:
+        type: string
+      permissionMapping:
+        additionalProperties:
+          type: string
+        type: object
+      providerType:
+        type: string
+      resourceExtraConfig:
+        additionalProperties: true
+        type: object
+      resourceType:
+        type: string
+      scope:
+        enum:
+        - per_team
+        - per_student
+        type: string
+    required:
+    - nameTemplate
+    - providerType
+    - resourceType
+    - scope
+    type: object
+  resourceconfig.ResourceConfigResponse:
+    properties:
+      coursePhaseId:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      nameTemplate:
+        type: string
+      permissionMapping:
+        items:
+          type: integer
+        type: array
+      providerType:
+        type: string
+      resourceExtraConfig:
+        items:
+          type: integer
+        type: array
+      resourceType:
+        type: string
+      scope:
+        type: string
+    type: object
+  resourceconfig.UpdateRequest:
+    properties:
+      nameTemplate:
+        type: string
+      permissionMapping:
+        additionalProperties:
+          type: string
+        type: object
+      resourceExtraConfig:
+        additionalProperties: true
+        type: object
+      resourceType:
+        type: string
+      scope:
+        enum:
+        - per_team
+        - per_student
+        type: string
+    required:
+    - nameTemplate
+    - resourceType
+    - scope
+    type: object
+externalDocs:
+  description: PROMPT Documentation
+  url: https://prompt-edu.github.io/prompt/
+host: localhost:8089
+info:
+  contact: {}
+  description: Manages infrastructure resource provisioning for course phases.
+  title: PROMPT Infrastructure Setup API
+  version: "1.0"
+paths:
+  /course_phase/{coursePhaseID}/execute:
+    post:
+      description: Creates pending resource instances for configured targets and starts
+        asynchronous provisioning.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Trigger infrastructure provisioning
+      tags:
+      - execution
+  /course_phase/{coursePhaseID}/instances:
+    get:
+      description: Lists provisioned resource instances and their lifecycle status
+        for a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/execution.ResourceInstanceResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List resource instances
+      tags:
+      - execution
+  /course_phase/{coursePhaseID}/instances/{instanceID}:
+    delete:
+      description: Deletes a resource instance row in PROMPT. External provider resources
+        are not deleted.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource instance ID
+        in: path
+        name: instanceID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete resource instance
+      tags:
+      - execution
+  /course_phase/{coursePhaseID}/instances/{instanceID}/retry:
+    post:
+      description: Resets a failed resource instance to pending and starts asynchronous
+        provisioning.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource instance ID
+        in: path
+        name: instanceID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Retry failed resource instance
+      tags:
+      - execution
+  /course_phase/{coursePhaseID}/provider-configs:
+    get:
+      description: Lists configured infrastructure providers for a course phase. Credentials
+        are redacted.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/providerconfig.ProviderConfigResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List provider configurations
+      tags:
+      - provider-configs
+    put:
+      consumes:
+      - application/json
+      description: Encrypts and stores credentials for an infrastructure provider.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Provider configuration
+        in: body
+        name: providerConfig
+        required: true
+        schema:
+          $ref: '#/definitions/providerconfig.UpsertRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/providerconfig.ProviderConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create or update provider configuration
+      tags:
+      - provider-configs
+  /course_phase/{coursePhaseID}/provider-configs/{providerType}:
+    delete:
+      description: Removes stored credentials for a provider type. Resource configurations
+        and instances for that provider cascade-delete.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Provider type
+        enum:
+        - gitlab
+        - slack
+        - outline
+        - rancher
+        - keycloak
+        in: path
+        name: providerType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete provider configuration
+      tags:
+      - provider-configs
+  /course_phase/{coursePhaseID}/provider-configs/{providerType}/fields:
+    get:
+      description: Returns the credential fields required to configure a provider
+        type.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Provider type
+        enum:
+        - gitlab
+        - slack
+        - outline
+        - rancher
+        - keycloak
+        in: path
+        name: providerType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/providerconfig.AuthField'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get provider credential fields
+      tags:
+      - provider-configs
+  /course_phase/{coursePhaseID}/provider-configs/{providerType}/validate:
+    post:
+      description: Decrypts the stored provider credentials and validates them against
+        the external provider.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Provider type
+        enum:
+        - gitlab
+        - slack
+        - outline
+        - rancher
+        - keycloak
+        in: path
+        name: providerType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Validate provider credentials
+      tags:
+      - provider-configs
+  /course_phase/{coursePhaseID}/resource-configs:
+    get:
+      description: Lists all resource configurations for an infrastructure setup course
+        phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List resource configurations
+      tags:
+      - resource-configs
+    post:
+      consumes:
+      - application/json
+      description: Creates a resource configuration describing what to provision per
+        team or per student.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource configuration
+        in: body
+        name: resourceConfig
+        required: true
+        schema:
+          $ref: '#/definitions/resourceconfig.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create resource configuration
+      tags:
+      - resource-configs
+  /course_phase/{coursePhaseID}/resource-configs/{resourceConfigID}:
+    delete:
+      description: Deletes a resource configuration and cascades to its resource instances.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource configuration ID
+        in: path
+        name: resourceConfigID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete resource configuration
+      tags:
+      - resource-configs
+    get:
+      description: Retrieves a single resource configuration by ID.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource configuration ID
+        in: path
+        name: resourceConfigID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get resource configuration
+      tags:
+      - resource-configs
+    put:
+      consumes:
+      - application/json
+      description: Updates a resource configuration.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Resource configuration ID
+        in: path
+        name: resourceConfigID
+        required: true
+        type: string
+      - description: Resource configuration
+        in: body
+        name: resourceConfig
+        required: true
+        schema:
+          $ref: '#/definitions/resourceconfig.UpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update resource configuration
+      tags:
+      - resource-configs
+  /course_phase/{coursePhaseID}/setup-config:
+    get:
+      description: Returns the source phase and semester tag configuration for an
+        infrastructure setup course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phaseconfig.Response'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get infrastructure setup configuration
+      tags:
+      - infrastructure-setup-config
+    put:
+      consumes:
+      - application/json
+      description: Saves the source phase and semester tag configuration for an infrastructure
+        setup course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Infrastructure setup configuration
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/phaseconfig.UpsertRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/phaseconfig.Response'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create or update infrastructure setup configuration
+      tags:
+      - infrastructure-setup-config
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Bearer token authentication. Use format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

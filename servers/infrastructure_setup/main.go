@@ -84,6 +84,12 @@ func registerProviderFactories() {
 // @description     Manages infrastructure resource provisioning for course phases.
 // @host            localhost:8089
 // @BasePath        /infrastructure-setup/api
+// @externalDocs.description  PROMPT Documentation
+// @externalDocs.url          https://prompt-edu.github.io/prompt/
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @description Bearer token authentication. Use format: Bearer {token}
 func main() {
 	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_INFRASTRUCTURE_SETUP", ""))
 	defer sentry.Flush(2 * time.Second)

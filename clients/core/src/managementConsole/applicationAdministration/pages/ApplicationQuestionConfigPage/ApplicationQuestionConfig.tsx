@@ -65,6 +65,7 @@ export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const [applicationQuestions, setApplicationQuestions] = useState<ApplicationQuestion[]>([])
   const [csvExportSettings, setCsvExportSettings] = useState<ApplicationCsvExportSettings>({})
+  const hasPendingCsvExportSettingsUpdate = useRef(false)
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -128,13 +129,28 @@ export const ApplicationQuestionConfig = () => {
     setCsvExportSettings(getApplicationCsvExportSettings(coursePhase?.restrictedData))
   }, [coursePhase?.restrictedData])
 
+  useEffect(() => {
+    if (!hasPendingCsvExportSettingsUpdate.current || !phaseId) {
+      return
+    }
+
+    updateCoursePhaseMetaData({
+      id: phaseId,
+      restrictedData: {
+        [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: csvExportSettings,
+      },
+    })
+    hasPendingCsvExportSettingsUpdate.current = false
+  }, [csvExportSettings, phaseId, updateCoursePhaseMetaData])
+
   const handleCsvExportEnabledChange = (questionID: string, checked: boolean) => {
     if (!isPersistedQuestionID(questionID)) {
       return
     }
 
+    hasPendingCsvExportSettingsUpdate.current = true
     setCsvExportSettings((prev) => {
-      const updatedSettings = pruneCsvExportSettings(
+      return pruneCsvExportSettings(
         {
           ...prev,
           [questionID]: checked,
@@ -142,15 +158,6 @@ export const ApplicationQuestionConfig = () => {
         applicationQuestions,
         originalQuestions,
       )
-
-      updateCoursePhaseMetaData({
-        id: phaseId ?? '',
-        restrictedData: {
-          [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: updatedSettings,
-        },
-      })
-
-      return updatedSettings
     })
   }
 
@@ -263,10 +270,7 @@ export const ApplicationQuestionConfig = () => {
                                 csvExportSettings,
                                 question.id,
                               )}
-                              csvExportDisabled={
-                                question.id.startsWith('not-valid-id-question-') ||
-                                question.id.startsWith('no-valid-id')
-                              }
+                              csvExportDisabled={!isPersistedQuestionID(question.id)}
                               onCsvExportEnabledChange={handleCsvExportEnabledChange}
                             />
                           </div>

@@ -40,10 +40,7 @@ export const ProvidersPage = () => {
   }
   if (isError) {
     return (
-      <ErrorPage
-        description='Failed to load provider configurations.'
-        onRetry={() => refetch()}
-      />
+      <ErrorPage description='Failed to load provider configurations.' onRetry={() => refetch()} />
     )
   }
 

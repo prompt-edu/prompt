@@ -82,12 +82,7 @@ export const SetupConfigPage = () => {
     return <LoadingPage />
   }
   if (isError) {
-    return (
-      <ErrorPage
-        description='Failed to load setup configuration.'
-        onRetry={() => refetch()}
-      />
-    )
+    return <ErrorPage description='Failed to load setup configuration.' onRetry={() => refetch()} />
   }
 
   const phaseSelect = (value: string, onChange: (value: string) => void, placeholder: string) => (

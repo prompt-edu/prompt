@@ -46,12 +46,7 @@ export const ExecutionPage = () => {
     return <LoadingPage />
   }
   if (isError) {
-    return (
-      <ErrorPage
-        description='Failed to load execution instances.'
-        onRetry={() => refetch()}
-      />
-    )
+    return <ErrorPage description='Failed to load execution instances.' onRetry={() => refetch()} />
   }
 
   return (

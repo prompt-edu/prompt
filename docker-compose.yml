@@ -1,3 +1,10 @@
+x-client-build-args: &client-build-args
+  IMAGE_TAG: local
+  NODE_ENV: development
+
+x-client-additional-contexts: &client-additional-contexts
+  "ghcr.io/prompt-edu/prompt/prompt-clients-base:local": "service:clients-base"
+
 services:
   server-core:
     build:
@@ -57,6 +64,8 @@ services:
     depends_on:
       db-team-allocation:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8083:8080"
     extra_hosts:
@@ -65,8 +74,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_TEAM_ALLOCATION_HOST}
-      - DB_PORT=${DB_TEAM_ALLOCATION_PORT}
+      - DB_HOST_TEAM_ALLOCATION
+      - DB_PORT_TEAM_ALLOCATION
       - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
       - DB_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
       - KEYCLOAK_HOST
@@ -83,6 +92,8 @@ services:
     depends_on:
       db-self-team-allocation:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8084:8080"
     extra_hosts:
@@ -91,8 +102,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_SELF_TEAM_ALLOCATION_HOST}
-      - DB_PORT=${DB_SELF_TEAM_ALLOCATION_PORT}
+      - DB_HOST_SELF_TEAM_ALLOCATION
+      - DB_PORT_SELF_TEAM_ALLOCATION
       - DB_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
       - DB_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
       - KEYCLOAK_HOST
@@ -109,6 +120,8 @@ services:
     depends_on:
       db-assessment:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8085:8080"
     extra_hosts:
@@ -117,8 +130,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_ASSESSMENT_HOST}
-      - DB_PORT=${DB_ASSESSMENT_PORT}
+      - DB_HOST_ASSESSMENT
+      - DB_PORT_ASSESSMENT
       - DB_NAME=${DB_ASSESSMENT_NAME}
       - DB_PASSWORD=${DB_ASSESSMENT_PASSWORD}
       - KEYCLOAK_HOST
@@ -135,6 +148,8 @@ services:
     depends_on:
       db-certificate:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8088:8080"
     extra_hosts:
@@ -145,8 +160,8 @@ services:
       - SERVER_ADDRESS
       - DB_USER=${DB_CERTIFICATE_USER}
       - DB_PASSWORD=${DB_CERTIFICATE_PASSWORD}
-      - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
-      - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - DB_HOST_CERTIFICATE
+      - DB_PORT_CERTIFICATE
       - DB_NAME=${DB_CERTIFICATE_NAME}
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
@@ -163,6 +178,8 @@ services:
     depends_on:
       db-template-server:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8086:8080"
     extra_hosts:
@@ -171,8 +188,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST=${DB_TEMPLATE_HOST}
-      - DB_PORT=${DB_TEMPLATE_PORT}
+      - DB_HOST_TEMPLATE_SERVER
+      - DB_PORT_TEMPLATE_SERVER
       - DB_NAME=${DB_TEMPLATE_NAME}
       - DB_USER=${DB_TEMPLATE_USER}
       - DB_PASSWORD=${DB_TEMPLATE_PASSWORD}
@@ -190,6 +207,8 @@ services:
     depends_on:
       db-interview:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8087:8080"
     extra_hosts:
@@ -198,8 +217,8 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST_INTERVIEW=${DB_INTERVIEW_HOST}
-      - DB_PORT_INTERVIEW=${DB_INTERVIEW_PORT}
+      - DB_HOST_INTERVIEW
+      - DB_PORT_INTERVIEW
       - DB_NAME=${DB_INTERVIEW_NAME}
       - DB_USER=${DB_INTERVIEW_USER}
       - DB_PASSWORD=${DB_INTERVIEW_PASSWORD}
@@ -213,10 +232,12 @@ services:
     build:
       context: ./clients/core
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-core
     environment:
       - ENVIRONMENT
-      - CORE_HOST
+      - CORE_HOST=${CORE_API_HOST}
       - INTRO_COURSE_HOST
       - DEVOPS_CHALLENGE_HOST
       - TEAM_ALLOCATION_HOST
@@ -232,6 +253,7 @@ services:
       - GITHUB_SHA
       - GITHUB_REF
       - SERVER_CORE_IMAGE_TAG
+      - SENTRY_DSN_CLIENT
     ports:
       - "3000:80"
     depends_on:
@@ -241,6 +263,8 @@ services:
     build:
       context: ./clients/template_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-template-component
     ports:
       - "3001:80"
@@ -257,20 +281,12 @@ services:
     depends_on:
       - clients-base
 
-  client-devops-challenge-component:
-    build:
-      context: ./clients/devops_challenge_component
-      dockerfile: Dockerfile
-    container_name: prompt-client-devops-challenge-component
-    ports:
-      - "3003:80"
-    depends_on:
-      - clients-base
-
   client-interview-component:
     build:
       context: ./clients/interview_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-interview-component
     ports:
       - "3005:80"
@@ -281,6 +297,8 @@ services:
     build:
       context: ./clients/matching_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-matching-component
     ports:
       - "3006:80"
@@ -291,6 +309,8 @@ services:
     build:
       context: ./clients/team_allocation_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-team-allocation-component
     ports:
       - "3007:80"
@@ -301,6 +321,8 @@ services:
     build:
       context: ./clients/self_team_allocation_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-self-team-allocation-component
     ports:
       - "3008:80"
@@ -311,6 +333,8 @@ services:
     build:
       context: ./clients/certificate_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-certificate
     ports:
       - "3009:80"
@@ -321,10 +345,10 @@ services:
     build:
       context: ./clients
       dockerfile: Dockerfile
-    image: base:latest
+    image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
 
   db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -342,7 +366,7 @@ services:
       - "5432:5432"
 
   db-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -364,7 +388,7 @@ services:
       - "5434:5432"
 
   db-assessment:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -387,7 +411,7 @@ services:
 
   # Database for the template server
   db-template-server:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-template-server
     environment:
       - POSTGRES_USER=${DB_TEMPLATE_USER:-prompt-postgres}
@@ -408,7 +432,7 @@ services:
       - "5437:5432"
 
   db-interview:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
@@ -429,7 +453,7 @@ services:
       - "5438:5432"
 
   db-self-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -451,7 +475,7 @@ services:
       - "5436:5432"
 
   db-certificate:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -473,7 +497,7 @@ services:
       - "5439:5432"
 
   keycloak-db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -495,7 +519,7 @@ services:
       - "5431:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.7
+    image: quay.io/keycloak/keycloak:26.6.1
     container_name: prompt-keycloak
     command:
       - start-dev
@@ -634,4 +658,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-  

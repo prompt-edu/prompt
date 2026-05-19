@@ -26,9 +26,6 @@ on:
       assessment_image_tag:
         description: "The tag of the assessment component image that was built"
         value: ${{ jobs.assessment.outputs.image_tag }}
-      devops_challenge_image_tag:
-        description: "The tag of the devops challenge image that was built"
-        value: ${{ jobs.devops-challenge.outputs.image_tag }}
       team_allocation_image_tag:
         description: "The tag of the team allocation image that was built"
         value: ${{ jobs.team-allocation.outputs.image_tag }}
@@ -121,19 +118,6 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-clients-assessment-component
       docker-file: clients/assessment_component/Dockerfile # Defaults to Dockerfile
       docker-context: ./clients/assessment_component
-      tags: ${{ inputs.release_tag }}
-      build-args: |
-        "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"
-        "CORE_HOST=${{ vars.CORE_HOST }}"
-    secrets: inherit
-
-  devops-challenge:
-    needs: clients-base
-    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
-    with:
-      image-name: ghcr.io/prompt-edu/prompt/prompt-clients-devops-challenge-component
-      docker-file: clients/devops_challenge_component/Dockerfile # Defaults to Dockerfile
-      docker-context: ./clients/devops_challenge_component
       tags: ${{ inputs.release_tag }}
       build-args: |
         "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"

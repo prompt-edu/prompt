@@ -3,7 +3,6 @@ package resourceconfig
 import (
 	"errors"
 	"strings"
-	"text/template"
 
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 	log "github.com/sirupsen/logrus"
@@ -45,9 +44,9 @@ func validateScope(scope string) error {
 }
 
 // validateNameTemplate ensures the template is non-empty, within size limits,
-// and parses as a Go text/template — the execution worker uses text/template
-// to render resource names, so a parse failure here surfaces config errors
-// before they reach the worker.
+// and has balanced {{ }} placeholder delimiters. The execution worker renders
+// names via plain string replacement (see execution.ResolveName), so we only
+// need to catch malformed delimiter pairs here.
 func validateNameTemplate(nameTemplate string) error {
 	trimmed := strings.TrimSpace(nameTemplate)
 	if trimmed == "" {
@@ -56,9 +55,8 @@ func validateNameTemplate(nameTemplate string) error {
 	if len(nameTemplate) > maxNameTemplateLength {
 		return logAndReturnError("nameTemplate is too long")
 	}
-	if _, err := template.New("nameTemplate").Parse(nameTemplate); err != nil {
-		log.WithError(err).Error("invalid nameTemplate")
-		return errors.New("invalid nameTemplate: " + err.Error())
+	if strings.Count(nameTemplate, "{{") != strings.Count(nameTemplate, "}}") {
+		return logAndReturnError("invalid nameTemplate: unbalanced {{ }} delimiters")
 	}
 	return nil
 }

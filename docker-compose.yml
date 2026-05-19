@@ -177,6 +177,8 @@ services:
       - DB_NAME=${DB_INFRASTRUCTURE_SETUP_NAME}
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - ENCRYPTION_KEY
       - DEBUG
 
   # Template server (example service)

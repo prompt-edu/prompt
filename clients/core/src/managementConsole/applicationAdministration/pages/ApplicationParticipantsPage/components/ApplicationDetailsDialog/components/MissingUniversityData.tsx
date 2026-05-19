@@ -21,7 +21,7 @@ import {
 } from '@core/validations/universityData'
 import { Student } from '@tumaet/prompt-shared-state'
 import { updateStudent } from '@core/network/mutations/updateStudent'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 
 interface MissingUniversityDataProps {
   student: Student

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@tumaet/prompt-ui-components'
 import { NavAvatar } from './NavAvatar'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { ThemeToggle } from '@tumaet/prompt-ui-components'
 import { useNavigate } from 'react-router-dom'
 
 interface NavUserProps {

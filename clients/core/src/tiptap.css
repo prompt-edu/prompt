@@ -1,3 +1,5 @@
+@reference './index.css';
+
 :root {
     --mt-overlay: rgba(251, 251, 251, 0.75);
     --mt-transparent-foreground: rgba(0, 0, 0, 0.4);
@@ -102,7 +104,7 @@
   .minimal-tiptap-editor .ProseMirror .block-node:not(:last-child),
   .minimal-tiptap-editor .ProseMirror .list-node:not(:last-child),
   .minimal-tiptap-editor .ProseMirror .text-node:not(:last-child) {
-    @apply mb-2.5;
+    @apply mb-[0.625rem];
   }
   
   .minimal-tiptap-editor .ProseMirror ol,
@@ -135,16 +137,16 @@
   }
   
   .minimal-tiptap-editor .ProseMirror blockquote {
-    @apply relative pl-3.5;
+    @apply relative pl-[0.875rem];
   }
   
   .minimal-tiptap-editor .ProseMirror blockquote::before,
   .minimal-tiptap-editor .ProseMirror blockquote.is-empty::before {
-    @apply absolute bottom-0 left-0 top-0 h-full w-1 rounded-sm bg-accent-foreground/15 content-[''];
+    @apply absolute bottom-0 left-0 top-0 h-full w-1 rounded-xs bg-accent-foreground/15 content-[''];
   }
   
   .minimal-tiptap-editor .ProseMirror hr {
-    @apply my-3 h-0.5 w-full border-none bg-[var(--mt-hr)];
+    @apply my-3 h-[0.125rem] w-full border-none bg-[var(--mt-hr)];
   }
   
   .minimal-tiptap-editor .ProseMirror-focused hr.ProseMirror-selectednode {
@@ -197,7 +199,7 @@
   }
   
   .minimal-tiptap-editor .ProseMirror h2 {
-    @apply mb-3.5 mt-8 text-[1.1875rem] leading-7 tracking-[0.003125rem];
+    @apply mb-[0.875rem] mt-8 text-[1.1875rem] leading-7 tracking-[0.003125rem];
   }
   
   .minimal-tiptap-editor .ProseMirror h3 {
@@ -260,11 +262,11 @@
   
   /** Code */
   .minimal-tiptap-editor .ProseMirror code.inline {
-    @apply rounded border border-[var(--mt-code-color)] bg-[var(--mt-code-background)] px-1 py-0.5 text-sm;
+    @apply rounded-sm border border-[var(--mt-code-color)] bg-[var(--mt-code-background)] px-1 py-[0.125rem] text-sm;
   }
   
   .minimal-tiptap-editor .ProseMirror pre {
-    @apply relative overflow-auto rounded border font-mono text-sm;
+    @apply relative overflow-auto rounded-sm border font-mono text-sm;
     @apply border-[var(--mt-pre-border)] bg-[var(--mt-pre-background)] text-[var(--mt-pre-color)];
     @apply hyphens-none whitespace-pre text-left;
   }
@@ -274,7 +276,7 @@
   }
   
   .minimal-tiptap-editor .ProseMirror pre code {
-    @apply block overflow-x-auto p-3.5;
+    @apply block overflow-x-auto p-[0.875rem];
   }
   
   .minimal-tiptap-editor .ProseMirror pre {

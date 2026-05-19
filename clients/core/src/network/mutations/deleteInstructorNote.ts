@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { InstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
 
 export const deleteInstructorNote = async (noteId: string): Promise<InstructorNote> => {

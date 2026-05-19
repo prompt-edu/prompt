@@ -25,7 +25,7 @@ import {
   ScoreLevel,
   useAuthStore,
 } from '@tumaet/prompt-shared-state'
-import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
+import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
 const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryGood]: 'Very Good',
@@ -269,7 +269,7 @@ export const InterviewCard = () => {
                   output='html'
                   placeholder='Type your answer here...'
                   editable={true}
-                  editorClassName='focus:outline-none'
+                  editorClassName='focus:outline-hidden'
                 />
               </TooltipProvider>
               {index < interviewQuestions.length - 1 && <Separator className='mt-3 mb-3' />}

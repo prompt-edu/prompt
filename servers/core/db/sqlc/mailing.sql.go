@@ -228,6 +228,75 @@ func (q *Queries) GetParticipantMailingInformation(ctx context.Context, arg GetP
 	return items, nil
 }
 
+const getParticipantMailingInformationByIDs = `-- name: GetParticipantMailingInformationByIDs :many
+SELECT
+    s.first_name,
+    s.last_name,
+    s.email,
+    s.matriculation_number,
+    s.university_login,
+    s.study_degree,
+    s.current_semester,
+    s.study_program
+FROM
+    course_phase p
+JOIN
+    course_phase_participation cpp ON p.id = cpp.course_phase_id
+JOIN
+    course_participation cp ON cpp.course_participation_id = cp.id
+JOIN
+    student s ON cp.student_id = s.id
+WHERE
+    p.id = $1
+AND
+    cpp.course_participation_id = ANY($2::uuid[])
+`
+
+type GetParticipantMailingInformationByIDsParams struct {
+	ID      uuid.UUID   `json:"id"`
+	Column2 []uuid.UUID `json:"column_2"`
+}
+
+type GetParticipantMailingInformationByIDsRow struct {
+	FirstName           pgtype.Text `json:"first_name"`
+	LastName            pgtype.Text `json:"last_name"`
+	Email               pgtype.Text `json:"email"`
+	MatriculationNumber pgtype.Text `json:"matriculation_number"`
+	UniversityLogin     pgtype.Text `json:"university_login"`
+	StudyDegree         StudyDegree `json:"study_degree"`
+	CurrentSemester     pgtype.Int4 `json:"current_semester"`
+	StudyProgram        pgtype.Text `json:"study_program"`
+}
+
+func (q *Queries) GetParticipantMailingInformationByIDs(ctx context.Context, arg GetParticipantMailingInformationByIDsParams) ([]GetParticipantMailingInformationByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getParticipantMailingInformationByIDs, arg.ID, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetParticipantMailingInformationByIDsRow
+	for rows.Next() {
+		var i GetParticipantMailingInformationByIDsRow
+		if err := rows.Scan(
+			&i.FirstName,
+			&i.LastName,
+			&i.Email,
+			&i.MatriculationNumber,
+			&i.UniversityLogin,
+			&i.StudyDegree,
+			&i.CurrentSemester,
+			&i.StudyProgram,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPassedMailingInformation = `-- name: GetPassedMailingInformation :one
 SELECT
     c.name AS course_name,
@@ -262,4 +331,26 @@ func (q *Queries) GetPassedMailingInformation(ctx context.Context, id uuid.UUID)
 		&i.MailContent,
 	)
 	return i, err
+}
+
+const updateAssessmentReminderLastSentAt = `-- name: UpdateAssessmentReminderLastSentAt :exec
+UPDATE course_phase
+SET restricted_data = jsonb_set(
+  COALESCE(restricted_data, '{}'::jsonb),
+  ARRAY['mailingSettings', 'assessmentReminder', 'lastSentAtByType', $2::text],
+  to_jsonb($3::text),
+  true
+)
+WHERE id = $1
+`
+
+type UpdateAssessmentReminderLastSentAtParams struct {
+	ID      uuid.UUID `json:"id"`
+	Column2 string    `json:"column_2"`
+	Column3 string    `json:"column_3"`
+}
+
+func (q *Queries) UpdateAssessmentReminderLastSentAt(ctx context.Context, arg UpdateAssessmentReminderLastSentAtParams) error {
+	_, err := q.db.Exec(ctx, updateAssessmentReminderLastSentAt, arg.ID, arg.Column2, arg.Column3)
+	return err
 }

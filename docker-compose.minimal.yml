@@ -1,0 +1,525 @@
+x-client-build-args: &client-build-args
+  IMAGE_TAG: local
+  NODE_ENV: development
+
+x-client-additional-contexts: &client-additional-contexts
+  "ghcr.io/prompt-edu/prompt/prompt-clients-base:local": "service:clients-base"
+
+services:
+  # ── Core ───────────────────────────────────────────────────────────
+  server-core:
+    build:
+      context: ./servers/core
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-core
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - DB_USER=${DB_CORE_USER}
+      - DB_PASSWORD=${DB_CORE_PASSWORD}
+      - DB_HOST=${DB_CORE_HOST}
+      - DB_PORT=${DB_CORE_PORT}
+      - DB_NAME=${DB_CORE_NAME}
+      - SSL_MODE
+      - SERVER_ADDRESS
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_CLIENT_ID
+      - KEYCLOAK_CLIENT_SECRET
+      - KEYCLOAK_ID_OF_CLIENT
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - DEBUG
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
+      - SENDER_EMAIL
+      - SENDER_NAME
+      - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+    restart: unless-stopped
+
+  clients-base:
+    build:
+      context: ./clients
+      dockerfile: Dockerfile
+    image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
+
+  client-core:
+    build:
+      context: ./clients/core
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-core
+    environment:
+      - ENVIRONMENT
+      - CORE_HOST=${CORE_API_HOST}
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - ASSESSMENT_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - CHAIR_NAME_SHORT
+      - CHAIR_NAME_LONG
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
+      - SENTRY_DSN_CLIENT
+    ports:
+      - "3000:80"
+    depends_on:
+      - clients-base
+
+  # ── Team Allocation ────────────────────────────────────────────────
+  server-team-allocation:
+    build:
+      context: ./servers/team_allocation
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-team-allocation
+    depends_on:
+      db-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8083:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_TEAM_ALLOCATION
+      - DB_PORT_TEAM_ALLOCATION
+      - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
+      - DB_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_TEAM_ALLOCATION
+      - SENTRY_ENABLED
+
+  client-team-allocation-component:
+    build:
+      context: ./clients/team_allocation_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-team-allocation-component
+    ports:
+      - "3007:80"
+    depends_on:
+      - clients-base
+
+  db-team-allocation:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-team-allocation
+    environment:
+      - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
+      - POSTGRES_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - POSTGRES_DB=${DB_TEAM_ALLOCATION_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_team_allocation_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5434:5432"
+
+  # ── Self Team Allocation ───────────────────────────────────────────
+  server-self-team-allocation:
+    build:
+      context: ./servers/self_team_allocation
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-self-team-allocation
+    depends_on:
+      db-self-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8084:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_SELF_TEAM_ALLOCATION
+      - DB_PORT_SELF_TEAM_ALLOCATION
+      - DB_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
+      - DB_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_SELF_TEAM_ALLOCATION
+      - SENTRY_ENABLED
+
+  client-self-team-allocation-component:
+    build:
+      context: ./clients/self_team_allocation_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-self-team-allocation-component
+    ports:
+      - "3008:80"
+    depends_on:
+      - clients-base
+
+  db-self-team-allocation:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-self-team-allocation
+    environment:
+      - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
+      - POSTGRES_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
+      - POSTGRES_DB=${DB_SELF_TEAM_ALLOCATION_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_self_team_allocation_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5436:5432"
+
+  # ── Assessment ─────────────────────────────────────────────────────
+  server-assessment:
+    build:
+      context: ./servers/assessment
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-assessment
+    depends_on:
+      db-assessment:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8085:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_ASSESSMENT
+      - DB_PORT_ASSESSMENT
+      - DB_NAME=${DB_ASSESSMENT_NAME}
+      - DB_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_ASSESSMENT
+      - SENTRY_ENABLED
+
+  client-assessment-component:
+    build:
+      context: ./clients/assessment_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-assessment-component
+    ports:
+      - "3002:80"
+    depends_on:
+      - clients-base
+
+  db-assessment:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-assessment
+    environment:
+      - POSTGRES_USER=${DB_ASSESSMENT_USER}
+      - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - POSTGRES_DB=${DB_ASSESSMENT_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_assessment_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5435:5432"
+
+  # ── Interview ──────────────────────────────────────────────────────
+  server-interview:
+    build:
+      context: ./servers/interview
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-interview
+    depends_on:
+      db-interview:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8087:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_INTERVIEW
+      - DB_PORT_INTERVIEW
+      - DB_NAME=${DB_INTERVIEW_NAME}
+      - DB_USER=${DB_INTERVIEW_USER}
+      - DB_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_INTERVIEW
+      - SENTRY_ENABLED
+
+  client-interview-component:
+    build:
+      context: ./clients/interview_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-interview-component
+    ports:
+      - "3005:80"
+    depends_on:
+      - clients-base
+
+  db-interview:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db-interview
+    environment:
+      - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
+      - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD:-prompt-postgres}
+      - POSTGRES_DB=${DB_INTERVIEW_NAME:-prompt}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_interview_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTERVIEW_NAME:-prompt} -U ${DB_INTERVIEW_USER:-prompt-postgres}",
+        ]
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5438:5432"
+
+  # ── Infrastructure ─────────────────────────────────────────────────
+  db:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-db
+    environment:
+      - POSTGRES_USER=${DB_CORE_USER}
+      - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
+      - POSTGRES_DB=${DB_CORE_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_CORE_NAME} -U ${DB_CORE_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  keycloak-db:
+    image: "postgres:15.17-alpine"
+    container_name: prompt-keycloak-db
+    environment:
+      - POSTGRES_USER=${KEYCLOAK_DB_USER}
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
+      - POSTGRES_DB=${KEYCLOAK_DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./keycloak_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5431:5432"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1
+    container_name: prompt-keycloak
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
+      - --hostname-strict=false
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: ${KEYCLOAK_DB_HOST}
+      KC_DB_URL_PORT: ${KEYCLOAK_DB_PORT}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_IMPORT_REALM: /opt/keycloak/data/import/realm.json
+      KC_HOSTNAME: "localhost"
+      KC_HOSTNAME_PORT: "8081"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+      - "9000:9000"
+    volumes:
+      - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 4<>/dev/tcp/localhost/9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 1
+      start_period: 90s
+
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-master
+    ports:
+      - "9333:9333"
+      - "19333:19333"
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_master_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9333/cluster/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-volume
+    ports:
+      - "8333:8080"
+      - "18080:18080"
+    command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
+    volumes:
+      - ./seaweedfs_volume_data:/data
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-s3
+    ports:
+      - "8334:8333"
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        cat >/tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "prompt-s3",
+              "credentials": [
+                {
+                  "accessKey": "$$WEED_S3_DEFAULT_USER",
+                  "secretKey": "$$WEED_S3_DEFAULT_PWD"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write"]
+            }
+          ]
+        }
+        EOF
+        exec weed s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/tmp/s3.json
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+      seaweedfs-filer:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - WEED_S3_DEFAULT_USER=admin
+      - WEED_S3_DEFAULT_PWD=admin123
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "code=$(wget --server-response --spider -q http://localhost:8333/ 2>&1 | grep -Eo \"HTTP/[0-9.]+ [0-9]+\" | tail -1 | cut -d\" \" -f2); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"403\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-seaweedfs-filer
+    ports:
+      - "8888:8888"
+    command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_filer_data:/data
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3

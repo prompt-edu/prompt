@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type { CheckCourseCopyableResponse } from '../../managementConsole/courseOverview/interfaces/checkCourseCopyableResponse'
 
 export const checkCourseCopyable = async (

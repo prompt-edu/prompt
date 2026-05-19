@@ -50,7 +50,7 @@ export const DescriptionField = ({ form, initialDescription }: DescriptionFieldP
                   placeholder='Type your description here...'
                   autofocus={false}
                   editable={true}
-                  editorClassName='focus:outline-none'
+                  editorClassName='focus:outline-hidden'
                 />
               </TooltipProvider>
             ) : (

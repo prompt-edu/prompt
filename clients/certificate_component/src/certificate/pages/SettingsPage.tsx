@@ -284,17 +284,18 @@ export const SettingsPage = () => {
                       <li>File must be a valid Typst (.typ) file</li>
                       <li>
                         Use{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded text-xs'>
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>
                           json(&quot;data.json&quot;)
                         </code>{' '}
                         to access certificate data
                       </li>
                       <li>
                         Available fields:{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded text-xs'>studentName</code>,{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded text-xs'>courseName</code>,{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded text-xs'>teamName</code>,{' '}
-                        <code className='bg-muted px-1 py-0.5 rounded text-xs'>date</code>
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>studentName</code>
+                        ,{' '}
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>courseName</code>,{' '}
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>teamName</code>,{' '}
+                        <code className='bg-muted px-1 py-0.5 rounded-sm text-xs'>date</code>
                       </li>
                       <li>Template should be in A4 format</li>
                       <li>Ensure all used fonts are included or are system fonts</li>
@@ -379,7 +380,7 @@ export const SettingsPage = () => {
             </Button>
           </AlertTitle>
           <AlertDescription>
-            <pre className='mt-2 whitespace-pre-wrap break-words rounded bg-destructive/10 p-3 font-mono text-xs'>
+            <pre className='mt-2 whitespace-pre-wrap wrap-break-word rounded-sm bg-destructive/10 p-3 font-mono text-xs'>
               {compilerError}
             </pre>
           </AlertDescription>

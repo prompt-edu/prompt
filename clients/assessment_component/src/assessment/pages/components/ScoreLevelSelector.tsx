@@ -52,6 +52,7 @@ export const ScoreLevelSelector = ({
   peerEvaluationStudentAnswers,
 }: ScoreLevelSelectorProps) => {
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const descriptionsByLevel = mapCompetencyDescriptionsByLevel(competency)
   const showIndicators = coursePhaseConfig?.evaluationResultsVisible || completed
   const indicators: Partial<Record<ScoreLevel, ReactNode[]>> = {}
 
@@ -115,7 +116,7 @@ export const ScoreLevelSelector = ({
       selectedScore={selectedScore}
       onScoreChange={onScoreChange}
       completed={completed}
-      descriptionsByLevel={mapCompetencyDescriptionsByLevel(competency)}
+      descriptionsByLevel={descriptionsByLevel}
       showIndicators={showIndicators}
       indicators={indicators}
       hideUnselectedOnDesktop={false}

@@ -1,6 +1,6 @@
 import React from 'react'
 import { DisabledSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/DisabledSidebarMenuItem'
-import { SidebarMenuItemProps } from '@/interfaces/sidebar'
+import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
 interface MatchingSidebarProps {

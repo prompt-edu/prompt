@@ -2,7 +2,7 @@ import {
   PostCourse,
   serializePostCourse,
 } from '../../managementConsole/courseOverview/interfaces/postCourse'
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const postNewCourse = async (course: PostCourse): Promise<string | undefined> => {
   try {

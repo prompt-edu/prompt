@@ -29,7 +29,7 @@ const config = (env) => {
   const interviewURL = IS_DEV ? `http://localhost:3002` : `/interview`
   const matchingURL = IS_DEV ? `http://localhost:3003` : `/matching`
   const introCourseDeveloperURL = IS_DEV ? `http://localhost:3005` : `/intro-course-developer`
-  const devopsChallengURL = IS_DEV ? `http://localhost:3006` : `/devops-challenge`
+  const githubChallengeURL = IS_DEV ? `http://localhost:3006` : `/github-challenge`
   const assessmentURL = IS_DEV ? `http://localhost:3007` : `/assessment`
   const teamAllocationURL = IS_DEV ? `http://localhost:3008` : `/team-allocation`
   const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
@@ -65,14 +65,17 @@ const config = (env) => {
           include: [
             path.resolve(__dirname, 'src'),
             path.resolve(__dirname, '../node_modules/@xyflow/react/dist/style.css'),
-            path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist'),
-            path.resolve(__dirname, '../shared_library/components/minimal-tiptap/styles/index.css'),
           ],
           use: [
             'style-loader', // Injects styles into DOM
             'css-loader', // Resolves CSS imports
             'postcss-loader', // Processes Tailwind and other PostCSS plugins
           ],
+        },
+        {
+          test: /\.css$/,
+          include: [path.resolve(__dirname, '../node_modules/@tumaet/prompt-ui-components/dist')],
+          use: ['style-loader', 'css-loader'],
         },
       ],
     },
@@ -84,7 +87,6 @@ const config = (env) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
       alias: {
-        '@': path.resolve(__dirname, '../shared_library'),
         '@core': path.resolve(__dirname, 'src'),
         '@managementConsole': path.resolve(__dirname, 'src/managementConsole'),
       },
@@ -99,7 +101,7 @@ const config = (env) => {
           matching_component: `matching_component@${matchingURL}/remoteEntry.js?${Date.now()}`,
           intro_course_developer_component: `intro_course_developer_component@${introCourseDeveloperURL}/remoteEntry.js?${Date.now()}`,
           assessment_component: `assessment_component@${assessmentURL}/remoteEntry.js?${Date.now()}`,
-          devops_challenge_component: `devops_challenge_component@${devopsChallengURL}/remoteEntry.js?${Date.now()}`,
+          github_challenge_component: `github_challenge_component@${githubChallengeURL}/remoteEntry.js?${Date.now()}`,
           team_allocation_component: `team_allocation_component@${teamAllocationURL}/remoteEntry.js?${Date.now()}`,
           self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
           certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,

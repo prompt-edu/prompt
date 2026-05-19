@@ -6,7 +6,7 @@ import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
 import { PeerEvaluationCompletionBadge } from '../../components/badges'
 
 import { createEvaluationLookup, getEvaluationCounts } from '../utils/evaluationUtils'
-import { ExtraParticipantColumn } from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
 
 export const createTutorEvalStatusColumn = (
   tutorEvaluationCompletions: EvaluationCompletion[] | undefined,

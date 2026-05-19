@@ -8,7 +8,7 @@ import {
   applicationMailingPlaceholders,
   CustomApplicationPlaceHolder,
 } from './components/CustomApplicationPlaceHolder'
-import { EmailTemplateEditor } from '@/components/pages/Mailing/components/MailingEditor'
+import { EmailTemplateEditor } from '@tumaet/prompt-ui-components'
 import {
   Button,
   Tabs,
@@ -20,8 +20,8 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { SettingsCard } from './components/SettingsCard'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
-import { useGetMailingIsConfigured } from '@/hooks/useGetMailingIsConfigured'
-import { MissingConfig, MissingConfigItem } from '@/components/MissingConfig'
+import { useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
+import { MissingConfig, MissingConfigItem } from '@tumaet/prompt-ui-components'
 import { MailWarningIcon } from 'lucide-react'
 
 export const ApplicationMailingSettings = () => {

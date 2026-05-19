@@ -2,8 +2,11 @@ package coursePhaseType
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType/coursePhaseTypeDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
@@ -71,8 +74,18 @@ func GetAllCoursePhaseTypes(ctx context.Context) ([]coursePhaseTypeDTO.CoursePha
 		if err != nil {
 			return nil, err
 		}
+		dtoCoursePhaseType.BaseUrl = replaceCoreHostPlaceholder(dtoCoursePhaseType.BaseUrl)
 		dtoCoursePhaseTypes = append(dtoCoursePhaseTypes, dtoCoursePhaseType)
 	}
 
 	return dtoCoursePhaseTypes, nil
+}
+
+func replaceCoreHostPlaceholder(baseURL string) string {
+	if !strings.Contains(baseURL, "{CORE_HOST}") {
+		return baseURL
+	}
+
+	coreHost := resolution.NormaliseHost(sdkUtils.GetEnv("CORE_HOST", "http://localhost:8080"))
+	return strings.ReplaceAll(baseURL, "{CORE_HOST}", coreHost)
 }

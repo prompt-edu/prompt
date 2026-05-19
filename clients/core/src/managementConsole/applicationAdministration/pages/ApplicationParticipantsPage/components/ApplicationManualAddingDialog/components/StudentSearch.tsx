@@ -18,7 +18,7 @@ import {
   ScrollArea,
   Badge,
 } from '@tumaet/prompt-ui-components'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 import { Student } from '@tumaet/prompt-shared-state'
 import { searchStudents } from '@core/network/queries/searchStudents'
 import { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'

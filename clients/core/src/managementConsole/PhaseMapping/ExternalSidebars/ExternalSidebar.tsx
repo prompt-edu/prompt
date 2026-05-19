@@ -1,4 +1,4 @@
-import { SidebarMenuItemProps } from '@/interfaces/sidebar'
+import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
 import { InsideSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/InsideSidebarMenuItem'
 import { getPermissionString } from '@tumaet/prompt-shared-state'

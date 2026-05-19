@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
@@ -57,7 +58,6 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 }
-
 func initKeycloak(queries db.Queries) {
 	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
@@ -75,8 +75,11 @@ func initKeycloak(queries db.Queries) {
 }
 
 func main() {
-	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_TEAM_ALLOCATION", ""))
-	defer sentry.Flush(2 * time.Second)
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_TEAM_ALLOCATION", ""))
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	databaseURL := getDatabaseURL()
 	log.Debug("Connecting to database at:", databaseURL)
@@ -95,7 +98,9 @@ func main() {
 	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
 
 	router := gin.Default()
-	router.Use(sentrygin.New(sentrygin.Options{}))
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("team-allocation/api/course_phase/:coursePhaseID")
@@ -112,6 +117,19 @@ func main() {
 
 	copyApi := router.Group("team-allocation/api")
 	copy.InitCopyModule(copyApi, *query, conn)
+
+	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+		ServiceName: "team-allocation",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	config.InitConfigModule(api, *query, conn)
 

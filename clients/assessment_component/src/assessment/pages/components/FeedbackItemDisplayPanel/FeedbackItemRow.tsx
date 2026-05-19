@@ -53,7 +53,7 @@ export const FeedbackItemRow = ({ feedbackItem }: FeedbackItemRowProps) => {
       {showCopied && (
         <div
           className={
-            'absolute inset-0 bg-black/10 dark:bg-white/10 backdrop-blur-sm rounded-md ' +
+            'absolute inset-0 bg-black/10 dark:bg-white/10 backdrop-blur-xs rounded-md ' +
             'flex items-center justify-center z-10 animate-in fade-in-0 duration-150 animate-out fade-out-0 duration-200'
           }
         >
@@ -69,7 +69,7 @@ export const FeedbackItemRow = ({ feedbackItem }: FeedbackItemRowProps) => {
           {feedbackItem.feedbackText}
         </p>
 
-        <div className='flex-shrink-0 mt-1 flex items-center gap-1.5'>
+        <div className='shrink-0 mt-1 flex items-center gap-1.5'>
           <Button
             onClick={handleCopyToClipboard}
             variant='ghost'

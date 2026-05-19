@@ -1,4 +1,4 @@
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 
 export const CourseAvatar = ({

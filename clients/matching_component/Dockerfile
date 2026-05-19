@@ -3,9 +3,9 @@ FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 
 WORKDIR /app/matching_component
 COPY . ./
-RUN yarn install
 
-RUN yarn build
+ARG NODE_ENV=production
+RUN yarn webpack --mode=${NODE_ENV} --env NODE_ENV=${NODE_ENV}
 
 # Build the final image
 FROM nginx:stable-alpine

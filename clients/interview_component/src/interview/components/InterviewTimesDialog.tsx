@@ -20,7 +20,7 @@ import {
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 import { InterviewSlot } from '../interfaces/InterviewSlots'
-import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 
 export const InterviewTimesDialog = () => {
   const { coursePhase } = useCoursePhaseStore()

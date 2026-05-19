@@ -40,7 +40,7 @@ export const AssessmentSettingsCard = () => {
   const saveDisabled = controlsDisabled || !assessmentCard.hasChanges || !assessmentCard.canSave
 
   return (
-    <Card className='border-border shadow-sm'>
+    <Card className='border-border shadow-xs'>
       <div className='space-y-6 p-6'>
         <div className='space-y-2'>
           <div className='flex items-center gap-2'>

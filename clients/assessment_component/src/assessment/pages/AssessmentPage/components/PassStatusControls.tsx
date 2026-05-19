@@ -1,7 +1,7 @@
 import { Button } from '@tumaet/prompt-ui-components'
 import { PassStatus, Role, useAuthStore } from '@tumaet/prompt-shared-state'
 
-import { useUpdateCoursePhaseParticipation } from '@/hooks/useUpdateCoursePhaseParticipation'
+import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
 import { useParticipationStore } from '../../../zustand/useParticipationStore'
 

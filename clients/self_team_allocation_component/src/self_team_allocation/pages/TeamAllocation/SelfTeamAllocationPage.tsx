@@ -6,8 +6,8 @@ import { Loader2, TriangleAlert } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle, ErrorPage } from '@tumaet/prompt-ui-components'
 import { CoursePhaseParticipationWithStudent, Team } from '@tumaet/prompt-shared-state'
 
-import UnauthorizedPage from '@/components/UnauthorizedPage'
-import { getOwnCoursePhaseParticipation } from '@/network/queries/getOwnCoursePhaseParticipation'
+import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
+import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
 import { TeamSelection } from './components/TeamSelection'
 import { getAllTeams } from '../../network/queries/getAllTeams'

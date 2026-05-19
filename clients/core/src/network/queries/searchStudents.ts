@@ -1,5 +1,5 @@
 import { Student } from '@tumaet/prompt-shared-state'
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const searchStudents = async (searchString: string): Promise<Student[]> => {
   try {

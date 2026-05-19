@@ -1,4 +1,4 @@
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 
 import * as z from 'zod'
 

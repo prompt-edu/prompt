@@ -1,6 +1,6 @@
 import { OverviewPage } from '../src/OverviewPage'
 import { SettingsPage } from '../src/template_component/pages/SettingsPage'
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { Role } from '@tumaet/prompt-shared-state'
 import { ParticipantsPage } from '../src/template_component/pages/ParticipantsPage'
 

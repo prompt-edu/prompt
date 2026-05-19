@@ -166,7 +166,7 @@ export const SchemaConfigurationPage = () => {
         </div>
       </div>
 
-      <Card className='border-border shadow-sm'>
+      <Card className='border-border shadow-xs'>
         <CardContent className='space-y-3 p-6'>
           <div className='flex flex-wrap items-center gap-2'>
             <h2 className='text-xl font-semibold text-foreground'>

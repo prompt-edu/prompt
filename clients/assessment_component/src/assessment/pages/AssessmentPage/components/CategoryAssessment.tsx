@@ -45,18 +45,18 @@ export const CategoryAssessment = ({
 
   return (
     <div key={category.id} className='mb-6'>
-      <div className='flex flex-grow items-center justify-center mb-4 gap-1'>
+      <div className='flex grow items-center justify-center mb-4 gap-1'>
         <div className='flex items-center justify-center w-full'>
           <button
             onClick={toggleExpand}
-            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm focus:outline-none'
+            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xs focus:outline-hidden'
             aria-expanded={isExpanded}
             aria-controls={`content-${category.id}`}
           >
             {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
           </button>
 
-          <h2 className='text-xl font-semibold tracking-tight flex-grow'>{category.name}</h2>
+          <h2 className='text-xl font-semibold tracking-tight grow'>{category.name}</h2>
         </div>
 
         <div className='flex items-center justify-center gap-1'>

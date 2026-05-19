@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { AdditionalScoreUpload } from '../../managementConsole/applicationAdministration/interfaces/additionalScore/additionalScoreUpload'
 
 export const postAdditionalScore = async (

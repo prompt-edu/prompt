@@ -1,6 +1,6 @@
 import React from 'react'
 import { DisabledSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/DisabledSidebarMenuItem'
-import { SidebarMenuItemProps } from '@/interfaces/sidebar'
+import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
 interface DevOpsChallengeSidebarProps {
@@ -10,7 +10,7 @@ interface DevOpsChallengeSidebarProps {
 }
 
 export const DevOpsChallengeSidebar = React.lazy(() =>
-  import('devops_challenge_component/sidebar')
+  import('github_challenge_component/sidebar')
     .then((module): { default: React.FC<DevOpsChallengeSidebarProps> } => ({
       default: ({ title, rootPath, coursePhaseID }) => {
         const sidebarElement: SidebarMenuItemProps = module.default || {}

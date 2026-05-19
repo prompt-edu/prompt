@@ -53,7 +53,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             <div
               onClick={handleNewCourse}
               className={
-                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-sm cursor-pointer ' +
+                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-xs cursor-pointer ' +
                 'transition-colors duration-200 hover:bg-accent hover:text-accent-foreground'
               }
               role='button'
@@ -66,7 +66,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             >
               <div
                 className={
-                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 flex-shrink-0 ' +
+                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 shrink-0 ' +
                   'transition-colors duration-200 group-hover:text-accent-foreground'
                 }
               >
@@ -84,7 +84,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             <div
               onClick={handleAddTemplate}
               className={
-                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-sm cursor-pointer ' +
+                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-xs cursor-pointer ' +
                 'transition-colors duration-200 hover:bg-accent hover:text-accent-foreground'
               }
               role='button'
@@ -97,7 +97,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             >
               <div
                 className={
-                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 flex-shrink-0 ' +
+                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 shrink-0 ' +
                   'transition-colors duration-200 group-hover:text-accent-foreground'
                 }
               >
@@ -115,7 +115,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             <div
               onClick={handleFromTemplate}
               className={
-                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-sm cursor-pointer ' +
+                'group flex items-center gap-4 w-full p-5 rounded-xl border border-border bg-card shadow-xs cursor-pointer ' +
                 'transition-colors duration-200 hover:bg-accent hover:text-accent-foreground'
               }
               role='button'
@@ -128,7 +128,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
             >
               <div
                 className={
-                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 flex-shrink-0 ' +
+                  'flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 shrink-0 ' +
                   'transition-colors duration-200 group-hover:text-accent-foreground'
                 }
               >

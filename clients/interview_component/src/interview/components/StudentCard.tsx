@@ -13,8 +13,8 @@ import {
   getStudyDegreeString,
   CoursePhaseParticipationWithStudent,
 } from '@tumaet/prompt-shared-state'
-import { getGravatarUrl } from '@/lib/getGravatarUrl'
-import { getStatusColor } from '@/lib/getStatusColor'
+import { getGravatarUrl } from '@tumaet/prompt-shared-state'
+import { getStatusColor } from '@tumaet/prompt-shared-state'
 import { format } from 'date-fns'
 
 interface InterviewSlotData {
@@ -69,7 +69,7 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
             </div>
             {interviewSlot.location && (
               <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <MapPin className='h-3 w-3 flex-shrink-0' />
+                <MapPin className='h-3 w-3 shrink-0' />
                 {interviewSlot.location.match(/^https?:\/\//) ? (
                   <a
                     href={interviewSlot.location}

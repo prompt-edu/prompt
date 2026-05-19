@@ -1,5 +1,5 @@
 import { AdditionalScore } from '../../managementConsole/applicationAdministration/interfaces/additionalScore/additionalScore'
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const getAdditionalScoreNames = async (
   coursePhaseId: string,

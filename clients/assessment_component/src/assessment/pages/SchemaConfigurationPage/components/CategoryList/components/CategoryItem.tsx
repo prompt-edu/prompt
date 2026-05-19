@@ -38,13 +38,13 @@ export const CategoryItem = ({
       <div className='flex items-center mb-4'>
         <button
           onClick={toggleExpand}
-          className='p-1 mr-2 rounded-sm hover:bg-muted focus:outline-none'
+          className='p-1 mr-2 rounded-xs hover:bg-muted focus:outline-hidden'
           aria-expanded={isExpanded}
           aria-controls={`content-${category.id}`}
         >
           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         </button>
-        <h2 className='text-xl font-semibold tracking-tight flex-grow'>{category.name}</h2>
+        <h2 className='text-xl font-semibold tracking-tight grow'>{category.name}</h2>
         <div className='flex items-center gap-2'>
           <Button
             variant='ghost'

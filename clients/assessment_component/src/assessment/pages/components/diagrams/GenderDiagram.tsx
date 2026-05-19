@@ -24,7 +24,7 @@ export const GenderDiagram = ({
   participationsWithAssessment,
   showGrade = false,
 }: GenderDiagramProps) => {
-  const data = Object.values(Gender).map((gender) => {
+  const data = (Object.values(Gender) as Gender[]).map((gender) => {
     const genderLabel =
       gender === Gender.PREFER_NOT_TO_SAY
         ? 'Unknown'

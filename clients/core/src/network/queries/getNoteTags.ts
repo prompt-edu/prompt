@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { NoteTag } from '@core/managementConsole/shared/interfaces/InstructorNote'
 
 export const getNoteTags = async (): Promise<NoteTag[]> => {

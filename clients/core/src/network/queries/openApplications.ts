@@ -1,4 +1,4 @@
-import { notAuthenticatedAxiosInstance } from '@/network/configService'
+import { notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import { OpenApplicationDetails } from '../../interfaces/application/openApplicationDetails'
 
 export const getAllOpenApplications = async (): Promise<OpenApplicationDetails[]> => {

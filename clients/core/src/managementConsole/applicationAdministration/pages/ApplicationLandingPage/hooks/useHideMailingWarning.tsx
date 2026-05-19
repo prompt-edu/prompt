@@ -1,5 +1,5 @@
 import { useToast } from '@tumaet/prompt-ui-components'
-import { useModifyCoursePhase } from '@/hooks/useModifyCoursePhase'
+import { useModifyCoursePhase } from '@tumaet/prompt-shared-state'
 import { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
 

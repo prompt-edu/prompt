@@ -1,6 +1,6 @@
 import * as z from 'zod'
 import { Gender, StudyDegree } from '@tumaet/prompt-shared-state'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 
 const universityLoginRegex = new RegExp(translations.university.universityLoginRegex)
 const matriculationNumberRegex = new RegExp(translations.university.matriculationNumberRegex)

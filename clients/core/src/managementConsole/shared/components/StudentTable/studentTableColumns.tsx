@@ -7,7 +7,7 @@ import { StudentCoursePreview } from './components/StudentCoursePreview'
 import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
 import { NoteTagColor } from '../../interfaces/InstructorNote'
 import { ColumnDef, Row } from '@tanstack/react-table'
-import { ProfilePicture } from '@/components/StudentProfilePicture'
+import { ProfilePicture } from '@tumaet/prompt-ui-components'
 
 export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {

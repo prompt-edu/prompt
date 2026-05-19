@@ -10,7 +10,7 @@ export const InsideSidebar = () => {
   const isCourseSidebar = location.pathname.startsWith('/management/course/')
 
   return (
-    <Sidebar collapsible='none' className='flex max-w-sidebar'>
+    <Sidebar collapsible='none' className='flex w-sidebar max-w-sidebar'>
       <SidebarHeader className='flex h-14 border-b justify-center items-center'>
         <PromptLogo />
       </SidebarHeader>

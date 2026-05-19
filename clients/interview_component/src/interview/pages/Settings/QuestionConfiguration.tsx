@@ -3,7 +3,7 @@ import { Loader2, Plus, GripVertical, Trash2 } from 'lucide-react'
 import { useDebouncedCallback } from 'use-debounce'
 import type { InterviewQuestion } from '../../interfaces/InterviewQuestion'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
-import { useUpdateCoursePhaseMetaData } from '@/hooks/useUpdateCoursePhaseMetaData'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 import {
   DeleteConfirmation,
@@ -116,7 +116,7 @@ export const QuestionConfiguration = () => {
               placeholder='Enter new question'
               onChange={(e) => setNewQuestion(e.target.value)}
               onKeyDown={handleEnter}
-              className='flex-grow'
+              className='grow'
               maxLength={200}
             />
             <Button onClick={addQuestion} disabled={!newQuestion.trim()} aria-label='Add question'>
@@ -131,7 +131,7 @@ export const QuestionConfiguration = () => {
       </div>
 
       {/* Scrollable content */}
-      <div className='flex-grow overflow-auto h-[calc(100vh-300px)] p-4'>
+      <div className='grow overflow-auto h-[calc(100vh-300px)] p-4'>
         {/* Saving indicator */}
         {isPending && (
           <div className='mb-2 text-xs text-muted-foreground flex items-center gap-1'>
@@ -160,12 +160,12 @@ export const QuestionConfiguration = () => {
                           <li
                             ref={prov.innerRef}
                             {...prov.draggableProps}
-                            className='flex items-center space-x-2 bg-secondary p-3 rounded-lg shadow-sm transition-colors duration-200 hover:bg-secondary/80'
+                            className='flex items-center space-x-2 bg-secondary p-3 rounded-lg shadow-xs transition-colors duration-200 hover:bg-secondary/80'
                           >
                             <div {...prov.dragHandleProps} className='cursor-move'>
                               <GripVertical className='h-5 w-5 text-muted-foreground' />
                             </div>
-                            <span className='flex-grow text-sm'>{question.question}</span>
+                            <span className='grow text-sm'>{question.question}</span>
                             <Button
                               variant='ghost'
                               size='icon'

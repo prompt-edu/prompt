@@ -20,7 +20,7 @@ import {
 import { useCourseStore, CourseMailingSettings } from '@tumaet/prompt-shared-state'
 import { type CourseMailingFormValues, courseMailingSchema } from '@core/validations/courseMailing'
 import { useSaveMailingData } from './hooks/useSaveMailingData'
-import { SettingsCard } from '@/components/SettingsCard'
+import { SettingsCard } from '@tumaet/prompt-ui-components'
 
 export const MailingConfigPage = () => {
   const { courseId } = useParams<{ courseId: string }>()

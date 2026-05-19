@@ -123,7 +123,7 @@ export const EntitySettings = <T extends Entity>({
   }
 
   return (
-    <Card className='w-full shadow-sm'>
+    <Card className='w-full shadow-xs'>
       <CardHeader className='pb-3'>
         <div className='flex items-center justify-between'>
           <div>
@@ -280,7 +280,7 @@ export const EntitySettings = <T extends Entity>({
           </div>
         )}
         {deleteError && (
-          <div className='mt-4 text-sm text-destructive flex items-center gap-1.5 p-2 bg-destructive/5 rounded border border-destructive/20'>
+          <div className='mt-4 text-sm text-destructive flex items-center gap-1.5 p-2 bg-destructive/5 rounded-sm border border-destructive/20'>
             <AlertCircle className='h-4 w-4' />
             {deleteError}
           </div>

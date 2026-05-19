@@ -7,7 +7,7 @@ import { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
 import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { useGetApplicationParticipations } from '../hooks/useGetApplicationParticipations'
 import { useApplicationStore } from '../zustand/useApplicationStore'
-import { useGetCoursePhase } from '@/hooks/useGetCoursePhase'
+import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
 
 interface ApplicationDataWrapperProps {
   children: React.ReactNode
@@ -75,7 +75,7 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
           <ErrorPage onRetry={refetch} />
         </>
       ) : isPending ? (
-        <div className='flex justify-center items-center flex-grow'>
+        <div className='flex justify-center items-center grow'>
           <Loader2 className='h-12 w-12 animate-spin text-primary' />
         </div>
       ) : (

@@ -1,4 +1,4 @@
-import { axiosInstance } from '@/network/configService'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { NoteTag, UpdateNoteTag } from '@core/managementConsole/shared/interfaces/InstructorNote'
 
 export const putNoteTag = async (tagId: string, tag: UpdateNoteTag): Promise<NoteTag> => {

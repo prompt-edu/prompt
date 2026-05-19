@@ -15,7 +15,7 @@ interface InstructorNoteComposerTagPickerProps {
 }
 
 const iconButtonClass =
-  'shrink-0 p-1 rounded text-muted-foreground hover:bg-muted hover:text-foreground'
+  'shrink-0 p-1 rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground'
 
 export function InstructorNoteComposerTagPicker({
   selectedTags,

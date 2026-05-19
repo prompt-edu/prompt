@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ContributorList } from './components/ContributorList'
-import { env } from '@/env'
+import { env } from '@tumaet/prompt-shared-state'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 
 export default function AboutPage() {

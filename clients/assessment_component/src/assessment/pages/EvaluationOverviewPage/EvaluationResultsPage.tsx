@@ -24,7 +24,7 @@ export const EvaluationResultsPage = () => {
       {resultsReleased ? (
         <AssessmentResultsSection />
       ) : (
-        <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'>
+        <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
           <CardContent className='p-6'>
             <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
               Assessment results have not been released yet.

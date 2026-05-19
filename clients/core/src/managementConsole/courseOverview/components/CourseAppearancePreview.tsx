@@ -1,5 +1,5 @@
 import React from 'react'
-import DynamicIcon from '@/components/DynamicIcon'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
@@ -26,7 +26,7 @@ export const CourseAppearancePreview = ({
         <div
           className={[
             'relative flex aspect-square size-14 items-center justify-center',
-            'after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-primary after:shadow-sm',
+            'after:absolute after:inset-0 after:rounded-lg after:border-2 after:border-primary after:shadow-xs',
           ].join(' ')}
         >
           <div

@@ -72,10 +72,10 @@ func addScoreName(oldMetaData meta.MetaData, newName, newKey string) ([]byte, er
 	}
 
 	keyExists := false
-	for _, item := range newScoreNamesArray {
-		if item.Key == newKey {
+	for i := range newScoreNamesArray {
+		if newScoreNamesArray[i].Key == newKey {
 			keyExists = true
-			item.Name = newName
+			newScoreNamesArray[i].Name = newName
 			break
 		}
 	}

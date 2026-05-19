@@ -7,7 +7,7 @@ import {
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { GraduationCap } from 'lucide-react'
-import translations from '@/lib/translations.json'
+import { translations } from '@tumaet/prompt-shared-state'
 import { useNavigate } from 'react-router-dom'
 
 interface ApplicationLoginCardProps {

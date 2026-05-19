@@ -33,7 +33,7 @@ export const CourseCard = ({ courseDetails }: CourseCardProps) => {
         </div>
       </CardHeader>
 
-      <CardContent className='relative space-y-4 flex flex-col justify-between flex-grow'>
+      <CardContent className='relative space-y-4 flex flex-col justify-between grow'>
         <div>
           {/* Course Type and ECTS Badges */}
           <div className='flex items-center justify-between gap-3'>
@@ -48,7 +48,7 @@ export const CourseCard = ({ courseDetails }: CourseCardProps) => {
 
           <div className='p-3 space-y-4'>
             <div className='flex items-center space-x-2'>
-              <Calendar className='h-4 w-4 flex-shrink-0' />
+              <Calendar className='h-4 w-4 shrink-0' />
               <div className='flex gap-4 flex-1 text-sm font-medium text-gray-600'>
                 <div className='flex-1'>
                   <span className='font-semibold text-slate-600'>Course Start</span>

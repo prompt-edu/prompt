@@ -90,7 +90,7 @@ export function NoteComposer({
           placeholder={isEditMode ? undefined : 'Leave an instructor note'}
           className={
             `ml-1 flex-1 min-w-0 bg-transparent pt-0.5 ${isMultiLine ? 'pb-0.5' : ''} ` +
-            'text-sm placeholder:text-muted-foreground focus:outline-none resize-none overflow-hidden'
+            'text-sm placeholder:text-muted-foreground focus:outline-hidden resize-none overflow-hidden placeholder:text-nowrap'
           }
           value={content}
           rows={1}

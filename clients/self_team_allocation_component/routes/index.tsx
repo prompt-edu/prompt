@@ -1,5 +1,5 @@
 import { Role } from '@tumaet/prompt-shared-state'
-import { ExtendedRouteObject } from '@/interfaces/extendedRouteObject'
+import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import { SelfTeamAllocationPage } from '../src/self_team_allocation/pages/TeamAllocation/SelfTeamAllocationPage'
 import { SelfTeamAllocationParticipantsPage } from '../src/self_team_allocation/pages/SelfTeamAllocationParticipantsPage/SelfTeamAllocationParticipantsPage'
 import { SettingsPage } from '../src/self_team_allocation/pages/Settings/SettingsPage'

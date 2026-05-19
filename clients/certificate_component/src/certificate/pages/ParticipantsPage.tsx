@@ -4,11 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
 import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
-import {
-  ExtraParticipantColumn,
-  ParticipantRow,
-} from '@/components/pages/CoursePhaseParticipationsTable/table/participationRow'
+import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
+import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
 import { RowAction } from '@tumaet/prompt-ui-components'
 
 import { ParticipantWithDownloadStatus } from '../interfaces/participant'

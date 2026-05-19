@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTable } from '@/components/pages/CoursePhaseParticipationsTable/CoursePhaseParticipationsTable'
-import { useGetCoursePhaseParticipants } from '@/hooks/useGetCoursePhaseParticipants'
+import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
+import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 
 export const InterviewParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

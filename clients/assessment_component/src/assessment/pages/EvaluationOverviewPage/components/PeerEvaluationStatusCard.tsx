@@ -20,7 +20,7 @@ export const PeerEvaluationStatusCard = ({
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
 
   return (
-    <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'>
+    <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
       <CardContent className='p-6'>
         <div className='flex items-center justify-between mb-4'>
           <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100'>Peer Evaluation</h3>

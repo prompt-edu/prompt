@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useStudent } from '@core/network/hooks/useStudent'
 import { Loader2 } from 'lucide-react'
-import { StudentProfile } from '@/components/StudentProfile'
+import { StudentProfile } from '@tumaet/prompt-ui-components'
 import { InstructorNotes } from '../shared/components/InstructorNote/InstructorNotes'
 import { StudentDetailContentLayout } from '../shared/components/StudentDetail/StudentDetailContentLayout'
 import { CourseEnrollments } from '../shared/components/StudentDetail/CourseEnrollmentList'

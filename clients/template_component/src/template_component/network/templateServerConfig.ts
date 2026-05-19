@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { env } from '@/env'
-import { parseURL } from '@/utils/parseURL'
+import { env } from '@tumaet/prompt-shared-state'
+import { parseURL } from '@tumaet/prompt-shared-state'
 
 const templateServer = env.TEMPLATE_HOST || ''
 

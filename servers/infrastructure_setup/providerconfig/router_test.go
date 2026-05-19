@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 )
 
 func newProviderConfigTestRouter(svc *Service) *gin.Engine {
@@ -41,7 +42,7 @@ func TestProviderConfigRoutes(t *testing.T) {
 	if resp.Code != http.StatusOK {
 		t.Fatalf("GET status = %d, want %d: %s", resp.Code, http.StatusOK, resp.Body.String())
 	}
-	var got []ProviderConfigResponse
+	var got []providerconfigDTO.ProviderConfigResponse
 	if err := json.Unmarshal(resp.Body.Bytes(), &got); err != nil {
 		t.Fatalf("decode provider configs response: %v", err)
 	}

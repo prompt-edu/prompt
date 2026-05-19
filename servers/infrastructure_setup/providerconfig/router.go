@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,14 +40,9 @@ func deleteProviderConfig(svc *Service) gin.HandlerFunc {
 		}
 
 		providerType := c.Param("providerType")
-		if _, err := GetAuthFields(providerType); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
 		if err := svc.DeleteProviderConfig(c.Request.Context(), coursePhaseID, providerType); err != nil {
 			log.WithError(err).Error("delete provider config")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusNoContent, nil)
@@ -59,7 +55,7 @@ func deleteProviderConfig(svc *Service) gin.HandlerFunc {
 // @Tags provider-configs
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 200 {array} ProviderConfigResponse
+// @Success 200 {array} providerconfigDTO.ProviderConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -89,8 +85,8 @@ func listProviderConfigs(svc *Service) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Param providerConfig body UpsertRequest true "Provider configuration"
-// @Success 200 {object} ProviderConfigResponse
+// @Param providerConfig body providerconfigDTO.UpsertRequest true "Provider configuration"
+// @Success 200 {object} providerconfigDTO.ProviderConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -103,7 +99,7 @@ func upsertProviderConfig(svc *Service) gin.HandlerFunc {
 			return
 		}
 
-		var req UpsertRequest
+		var req providerconfigDTO.UpsertRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -154,7 +150,7 @@ func validateProviderConfig(svc *Service) gin.HandlerFunc {
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param providerType path string true "Provider type" Enums(gitlab, slack, outline, rancher, keycloak)
-// @Success 200 {array} AuthField
+// @Success 200 {array} providerconfigDTO.AuthField
 // @Failure 400 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/provider-configs/{providerType}/fields [get]

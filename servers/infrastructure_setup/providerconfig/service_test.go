@@ -11,6 +11,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/encryption"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 )
 
 func setupProviderConfigTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
@@ -38,7 +39,7 @@ func TestUpsertProviderConfigEncryptsAndRedactsCredentials(t *testing.T) {
 	coursePhaseID := uuid.New()
 	service := NewService(testDB.Conn)
 
-	resp, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, UpsertRequest{
+	resp, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, providerconfigDTO.UpsertRequest{
 		ProviderType: "gitlab",
 		Credentials: map[string]interface{}{
 			"base_url":      "https://gitlab.example.com",
@@ -84,10 +85,10 @@ func TestListAndDeleteProviderConfigs(t *testing.T) {
 	coursePhaseID := uuid.New()
 	service := NewService(testDB.Conn)
 
-	if _, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, UpsertRequest{ProviderType: "gitlab", Credentials: map[string]interface{}{"private_token": "secret"}}); err != nil {
+	if _, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, providerconfigDTO.UpsertRequest{ProviderType: "gitlab", Credentials: map[string]interface{}{"base_url": "https://gitlab.example.com", "private_token": "secret"}}); err != nil {
 		t.Fatalf("upsert gitlab: %v", err)
 	}
-	if _, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, UpsertRequest{ProviderType: "slack", Credentials: map[string]interface{}{"bot_token": "secret"}}); err != nil {
+	if _, err := service.UpsertProviderConfig(context.Background(), coursePhaseID, providerconfigDTO.UpsertRequest{ProviderType: "slack", Credentials: map[string]interface{}{"bot_token": "secret"}}); err != nil {
 		t.Fatalf("upsert slack: %v", err)
 	}
 

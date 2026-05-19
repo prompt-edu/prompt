@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig/phaseconfigDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +21,7 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 // @Tags infrastructure-setup-config
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 200 {object} Response
+// @Success 200 {object} phaseconfigDTO.Response
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -49,8 +50,8 @@ func getConfig(svc *Service) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Param config body UpsertRequest true "Infrastructure setup configuration"
-// @Success 200 {object} Response
+// @Param config body phaseconfigDTO.UpsertRequest true "Infrastructure setup configuration"
+// @Success 200 {object} phaseconfigDTO.Response
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -63,7 +64,7 @@ func upsertConfig(svc *Service) gin.HandlerFunc {
 			return
 		}
 
-		var req UpsertRequest
+		var req phaseconfigDTO.UpsertRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

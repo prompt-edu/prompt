@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 )
 
 func newResourceConfigTestRouter(svc *Service) *gin.Engine {
@@ -35,7 +36,7 @@ func TestResourceConfigRoutes(t *testing.T) {
 		t.Fatalf("POST status = %d, want %d: %s", resp.Code, http.StatusCreated, resp.Body.String())
 	}
 
-	var created ResourceConfigResponse
+	var created resourceconfigDTO.ResourceConfigResponse
 	if err := json.Unmarshal(resp.Body.Bytes(), &created); err != nil {
 		t.Fatalf("decode created config response: %v", err)
 	}

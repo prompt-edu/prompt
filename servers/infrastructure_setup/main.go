@@ -82,7 +82,7 @@ func registerProviderFactories() {
 // @title           PROMPT Infrastructure Setup API
 // @version         1.0
 // @description     Manages infrastructure resource provisioning for course phases.
-// @host            localhost:8089
+// @host            localhost:8091
 // @BasePath        /infrastructure-setup/api
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
@@ -139,7 +139,7 @@ func main() {
 	// Health check.
 	router.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
 
-	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8089")
+	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8091")
 	log.Info("Infrastructure Setup Server started on ", serverAddress)
 	if err := router.Run(serverAddress); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

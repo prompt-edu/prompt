@@ -13,6 +13,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider/outline"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider/rancher"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider/slack"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,15 +47,19 @@ func GetAuthFields(providerType string) ([]provider.AuthField, error) {
 }
 
 // UpsertProviderConfig encrypts and stores the provider credentials.
-func (s *Service) UpsertProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, req UpsertRequest) (ProviderConfigResponse, error) {
+func (s *Service) UpsertProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, req providerconfigDTO.UpsertRequest) (providerconfigDTO.ProviderConfigResponse, error) {
+	if err := validateUpsertRequest(req); err != nil {
+		return providerconfigDTO.ProviderConfigResponse{}, err
+	}
+
 	raw, err := json.Marshal(req.Credentials)
 	if err != nil {
-		return ProviderConfigResponse{}, fmt.Errorf("serialising credentials: %w", err)
+		return providerconfigDTO.ProviderConfigResponse{}, fmt.Errorf("serialising credentials: %w", err)
 	}
 
 	encrypted, err := encryption.Encrypt(raw)
 	if err != nil {
-		return ProviderConfigResponse{}, fmt.Errorf("encrypting credentials: %w", err)
+		return providerconfigDTO.ProviderConfigResponse{}, fmt.Errorf("encrypting credentials: %w", err)
 	}
 
 	pc, err := s.queries.UpsertProviderConfig(ctx, db.UpsertProviderConfigParams{
@@ -63,22 +68,22 @@ func (s *Service) UpsertProviderConfig(ctx context.Context, coursePhaseID uuid.U
 		Credentials:   encrypted,
 	})
 	if err != nil {
-		return ProviderConfigResponse{}, err
+		return providerconfigDTO.ProviderConfigResponse{}, err
 	}
 
-	return toResponse(pc), nil
+	return providerconfigDTO.GetProviderConfigDTOFromDBModel(pc), nil
 }
 
 // ListProviderConfigs returns all provider configs for a phase (credentials redacted).
-func (s *Service) ListProviderConfigs(ctx context.Context, coursePhaseID uuid.UUID) ([]ProviderConfigResponse, error) {
+func (s *Service) ListProviderConfigs(ctx context.Context, coursePhaseID uuid.UUID) ([]providerconfigDTO.ProviderConfigResponse, error) {
 	configs, err := s.queries.ListProviderConfigs(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]ProviderConfigResponse, len(configs))
+	result := make([]providerconfigDTO.ProviderConfigResponse, len(configs))
 	for i, c := range configs {
-		result[i] = toResponse(c)
+		result[i] = providerconfigDTO.GetProviderConfigDTOFromDBModel(c)
 	}
 	return result, nil
 }
@@ -87,6 +92,9 @@ func (s *Service) ListProviderConfigs(ctx context.Context, coursePhaseID uuid.UU
 // This cascades through fk_resource_config_provider, removing all resource_config
 // rows for this provider on the phase (and any resource_instance rows beneath them).
 func (s *Service) DeleteProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, providerType string) error {
+	if err := validateProviderType(providerType); err != nil {
+		return err
+	}
 	return s.queries.DeleteProviderConfig(ctx, db.DeleteProviderConfigParams{
 		CoursePhaseID: coursePhaseID,
 		ProviderType:  db.ProviderType(providerType),
@@ -155,13 +163,6 @@ func buildProvider(providerType db.ProviderType, encryptedCreds []byte) (provide
 	}
 
 	return nil, fmt.Errorf("unknown provider type: %s", providerType)
-}
-
-func toResponse(pc db.ProviderConfig) ProviderConfigResponse {
-	return ProviderConfigResponse{
-		ID:           pc.ID,
-		ProviderType: string(pc.ProviderType),
-	}
 }
 
 // BuildProviderFromEncryptedCreds is exported for use by the execution worker.

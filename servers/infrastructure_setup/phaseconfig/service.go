@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig/phaseconfigDTO"
 )
 
 // Service handles infrastructure setup phase configuration.
@@ -21,19 +22,23 @@ func NewService(pool *pgxpool.Pool) *Service {
 }
 
 // Get returns phase configuration or an empty default when it has not been saved.
-func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (Response, error) {
+func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (phaseconfigDTO.Response, error) {
 	cfg, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Response{CoursePhaseID: coursePhaseID}, nil
+		return phaseconfigDTO.Response{CoursePhaseID: coursePhaseID}, nil
 	}
 	if err != nil {
-		return Response{}, err
+		return phaseconfigDTO.Response{}, err
 	}
-	return toResponse(cfg), nil
+	return phaseconfigDTO.GetPhaseConfigDTOFromDBModel(cfg), nil
 }
 
 // Upsert creates or updates phase configuration.
-func (s *Service) Upsert(ctx context.Context, coursePhaseID uuid.UUID, req UpsertRequest) (Response, error) {
+func (s *Service) Upsert(ctx context.Context, coursePhaseID uuid.UUID, req phaseconfigDTO.UpsertRequest) (phaseconfigDTO.Response, error) {
+	if err := validateUpsertRequest(req); err != nil {
+		return phaseconfigDTO.Response{}, err
+	}
+
 	cfg, err := s.queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
 		CoursePhaseID:              coursePhaseID,
 		TeamSourceCoursePhaseID:    req.TeamSourceCoursePhaseID,
@@ -41,16 +46,7 @@ func (s *Service) Upsert(ctx context.Context, coursePhaseID uuid.UUID, req Upser
 		SemesterTag:                req.SemesterTag,
 	})
 	if err != nil {
-		return Response{}, err
+		return phaseconfigDTO.Response{}, err
 	}
-	return toResponse(cfg), nil
-}
-
-func toResponse(cfg db.CoursePhaseConfig) Response {
-	return Response{
-		CoursePhaseID:              cfg.CoursePhaseID,
-		TeamSourceCoursePhaseID:    cfg.TeamSourceCoursePhaseID,
-		StudentSourceCoursePhaseID: cfg.StudentSourceCoursePhaseID,
-		SemesterTag:                cfg.SemesterTag,
-	}
+	return phaseconfigDTO.GetPhaseConfigDTOFromDBModel(cfg), nil
 }

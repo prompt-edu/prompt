@@ -42,7 +42,11 @@ interface Props {
   availableProviderTypes: ProviderType[]
 }
 
-type RoleRow = { id: number; role: string; permission: string }
+interface RoleRow {
+  id: number
+  role: string
+  permission: string
+}
 
 const toRoleRows = (mapping: Record<string, string> | undefined): RoleRow[] =>
   Object.entries(mapping ?? {}).map(([role, permission], idx) => ({

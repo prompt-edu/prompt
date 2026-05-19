@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import {
   Button,
+  ErrorPage,
   Input,
   Label,
+  LoadingPage,
   Select,
   SelectContent,
   SelectItem,
@@ -37,7 +39,7 @@ export const SetupConfigPage = () => {
   const [studentSourceCoursePhaseID, setStudentSourceCoursePhaseID] = useState<string>('')
   const [semesterTag, setSemesterTag] = useState('')
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['setup-config', coursePhaseID],
     queryFn: () => getSetupConfig(coursePhaseID!),
     enabled: !!coursePhaseID,
@@ -77,10 +79,15 @@ export const SetupConfigPage = () => {
   })
 
   if (isLoading) {
-    return <div className='p-4 text-muted-foreground'>Loading setup configuration…</div>
+    return <LoadingPage />
   }
   if (isError) {
-    return <div className='p-4 text-red-600'>Failed to load setup configuration.</div>
+    return (
+      <ErrorPage
+        description='Failed to load setup configuration.'
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   const phaseSelect = (value: string, onChange: (value: string) => void, placeholder: string) => (

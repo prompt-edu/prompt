@@ -1,10 +1,11 @@
-package resourceconfig
+package resourceconfigDTO
 
 import (
 	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
+	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 )
 
 // CreateRequest is the request body for creating a resource configuration.
@@ -37,4 +38,19 @@ type ResourceConfigResponse struct {
 	PermissionMapping   json.RawMessage `json:"permissionMapping"`
 	ResourceExtraConfig json.RawMessage `json:"resourceExtraConfig"`
 	CreatedAt           time.Time       `json:"createdAt"`
+}
+
+// GetResourceConfigDTOFromDBModel builds the API response from the DB row.
+func GetResourceConfigDTOFromDBModel(rc db.ResourceConfig) ResourceConfigResponse {
+	return ResourceConfigResponse{
+		ID:                  rc.ID,
+		CoursePhaseID:       rc.CoursePhaseID,
+		ProviderType:        string(rc.ProviderType),
+		ResourceType:        rc.ResourceType,
+		Scope:               string(rc.Scope),
+		NameTemplate:        rc.NameTemplate,
+		PermissionMapping:   rc.PermissionMapping,
+		ResourceExtraConfig: rc.ResourceExtraConfig,
+		CreatedAt:           rc.CreatedAt,
+	}
 }

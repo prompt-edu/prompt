@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Button, useToast } from '@tumaet/prompt-ui-components'
+import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
 import { Play, RefreshCw } from 'lucide-react'
 
 import { getInstances } from '../network/queries/getInstances'
@@ -43,10 +43,15 @@ export const ExecutionPage = () => {
   })
 
   if (isLoading) {
-    return <div className='p-4 text-muted-foreground'>Loading execution instances…</div>
+    return <LoadingPage />
   }
   if (isError) {
-    return <div className='p-4 text-red-600'>Failed to load execution instances.</div>
+    return (
+      <ErrorPage
+        description='Failed to load execution instances.'
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   return (

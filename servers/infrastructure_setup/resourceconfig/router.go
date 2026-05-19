@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,7 +24,7 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 // @Tags resource-configs
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 200 {array} ResourceConfigResponse
+// @Success 200 {array} resourceconfigDTO.ResourceConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -52,8 +53,8 @@ func listResourceConfigs(svc *Service) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Param resourceConfig body CreateRequest true "Resource configuration"
-// @Success 201 {object} ResourceConfigResponse
+// @Param resourceConfig body resourceconfigDTO.CreateRequest true "Resource configuration"
+// @Success 201 {object} resourceconfigDTO.ResourceConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -65,7 +66,7 @@ func createResourceConfig(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
 			return
 		}
-		var req CreateRequest
+		var req resourceconfigDTO.CreateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -87,7 +88,7 @@ func createResourceConfig(svc *Service) gin.HandlerFunc {
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param resourceConfigID path string true "Resource configuration ID"
-// @Success 200 {object} ResourceConfigResponse
+// @Success 200 {object} resourceconfigDTO.ResourceConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Security ApiKeyAuth
@@ -121,8 +122,8 @@ func getResourceConfig(svc *Service) gin.HandlerFunc {
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param resourceConfigID path string true "Resource configuration ID"
-// @Param resourceConfig body UpdateRequest true "Resource configuration"
-// @Success 200 {object} ResourceConfigResponse
+// @Param resourceConfig body resourceconfigDTO.UpdateRequest true "Resource configuration"
+// @Success 200 {object} resourceconfigDTO.ResourceConfigResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -139,7 +140,7 @@ func updateResourceConfig(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resourceConfigID"})
 			return
 		}
-		var req UpdateRequest
+		var req resourceconfigDTO.UpdateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

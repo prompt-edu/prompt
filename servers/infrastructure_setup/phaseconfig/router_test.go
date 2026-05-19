@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig/phaseconfigDTO"
 )
 
 func newPhaseConfigTestRouter(svc *Service) *gin.Engine {
@@ -40,7 +41,7 @@ func TestSetupConfigRoutes(t *testing.T) {
 	if resp.Code != http.StatusOK {
 		t.Fatalf("GET status = %d, want %d: %s", resp.Code, http.StatusOK, resp.Body.String())
 	}
-	var got Response
+	var got phaseconfigDTO.Response
 	if err := json.Unmarshal(resp.Body.Bytes(), &got); err != nil {
 		t.Fatalf("decode setup config response: %v", err)
 	}

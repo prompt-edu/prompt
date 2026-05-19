@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 )
 
 func setupResourceConfigTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
@@ -41,7 +42,7 @@ func TestResourceConfigCRUD(t *testing.T) {
 	createProviderForResourceConfigTest(t, testDB.Queries, coursePhaseID)
 	service := NewService(testDB.Conn)
 
-	created, err := service.CreateResourceConfig(context.Background(), coursePhaseID, CreateRequest{
+	created, err := service.CreateResourceConfig(context.Background(), coursePhaseID, resourceconfigDTO.CreateRequest{
 		ProviderType:        "gitlab",
 		ResourceType:        "group",
 		Scope:               "per_team",
@@ -64,7 +65,7 @@ func TestResourceConfigCRUD(t *testing.T) {
 		t.Fatalf("resource configs = %d, want 1", len(list))
 	}
 
-	updated, err := service.UpdateResourceConfig(context.Background(), coursePhaseID, created.ID, UpdateRequest{
+	updated, err := service.UpdateResourceConfig(context.Background(), coursePhaseID, created.ID, resourceconfigDTO.UpdateRequest{
 		ResourceType:        "group",
 		Scope:               "per_student",
 		NameTemplate:        "{{studentLogin}}",
@@ -103,7 +104,7 @@ func TestCreateResourceConfigRequiresExistingProvider(t *testing.T) {
 	defer cleanup()
 
 	service := NewService(testDB.Conn)
-	_, err := service.CreateResourceConfig(context.Background(), uuid.New(), CreateRequest{
+	_, err := service.CreateResourceConfig(context.Background(), uuid.New(), resourceconfigDTO.CreateRequest{
 		ProviderType: "gitlab",
 		ResourceType: "group",
 		Scope:        "per_team",

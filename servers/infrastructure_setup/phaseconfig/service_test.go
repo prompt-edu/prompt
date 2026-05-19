@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig/phaseconfigDTO"
 )
 
 func setupPhaseConfigTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
@@ -50,7 +51,7 @@ func TestUpsertCreatesAndUpdatesConfig(t *testing.T) {
 	studentSourceID := uuid.New()
 	service := NewService(testDB.Conn)
 
-	created, err := service.Upsert(context.Background(), coursePhaseID, UpsertRequest{
+	created, err := service.Upsert(context.Background(), coursePhaseID, phaseconfigDTO.UpsertRequest{
 		TeamSourceCoursePhaseID:    &teamSourceID,
 		StudentSourceCoursePhaseID: &studentSourceID,
 		SemesterTag:                "ios26",
@@ -68,7 +69,7 @@ func TestUpsertCreatesAndUpdatesConfig(t *testing.T) {
 		t.Fatalf("semester tag = %q, want ios26", created.SemesterTag)
 	}
 
-	updated, err := service.Upsert(context.Background(), coursePhaseID, UpsertRequest{
+	updated, err := service.Upsert(context.Background(), coursePhaseID, phaseconfigDTO.UpsertRequest{
 		TeamSourceCoursePhaseID: nil,
 		SemesterTag:             "ss27",
 	})

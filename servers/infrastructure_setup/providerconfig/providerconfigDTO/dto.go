@@ -1,7 +1,8 @@
-package providerconfig
+package providerconfigDTO
 
 import (
 	"github.com/google/uuid"
+	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
 
@@ -18,4 +19,12 @@ type UpsertRequest struct {
 type ProviderConfigResponse struct {
 	ID           uuid.UUID `json:"id"`
 	ProviderType string    `json:"providerType"`
+}
+
+// GetProviderConfigDTOFromDBModel builds the redacted API response from the DB row.
+func GetProviderConfigDTOFromDBModel(pc db.ProviderConfig) ProviderConfigResponse {
+	return ProviderConfigResponse{
+		ID:           pc.ID,
+		ProviderType: string(pc.ProviderType),
+	}
 }

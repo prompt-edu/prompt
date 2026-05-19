@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Button } from '@tumaet/prompt-ui-components'
+import { Button, ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { PlusCircle, Server } from 'lucide-react'
 
 import { ProviderConfig } from '../interfaces/providerConfig'
@@ -18,6 +18,7 @@ export const ProvidersPage = () => {
     data: providers,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ['provider-configs', coursePhaseID],
     queryFn: () => getProviderConfigs(coursePhaseID!),
@@ -35,10 +36,15 @@ export const ProvidersPage = () => {
   }
 
   if (isLoading) {
-    return <div className='p-4 text-muted-foreground'>Loading providers…</div>
+    return <LoadingPage />
   }
   if (isError) {
-    return <div className='p-4 text-red-600'>Failed to load provider configurations.</div>
+    return (
+      <ErrorPage
+        description='Failed to load provider configurations.'
+        onRetry={() => refetch()}
+      />
+    )
   }
 
   const configuredTypes = (providers ?? []).map((p) => p.providerType)

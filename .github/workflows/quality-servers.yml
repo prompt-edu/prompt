@@ -18,6 +18,9 @@ jobs:
     strategy:
       matrix:
         module: ${{ fromJson(inputs.modules) }}
+    defaults:
+      run:
+        working-directory: servers/${{ matrix.module }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -25,7 +28,7 @@ jobs:
           go-version: stable
           cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
       - name: Install dependencies
-        run: cd servers/${{ matrix.module }} && go mod download
+        run: go mod download
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
@@ -33,6 +36,6 @@ jobs:
           working-directory: servers/${{ matrix.module }}
           args: --timeout 5m
       - name: go vet
-        run: cd servers/${{ matrix.module }} && go vet ./...
+        run: go vet ./...
       - name: go build
-        run: cd servers/${{ matrix.module }} && go build ./...
+        run: go build ./...

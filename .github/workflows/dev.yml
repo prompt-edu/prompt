@@ -82,7 +82,6 @@ jobs:
   quality-servers:
     needs: detect-changes
     uses: ./.github/workflows/quality-servers.yml
-    secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.server_modules }}
   test-servers:

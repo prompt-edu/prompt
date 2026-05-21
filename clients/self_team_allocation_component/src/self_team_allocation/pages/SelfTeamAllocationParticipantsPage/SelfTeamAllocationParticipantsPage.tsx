@@ -32,26 +32,33 @@ export const SelfTeamAllocationParticipantsPage = () => {
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
-  const extraColumns: ExtraParticipantColumn<any>[] = useMemo(() => {
+  const extraColumns: ExtraParticipantColumn<string>[] = useMemo(() => {
     if (!teams) return []
 
-    const teamNameById = new Map(teams.map(({ id, name }) => [id, name]))
-
-    const teamNameExtraData = teams.flatMap(({ id, members }) => {
-      const teamName = teamNameById.get(id) ?? 'No Team'
-
-      return members.map((member) => ({
-        courseParticipationID: member.id || '',
-        value: teamName,
-        stringValue: teamName,
-      }))
-    })
+    const teamByParticipation = new Map<string, string>()
+    for (const team of teams) {
+      for (const member of team.members) {
+        if (member.id) teamByParticipation.set(member.id, team.name)
+      }
+    }
 
     return [
       {
         id: 'allocatedTeam',
         header: 'Allocated Team',
-        extraData: teamNameExtraData,
+
+        accessorFn: (row) => teamByParticipation.get(row.courseParticipationID) ?? 'No Team',
+
+        cell: ({ getValue }) => getValue(),
+
+        extraData: (coursePhaseParticipations?.participations ?? []).map((p) => {
+          const name = teamByParticipation.get(p.courseParticipationID) ?? 'No Team'
+          return {
+            courseParticipationID: p.courseParticipationID,
+            value: name,
+            stringValue: name,
+          }
+        }),
         enableSorting: true,
         sortingFn: (rowA, rowB) => {
           const a = rowA.getValue('allocatedTeam') as string
@@ -66,7 +73,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
         },
       },
     ]
-  }, [teams])
+  }, [teams, coursePhaseParticipations?.participations])
 
   const refetch = () => {
     refetchCoursePhaseParticipations()

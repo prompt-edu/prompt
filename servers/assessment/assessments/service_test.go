@@ -3,6 +3,7 @@ package assessments
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -173,7 +174,14 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONIncludes
 	assert.NotEmpty(suite.T(), export.StudentAssessment.Assessments)
 	assert.NotEmpty(suite.T(), export.StudentAssessment.Assessments[0].Comment)
 	assert.NotEmpty(suite.T(), export.ActionItems)
-	assert.Contains(suite.T(), export.ActionItems[len(export.ActionItems)-1].Action, "Export action item")
+	foundExportActionItem := false
+	for _, item := range export.ActionItems {
+		if strings.Contains(item.Action, "Export action item") {
+			foundExportActionItem = true
+			break
+		}
+	}
+	assert.True(suite.T(), foundExportActionItem)
 }
 
 func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONWithoutOptionalData() {

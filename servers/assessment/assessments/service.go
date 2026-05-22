@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -33,6 +34,9 @@ type AssessmentService struct {
 var AssessmentServiceSingleton *AssessmentService
 var ErrValidationFailed = errors.New("validation failed: comment and examples are required for Strongly Disagree, Disagree, and Neutral scores")
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
+var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
+
+const AssessmentExportFormatJSON = "json"
 
 func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
 	// Validate scoreLevel is not empty
@@ -163,6 +167,77 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 		StudentScore:          studentScore,
 		Evaluations:           evaluations,
 	}, nil
+}
+
+func ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, format string) (assessmentDTO.AssessmentExport, error) {
+	if format != AssessmentExportFormatJSON {
+		return assessmentDTO.AssessmentExport{}, ErrUnsupportedAssessmentExportFormat
+	}
+
+	assessments, err := ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not get assessments for export: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessments for export")
+	}
+
+	completion := assessmentCompletionDTO.AssessmentCompletion{}
+	completionExists, err := assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not check assessment completion existence: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not check assessment completion existence")
+	}
+	if completionExists {
+		dbCompletion, err := assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get assessment completion: ", err)
+			return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment completion")
+		}
+		completion = assessmentCompletionDTO.MapDBAssessmentCompletionToAssessmentCompletionDTO(dbCompletion)
+	}
+
+	studentScore := scoreLevelDTO.StudentScore{
+		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
+		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
+	}
+	if len(assessments) > 0 {
+		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get score level: ", err)
+			return assessmentDTO.AssessmentExport{}, errors.New("could not get score level")
+		}
+	}
+
+	actionItems, err := getAssessmentExportActionItems(ctx, coursePhaseID, courseParticipationID)
+	if err != nil {
+		log.Error("could not get assessment export action items: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment export action items")
+	}
+
+	return assessmentDTO.AssessmentExport{
+		ExportedAt:            time.Now().UTC(),
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: courseParticipationID,
+		StudentAssessment: assessmentDTO.StudentAssessment{
+			CourseParticipationID: courseParticipationID,
+			Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+			AssessmentCompletion:  completion,
+			StudentScore:          studentScore,
+			Evaluations:           []evaluationDTO.Evaluation{},
+		},
+		ActionItems: actionItems,
+	}, nil
+}
+
+func getAssessmentExportActionItems(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
+	actionItems, err := AssessmentServiceSingleton.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return actionItemDTO.GetActionItemDTOsFromDBModels(actionItems), nil
 }
 
 func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (assessmentDTO.StudentAssessmentResults, error) {

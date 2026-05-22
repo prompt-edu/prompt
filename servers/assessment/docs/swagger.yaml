@@ -91,6 +91,21 @@ definitions:
       scoreLevel:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
     type: object
+  assessmentDTO.AssessmentExport:
+    properties:
+      actionItems:
+        items:
+          $ref: '#/definitions/actionItemDTO.ActionItem'
+        type: array
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      exportedAt:
+        type: string
+      studentAssessment:
+        $ref: '#/definitions/assessmentDTO.StudentAssessment'
+    type: object
   assessmentDTO.CreateOrUpdateAssessmentRequest:
     properties:
       assessedAt:
@@ -3055,6 +3070,47 @@ paths:
               type: string
             type: object
       summary: Get student assessment
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export:
+    get:
+      description: Export one student assessment in a text format.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      - default: json
+        description: Export format
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentDTO.AssessmentExport'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export student assessment
       tags:
       - assessments
   /course_phase/{coursePhaseID}/student-assessment/action-item:

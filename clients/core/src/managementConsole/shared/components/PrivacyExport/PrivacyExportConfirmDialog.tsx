@@ -6,7 +6,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Separator,
 } from '@tumaet/prompt-ui-components'
 import { Clock, Download, Timer } from 'lucide-react'
 import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'

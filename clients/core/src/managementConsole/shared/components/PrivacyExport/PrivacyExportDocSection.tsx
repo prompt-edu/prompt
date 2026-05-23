@@ -35,7 +35,11 @@ export function CollapsibleDocSection({
           {description && <p className='text-xs text-muted-foreground pb-2'>{description}</p>}
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-1'>
             {docs.map((doc) => (
-              <PrivacyExportDocumentCard key={doc.id} exportId={exportId} privacy_export_document={doc} />
+              <PrivacyExportDocumentCard
+                key={doc.id}
+                exportId={exportId}
+                privacy_export_document={doc}
+              />
             ))}
           </div>
         </div>

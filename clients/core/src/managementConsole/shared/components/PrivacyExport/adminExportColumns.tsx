@@ -1,4 +1,8 @@
-import { type AdminExportDoc, type AdminPrivacyExport, ExportStatus } from '@core/network/queries/privacyStudentDataExport'
+import {
+  type AdminExportDoc,
+  type AdminPrivacyExport,
+  ExportStatus,
+} from '@core/network/queries/privacyStudentDataExport'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 import { ColumnDef } from '@tanstack/react-table'
 

@@ -32,7 +32,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
-  const extraColumns: ExtraParticipantColumn<any>[] = useMemo(() => {
+  const extraColumns: ExtraParticipantColumn<string>[] = useMemo(() => {
     if (!teams) return []
 
     const teamNameByParticipation = new Map<string, string>()
@@ -61,7 +61,11 @@ export const SelfTeamAllocationParticipantsPage = () => {
       {
         id: 'allocatedTeam',
         header: 'Allocated Team',
+
         accessorFn: (row) => teamNameByParticipation.get(row.courseParticipationID) ?? 'No Team',
+
+        cell: ({ getValue }) => getValue(),
+
         extraData: teamNameExtraData,
         enableSorting: true,
         sortingFn: (rowA, rowB) => {

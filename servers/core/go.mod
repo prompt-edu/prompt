@@ -2,8 +2,6 @@ module github.com/prompt-edu/prompt/servers/core
 
 go 1.26.3
 
-replace github.com/prompt-edu/prompt-sdk => ../../../prompt-sdk
-
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/Nerzal/gocloak/v14 v14.0.3
@@ -16,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/pkg/errors v0.9.1
-	github.com/prompt-edu/prompt-sdk v1.1.7
+	github.com/prompt-edu/prompt-sdk v1.1.8
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6

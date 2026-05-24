@@ -49,7 +49,15 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: (info) => info.getValue(),
+    cell: ({ row }) => {
+      const { status, docs } = row.original
+      if (status === ExportStatus.failed) return 'Failed'
+      if (status === ExportStatus.complete) {
+        const hasProblems = docs.some((d) => d.status === ExportStatus.failed)
+        return hasProblems ? 'Completed with problems' : 'Completed'
+      }
+      return status
+    },
   },
   {
     accessorKey: 'date_created',

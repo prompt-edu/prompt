@@ -50,7 +50,7 @@ export function AdminPrivacyPage() {
         </TabsContent>
         <TabsContent value='export'>
           <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Data Exports</h2>
-          <p>Requester Identities are hidden for privacy reasons</p>
+          <p className='-mt-4 mb-4'>Requester Identities are hidden for privacy reasons</p>
           {allExportsQuery.isLoading && <p>Loading...</p>}
           {allExportsQuery.isSuccess && (
             <PromptTable

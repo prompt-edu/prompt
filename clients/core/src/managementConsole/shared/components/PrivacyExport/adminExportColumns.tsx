@@ -11,7 +11,7 @@ function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: stri
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className='cursor-default underline decoration-dotted'>
+        <span className='cursor-default underline underline-offset-4'>
           {docs.length} {label}
         </span>
       </TooltipTrigger>
@@ -32,7 +32,6 @@ function DocSummaryCell({ docs }: { docs: AdminExportDoc[] }) {
   const succeeded = docs.filter((d) => d.status === ExportStatus.complete)
   const noData = docs.filter((d) => d.status === ExportStatus.no_data)
   const failed = docs.filter((d) => d.status === ExportStatus.failed)
-  const downloaded = succeeded.filter((d) => d.downloaded)
 
   return (
     <div className='flex flex-col gap-0.5 text-sm'>
@@ -41,9 +40,6 @@ function DocSummaryCell({ docs }: { docs: AdminExportDoc[] }) {
         <CountWithTooltip docs={succeeded} label='ok' />
         {noData.length > 0 && <CountWithTooltip docs={noData} label='no data' />}
         {failed.length > 0 && <CountWithTooltip docs={failed} label='failed' />}
-        {succeeded.length > 0 && (
-          <CountWithTooltip docs={downloaded} label={`/ ${succeeded.length} downloaded`} />
-        )}
       </div>
     </div>
   )
@@ -62,16 +58,42 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   },
   {
     accessorKey: 'valid_until',
-    header: 'Valid Until',
+    header: 'Validity',
     cell: ({ row }) => {
       const validUntil = new Date(row.original.valid_until)
-      const isExpired = validUntil < new Date()
-      return <span className={isExpired ? 'text-red-800' : ''}>{validUntil.toLocaleString()}</span>
+      const now = new Date()
+      if (validUntil < now) {
+        return (
+          <div className='flex flex-col text-sm'>
+            <span>Expired</span>
+            <span className='text-muted-foreground text-xs'>
+              on {validUntil.toLocaleDateString()}
+            </span>
+          </div>
+        )
+      }
+      const daysLeft = Math.ceil((validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return (
+        <span className='text-sm'>
+          valid for {daysLeft} more {daysLeft === 1 ? 'day' : 'days'}
+        </span>
+      )
     },
   },
   {
     id: 'documents',
     header: 'Documents',
     cell: ({ row }) => <DocSummaryCell docs={row.original.docs} />,
+  },
+  {
+    id: 'downloaded',
+    header: 'Downloaded',
+    cell: ({ row }) => {
+      const docs = row.original.docs
+      const succeeded = docs.filter((d) => d.status === ExportStatus.complete)
+      const downloaded = succeeded.filter((d) => d.downloaded)
+      if (succeeded.length === 0) return <span className='text-muted-foreground'>-</span>
+      return <CountWithTooltip docs={downloaded} label={`/ ${succeeded.length} downloaded`} />
+    },
   },
 ]

@@ -103,7 +103,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 					"matriculationNumber":  "03012345",
 					"universityLogin":      "ge12abc",
 					"hasUniversityAccount": true,
-					"gender":               "MALE",
+					"gender":               "male",
+					"nationality":          "DE",
+					"studyDegree":          "bachelor",
+					"studyProgram":         "Computer Science",
+					"currentSemester":      4,
 				},
 			},
 			{
@@ -121,7 +125,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 					"matriculationNumber":  "",
 					"universityLogin":      "ge67xyz",
 					"hasUniversityAccount": true,
-					"gender":               "FEMALE",
+					"gender":               "female",
+					"nationality":          "FR",
+					"studyDegree":          "master",
+					"studyProgram":         "Information Systems",
+					"currentSemester":      2,
 				},
 			},
 		}
@@ -170,7 +178,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"matriculationNumber":  "03012345",
 				"universityLogin":      "ge12abc",
 				"hasUniversityAccount": true,
-				"gender":               "MALE",
+				"gender":               "male",
+				"nationality":          "DE",
+				"studyDegree":          "bachelor",
+				"studyProgram":         "Computer Science",
+				"currentSemester":      4,
 			},
 		})
 	})
@@ -186,7 +198,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"matriculationNumber":  "03012345",
 				"universityLogin":      "ge12abc",
 				"hasUniversityAccount": true,
-				"gender":               "MALE",
+				"gender":               "male",
+				"nationality":          "DE",
+				"studyDegree":          "bachelor",
+				"studyProgram":         "Computer Science",
+				"currentSemester":      4,
 			},
 			{
 				"id":                   "30000000-0000-0000-0000-000000000002",
@@ -196,7 +212,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"matriculationNumber":  "",
 				"universityLogin":      "ge67xyz",
 				"hasUniversityAccount": true,
-				"gender":               "FEMALE",
+				"gender":               "female",
+				"nationality":          "FR",
+				"studyDegree":          "master",
+				"studyProgram":         "Information Systems",
+				"currentSemester":      2,
 			},
 		})
 	})
@@ -216,7 +236,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 				"matriculationNumber":  "03012345",
 				"universityLogin":      "ge12abc",
 				"hasUniversityAccount": true,
-				"gender":               "MALE",
+				"gender":               "male",
+				"nationality":          "DE",
+				"studyDegree":          "bachelor",
+				"studyProgram":         "Computer Science",
+				"currentSemester":      4,
 			},
 		})
 	})

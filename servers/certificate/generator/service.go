@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
@@ -88,7 +89,7 @@ func compileTypst(ctx context.Context, tempDir, templatePath string) ([]byte, er
 	return pdfData, nil
 }
 
-func (s *GeneratorService) GenerateCertificate(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, student *participants.Student) ([]byte, error) {
+func (s *GeneratorService) GenerateCertificate(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, student *promptTypes.Student) ([]byte, error) {
 	// Get template content
 	templateContent, err := config.GetTemplateContent(ctx, coursePhaseID)
 	if err != nil {

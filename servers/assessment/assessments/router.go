@@ -75,8 +75,7 @@ func createOrUpdateAssessment(c *gin.Context) {
 	}
 	err := CreateOrUpdateAssessment(c, req)
 	if err != nil {
-		// Check if it's a validation error
-		if errors.Is(err, ErrValidationFailed) || errors.Is(err, ErrInvalidScoreLevel) {
+		if errors.Is(err, ErrInvalidScoreLevel) {
 			handleError(c, http.StatusBadRequest, err)
 		} else {
 			handleError(c, http.StatusInternalServerError, err)

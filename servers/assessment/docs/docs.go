@@ -510,6 +510,117 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/category-assessment": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categoryAssessments"
+                ],
+                "summary": "Create or update category assessment comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/category-assessment/{categoryAssessmentID}": {
+            "delete": {
+                "tags": [
+                    "categoryAssessments"
+                ],
+                "summary": "Delete category assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category assessment ID",
+                        "name": "categoryAssessmentID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/category/assessment/with-competencies": {
             "get": {
                 "description": "List assessment categories with competencies for the course phase.",
@@ -4610,7 +4721,7 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
-                "comment": {
+                "authorID": {
                     "type": "string"
                 },
                 "competencyID": {
@@ -4620,9 +4731,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "coursePhaseID": {
-                    "type": "string"
-                },
-                "examples": {
                     "type": "string"
                 },
                 "id": {
@@ -4642,7 +4750,7 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
-                "comment": {
+                "authorID": {
                     "type": "string"
                 },
                 "competencyID": {
@@ -4652,9 +4760,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "coursePhaseID": {
-                    "type": "string"
-                },
-                "examples": {
                     "type": "string"
                 },
                 "scoreLevel": {
@@ -4672,6 +4777,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "categoryAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryAssessmentDTO.CategoryAssessment"
                     }
                 },
                 "courseParticipationID": {
@@ -4704,6 +4815,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "categoryAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryAssessmentDTO.CategoryAssessment"
                     }
                 },
                 "courseParticipationID": {
@@ -4785,6 +4902,61 @@ const docTemplate = `{
                 "Tutor",
                 "Assessment"
             ]
+        },
+        "categoryAssessmentDTO.CategoryAssessment": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "categoryID": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "categoryID": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                }
+            }
         },
         "categoryDTO.CategoryWithCompetencies": {
             "type": "object",

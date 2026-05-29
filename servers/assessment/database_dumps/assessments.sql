@@ -67,10 +67,22 @@ CREATE TABLE public.assessment (
     course_phase_id uuid NOT NULL,
     competency_id uuid NOT NULL,
     score_level public.score_level NOT NULL,
-    COMMENT text,
     assessed_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     author text DEFAULT ''::text NOT NULL,
-    examples text DEFAULT '' NOT NULL
+    author_id text DEFAULT ''::text NOT NULL
+);
+
+CREATE TABLE public.category_assessment (
+    id uuid NOT NULL PRIMARY KEY,
+    category_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    comment text DEFAULT '' NOT NULL,
+    author text DEFAULT '' NOT NULL,
+    author_id text DEFAULT '' NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    UNIQUE (category_id, course_phase_id, course_participation_id)
 );
 
 CREATE TABLE public.assessment_completion (
@@ -273,9 +285,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'Meaningful Comment',
         '2025-05-11 20:16:50.331851+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -285,9 +297,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'bad',
-        'a',
         '2025-05-11 21:17:43.757443+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -297,9 +309,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-11 21:17:55.486197+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -309,9 +321,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'ok',
-        'a',
         '2025-05-11 21:41:57.148125+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -321,9 +333,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:42:03.794931+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -333,9 +345,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'sdf',
         '2025-05-11 21:42:11.555711+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -345,9 +357,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'bad',
-        'a',
         '2025-05-11 21:42:25.550212+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -357,9 +369,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:42:35.764131+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -369,9 +381,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:42:42.223527+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -381,9 +393,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:43:24.702805+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -393,9 +405,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-11 21:46:32.204333+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -405,9 +417,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:46:32.599828+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -417,9 +429,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-11 21:47:33.825038+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -429,9 +441,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-11 21:47:34.273177+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -441,9 +453,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'bad',
-        'a',
         '2025-05-12 13:42:39.845865+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -453,9 +465,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:28:51.732717+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -465,9 +477,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'ok',
-        'a',
         '2025-05-13 16:27:17.8223+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -477,9 +489,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'ok',
-        '<',
         '2025-05-13 16:27:19.05869+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -489,9 +501,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'y',
         '2025-05-13 16:27:20.274728+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -501,9 +513,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        's',
         '2025-05-13 16:27:22.189391+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -513,9 +525,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'ok',
-        'a',
         '2025-05-06 16:12:10.131988+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -525,9 +537,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-06 16:12:18.934186+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -537,9 +549,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'ok',
-        'a',
         '2025-05-13 16:29:05.638874+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -549,9 +561,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'bad',
-        'a',
         '2025-05-13 16:27:33.380423+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -561,9 +573,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'bad',
-        'a',
         '2025-05-13 16:27:33.811249+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -573,9 +585,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'bad',
-        'a',
         '2025-05-13 16:27:34.383677+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -585,9 +597,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:27:35.807434+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -597,9 +609,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:27:36.73803+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -609,9 +621,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'bad',
-        'a',
         '2025-05-13 16:27:44.200275+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -621,9 +633,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'good',
-        'a',
         '2025-05-13 16:27:46.799316+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -633,9 +645,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'ok',
-        'a',
         '2025-05-13 16:27:47.134331+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -645,9 +657,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:27:47.720613+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -657,9 +669,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'ok',
-        'a',
         '2025-05-13 16:28:11.562981+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -669,9 +681,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:28:12.261692+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -681,9 +693,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'good',
-        'a',
         '2025-05-13 16:28:14.606244+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -693,9 +705,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:28:15.734002+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -705,9 +717,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'ok',
-        'a',
         '2025-05-13 16:28:17.20885+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -717,9 +729,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'good',
-        'a',
         '2025-05-13 16:28:34.446321+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -729,9 +741,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:28:34.808017+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -741,9 +753,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'bad',
-        'a',
         '2025-05-13 16:29:06.98053+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -753,9 +765,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:28:35.837071+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -765,9 +777,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'good',
-        'a',
         '2025-05-13 16:28:37.773968+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -777,9 +789,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'good',
-        'a',
         '2025-05-13 16:28:38.502108+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -789,9 +801,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'bad',
-        'q',
         '2025-05-13 16:28:46.408643+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -801,9 +813,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'bad',
-        'a',
         '2025-05-13 16:28:46.824251+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -813,9 +825,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'bad',
-        'a',
         '2025-05-13 16:28:49.086161+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -825,9 +837,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:28:50.357166+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -837,9 +849,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'bad',
-        'a',
         '2025-05-13 16:29:08.313012+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -849,9 +861,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:29:09.671308+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -861,9 +873,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:29:10.739365+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -873,9 +885,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'good',
-        'a',
         '2025-05-13 16:29:35.286414+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -885,9 +897,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:29:36.020599+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -897,9 +909,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'ok',
-        'a',
         '2025-05-13 16:29:37.211371+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -909,9 +921,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:29:47.837351+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -921,9 +933,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:29:48.973228+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -933,9 +945,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:29:50.129126+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -945,9 +957,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'good',
-        'a',
         '2025-05-13 16:29:51.085875+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -957,9 +969,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:36:22.891252+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -969,9 +981,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        's',
         '2025-05-13 16:36:33.336817+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -981,9 +993,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        's',
         '2025-05-13 16:36:34.015844+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -993,9 +1005,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:36:52.263122+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1005,9 +1017,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:36:52.524766+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1017,9 +1029,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-17 22:32:12.771476+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1029,9 +1041,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'ok',
-        'a',
         '2025-05-26 23:38:21.912757+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1041,9 +1053,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'good',
-        'a',
         '2025-05-13 16:29:59.005625+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1053,9 +1065,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:29:59.27572+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1065,9 +1077,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:30:00.445641+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1077,9 +1089,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'good',
-        'a',
         '2025-05-13 16:30:01.799219+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1089,9 +1101,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'good',
-        'a',
         '2025-05-13 16:30:02.890921+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1101,9 +1113,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-13 16:30:11.705307+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1113,9 +1125,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'a',
         '2025-05-13 16:30:12.36149+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1125,9 +1137,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'good',
-        'a',
         '2025-05-13 16:30:13.468073+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1137,9 +1149,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'good',
-        'a',
         '2025-05-13 16:30:15.016173+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1149,9 +1161,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        'a',
         '2025-05-13 16:30:16.198924+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1161,9 +1173,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:36:22.573663+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1173,9 +1185,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'good',
-        'a',
         '2025-05-13 20:49:51.396398+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1185,9 +1197,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'good',
-        'a',
         '2025-05-13 20:49:53.190794+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1197,9 +1209,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'bad',
-        'a',
         '2025-05-26 15:08:03.779092+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1209,9 +1221,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'ok',
-        '<',
         '2025-05-26 15:08:19.233445+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1221,9 +1233,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'good',
-        '<',
         '2025-05-26 15:08:19.941767+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1233,9 +1245,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'good',
-        'y',
         '2025-05-26 15:08:21.274871+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1245,9 +1257,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'good',
-        'y',
         '2025-05-26 15:08:22.575322+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1257,9 +1269,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'y',
         '2025-05-26 15:08:23.818293+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -1269,9 +1281,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'good',
-        'y',
         '2025-05-26 15:08:24.951111+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment_completion

@@ -117,10 +117,24 @@ CREATE TABLE public.assessment (
     course_phase_id uuid NOT NULL,
     competency_id uuid NOT NULL,
     score_level public.score_level NOT NULL,
-    comment text,
     created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    author text DEFAULT ''::text NOT NULL,
+    author_id text DEFAULT ''::text NOT NULL,
     FOREIGN KEY (competency_id) REFERENCES competency (id) ON DELETE RESTRICT
+);
+
+CREATE TABLE public.category_assessment (
+    id uuid NOT NULL PRIMARY KEY,
+    category_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    comment text DEFAULT '' NOT NULL,
+    author text DEFAULT '' NOT NULL,
+    author_id text DEFAULT '' NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    UNIQUE (category_id, course_phase_id, course_participation_id)
 );
 
 CREATE TABLE public.evaluation (

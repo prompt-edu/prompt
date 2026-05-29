@@ -76,15 +76,13 @@ definitions:
         type: string
       author:
         type: string
-      comment:
+      authorID:
         type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       id:
         type: string
@@ -97,15 +95,13 @@ definitions:
         type: string
       author:
         type: string
-      comment:
+      authorID:
         type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       scoreLevel:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
@@ -117,6 +113,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -138,6 +138,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -193,6 +197,42 @@ definitions:
     - Peer
     - Tutor
     - Assessment
+  categoryAssessmentDTO.CategoryAssessment:
+    properties:
+      author:
+        type: string
+      authorID:
+        type: string
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest:
+    properties:
+      author:
+        type: string
+      authorID:
+        type: string
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+    type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
       competencies:
@@ -1229,6 +1269,79 @@ paths:
       summary: Create category
       tags:
       - categories
+  /course_phase/{coursePhaseID}/category-assessment:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update category assessment comment
+      tags:
+      - categoryAssessments
+  /course_phase/{coursePhaseID}/category-assessment/{categoryAssessmentID}:
+    delete:
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Category assessment ID
+        in: path
+        name: categoryAssessmentID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete category assessment
+      tags:
+      - categoryAssessments
   /course_phase/{coursePhaseID}/category/{categoryID}:
     delete:
       description: Delete a category from the course phase.

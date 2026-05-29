@@ -2,10 +2,9 @@ import { CompetencyScore } from './competencyScore'
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
 
 export type Assessment = CompetencyScore & {
-  examples: string
-  comment: string
   assessedAt: string // ISO 8601 date string
   author: string
+  authorID: string
 }
 
 export type CreateOrUpdateAssessmentRequest = {
@@ -13,7 +12,6 @@ export type CreateOrUpdateAssessmentRequest = {
   coursePhaseID: string // UUID
   competencyID: string // UUID
   scoreLevel: ScoreLevel
-  examples: string
-  comment: string
   author: string
+  authorID: string
 }

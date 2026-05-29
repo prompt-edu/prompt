@@ -22,7 +22,6 @@ import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDial
 import { ScoreLevelSelector } from '../../../components/ScoreLevelSelector'
 
 import { EvaluationScoreDescriptionBadge } from './components/EvaluationScoreDescriptionBadge'
-import { AssessmentTextField } from './components/AssessmentTextField'
 
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
@@ -52,6 +51,7 @@ export const AssessmentForm = ({
 
   const { user } = useAuthStore()
   const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
+  const userID = user?.username ?? ''
 
   const form = useForm<CreateOrUpdateAssessmentRequest>({
     mode: 'onChange',
@@ -61,29 +61,24 @@ export const AssessmentForm = ({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      comment: assessment ? assessment.comment : '',
-      examples: assessment ? assessment.examples : '',
       author: userName,
+      authorID: userID,
     },
   })
 
   const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError)
   const deleteAssessment = useDeleteAssessment(setError)
   const selectedScore = form.watch('scoreLevel')
-  const hasExample = (assessment?.examples ?? '').trim().length > 0
-  const hasComment = (assessment?.comment ?? '').trim().length > 0
-  const shouldHideCommentAndExample = completed && !hasExample && !hasComment
 
   useEffect(() => {
     form.reset({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      comment: assessment ? assessment.comment : '',
-      examples: assessment ? assessment.examples : '',
       author: userName,
+      authorID: userID,
     })
-  }, [form, courseParticipationID, competency.id, assessment, userName])
+  }, [form, courseParticipationID, competency.id, assessment, userName, userID])
 
   const saveAssessment = async () => {
     if (completed) return
@@ -96,20 +91,6 @@ export const AssessmentForm = ({
 
     createOrUpdateAssessment(data)
   }
-
-  useEffect(() => {
-    if (completed) return
-
-    const subscription = form.watch(async (_, { name }) => {
-      if (name === 'scoreLevel') {
-        await form.trigger(['comment', 'examples'])
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [form, completed])
 
   const handleScoreChange = async (value: ScoreLevel) => {
     if (completed) return
@@ -127,9 +108,8 @@ export const AssessmentForm = ({
             courseParticipationID,
             competencyID: competency.id,
             scoreLevel: undefined,
-            comment: '',
-            examples: '',
             author: userName,
+            authorID: userID,
           })
         },
       })
@@ -243,28 +223,6 @@ export const AssessmentForm = ({
           peerEvaluationScoreLevel={peerEvaluationScore}
           peerEvaluationStudentAnswers={peerEvaluationStudentAnswers}
         />
-
-        {!shouldHideCommentAndExample && (
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-            <AssessmentTextField
-              control={form.control}
-              name='examples'
-              placeholder='Example'
-              completed={completed}
-              getScoreLevel={() => form.getValues('scoreLevel')}
-              onBlur={saveAssessment}
-            />
-
-            <AssessmentTextField
-              control={form.control}
-              name='comment'
-              placeholder='Additional comments'
-              completed={completed}
-              getScoreLevel={() => form.getValues('scoreLevel')}
-              onBlur={saveAssessment}
-            />
-          </div>
-        )}
 
         {error && !completed && <FormMessage className='mt-2'>{error}</FormMessage>}
 

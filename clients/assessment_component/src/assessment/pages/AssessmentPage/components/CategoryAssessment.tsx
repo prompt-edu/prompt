@@ -4,14 +4,18 @@ import { ChevronRight, ChevronDown } from 'lucide-react'
 
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
+import { CategoryAssessment as CategoryAssessmentType } from '../../../interfaces/categoryAssessment'
 import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
+
+import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
 
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 import { AssessmentStatusBadge, StudentScoreBadge } from '../../components/badges'
 
 import { AssessmentForm } from './AssessmentForm/AssessmentForm'
+import { CategoryComment } from './CategoryComment/CategoryComment'
 
 interface CategoryAssessmentProps {
   category: CategoryWithCompetencies
@@ -20,6 +24,7 @@ interface CategoryAssessmentProps {
   peerEvaluationResults?: AggregatedEvaluationResult[]
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
+  categoryAssessment?: CategoryAssessmentType
 }
 
 export const CategoryAssessment = ({
@@ -29,7 +34,12 @@ export const CategoryAssessment = ({
   peerEvaluationResults,
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
+  categoryAssessment: categoryAssessmentProp,
 }: CategoryAssessmentProps) => {
+  const categoryAssessmentFromStore = useStudentAssessmentStore().categoryAssessments.find(
+    (ca) => ca.categoryID === category.id,
+  )
+  const categoryAssessment = categoryAssessmentProp ?? categoryAssessmentFromStore
   const { courseParticipationID } = useParams<{
     courseParticipationID: string
   }>()
@@ -77,6 +87,12 @@ export const CategoryAssessment = ({
 
       {isExpanded && (
         <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-5 border-t mt-2'>
+          <CategoryComment
+            categoryID={category.id}
+            courseParticipationID={courseParticipationID ?? ''}
+            categoryAssessment={categoryAssessment}
+            completed={completed}
+          />
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
               No competencies available in this category.

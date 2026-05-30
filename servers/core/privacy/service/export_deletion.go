@@ -10,6 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const deletionBatchLimit = 500
+
 func StartExportDeletionRoutine(ctx context.Context) {
 	ticker := time.NewTicker(24 * time.Hour)
 
@@ -32,7 +34,7 @@ func StartExportDeletionRoutine(ctx context.Context) {
 
 func DeleteExpiredExportFiles(c context.Context) {
 	log.Info("gdpr export deletion started.")
-	exports, err := PrivacyServiceSingleton.queries.GetInvalidExports(c)
+	exports, err := PrivacyServiceSingleton.queries.GetInvalidExports(c, deletionBatchLimit)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch invalid exports for deletion")
 		return

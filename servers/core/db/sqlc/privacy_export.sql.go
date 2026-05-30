@@ -209,11 +209,11 @@ func (q *Queries) GetExportRecordByIDWithDocs(ctx context.Context, id uuid.UUID)
 }
 
 const getInvalidExports = `-- name: GetInvalidExports :many
-SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE now() >= valid_until AND status != 'archived'
+SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE now() >= valid_until AND status != 'archived' LIMIT $1
 `
 
-func (q *Queries) GetInvalidExports(ctx context.Context) ([]PrivacyExport, error) {
-	rows, err := q.db.Query(ctx, getInvalidExports)
+func (q *Queries) GetInvalidExports(ctx context.Context, limit int32) ([]PrivacyExport, error) {
+	rows, err := q.db.Query(ctx, getInvalidExports, limit)
 	if err != nil {
 		return nil, err
 	}

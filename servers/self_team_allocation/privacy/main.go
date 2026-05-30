@@ -9,5 +9,8 @@ import (
 
 func InitPrivacyModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	promptTypes.RegisterPrivacyDataExportEndpoint(routerGroup, PrivacyDataExportHandler, []string{})
-	singleton = &SelfTeamAllocationPrivacyService{queries: queries}
+	PrivacyServiceSingleton = &PrivacyService{
+		Queries: queries,
+		Conn:    conn,
+	}
 }

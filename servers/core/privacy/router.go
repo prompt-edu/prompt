@@ -30,7 +30,7 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
 
 	// DEV ONLY - delete later
-	router.DELETE("/privacy/dev/reset-exports", devResetExports)
+	privacyRouter.DELETE("/dev/reset-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), devResetExports)
 }
 
 // DEV ONLY - delete later

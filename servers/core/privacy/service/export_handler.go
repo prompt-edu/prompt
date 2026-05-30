@@ -81,7 +81,6 @@ func RunDataExport(c *gin.Context, exportState Export) {
 		cCopy := c.Copy()
 
 		err := AggregateSubjectDataFromCore(cCopy, exportState.CoreExport, exportState.Subject)
-		UpdateExportDocStatus(err, cCopy, exportState.CoreExport.ExportDoc.ID)
 		UpdateExportDocFileSize(cCopy, exportState.CoreExport.ExportDoc.ID)
 		mu.Lock()
 		updateExportStateForRequest(err, &exportState.CoreExport)

@@ -14,8 +14,8 @@ import (
 
 type CoursePhaseAuthTestSuite struct {
 	suite.Suite
-	ctx                    context.Context
-	cleanup                func()
+	ctx         context.Context
+	cleanup     func()
 	authService AuthService
 }
 

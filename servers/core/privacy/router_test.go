@@ -190,9 +190,9 @@ func int64Ptr(v int64) *int64 { return &v }
 
 type RouterTestSuite struct {
 	suite.Suite
-	router         *gin.Engine
-	ctx            context.Context
-	cleanup        func()
+	router  *gin.Engine
+	ctx     context.Context
+	cleanup func()
 }
 
 func (suite *RouterTestSuite) SetupSuite() {

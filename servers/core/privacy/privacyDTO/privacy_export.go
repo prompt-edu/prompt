@@ -19,13 +19,13 @@ type PrivacyExportDocument struct {
 }
 
 type PrivacyExport struct {
-	ID             uuid.UUID               `json:"id"`
-	UserID         uuid.UUID               `json:"userID"`
-	StudentID      *uuid.UUID              `json:"studentID"`
-	Status         db.ExportStatus         `json:"status"`
-	DateCreated    time.Time               `json:"date_created"`
-	ValidUntil     time.Time               `json:"valid_until"`
-	Documents      []PrivacyExportDocument `json:"documents"`
+	ID          uuid.UUID               `json:"id"`
+	UserID      uuid.UUID               `json:"userID"`
+	StudentID   *uuid.UUID              `json:"studentID"`
+	Status      db.ExportStatus         `json:"status"`
+	DateCreated time.Time               `json:"date_created"`
+	ValidUntil  time.Time               `json:"valid_until"`
+	Documents   []PrivacyExportDocument `json:"documents"`
 }
 
 type AdminExportDoc struct {
@@ -87,7 +87,7 @@ func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 		StudentID:   studentID,
 		Status:      model.Status,
 		DateCreated: model.DateCreated.Time,
-    ValidUntil:  model.ValidUntil.Time,
+		ValidUntil:  model.ValidUntil.Time,
 		Documents:   []PrivacyExportDocument{},
 	}
 }

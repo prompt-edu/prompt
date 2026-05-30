@@ -11,7 +11,7 @@ import (
 
 func InitAuthModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	setupAuthRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByCourseIDWrapper)
-  service.InitAuthService(queries, conn)
+	service.InitAuthService(queries, conn)
 }
 
 func checkAccessControlByCourseIDWrapper(allowedRoles ...string) gin.HandlerFunc {

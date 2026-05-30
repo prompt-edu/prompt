@@ -23,7 +23,7 @@ func setupAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerF
 	// returns a 401 if the user is not a student of the course
 	coursePhaseauth.GET("is_student", permissionIDMiddleware(permissionValidation.CourseStudent), getCoursePhaseParticipation)
 
-  auth.GET("/subject_identifiers", getSubjectIdentifiers)
+	auth.GET("/subject_identifiers", getSubjectIdentifiers)
 }
 
 // getCoursePhaseAuthRoles godoc
@@ -98,11 +98,11 @@ func getCoursePhaseParticipation(c *gin.Context) {
 // @Router /auth/subject_identifiers [get]
 func getSubjectIdentifiers(c *gin.Context) {
 
-  subjectIdentifiers, err := service.GetSubjectIdentifiers(c)
+	subjectIdentifiers, err := service.GetSubjectIdentifiers(c)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "failed to get subject identifiers"})
 		return
 	}
 
-  c.JSON(http.StatusOK, subjectIdentifiers)
+	c.JSON(http.StatusOK, subjectIdentifiers)
 }

@@ -5,7 +5,6 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
-
 func InitAuthService(queries db.Queries, conn *pgxpool.Pool) {
 	AuthServiceSingleton = &AuthService{
 		queries: queries,

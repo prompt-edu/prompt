@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
 	log "github.com/sirupsen/logrus"
 )
+
+const cpmExportRequestTimeout = 5 * time.Minute
 
 func RequestExportFromCPM(exportDoc ServiceExportRequest, authHeader string) ExportResult {
 	requestBody := sdk.PrivacyDataExportRequest{
@@ -29,7 +32,7 @@ func RequestExportFromCPM(exportDoc ServiceExportRequest, authHeader string) Exp
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", authHeader)
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: cpmExportRequestTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithError(err).Error("failed to call CPM export endpoint")

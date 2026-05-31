@@ -20,7 +20,6 @@ import (
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
-	"github.com/prompt-edu/prompt/servers/certificate/privacy"
 	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -98,19 +97,18 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("certificate/api")
-	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
+	apiBase := router.Group("certificate/api")
+	api := apiBase.Group("/course_phase/:coursePhaseID")
 	initKeycloak()
 
-	coursePhaseApi.GET("/hello", helloCertificate)
+	api.GET("/hello", helloCertificate)
 
 	// Initialize modules
-	config.InitConfigModule(coursePhaseApi, *query, conn)
-	participants.InitParticipantsModule(coursePhaseApi, *query)
-	generator.InitGeneratorModule(coursePhaseApi, *query)
-	privacy.InitPrivacyModule(api, *query, conn)
+	config.InitConfigModule(api, *query, conn)
+	participants.InitParticipantsModule(api, *query)
+	generator.InitGeneratorModule(api, *query)
 
-	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
+	promptTypes.RegisterInfoEndpoint(apiBase, promptTypes.ServiceInfo{
 		ServiceName: "certificate",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{

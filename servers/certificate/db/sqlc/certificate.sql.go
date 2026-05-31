@@ -93,41 +93,6 @@ func (q *Queries) GetCertificateDownload(ctx context.Context, arg GetCertificate
 	return i, err
 }
 
-const getCertificateDownloadsByStudentID = `-- name: GetCertificateDownloadsByStudentID :many
-SELECT id, student_id, course_phase_id, first_download, last_download, download_count
-FROM certificate_download
-WHERE
-    student_id = $1
-ORDER BY first_download ASC
-`
-
-func (q *Queries) GetCertificateDownloadsByStudentID(ctx context.Context, studentID uuid.UUID) ([]CertificateDownload, error) {
-	rows, err := q.db.Query(ctx, getCertificateDownloadsByStudentID, studentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CertificateDownload
-	for rows.Next() {
-		var i CertificateDownload
-		if err := rows.Scan(
-			&i.ID,
-			&i.StudentID,
-			&i.CoursePhaseID,
-			&i.FirstDownload,
-			&i.LastDownload,
-			&i.DownloadCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getCoursePhaseConfig = `-- name: GetCoursePhaseConfig :one
 SELECT course_phase_id, template_content, created_at, updated_at, updated_by, release_date FROM course_phase_config WHERE course_phase_id = $1 LIMIT 1
 `

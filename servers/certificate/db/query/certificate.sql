@@ -100,10 +100,3 @@ SELECT COUNT(*) AS download_count
 FROM certificate_download
 WHERE
     course_phase_id = $1;
-
--- name: GetCertificateDownloadsByStudentID :many
-SELECT *
-FROM certificate_download
-WHERE
-    student_id = $1
-ORDER BY first_download ASC;

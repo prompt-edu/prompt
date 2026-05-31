@@ -24,7 +24,7 @@ function getCompleteDocsFileSize(docs: PrivacyExport['documents']): number | nul
 
 export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExportBannerProps) {
   const [downloading, setDownloading] = useState(-1)
-  const completeDocs = privacyExport.documents.filter((doc) => doc.status == ExportStatus.complete)
+  const completeDocs = privacyExport.documents.filter((doc) => doc.status === ExportStatus.complete)
   const { toast } = useToast()
   const completeSize = !inProgress ? getCompleteDocsFileSize(completeDocs) : null
 

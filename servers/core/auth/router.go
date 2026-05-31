@@ -17,7 +17,7 @@ import (
 func setupAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	auth := router.Group("/auth", authMiddleware())
 
-	coursePhaseauth := auth.Group("/course_phase/:coursePhaseID", authMiddleware())
+	coursePhaseauth := auth.Group("/course_phase/:coursePhaseID")
 	// this endpoint could also be exposed without any authentication
 	coursePhaseauth.GET("/roles", getCoursePhaseAuthRoles)
 	// returns a 401 if the user is not a student of the course

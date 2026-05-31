@@ -190,7 +190,7 @@ func getAllExports(c *gin.Context) {
 // @Param uuid path string true "Export UUID"
 // @Success 200 {object} privacyDTO.PrivacyExport
 // @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 405 {object} coreutils.ErrorResponse
+// @Failure 403 {object} coreutils.ErrorResponse
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid} [get]
@@ -203,12 +203,12 @@ func getExport(c *gin.Context) {
 
 	valErr := service.ValidateExportBelongsToRequester(c, exportID)
 	if valErr != nil {
-		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusMethodNotAllowed, valErr)
+		utils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 

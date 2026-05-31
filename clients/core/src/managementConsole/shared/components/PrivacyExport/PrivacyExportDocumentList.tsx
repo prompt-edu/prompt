@@ -32,7 +32,7 @@ export function PrivacyExportDocumentList({ privacyExport }: PrivacyExportDocume
       {failedDocs.length > 0 && (
         <CollapsibleDocSection
           title='Failed'
-          description='There was a problem exporting these parts. Please contact an administrator or Prompts Privacy Contact.'
+          description="There was a problem exporting these parts. Please contact an administrator or Prompt's Privacy Contact."
           docs={failedDocs}
           exportId={exportId}
         />

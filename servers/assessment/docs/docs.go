@@ -512,6 +512,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/category-assessment": {
             "post": {
+                "description": "Upserts the free-text comment for a (category, student) within the course phase. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
                 "consumes": [
                     "application/json"
                 ],
@@ -559,49 +560,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/course_phase/{coursePhaseID}/category-assessment/{categoryAssessmentID}": {
-            "delete": {
-                "tags": [
-                    "categoryAssessments"
-                ],
-                "summary": "Delete category assessment",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Category assessment ID",
-                        "name": "categoryAssessmentID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4938,12 +4898,6 @@ const docTemplate = `{
         "categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest": {
             "type": "object",
             "properties": {
-                "author": {
-                    "type": "string"
-                },
-                "authorID": {
-                    "type": "string"
-                },
                 "categoryID": {
                     "type": "string"
                 },

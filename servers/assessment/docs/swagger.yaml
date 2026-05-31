@@ -220,10 +220,6 @@ definitions:
     type: object
   categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest:
     properties:
-      author:
-        type: string
-      authorID:
-        type: string
       categoryID:
         type: string
       comment:
@@ -1273,6 +1269,9 @@ paths:
     post:
       consumes:
       - application/json
+      description: Upserts the free-text comment for a (category, student) within
+        the course phase. The author identity is taken from the authenticated JWT
+        and any client-sent author fields are ignored.
       parameters:
       - description: Course phase ID
         in: path
@@ -1300,6 +1299,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -1307,39 +1312,6 @@ paths:
               type: string
             type: object
       summary: Create or update category assessment comment
-      tags:
-      - categoryAssessments
-  /course_phase/{coursePhaseID}/category-assessment/{categoryAssessmentID}:
-    delete:
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Category assessment ID
-        in: path
-        name: categoryAssessmentID
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete category assessment
       tags:
       - categoryAssessments
   /course_phase/{coursePhaseID}/category/{categoryID}:

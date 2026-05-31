@@ -345,3 +345,19 @@ func UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseI
 
 	return tx.Commit(ctx)
 }
+
+// UpdateCategoryAssessmentCategory remaps category_assessment rows in coursePhaseID
+// from oldCategoryID to newCategoryID. Called during a schema clone so that
+// per-category student comments survive the remap.
+func UpdateCategoryAssessmentCategory(ctx context.Context, coursePhaseID uuid.UUID, oldCategoryID uuid.UUID, newCategoryID uuid.UUID) error {
+	err := AssessmentSchemaServiceSingleton.queries.UpdateCategoryAssessmentCategories(ctx, db.UpdateCategoryAssessmentCategoriesParams{
+		CoursePhaseID: coursePhaseID,
+		CategoryID:    oldCategoryID,
+		CategoryID_2:  newCategoryID,
+	})
+	if err != nil {
+		log.WithError(err).Error("Failed to update category_assessment categories")
+		return err
+	}
+	return nil
+}

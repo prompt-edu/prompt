@@ -80,22 +80,17 @@ export const AssessmentForm = ({
     })
   }, [form, courseParticipationID, competency.id, assessment, userName, userID])
 
-  const saveAssessment = async () => {
+  const saveAssessment = () => {
     if (completed) return
-
-    const isValid = await form.trigger()
-    if (!isValid) return
-
     const data = form.getValues()
     if (!data.scoreLevel) return
-
     createOrUpdateAssessment(data)
   }
 
-  const handleScoreChange = async (value: ScoreLevel) => {
+  const handleScoreChange = (value: ScoreLevel) => {
     if (completed) return
-    form.setValue('scoreLevel', value, { shouldValidate: true })
-    await saveAssessment()
+    form.setValue('scoreLevel', value)
+    saveAssessment()
   }
 
   const handleDelete = () => {

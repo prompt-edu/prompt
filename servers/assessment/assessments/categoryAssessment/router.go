@@ -5,11 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,11 +20,11 @@ func setupCategoryAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware 
 	r := routerGroup.Group("/category-assessment")
 
 	r.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createOrUpdateCategoryAssessment)
-	r.DELETE("/:categoryAssessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteCategoryAssessment)
 }
 
 // createOrUpdateCategoryAssessment godoc
 // @Summary Create or update category assessment comment
+// @Description Upserts the free-text comment for a (category, student) within the course phase. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.
 // @Tags categoryAssessments
 // @Accept json
 // @Produce json
@@ -34,6 +32,7 @@ func setupCategoryAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware 
 // @Param body body categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest true "Payload"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category-assessment [post]
 func createOrUpdateCategoryAssessment(c *gin.Context) {
@@ -42,10 +41,18 @@ func createOrUpdateCategoryAssessment(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+	// Server is the source of truth for author identity; ignore anything the client supplied.
+	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
+	req.AuthorID = tokenUser.ID
+
 	if err := CreateOrUpdateCategoryAssessment(c, req); err != nil {
-		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) ||
-			errors.Is(err, coursePhaseConfig.ErrNotStarted) ||
-			errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
+		if errors.Is(err, ErrNotEditable) {
 			handleError(c, http.StatusForbidden, err)
 			return
 		}
@@ -53,32 +60,6 @@ func createOrUpdateCategoryAssessment(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Category assessment created/updated successfully"})
-}
-
-// deleteCategoryAssessment godoc
-// @Summary Delete category assessment
-// @Tags categoryAssessments
-// @Param coursePhaseID path string true "Course phase ID"
-// @Param categoryAssessmentID path string true "Category assessment ID"
-// @Success 200 {string} string "OK"
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /course_phase/{coursePhaseID}/category-assessment/{categoryAssessmentID} [delete]
-func deleteCategoryAssessment(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("categoryAssessmentID"))
-	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
-		return
-	}
-	if err := DeleteCategoryAssessment(c, id); err != nil {
-		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) {
-			handleError(c, http.StatusForbidden, err)
-			return
-		}
-		handleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	c.String(http.StatusOK, "OK")
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

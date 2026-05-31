@@ -14,18 +14,3 @@ SELECT *
 FROM category_assessment
 WHERE course_participation_id = $1
   AND course_phase_id = $2;
-
--- name: ListCategoryAssessmentsByCoursePhase :many
-SELECT *
-FROM category_assessment
-WHERE course_phase_id = $1;
-
--- name: GetCategoryAssessment :one
-SELECT *
-FROM category_assessment
-WHERE id = $1;
-
--- name: DeleteCategoryAssessment :exec
-DELETE
-FROM category_assessment
-WHERE id = $1;

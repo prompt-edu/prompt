@@ -15,6 +15,4 @@ export interface CreateOrUpdateCategoryAssessmentRequest {
   coursePhaseID: string
   courseParticipationID: string
   comment: string
-  author: string
-  authorID: string
 }

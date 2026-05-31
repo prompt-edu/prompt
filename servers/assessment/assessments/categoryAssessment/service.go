@@ -10,6 +10,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,6 +22,22 @@ type CategoryAssessmentService struct {
 
 var CategoryAssessmentServiceSingleton *CategoryAssessmentService
 
+// ErrNotEditable is returned when the assessment is not editable yet, past
+// the deadline, or already finalized. The router maps this to 403.
+var ErrNotEditable = errors.New("category assessment is not editable")
+
+func wrapEditabilityError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) ||
+		errors.Is(err, coursePhaseConfig.ErrNotStarted) ||
+		errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
+		return fmt.Errorf("%w: %w", ErrNotEditable, err)
+	}
+	return err
+}
+
 func CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
 	tx, err := CategoryAssessmentServiceSingleton.conn.Begin(ctx)
 	if err != nil {
@@ -30,7 +47,7 @@ func CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmen
 
 	qtx := CategoryAssessmentServiceSingleton.queries.WithTx(tx)
 
-	if err := assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID); err != nil {
+	if err := wrapEditabilityError(assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)); err != nil {
 		return err
 	}
 
@@ -63,44 +80,4 @@ func ListCategoryAssessmentsByStudentInPhase(ctx context.Context, courseParticip
 		return nil, errors.New("could not list category assessments for student in phase")
 	}
 	return items, nil
-}
-
-func ListCategoryAssessmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.CategoryAssessment, error) {
-	items, err := CategoryAssessmentServiceSingleton.queries.ListCategoryAssessmentsByCoursePhase(ctx, coursePhaseID)
-	if err != nil {
-		log.Error("could not list category assessments by course phase: ", err)
-		return nil, errors.New("could not list category assessments by course phase")
-	}
-	return items, nil
-}
-
-func DeleteCategoryAssessment(ctx context.Context, id uuid.UUID) error {
-	tx, err := CategoryAssessmentServiceSingleton.conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
-
-	qtx := CategoryAssessmentServiceSingleton.queries.WithTx(tx)
-
-	existing, err := qtx.GetCategoryAssessment(ctx, id)
-	if err != nil {
-		log.Info("category assessment not found, nothing to delete: ", err)
-		return nil
-	}
-
-	if err := assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, existing.CourseParticipationID, existing.CoursePhaseID); err != nil {
-		return err
-	}
-
-	if err := qtx.DeleteCategoryAssessment(ctx, id); err != nil {
-		log.Error("could not delete category assessment: ", err)
-		return errors.New("could not delete category assessment")
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		log.Error("could not commit category assessment deletion: ", err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	return nil
 }

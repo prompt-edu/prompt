@@ -4,7 +4,6 @@ import { ChevronRight, ChevronDown } from 'lucide-react'
 
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
-import { CategoryAssessment as CategoryAssessmentType } from '../../../interfaces/categoryAssessment'
 import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 
@@ -24,7 +23,6 @@ interface CategoryAssessmentProps {
   peerEvaluationResults?: AggregatedEvaluationResult[]
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
-  categoryAssessment?: CategoryAssessmentType
 }
 
 export const CategoryAssessment = ({
@@ -34,15 +32,14 @@ export const CategoryAssessment = ({
   peerEvaluationResults,
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
-  categoryAssessment: categoryAssessmentProp,
 }: CategoryAssessmentProps) => {
-  const categoryAssessmentFromStore = useStudentAssessmentStore().categoryAssessments.find(
-    (ca) => ca.categoryID === category.id,
-  )
-  const categoryAssessment = categoryAssessmentProp ?? categoryAssessmentFromStore
   const { courseParticipationID } = useParams<{
     courseParticipationID: string
   }>()
+
+  const categoryAssessment = useStudentAssessmentStore((state) =>
+    state.categoryAssessments.find((ca) => ca.categoryID === category.id),
+  )
 
   const [isExpanded, setIsExpanded] = useState(true)
 

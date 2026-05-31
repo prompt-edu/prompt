@@ -28,10 +28,10 @@ SELECT gen_random_uuid(),
            || E'\nExamples: ' || COALESCE(NULLIF(a.examples, ''), '-')
            || E'\nComment: '  || COALESCE(NULLIF(a.comment, ''),  '-'),
            E'\n\n'
-           ORDER BY c.name
+           ORDER BY c.name, c.id
        ),
-       '',
-       '',
+       'migration',
+       'migration',
        MAX(a.assessed_at),
        MAX(a.assessed_at)
 FROM   assessment a

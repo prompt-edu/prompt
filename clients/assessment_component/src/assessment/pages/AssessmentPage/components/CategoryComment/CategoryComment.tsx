@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { Alert, AlertDescription, Textarea } from '@tumaet/prompt-ui-components'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 
 import { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
 
@@ -22,9 +21,6 @@ export const CategoryComment = ({
   completed = false,
 }: CategoryCommentProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const { user } = useAuthStore()
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
-  const userID = user?.username ?? ''
 
   const [comment, setComment] = useState(categoryAssessment?.comment ?? '')
   const [error, setError] = useState<string | undefined>(undefined)
@@ -54,9 +50,14 @@ export const CategoryComment = ({
       coursePhaseID: phaseId ?? '',
       courseParticipationID,
       comment: trimmed,
-      author: userName,
-      authorID: userID,
     })
+  }
+
+  const hasComment = (categoryAssessment?.comment ?? '').trim().length > 0
+  // In read-only contexts (released results), don't render an empty textarea with an
+  // assessor-targeted placeholder. Just hide the whole block if nothing was written.
+  if (completed && !hasComment) {
+    return null
   }
 
   const updatedAtLabel = categoryAssessment?.updatedAt

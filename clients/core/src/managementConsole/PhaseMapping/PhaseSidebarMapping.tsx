@@ -8,6 +8,7 @@ import { DevOpsChallengeSidebar } from './ExternalSidebars/DevOpsChallengeSideba
 import { TeamAllocationSidebar } from './ExternalSidebars/TeamAllocationSidebar'
 import { SelfTeamAllocationSidebar } from './ExternalSidebars/SelfTeamAllocationSidebar'
 import { CertificateSidebar } from './ExternalSidebars/CertificateSidebar'
+import { InfrastructureSetupSidebar } from './ExternalSidebars/InfrastructureSetupSidebar'
 
 export const PhaseSidebarMapping: {
   [key: string]: React.FC<{ rootPath: string; title: string; coursePhaseID: string }>
@@ -22,4 +23,5 @@ export const PhaseSidebarMapping: {
   'Team Allocation': TeamAllocationSidebar,
   'Self Team Allocation': SelfTeamAllocationSidebar,
   Certificate: CertificateSidebar,
+  'Infrastructure Setup': InfrastructureSetupSidebar,
 }

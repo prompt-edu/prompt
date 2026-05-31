@@ -3159,7 +3159,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create or update an assessment for a student.",
+                "description": "Create or update an assessment for a student. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3200,6 +3200,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4705,12 +4714,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "assessedAt": {
-                    "type": "string"
-                },
-                "author": {
-                    "type": "string"
-                },
-                "authorID": {
                     "type": "string"
                 },
                 "competencyID": {

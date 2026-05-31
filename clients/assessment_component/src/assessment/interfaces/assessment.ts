@@ -12,6 +12,4 @@ export type CreateOrUpdateAssessmentRequest = {
   coursePhaseID: string // UUID
   competencyID: string // UUID
   scoreLevel: ScoreLevel
-  author: string
-  authorID: string
 }

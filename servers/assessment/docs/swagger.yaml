@@ -93,10 +93,6 @@ definitions:
     properties:
       assessedAt:
         type: string
-      author:
-        type: string
-      authorID:
-        type: string
       competencyID:
         type: string
       courseParticipationID:
@@ -3035,7 +3031,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create or update an assessment for a student.
+      description: Create or update an assessment for a student. The author identity
+        is taken from the authenticated JWT and any client-sent author fields are
+        ignored.
       parameters:
       - description: Course phase ID
         in: path
@@ -3059,6 +3057,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string

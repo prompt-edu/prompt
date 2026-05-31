@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { Form, FormMessage } from '@tumaet/prompt-ui-components'
 
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
@@ -49,10 +48,6 @@ export const AssessmentForm = ({
   const [error, setError] = useState<string | undefined>(undefined)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const { user } = useAuthStore()
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
-  const userID = user?.username ?? ''
-
   const form = useForm<CreateOrUpdateAssessmentRequest>({
     mode: 'onChange',
     criteriaMode: 'all',
@@ -61,8 +56,6 @@ export const AssessmentForm = ({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      author: userName,
-      authorID: userID,
     },
   })
 
@@ -75,10 +68,8 @@ export const AssessmentForm = ({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      author: userName,
-      authorID: userID,
     })
-  }, [form, courseParticipationID, competency.id, assessment, userName, userID])
+  }, [form, courseParticipationID, competency.id, assessment])
 
   const saveAssessment = () => {
     if (completed) return
@@ -103,8 +94,6 @@ export const AssessmentForm = ({
             courseParticipationID,
             competencyID: competency.id,
             scoreLevel: undefined,
-            author: userName,
-            authorID: userID,
           })
         },
       })

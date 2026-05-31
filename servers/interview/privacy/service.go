@@ -1,0 +1,23 @@
+package privacy
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/utils"
+	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
+)
+
+type PrivacyService struct {
+	Queries db.Queries
+	Conn    *pgxpool.Pool
+}
+
+var PrivacyServiceSingleton *PrivacyService
+
+func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
+	exp.AddJSON("Interview Assignments", "interview_assignments.json", func() (any, error) {
+		return PrivacyServiceSingleton.Queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
+	})
+	return nil
+}

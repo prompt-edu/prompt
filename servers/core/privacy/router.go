@@ -1,6 +1,7 @@
 package privacy
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -67,7 +68,12 @@ func handleNewSubjectDataExport(c *gin.Context) {
 
 	c.JSON(http.StatusOK, export.Record)
 
-	service.RunDataExport(c, export)
+	authHeader := c.GetHeader("Authorization")
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), service.ExportRunTimeout)
+		defer cancel()
+		service.RunDataExport(ctx, authHeader, export)
+	}()
 }
 
 // getLatestExport returns the most recent export for the requesting user if one exists

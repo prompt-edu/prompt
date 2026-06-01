@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
@@ -13,6 +15,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+const ExportRunTimeout = 30 * time.Minute
 
 type ExportRequest struct {
 	Preparation Export
@@ -71,36 +75,29 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
 	}, nil
 }
 
-func RunDataExport(c *gin.Context, exportState Export) {
+func RunDataExport(ctx context.Context, authHeader string, exportState Export) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	authHeader := c.GetHeader("Authorization")
 
-	// core export
 	wg.Go(func() {
-		cCopy := c.Copy()
-
-		err := AggregateSubjectDataFromCore(cCopy, exportState.CoreExport, exportState.Subject)
-		UpdateExportDocFileSize(cCopy, exportState.CoreExport.ExportDoc.ID)
+		err := AggregateSubjectDataFromCore(ctx, exportState.CoreExport, exportState.Subject)
+		UpdateExportDocFileSize(ctx, exportState.CoreExport.ExportDoc.ID)
 		mu.Lock()
 		updateExportStateForRequest(err, &exportState.CoreExport)
 		mu.Unlock()
 	})
 
-	// external exports
 	for i := range exportState.ExternalExports {
 		i := i
 
 		wg.Go(func() {
-			cCopy := c.Copy()
-
 			result := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
 
-			if setErr := SetExportDocStatus(cCopy, exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
+			if setErr := SetExportDocStatus(ctx, exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
 				log.WithError(setErr).Error("failed to set export doc status")
 			}
 			if result == Successful {
-				UpdateExportDocFileSize(cCopy, exportState.ExternalExports[i].ExportDoc.ID)
+				UpdateExportDocFileSize(ctx, exportState.ExternalExports[i].ExportDoc.ID)
 			}
 
 			mu.Lock()
@@ -111,7 +108,7 @@ func RunDataExport(c *gin.Context, exportState Export) {
 
 	wg.Wait()
 
-	updateExportState(c, &exportState)
+	updateExportState(ctx, &exportState)
 }
 
 func updateExportStateForRequest(callErr error, expReq *ServiceExportRequest) {
@@ -122,7 +119,7 @@ func updateExportStateForRequest(callErr error, expReq *ServiceExportRequest) {
 	}
 }
 
-func updateExportState(c *gin.Context, e *Export) {
+func updateExportState(ctx context.Context, e *Export) {
 	failed := 0
 
 	if e.CoreExport.Result == Failed || e.CoreExport.Result == Pending {
@@ -134,7 +131,7 @@ func updateExportState(c *gin.Context, e *Export) {
 			failed++
 			if e.ExternalExports[i].Result == Pending {
 				log.Errorf("export doc %s still pending after request finished", e.ExternalExports[i].ExportDoc.ID)
-				if setErr := SetExportDocStatus(c, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
+				if setErr := SetExportDocStatus(ctx, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
 					log.WithError(setErr).Error("failed to mark pending export doc as failed")
 				}
 			}
@@ -142,8 +139,8 @@ func updateExportState(c *gin.Context, e *Export) {
 	}
 
 	if failed > 0 {
-		UpdateExportStatus(fmt.Errorf("at least one request failed"), c, e.Record.ID)
+		UpdateExportStatus(fmt.Errorf("at least one request failed"), ctx, e.Record.ID)
 	} else {
-		UpdateExportStatus(nil, c, e.Record.ID)
+		UpdateExportStatus(nil, ctx, e.Record.ID)
 	}
 }

@@ -29,22 +29,6 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 
 	// Admin-only routes
 	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
-
-	// DEV ONLY - delete later
-	privacyRouter.DELETE("/dev/reset-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), devResetExports)
-}
-
-// DEV ONLY - delete later
-func devResetExports(c *gin.Context) {
-	_, err := service.PrivacyServiceSingleton.GetConn().Exec(c, `
-		DELETE FROM privacy_export_document;
-		DELETE FROM privacy_export;
-	`)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
 }
 
 // handleNewSubjectDataExport exports all student related data from core and all microservices.

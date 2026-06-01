@@ -15,7 +15,7 @@ import (
 )
 
 func AggregateSubjectDataFromCore(ctx context.Context, doc ServiceExportRequest, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
-	defer func() { UpdateExportDocStatus(err, ctx, doc.ExportDoc.ID) }()
+	defer func() { UpdateExportDocStatus(err, context.WithoutCancel(ctx), doc.ExportDoc.ID) }()
 
 	ex, err := utils.NewExport()
 	if err != nil {

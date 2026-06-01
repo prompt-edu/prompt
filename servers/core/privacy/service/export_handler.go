@@ -93,7 +93,7 @@ func RunDataExport(ctx context.Context, authHeader string, exportState Export) {
 		wg.Go(func() {
 			result := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
 
-			if setErr := SetExportDocStatus(ctx, exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
+			if setErr := SetExportDocStatus(context.WithoutCancel(ctx), exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
 				log.WithError(setErr).Error("failed to set export doc status")
 			}
 			if result == Successful {
@@ -120,6 +120,7 @@ func updateExportStateForRequest(callErr error, expReq *ServiceExportRequest) {
 }
 
 func updateExportState(ctx context.Context, e *Export) {
+	statusCtx := context.WithoutCancel(ctx)
 	failed := 0
 
 	if e.CoreExport.Result == Failed || e.CoreExport.Result == Pending {
@@ -131,7 +132,7 @@ func updateExportState(ctx context.Context, e *Export) {
 			failed++
 			if e.ExternalExports[i].Result == Pending {
 				log.Errorf("export doc %s still pending after request finished", e.ExternalExports[i].ExportDoc.ID)
-				if setErr := SetExportDocStatus(ctx, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
+				if setErr := SetExportDocStatus(statusCtx, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
 					log.WithError(setErr).Error("failed to mark pending export doc as failed")
 				}
 			}
@@ -139,8 +140,8 @@ func updateExportState(ctx context.Context, e *Export) {
 	}
 
 	if failed > 0 {
-		UpdateExportStatus(fmt.Errorf("at least one request failed"), ctx, e.Record.ID)
+		UpdateExportStatus(fmt.Errorf("at least one request failed"), statusCtx, e.Record.ID)
 	} else {
-		UpdateExportStatus(nil, ctx, e.Record.ID)
+		UpdateExportStatus(nil, statusCtx, e.Record.ID)
 	}
 }

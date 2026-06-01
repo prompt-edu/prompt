@@ -343,7 +343,7 @@ func (suite *RouterTestSuite) TestRouterGetExport_WrongUser() {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusMethodNotAllowed, w.Code)
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
 }
 
 func (suite *RouterTestSuite) TestRouterGetExport_Archived() {
@@ -353,7 +353,7 @@ func (suite *RouterTestSuite) TestRouterGetExport_Archived() {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusMethodNotAllowed, w.Code)
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
 }
 
 func (suite *RouterTestSuite) TestRouterPostDataExport_ValidExportAlreadyExists() {

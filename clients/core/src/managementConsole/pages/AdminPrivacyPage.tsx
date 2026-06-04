@@ -66,9 +66,7 @@ export function AdminPrivacyPage() {
                   label: 'Delete + reset rate limit',
                   icon: <Trash2 className='w-4 h-4' />,
                   onAction: async (rows) => {
-                    await Promise.all(
-                      rows.map((r) => deleteExport(r.id, { resetRateLimit: true })),
-                    )
+                    await Promise.all(rows.map((r) => deleteExport(r.id, { resetRateLimit: true })))
                     queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
                   },
                 },

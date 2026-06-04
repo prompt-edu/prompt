@@ -65,12 +65,10 @@ func deleteExport(c *gin.Context) {
 		return
 	}
 
-	if exp.Status != db.ExportStatusArchived {
-		if err := service.ArchiveExport(c, exportID); err != nil {
-			log.WithError(err).Error("failed to delete export")
-			utils.HandleError(c, http.StatusInternalServerError, err)
-			return
-		}
+	if err := service.ArchiveExport(c, exportID); err != nil {
+		log.WithError(err).Error("failed to delete export")
+		utils.HandleError(c, http.StatusInternalServerError, err)
+		return
 	}
 
 	if resetRateLimit {

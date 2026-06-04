@@ -28,7 +28,7 @@ export function AdminPrivacyPage() {
 
   return (
     <div>
-      <ManagementPageHeader>Privacy Audit</ManagementPageHeader>
+      <ManagementPageHeader>Privacy</ManagementPageHeader>
       <Tabs defaultValue='deletion' className='-mt-3'>
         <TabsList className='w-full'>
           <TabsTrigger value='deletion' className='flex-1 flex gap-1'>

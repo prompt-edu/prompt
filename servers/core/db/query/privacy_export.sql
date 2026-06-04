@@ -73,3 +73,9 @@ SELECT object_key FROM privacy_export_document WHERE export_id = $1;
 -- name: SetExportDocStatusByExportID :exec
 UPDATE privacy_export_document SET status = $2 WHERE export_id = $1;
 
+-- name: ArchiveCompletedExportDocs :exec
+UPDATE privacy_export_document SET status = 'archived' WHERE export_id = $1 AND status = 'complete';
+
+-- name: ArchiveExportRecord :exec
+UPDATE privacy_export SET status = 'archived', valid_until = LEAST(valid_until, now()) WHERE id = $1;
+

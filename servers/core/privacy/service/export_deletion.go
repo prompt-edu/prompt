@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	log "github.com/sirupsen/logrus"
 )
@@ -63,15 +62,12 @@ func ArchiveExport(ctx context.Context, exportID uuid.UUID) error {
 		}
 	}
 
-	if err := PrivacyServiceSingleton.queries.SetExportDocStatusByExportID(ctx, db.SetExportDocStatusByExportIDParams{
-		ExportID: exportPGID,
-		Status:   db.ExportStatusArchived,
-	}); err != nil {
-		return fmt.Errorf("set docs archived: %w", err)
+	if err := PrivacyServiceSingleton.queries.ArchiveCompletedExportDocs(ctx, exportPGID); err != nil {
+		return fmt.Errorf("archive completed docs: %w", err)
 	}
 
-	if err := SetExportStatus(ctx, exportID, db.ExportStatusArchived); err != nil {
-		return fmt.Errorf("set export archived: %w", err)
+	if err := PrivacyServiceSingleton.queries.ArchiveExportRecord(ctx, exportID); err != nil {
+		return fmt.Errorf("archive export record: %w", err)
 	}
 
 	return nil

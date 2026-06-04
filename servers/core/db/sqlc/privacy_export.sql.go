@@ -12,6 +12,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const archiveCompletedExportDocs = `-- name: ArchiveCompletedExportDocs :exec
+UPDATE privacy_export_document SET status = 'archived' WHERE export_id = $1 AND status = 'complete'
+`
+
+func (q *Queries) ArchiveCompletedExportDocs(ctx context.Context, exportID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, archiveCompletedExportDocs, exportID)
+	return err
+}
+
+const archiveExportRecord = `-- name: ArchiveExportRecord :exec
+UPDATE privacy_export SET status = 'archived', valid_until = LEAST(valid_until, now()) WHERE id = $1
+`
+
+func (q *Queries) ArchiveExportRecord(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, archiveExportRecord, id)
+	return err
+}
+
 const createNewExport = `-- name: CreateNewExport :one
 INSERT INTO privacy_export ( id, user_id, student_id, status, valid_until, next_request_allowed_at )
 VALUES ($1, $2, $3, $4, $5, $6)

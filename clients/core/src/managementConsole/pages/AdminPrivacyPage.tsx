@@ -1,4 +1,9 @@
-import { ExportStatus, getAllExports } from '@core/network/queries/privacyStudentDataExport'
+import {
+  type AdminPrivacyExport,
+  deleteExport,
+  ExportStatus,
+  getAllExports,
+} from '@core/network/queries/privacyStudentDataExport'
 import {
   ManagementPageHeader,
   PromptTable,
@@ -7,11 +12,15 @@ import {
   TabsTrigger,
   TabsContent,
 } from '@tumaet/prompt-ui-components'
-import { adminExportColumns } from '../shared/components/PrivacyExport/adminExportColumns'
-import { useQuery } from '@tanstack/react-query'
+import {
+  adminExportColumns,
+  exportStatusLabel,
+} from '../shared/components/PrivacyExport/adminExportColumns'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Trash2 } from 'lucide-react'
 
 export function AdminPrivacyPage() {
+  const queryClient = useQueryClient()
   const allExportsQuery = useQuery({
     queryKey: ['privacy', 'admin', 'exports'],
     queryFn: getAllExports,
@@ -40,15 +49,37 @@ export function AdminPrivacyPage() {
           <p className='-mt-4 mb-4'>Requester Identities are hidden for privacy reasons</p>
           {allExportsQuery.isLoading && <p>Loading...</p>}
           {allExportsQuery.isSuccess && (
-            <PromptTable
+            <PromptTable<AdminPrivacyExport>
               data={allExportsQuery.data}
               columns={adminExportColumns}
+              actions={[
+                {
+                  label: 'Delete (Keeps metadata)',
+                  icon: <Trash2 className='w-4 h-4' />,
+                  onAction: async (rows) => {
+                    await Promise.all(rows.map((r) => deleteExport(r.id)))
+                    queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
+                  },
+                  hide: (rows) => rows.every((r) => r.status === ExportStatus.archived),
+                },
+                {
+                  label: 'Delete + reset rate limit',
+                  icon: <Trash2 className='w-4 h-4' />,
+                  onAction: async (rows) => {
+                    await Promise.all(
+                      rows.map((r) => deleteExport(r.id, { resetRateLimit: true })),
+                    )
+                    queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
+                  },
+                },
+              ]}
               filters={[
                 {
                   type: 'select',
                   id: 'status',
                   label: 'Status',
                   options: Object.values(ExportStatus),
+                  optionLabel: (value) => exportStatusLabel[value as ExportStatus],
                 },
               ]}
               pageSize={20}

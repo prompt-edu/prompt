@@ -2,11 +2,13 @@ package privacy
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/utils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
@@ -29,6 +31,57 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 
 	// Admin-only routes
 	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
+	privacyRouter.DELETE("/admin/data-exports/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), deleteExport)
+}
+
+// deleteExport removes an export's files from S3 and marks the export and its
+// documents as archived. The DB records are retained for auditing.
+//
+// @Summary Delete an export's files (admin only)
+// @Description Removes the export's files from S3 and marks the export and its documents as archived. DB records are retained for auditing.
+// @Tags privacy
+// @Param uuid path string true "Export UUID"
+// @Success 204
+// @Failure 400 {object} coreutils.ErrorResponse
+// @Failure 500 {object} coreutils.ErrorResponse
+// @Security BearerAuth
+// @Router /privacy/admin/data-exports/{uuid} [delete]
+func deleteExport(c *gin.Context) {
+	exportID, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	resetRateLimit := c.Query("reset_rate_limit") == "true"
+
+	exp, err := service.GetExportWithDocs(c, exportID)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	if exp.Status == db.ExportStatusArchived && !resetRateLimit {
+		utils.HandleError(c, http.StatusBadRequest, fmt.Errorf("export already archived"))
+		return
+	}
+
+	if exp.Status != db.ExportStatusArchived {
+		if err := service.ArchiveExport(c, exportID); err != nil {
+			log.WithError(err).Error("failed to delete export")
+			utils.HandleError(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if resetRateLimit {
+		if err := service.ResetExportRateLimit(c, exportID); err != nil {
+			log.WithError(err).Error("failed to reset rate limit")
+			utils.HandleError(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // handleNewSubjectDataExport exports all student related data from core and all microservices.

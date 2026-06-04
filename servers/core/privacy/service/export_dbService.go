@@ -60,18 +60,19 @@ func CreateExportRecord(c context.Context, subjectIdentifiers sdk.SubjectIdentif
 		if time.Now().Before(dto.ValidUntil) {
 			return privacyDTO.PrivacyExport{}, fmt.Errorf("an export already exists and is valid until %s", dto.ValidUntil)
 		}
-		rateLimitEnd := dto.DateCreated.Add(exportRateLimit())
-		if time.Now().Before(rateLimitEnd) {
-			return privacyDTO.PrivacyExport{}, fmt.Errorf("rate limited until %s", rateLimitEnd)
+		if time.Now().Before(dto.NextRequestAllowedAt) {
+			return privacyDTO.PrivacyExport{}, fmt.Errorf("rate limited until %s", dto.NextRequestAllowedAt)
 		}
 	}
 
+	now := time.Now()
 	exp, err := txQueries.CreateNewExport(c, db.CreateNewExportParams{
-		ID:         uuid.New(),
-		UserID:     subjectIdentifiers.UserID,
-		StudentID:  pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
-		Status:     db.ExportStatusPending,
-		ValidUntil: pgtype.Timestamptz{Time: time.Now().Add(exportExpiry()), Valid: true},
+		ID:                   uuid.New(),
+		UserID:               subjectIdentifiers.UserID,
+		StudentID:            pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
+		Status:               db.ExportStatusPending,
+		ValidUntil:           pgtype.Timestamptz{Time: now.Add(exportExpiry()), Valid: true},
+		NextRequestAllowedAt: pgtype.Timestamptz{Time: now.Add(exportRateLimit()), Valid: true},
 	})
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to create export record: %w", err)
@@ -184,8 +185,7 @@ func GetExportAvailability(c context.Context, userID uuid.UUID) (ExportAvailabil
 		return ExportExistsAndValid, exp, nil
 	}
 
-	rateLimitEnd := exp.DateCreated.Add(exportRateLimit())
-	if time.Now().Before(rateLimitEnd) {
+	if time.Now().Before(exp.NextRequestAllowedAt) {
 		return ExportRateLimited, exp, nil
 	}
 
@@ -210,7 +210,11 @@ func GetAllExports(c context.Context) ([]privacyDTO.AdminPrivacyExport, error) {
 }
 
 func RateLimitEndForExport(exp privacyDTO.PrivacyExport) time.Time {
-	return exp.DateCreated.Add(exportRateLimit())
+	return exp.NextRequestAllowedAt
+}
+
+func ResetExportRateLimit(ctx context.Context, exportID uuid.UUID) error {
+	return PrivacyServiceSingleton.queries.ResetExportNextRequestAllowedAt(ctx, exportID)
 }
 
 func SetExportDocStatus(c context.Context, docID uuid.UUID, status db.ExportStatus) error {

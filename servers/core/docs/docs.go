@@ -3535,6 +3535,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/privacy/admin/data-exports/{uuid}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes the export's files from S3 and marks the export and its documents as archived. DB records are retained for auditing.",
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Delete an export's files (admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Export UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/privacy/data-export": {
             "get": {
                 "security": [
@@ -5861,6 +5901,9 @@ const docTemplate = `{
                     }
                 },
                 "id": {
+                    "type": "string"
+                },
+                "next_request_allowed_at": {
                     "type": "string"
                 },
                 "status": {

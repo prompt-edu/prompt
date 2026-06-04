@@ -1,6 +1,6 @@
 import { ExportStatus } from '@core/network/queries/privacyStudentDataExport'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CircleCheck, CircleDashed, CircleX } from 'lucide-react'
+import { Archive, CircleCheck, CircleDashed, CircleX } from 'lucide-react'
 
 interface PrivacyExportStatusProps {
   privacy_export_status: ExportStatus
@@ -12,6 +12,7 @@ const statusStyles: Record<ExportStatus, string> = {
   [ExportStatus.pending]: 'bg-muted text-muted-foreground',
   [ExportStatus.complete]: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
   [ExportStatus.no_data]: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  [ExportStatus.archived]: 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400',
 }
 
 const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
@@ -19,6 +20,7 @@ const statusIcons = (size: number): Record<ExportStatus, React.ReactNode> => ({
   [ExportStatus.pending]: <CircleDashed className='animate-spin' size={size} />,
   [ExportStatus.complete]: <CircleCheck size={size} />,
   [ExportStatus.no_data]: <CircleCheck size={size} />,
+  [ExportStatus.archived]: <Archive size={size} />,
 })
 
 export function PrivacyExportStatus({

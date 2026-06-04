@@ -45,19 +45,19 @@ function DocSummaryCell({ docs }: { docs: AdminExportDoc[] }) {
   )
 }
 
+export const exportStatusLabel: Record<ExportStatus, string> = {
+  [ExportStatus.pending]: 'Pending',
+  [ExportStatus.complete]: 'Completed',
+  [ExportStatus.no_data]: 'No data',
+  [ExportStatus.failed]: 'Failed',
+  [ExportStatus.archived]: 'Archived',
+}
+
 export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => {
-      const { status, docs } = row.original
-      if (status === ExportStatus.failed) return 'Failed'
-      if (status === ExportStatus.complete) {
-        const hasProblems = docs.some((d) => d.status === ExportStatus.failed)
-        return hasProblems ? 'Completed with problems' : 'Completed'
-      }
-      return status
-    },
+    cell: ({ row }) => exportStatusLabel[row.original.status],
   },
   {
     accessorKey: 'date_created',

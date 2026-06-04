@@ -8,9 +8,12 @@ SELECT * FROM privacy_export_with_docs WHERE id = $1;
 SELECT * FROM privacy_export_with_docs WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1;
 
 -- name: CreateNewExport :one
-INSERT INTO privacy_export ( id, user_id, student_id, status, valid_until )
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO privacy_export ( id, user_id, student_id, status, valid_until, next_request_allowed_at )
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
+
+-- name: ResetExportNextRequestAllowedAt :exec
+UPDATE privacy_export SET next_request_allowed_at = now() WHERE id = $1;
 
 -- name: CreateNewExportDoc :one
 INSERT INTO privacy_export_document ( id, export_id, source_name, object_key, status )

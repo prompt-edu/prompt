@@ -51,12 +51,13 @@ ALTER TABLE ONLY student ADD CONSTRAINT student_university_login_key UNIQUE (uni
 CREATE TYPE export_status AS ENUM ('pending', 'complete', 'failed', 'no_data', 'archived');
 
 CREATE TABLE privacy_export (
-    id              uuid            PRIMARY KEY,
-    user_id         uuid            NOT NULL,
-    student_id      uuid            REFERENCES student(id),
-    status          export_status   NOT NULL DEFAULT 'pending',
-    date_created    timestamptz     NOT NULL DEFAULT now(),
-    valid_until     timestamptz     NOT NULL
+    id                       uuid            PRIMARY KEY,
+    user_id                  uuid            NOT NULL,
+    student_id               uuid            REFERENCES student(id),
+    status                   export_status   NOT NULL DEFAULT 'pending',
+    date_created             timestamptz     NOT NULL DEFAULT now(),
+    valid_until              timestamptz     NOT NULL,
+    next_request_allowed_at  timestamptz     NOT NULL
 );
 
 CREATE TABLE privacy_export_document (
@@ -78,6 +79,7 @@ SELECT
     e.status,
     e.date_created,
     e.valid_until,
+    e.next_request_allowed_at,
     COALESCE(
         jsonb_agg(
             json_build_object(
@@ -115,14 +117,15 @@ VALUES
 -- Export 1 – all docs successful (complete or no_data)
 --   owner: Alice (user_id 11111111-...)
 -- ---------------------------------------------------------------
-INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until)
+INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at)
 VALUES (
     'e1111111-1111-1111-1111-111111111111',
     '11111111-1111-1111-1111-111111111111',
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     'complete',
     '2026-03-01 10:00:00+00',
-    '2030-01-01 00:00:00+00'
+    '2030-01-01 00:00:00+00',
+    '2026-03-31 10:00:00+00'
 );
 
 INSERT INTO privacy_export_document (id, export_id, date_created, source_name, object_key, status, file_size)
@@ -150,14 +153,15 @@ VALUES
 -- Export 2 – partially failed (complete + no_data + failed docs)
 --   owner: Bob (user_id 22222222-...)
 -- ---------------------------------------------------------------
-INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until)
+INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at)
 VALUES (
     'e2222222-2222-2222-2222-222222222222',
     '22222222-2222-2222-2222-222222222222',
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     'failed',
     '2026-03-05 10:00:00+00',
-    '2030-01-01 00:00:00+00'
+    '2030-01-01 00:00:00+00',
+    '2026-04-04 10:00:00+00'
 );
 
 INSERT INTO privacy_export_document (id, export_id, date_created, source_name, object_key, status, file_size)
@@ -195,14 +199,15 @@ VALUES
 --   owner: Carol (user_id 33333333-...)
 --   valid_until is in the past (expiry triggers the deletion routine)
 -- ---------------------------------------------------------------
-INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until)
+INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at)
 VALUES (
     'e3333333-3333-3333-3333-333333333333',
     '33333333-3333-3333-3333-333333333333',
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
     'archived',
     '2026-02-01 10:00:00+00',
-    '2026-03-01 00:00:00+00'
+    '2026-03-01 00:00:00+00',
+    '2026-03-03 10:00:00+00'
 );
 
 INSERT INTO privacy_export_document (id, export_id, date_created, source_name, object_key, status, file_size)
@@ -233,14 +238,15 @@ VALUES
 --   Relative timestamps keep this test case valid regardless of when it runs.
 --   owner: Dave (user_id 44444444-...)
 -- ---------------------------------------------------------------
-INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until)
+INSERT INTO privacy_export (id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at)
 VALUES (
     'e4444444-4444-4444-4444-444444444444',
     '44444444-4444-4444-4444-444444444444',
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     'complete',
     NOW() - INTERVAL '5 days',
-    NOW() - INTERVAL '1 day'
+    NOW() - INTERVAL '1 day',
+    NOW() + INTERVAL '25 days'
 );
 
 INSERT INTO privacy_export_document (id, export_id, source_name, object_key, status, file_size)

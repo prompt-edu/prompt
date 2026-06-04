@@ -13,17 +13,18 @@ import (
 )
 
 const createNewExport = `-- name: CreateNewExport :one
-INSERT INTO privacy_export ( id, user_id, student_id, status, valid_until )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, student_id, status, date_created, valid_until
+INSERT INTO privacy_export ( id, user_id, student_id, status, valid_until, next_request_allowed_at )
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at
 `
 
 type CreateNewExportParams struct {
-	ID         uuid.UUID          `json:"id"`
-	UserID     uuid.UUID          `json:"user_id"`
-	StudentID  pgtype.UUID        `json:"student_id"`
-	Status     ExportStatus       `json:"status"`
-	ValidUntil pgtype.Timestamptz `json:"valid_until"`
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
+	StudentID            pgtype.UUID        `json:"student_id"`
+	Status               ExportStatus       `json:"status"`
+	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
+	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
 }
 
 func (q *Queries) CreateNewExport(ctx context.Context, arg CreateNewExportParams) (PrivacyExport, error) {
@@ -33,6 +34,7 @@ func (q *Queries) CreateNewExport(ctx context.Context, arg CreateNewExportParams
 		arg.StudentID,
 		arg.Status,
 		arg.ValidUntil,
+		arg.NextRequestAllowedAt,
 	)
 	var i PrivacyExport
 	err := row.Scan(
@@ -42,6 +44,7 @@ func (q *Queries) CreateNewExport(ctx context.Context, arg CreateNewExportParams
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 	)
 	return i, err
 }
@@ -172,7 +175,7 @@ func (q *Queries) GetExportDocObjectKeysByExportID(ctx context.Context, exportID
 }
 
 const getExportRecordByID = `-- name: GetExportRecordByID :one
-SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE id = $1 LIMIT 1
+SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at FROM privacy_export WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetExportRecordByID(ctx context.Context, id uuid.UUID) (PrivacyExport, error) {
@@ -185,12 +188,13 @@ func (q *Queries) GetExportRecordByID(ctx context.Context, id uuid.UUID) (Privac
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 	)
 	return i, err
 }
 
 const getExportRecordByIDWithDocs = `-- name: GetExportRecordByIDWithDocs :one
-SELECT id, user_id, student_id, status, date_created, valid_until, documents FROM privacy_export_with_docs WHERE id = $1
+SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at, documents FROM privacy_export_with_docs WHERE id = $1
 `
 
 func (q *Queries) GetExportRecordByIDWithDocs(ctx context.Context, id uuid.UUID) (PrivacyExportWithDoc, error) {
@@ -203,13 +207,14 @@ func (q *Queries) GetExportRecordByIDWithDocs(ctx context.Context, id uuid.UUID)
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 		&i.Documents,
 	)
 	return i, err
 }
 
 const getInvalidExports = `-- name: GetInvalidExports :many
-SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE now() >= valid_until AND status != 'archived' LIMIT $1
+SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at FROM privacy_export WHERE now() >= valid_until AND status != 'archived' LIMIT $1
 `
 
 func (q *Queries) GetInvalidExports(ctx context.Context, limit int32) ([]PrivacyExport, error) {
@@ -228,6 +233,7 @@ func (q *Queries) GetInvalidExports(ctx context.Context, limit int32) ([]Privacy
 			&i.Status,
 			&i.DateCreated,
 			&i.ValidUntil,
+			&i.NextRequestAllowedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -240,7 +246,7 @@ func (q *Queries) GetInvalidExports(ctx context.Context, limit int32) ([]Privacy
 }
 
 const getLatestExportForUserForUpdate = `-- name: GetLatestExportForUserForUpdate :one
-SELECT id, user_id, student_id, status, date_created, valid_until FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1 FOR UPDATE
+SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1 FOR UPDATE
 `
 
 func (q *Queries) GetLatestExportForUserForUpdate(ctx context.Context, userID uuid.UUID) (PrivacyExport, error) {
@@ -253,12 +259,13 @@ func (q *Queries) GetLatestExportForUserForUpdate(ctx context.Context, userID uu
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 	)
 	return i, err
 }
 
 const getLatestExportForUserWithDocs = `-- name: GetLatestExportForUserWithDocs :one
-SELECT id, user_id, student_id, status, date_created, valid_until, documents FROM privacy_export_with_docs WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1
+SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at, documents FROM privacy_export_with_docs WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1
 `
 
 func (q *Queries) GetLatestExportForUserWithDocs(ctx context.Context, userID uuid.UUID) (PrivacyExportWithDoc, error) {
@@ -271,9 +278,19 @@ func (q *Queries) GetLatestExportForUserWithDocs(ctx context.Context, userID uui
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 		&i.Documents,
 	)
 	return i, err
+}
+
+const resetExportNextRequestAllowedAt = `-- name: ResetExportNextRequestAllowedAt :exec
+UPDATE privacy_export SET next_request_allowed_at = now() WHERE id = $1
+`
+
+func (q *Queries) ResetExportNextRequestAllowedAt(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, resetExportNextRequestAllowedAt, id)
+	return err
 }
 
 const setExportDocDownloadedAt = `-- name: SetExportDocDownloadedAt :exec
@@ -350,7 +367,7 @@ func (q *Queries) SetExportDocStatusByExportID(ctx context.Context, arg SetExpor
 }
 
 const setExportStatus = `-- name: SetExportStatus :one
-UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING id, user_id, student_id, status, date_created, valid_until
+UPDATE privacy_export SET status = $2 WHERE id = $1 RETURNING id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at
 `
 
 type SetExportStatusParams struct {
@@ -368,6 +385,7 @@ func (q *Queries) SetExportStatus(ctx context.Context, arg SetExportStatusParams
 		&i.Status,
 		&i.DateCreated,
 		&i.ValidUntil,
+		&i.NextRequestAllowedAt,
 	)
 	return i, err
 }

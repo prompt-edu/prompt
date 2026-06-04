@@ -14,6 +14,7 @@ export enum ExportStatus {
   complete = 'complete',
   no_data = 'no_data',
   failed = 'failed',
+  archived = 'archived',
 }
 
 export interface PrivacyExport {
@@ -81,6 +82,14 @@ export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {
     console.error(err)
     throw err
   }
+}
+
+export const deleteExport = async (
+  exportID: string,
+  opts?: { resetRateLimit?: boolean },
+): Promise<void> => {
+  const url = `/api/privacy/admin/data-exports/${exportID}${opts?.resetRateLimit ? '?reset_rate_limit=true' : ''}`
+  await axiosInstance.delete(url)
 }
 
 export const getLatestStudentDataExport = async (): Promise<LatestExportResponse> => {

@@ -1231,6 +1231,8 @@ definitions:
         type: array
       id:
         type: string
+      next_request_allowed_at:
+        type: string
       status:
         $ref: '#/definitions/db.ExportStatus'
       studentID:
@@ -3775,6 +3777,32 @@ paths:
       security:
       - BearerAuth: []
       summary: List all data exports (admin only)
+      tags:
+      - privacy
+  /privacy/admin/data-exports/{uuid}:
+    delete:
+      description: Removes the export's files from S3 and marks the export and its
+        documents as archived. DB records are retained for auditing.
+      parameters:
+      - description: Export UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an export's files (admin only)
       tags:
       - privacy
   /privacy/data-export:

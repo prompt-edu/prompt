@@ -19,13 +19,14 @@ type PrivacyExportDocument struct {
 }
 
 type PrivacyExport struct {
-	ID          uuid.UUID               `json:"id"`
-	UserID      uuid.UUID               `json:"userID"`
-	StudentID   *uuid.UUID              `json:"studentID"`
-	Status      db.ExportStatus         `json:"status"`
-	DateCreated time.Time               `json:"date_created"`
-	ValidUntil  time.Time               `json:"valid_until"`
-	Documents   []PrivacyExportDocument `json:"documents"`
+	ID                   uuid.UUID               `json:"id"`
+	UserID               uuid.UUID               `json:"userID"`
+	StudentID            *uuid.UUID              `json:"studentID"`
+	Status               db.ExportStatus         `json:"status"`
+	DateCreated          time.Time               `json:"date_created"`
+	ValidUntil           time.Time               `json:"valid_until"`
+	NextRequestAllowedAt time.Time               `json:"next_request_allowed_at"`
+	Documents            []PrivacyExportDocument `json:"documents"`
 }
 
 type AdminExportDoc struct {
@@ -82,23 +83,25 @@ func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 	}
 
 	return PrivacyExport{
-		ID:          model.ID,
-		UserID:      model.UserID,
-		StudentID:   studentID,
-		Status:      model.Status,
-		DateCreated: model.DateCreated.Time,
-		ValidUntil:  model.ValidUntil.Time,
-		Documents:   []PrivacyExportDocument{},
+		ID:                   model.ID,
+		UserID:               model.UserID,
+		StudentID:            studentID,
+		Status:               model.Status,
+		DateCreated:          model.DateCreated.Time,
+		ValidUntil:           model.ValidUntil.Time,
+		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
+		Documents:            []PrivacyExportDocument{},
 	}
 }
 
 func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (PrivacyExport, error) {
 	export := PrivacyExport{
-		ID:          model.ID,
-		UserID:      model.UserID,
-		Status:      model.Status,
-		DateCreated: model.DateCreated.Time,
-		ValidUntil:  model.ValidUntil.Time,
+		ID:                   model.ID,
+		UserID:               model.UserID,
+		Status:               model.Status,
+		DateCreated:          model.DateCreated.Time,
+		ValidUntil:           model.ValidUntil.Time,
+		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
 	}
 
 	if model.StudentID.Valid {

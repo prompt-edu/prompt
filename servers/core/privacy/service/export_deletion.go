@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
@@ -32,47 +34,45 @@ func StartExportDeletionRoutine(ctx context.Context) {
 	}()
 }
 
-func DeleteExpiredExportFiles(c context.Context) {
+func DeleteExpiredExportFiles(ctx context.Context) {
 	log.Info("gdpr export deletion started.")
-	exports, err := PrivacyServiceSingleton.queries.GetInvalidExports(c, deletionBatchLimit)
+	exports, err := PrivacyServiceSingleton.queries.GetInvalidExports(ctx, deletionBatchLimit)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch invalid exports for deletion")
 		return
 	}
 
 	for _, exp := range exports {
-		exportPGID := pgtype.UUID{Bytes: exp.ID, Valid: true}
-
-		objectKeys, err := PrivacyServiceSingleton.queries.GetExportDocObjectKeysByExportID(c, exportPGID)
-		if err != nil {
-			log.WithError(err).WithField("exportID", exp.ID).Error("failed to fetch object keys for export")
-			continue
-		}
-
-		deleteErr := false
-		for _, key := range objectKeys {
-			if err := privacyexport.DeleteFile(c, key); err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"exportID":  exp.ID,
-					"objectKey": key,
-				}).Error("failed to delete export file from S3")
-				deleteErr = true
-			}
-		}
-
-		if deleteErr {
-			continue
-		}
-
-		if err := PrivacyServiceSingleton.queries.SetExportDocStatusByExportID(c, db.SetExportDocStatusByExportIDParams{
-			ExportID: exportPGID,
-			Status:   db.ExportStatusArchived,
-		}); err != nil {
-			log.WithError(err).WithField("exportID", exp.ID).Error("failed to set export docs status to archived")
-		}
-
-		if err := SetExportStatus(c, exp.ID, db.ExportStatusArchived); err != nil {
-			log.WithError(err).WithField("exportID", exp.ID).Error("failed to set export status to archived")
+		if err := ArchiveExport(ctx, exp.ID); err != nil {
+			log.WithError(err).WithField("exportID", exp.ID).Error("failed to archive expired export")
 		}
 	}
+}
+
+func ArchiveExport(ctx context.Context, exportID uuid.UUID) error {
+	exportPGID := pgtype.UUID{Bytes: exportID, Valid: true}
+
+	objectKeys, err := PrivacyServiceSingleton.queries.GetExportDocObjectKeysByExportID(ctx, exportPGID)
+	if err != nil {
+		return fmt.Errorf("fetch object keys: %w", err)
+	}
+
+	for _, key := range objectKeys {
+		if err := privacyexport.DeleteFile(ctx, key); err != nil {
+			return fmt.Errorf("delete s3 object %s: %w", key, err)
+		}
+	}
+
+	if err := PrivacyServiceSingleton.queries.SetExportDocStatusByExportID(ctx, db.SetExportDocStatusByExportIDParams{
+		ExportID: exportPGID,
+		Status:   db.ExportStatusArchived,
+	}); err != nil {
+		return fmt.Errorf("set docs archived: %w", err)
+	}
+
+	if err := SetExportStatus(ctx, exportID, db.ExportStatusArchived); err != nil {
+		return fmt.Errorf("set export archived: %w", err)
+	}
+
+	return nil
 }

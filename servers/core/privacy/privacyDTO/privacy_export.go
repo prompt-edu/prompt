@@ -36,11 +36,17 @@ type AdminExportDoc struct {
 }
 
 type AdminPrivacyExport struct {
-	ID          uuid.UUID        `json:"id"`
-	Status      db.ExportStatus  `json:"status"`
-	DateCreated time.Time        `json:"date_created"`
-	ValidUntil  time.Time        `json:"valid_until"`
-	Docs        []AdminExportDoc `json:"docs"`
+	ID                   uuid.UUID        `json:"id"`
+	UserID               uuid.UUID        `json:"user_id"`
+	StudentID            *uuid.UUID       `json:"student_id"`
+	StudentFirstName     *string          `json:"student_first_name"`
+	StudentLastName      *string          `json:"student_last_name"`
+	StudentEmail         *string          `json:"student_email"`
+	Status               db.ExportStatus  `json:"status"`
+	DateCreated          time.Time        `json:"date_created"`
+	ValidUntil           time.Time        `json:"valid_until"`
+	NextRequestAllowedAt time.Time        `json:"next_request_allowed_at"`
+	Docs                 []AdminExportDoc `json:"docs"`
 }
 
 func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) (AdminPrivacyExport, error) {
@@ -53,13 +59,32 @@ func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) (AdminPrivac
 		return AdminPrivacyExport{}, fmt.Errorf("failed to parse export docs: %w", err)
 	}
 
-	return AdminPrivacyExport{
-		ID:          model.ID,
-		Status:      model.Status,
-		DateCreated: model.DateCreated.Time,
-		ValidUntil:  model.ValidUntil.Time,
-		Docs:        docs,
-	}, nil
+	dto := AdminPrivacyExport{
+		ID:                   model.ID,
+		UserID:               model.UserID,
+		Status:               model.Status,
+		DateCreated:          model.DateCreated.Time,
+		ValidUntil:           model.ValidUntil.Time,
+		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
+		Docs:                 docs,
+	}
+	if model.StudentID.Valid {
+		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
+		dto.StudentID = &id
+	}
+	if model.StudentFirstName.Valid {
+		s := model.StudentFirstName.String
+		dto.StudentFirstName = &s
+	}
+	if model.StudentLastName.Valid {
+		s := model.StudentLastName.String
+		dto.StudentLastName = &s
+	}
+	if model.StudentEmail.Valid {
+		s := model.StudentEmail.String
+		dto.StudentEmail = &s
+	}
+	return dto, nil
 }
 
 func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyExportDocument {

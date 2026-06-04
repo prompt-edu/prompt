@@ -46,7 +46,6 @@ export function AdminPrivacyPage() {
         </TabsContent>
         <TabsContent value='export'>
           <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Data Exports</h2>
-          <p className='-mt-4 mb-4'>Requester Identities are hidden for privacy reasons</p>
           {allExportsQuery.isLoading && <p>Loading...</p>}
           {allExportsQuery.isSuccess && (
             <PromptTable<AdminPrivacyExport>
@@ -54,7 +53,7 @@ export function AdminPrivacyPage() {
               columns={adminExportColumns}
               actions={[
                 {
-                  label: 'Delete (Keeps metadata)',
+                  label: 'Delete',
                   icon: <Trash2 className='w-4 h-4' />,
                   onAction: async (rows) => {
                     await Promise.all(rows.map((r) => deleteExport(r.id)))

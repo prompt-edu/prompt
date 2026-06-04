@@ -29,7 +29,9 @@ function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: stri
 function DocSummaryCell({ docs }: { docs: AdminExportDoc[] }) {
   if (docs.length === 0) return <span className='text-muted-foreground'>no docs</span>
 
-  const succeeded = docs.filter((d) => d.status === ExportStatus.complete)
+  const succeeded = docs.filter(
+    (d) => d.status === ExportStatus.complete || d.status === ExportStatus.archived,
+  )
   const noData = docs.filter((d) => d.status === ExportStatus.no_data)
   const failed = docs.filter((d) => d.status === ExportStatus.failed)
 
@@ -58,6 +60,25 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => exportStatusLabel[row.original.status],
+  },
+  {
+    id: 'requester',
+    header: 'Requester',
+    cell: ({ row }) => {
+      const { student_first_name, student_last_name, student_email, user_id } = row.original
+      const name = [student_first_name, student_last_name].filter(Boolean).join(' ')
+      if (name) {
+        return (
+          <div className='flex flex-col text-sm'>
+            <span>{name}</span>
+            {student_email && (
+              <span className='text-muted-foreground text-xs'>{student_email}</span>
+            )}
+          </div>
+        )
+      }
+      return <span className='text-muted-foreground text-sm'>user {user_id.slice(0, 8)}</span>
+    },
   },
   {
     accessorKey: 'date_created',
@@ -98,10 +119,12 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
     header: 'Downloaded',
     cell: ({ row }) => {
       const docs = row.original.docs
-      const succeeded = docs.filter((d) => d.status === ExportStatus.complete)
-      const downloaded = succeeded.filter((d) => d.downloaded)
-      if (succeeded.length === 0) return <span className='text-muted-foreground'>-</span>
-      return <CountWithTooltip docs={downloaded} label={`/ ${succeeded.length} downloaded`} />
+      const downloadable = docs.filter(
+        (d) => d.status === ExportStatus.complete || d.status === ExportStatus.archived,
+      )
+      const downloaded = downloadable.filter((d) => d.downloaded)
+      if (downloadable.length === 0) return <span className='text-muted-foreground'>-</span>
+      return <CountWithTooltip docs={downloaded} label={`/ ${downloadable.length} downloaded`} />
     },
   },
 ]

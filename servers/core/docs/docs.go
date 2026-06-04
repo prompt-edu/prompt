@@ -5880,8 +5880,26 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "next_request_allowed_at": {
+                    "type": "string"
+                },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
+                },
+                "student_email": {
+                    "type": "string"
+                },
+                "student_first_name": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "student_last_name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 },
                 "valid_until": {
                     "type": "string"

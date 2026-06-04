@@ -69,9 +69,15 @@ export interface AdminExportDoc {
 
 export interface AdminPrivacyExport {
   id: string
+  user_id: string
+  student_id: string | null
+  student_first_name: string | null
+  student_last_name: string | null
+  student_email: string | null
   status: ExportStatus
   date_created: string
   valid_until: string
+  next_request_allowed_at: string
   docs: AdminExportDoc[]
 }
 

@@ -88,9 +88,15 @@ func (q *Queries) CreateNewExportDoc(ctx context.Context, arg CreateNewExportDoc
 const getAllExports = `-- name: GetAllExports :many
 SELECT
   e.id,
+  e.user_id,
+  e.student_id,
+  s.first_name AS student_first_name,
+  s.last_name AS student_last_name,
+  s.email AS student_email,
   e.status,
   e.date_created,
   e.valid_until,
+  e.next_request_allowed_at,
   COALESCE(
     JSON_AGG(JSON_BUILD_OBJECT(
       'source_name', ed.source_name,
@@ -101,16 +107,23 @@ SELECT
   ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
-GROUP BY e.id
+LEFT JOIN student s ON s.id = e.student_id
+GROUP BY e.id, e.user_id, e.student_id, s.first_name, s.last_name, s.email
 ORDER BY e.date_created DESC
 `
 
 type GetAllExportsRow struct {
-	ID          uuid.UUID          `json:"id"`
-	Status      ExportStatus       `json:"status"`
-	DateCreated pgtype.Timestamptz `json:"date_created"`
-	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
-	Docs        interface{}        `json:"docs"`
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
+	StudentID            pgtype.UUID        `json:"student_id"`
+	StudentFirstName     pgtype.Text        `json:"student_first_name"`
+	StudentLastName      pgtype.Text        `json:"student_last_name"`
+	StudentEmail         pgtype.Text        `json:"student_email"`
+	Status               ExportStatus       `json:"status"`
+	DateCreated          pgtype.Timestamptz `json:"date_created"`
+	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
+	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
+	Docs                 interface{}        `json:"docs"`
 }
 
 func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error) {
@@ -124,9 +137,15 @@ func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error)
 		var i GetAllExportsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
+			&i.StudentID,
+			&i.StudentFirstName,
+			&i.StudentLastName,
+			&i.StudentEmail,
 			&i.Status,
 			&i.DateCreated,
 			&i.ValidUntil,
+			&i.NextRequestAllowedAt,
 			&i.Docs,
 		); err != nil {
 			return nil, err

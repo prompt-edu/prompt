@@ -41,9 +41,15 @@ SELECT * FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT
 -- name: GetAllExports :many
 SELECT
   e.id,
+  e.user_id,
+  e.student_id,
+  s.first_name AS student_first_name,
+  s.last_name AS student_last_name,
+  s.email AS student_email,
   e.status,
   e.date_created,
   e.valid_until,
+  e.next_request_allowed_at,
   COALESCE(
     JSON_AGG(JSON_BUILD_OBJECT(
       'source_name', ed.source_name,
@@ -54,7 +60,8 @@ SELECT
   ) AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
-GROUP BY e.id
+LEFT JOIN student s ON s.id = e.student_id
+GROUP BY e.id, e.user_id, e.student_id, s.first_name, s.last_name, s.email
 ORDER BY e.date_created DESC;
 
 -- name: GetInvalidExports :many

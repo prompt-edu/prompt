@@ -32,12 +32,14 @@ jobs:
       - name: Install sqlc
         run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
       - name: Check sqlc generated files are current
+        env:
+          MODULE: ${{ matrix.module }}
         run: |
           sqlc generate
 
           if [ -n "$(git status --porcelain -- db/sqlc)" ]; then
             echo "sqlc generated files are out of date. Run:"
-            echo "  cd servers/${{ matrix.module }} && sqlc generate"
+            echo "  cd servers/${MODULE} && sqlc generate"
             git status --short -- db/sqlc
             git diff -- db/sqlc
             exit 1

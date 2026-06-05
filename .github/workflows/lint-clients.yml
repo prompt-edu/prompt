@@ -27,3 +27,5 @@ jobs:
       - run: yarn install
       - name: Lint components in ${{ matrix.module }}
         run: yarn eslint "${{ matrix.module }}" --config "${{ matrix.module }}/eslint.config.mjs"
+      - name: Build component ${{ matrix.module }}
+        run: yarn --cwd "${{ matrix.module }}" build

@@ -67,7 +67,7 @@
     "react-hook-form": "^7.76.0",
     "react-medium-image-zoom": "^5.4.5",
     "react-router-dom": "^7.15.1",
-    "sass-loader": "^16.0.8",
+    "sass-loader": "^17.0.0",
     "sonner": "^2.0.7",
     "style-loader": "^4.0.0",
     "tailwind-merge": "^3.6.0",

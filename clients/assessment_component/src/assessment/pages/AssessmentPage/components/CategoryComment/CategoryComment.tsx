@@ -60,10 +60,6 @@ export const CategoryComment = ({
     return null
   }
 
-  const updatedAtLabel = categoryAssessment?.updatedAt
-    ? new Date(categoryAssessment.updatedAt).toLocaleString()
-    : null
-
   return (
     <div className='space-y-2 mb-4'>
       <Textarea
@@ -76,11 +72,6 @@ export const CategoryComment = ({
         onBlur={handleBlur}
         disabled={completed}
       />
-      {categoryAssessment?.author && updatedAtLabel && (
-        <p className='text-xs text-muted-foreground'>
-          Last updated by {categoryAssessment.author} on {updatedAtLabel}
-        </p>
-      )}
       {error && (
         <Alert variant='destructive'>
           <AlertDescription>{error}</AlertDescription>

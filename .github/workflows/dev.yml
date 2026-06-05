@@ -95,15 +95,15 @@ jobs:
     needs: [detect-changes, test-servers]
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
-  lint-clients:
+  quality-clients:
     needs: detect-changes
-    uses: ./.github/workflows/lint-clients.yml
+    uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
-    needs: [detect-changes, lint-clients]
+    needs: [detect-changes, quality-clients]
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
   deploy-dev:

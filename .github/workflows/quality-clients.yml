@@ -1,10 +1,10 @@
-name: Lint Clients
+name: Quality Clients
 
 on:
   workflow_call:
     inputs:
       modules:
-        description: "JSON array of client modules to lint"
+        description: "JSON array of client modules to check"
         required: true
         type: string
 
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  lint-client:
+  quality-client:
     if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     defaults:

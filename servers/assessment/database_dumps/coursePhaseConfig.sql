@@ -117,8 +117,7 @@ CREATE TABLE public.assessment (
     course_phase_id uuid NOT NULL,
     competency_id uuid NOT NULL,
     score_level public.score_level NOT NULL,
-    created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    assessed_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     author text DEFAULT ''::text NOT NULL,
     author_id text DEFAULT ''::text NOT NULL,
     FOREIGN KEY (competency_id) REFERENCES competency (id) ON DELETE RESTRICT

@@ -137,7 +137,9 @@ CREATE TABLE public.category (
     name character varying(255) NOT NULL,
     description text,
     weight integer DEFAULT 1 NOT NULL,
-    short_name character varying(10)
+    short_name character varying(10),
+    assessment_schema_id uuid NOT NULL,
+    FOREIGN KEY (assessment_schema_id) REFERENCES assessment_schema (id) ON DELETE CASCADE
 );
 
 CREATE TABLE public.competency (
@@ -1403,7 +1405,8 @@ VALUES (
         'Version Control',
         '',
         1,
-        'Git'
+        'Git',
+        '550e8400-e29b-41d4-a716-446655440000'
     );
 
 INSERT INTO public.category
@@ -1412,7 +1415,8 @@ VALUES (
         'User Interface',
         '',
         1,
-        'UI'
+        'UI',
+        '550e8400-e29b-41d4-a716-446655440000'
     );
 
 INSERT INTO public.category
@@ -1421,7 +1425,8 @@ VALUES (
         'Fundamentals in Software Engineering',
         '',
         1,
-        'SE'
+        'SE',
+        '550e8400-e29b-41d4-a716-446655440000'
     );
 
 INSERT INTO public.competency

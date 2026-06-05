@@ -64,8 +64,8 @@ func CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmen
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		log.Error("could not commit category assessment: ", err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		log.Error("could not commit category assessment transaction: ", err)
+		return errors.New("could not commit category assessment")
 	}
 	return nil
 }

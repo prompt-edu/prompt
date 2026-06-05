@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ErrorPage } from '@tumaet/prompt-ui-components'
 
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
@@ -50,6 +51,10 @@ export const CategoryAssessment = ({
   const categoryScore = getWeightedScoreLevel(assessments, [category])
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
 
+  if (!courseParticipationID) {
+    return <ErrorPage message='The requested course participation could not be found.' />
+  }
+
   return (
     <div key={category.id} className='mb-6'>
       <div className='flex grow items-center justify-center mb-4 gap-1'>
@@ -86,7 +91,7 @@ export const CategoryAssessment = ({
         <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-5 border-t mt-2'>
           <CategoryComment
             categoryID={category.id}
-            courseParticipationID={courseParticipationID ?? ''}
+            courseParticipationID={courseParticipationID}
             categoryAssessment={categoryAssessment}
             completed={completed}
           />
@@ -108,7 +113,7 @@ export const CategoryAssessment = ({
                 return (
                   <div key={competency.id}>
                     <AssessmentForm
-                      courseParticipationID={courseParticipationID ?? ''}
+                      courseParticipationID={courseParticipationID}
                       competency={competency}
                       assessment={assessment}
                       completed={completed}

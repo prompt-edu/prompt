@@ -4,7 +4,7 @@ import { CategoryAssessment } from './categoryAssessment'
 import { StudentScore } from './studentScore'
 import { Evaluation } from './evaluation'
 
-export type StudentAssessment = {
+export interface StudentAssessment {
   courseParticipationID: string // UUID
   assessments: Assessment[]
   categoryAssessments: CategoryAssessment[]

@@ -174,6 +174,60 @@ definitions:
       newTeamName:
         type: string
     type: object
+  teaseDTO.Allocation:
+    properties:
+      projectId:
+        type: string
+      students:
+        items:
+          type: string
+        type: array
+    type: object
+  teaseDTO.TeaseSaveRequest:
+    properties:
+      algorithmType:
+        type: string
+      allocations:
+        items:
+          $ref: '#/definitions/teaseDTO.Allocation'
+        type: array
+      allocationsDraft:
+        type: object
+      constraints:
+        type: object
+      lockedStudents:
+        type: object
+    type: object
+  teaseDTO.TeaseWorkspace:
+    properties:
+      algorithmType:
+        type: string
+      allocationsDraft:
+        type: object
+      constraints:
+        type: object
+      coursePhaseId:
+        type: string
+      lastExportedAt:
+        type: string
+      lastSavedAt:
+        type: string
+      lockedStudents:
+        type: object
+      updatedBy:
+        type: string
+    type: object
+  teaseDTO.TeaseWorkspaceRequest:
+    properties:
+      algorithmType:
+        type: string
+      allocationsDraft:
+        type: object
+      constraints:
+        type: object
+      lockedStudents:
+        type: object
+    type: object
 externalDocs:
   description: PROMPT Documentation
   url: https://prompt-edu.github.io/prompt/
@@ -856,6 +910,144 @@ paths:
       summary: Import tutors
       tags:
       - team
+  /tease/course_phase/{coursePhaseID}/save:
+    post:
+      consumes:
+      - application/json
+      description: Save the TEASE workspace and replace the published allocation set
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: TEASE workspace and allocations
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teaseDTO.TeaseSaveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Publish TEASE allocations
+      tags:
+      - tease
+  /tease/course_phase/{coursePhaseID}/workspace:
+    get:
+      description: Get the persisted TEASE workspace for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get TEASE workspace
+      tags:
+      - tease
+    put:
+      consumes:
+      - application/json
+      description: Upsert the TEASE workspace snapshot without publishing allocations
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: TEASE workspace
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teaseDTO.TeaseWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Save TEASE workspace draft
+      tags:
+      - tease
 securityDefinitions:
   ApiKeyAuth:
     description: 'Bearer token authentication. Use format: Bearer {token}'

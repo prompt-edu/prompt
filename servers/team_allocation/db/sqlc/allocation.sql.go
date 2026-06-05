@@ -179,45 +179,6 @@ func (q *Queries) GetAllocationsByCoursePhase(ctx context.Context, coursePhaseID
 	return items, nil
 }
 
-const getTeamWithStudentNamesByID = `-- name: GetTeamWithStudentNamesByID :one
-SELECT
-  t.id,
-  t.name,
-  COALESCE(
-    jsonb_agg(
-      jsonb_build_object(
-        'courseParticipationID', a.course_participation_id,
-        'studentFirstName',           a.student_first_name,
-        'studentLastName',            a.student_last_name
-      )
-      ORDER BY a.student_first_name
-    ) FILTER (WHERE a.id IS NOT NULL),
-    '[]'::jsonb
-  )::jsonb AS team_members
-FROM
-  team t
-LEFT JOIN
-  allocations a
-  ON t.id = a.team_id
-WHERE
-  t.id = $1
-GROUP BY
-  t.id, t.name
-`
-
-type GetTeamWithStudentNamesByIDRow struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	TeamMembers []byte    `json:"team_members"`
-}
-
-func (q *Queries) GetTeamWithStudentNamesByID(ctx context.Context, id uuid.UUID) (GetTeamWithStudentNamesByIDRow, error) {
-	row := q.db.QueryRow(ctx, getTeamWithStudentNamesByID, id)
-	var i GetTeamWithStudentNamesByIDRow
-	err := row.Scan(&i.ID, &i.Name, &i.TeamMembers)
-	return i, err
-}
-
 const getTeamWithStudentNamesByTeamID = `-- name: GetTeamWithStudentNamesByTeamID :one
 SELECT
   t.id,

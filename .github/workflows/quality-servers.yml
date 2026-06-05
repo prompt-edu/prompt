@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: go mod download
       - name: Install sqlc
-        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
       - name: Check sqlc generated files are current
         run: |
           sqlc generate

@@ -1,10 +1,10 @@
-name: Vet Servers
+name: Quality Servers
 
 on:
   workflow_call:
     inputs:
       modules:
-        description: "JSON array of server modules to vet"
+        description: "JSON array of server modules to check"
         required: true
         type: string
 
@@ -12,12 +12,15 @@ permissions:
   contents: read
 
 jobs:
-  vet-server:
+  quality-server:
     if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
         module: ${{ fromJson(inputs.modules) }}
+    defaults:
+      run:
+        working-directory: servers/${{ matrix.module }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -25,6 +28,14 @@ jobs:
           go-version: stable
           cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
       - name: Install dependencies
-        run: cd servers/${{ matrix.module }} && go mod download
+        run: go mod download
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          working-directory: servers/${{ matrix.module }}
+          args: --timeout 5m
       - name: go vet
-        run: cd servers/${{ matrix.module }} && go vet ./...
+        run: go vet ./...
+      - name: go build
+        run: go build ./...

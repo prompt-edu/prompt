@@ -17,15 +17,15 @@ const RedDot = <span className='h-2 w-2 rounded-full shrink-0 bg-destructive' />
 const OrangeDot = <span className='h-2 w-2 rounded-full bg-orange-500 shrink-0' />
 
 function ServiceList({
-  eles,
+  services,
   indicator,
 }: {
-  eles: { id: string; name: string }[]
+  services: { id: string; name: string }[]
   indicator: ReactNode
 }) {
   return (
     <ul>
-      {eles.map((s) => (
+      {services.map((s) => (
         <li key={s.id} className='flex items-center gap-1.5 text-sm'>
           {indicator}
           {s.name}
@@ -111,8 +111,8 @@ export function PrivacyServiceAvailability() {
         </p>
         <hr className='my-1' />
         <div className='p-2'>
-          <ServiceList eles={allServices.filter((s) => !s.isError)} indicator={GreenDot} />
-          <ServiceList eles={allServices.filter((s) => s.isError)} indicator={RedDot} />
+          <ServiceList services={allServices.filter((s) => !s.isError)} indicator={GreenDot} />
+          <ServiceList services={allServices.filter((s) => s.isError)} indicator={RedDot} />
         </div>
       </PopoverContent>
     </Popover>

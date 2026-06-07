@@ -21,7 +21,7 @@ SELECT
   e.next_request_allowed_at,
   COALESCE(
     jsonb_agg(
-      json_build_object(
+      jsonb_build_object(
         'id', ed.id,
         'date_created', ed.date_created,
         'source_name', ed.source_name,
@@ -31,7 +31,7 @@ SELECT
       ) ORDER BY ed.date_created ASC
     ) FILTER (WHERE ed.id IS NOT NULL),
     '[]'::jsonb
-  ) AS documents
+  )::jsonb AS documents
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 GROUP BY e.id;

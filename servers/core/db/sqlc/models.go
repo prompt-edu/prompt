@@ -538,7 +538,7 @@ type PrivacyExportWithDoc struct {
 	DateCreated          pgtype.Timestamptz `json:"date_created"`
 	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
 	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
-	Documents            interface{}        `json:"documents"`
+	Documents            []byte             `json:"documents"`
 }
 
 type Student struct {

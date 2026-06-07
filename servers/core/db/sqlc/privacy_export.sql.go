@@ -116,13 +116,13 @@ SELECT
   e.valid_until,
   e.next_request_allowed_at,
   COALESCE(
-    JSON_AGG(JSON_BUILD_OBJECT(
+    JSONB_AGG(JSONB_BUILD_OBJECT(
       'source_name', ed.source_name,
       'status', ed.status,
       'downloaded', ed.downloaded_at IS NOT NULL
     ) ORDER BY ed.source_name) FILTER (WHERE ed.id IS NOT NULL),
-    '[]'::json
-  ) AS docs
+    '[]'::jsonb
+  )::jsonb AS docs
 FROM privacy_export e
 LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
 LEFT JOIN student s ON s.id = e.student_id
@@ -141,7 +141,7 @@ type GetAllExportsRow struct {
 	DateCreated          pgtype.Timestamptz `json:"date_created"`
 	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
 	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
-	Docs                 interface{}        `json:"docs"`
+	Docs                 []byte             `json:"docs"`
 }
 
 func (q *Queries) GetAllExports(ctx context.Context) ([]GetAllExportsRow, error) {

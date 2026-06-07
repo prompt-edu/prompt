@@ -90,10 +90,27 @@ func deleteExport(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyExport
 // @Failure 400 {object} coreutils.ErrorResponse
+// @Failure 409 {object} coreutils.ErrorResponse "A valid export already exists for this user"
+// @Failure 429 {object} coreutils.ErrorResponse "User is rate-limited from requesting another export"
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
 func handleNewSubjectDataExport(c *gin.Context) {
+	userID, err := coreutils.GetUserUUIDFromContext(c)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if valErr := service.ValidateNoValidExportExists(c, userID); valErr != nil {
+		utils.HandleError(c, http.StatusConflict, valErr)
+		return
+	}
+	if valErr := service.ValidateNotRateLimited(c, userID); valErr != nil {
+		utils.HandleError(c, http.StatusTooManyRequests, valErr)
+		return
+	}
+
 	export, err := service.PrepareDataExport(c)
 	if err != nil {
 		log.Error("student data export failed: ", err)

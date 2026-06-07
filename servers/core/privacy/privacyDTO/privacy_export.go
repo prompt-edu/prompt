@@ -50,12 +50,8 @@ type AdminPrivacyExport struct {
 }
 
 func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) (AdminPrivacyExport, error) {
-	rawDocs, err := json.Marshal(model.Docs)
-	if err != nil {
-		return AdminPrivacyExport{}, fmt.Errorf("failed to serialize docs field: %w", err)
-	}
 	var docs []AdminExportDoc
-	if err := json.Unmarshal(rawDocs, &docs); err != nil {
+	if err := json.Unmarshal(model.Docs, &docs); err != nil {
 		return AdminPrivacyExport{}, fmt.Errorf("failed to parse export docs: %w", err)
 	}
 
@@ -134,12 +130,8 @@ func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (Priv
 		export.StudentID = &id
 	}
 
-	rawDocs, err := json.Marshal(model.Documents)
-	if err != nil {
-		return PrivacyExport{}, fmt.Errorf("failed to serialize documents field: %w", err)
-	}
 	var documents []PrivacyExportDocument
-	if err := json.Unmarshal(rawDocs, &documents); err != nil {
+	if err := json.Unmarshal(model.Documents, &documents); err != nil {
 		return PrivacyExport{}, fmt.Errorf("failed to parse export documents: %w", err)
 	}
 	export.Documents = documents

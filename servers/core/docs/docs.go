@@ -3642,6 +3642,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "A valid export already exists for this user",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "User is rate-limited from requesting another export",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {

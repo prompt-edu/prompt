@@ -38,6 +38,28 @@ func ValidateExportDocBelongsToExport(c context.Context, docID uuid.UUID, export
 	return fmt.Errorf("the export doc with given ID does not belong to the export with given ID")
 }
 
+func ValidateNoValidExportExists(c context.Context, userID uuid.UUID) error {
+	availability, exp, err := GetExportAvailability(c, userID)
+	if err != nil {
+		return err
+	}
+	if availability == ExportExistsAndValid {
+		return fmt.Errorf("an export already exists and is valid until %s", exp.ValidUntil)
+	}
+	return nil
+}
+
+func ValidateNotRateLimited(c context.Context, userID uuid.UUID) error {
+	availability, exp, err := GetExportAvailability(c, userID)
+	if err != nil {
+		return err
+	}
+	if availability == ExportRateLimited {
+		return fmt.Errorf("rate limited until %s", exp.NextRequestAllowedAt)
+	}
+	return nil
+}
+
 func ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error {
 	exp, err := PrivacyServiceSingleton.queries.GetExportRecordByID(c, exportID)
 	if err != nil {

@@ -38,35 +38,11 @@ func exportExpiry() time.Duration {
 	return 7 * 24 * time.Hour
 }
 
-// CreateExportRecord atomically checks that the user is allowed to create a new export
-// (no valid export exists, not rate-limited) and inserts the record.
-// Uses SELECT ... FOR UPDATE to prevent concurrent duplicate exports.
+// CreateExportRecord inserts a new export record in pending state for the given subject.
+// Callers must run ValidateNoValidExportExists and ValidateNotRateLimited first.
 func CreateExportRecord(c context.Context, subjectIdentifiers sdk.SubjectIdentifiers) (privacyDTO.PrivacyExport, error) {
-	tx, err := PrivacyServiceSingleton.conn.Begin(c)
-	if err != nil {
-		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback(c) }()
-
-	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
-
-	latestExport, err := txQueries.GetLatestExportForUserForUpdate(c, subjectIdentifiers.UserID)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to check existing exports: %w", err)
-	}
-
-	if err == nil {
-		dto := privacyDTO.GetPrivacyExportDTOFromDBModel(latestExport)
-		if time.Now().Before(dto.ValidUntil) {
-			return privacyDTO.PrivacyExport{}, fmt.Errorf("an export already exists and is valid until %s", dto.ValidUntil)
-		}
-		if time.Now().Before(dto.NextRequestAllowedAt) {
-			return privacyDTO.PrivacyExport{}, fmt.Errorf("rate limited until %s", dto.NextRequestAllowedAt)
-		}
-	}
-
 	now := time.Now()
-	exp, err := txQueries.CreateNewExport(c, db.CreateNewExportParams{
+	exp, err := PrivacyServiceSingleton.queries.CreateNewExport(c, db.CreateNewExportParams{
 		ID:                   uuid.New(),
 		UserID:               subjectIdentifiers.UserID,
 		StudentID:            pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
@@ -77,11 +53,6 @@ func CreateExportRecord(c context.Context, subjectIdentifiers sdk.SubjectIdentif
 	if err != nil {
 		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to create export record: %w", err)
 	}
-
-	if err := tx.Commit(c); err != nil {
-		return privacyDTO.PrivacyExport{}, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return privacyDTO.GetPrivacyExportDTOFromDBModel(exp), nil
 }
 

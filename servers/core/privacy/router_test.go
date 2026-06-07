@@ -363,7 +363,7 @@ func (suite *RouterTestSuite) TestRouterPostDataExport_ValidExportAlreadyExists(
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
+	assert.Equal(suite.T(), http.StatusConflict, w.Code)
 }
 
 func (suite *RouterTestSuite) TestRouterPostDataExport_RateLimited() {
@@ -373,7 +373,7 @@ func (suite *RouterTestSuite) TestRouterPostDataExport_RateLimited() {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
+	assert.Equal(suite.T(), http.StatusTooManyRequests, w.Code)
 }
 
 func (suite *RouterTestSuite) TestRouterGetDownloadURL_Owner() {

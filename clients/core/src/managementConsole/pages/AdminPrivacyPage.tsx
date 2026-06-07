@@ -1,6 +1,5 @@
 import {
   type AdminPrivacyExport,
-  deleteExport,
   ExportStatus,
   getAllExports,
 } from '@core/network/queries/privacyStudentDataExport'
@@ -16,6 +15,7 @@ import {
   adminExportColumns,
   exportStatusLabel,
 } from '../shared/components/PrivacyExport/adminExportColumns'
+import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Trash2 } from 'lucide-react'
 
@@ -51,27 +51,7 @@ export function AdminPrivacyPage() {
             <PromptTable<AdminPrivacyExport>
               data={allExportsQuery.data}
               columns={adminExportColumns}
-              actions={[
-                {
-                  label: 'Delete',
-                  icon: <Trash2 className='w-4 h-4' />,
-                  onAction: async (rows) => {
-                    await Promise.allSettled(rows.map((r) => deleteExport(r.id)))
-                    queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
-                  },
-                  hide: (rows) => rows.every((r) => r.status === ExportStatus.archived),
-                },
-                {
-                  label: 'Delete + reset rate limit',
-                  icon: <Trash2 className='w-4 h-4' />,
-                  onAction: async (rows) => {
-                    await Promise.allSettled(
-                      rows.map((r) => deleteExport(r.id, { resetRateLimit: true })),
-                    )
-                    queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
-                  },
-                },
-              ]}
+              actions={getAdminExportActions({ queryClient })}
               filters={[
                 {
                   type: 'select',

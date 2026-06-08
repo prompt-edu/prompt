@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 )
 
@@ -12,7 +12,7 @@ type ExportPreparation struct {
 	ExternalDocs []PreparedExportDoc
 }
 
-func PrepareStudentDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIdentifiers) (ExportPreparation, error) {
+func PrepareStudentDataExport(c *gin.Context, subjectIdentifiers keycloakTokenVerifier.SubjectIdentifiers) (ExportPreparation, error) {
 	exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
 	if err != nil {
 		return ExportPreparation{}, err
@@ -32,7 +32,7 @@ func PrepareStudentDataExport(c *gin.Context, subjectIdentifiers sdk.SubjectIden
 	}, nil
 }
 
-func RunStudentDataExport(c *gin.Context, prep ExportPreparation, subjectIdentifiers sdk.SubjectIdentifiers) {
+func RunStudentDataExport(c *gin.Context, prep ExportPreparation, subjectIdentifiers keycloakTokenVerifier.SubjectIdentifiers) {
 	cCopy := c.Copy()
 	go func() {
 		var goroutineErr error
@@ -41,6 +41,6 @@ func RunStudentDataExport(c *gin.Context, prep ExportPreparation, subjectIdentif
 		goroutineErr = AggregateSubjectDataFromCore(cCopy, prep.CoreDoc, subjectIdentifiers)
 
 		// TODO: run external microservice exports concurrently here
-    // this will come with a later PR
+		// this will come with a later PR
 	}()
 }

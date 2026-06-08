@@ -71,7 +71,7 @@ interface ApplicationQuestionCardProps {
 export const ApplicationQuestionCard = forwardRef<
   ApplicationQuestionCardRef | undefined, // or null if you prefer
   ApplicationQuestionCardProps
->(function ApplicationQuestionCard(
+>(function ApplicationQuestionCardInner(
   {
     question,
     index,

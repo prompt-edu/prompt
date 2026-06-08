@@ -102,9 +102,9 @@ func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, cou
 	result := make([]ParticipantWithDownloadStatus, 0, len(participationsResp.CoursePhaseParticipations))
 	for _, p := range participationsResp.CoursePhaseParticipations {
 		participant := ParticipantWithDownloadStatus{
-			CoursePhaseParticipation: p,
-			HasDownloaded:            false,
-			DownloadCount:            0,
+			CoursePhaseParticipationWithStudent: p,
+			HasDownloaded:                       false,
+			DownloadCount:                       0,
 		}
 
 		if download, found := downloadMap[p.Student.ID]; found {
@@ -160,7 +160,7 @@ func GetCoursePhaseWithCourse(ctx context.Context, authHeader string, coursePhas
 	return &coursePhase, nil
 }
 
-func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (*Student, error) {
+func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (*promptTypes.Student, error) {
 	s := ParticipantsServiceSingleton
 	if s == nil {
 		return nil, ErrServiceNotInitialized
@@ -186,7 +186,7 @@ func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, stude
 		return nil, fmt.Errorf("failed to fetch students: %s", resp.Status)
 	}
 
-	var students []Student
+	var students []promptTypes.Student
 	if err := json.NewDecoder(resp.Body).Decode(&students); err != nil {
 		log.WithError(err).Error("Failed to decode students response")
 		return nil, fmt.Errorf("failed to decode students response: %w", err)
@@ -204,7 +204,7 @@ func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, stude
 // GetOwnStudentInfo fetches the current student's info from the core's /self endpoint.
 // This returns the core student ID (not the Keycloak UUID), which is needed for
 // correctly recording certificate downloads.
-func GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*Student, error) {
+func GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*promptTypes.Student, error) {
 	s := ParticipantsServiceSingleton
 	if s == nil {
 		return nil, ErrServiceNotInitialized

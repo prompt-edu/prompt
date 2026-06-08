@@ -12,8 +12,8 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.4.7",
-    "@rspack/core": "^1.4.7"
+    "@rspack/cli": "^1.7.11",
+    "@rspack/core": "^1.7.11"
   },
   "packageManager": "yarn@4.16.0",
   "dependencies": {

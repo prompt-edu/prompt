@@ -6,26 +6,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
+func GetSubjectIdentifiers(ctx *gin.Context) (keycloakTokenVerifier.SubjectIdentifiers, error) {
 	userID, errUserUUID := utils.GetUserUUIDFromContext(ctx)
 	if errUserUUID != nil {
-		return sdk.SubjectIdentifiers{}, errUserUUID
+		return keycloakTokenVerifier.SubjectIdentifiers{}, errUserUUID
 	}
 
 	studentID, errStudentUUID := getStudentID(ctx)
 
 	if errors.Is(errStudentUUID, sql.ErrNoRows) {
-		return sdk.SubjectIdentifiers{UserID: userID}, nil
+		return keycloakTokenVerifier.SubjectIdentifiers{UserID: userID}, nil
 	}
 
 	if errStudentUUID != nil {
-		return sdk.SubjectIdentifiers{}, errStudentUUID
+		return keycloakTokenVerifier.SubjectIdentifiers{}, errStudentUUID
 	}
 
 	courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
@@ -33,7 +33,7 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 		courseParticipationIDs = []uuid.UUID{}
 	}
 
-	return sdk.SubjectIdentifiers{
+	return keycloakTokenVerifier.SubjectIdentifiers{
 		UserID:                 userID,
 		StudentID:              studentID,
 		CourseParticipationIDs: courseParticipationIDs,

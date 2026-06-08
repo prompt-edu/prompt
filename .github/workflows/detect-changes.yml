@@ -158,7 +158,7 @@ jobs:
               if [ -n "$module" ] && is_api_spec_module "$module"; then
                 api_spec_directories=$(add_unique "$api_spec_directories" "$module")
               fi
-            done < <(find servers -maxdepth 2 -name "go.mod" | sort)
+            done < <(find servers -mindepth 2 -maxdepth 2 -name "go.mod" | sort)
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)

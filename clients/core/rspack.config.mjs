@@ -10,7 +10,7 @@ const { ModuleFederationPlugin } = rspack.container
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const config = (env) => {
+const config = (env = {}) => {
   const IS_DEV = env.NODE_ENV !== 'production'
   const IS_PERF = env.BUNDLE_SIZE === 'true'
   const deps = packageJson.dependencies

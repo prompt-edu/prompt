@@ -488,6 +488,24 @@ func (q *Queries) UpdateAssessmentSchema(ctx context.Context, arg UpdateAssessme
 	return err
 }
 
+const updateCategoryAssessmentCategories = `-- name: UpdateCategoryAssessmentCategories :exec
+UPDATE category_assessment
+SET category_id = $3
+WHERE course_phase_id = $1
+AND category_id = $2
+`
+
+type UpdateCategoryAssessmentCategoriesParams struct {
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+	CategoryID    uuid.UUID `json:"category_id"`
+	CategoryID_2  uuid.UUID `json:"category_id_2"`
+}
+
+func (q *Queries) UpdateCategoryAssessmentCategories(ctx context.Context, arg UpdateCategoryAssessmentCategoriesParams) error {
+	_, err := q.db.Exec(ctx, updateCategoryAssessmentCategories, arg.CoursePhaseID, arg.CategoryID, arg.CategoryID_2)
+	return err
+}
+
 const updateEvaluationCompetencies = `-- name: UpdateEvaluationCompetencies :exec
 UPDATE evaluation
 SET competency_id = $3

@@ -7,13 +7,16 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 )
 
+// CreateOrUpdateAssessmentRequest is the JSON payload for the per-competency
+// assessment upsert endpoint. Author and AuthorID are populated server-side
+// from the JWT and MUST NOT be set by the client (json:"-").
 type CreateOrUpdateAssessmentRequest struct {
 	CourseParticipationID uuid.UUID                `json:"courseParticipationID"`
 	CoursePhaseID         uuid.UUID                `json:"coursePhaseID"`
 	CompetencyID          uuid.UUID                `json:"competencyID"`
 	ScoreLevel            scoreLevelDTO.ScoreLevel `json:"scoreLevel"`
-	Comment               string                   `json:"comment"`
-	Examples              string                   `json:"examples"`
 	AssessedAt            *time.Time               `json:"assessedAt,omitempty"`
-	Author                string                   `json:"author"`
+
+	Author   string `json:"-"`
+	AuthorID string `json:"-"`
 }

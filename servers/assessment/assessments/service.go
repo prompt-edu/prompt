@@ -15,6 +15,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
@@ -31,20 +33,11 @@ type AssessmentService struct {
 }
 
 var AssessmentServiceSingleton *AssessmentService
-var ErrValidationFailed = errors.New("validation failed: comment and examples are required for Strongly Disagree, Disagree, and Neutral scores")
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
 
 func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
-	// Validate scoreLevel is not empty
 	if req.ScoreLevel == "" {
 		return ErrInvalidScoreLevel
-	}
-
-	// Validate that comment and examples are provided for low score levels
-	if isLowScoreLevel(req.ScoreLevel) {
-		if req.Comment == "" || req.Examples == "" {
-			return ErrValidationFailed
-		}
 	}
 
 	tx, err := AssessmentServiceSingleton.conn.Begin(ctx)
@@ -65,9 +58,8 @@ func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpd
 		CoursePhaseID:         req.CoursePhaseID,
 		CompetencyID:          req.CompetencyID,
 		ScoreLevel:            scoreLevelDTO.MapDTOtoDBScoreLevel(req.ScoreLevel),
-		Examples:              req.Examples,
-		Comment:               pgtype.Text{String: req.Comment, Valid: true},
 		Author:                req.Author,
+		AuthorID:              req.AuthorID,
 	})
 	if err != nil {
 		log.Error("could not create or update assessment: ", err)
@@ -117,6 +109,12 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get assessments for student in phase")
 	}
 
+	categoryAssessments, err := categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not get category assessments for student in phase: ", err)
+		return assessmentDTO.StudentAssessment{}, errors.New("could not get category assessments for student in phase")
+	}
+
 	var completion = assessmentCompletionDTO.AssessmentCompletion{}
 	var studentScore = scoreLevelDTO.StudentScore{
 		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
@@ -159,6 +157,7 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 	return assessmentDTO.StudentAssessment{
 		CourseParticipationID: courseParticipationID,
 		Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+		CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
 		AssessmentCompletion:  completion,
 		StudentScore:          studentScore,
 		Evaluations:           evaluations,
@@ -170,11 +169,17 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	var err error
 
 	assessments := []db.Assessment{}
+	categoryAssessments := []db.CategoryAssessment{}
 	if config.GradingSheetVisible {
 		assessments, err = ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessments for student in phase: ", err)
 			return results, errors.New("could not get assessments for student in phase")
+		}
+		categoryAssessments, err = categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get category assessments for student in phase: ", err)
+			return results, errors.New("could not get category assessments for student in phase")
 		}
 	}
 
@@ -238,6 +243,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 		Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+		CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
 		AssessmentCompletion:  assessmentCompletionDTO.MapDBAssessmentCompletionToAssessmentCompletionDTO(completion),
 		StudentScore:          studentScore,
 		PeerEvaluationResults: peerEvalResults,
@@ -280,12 +286,6 @@ func DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
-}
-
-func isLowScoreLevel(scoreLevel scoreLevelDTO.ScoreLevel) bool {
-	return scoreLevel == scoreLevelDTO.ScoreLevelVeryBad ||
-		scoreLevel == scoreLevelDTO.ScoreLevelBad ||
-		scoreLevel == scoreLevelDTO.ScoreLevelOk
 }
 
 func aggregateEvaluations(evals []evaluationDTO.Evaluation, targetType assessmentType.AssessmentType) []assessmentDTO.AggregatedEvaluationResult {

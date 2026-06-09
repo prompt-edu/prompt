@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countRemainingAssessmentsForStudent = `-- name: CountRemainingAssessmentsForStudent :one
@@ -66,28 +65,25 @@ INSERT INTO assessment (id,
                         course_phase_id,
                         competency_id,
                         score_level,
-                        comment,
                         assessed_at,
                         author,
-                        examples)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, $7)
+                        author_id)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6)
 ON CONFLICT (course_participation_id, course_phase_id, competency_id)
     DO UPDATE
     SET score_level = EXCLUDED.score_level,
-        comment     = EXCLUDED.comment,
         assessed_at = CURRENT_TIMESTAMP,
         author      = EXCLUDED.author,
-        examples    = EXCLUDED.examples
+        author_id   = EXCLUDED.author_id
 `
 
 type CreateOrUpdateAssessmentParams struct {
-	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
-	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
-	CompetencyID          uuid.UUID   `json:"competency_id"`
-	ScoreLevel            ScoreLevel  `json:"score_level"`
-	Comment               pgtype.Text `json:"comment"`
-	Author                string      `json:"author"`
-	Examples              string      `json:"examples"`
+	CourseParticipationID uuid.UUID  `json:"course_participation_id"`
+	CoursePhaseID         uuid.UUID  `json:"course_phase_id"`
+	CompetencyID          uuid.UUID  `json:"competency_id"`
+	ScoreLevel            ScoreLevel `json:"score_level"`
+	Author                string     `json:"author"`
+	AuthorID              string     `json:"author_id"`
 }
 
 func (q *Queries) CreateOrUpdateAssessment(ctx context.Context, arg CreateOrUpdateAssessmentParams) error {
@@ -96,9 +92,8 @@ func (q *Queries) CreateOrUpdateAssessment(ctx context.Context, arg CreateOrUpda
 		arg.CoursePhaseID,
 		arg.CompetencyID,
 		arg.ScoreLevel,
-		arg.Comment,
 		arg.Author,
-		arg.Examples,
+		arg.AuthorID,
 	)
 	return err
 }
@@ -115,7 +110,7 @@ func (q *Queries) DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAssessment = `-- name: GetAssessment :one
-SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, author, score_level, author_id
 FROM assessment
 WHERE id = $1
 `
@@ -128,17 +123,16 @@ func (q *Queries) GetAssessment(ctx context.Context, id uuid.UUID) (Assessment, 
 		&i.CourseParticipationID,
 		&i.CoursePhaseID,
 		&i.CompetencyID,
-		&i.Comment,
 		&i.AssessedAt,
 		&i.Author,
 		&i.ScoreLevel,
-		&i.Examples,
+		&i.AuthorID,
 	)
 	return i, err
 }
 
 const listAssessmentsByCategoryInPhase = `-- name: ListAssessmentsByCategoryInPhase :many
-SELECT a.id, a.course_participation_id, a.course_phase_id, a.competency_id, a.comment, a.assessed_at, a.author, a.score_level, a.examples
+SELECT a.id, a.course_participation_id, a.course_phase_id, a.competency_id, a.assessed_at, a.author, a.score_level, a.author_id
 FROM assessment a
          JOIN competency c ON a.competency_id = c.id
 WHERE c.category_id = $1
@@ -164,11 +158,10 @@ func (q *Queries) ListAssessmentsByCategoryInPhase(ctx context.Context, arg List
 			&i.CourseParticipationID,
 			&i.CoursePhaseID,
 			&i.CompetencyID,
-			&i.Comment,
 			&i.AssessedAt,
 			&i.Author,
 			&i.ScoreLevel,
-			&i.Examples,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -181,7 +174,7 @@ func (q *Queries) ListAssessmentsByCategoryInPhase(ctx context.Context, arg List
 }
 
 const listAssessmentsByCompetencyInPhase = `-- name: ListAssessmentsByCompetencyInPhase :many
-SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, author, score_level, author_id
 FROM assessment
 WHERE competency_id = $1
   AND course_phase_id = $2
@@ -206,11 +199,10 @@ func (q *Queries) ListAssessmentsByCompetencyInPhase(ctx context.Context, arg Li
 			&i.CourseParticipationID,
 			&i.CoursePhaseID,
 			&i.CompetencyID,
-			&i.Comment,
 			&i.AssessedAt,
 			&i.Author,
 			&i.ScoreLevel,
-			&i.Examples,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -223,7 +215,7 @@ func (q *Queries) ListAssessmentsByCompetencyInPhase(ctx context.Context, arg Li
 }
 
 const listAssessmentsByCoursePhase = `-- name: ListAssessmentsByCoursePhase :many
-SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, author, score_level, author_id
 FROM assessment
 WHERE course_phase_id = $1
 `
@@ -242,11 +234,10 @@ func (q *Queries) ListAssessmentsByCoursePhase(ctx context.Context, coursePhaseI
 			&i.CourseParticipationID,
 			&i.CoursePhaseID,
 			&i.CompetencyID,
-			&i.Comment,
 			&i.AssessedAt,
 			&i.Author,
 			&i.ScoreLevel,
-			&i.Examples,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}
@@ -259,7 +250,7 @@ func (q *Queries) ListAssessmentsByCoursePhase(ctx context.Context, coursePhaseI
 }
 
 const listAssessmentsByStudentInPhase = `-- name: ListAssessmentsByStudentInPhase :many
-SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, author, score_level, author_id
 FROM assessment
 WHERE course_participation_id = $1
   AND course_phase_id = $2
@@ -284,11 +275,10 @@ func (q *Queries) ListAssessmentsByStudentInPhase(ctx context.Context, arg ListA
 			&i.CourseParticipationID,
 			&i.CoursePhaseID,
 			&i.CompetencyID,
-			&i.Comment,
 			&i.AssessedAt,
 			&i.Author,
 			&i.ScoreLevel,
-			&i.Examples,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}

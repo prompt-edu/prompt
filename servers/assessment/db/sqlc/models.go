@@ -157,11 +157,10 @@ type Assessment struct {
 	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
 	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
 	CompetencyID          uuid.UUID          `json:"competency_id"`
-	Comment               pgtype.Text        `json:"comment"`
 	AssessedAt            pgtype.Timestamptz `json:"assessed_at"`
 	Author                string             `json:"author"`
 	ScoreLevel            ScoreLevel         `json:"score_level"`
-	Examples              string             `json:"examples"`
+	AuthorID              string             `json:"author_id"`
 }
 
 type AssessmentCompletion struct {
@@ -190,6 +189,18 @@ type Category struct {
 	Weight             int32       `json:"weight"`
 	ShortName          pgtype.Text `json:"short_name"`
 	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+}
+
+type CategoryAssessment struct {
+	ID                    uuid.UUID          `json:"id"`
+	CategoryID            uuid.UUID          `json:"category_id"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	Comment               string             `json:"comment"`
+	Author                string             `json:"author"`
+	AuthorID              string             `json:"author_id"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
 type CategoryCoursePhase struct {

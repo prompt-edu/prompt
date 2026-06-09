@@ -49,6 +49,7 @@ export const AssessmentResultsSection = () => {
     setStudentAssessment({
       courseParticipationID: results.courseParticipationID,
       assessments: results.assessments,
+      categoryAssessments: results.categoryAssessments ?? [],
       assessmentCompletion: results.assessmentCompletion,
       studentScore: results.studentScore,
       evaluations: [],

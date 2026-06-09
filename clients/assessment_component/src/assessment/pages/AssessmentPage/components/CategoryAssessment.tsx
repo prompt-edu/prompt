@@ -1,17 +1,21 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ErrorPage } from '@tumaet/prompt-ui-components'
 
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
 import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 
+import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
+
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 import { AssessmentStatusBadge, StudentScoreBadge } from '../../components/badges'
 
 import { AssessmentForm } from './AssessmentForm/AssessmentForm'
+import { CategoryComment } from './CategoryComment/CategoryComment'
 
 interface CategoryAssessmentProps {
   category: CategoryWithCompetencies
@@ -34,6 +38,10 @@ export const CategoryAssessment = ({
     courseParticipationID: string
   }>()
 
+  const categoryAssessment = useStudentAssessmentStore((state) =>
+    state.categoryAssessments.find((ca) => ca.categoryID === category.id),
+  )
+
   const [isExpanded, setIsExpanded] = useState(true)
 
   const toggleExpand = () => {
@@ -42,6 +50,10 @@ export const CategoryAssessment = ({
 
   const categoryScore = getWeightedScoreLevel(assessments, [category])
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
+
+  if (!courseParticipationID) {
+    return <ErrorPage message='The requested course participation could not be found.' />
+  }
 
   return (
     <div key={category.id} className='mb-6'>
@@ -77,6 +89,12 @@ export const CategoryAssessment = ({
 
       {isExpanded && (
         <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-5 border-t mt-2'>
+          <CategoryComment
+            categoryID={category.id}
+            courseParticipationID={courseParticipationID}
+            categoryAssessment={categoryAssessment}
+            completed={completed}
+          />
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
               No competencies available in this category.
@@ -95,7 +113,7 @@ export const CategoryAssessment = ({
                 return (
                   <div key={competency.id}>
                     <AssessmentForm
-                      courseParticipationID={courseParticipationID ?? ''}
+                      courseParticipationID={courseParticipationID}
                       competency={competency}
                       assessment={assessment}
                       completed={completed}

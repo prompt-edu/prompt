@@ -13,7 +13,7 @@ export const useCreateOrUpdateCategoryAssessment = (
 
   return useMutation({
     mutationFn: (req: CreateOrUpdateCategoryAssessmentRequest) =>
-      createOrUpdateCategoryAssessment(phaseId ?? '', { ...req, coursePhaseID: phaseId ?? '' }),
+      createOrUpdateCategoryAssessment(phaseId ?? '', req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assessments', phaseId] })
       setError(undefined)

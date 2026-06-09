@@ -76,15 +76,13 @@ definitions:
         type: string
       author:
         type: string
-      comment:
+      authorID:
         type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       id:
         type: string
@@ -95,17 +93,11 @@ definitions:
     properties:
       assessedAt:
         type: string
-      author:
-        type: string
-      comment:
-        type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       scoreLevel:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
@@ -117,6 +109,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -138,6 +134,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -193,6 +193,38 @@ definitions:
     - Peer
     - Tutor
     - Assessment
+  categoryAssessmentDTO.CategoryAssessment:
+    properties:
+      author:
+        type: string
+      authorID:
+        type: string
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest:
+    properties:
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+    type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
       competencies:
@@ -1229,6 +1261,55 @@ paths:
       summary: Create category
       tags:
       - categories
+  /course_phase/{coursePhaseID}/category-assessment:
+    post:
+      consumes:
+      - application/json
+      description: Upserts the free-text comment for a (category, student) within
+        the course phase. The author identity is taken from the authenticated JWT
+        and any client-sent author fields are ignored.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update category assessment comment
+      tags:
+      - categoryAssessments
   /course_phase/{coursePhaseID}/category/{categoryID}:
     delete:
       description: Delete a category from the course phase.
@@ -2950,7 +3031,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create or update an assessment for a student.
+      description: Create or update an assessment for a student. The author identity
+        is taken from the authenticated JWT and any client-sent author fields are
+        ignored.
       parameters:
       - description: Course phase ID
         in: path
@@ -2974,6 +3057,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string

@@ -67,10 +67,22 @@ CREATE TABLE public.assessment (
     course_phase_id uuid NOT NULL,
     competency_id uuid NOT NULL,
     score_level public.score_level NOT NULL,
-    COMMENT text,
     assessed_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     author text DEFAULT ''::text NOT NULL,
-    examples text DEFAULT '' NOT NULL
+    author_id text DEFAULT ''::text NOT NULL
+);
+
+CREATE TABLE public.category_assessment (
+    id uuid NOT NULL PRIMARY KEY,
+    category_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    comment text DEFAULT '' NOT NULL,
+    author text DEFAULT '' NOT NULL,
+    author_id text DEFAULT '' NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    UNIQUE (category_id, course_phase_id, course_participation_id)
 );
 
 CREATE TABLE public.assessment_completion (
@@ -154,9 +166,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'Meaningful Comment',
         '2025-05-11 20:16:50.331851+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -166,9 +178,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '20725c05-bfd7-45a7-a981-d092e14f98d3',
         'ok',
-        'a',
         '2025-05-11 21:41:57.148125+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -178,9 +190,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '0431b736-7fab-4333-b83e-fe3927f32475',
         'bad',
-        'a',
         '2025-05-13 16:27:33.380423+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -190,9 +202,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '36af9432-0b0e-49e0-93d0-5044b7bed1c8',
         'bad',
-        'a',
         '2025-05-13 16:27:33.811249+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -202,9 +214,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '2fc14584-d82c-47c2-9f75-22276d9809ef',
         'bad',
-        'a',
         '2025-05-13 16:27:34.383677+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -214,9 +226,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '54dbdc81-8566-4353-ace4-e2a8252a8c59',
         'bad',
-        'a',
         '2025-05-13 16:27:35.807434+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -226,9 +238,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         '31aea83e-407b-4428-a5da-b25dd562832b',
         'bad',
-        'a',
         '2025-05-13 16:27:36.73803+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment
@@ -238,9 +250,9 @@ VALUES (
         '24461b6b-3c3a-4bc6-ba42-69eeb1514da9',
         'eb36bf49-87c2-429b-a87e-a930630a3fe3',
         'good',
-        'a',
         '2025-05-11 21:46:32.204333+02',
-        'Maximilian Rapp'
+        'Maximilian Rapp',
+        ''
     );
 
 INSERT INTO public.assessment_completion

@@ -17,8 +17,8 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
@@ -46,6 +46,7 @@ func (suite *AssessmentServiceTestSuite) SetupSuite() {
 	AssessmentServiceSingleton = &suite.service
 	assessmentCompletion.InitAssessmentCompletionModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
 	scoreLevel.InitScoreLevelModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	categoryAssessment.InitCategoryAssessmentModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
 
 	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
@@ -96,47 +97,13 @@ func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentWithEmptySc
 		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
 		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
 		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            "", // Empty scoreLevel should be rejected
-		Comment:               "",
-		Examples:              "",
+		ScoreLevel:            "",
 		Author:                "Test Author",
 	}
 
 	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
 	assert.Error(suite.T(), err, "Expected error for empty scoreLevel")
 	assert.Equal(suite.T(), ErrInvalidScoreLevel, err, "Expected ErrInvalidScoreLevel")
-}
-
-func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentLowScoreLevelWithoutComment() {
-	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
-		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
-		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
-		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            scoreLevelDTO.ScoreLevelBad,
-		Comment:               "", // Empty comment should fail for low scoreLevel
-		Examples:              "Some example",
-		Author:                "Test Author",
-	}
-
-	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
-	assert.Error(suite.T(), err, "Expected error for low scoreLevel without comment")
-	assert.Equal(suite.T(), ErrValidationFailed, err, "Expected ErrValidationFailed")
-}
-
-func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentLowScoreLevelWithoutExamples() {
-	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
-		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
-		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
-		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            scoreLevelDTO.ScoreLevelOk,
-		Comment:               "Some comment",
-		Examples:              "", // Empty examples should fail for low scoreLevel
-		Author:                "Test Author",
-	}
-
-	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
-	assert.Error(suite.T(), err, "Expected error for low scoreLevel without examples")
-	assert.Equal(suite.T(), ErrValidationFailed, err, "Expected ErrValidationFailed")
 }
 
 func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONIncludesAssessmentsCompletionAndActionItems() {
@@ -172,7 +139,6 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONIncludes
 	assert.Equal(suite.T(), 4.5, export.StudentAssessment.AssessmentCompletion.GradeSuggestion)
 	assert.True(suite.T(), export.StudentAssessment.AssessmentCompletion.CompletedAt.Valid)
 	assert.NotEmpty(suite.T(), export.StudentAssessment.Assessments)
-	assert.NotEmpty(suite.T(), export.StudentAssessment.Assessments[0].Comment)
 	assert.NotEmpty(suite.T(), export.ActionItems)
 	foundExportActionItem := false
 	for _, item := range export.ActionItems {
@@ -196,6 +162,7 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONWithoutO
 	assert.False(suite.T(), export.StudentAssessment.AssessmentCompletion.CompletedAt.Valid)
 	assert.Empty(suite.T(), export.StudentAssessment.AssessmentCompletion.Comment)
 	assert.Empty(suite.T(), export.StudentAssessment.Assessments)
+	assert.Empty(suite.T(), export.StudentAssessment.CategoryAssessments)
 	assert.Empty(suite.T(), export.ActionItems)
 }
 
@@ -207,6 +174,7 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentUnsupportedF
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), errors.Is(err, ErrUnsupportedAssessmentExportFormat))
 }
+
 
 func TestAssessmentServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentServiceTestSuite))

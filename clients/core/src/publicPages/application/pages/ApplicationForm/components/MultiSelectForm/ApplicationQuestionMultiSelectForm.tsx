@@ -16,7 +16,7 @@ interface ApplicationQuestionMultiSelectFormProps {
 }
 
 export const ApplicationQuestionMultiSelectForm = forwardRef(
-  function ApplicationQuestionMultiSelectForm(
+  function ApplicationQuestionMultiSelectFormInner(
     {
       question,
       initialAnswers = [],

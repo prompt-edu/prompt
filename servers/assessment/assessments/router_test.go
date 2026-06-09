@@ -17,6 +17,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
@@ -46,6 +47,7 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 	AssessmentServiceSingleton = &suite.service
 	assessmentCompletion.InitAssessmentCompletionModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
 	scoreLevel.InitScoreLevelModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	categoryAssessment.InitCategoryAssessmentModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")

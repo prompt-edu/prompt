@@ -3,7 +3,7 @@ package keycloakRealmManager
 import (
 	"context"
 
-	"github.com/Nerzal/gocloak/v13"
+	"github.com/Nerzal/gocloak/v14"
 	"github.com/gin-gonic/gin"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"

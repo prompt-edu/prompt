@@ -139,8 +139,21 @@ func copySchemaForConsumer(ctx context.Context, queries db.Queries, oldSchemaID 
 	}
 	categoriesWithCompetencies := categoryDTO.MapToCategoryWithCompetenciesDTO(dbCategoriesWithCompetencies)
 
-	// Update assessment and evaluation competency references for ALL competencies in ALL categories
+	// Update assessment and evaluation competency references for ALL competencies in ALL categories,
+	// and remap per-category student comments (category_assessment) to the new category IDs.
 	for _, categoryWithCompetencies := range categoriesWithCompetencies {
+		newCategoryID, err := queries.GetCorrespondingCategoryInNewSchema(ctx, db.GetCorrespondingCategoryInNewSchemaParams{
+			OldCategoryID: categoryWithCompetencies.ID,
+			NewSchemaID:   copiedSchema.ID,
+		})
+		if err == nil {
+			if err := assessmentSchemas.UpdateCategoryAssessmentCategory(ctx, coursePhaseID, categoryWithCompetencies.ID, newCategoryID); err != nil {
+				return uuid.Nil, errors.New("failed to update category_assessment categories")
+			}
+		} else {
+			log.WithError(err).WithField("categoryID", categoryWithCompetencies.ID).Warn("Failed to find corresponding category in new schema, category_assessment rows will be left untouched")
+		}
+
 		for _, competency := range categoryWithCompetencies.Competencies {
 			newCompMapping, err := queries.GetCorrespondingCompetencyInNewSchema(ctx, db.GetCorrespondingCompetencyInNewSchemaParams{
 				OldCompetencyID: competency.ID,

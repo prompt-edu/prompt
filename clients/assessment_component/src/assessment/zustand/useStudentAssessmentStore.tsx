@@ -2,6 +2,7 @@ import { Assessment } from '../interfaces/assessment'
 import { AssessmentCompletion } from '../interfaces/assessmentCompletion'
 import { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
 import { AssessmentType } from '../interfaces/assessmentType'
+import { CategoryAssessment } from '../interfaces/categoryAssessment'
 import { Evaluation } from '../interfaces/evaluation'
 import { StudentAssessment } from '../interfaces/studentAssessment'
 import { StudentScore } from '../interfaces/studentScore'
@@ -11,6 +12,7 @@ import { create } from 'zustand'
 export interface StudentAssessmentStore {
   courseParticipationID: string | undefined
   assessments: Assessment[]
+  categoryAssessments: CategoryAssessment[]
   assessmentCompletion: AssessmentCompletion | undefined
   studentScore: StudentScore | undefined
   selfEvaluations: Evaluation[]
@@ -24,6 +26,7 @@ export interface StudentAssessmentStore {
 export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) => ({
   courseParticipationID: undefined,
   assessments: [],
+  categoryAssessments: [],
   assessmentCompletion: undefined,
   studentScore: undefined,
   selfEvaluations: [],
@@ -32,6 +35,7 @@ export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) =>
     set({
       courseParticipationID: assessment.courseParticipationID,
       assessments: assessment.assessments,
+      categoryAssessments: assessment.categoryAssessments ?? [],
       assessmentCompletion: assessment.assessmentCompletion,
       studentScore: assessment.studentScore,
       selfEvaluations: assessment.evaluations.filter(

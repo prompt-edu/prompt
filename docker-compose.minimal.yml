@@ -136,7 +136,7 @@ services:
       - clients-base
 
   db-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -199,7 +199,7 @@ services:
       - clients-base
 
   db-self-team-allocation:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -262,7 +262,7 @@ services:
       - clients-base
 
   db-assessment:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -326,7 +326,7 @@ services:
       - clients-base
 
   db-interview:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
@@ -348,7 +348,7 @@ services:
 
   # ── Infrastructure ─────────────────────────────────────────────────
   db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -366,7 +366,7 @@ services:
       - "5432:5432"
 
   keycloak-db:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -388,7 +388,7 @@ services:
       - "5431:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.1
+    image: quay.io/keycloak/keycloak:26.6.3
     container_name: prompt-keycloak
     command:
       - start-dev

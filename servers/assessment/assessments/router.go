@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -58,7 +59,7 @@ func listAssessmentsByCoursePhase(c *gin.Context) {
 
 // createOrUpdateAssessment godoc
 // @Summary Create or update assessment
-// @Description Create or update an assessment for a student.
+// @Description Create or update an assessment for a student. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.
 // @Tags assessments
 // @Accept json
 // @Produce json
@@ -66,6 +67,7 @@ func listAssessmentsByCoursePhase(c *gin.Context) {
 // @Param assessment body assessmentDTO.CreateOrUpdateAssessmentRequest true "Assessment payload"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func createOrUpdateAssessment(c *gin.Context) {
@@ -74,10 +76,18 @@ func createOrUpdateAssessment(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
+	req.AuthorID = tokenUser.ID
+
 	err := CreateOrUpdateAssessment(c, req)
 	if err != nil {
-		// Check if it's a validation error
-		if errors.Is(err, ErrValidationFailed) || errors.Is(err, ErrInvalidScoreLevel) {
+		if errors.Is(err, ErrInvalidScoreLevel) {
 			handleError(c, http.StatusBadRequest, err)
 		} else {
 			handleError(c, http.StatusInternalServerError, err)

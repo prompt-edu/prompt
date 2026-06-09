@@ -37,14 +37,14 @@ jobs:
     secrets: inherit
     with:
       release_tag: "${{ github.event.release.tag_name }},latest"
-  lint-clients:
+  quality-clients:
     needs: detect-changes
-    uses: ./.github/workflows/lint-clients.yml
+    uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
-    needs: lint-clients
+    needs: quality-clients
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
     with:

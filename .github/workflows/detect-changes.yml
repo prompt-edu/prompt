@@ -101,7 +101,7 @@ jobs:
           add_unique() {
             local list="$1"
             local value="$2"
-            echo "$list" | jq --arg v "$value" 'if contains([$v]) then . else . + [$v] end'
+            echo "$list" | jq --arg v "$value" 'if any(. == $v) then . else . + [$v] end'
           }
 
           client_workspace_modules=$(jq -cr '.workspaces.packages // []' clients/package.json)

@@ -219,3 +219,9 @@ UPDATE evaluation
 SET competency_id = $3
 WHERE course_phase_id = $1
 AND competency_id = $2;
+
+-- name: UpdateCategoryAssessmentCategories :exec
+UPDATE category_assessment
+SET category_id = $3
+WHERE course_phase_id = $1
+AND category_id = $2;

@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 )
 
@@ -19,6 +20,7 @@ type StudentAssessmentResults struct {
 	CoursePhaseID         uuid.UUID                                    `json:"coursePhaseID"`
 	AssessmentCompletion  assessmentCompletionDTO.AssessmentCompletion `json:"assessmentCompletion"`
 	Assessments           []Assessment                                 `json:"assessments"`
+	CategoryAssessments   []categoryAssessmentDTO.CategoryAssessment   `json:"categoryAssessments"`
 	StudentScore          scoreLevelDTO.StudentScore                   `json:"studentScore"`
 	PeerEvaluationResults []AggregatedEvaluationResult                 `json:"peerEvaluationResults"`
 	SelfEvaluationResults []AggregatedEvaluationResult                 `json:"selfEvaluationResults"`

@@ -9,16 +9,18 @@ definitions:
     type: object
   db.SkillLevel:
     enum:
-    - novice
-    - intermediate
-    - advanced
-    - expert
+    - very_bad
+    - bad
+    - ok
+    - good
+    - very_good
     type: string
     x-enum-varnames:
-    - SkillLevelNovice
-    - SkillLevelIntermediate
-    - SkillLevelAdvanced
-    - SkillLevelExpert
+    - SkillLevelVeryBad
+    - SkillLevelBad
+    - SkillLevelOk
+    - SkillLevelGood
+    - SkillLevelVeryGood
   promptTypes.Person:
     properties:
       firstName:
@@ -83,6 +85,25 @@ definitions:
       newSkillName:
         type: string
     type: object
+  surveyDTO.PreferenceCount:
+    properties:
+      count:
+        type: integer
+      rank:
+        type: integer
+    type: object
+  surveyDTO.SkillDistributionStats:
+    properties:
+      levelCounts:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      skillId:
+        type: string
+      skillName:
+        type: string
+    type: object
   surveyDTO.StudentSkillResponse:
     properties:
       skillID:
@@ -121,6 +142,17 @@ definitions:
           $ref: '#/definitions/promptTypes.Team'
         type: array
     type: object
+  surveyDTO.SurveyStatistics:
+    properties:
+      skillDistributionStatistics:
+        items:
+          $ref: '#/definitions/surveyDTO.SkillDistributionStats'
+        type: array
+      teamPopularityStatistics:
+        items:
+          $ref: '#/definitions/surveyDTO.TeamPopularityStats'
+        type: array
+    type: object
   surveyDTO.SurveyTimeframe:
     properties:
       surveyDeadline:
@@ -132,6 +164,21 @@ definitions:
     required:
     - surveyDeadline
     - surveyStart
+    type: object
+  surveyDTO.TeamPopularityStats:
+    properties:
+      avgPreference:
+        type: number
+      preferenceCounts:
+        items:
+          $ref: '#/definitions/surveyDTO.PreferenceCount'
+        type: array
+      responseCount:
+        type: integer
+      teamId:
+        type: string
+      teamName:
+        type: string
     type: object
   teamDTO.CreateTeamsRequest:
     properties:
@@ -512,6 +559,40 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get survey form
+      tags:
+      - survey
+  /course_phase/{coursePhaseID}/survey/statistics:
+    get:
+      description: Get aggregated team preference and skill distribution statistics
+        for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/surveyDTO.SurveyStatistics'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get survey statistics
       tags:
       - survey
   /course_phase/{coursePhaseID}/survey/timeframe:

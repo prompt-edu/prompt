@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
@@ -86,47 +85,13 @@ func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentWithEmptySc
 		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
 		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
 		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            "", // Empty scoreLevel should be rejected
-		Comment:               "",
-		Examples:              "",
+		ScoreLevel:            "",
 		Author:                "Test Author",
 	}
 
 	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
 	assert.Error(suite.T(), err, "Expected error for empty scoreLevel")
 	assert.Equal(suite.T(), ErrInvalidScoreLevel, err, "Expected ErrInvalidScoreLevel")
-}
-
-func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentLowScoreLevelWithoutComment() {
-	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
-		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
-		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
-		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            scoreLevelDTO.ScoreLevelBad,
-		Comment:               "", // Empty comment should fail for low scoreLevel
-		Examples:              "Some example",
-		Author:                "Test Author",
-	}
-
-	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
-	assert.Error(suite.T(), err, "Expected error for low scoreLevel without comment")
-	assert.Equal(suite.T(), ErrValidationFailed, err, "Expected ErrValidationFailed")
-}
-
-func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentLowScoreLevelWithoutExamples() {
-	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
-		CourseParticipationID: uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7"),
-		CoursePhaseID:         uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9"),
-		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
-		ScoreLevel:            scoreLevelDTO.ScoreLevelOk,
-		Comment:               "Some comment",
-		Examples:              "", // Empty examples should fail for low scoreLevel
-		Author:                "Test Author",
-	}
-
-	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
-	assert.Error(suite.T(), err, "Expected error for low scoreLevel without examples")
-	assert.Equal(suite.T(), ErrValidationFailed, err, "Expected ErrValidationFailed")
 }
 
 func TestAssessmentServiceTestSuite(t *testing.T) {

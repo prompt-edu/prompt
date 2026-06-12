@@ -1,7 +1,5 @@
-import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { ChevronRight, ChevronDown } from 'lucide-react'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
 
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
@@ -21,6 +19,7 @@ interface CategoryAssessmentProps {
   category: CategoryWithCompetencies
   assessments: Assessment[]
   completed: boolean
+  courseParticipationID: string
   peerEvaluationResults?: AggregatedEvaluationResult[]
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
@@ -30,14 +29,11 @@ export const CategoryAssessment = ({
   category,
   assessments,
   completed,
+  courseParticipationID,
   peerEvaluationResults,
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
 }: CategoryAssessmentProps) => {
-  const { courseParticipationID } = useParams<{
-    courseParticipationID: string
-  }>()
-
   const categoryAssessment = useStudentAssessmentStore((state) =>
     state.categoryAssessments.find((ca) => ca.categoryID === category.id),
   )
@@ -50,10 +46,6 @@ export const CategoryAssessment = ({
 
   const categoryScore = getWeightedScoreLevel(assessments, [category])
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
-
-  if (!courseParticipationID) {
-    return <ErrorPage message='The requested course participation could not be found.' />
-  }
 
   return (
     <div key={category.id} className='mb-6'>

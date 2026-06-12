@@ -2936,6 +2936,82 @@ paths:
       summary: List my evaluations
       tags:
       - evaluations
+  /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}:
+    get:
+      description: List peer evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List peer evaluations for participant in phase
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID}:
+    get:
+      description: List self evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List self evaluations for participant in phase
+      tags:
+      - evaluations
   /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID}:
     get:
       description: List evaluations for a tutor in a course phase.

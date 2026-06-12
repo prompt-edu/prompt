@@ -2960,6 +2960,120 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}": {
+            "get": {
+                "description": "List peer evaluations for a course participation in a course phase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "List peer evaluations for participant in phase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/evaluationDTO.Evaluation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID}": {
+            "get": {
+                "description": "List self evaluations for a course participation in a course phase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "List self evaluations for participant in phase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/evaluationDTO.Evaluation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID}": {
             "get": {
                 "description": "List evaluations for a tutor in a course phase.",

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -40,6 +41,21 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 	}, nil
 }
 
+func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID *uuid.UUID) (sdk.SubjectIdentifiers, error) {
+	identifiers := sdk.SubjectIdentifiers{UserID: userID}
+	if studentID == nil {
+		return identifiers, nil
+	}
+	identifiers.StudentID = *studentID
+
+	cpIDs, err := getCourseParticipations(ctx, *studentID)
+	if err != nil {
+		return identifiers, nil
+	}
+	identifiers.CourseParticipationIDs = cpIDs
+	return identifiers, nil
+}
+
 func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	matrNr := utils.GetMatriculationNumberFromContext(ctx)
 	universityLogin := utils.GetUniversityLoginFromContext(ctx)
@@ -52,7 +68,7 @@ func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	return student.ID, nil
 }
 
-func getCourseParticipations(ctx *gin.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
+func getCourseParticipations(ctx context.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
 	cps, err := courseParticipation.GetAllCourseParticipationsForStudent(ctx, studentID)
 	if err != nil {
 		return []uuid.UUID{}, err

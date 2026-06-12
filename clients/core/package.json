@@ -4,29 +4,26 @@
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "webpack serve --open --mode development",
+    "dev": "rspack serve --mode development",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
-    "build": "webpack --mode=production --env NODE_ENV=production",
-    "check-performance": "webpack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "build": "rspack --mode=production --env NODE_ENV=production",
+    "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
     "@xyflow/react": "^12.11.0",
     "date-fns-tz": "^3.2.0",
-    "external-remotes-plugin": "^1.0.0",
     "i18n-iso-countries": "^7.14.0",
     "react-beautiful-dnd": "^13.1.1",
     "sha256": "^0.2.0"
   },
   "devDependencies": {
-    "clean-webpack-plugin": "^4.0.0",
+    "@rspack/cli": "^1.7.11",
+    "@rspack/core": "^1.7.11",
     "compression-webpack-plugin": "^12.0.0",
-    "css-minimizer-webpack-plugin": "^8.0.0",
-    "html-webpack-plugin": "^5.6.7",
-    "webpack": "^5.107.2",
-    "webpack-bundle-analyzer": "^5.3.0",
-    "webpack-cli": "^7.0.3"
+    "webpack-bundle-analyzer": "^5.3.0"
   },
   "packageManager": "yarn@4.16.0"
 }

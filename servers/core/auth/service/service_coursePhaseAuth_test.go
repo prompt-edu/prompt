@@ -1,4 +1,4 @@
-package coursePhaseAuth
+package service
 
 import (
 	"context"
@@ -14,26 +14,26 @@ import (
 
 type CoursePhaseAuthTestSuite struct {
 	suite.Suite
-	ctx                    context.Context
-	cleanup                func()
-	coursePhaseAuthService CoursePhaseAuthService
+	ctx         context.Context
+	cleanup     func()
+	authService AuthService
 }
 
 func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container with test dump
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/full_db.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../../database_dumps/full_db.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseAuthService = CoursePhaseAuthService{
+	suite.authService = AuthService{
 		queries: *testDB.Queries,
 		conn:    testDB.Conn,
 	}
-	CoursePhaseAuthServiceSingleton = &suite.coursePhaseAuthService
+	AuthServiceSingleton = &suite.authService
 }
 
 func (suite *CoursePhaseAuthTestSuite) TearDownSuite() {

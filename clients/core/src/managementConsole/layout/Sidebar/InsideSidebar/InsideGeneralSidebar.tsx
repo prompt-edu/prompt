@@ -57,7 +57,7 @@ export const InsideGeneralSidebar = () => {
               <InsideSidebarMenuItem
                 icon={<Shield />}
                 goToPath={'/management/admin/privacy'}
-                title='Privacy Audit'
+                title='Privacy'
               />
             </InsideSidebarVisualGroup>
           </ShowForRole>

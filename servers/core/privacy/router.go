@@ -8,4 +8,5 @@ func setupPrivacyRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	privacyRouter := router.Group("/privacy", authMiddleware())
 
 	setupPrivacyExportRouter(privacyRouter, authMiddleware, permissionRoleMiddleware)
+	setupPrivacyDeletionRouter(privacyRouter, authMiddleware, permissionRoleMiddleware)
 }

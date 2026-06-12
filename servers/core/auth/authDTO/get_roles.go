@@ -1,4 +1,4 @@
-package coursePhaseAuthDTO
+package authDTO
 
 type GetCourseRoles struct {
 	CourseLecturerRole string `json:"courseLecturerRole"`

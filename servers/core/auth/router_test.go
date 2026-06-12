@@ -1,4 +1,4 @@
-package coursePhaseAuth
+package auth
 
 import (
 	"context"
@@ -10,7 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	"github.com/prompt-edu/prompt/servers/core/coursePhaseAuth/coursePhaseAuthDTO"
+	"github.com/prompt-edu/prompt/servers/core/auth/authDTO"
+	"github.com/prompt-edu/prompt/servers/core/auth/service"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/sirupsen/logrus"
@@ -19,10 +20,9 @@ import (
 
 type CourseRouterTestSuite struct {
 	suite.Suite
-	router                 *gin.Engine
-	ctx                    context.Context
-	cleanup                func()
-	coursePhaseAuthService CoursePhaseAuthService
+	router  *gin.Engine
+	ctx     context.Context
+	cleanup func()
 }
 
 func (suite *CourseRouterTestSuite) SetupSuite() {
@@ -35,11 +35,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.coursePhaseAuthService = CoursePhaseAuthService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseAuthServiceSingleton = &suite.coursePhaseAuthService
+	service.InitAuthService(*testDB.Queries, testDB.Conn)
 
 	// Init the permissionValidation service.
 	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
@@ -47,7 +43,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	// Initialize router.
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupCoursePhaseAuthRouter(api,
+	setupAuthRouter(api,
 		// Auth middleware: simulate a student with known email, matriculation number, and university login.
 		func() gin.HandlerFunc {
 			return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"ios2425-TestCourse-Student"}, "existingstudent@example.com", "09999999", "as45fgh")
@@ -111,7 +107,7 @@ func (suite *CourseRouterTestSuite) TestGetCoursePhaseParticipation_Success() {
 	suite.router.ServeHTTP(w, req)
 
 	suite.Equal(http.StatusOK, w.Code)
-	var response coursePhaseAuthDTO.GetCoursePhaseParticipation
+	var response authDTO.GetCoursePhaseParticipation
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	suite.Require().NoError(err)
 
@@ -135,7 +131,7 @@ func (suite *CourseRouterTestSuite) TestGetCoursePhaseParticipation_NOT_PART() {
 	suite.router.ServeHTTP(w, req)
 
 	suite.Equal(http.StatusOK, w.Code)
-	var response coursePhaseAuthDTO.GetCoursePhaseParticipation
+	var response authDTO.GetCoursePhaseParticipation
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	suite.Require().NoError(err)
 

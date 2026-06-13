@@ -110,7 +110,7 @@ func (q *Queries) DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllAssessmentsByCourseParticipationIDs = `-- name: GetAllAssessmentsByCourseParticipationIDs :many
-SELECT id, course_participation_id, course_phase_id, competency_id, comment, assessed_at, author, score_level, examples 
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, author, score_level, author_id 
 FROM assessment
 WHERE course_participation_id = ANY($1::uuid[])
 `
@@ -129,11 +129,10 @@ func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context,
 			&i.CourseParticipationID,
 			&i.CoursePhaseID,
 			&i.CompetencyID,
-			&i.Comment,
 			&i.AssessedAt,
 			&i.Author,
 			&i.ScoreLevel,
-			&i.Examples,
+			&i.AuthorID,
 		); err != nil {
 			return nil, err
 		}

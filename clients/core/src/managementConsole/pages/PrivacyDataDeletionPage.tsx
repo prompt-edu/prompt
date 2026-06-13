@@ -79,11 +79,7 @@ export function PrivacyDataDeletionPage() {
             approve the request before the deletion is carried out. This action cannot be undone.
           </p>
           <div className='mt-6 flex flex-col items-start gap-2'>
-            <Button
-              disabled={requestQuery.isFetching}
-              onClick={() => setConfirmDialogOpen(true)}
-              variant='destructive'
-            >
+            <Button disabled={requestQuery.isFetching} onClick={() => setConfirmDialogOpen(true)}>
               {requestQuery.isFetching && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
               {request ? 'Request again' : 'Request data deletion'}
             </Button>

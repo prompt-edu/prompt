@@ -46,12 +46,7 @@ export function PrivacyDeletionConfirmationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirm}
-            className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-          >
-            Request Deletion
-          </AlertDialogAction>
+          <AlertDialogAction onClick={handleConfirm}>Request Deletion</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

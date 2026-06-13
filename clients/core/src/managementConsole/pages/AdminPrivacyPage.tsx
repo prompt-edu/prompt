@@ -68,6 +68,9 @@ export function AdminPrivacyPage() {
               data={allDeletionsQuery.data}
               columns={adminDeletionColumns}
               actions={getAdminDeletionActions({ onReview: setReviewing })}
+              onRowClick={(row) => {
+                if (row.status === DeletionRequestStatus.pending_approval) setReviewing(row)
+              }}
               filters={statusSelectFilter(deletionRequestStatusLabel)}
               pageSize={20}
             />

@@ -952,6 +952,32 @@ definitions:
     - PassStatusPassed
     - PassStatusFailed
     - PassStatusNotAssessed
+  db.PrivacyDeletionRequestStatus:
+    enum:
+    - pending_approval
+    - rejected
+    - in_progress
+    - succeeded
+    - failed
+    type: string
+    x-enum-varnames:
+    - PrivacyDeletionRequestStatusPendingApproval
+    - PrivacyDeletionRequestStatusRejected
+    - PrivacyDeletionRequestStatusInProgress
+    - PrivacyDeletionRequestStatusSucceeded
+    - PrivacyDeletionRequestStatusFailed
+  db.PrivacyDeletionSubrequestStatus:
+    enum:
+    - pending
+    - in_progress
+    - succeeded
+    - failed
+    type: string
+    x-enum-varnames:
+    - PrivacyDeletionSubrequestStatusPending
+    - PrivacyDeletionSubrequestStatusInProgress
+    - PrivacyDeletionSubrequestStatusSucceeded
+    - PrivacyDeletionSubrequestStatusFailed
   db.StudyDegree:
     enum:
     - bachelor
@@ -1206,6 +1232,41 @@ definitions:
       status:
         $ref: '#/definitions/db.ExportStatus'
     type: object
+  privacyDTO.AdminPrivacyDeletionRequest:
+    properties:
+      auditor_email:
+        type: string
+      auditor_id:
+        type: string
+      auditor_name:
+        type: string
+      auditor_note:
+        type: string
+      auditor_responded_at:
+        type: string
+      completed_at:
+        type: string
+      id:
+        type: string
+      requested_at:
+        type: string
+      status:
+        $ref: '#/definitions/db.PrivacyDeletionRequestStatus'
+      student_email:
+        type: string
+      student_first_name:
+        type: string
+      student_id:
+        type: string
+      student_last_name:
+        type: string
+      subrequests:
+        items:
+          $ref: '#/definitions/privacyDTO.PrivacyDeletionSubrequest'
+        type: array
+      user_id:
+        type: string
+    type: object
   privacyDTO.AdminPrivacyExport:
     properties:
       date_created:
@@ -1232,6 +1293,71 @@ definitions:
         type: string
       valid_until:
         type: string
+    type: object
+  privacyDTO.AuditorDecision:
+    enum:
+    - approve
+    - reject
+    type: string
+    x-enum-varnames:
+    - AuditorDecisionApprove
+    - AuditorDecisionReject
+  privacyDTO.AuditorDecisionRequest:
+    properties:
+      decision:
+        allOf:
+        - $ref: '#/definitions/privacyDTO.AuditorDecision'
+        enum:
+        - approve
+        - reject
+      note:
+        type: string
+    required:
+    - decision
+    type: object
+  privacyDTO.PrivacyDeletionRequest:
+    properties:
+      auditor_email:
+        type: string
+      auditor_id:
+        type: string
+      auditor_name:
+        type: string
+      auditor_note:
+        type: string
+      auditor_responded_at:
+        type: string
+      completed_at:
+        type: string
+      id:
+        type: string
+      requested_at:
+        type: string
+      status:
+        $ref: '#/definitions/db.PrivacyDeletionRequestStatus'
+      student_id:
+        type: string
+      subrequests:
+        items:
+          $ref: '#/definitions/privacyDTO.PublicPrivacyDeletionSubrequest'
+        type: array
+      user_id:
+        type: string
+    type: object
+  privacyDTO.PrivacyDeletionSubrequest:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: string
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.PrivacyDeletionSubrequestStatus'
     type: object
   privacyDTO.PrivacyExport:
     properties:
@@ -1268,6 +1394,19 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/db.ExportStatus'
+    type: object
+  privacyDTO.PublicPrivacyDeletionSubrequest:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.PrivacyDeletionSubrequestStatus'
     type: object
   resolutionDTO.Resolution:
     properties:
@@ -2288,7 +2427,14 @@ paths:
       - auth
   /course_phase_types:
     get:
-      description: Get a list of all available course phase types
+      description: Get all course phase types, or only those the authenticated user
+        has been involved in when for_self=true.
+      parameters:
+      - description: Restrict to phase types the authenticated user has been involved
+          in
+        in: query
+        name: for_self
+        type: boolean
       produces:
       - application/json
       responses:
@@ -2302,7 +2448,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-      summary: Get all course phase types
+      summary: Get course phase types
       tags:
       - course_phase_types
   /course_phases/{uuid}:
@@ -3771,6 +3917,68 @@ paths:
       summary: Manually trigger custom mails for a selected recipient list
       tags:
       - mailing
+  /privacy/admin/data-deletions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/privacyDTO.AdminPrivacyDeletionRequest'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all deletion requests (admin only)
+      tags:
+      - privacy
+  /privacy/admin/data-deletions/{uuid}:
+    post:
+      consumes:
+      - application/json
+      description: Records the auditor decision on a pending_approval request. Approval
+        starts the deletion fan-out; rejection is a database-only update.
+      parameters:
+      - description: Deletion Request UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Auditor decision and optional note
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/privacyDTO.AuditorDecisionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
+        "400":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Request is no longer in pending_approval state
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Decide on a deletion request (admin only)
+      tags:
+      - privacy
   /privacy/admin/data-exports:
     get:
       produces:
@@ -3815,6 +4023,94 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an export's files (admin only)
+      tags:
+      - privacy
+  /privacy/data-deletion:
+    get:
+      description: 'Returns {status: "exists", request: ...} when a request exists,
+        or 204 when none exists.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "204":
+          description: No deletion request on file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current user's latest deletion request
+      tags:
+      - privacy
+    post:
+      description: Creates a deletion request in pending_approval state. Execution
+        only starts after an admin approves.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: An open request already exists for this user
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit a new data deletion request
+      tags:
+      - privacy
+  /privacy/data-deletion/{uuid}:
+    get:
+      description: Returns the deletion request together with its subrequests. Used
+        by the client to poll for status while execution is in progress.
+      parameters:
+      - description: Deletion Request UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a deletion request by id
       tags:
       - privacy
   /privacy/data-export:

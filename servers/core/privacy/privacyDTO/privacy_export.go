@@ -55,58 +55,36 @@ func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) (AdminPrivac
 		return AdminPrivacyExport{}, fmt.Errorf("failed to parse export docs: %w", err)
 	}
 
-	dto := AdminPrivacyExport{
+	return AdminPrivacyExport{
 		ID:                   model.ID,
 		UserID:               model.UserID,
+		StudentID:            uuidPtr(model.StudentID),
+		StudentFirstName:     textPtr(model.StudentFirstName),
+		StudentLastName:      textPtr(model.StudentLastName),
+		StudentEmail:         textPtr(model.StudentEmail),
 		Status:               model.Status,
 		DateCreated:          model.DateCreated.Time,
 		ValidUntil:           model.ValidUntil.Time,
 		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
 		Docs:                 docs,
-	}
-	if model.StudentID.Valid {
-		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
-		dto.StudentID = &id
-	}
-	if model.StudentFirstName.Valid {
-		s := model.StudentFirstName.String
-		dto.StudentFirstName = &s
-	}
-	if model.StudentLastName.Valid {
-		s := model.StudentLastName.String
-		dto.StudentLastName = &s
-	}
-	if model.StudentEmail.Valid {
-		s := model.StudentEmail.String
-		dto.StudentEmail = &s
-	}
-	return dto, nil
+	}, nil
 }
 
 func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyExportDocument {
-	dto := PrivacyExportDocument{
-		ID:          model.ID,
-		DateCreated: model.DateCreated.Time,
-		SourceName:  model.SourceName,
-		Status:      model.Status,
+	return PrivacyExportDocument{
+		ID:           model.ID,
+		DateCreated:  model.DateCreated.Time,
+		SourceName:   model.SourceName,
+		Status:       model.Status,
+		DownloadedAt: timePtr(model.DownloadedAt),
 	}
-	if model.DownloadedAt.Valid {
-		dto.DownloadedAt = &model.DownloadedAt.Time
-	}
-	return dto
 }
 
 func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
-	var studentID *uuid.UUID
-	if model.StudentID.Valid {
-		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
-		studentID = &id
-	}
-
 	return PrivacyExport{
 		ID:                   model.ID,
 		UserID:               model.UserID,
-		StudentID:            studentID,
+		StudentID:            uuidPtr(model.StudentID),
 		Status:               model.Status,
 		DateCreated:          model.DateCreated.Time,
 		ValidUntil:           model.ValidUntil.Time,
@@ -116,25 +94,19 @@ func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 }
 
 func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (PrivacyExport, error) {
-	export := PrivacyExport{
-		ID:                   model.ID,
-		UserID:               model.UserID,
-		Status:               model.Status,
-		DateCreated:          model.DateCreated.Time,
-		ValidUntil:           model.ValidUntil.Time,
-		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
-	}
-
-	if model.StudentID.Valid {
-		id, _ := uuid.FromBytes(model.StudentID.Bytes[:])
-		export.StudentID = &id
-	}
-
 	var documents []PrivacyExportDocument
 	if err := json.Unmarshal(model.Documents, &documents); err != nil {
 		return PrivacyExport{}, fmt.Errorf("failed to parse export documents: %w", err)
 	}
-	export.Documents = documents
 
-	return export, nil
+	return PrivacyExport{
+		ID:                   model.ID,
+		UserID:               model.UserID,
+		StudentID:            uuidPtr(model.StudentID),
+		Status:               model.Status,
+		DateCreated:          model.DateCreated.Time,
+		ValidUntil:           model.ValidUntil.Time,
+		NextRequestAllowedAt: model.NextRequestAllowedAt.Time,
+		Documents:            documents,
+	}, nil
 }

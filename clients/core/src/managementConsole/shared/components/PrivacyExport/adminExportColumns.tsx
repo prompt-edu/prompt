@@ -3,26 +3,24 @@ import {
   type AdminPrivacyExport,
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 import { ColumnDef } from '@tanstack/react-table'
+import { HoverInfoText } from '../Privacy/HoverInfoText'
+import { StudentAvatar } from '@tumaet/prompt-ui-components'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
-  if (docs.length === 0) return <span className='text-muted-foreground'>0 {label}</span>
+  if (docs.length === 0) return <span>0 {label}</span>
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className='cursor-default underline underline-offset-4'>
-          {docs.length} {label}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>
+    <HoverInfoText
+      content={
         <ul className='text-xs space-y-0.5'>
           {docs.map((d) => (
             <li key={d.source_name}>{d.source_name}</li>
           ))}
         </ul>
-      </TooltipContent>
-    </Tooltip>
+      }
+    >
+      {docs.length} {label}
+    </HoverInfoText>
   )
 }
 
@@ -64,21 +62,18 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     id: 'requester',
     header: 'Requester',
-    cell: ({ row }) => {
-      const { student_first_name, student_last_name, student_email, user_id } = row.original
-      const name = [student_first_name, student_last_name].filter(Boolean).join(' ')
-      if (name) {
-        return (
-          <div className='flex flex-col text-sm'>
-            <span>{name}</span>
-            {student_email && (
-              <span className='text-muted-foreground text-xs'>{student_email}</span>
-            )}
-          </div>
-        )
-      }
-      return <span className='text-muted-foreground text-sm'>user {user_id.slice(0, 8)}</span>
-    },
+    accessorFn: (row) =>
+      [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
+    cell: ({ row }) => (
+      <StudentAvatar
+        student={{
+          id: row.original.student_id ?? undefined,
+          firstName: row.original.student_first_name ?? '',
+          lastName: row.original.student_last_name ?? '',
+          email: row.original.student_email ?? '',
+        }}
+      />
+    ),
   },
   {
     accessorKey: 'date_created',

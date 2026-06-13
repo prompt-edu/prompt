@@ -1270,14 +1270,22 @@ const docTemplate = `{
         },
         "/course_phase_types": {
             "get": {
-                "description": "Get a list of all available course phase types",
+                "description": "Get all course phase types, or only those the authenticated user has been involved in when for_self=true.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "course_phase_types"
                 ],
-                "summary": "Get all course phase types",
+                "summary": "Get course phase types",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Restrict to phase types the authenticated user has been involved in",
+                        "name": "for_self",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -3502,6 +3510,103 @@ const docTemplate = `{
                 }
             }
         },
+        "/privacy/admin/data-deletions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "List all deletion requests (admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/privacyDTO.AdminPrivacyDeletionRequest"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/admin/data-deletions/{uuid}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records the auditor decision on a pending_approval request. Approval starts the deletion fan-out; rejection is a database-only update.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Decide on a deletion request (admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Deletion Request UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Auditor decision and optional note",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.AuditorDecisionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.PrivacyDeletionRequest"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Request is no longer in pending_approval state",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/privacy/admin/data-exports": {
             "get": {
                 "security": [
@@ -3562,6 +3667,140 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/data-deletion": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns {status: \"exists\", request: ...} when a request exists, or 204 when none exists.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Get the current user's latest deletion request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No deletion request on file"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a deletion request in pending_approval state. Execution only starts after an admin approves.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Submit a new data deletion request",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.PrivacyDeletionRequest"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "An open request already exists for this user",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/data-deletion/{uuid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the deletion request together with its subrequests. Used by the client to poll for status while execution is in progress.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Get a deletion request by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Deletion Request UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.PrivacyDeletionRequest"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -5498,6 +5737,38 @@ const docTemplate = `{
                 "PassStatusNotAssessed"
             ]
         },
+        "db.PrivacyDeletionRequestStatus": {
+            "type": "string",
+            "enum": [
+                "pending_approval",
+                "rejected",
+                "in_progress",
+                "succeeded",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "PrivacyDeletionRequestStatusPendingApproval",
+                "PrivacyDeletionRequestStatusRejected",
+                "PrivacyDeletionRequestStatusInProgress",
+                "PrivacyDeletionRequestStatusSucceeded",
+                "PrivacyDeletionRequestStatusFailed"
+            ]
+        },
+        "db.PrivacyDeletionSubrequestStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "in_progress",
+                "succeeded",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "PrivacyDeletionSubrequestStatusPending",
+                "PrivacyDeletionSubrequestStatusInProgress",
+                "PrivacyDeletionSubrequestStatusSucceeded",
+                "PrivacyDeletionSubrequestStatusFailed"
+            ]
+        },
         "db.StudyDegree": {
             "type": "string",
             "enum": [
@@ -5877,6 +6148,59 @@ const docTemplate = `{
                 }
             }
         },
+        "privacyDTO.AdminPrivacyDeletionRequest": {
+            "type": "object",
+            "properties": {
+                "auditor_email": {
+                    "type": "string"
+                },
+                "auditor_id": {
+                    "type": "string"
+                },
+                "auditor_name": {
+                    "type": "string"
+                },
+                "auditor_note": {
+                    "type": "string"
+                },
+                "auditor_responded_at": {
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "requested_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.PrivacyDeletionRequestStatus"
+                },
+                "student_email": {
+                    "type": "string"
+                },
+                "student_first_name": {
+                    "type": "string"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "student_last_name": {
+                    "type": "string"
+                },
+                "subrequests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/privacyDTO.PrivacyDeletionSubrequest"
+                    }
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "privacyDTO.AdminPrivacyExport": {
             "type": "object",
             "properties": {
@@ -5915,6 +6239,106 @@ const docTemplate = `{
                 },
                 "valid_until": {
                     "type": "string"
+                }
+            }
+        },
+        "privacyDTO.AuditorDecision": {
+            "type": "string",
+            "enum": [
+                "approve",
+                "reject"
+            ],
+            "x-enum-varnames": [
+                "AuditorDecisionApprove",
+                "AuditorDecisionReject"
+            ]
+        },
+        "privacyDTO.AuditorDecisionRequest": {
+            "type": "object",
+            "required": [
+                "decision"
+            ],
+            "properties": {
+                "decision": {
+                    "enum": [
+                        "approve",
+                        "reject"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/privacyDTO.AuditorDecision"
+                        }
+                    ]
+                },
+                "note": {
+                    "type": "string"
+                }
+            }
+        },
+        "privacyDTO.PrivacyDeletionRequest": {
+            "type": "object",
+            "properties": {
+                "auditor_email": {
+                    "type": "string"
+                },
+                "auditor_id": {
+                    "type": "string"
+                },
+                "auditor_name": {
+                    "type": "string"
+                },
+                "auditor_note": {
+                    "type": "string"
+                },
+                "auditor_responded_at": {
+                    "type": "string"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "requested_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.PrivacyDeletionRequestStatus"
+                },
+                "student_id": {
+                    "type": "string"
+                },
+                "subrequests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/privacyDTO.PublicPrivacyDeletionSubrequest"
+                    }
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "privacyDTO.PrivacyDeletionSubrequest": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.PrivacyDeletionSubrequestStatus"
                 }
             }
         },
@@ -5970,6 +6394,26 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
+        "privacyDTO.PublicPrivacyDeletionSubrequest": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.PrivacyDeletionSubrequestStatus"
                 }
             }
         },

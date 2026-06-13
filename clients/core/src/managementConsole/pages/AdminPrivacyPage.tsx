@@ -1,11 +1,16 @@
 import {
   type AdminPrivacyExport,
-  ExportStatus,
   getAllExports,
 } from '@core/network/queries/privacyStudentDataExport'
 import {
+  type AdminPrivacyDeletionRequest,
+  DeletionRequestStatus,
+  getAllDeletionRequests,
+} from '@core/network/queries/privacyStudentDataDeletion'
+import {
   ManagementPageHeader,
   PromptTable,
+  type TableFilter,
   Tabs,
   TabsList,
   TabsTrigger,
@@ -16,14 +21,29 @@ import {
   exportStatusLabel,
 } from '../shared/components/PrivacyExport/adminExportColumns'
 import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
+import {
+  adminDeletionColumns,
+  deletionRequestStatusLabel,
+} from '../shared/components/PrivacyDeletion/adminDeletionColumns'
+import { getAdminDeletionActions } from '../shared/components/PrivacyDeletion/adminDeletionActions'
+import { PrivacyDeletionReviewDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionReviewDialog'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 export function AdminPrivacyPage() {
   const queryClient = useQueryClient()
+  const [reviewing, setReviewing] = useState<AdminPrivacyDeletionRequest | null>(null)
+
   const allExportsQuery = useQuery({
     queryKey: ['privacy', 'admin', 'exports'],
     queryFn: getAllExports,
+  })
+  const allDeletionsQuery = useQuery({
+    queryKey: ['privacy', 'admin', 'deletions'],
+    queryFn: getAllDeletionRequests,
+    refetchInterval: (query) =>
+      query.state.data?.some((r) => r.status === DeletionRequestStatus.in_progress) ? 3000 : false,
   })
 
   return (
@@ -42,7 +62,19 @@ export function AdminPrivacyPage() {
         </TabsList>
         <TabsContent value='deletion'>
           <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Deletion Requests</h2>
-          <PromptTable data={[]} columns={[]} pageSize={20} />
+          {allDeletionsQuery.isLoading && <p>Loading...</p>}
+          {allDeletionsQuery.isSuccess && (
+            <PromptTable<AdminPrivacyDeletionRequest>
+              data={allDeletionsQuery.data}
+              columns={adminDeletionColumns}
+              actions={getAdminDeletionActions({ onReview: setReviewing })}
+              onRowClick={(row) => {
+                if (row.status === DeletionRequestStatus.pending_approval) setReviewing(row)
+              }}
+              filters={statusSelectFilter(deletionRequestStatusLabel)}
+              pageSize={20}
+            />
+          )}
         </TabsContent>
         <TabsContent value='export'>
           <h2 className='text-lg font-semibold text-foreground mb-4 mt-2'>Data Exports</h2>
@@ -52,20 +84,30 @@ export function AdminPrivacyPage() {
               data={allExportsQuery.data}
               columns={adminExportColumns}
               actions={getAdminExportActions({ queryClient })}
-              filters={[
-                {
-                  type: 'select',
-                  id: 'status',
-                  label: 'Status',
-                  options: Object.values(ExportStatus),
-                  optionLabel: (value) => exportStatusLabel[value as ExportStatus],
-                },
-              ]}
+              filters={statusSelectFilter(exportStatusLabel)}
               pageSize={20}
             />
           )}
         </TabsContent>
       </Tabs>
+
+      <PrivacyDeletionReviewDialog request={reviewing} onClose={() => setReviewing(null)} />
     </div>
   )
+}
+
+function statusSelectFilter<T extends string>(optionLabels: Record<T, string>): TableFilter[] {
+  return [
+    {
+      type: 'select',
+      id: 'status',
+      label: 'Status',
+      options: Object.keys(optionLabels),
+      optionLabel: (value) => optionLabels[value as T],
+      badge: {
+        label: 'Status',
+        displayValue: (filtervalue) => optionLabels[filtervalue as T],
+      },
+    },
+  ]
 }

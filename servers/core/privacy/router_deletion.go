@@ -155,23 +155,13 @@ func decideDeletionRequest(c *gin.Context) {
 		return
 	}
 
-	auditorID, err := coreutils.GetUserUUIDFromContext(c)
-	if err != nil {
-		utils.HandleError(c, http.StatusUnauthorized, err)
+	if valErr := service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
+		utils.HandleError(c, http.StatusConflict, valErr)
 		return
 	}
-	log.WithFields(log.Fields{
-		"auditor_id": auditorID,
-		"request_id": requestID,
-		"decision":   decision.Decision,
-	}).Info("admin deciding on deletion request")
 
 	switch decision.Decision {
 	case privacyDTO.AuditorDecisionReject:
-		if valErr := service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
-			utils.HandleError(c, http.StatusConflict, valErr)
-			return
-		}
 		record, err := service.RejectDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			log.Error("deletion request rejection failed: ", err)
@@ -181,10 +171,6 @@ func decideDeletionRequest(c *gin.Context) {
 		c.JSON(http.StatusOK, record)
 
 	case privacyDTO.AuditorDecisionApprove:
-		if valErr := service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
-			utils.HandleError(c, http.StatusConflict, valErr)
-			return
-		}
 		record, err := service.AcceptDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			log.Error("deletion request approval failed: ", err)

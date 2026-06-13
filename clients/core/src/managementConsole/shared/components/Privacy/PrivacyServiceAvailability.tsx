@@ -52,8 +52,23 @@ function PrivacyServiceAvailabilityIndicator({
   )
 }
 
-export function PrivacyServiceAvailability() {
-  const { data: coursePhaseTypes = [], isPending: typesPending } = useGetCoursePhaseTypes()
+interface PrivacyServiceAvailabilityProps {
+  forSelf?: boolean
+}
+
+function hasOwnMicroservice(baseUrl: string): boolean {
+  try {
+    const parsed = new URL(baseUrl)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabilityProps = {}) {
+  const { data: allCoursePhaseTypes = [], isPending: typesPending } =
+    useGetCoursePhaseTypes(forSelf)
+  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => hasOwnMicroservice(cpt.baseUrl))
 
   const coreQuery = useQuery({
     queryKey: ['serviceInfo-core'],

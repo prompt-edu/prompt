@@ -2427,7 +2427,14 @@ paths:
       - auth
   /course_phase_types:
     get:
-      description: Get a list of all available course phase types
+      description: Get all course phase types, or only those the authenticated user
+        has been involved in when for_self=true.
+      parameters:
+      - description: Restrict to phase types the authenticated user has been involved
+          in
+        in: query
+        name: for_self
+        type: boolean
       produces:
       - application/json
       responses:
@@ -2441,7 +2448,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-      summary: Get all course phase types
+      summary: Get course phase types
       tags:
       - course_phase_types
   /course_phases/{uuid}:

@@ -5,6 +5,7 @@ import {
   type PrivacyDeletionSubrequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
 import { ColumnDef } from '@tanstack/react-table'
+import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { RequesterDisplay } from '../Privacy/RequesterDisplay'
 
@@ -14,6 +15,46 @@ export const deletionRequestStatusLabel: Record<DeletionRequestStatus, string> =
   [DeletionRequestStatus.succeeded]: 'Completed',
   [DeletionRequestStatus.failed]: 'Failed',
   [DeletionRequestStatus.rejected]: 'Rejected',
+}
+
+const deletionRequestStatusStyles: Record<DeletionRequestStatus, string> = {
+  [DeletionRequestStatus.pending_approval]:
+    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  [DeletionRequestStatus.in_progress]:
+    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [DeletionRequestStatus.succeeded]:
+    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  [DeletionRequestStatus.failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  [DeletionRequestStatus.rejected]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+}
+
+function DeletionRequestStatusIcon({ status }: { status: DeletionRequestStatus }) {
+  const className = 'h-3.5 w-3.5'
+  switch (status) {
+    case DeletionRequestStatus.pending_approval:
+      return <Clock className={className} />
+    case DeletionRequestStatus.in_progress:
+      return <Loader2 className={`${className} animate-spin`} />
+    case DeletionRequestStatus.succeeded:
+      return <CircleCheck className={className} />
+    case DeletionRequestStatus.failed:
+    case DeletionRequestStatus.rejected:
+      return <CircleX className={className} />
+  }
+}
+
+function DeletionRequestStatusBadge({ status }: { status: DeletionRequestStatus }) {
+  return (
+    <span
+      className={
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ' +
+        deletionRequestStatusStyles[status]
+      }
+    >
+      <DeletionRequestStatusIcon status={status} />
+      {deletionRequestStatusLabel[status]}
+    </span>
+  )
 }
 
 function CountWithTooltip({ subs, label }: { subs: PrivacyDeletionSubrequest[]; label: string }) {
@@ -58,7 +99,7 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => deletionRequestStatusLabel[row.original.status],
+    cell: ({ row }) => <DeletionRequestStatusBadge status={row.original.status} />,
   },
   {
     id: 'requester',

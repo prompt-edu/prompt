@@ -8,7 +8,7 @@ import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { StudentAvatar } from '@tumaet/prompt-ui-components'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
-  if (docs.length === 0) return <span className='text-muted-foreground'>0 {label}</span>
+  if (docs.length === 0) return <span>0 {label}</span>
   return (
     <HoverInfoText
       content={

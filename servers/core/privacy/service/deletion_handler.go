@@ -34,9 +34,13 @@ type Deletion struct {
 }
 
 func PrepareDataDeletion(c *gin.Context, record privacyDTO.PrivacyDeletionRequest) (Deletion, error) {
-	coursePhaseTypes, err := coursePhaseType.GetAllCoursePhaseTypes(c)
+	studentID := uuid.Nil
+	if record.StudentID != nil {
+		studentID = *record.StudentID
+	}
+	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudent(c, studentID)
 	if err != nil {
-		return Deletion{}, fmt.Errorf("failed to load course phase types: %w", err)
+		return Deletion{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}
 
 	tx, err := PrivacyServiceSingleton.conn.Begin(c)

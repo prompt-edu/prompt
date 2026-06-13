@@ -1264,14 +1264,22 @@
         },
         "/course_phase_types": {
             "get": {
-                "description": "Get a list of all available course phase types",
+                "description": "Get all course phase types, or only those the authenticated user has been involved in when for_self=true.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "course_phase_types"
                 ],
-                "summary": "Get all course phase types",
+                "summary": "Get course phase types",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Restrict to phase types the authenticated user has been involved in",
+                        "name": "for_self",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",

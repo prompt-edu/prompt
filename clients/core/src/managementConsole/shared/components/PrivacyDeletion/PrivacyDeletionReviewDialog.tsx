@@ -14,7 +14,7 @@ import {
   Textarea,
 } from '@tumaet/prompt-ui-components'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Mail, Recycle, ShieldAlert, Trash2 } from 'lucide-react'
+import { Mail, Recycle, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
@@ -117,8 +117,9 @@ export function PrivacyDeletionReviewDialog({
               <div className='flex flex-col gap-3'>
                 <p className='font-medium'>What gets deleted</p>
                 <p className='text-muted-foreground'>
-                  Approval permanently removes the user&apos;s personal data from every service
-                  across the platform. This includes (just to mention a few):
+                  Approval permanently removes the user&apos;s personal data. Only services the user
+                  has actually interacted with are contacted, the rest are skipped. This may include
+                  (depending on the user&apos;s history):
                 </p>
                 <ul className='list-disc pl-5 text-muted-foreground space-y-1'>
                   <li>Course enrollments</li>

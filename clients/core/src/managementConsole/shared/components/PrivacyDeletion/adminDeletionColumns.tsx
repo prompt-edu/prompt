@@ -9,6 +9,8 @@ import { StudentAvatar } from '@tumaet/prompt-ui-components'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 
+const emptyCell = <span className='text-muted-foreground text-sm'>-</span>
+
 export const deletionRequestStatusLabel: Record<DeletionRequestStatus, string> = {
   [DeletionRequestStatus.pending_approval]: 'Pending approval',
   [DeletionRequestStatus.in_progress]: 'In progress',
@@ -75,7 +77,7 @@ function CountWithTooltip({ subs, label }: { subs: PrivacyDeletionSubrequest[]; 
 }
 
 function SourceSummaryCell({ subs }: { subs: PrivacyDeletionSubrequest[] }) {
-  if (subs.length === 0) return <span className='text-muted-foreground'>—</span>
+  if (subs.length === 0) return emptyCell
 
   const succeeded = subs.filter((s) => s.status === DeletionSubrequestStatus.succeeded)
   const inProgress = subs.filter((s) => s.status === DeletionSubrequestStatus.in_progress)
@@ -127,7 +129,7 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
     header: 'Reviewed',
     cell: ({ row }) => {
       const { auditor_name, auditor_email, auditor_responded_at, auditor_note } = row.original
-      if (!auditor_responded_at) return <span className='text-muted-foreground text-sm'>—</span>
+      if (!auditor_responded_at) return emptyCell
       const name = auditor_name || auditor_email || 'administrator'
       return (
         <div className='flex flex-col text-sm'>
@@ -153,7 +155,7 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
     header: 'Completed',
     cell: ({ row }) => {
       const completedAt = row.original.completed_at
-      if (!completedAt) return <span className='text-muted-foreground text-sm'>—</span>
+      if (!completedAt) return emptyCell
       return <span className='text-sm'>{new Date(completedAt).toLocaleString()}</span>
     },
   },

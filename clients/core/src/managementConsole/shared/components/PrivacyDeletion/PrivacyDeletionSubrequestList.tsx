@@ -44,11 +44,6 @@ export function PrivacyDeletionSubrequestList({ subrequests }: PrivacyDeletionSu
             <div className='flex-1 min-w-0'>
               <p className='text-sm font-medium'>{sub.source_name}</p>
               <p className='text-xs text-muted-foreground'>{subrequestStatusLabel[sub.status]}</p>
-              {sub.error_message && (
-                <p className='text-xs text-red-600 dark:text-red-400 mt-1 whitespace-pre-wrap'>
-                  {sub.error_message}
-                </p>
-              )}
             </div>
           </li>
         ))}

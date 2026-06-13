@@ -73,19 +73,29 @@ type PrivacyDeletionSubrequest struct {
 	ErrorMessage string                             `json:"error_message"`
 }
 
+// PublicPrivacyDeletionSubrequest is the requester-facing subrequest view.
+// ErrorMessage is intentionally omitted so technical failure details never reach end users.
+type PublicPrivacyDeletionSubrequest struct {
+	ID          uuid.UUID                          `json:"id"`
+	SourceName  string                             `json:"source_name"`
+	Status      db.PrivacyDeletionSubrequestStatus `json:"status"`
+	CreatedAt   time.Time                          `json:"created_at"`
+	CompletedAt *time.Time                         `json:"completed_at"`
+}
+
 type PrivacyDeletionRequest struct {
-	ID                 uuid.UUID                       `json:"id"`
-	UserID             uuid.UUID                       `json:"user_id"`
-	StudentID          *uuid.UUID                      `json:"student_id"`
-	RequestedAt        time.Time                       `json:"requested_at"`
-	Status             db.PrivacyDeletionRequestStatus `json:"status"`
-	AuditorID          *uuid.UUID                      `json:"auditor_id"`
-	AuditorName        string                          `json:"auditor_name"`
-	AuditorEmail       string                          `json:"auditor_email"`
-	AuditorRespondedAt *time.Time                      `json:"auditor_responded_at"`
-	AuditorNote        string                          `json:"auditor_note"`
-	CompletedAt        *time.Time                      `json:"completed_at"`
-	Subrequests        []PrivacyDeletionSubrequest     `json:"subrequests"`
+	ID                 uuid.UUID                         `json:"id"`
+	UserID             uuid.UUID                         `json:"user_id"`
+	StudentID          *uuid.UUID                        `json:"student_id"`
+	RequestedAt        time.Time                         `json:"requested_at"`
+	Status             db.PrivacyDeletionRequestStatus   `json:"status"`
+	AuditorID          *uuid.UUID                        `json:"auditor_id"`
+	AuditorName        string                            `json:"auditor_name"`
+	AuditorEmail       string                            `json:"auditor_email"`
+	AuditorRespondedAt *time.Time                        `json:"auditor_responded_at"`
+	AuditorNote        string                            `json:"auditor_note"`
+	CompletedAt        *time.Time                        `json:"completed_at"`
+	Subrequests        []PublicPrivacyDeletionSubrequest `json:"subrequests"`
 }
 
 func GetPrivacyDeletionSubrequestDTOFromDBModel(model db.PrivacyDeletionSubrequest) PrivacyDeletionSubrequest {
@@ -112,12 +122,12 @@ func GetPrivacyDeletionRequestDTOFromDBModel(model db.PrivacyDeletionRequest) Pr
 		AuditorRespondedAt: timePtr(model.AuditorRespondedAt),
 		AuditorNote:        model.AuditorNote,
 		CompletedAt:        timePtr(model.CompletedAt),
-		Subrequests:        []PrivacyDeletionSubrequest{},
+		Subrequests:        []PublicPrivacyDeletionSubrequest{},
 	}
 }
 
 func GetPrivacyDeletionRequestWithSubrequestsDTOFromDBModel(model db.PrivacyDeletionRequestWithSubrequest) (PrivacyDeletionRequest, error) {
-	var subrequests []PrivacyDeletionSubrequest
+	var subrequests []PublicPrivacyDeletionSubrequest
 	if err := json.Unmarshal(model.Subrequests, &subrequests); err != nil {
 		return PrivacyDeletionRequest{}, fmt.Errorf("failed to parse subrequests: %w", err)
 	}

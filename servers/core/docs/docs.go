@@ -6303,7 +6303,7 @@ const docTemplate = `{
                 "subrequests": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/privacyDTO.PrivacyDeletionSubrequest"
+                        "$ref": "#/definitions/privacyDTO.PublicPrivacyDeletionSubrequest"
                     }
                 },
                 "user_id": {
@@ -6386,6 +6386,26 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
+        "privacyDTO.PublicPrivacyDeletionSubrequest": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.PrivacyDeletionSubrequestStatus"
                 }
             }
         },

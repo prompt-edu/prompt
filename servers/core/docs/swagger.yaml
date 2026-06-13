@@ -1339,7 +1339,7 @@ definitions:
         type: string
       subrequests:
         items:
-          $ref: '#/definitions/privacyDTO.PrivacyDeletionSubrequest'
+          $ref: '#/definitions/privacyDTO.PublicPrivacyDeletionSubrequest'
         type: array
       user_id:
         type: string
@@ -1394,6 +1394,19 @@ definitions:
         type: string
       status:
         $ref: '#/definitions/db.ExportStatus'
+    type: object
+  privacyDTO.PublicPrivacyDeletionSubrequest:
+    properties:
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      source_name:
+        type: string
+      status:
+        $ref: '#/definitions/db.PrivacyDeletionSubrequestStatus'
     type: object
   resolutionDTO.Resolution:
     properties:

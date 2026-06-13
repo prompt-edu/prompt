@@ -21,6 +21,9 @@ export interface PrivacyDeletionSubrequest {
   status: DeletionSubrequestStatus
   created_at: string
   completed_at: string | null
+}
+
+export interface AdminPrivacyDeletionSubrequest extends PrivacyDeletionSubrequest {
   error_message: string
 }
 
@@ -39,7 +42,8 @@ export interface PrivacyDeletionRequest {
   subrequests: PrivacyDeletionSubrequest[]
 }
 
-export interface AdminPrivacyDeletionRequest extends PrivacyDeletionRequest {
+export interface AdminPrivacyDeletionRequest extends Omit<PrivacyDeletionRequest, 'subrequests'> {
+  subrequests: AdminPrivacyDeletionSubrequest[]
   student_first_name: string | null
   student_last_name: string | null
   student_email: string | null

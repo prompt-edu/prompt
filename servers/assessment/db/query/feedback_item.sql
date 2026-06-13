@@ -56,3 +56,8 @@ FROM feedback_items
 WHERE author_course_participation_id = $1
   AND course_phase_id = $2
 ORDER BY created_at;
+
+-- name: GetAllFeedbackItemsByCourseParticipationIDs :many
+SELECT * 
+FROM feedback_items
+WHERE course_participation_id = ANY($1::uuid[]);

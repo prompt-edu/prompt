@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -40,14 +39,14 @@ func setupPrivacyDeletionRouter(privacyRouter *gin.RouterGroup, authMiddleware f
 // @Router /privacy/data-deletion [post]
 func createNewSubjectDataDeletionRequest(c *gin.Context) {
 	if valErr := service.ValidateUserMayCreateDeletionRequest(c); valErr != nil {
-		utils.HandleError(c, http.StatusConflict, valErr)
+		handleError(c, http.StatusConflict, valErr)
 		return
 	}
 
 	record, err := service.CreateDeletionRequest(c)
 	if err != nil {
 		log.Error("data deletion request creation failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -68,7 +67,7 @@ func getLatestDeletionRequest(c *gin.Context) {
 	request, err := service.GetLatestDeletionRequestForUser(c)
 	if err != nil {
 		log.Error("get latest deletion request failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -93,19 +92,19 @@ func getLatestDeletionRequest(c *gin.Context) {
 func getDeletionRequest(c *gin.Context) {
 	requestID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := service.ValidateDeletionRequestBelongsToCaller(c, requestID); valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	record, err := service.GetDeletionRequestWithSubrequests(c, requestID)
 	if err != nil {
 		log.Error("get deletion request failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -123,7 +122,7 @@ func getAllDeletionRequests(c *gin.Context) {
 	records, err := service.GetAllDeletionRequests(c)
 	if err != nil {
 		log.Error("get all deletion requests failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, records)
@@ -145,18 +144,18 @@ func getAllDeletionRequests(c *gin.Context) {
 func decideDeletionRequest(c *gin.Context) {
 	requestID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var decision privacyDTO.AuditorDecisionRequest
 	if err := c.ShouldBindJSON(&decision); err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
-		utils.HandleError(c, http.StatusConflict, valErr)
+		handleError(c, http.StatusConflict, valErr)
 		return
 	}
 
@@ -165,7 +164,7 @@ func decideDeletionRequest(c *gin.Context) {
 		record, err := service.RejectDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			log.Error("deletion request rejection failed: ", err)
-			utils.HandleError(c, http.StatusInternalServerError, err)
+			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
 		c.JSON(http.StatusOK, record)
@@ -174,13 +173,13 @@ func decideDeletionRequest(c *gin.Context) {
 		record, err := service.AcceptDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			log.Error("deletion request approval failed: ", err)
-			utils.HandleError(c, http.StatusInternalServerError, err)
+			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
 		state, err := service.PrepareDataDeletion(c, record)
 		if err != nil {
 			log.Error("deletion preparation failed: ", err)
-			utils.HandleError(c, http.StatusInternalServerError, err)
+			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
 		c.JSON(http.StatusOK, record)
@@ -193,6 +192,12 @@ func decideDeletionRequest(c *gin.Context) {
 		}()
 
 	default:
-		utils.HandleError(c, http.StatusBadRequest, fmt.Errorf("unknown decision: %q", decision.Decision))
+		handleError(c, http.StatusBadRequest, fmt.Errorf("unknown decision: %q", decision.Decision))
 	}
+}
+
+func handleError(c *gin.Context, statusCode int, err error) {
+	c.JSON(statusCode, coreutils.ErrorResponse{
+		Error: err.Error(),
+	})
 }

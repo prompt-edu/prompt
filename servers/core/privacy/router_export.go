@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -47,7 +46,7 @@ func setupPrivacyExportRouter(privacyRouter *gin.RouterGroup, authMiddleware fun
 func deleteExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -55,24 +54,24 @@ func deleteExport(c *gin.Context) {
 
 	exp, err := service.GetExportWithDocs(c, exportID)
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if exp.Status == db.ExportStatusArchived && !resetRateLimit {
-		utils.HandleError(c, http.StatusBadRequest, fmt.Errorf("export already archived"))
+		handleError(c, http.StatusBadRequest, fmt.Errorf("export already archived"))
 		return
 	}
 
 	if err := service.ArchiveExport(c, exportID); err != nil {
 		log.WithError(err).Error("failed to delete export")
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if resetRateLimit {
 		if err := service.ResetExportRateLimit(c, exportID); err != nil {
 			log.WithError(err).Error("failed to reset rate limit")
-			utils.HandleError(c, http.StatusInternalServerError, err)
+			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -96,23 +95,23 @@ func deleteExport(c *gin.Context) {
 func handleNewSubjectDataExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := service.ValidateNoValidExportExists(c, userID); valErr != nil {
-		utils.HandleError(c, http.StatusConflict, valErr)
+		handleError(c, http.StatusConflict, valErr)
 		return
 	}
 	if valErr := service.ValidateNotRateLimited(c, userID); valErr != nil {
-		utils.HandleError(c, http.StatusTooManyRequests, valErr)
+		handleError(c, http.StatusTooManyRequests, valErr)
 		return
 	}
 
 	export, err := service.PrepareDataExport(c)
 	if err != nil {
 		log.Error("student data export failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -142,14 +141,14 @@ func handleNewSubjectDataExport(c *gin.Context) {
 func getLatestExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	availability, exp, err := service.GetExportAvailability(c, userID)
 	if err != nil {
 		log.Error("get latest export failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -182,35 +181,35 @@ func getLatestExport(c *gin.Context) {
 func getExportDocDownloadURL(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	docID, err := uuid.Parse(c.Param("docID"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := service.ValidateExportBelongsToRequester(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	downloadURL, err := service.GetDownloadURLForDoc(c, docID)
 	if err != nil {
 		log.Error("get export doc download URL failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -230,7 +229,7 @@ func getAllExports(c *gin.Context) {
 	exports, err := service.GetAllExports(c)
 	if err != nil {
 		log.Error("get all exports failed: ", err)
-		utils.HandleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -253,24 +252,24 @@ func getAllExports(c *gin.Context) {
 func getExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, err)
+		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	valErr := service.ValidateExportBelongsToRequester(c, exportID)
 	if valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
-		utils.HandleError(c, http.StatusForbidden, valErr)
+		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	expWithDocs, expErr := service.GetExportWithDocs(c, exportID)
 	if expErr != nil {
-		utils.HandleError(c, http.StatusInternalServerError, expErr)
+		handleError(c, http.StatusInternalServerError, expErr)
 		return
 	}
 

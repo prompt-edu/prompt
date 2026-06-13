@@ -5,13 +5,13 @@ import {
   requestStudentDataDeletion,
   type LatestDeletionResponse,
 } from '@core/network/queries/privacyStudentDataDeletion'
-import { useQuery } from '@tanstack/react-query'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyDeletionConfirmationDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionConfirmDialog'
 import { PrivacyDeletionStatusCard } from '../shared/components/PrivacyDeletion/PrivacyDeletionStatusCard'
 import { PrivacyDeletionSubrequestList } from '../shared/components/PrivacyDeletion/PrivacyDeletionSubrequestList'
+import { usePrivacyRequestFlow } from '../shared/hooks/usePrivacyRequestFlow'
 
 function isEndState(status: DeletionRequestStatus): boolean {
   return [
@@ -29,37 +29,22 @@ function getRequestIDFromLatest(latest: LatestDeletionResponse | undefined): str
 export function PrivacyDataDeletionPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
 
-  const latestQuery = useQuery({
-    queryKey: ['privacy', 'data-deletion-latest'],
-    queryFn: () => getLatestStudentDataDeletion(),
+  const requestFlow = usePrivacyRequestFlow({
+    resource: 'data-deletion',
+    getLatest: getLatestStudentDataDeletion,
+    extractIdFromLatest: getRequestIDFromLatest,
+    createRequest: requestStudentDataDeletion,
+    getStatus: getStudentDataDeletionStatus,
+    isEndState,
   })
 
-  const requestQuery = useQuery({
-    queryKey: ['privacy', 'data-deletion-create'],
-    queryFn: () => requestStudentDataDeletion(),
-    enabled: false,
-  })
-
-  const requestID = requestQuery.data?.id ?? getRequestIDFromLatest(latestQuery.data)
-
-  const statusQuery = useQuery({
-    queryKey: ['privacy', 'data-deletion-status', requestID],
-    queryFn: () => getStudentDataDeletionStatus(requestID!),
-    enabled: !!requestID,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status
-      if (status && isEndState(status)) return false
-      return 3000
-    },
-  })
+  const request = requestFlow.record
+  const showRequestUI = !request || isEndState(request.status)
 
   const handleConfirm = () => {
     setConfirmDialogOpen(false)
-    requestQuery.refetch()
+    requestFlow.triggerCreate()
   }
-
-  const request = statusQuery.data
-  const showRequestUI = !request || isEndState(request.status)
 
   return (
     <div>
@@ -79,8 +64,8 @@ export function PrivacyDataDeletionPage() {
             approve the request before the deletion is carried out. This action cannot be undone.
           </p>
           <div className='mt-6 flex flex-col items-start gap-2'>
-            <Button disabled={requestQuery.isFetching} onClick={() => setConfirmDialogOpen(true)}>
-              {requestQuery.isFetching && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
+            <Button disabled={requestFlow.isCreating} onClick={() => setConfirmDialogOpen(true)}>
+              {requestFlow.isCreating && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
               {request ? 'Request again' : 'Request data deletion'}
             </Button>
           </div>

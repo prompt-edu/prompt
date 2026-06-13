@@ -6,10 +6,9 @@ import {
   type LatestDeletionResponse,
 } from '@core/network/queries/privacyStudentDataDeletion'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { PrivacyDeletionConfirmationDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionConfirmDialog'
-import { PrivacyDeletionStatusCard } from '../shared/components/PrivacyDeletion/PrivacyDeletionStatusCard'
+import { PrivacyDeletionBanner } from '../shared/components/PrivacyDeletion/PrivacyDeletionBanner'
 import { PrivacyDeletionSubrequestList } from '../shared/components/PrivacyDeletion/PrivacyDeletionSubrequestList'
 import { usePrivacyRequestFlow } from '../shared/hooks/usePrivacyRequestFlow'
 
@@ -52,7 +51,7 @@ export function PrivacyDataDeletionPage() {
 
       {request && (
         <div className='mt-2 space-y-4'>
-          <PrivacyDeletionStatusCard request={request} />
+          <PrivacyDeletionBanner request={request} />
           <PrivacyDeletionSubrequestList subrequests={request.subrequests} />
         </div>
       )}
@@ -65,8 +64,7 @@ export function PrivacyDataDeletionPage() {
           </p>
           <div className='mt-6 flex flex-col items-start gap-2'>
             <Button disabled={requestFlow.isCreating} onClick={() => setConfirmDialogOpen(true)}>
-              {requestFlow.isCreating && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
-              {request ? 'Request again' : 'Request data deletion'}
+              {request ? 'Request data deletion again' : 'Request data deletion'}
             </Button>
           </div>
         </div>

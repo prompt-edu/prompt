@@ -33,7 +33,7 @@ function RequestStatusIcon({ status }: { status: DeletionRequestStatus }) {
 export function PrivacyDeletionStatusCard({ request }: PrivacyDeletionStatusCardProps) {
   return (
     <div className='rounded-lg border border-border bg-muted p-4 flex flex-col gap-3'>
-      <div className='flex items-start gap-3'>
+      <div className='flex items-center gap-3'>
         <div className='lg:mx-2'>
           <RequestStatusIcon status={request.status} />
         </div>

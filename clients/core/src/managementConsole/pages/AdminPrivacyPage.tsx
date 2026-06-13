@@ -104,6 +104,10 @@ function statusSelectFilter<T extends string>(optionLabels: Record<T, string>): 
       label: 'Status',
       options: Object.keys(optionLabels),
       optionLabel: (value) => optionLabels[value as T],
+      badge: {
+        label: 'Status',
+        displayValue: (filtervalue) => optionLabels[filtervalue as T],
+      },
     },
   ]
 }

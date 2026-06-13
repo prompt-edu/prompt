@@ -104,6 +104,8 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
   {
     id: 'requester',
     header: 'Requester',
+    accessorFn: (row) =>
+      [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
     cell: ({ row }) => <RequesterDisplay {...row.original} />,
   },
   {

@@ -5,9 +5,9 @@ import {
   type PrivacyDeletionSubrequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
 import { ColumnDef } from '@tanstack/react-table'
+import { StudentAvatar } from '@tumaet/prompt-ui-components'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
-import { RequesterDisplay } from '../Privacy/RequesterDisplay'
 
 export const deletionRequestStatusLabel: Record<DeletionRequestStatus, string> = {
   [DeletionRequestStatus.pending_approval]: 'Pending approval',
@@ -106,7 +106,16 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
     header: 'Requester',
     accessorFn: (row) =>
       [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
-    cell: ({ row }) => <RequesterDisplay {...row.original} />,
+    cell: ({ row }) => (
+      <StudentAvatar
+        student={{
+          id: row.original.student_id ?? undefined,
+          firstName: row.original.student_first_name ?? '',
+          lastName: row.original.student_last_name ?? '',
+          email: row.original.student_email ?? '',
+        }}
+      />
+    ),
   },
   {
     accessorKey: 'requested_at',

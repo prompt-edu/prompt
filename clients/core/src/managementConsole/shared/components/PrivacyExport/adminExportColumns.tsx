@@ -5,7 +5,7 @@ import {
 } from '@core/network/queries/privacyStudentDataExport'
 import { ColumnDef } from '@tanstack/react-table'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
-import { RequesterDisplay } from '../Privacy/RequesterDisplay'
+import { StudentAvatar } from '@tumaet/prompt-ui-components'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
   if (docs.length === 0) return <span className='text-muted-foreground'>0 {label}</span>
@@ -62,7 +62,18 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     id: 'requester',
     header: 'Requester',
-    cell: ({ row }) => <RequesterDisplay {...row.original} />,
+    accessorFn: (row) =>
+      [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
+    cell: ({ row }) => (
+      <StudentAvatar
+        student={{
+          id: row.original.student_id ?? undefined,
+          firstName: row.original.student_first_name ?? '',
+          lastName: row.original.student_last_name ?? '',
+          email: row.original.student_email ?? '',
+        }}
+      />
+    ),
   },
   {
     accessorKey: 'date_created',

@@ -17,6 +17,7 @@ import { CategoryAssessment } from './components/CategoryAssessment'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { FeedbackItemsPanel } from './components/FeedbackItemsPanel/FeedbackItemsPanel'
 import { PassStatusControls } from './components/PassStatusControls'
+import { AssessmentExportMenu } from './components/AssessmentExportMenu'
 
 export const AssessmentPage = () => {
   const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
@@ -108,6 +109,8 @@ export const AssessmentPage = () => {
       <AssessmentCompletion />
 
       <PassStatusControls courseParticipationID={courseParticipationID} />
+
+      <AssessmentExportMenu />
     </div>
   )
 }

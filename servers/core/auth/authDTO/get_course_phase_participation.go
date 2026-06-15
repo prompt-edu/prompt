@@ -1,4 +1,4 @@
-package coursePhaseAuthDTO
+package authDTO
 
 import "github.com/google/uuid"
 

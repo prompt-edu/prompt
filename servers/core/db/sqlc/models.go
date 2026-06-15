@@ -61,6 +61,8 @@ const (
 	ExportStatusPending  ExportStatus = "pending"
 	ExportStatusComplete ExportStatus = "complete"
 	ExportStatusFailed   ExportStatus = "failed"
+	ExportStatusNoData   ExportStatus = "no_data"
+	ExportStatusArchived ExportStatus = "archived"
 )
 
 func (e *ExportStatus) Scan(src interface{}) error {
@@ -508,12 +510,13 @@ type PhaseDataDependencyGraph struct {
 }
 
 type PrivacyExport struct {
-	ID          uuid.UUID          `json:"id"`
-	UserID      uuid.UUID          `json:"user_id"`
-	StudentID   pgtype.UUID        `json:"student_id"`
-	Status      ExportStatus       `json:"status"`
-	DateCreated pgtype.Timestamptz `json:"date_created"`
-	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
+	StudentID            pgtype.UUID        `json:"student_id"`
+	Status               ExportStatus       `json:"status"`
+	DateCreated          pgtype.Timestamptz `json:"date_created"`
+	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
+	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
 }
 
 type PrivacyExportDocument struct {
@@ -528,13 +531,14 @@ type PrivacyExportDocument struct {
 }
 
 type PrivacyExportWithDoc struct {
-	ID          uuid.UUID          `json:"id"`
-	UserID      uuid.UUID          `json:"user_id"`
-	StudentID   pgtype.UUID        `json:"student_id"`
-	Status      ExportStatus       `json:"status"`
-	DateCreated pgtype.Timestamptz `json:"date_created"`
-	ValidUntil  pgtype.Timestamptz `json:"valid_until"`
-	Documents   interface{}        `json:"documents"`
+	ID                   uuid.UUID          `json:"id"`
+	UserID               uuid.UUID          `json:"user_id"`
+	StudentID            pgtype.UUID        `json:"student_id"`
+	Status               ExportStatus       `json:"status"`
+	DateCreated          pgtype.Timestamptz `json:"date_created"`
+	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
+	NextRequestAllowedAt pgtype.Timestamptz `json:"next_request_allowed_at"`
+	Documents            []byte             `json:"documents"`
 }
 
 type Student struct {

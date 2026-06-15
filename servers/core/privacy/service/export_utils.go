@@ -7,6 +7,6 @@ import (
 )
 
 func MakeUniqueFileNameWithEnding(answerWithFile db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow) string {
-  shortID := answerWithFile.ID.String()[:6]
-  return fmt.Sprintf("%s-%s", shortID, answerWithFile.Filename)
+	shortID := answerWithFile.ID.String()[:6]
+	return fmt.Sprintf("%s-%s", shortID, answerWithFile.Filename)
 }

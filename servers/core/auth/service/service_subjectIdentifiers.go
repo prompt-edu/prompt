@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	sdk "github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
@@ -44,7 +44,7 @@ func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	matrNr := utils.GetMatriculationNumberFromContext(ctx)
 	universityLogin := utils.GetUniversityLoginFromContext(ctx)
 
-	student, err := student.ResolveStudentByUniversityCredentials(ctx, &PrivacyServiceSingleton.queries, matrNr, universityLogin)
+	student, err := student.ResolveStudentByUniversityCredentials(ctx, &AuthServiceSingleton.queries, matrNr, universityLogin)
 	if err != nil {
 		return uuid.UUID{}, err
 	}

@@ -20,7 +20,7 @@ export interface Page1Ref {
 }
 
 export const AssessmentScoreUploadPage1 = forwardRef<Page1Ref>(
-  function AssessmentScoreUploadPage1(props, ref) {
+  function AssessmentScoreUploadPage1Inner(props, ref) {
     const [scoreName, setScoreName] = useState('')
     const [hasThreshold, setHasThreshold] = useState(false)
     const [threshold, setThreshold] = useState('')

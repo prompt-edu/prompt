@@ -79,20 +79,13 @@ jobs:
     secrets: inherit
     with:
       directories: ${{ needs.detect-changes.outputs.api_spec_directories }}
-  lint-servers:
+  quality-servers:
     needs: detect-changes
-    uses: ./.github/workflows/lint-servers.yml
-    secrets: inherit
-    with:
-      modules: ${{ needs.detect-changes.outputs.server_modules }}
-  vet-servers:
-    needs: [detect-changes, lint-servers]
-    uses: ./.github/workflows/vet-servers.yml
-    secrets: inherit
+    uses: ./.github/workflows/quality-servers.yml
     with:
       modules: ${{ needs.detect-changes.outputs.server_modules }}
   test-servers:
-    needs: [detect-changes, vet-servers]
+    needs: [detect-changes, quality-servers]
     uses: ./.github/workflows/test-servers.yml
     secrets: inherit
     with:
@@ -102,15 +95,15 @@ jobs:
     needs: [detect-changes, test-servers]
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
-  lint-clients:
+  quality-clients:
     needs: detect-changes
-    uses: ./.github/workflows/lint-clients.yml
+    uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
-    needs: [detect-changes, lint-clients]
+    needs: [detect-changes, quality-clients]
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
   deploy-dev:

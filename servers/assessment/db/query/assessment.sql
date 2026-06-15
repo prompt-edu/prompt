@@ -4,18 +4,16 @@ INSERT INTO assessment (id,
                         course_phase_id,
                         competency_id,
                         score_level,
-                        comment,
                         assessed_at,
                         author,
-                        examples)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, CURRENT_TIMESTAMP, $6, $7)
+                        author_id)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6)
 ON CONFLICT (course_participation_id, course_phase_id, competency_id)
     DO UPDATE
     SET score_level = EXCLUDED.score_level,
-        comment     = EXCLUDED.comment,
         assessed_at = CURRENT_TIMESTAMP,
         author      = EXCLUDED.author,
-        examples    = EXCLUDED.examples;
+        author_id   = EXCLUDED.author_id;
 
 -- name: DeleteAssessment :exec
 DELETE

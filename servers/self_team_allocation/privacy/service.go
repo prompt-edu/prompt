@@ -2,7 +2,6 @@ package privacy
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
@@ -10,7 +9,6 @@ import (
 
 type PrivacyService struct {
 	Queries db.Queries
-	Conn    *pgxpool.Pool
 }
 
 var PrivacyServiceSingleton *PrivacyService

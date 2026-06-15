@@ -1,4 +1,4 @@
-import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import {
   ExportStatus,
   getExportDocDownloadURL,
@@ -7,7 +7,10 @@ import {
 import { Button, useToast } from '@tumaet/prompt-ui-components'
 import { formatFileSize } from './formatFileSize'
 import { useState } from 'react'
-import { PrivacyStatusBanner } from '../Privacy/PrivacyStatusBanner'
+import {
+  PrivacyStatusBanner,
+  type PrivacyStatusBannerState,
+} from '../Privacy/PrivacyStatusBanner'
 
 interface PrivacyExportBannerProps {
   inProgress: boolean
@@ -65,19 +68,16 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   const isDownloading = downloading != -1
   const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
-  const icon = inProgress ? (
-    <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-  ) : isFailed ? (
-    <AlertTriangle className='h-5 w-5 text-muted-foreground' />
-  ) : (
-    <ShieldCheck className='h-5 w-5 text-muted-foreground' />
-  )
-
-  const title = inProgress
-    ? 'Collecting your data…'
-    : isFailed
-      ? 'Export finished with problems'
-      : 'Export ready'
+  let state: PrivacyStatusBannerState
+  if (inProgress) {
+    state = 'in_progress'
+  } else if (isFailed && completeDocs.length > 0) {
+    state = 'partial'
+  } else if (isFailed) {
+    state = 'failure'
+  } else {
+    state = 'success'
+  }
 
   const action = !inProgress && completeDocs.length > 0 && (
     <Button onClick={handleDownloadAll} disabled={isDownloading} className='w-full sm:w-auto'>
@@ -100,8 +100,8 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
 
   return (
     <PrivacyStatusBanner
-      icon={icon}
-      title={title}
+      subject='Export'
+      state={state}
       meta={[
         `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`,
         !inProgress &&

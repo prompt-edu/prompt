@@ -3,52 +3,37 @@ import {
   DeletionSubrequestStatus,
   type PrivacyDeletionRequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
-import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
-import { PrivacyStatusBanner } from '../Privacy/PrivacyStatusBanner'
+import {
+  PrivacyStatusBanner,
+  type PrivacyStatusBannerState,
+} from '../Privacy/PrivacyStatusBanner'
 
 interface PrivacyDeletionBannerProps {
   request: PrivacyDeletionRequest
 }
 
-type DisplayStatus = DeletionRequestStatus | 'partial'
-
-function getDisplayStatus(request: PrivacyDeletionRequest): DisplayStatus {
-  if (
-    request.status === DeletionRequestStatus.failed &&
-    request.subrequests.some((s) => s.status === DeletionSubrequestStatus.succeeded)
-  ) {
-    return 'partial'
-  }
-  return request.status
-}
-
-const requestStatusLabel: Record<DisplayStatus, string> = {
-  [DeletionRequestStatus.pending_approval]: 'Waiting for admin approval',
-  [DeletionRequestStatus.in_progress]: 'Deletion in progress',
-  [DeletionRequestStatus.succeeded]: 'Deletion completed',
-  [DeletionRequestStatus.failed]: 'Deletion failed',
-  [DeletionRequestStatus.rejected]: 'Deletion request rejected',
-  partial: 'Deletion succeeded with problems',
-}
-
-function RequestStatusIcon({ status }: { status: DisplayStatus }) {
-  const className = 'h-5 w-5'
-  switch (status) {
+function getState(request: PrivacyDeletionRequest): PrivacyStatusBannerState {
+  switch (request.status) {
     case DeletionRequestStatus.pending_approval:
+      return 'pending_approval'
     case DeletionRequestStatus.in_progress:
-      return <Loader2 className={`${className} animate-spin text-muted-foreground`} />
+      return 'in_progress'
     case DeletionRequestStatus.succeeded:
-      return <CircleCheck className={`${className} text-green-600 dark:text-green-400`} />
-    case 'partial':
-      return <CircleCheck className={`${className} text-amber-600 dark:text-amber-400`} />
-    case DeletionRequestStatus.failed:
+      return 'success'
+    case DeletionRequestStatus.failed: {
+      const anySucceeded = request.subrequests.some(
+        (s) => s.status === DeletionSubrequestStatus.succeeded,
+      )
+      return anySucceeded ? 'partial' : 'failure'
+    }
     case DeletionRequestStatus.rejected:
-      return <CircleX className={`${className} text-red-600 dark:text-red-400`} />
+      return 'rejected'
   }
 }
 
 export function PrivacyDeletionBanner({ request }: PrivacyDeletionBannerProps) {
-  const displayStatus = getDisplayStatus(request)
+  const state = getState(request)
+
   const footer = request.auditor_note && (
     <div className='rounded border border-border bg-background px-3 py-2 text-sm text-foreground'>
       <p className='text-xs text-muted-foreground mb-1'>Note</p>
@@ -58,8 +43,8 @@ export function PrivacyDeletionBanner({ request }: PrivacyDeletionBannerProps) {
 
   return (
     <PrivacyStatusBanner
-      icon={<RequestStatusIcon status={displayStatus} />}
-      title={requestStatusLabel[displayStatus]}
+      subject='Deletion'
+      state={state}
       meta={[
         `Requested on ${new Date(request.requested_at).toLocaleString()}`,
         request.auditor_responded_at &&

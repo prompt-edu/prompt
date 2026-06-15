@@ -24,6 +24,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/info"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	log "github.com/sirupsen/logrus"
 )
@@ -119,7 +120,6 @@ func main() {
 	api := router.Group("/assessment/api")
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 
-
 	initKeycloak(*query)
 
 	coursePhaseApi.GET("/hello", helloAssessment)
@@ -134,18 +134,7 @@ func main() {
 	copy.InitCopyModule(api, *query, conn)
 	privacy.InitPrivacyModule(api, *query, conn)
 
-	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
-		ServiceName: "assessment",
-		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
-		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyExport:   false,
-			promptTypes.CapabilityPrivacyDeletion: false,
-			promptTypes.CapabilityPhaseCopy:       true,
-			promptTypes.CapabilityPhaseConfig:     true,
-		},
-	}, func() bool {
-		return conn.Ping(context.Background()) == nil
-	})
+	info.Init(api, conn)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8085")
 	log.Info("Assessment Server started")

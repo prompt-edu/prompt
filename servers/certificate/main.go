@@ -114,7 +114,7 @@ func main() {
 		ServiceName: "certificate",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: false,
 			promptTypes.CapabilityPhaseCopy:       false,
 			promptTypes.CapabilityPhaseConfig:     true,

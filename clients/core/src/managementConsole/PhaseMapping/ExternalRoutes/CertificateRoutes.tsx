@@ -11,9 +11,9 @@ export const CertificateRoutes = React.lazy(() =>
         return <ExternalRoutes routes={routes} />
       },
     }))
-    .catch((err): { default: React.FC } => ({
+    .catch((): { default: React.FC } => ({
       default: () => {
-        console.warn('Failed to load certificate routes', err)
+        console.warn('Failed to load certificate routes')
         return <LoadingError phaseTitle={'Certificate'} />
       },
     })),

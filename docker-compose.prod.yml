@@ -274,7 +274,7 @@ services:
       - prompt-network
 
   db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -294,7 +294,7 @@ services:
       - prompt-network
 
   db-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -314,7 +314,7 @@ services:
       - prompt-network
 
   db-self-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -334,7 +334,7 @@ services:
       - prompt-network
 
   db-interview:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -354,7 +354,7 @@ services:
       - prompt-network
 
   db-assessment:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -374,7 +374,7 @@ services:
       - prompt-network
 
   db-certificate:
-    image: "postgres:15.18-alpine"
+    image: "postgres:18.4-alpine"
     container_name: prompt-db-certificate
     environment:
       - POSTGRES_USER=${DB_USER}

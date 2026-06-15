@@ -35,11 +35,11 @@ export function PrivacyDeletionSubrequestList({ subrequests }: PrivacyDeletionSu
   return (
     <div className='rounded-lg border border-border'>
       <div className='px-4 py-2 border-b border-border'>
-        <p className='text-sm font-medium'>Sources</p>
+        <p className='text-sm font-medium'>Results</p>
       </div>
       <ul className='divide-y divide-border'>
         {subrequests.map((sub) => (
-          <li key={sub.id} className='px-4 py-3 flex items-start gap-3'>
+          <li key={sub.id} className='px-4 py-3 flex items-center gap-3'>
             <SubrequestStatusIcon status={sub.status} />
             <div className='flex-1 min-w-0'>
               <p className='text-sm font-medium'>{sub.source_name}</p>

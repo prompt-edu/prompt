@@ -27,7 +27,8 @@ const deletionRequestStatusStyles: Record<DeletionRequestStatus, string> = {
   [DeletionRequestStatus.succeeded]:
     'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
   [DeletionRequestStatus.failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  [DeletionRequestStatus.rejected]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  [DeletionRequestStatus.rejected]:
+    'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
 }
 
 function DeletionRequestStatusIcon({ status }: { status: DeletionRequestStatus }) {

@@ -132,7 +132,7 @@ func main() {
 		ServiceName: "interview",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyExport:   false,
+			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: false,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,

@@ -1,6 +1,7 @@
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
@@ -39,30 +40,38 @@ export const CourseSwitchSidebar = () => {
       className='!w-[calc(var(--sidebar-width-icon)_+_1px)] min-w-[calc(var(--sidebar-width-icon)_+_1px)] border-r'
     >
       <SidebarHeaderComponent />
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent className='px-0'>
-            <SidebarMenu>
-              <AnimatePresence>
-                {coursesToShow.map((course) => (
-                  <motion.div
-                    key={course.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                  >
-                    <CourseSidebarItem key={course.id} course={course} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {canAddCourse && <AddCourseButton />}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      <div className='relative min-h-0 flex-1'>
+        <SidebarContent className='h-full [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+          <SidebarGroup>
+            <SidebarGroupContent className='px-0'>
+              <SidebarMenu>
+                <AnimatePresence>
+                  {coursesToShow.map((course) => (
+                    <motion.div
+                      key={course.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
+                      <CourseSidebarItem key={course.id} course={course} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <div className='pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-sidebar to-transparent' />
+      </div>
+      {canAddCourse && (
+        <SidebarFooter className='px-0'>
+          <SidebarMenu>
+            <AddCourseButton />
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }

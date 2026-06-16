@@ -7,10 +7,7 @@ import {
 import { Button, useToast } from '@tumaet/prompt-ui-components'
 import { formatFileSize } from './formatFileSize'
 import { useState } from 'react'
-import {
-  PrivacyStatusBanner,
-  type PrivacyStatusBannerState,
-} from '../Privacy/PrivacyStatusBanner'
+import { PrivacyStatusBanner, type PrivacyStatusBannerState } from '../Privacy/PrivacyStatusBanner'
 
 interface PrivacyExportBannerProps {
   inProgress: boolean

@@ -3,10 +3,7 @@ import {
   DeletionSubrequestStatus,
   type PrivacyDeletionRequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
-import {
-  PrivacyStatusBanner,
-  type PrivacyStatusBannerState,
-} from '../Privacy/PrivacyStatusBanner'
+import { PrivacyStatusBanner, type PrivacyStatusBannerState } from '../Privacy/PrivacyStatusBanner'
 
 interface PrivacyDeletionBannerProps {
   request: PrivacyDeletionRequest

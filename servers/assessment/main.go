@@ -24,7 +24,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
-	"github.com/prompt-edu/prompt/servers/assessment/info"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	log "github.com/sirupsen/logrus"
 )
@@ -134,7 +133,18 @@ func main() {
 	copy.InitCopyModule(api, *query, conn)
 	privacy.InitPrivacyModule(api, *query, conn)
 
-	info.Init(api, conn)
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
+		ServiceName: "assessment",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   true,
+			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8085")
 	log.Info("Assessment Server started")

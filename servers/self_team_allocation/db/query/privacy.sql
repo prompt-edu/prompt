@@ -1,5 +1,5 @@
 -- name: GetAssignmentsByParticipationIDs :many
-SELECT 
+SELECT
     a.id,
     a.course_participation_id,
     a.course_phase_id,
@@ -14,3 +14,8 @@ FROM assignments a, team t
 WHERE a.course_participation_id = ANY(@course_participation_ids::uuid[])
   AND t.id = a.team_id
 ORDER BY a.created_at ASC;
+
+-- name: GetTutorsByCourseParticipationIDs :many
+SELECT *
+FROM tutor
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);

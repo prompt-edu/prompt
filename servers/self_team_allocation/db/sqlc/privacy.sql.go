@@ -13,7 +13,7 @@ import (
 )
 
 const getAssignmentsByParticipationIDs = `-- name: GetAssignmentsByParticipationIDs :many
-SELECT 
+SELECT
     a.id,
     a.course_participation_id,
     a.course_phase_id,
@@ -63,6 +63,38 @@ func (q *Queries) GetAssignmentsByParticipationIDs(ctx context.Context, coursePa
 			&i.TeamID,
 			&i.TeamName,
 			&i.TeamCreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTutorsByCourseParticipationIDs = `-- name: GetTutorsByCourseParticipationIDs :many
+SELECT course_phase_id, course_participation_id, first_name, last_name, team_id
+FROM tutor
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetTutorsByCourseParticipationIDs(ctx context.Context, courseParticipationIds []uuid.UUID) ([]Tutor, error) {
+	rows, err := q.db.Query(ctx, getTutorsByCourseParticipationIDs, courseParticipationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tutor
+	for rows.Next() {
+		var i Tutor
+		if err := rows.Scan(
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.FirstName,
+			&i.LastName,
+			&i.TeamID,
 		); err != nil {
 			return nil, err
 		}

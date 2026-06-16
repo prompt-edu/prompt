@@ -17,3 +17,8 @@ FROM student_team_preference_response spr, team t
 WHERE course_participation_id = ANY($1::uuid[])
 AND spr.team_id = t.id;
 
+-- name: GetTutorByCourseParticipationIDs :many
+SELECT t.*
+FROM tutor t
+WHERE t.course_participation_id = ANY($1::uuid[]);
+

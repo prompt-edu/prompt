@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
@@ -13,7 +12,6 @@ import (
 
 type TeamsPrivacyService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
 var TeamsPrivacyServiceSingleton *TeamsPrivacyService
@@ -22,9 +20,30 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	exp.AddJSON("Team Allocation", "team_allocation.json", func() (any, error) {
 		return getTeamForCourseParticipationIDs(c, subject.CourseParticipationIDs)
 	})
+	exp.AddJSON("Team Preferences", "team_preferences.json", func() (any, error) {
+		return getTeamPreferencesForCourseParticipationIDs(c, subject.CourseParticipationIDs)
+	})
+	exp.AddJSON("Skill Responses", "skill_responses.json", func() (any, error) {
+		return getSkillResponsesForCourseParticipationIDs(c, subject.CourseParticipationIDs)
+	})
+	exp.AddJSON("Tutor Assignment", "tutor.json", func() (any, error) {
+		return getTutorForCourseParticipationIDs(c, subject.CourseParticipationIDs)
+	})
 	return nil
+}
+
+func getTutorForCourseParticipationIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) (any, error) {
+	return TeamsPrivacyServiceSingleton.queries.GetTutorByCourseParticipationIDs(ctx, courseParticipationIDs)
 }
 
 func getTeamForCourseParticipationIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) (any, error) {
 	return TeamsPrivacyServiceSingleton.queries.GetAllocationByCourseParticipationID(ctx, courseParticipationIDs)
+}
+
+func getTeamPreferencesForCourseParticipationIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) (any, error) {
+	return TeamsPrivacyServiceSingleton.queries.GetStudentTeamPreferenceResponseByCourseParticipationID(ctx, courseParticipationIDs)
+}
+
+func getSkillResponsesForCourseParticipationIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) (any, error) {
+	return TeamsPrivacyServiceSingleton.queries.GetStudentSkillResponseByCourseParticipationID(ctx, courseParticipationIDs)
 }

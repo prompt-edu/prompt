@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useRef } from 'react'
-import { PromptTable, TableFilter, useToast } from '@tumaet/prompt-ui-components'
+import { PromptTableURL, TableFilter, useToast } from '@tumaet/prompt-ui-components'
 
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
@@ -193,7 +193,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
 
   return (
     <div ref={tableContainerRef}>
-      <PromptTable<ApplicationRow>
+      <PromptTableURL<ApplicationRow>
         data={data}
         columns={columns}
         filters={filters}

@@ -15,9 +15,11 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Mail, Recycle, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
+
+const APPROVE_WAIT_SECONDS = 8
 
 interface PrivacyDeletionReviewDialogProps {
   request: AdminPrivacyDeletionRequest | null
@@ -30,6 +32,22 @@ export function PrivacyDeletionReviewDialog({
 }: PrivacyDeletionReviewDialogProps) {
   const queryClient = useQueryClient()
   const [note, setNote] = useState('')
+  const [approveRemaining, setApproveRemaining] = useState(APPROVE_WAIT_SECONDS)
+
+  useEffect(() => {
+    if (!request) return
+    setApproveRemaining(APPROVE_WAIT_SECONDS)
+    const interval = setInterval(() => {
+      setApproveRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [request?.id])
 
   const mutation = useMutation({
     mutationFn: (decision: AuditorDecision) =>
@@ -151,8 +169,14 @@ export function PrivacyDeletionReviewDialog({
           <Button onClick={() => mutation.mutate('reject')} disabled={mutation.isPending}>
             Reject
           </Button>
-          <Button onClick={() => mutation.mutate('approve')} disabled={mutation.isPending}>
-            Approve and Start Deletion
+          <Button
+            variant='destructive'
+            onClick={() => mutation.mutate('approve')}
+            disabled={mutation.isPending || approveRemaining > 0}
+          >
+            {approveRemaining > 0
+              ? `Approve and Start Deletion (${approveRemaining}s)`
+              : 'Approve and Start Deletion'}
           </Button>
         </DialogFooter>
       </DialogContent>

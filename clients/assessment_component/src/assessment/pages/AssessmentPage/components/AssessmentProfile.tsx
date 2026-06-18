@@ -19,10 +19,10 @@ export const AssessmentProfile = ({
   remainingAssessments,
 }: AssessmentProfileProps) => {
   return (
-    <Card className='relative overflow-hidden'>
+    <Card>
       <CardHeader>
         <div className='flex flex-wrap items-center gap-2'>
-          <h1 className='text-2xl font-bold mr-2 sm:text-left sm:w-auto text-center w-full'>
+          <h1 className='text-2xl font-bold w-full text-center sm:w-auto sm:text-left'>
             {participant.student.firstName} {participant.student.lastName}
           </h1>
 

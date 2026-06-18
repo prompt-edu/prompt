@@ -48,12 +48,12 @@ export const CategoryAssessment = ({
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <div key={category.id} className='mb-6'>
-      <div className='flex grow items-center justify-center mb-4 gap-1'>
+    <div className='mb-6'>
+      <div className='flex items-center justify-center mb-4 gap-1'>
         <div className='flex items-center justify-center w-full'>
           <button
             onClick={toggleExpand}
-            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xs focus:outline-hidden'
+            className='p-1 mr-2 hover:bg-accent rounded-xs focus:outline-hidden'
             aria-expanded={isExpanded}
             aria-controls={`content-${category.id}`}
           >
@@ -73,7 +73,6 @@ export const CategoryAssessment = ({
           {!completed && (
             <AssessmentStatusBadge
               remainingAssessments={category.competencies.length - assessments.length}
-              isFinalized={completed}
             />
           )}
         </div>

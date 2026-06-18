@@ -15,7 +15,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
@@ -42,6 +45,9 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 		conn:    testDB.Conn,
 	}
 	AssessmentServiceSingleton = &suite.service
+	assessmentCompletion.InitAssessmentCompletionModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	scoreLevel.InitScoreLevelModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	categoryAssessment.InitCategoryAssessmentModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -94,6 +100,44 @@ func (suite *AssessmentRouterTestSuite) TestListByStudentInPhase() {
 	var items []assessmentDTO.Assessment
 	err := json.Unmarshal(resp.Body.Bytes(), &items)
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *AssessmentRouterTestSuite) TestExportStudentAssessmentJSON() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/"+partID.String()+"/export?format=json", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	assert.Contains(suite.T(), resp.Header().Get("Content-Type"), "application/json")
+	var exported assessmentDTO.AssessmentExport
+	err := json.Unmarshal(resp.Body.Bytes(), &exported)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), phaseID, exported.CoursePhaseID)
+	assert.Equal(suite.T(), partID, exported.CourseParticipationID)
+	assert.NotEmpty(suite.T(), exported.StudentAssessment.Assessments)
+}
+
+func (suite *AssessmentRouterTestSuite) TestExportStudentAssessmentInvalidUUIDs() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/invalid/student-assessment/invalid/export?format=json", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
+func (suite *AssessmentRouterTestSuite) TestExportStudentAssessmentUnsupportedFormat() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/"+partID.String()+"/export?format=pdf", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
 func (suite *AssessmentRouterTestSuite) TestInvalidUUIDs() {

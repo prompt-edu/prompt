@@ -93,7 +93,9 @@ export const CategoryAssessment = ({
           ) : (
             <div className='grid gap-4'>
               {sortedCompetencies.map((competency) => {
-                const assessment = assessments.find((ass) => ass.competencyID === competency.id)
+                const competencyAssessment = assessments.find(
+                  (assessment) => assessment.competencyID === competency.id,
+                )
                 const peerAverage = peerEvaluationResults?.find(
                   (result) => result.competencyID === competency.id,
                 )
@@ -106,7 +108,7 @@ export const CategoryAssessment = ({
                     <AssessmentForm
                       courseParticipationID={courseParticipationID}
                       competency={competency}
-                      assessment={assessment}
+                      assessment={competencyAssessment}
                       completed={completed}
                       peerEvaluationAverageScore={peerAverage?.averageScoreNumeric}
                       selfEvaluationAverageScore={selfAverage?.averageScoreNumeric}

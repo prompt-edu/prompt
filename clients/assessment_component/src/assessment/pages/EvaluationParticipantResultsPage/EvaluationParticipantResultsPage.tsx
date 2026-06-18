@@ -70,6 +70,20 @@ export const EvaluationParticipantResultsPage = ({
   const pageTitle =
     assessmentType === AssessmentType.SELF ? 'Self Evaluation Results' : 'Peer Evaluation Results'
 
+  const evaluationsByCategory = useMemo(
+    () =>
+      new Map(
+        categories.map((category) => {
+          const competencyIDs = new Set(category.competencies.map((competency) => competency.id))
+          return [
+            category.id,
+            evaluations.filter((evaluation) => competencyIDs.has(evaluation.competencyID)),
+          ]
+        }),
+      ),
+    [categories, evaluations],
+  )
+
   const typedFeedbackItems = useMemo(
     () => feedbackItems.filter((item) => item.type === assessmentType),
     [assessmentType, feedbackItems],
@@ -132,11 +146,7 @@ export const EvaluationParticipantResultsPage = ({
                 key={category.id}
                 category={category}
                 assessmentType={assessmentType}
-                evaluations={evaluations.filter((evaluation) =>
-                  category.competencies
-                    .map((competency) => competency.id)
-                    .includes(evaluation.competencyID),
-                )}
+                evaluations={evaluationsByCategory.get(category.id) ?? []}
               />
             ))}
           </div>

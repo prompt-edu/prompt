@@ -102,6 +102,7 @@ func (suite *EvaluationRouterTestSuite) TestGetSelfEvaluationsForParticipantInPh
 	var evaluations []evaluationDTO.Evaluation
 	err := json.Unmarshal(w.Body.Bytes(), &evaluations)
 	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), evaluations)
 	for _, evaluation := range evaluations {
 		assert.Equal(suite.T(), assessmentType.Self, evaluation.Type)
 	}
@@ -118,6 +119,7 @@ func (suite *EvaluationRouterTestSuite) TestGetPeerEvaluationsForParticipantInPh
 	var evaluations []evaluationDTO.Evaluation
 	err := json.Unmarshal(w.Body.Bytes(), &evaluations)
 	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), evaluations)
 	for _, evaluation := range evaluations {
 		assert.Equal(suite.T(), assessmentType.Peer, evaluation.Type)
 	}

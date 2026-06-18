@@ -80,7 +80,7 @@ export const CategoryAssessment = ({
       </div>
 
       {isExpanded && (
-        <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-5 border-t mt-2'>
+        <div id={`content-${category.id}`} className='space-y-5'>
           <CategoryComment
             categoryID={category.id}
             courseParticipationID={courseParticipationID}

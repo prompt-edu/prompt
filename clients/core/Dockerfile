@@ -6,8 +6,7 @@ WORKDIR /app/core
 
 COPY . ./
 
-ARG NODE_ENV=production
-RUN yarn webpack --mode=${NODE_ENV} --env NODE_ENV=${NODE_ENV}
+RUN yarn build
 
 FROM nginx:stable-alpine
 

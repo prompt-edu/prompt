@@ -4678,6 +4678,67 @@
                     }
                 }
             }
+        },
+        "/course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export": {
+            "get": {
+                "description": "Export one student assessment in a text format.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessments"
+                ],
+                "summary": "Export student assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "json",
+                        "description": "Export format",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/assessmentDTO.AssessmentExport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4815,6 +4876,29 @@
                 },
                 "scoreLevel": {
                     "$ref": "#/definitions/scoreLevelDTO.ScoreLevel"
+                }
+            }
+        },
+        "assessmentDTO.AssessmentExport": {
+            "type": "object",
+            "properties": {
+                "actionItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/actionItemDTO.ActionItem"
+                    }
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "exportedAt": {
+                    "type": "string"
+                },
+                "studentAssessment": {
+                    "$ref": "#/definitions/assessmentDTO.StudentAssessment"
                 }
             }
         },

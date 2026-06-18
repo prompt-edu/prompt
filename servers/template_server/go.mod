@@ -1,14 +1,14 @@
 module github.com/prompt-edu/prompt/servers/template_server
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/getsentry/sentry-go/gin v0.46.2
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.2
-	github.com/prompt-edu/prompt-sdk v1.1.7
+	github.com/jackc/pgx/v5 v5.10.0
+	github.com/prompt-edu/prompt-sdk v1.1.8
 	github.com/sirupsen/logrus v1.9.4
 	github.com/swaggo/swag v1.16.6
 )
@@ -50,7 +50,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect

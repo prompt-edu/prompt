@@ -26,6 +26,9 @@ type S3Adapter struct {
 	publicEndpoint  string
 }
 
+// make StorageAdapter implementation explicit
+var _ StorageAdapter = (*S3Adapter)(nil)
+
 // NewS3Adapter creates a new S3 storage adapter
 // Works with AWS S3, SeaweedFS S3 gateway, MinIO, and other S3-compatible services
 func NewS3Adapter(bucket, region, endpoint, publicEndpoint, accessKey, secretKey string, forcePathStyle bool) (*S3Adapter, error) {

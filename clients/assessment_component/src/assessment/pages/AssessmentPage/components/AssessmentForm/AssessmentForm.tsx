@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { Form, FormMessage } from '@tumaet/prompt-ui-components'
 
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
@@ -22,7 +21,6 @@ import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDial
 import { ScoreLevelSelector } from '../../../components/ScoreLevelSelector'
 
 import { EvaluationScoreDescriptionBadge } from './components/EvaluationScoreDescriptionBadge'
-import { AssessmentTextField } from './components/AssessmentTextField'
 
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
@@ -50,9 +48,6 @@ export const AssessmentForm = ({
   const [error, setError] = useState<string | undefined>(undefined)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const { user } = useAuthStore()
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
-
   const form = useForm<CreateOrUpdateAssessmentRequest>({
     mode: 'onChange',
     criteriaMode: 'all',
@@ -61,60 +56,32 @@ export const AssessmentForm = ({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      comment: assessment ? assessment.comment : '',
-      examples: assessment ? assessment.examples : '',
-      author: userName,
     },
   })
 
   const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError)
   const deleteAssessment = useDeleteAssessment(setError)
   const selectedScore = form.watch('scoreLevel')
-  const hasExample = (assessment?.examples ?? '').trim().length > 0
-  const hasComment = (assessment?.comment ?? '').trim().length > 0
-  const shouldHideCommentAndExample = completed && !hasExample && !hasComment
 
   useEffect(() => {
     form.reset({
       courseParticipationID,
       competencyID: competency.id,
       scoreLevel: assessment?.scoreLevel,
-      comment: assessment ? assessment.comment : '',
-      examples: assessment ? assessment.examples : '',
-      author: userName,
     })
-  }, [form, courseParticipationID, competency.id, assessment, userName])
+  }, [form, courseParticipationID, competency.id, assessment])
 
-  const saveAssessment = async () => {
+  const saveAssessment = () => {
     if (completed) return
-
-    const isValid = await form.trigger()
-    if (!isValid) return
-
     const data = form.getValues()
     if (!data.scoreLevel) return
-
     createOrUpdateAssessment(data)
   }
 
-  useEffect(() => {
+  const handleScoreChange = (value: ScoreLevel) => {
     if (completed) return
-
-    const subscription = form.watch(async (_, { name }) => {
-      if (name === 'scoreLevel') {
-        await form.trigger(['comment', 'examples'])
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [form, completed])
-
-  const handleScoreChange = async (value: ScoreLevel) => {
-    if (completed) return
-    form.setValue('scoreLevel', value, { shouldValidate: true })
-    await saveAssessment()
+    form.setValue('scoreLevel', value)
+    saveAssessment()
   }
 
   const handleDelete = () => {
@@ -127,9 +94,6 @@ export const AssessmentForm = ({
             courseParticipationID,
             competencyID: competency.id,
             scoreLevel: undefined,
-            comment: '',
-            examples: '',
-            author: userName,
           })
         },
       })
@@ -243,28 +207,6 @@ export const AssessmentForm = ({
           peerEvaluationScoreLevel={peerEvaluationScore}
           peerEvaluationStudentAnswers={peerEvaluationStudentAnswers}
         />
-
-        {!shouldHideCommentAndExample && (
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-            <AssessmentTextField
-              control={form.control}
-              name='examples'
-              placeholder='Example'
-              completed={completed}
-              getScoreLevel={() => form.getValues('scoreLevel')}
-              onBlur={saveAssessment}
-            />
-
-            <AssessmentTextField
-              control={form.control}
-              name='comment'
-              placeholder='Additional comments'
-              completed={completed}
-              getScoreLevel={() => form.getValues('scoreLevel')}
-              onBlur={saveAssessment}
-            />
-          </div>
-        )}
 
         {error && !completed && <FormMessage className='mt-2'>{error}</FormMessage>}
 

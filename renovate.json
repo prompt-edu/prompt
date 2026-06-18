@@ -3,11 +3,17 @@
   "extends": ["config:recommended"],
   "prConcurrentLimit": 3,
   "rangeStrategy": "bump",
+  "minimumReleaseAge": "7 days",
   "packageRules": [
     {
       "description": "Group all non-major updates together",
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "all non-major dependencies"
+    },
+    {
+      "description": "No minimum age for security updates",
+      "matchCategories": ["security"],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }

@@ -9,8 +9,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -20,7 +21,7 @@ type StorageServiceTestSuite struct {
 	ctx         context.Context
 	cleanup     func()
 	service     *StorageService
-	mockAdapter *MockStorageAdapter
+	mockAdapter storage.StorageAdapter
 	testUserID  string
 }
 
@@ -40,7 +41,7 @@ func (suite *StorageServiceTestSuite) SetupSuite() {
 	suite.testUserID = "11111111-1111-1111-1111-111111111111"
 
 	// Create mock adapter
-	suite.mockAdapter = &MockStorageAdapter{}
+	suite.mockAdapter = &storage.MockStorageAdapter{}
 
 	// Initialize service with mock adapter
 	suite.service = NewStorageService(

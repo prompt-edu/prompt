@@ -6,13 +6,13 @@ import {
   type LatestExportResponse,
 } from '@core/network/queries/privacyStudentDataExport'
 import { useQuery } from '@tanstack/react-query'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { PrivacyExportDocument } from '../shared/components/PrivacyExport/PrivacyExportDoc'
 import { PrivacyExportBanner } from '../shared/components/PrivacyExport/PrivacyExportBanner'
+import { PrivacyExportDocumentList } from '../shared/components/PrivacyExport/PrivacyExportDocumentList'
 import { PrivacyExportConfirmationDialog } from '../shared/components/PrivacyExport/PrivacyExportConfirmDialog'
 import { PrivacyExportRateLimitNotice } from '../shared/components/PrivacyExport/PrivacyExportRateLimitNotice'
-import { PrivacyExportTrigger } from '../shared/components/PrivacyExport/PrivacyExportTrigger'
 
 function getExportIDFromLatest(latest: LatestExportResponse | undefined): string | undefined {
   if (latest?.status === 'exists') return latest.export.id
@@ -41,7 +41,12 @@ export function PrivacyDataExportPage() {
     enabled: !!exportID,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      if (status === ExportStatus.complete || status === ExportStatus.failed) return false
+      if (
+        status === ExportStatus.complete ||
+        status === ExportStatus.no_data ||
+        status === ExportStatus.failed
+      )
+        return false
       return 3000
     },
   })
@@ -53,6 +58,7 @@ export function PrivacyDataExportPage() {
 
   const isPolling =
     statusQuery.data?.status !== ExportStatus.complete &&
+    statusQuery.data?.status !== ExportStatus.no_data &&
     statusQuery.data?.status !== ExportStatus.failed &&
     !!exportID
 
@@ -70,28 +76,29 @@ export function PrivacyDataExportPage() {
       )}
 
       {!statusQuery.data && (
-        <PrivacyExportTrigger
-          progressOngoing={exportQuery.isFetching}
-          rateLimited={isRateLimited}
-          openDialog={() => setExportConfirmDialogOpen(true)}
-        />
+        <>
+          <p className='text-muted-foreground'>
+            Download a copy of all personal data stored about you in our systems.
+          </p>
+          <p className='text-muted-foreground'>
+            You must wait 30 days before requesting another export.
+          </p>
+          <div className='mt-6 flex flex-col items-start gap-2'>
+            <Button
+              disabled={exportQuery.isFetching || isRateLimited}
+              onClick={() => setExportConfirmDialogOpen(true)}
+            >
+              {exportQuery.isFetching && <Loader2 className='animate-spin mr-2 h-4 w-4' />}
+              Request data export
+            </Button>
+          </div>
+        </>
       )}
 
       {statusQuery.data && (
         <div className='mt-8 space-y-4'>
           <PrivacyExportBanner inProgress={isPolling} privacyExport={statusQuery.data} />
-
-          {statusQuery.data.documents.length > 0 && (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
-              {statusQuery.data.documents.map((doc) => (
-                <PrivacyExportDocument
-                  key={doc.id}
-                  exportId={statusQuery.data.id}
-                  privacy_export_document={doc}
-                />
-              ))}
-            </div>
-          )}
+          <PrivacyExportDocumentList privacyExport={statusQuery.data} />
         </div>
       )}
 

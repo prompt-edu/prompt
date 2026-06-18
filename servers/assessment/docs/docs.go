@@ -510,6 +510,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/category-assessment": {
+            "post": {
+                "description": "Upserts the free-text comment for a (category, student) within the course phase. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categoryAssessments"
+                ],
+                "summary": "Create or update category assessment comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/category/assessment/with-competencies": {
             "get": {
                 "description": "List assessment categories with competencies for the course phase.",
@@ -3088,7 +3159,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create or update an assessment for a student.",
+                "description": "Create or update an assessment for a student. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3129,6 +3200,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4490,6 +4570,67 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export": {
+            "get": {
+                "description": "Export one student assessment in a text format.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessments"
+                ],
+                "summary": "Export student assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "json",
+                        "description": "Export format",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/assessmentDTO.AssessmentExport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4610,7 +4751,7 @@ const docTemplate = `{
                 "author": {
                     "type": "string"
                 },
-                "comment": {
+                "authorID": {
                     "type": "string"
                 },
                 "competencyID": {
@@ -4620,9 +4761,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "coursePhaseID": {
-                    "type": "string"
-                },
-                "examples": {
                     "type": "string"
                 },
                 "id": {
@@ -4633,16 +4771,33 @@ const docTemplate = `{
                 }
             }
         },
+        "assessmentDTO.AssessmentExport": {
+            "type": "object",
+            "properties": {
+                "actionItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/actionItemDTO.ActionItem"
+                    }
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "exportedAt": {
+                    "type": "string"
+                },
+                "studentAssessment": {
+                    "$ref": "#/definitions/assessmentDTO.StudentAssessment"
+                }
+            }
+        },
         "assessmentDTO.CreateOrUpdateAssessmentRequest": {
             "type": "object",
             "properties": {
                 "assessedAt": {
-                    "type": "string"
-                },
-                "author": {
-                    "type": "string"
-                },
-                "comment": {
                     "type": "string"
                 },
                 "competencyID": {
@@ -4652,9 +4807,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "coursePhaseID": {
-                    "type": "string"
-                },
-                "examples": {
                     "type": "string"
                 },
                 "scoreLevel": {
@@ -4672,6 +4824,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "categoryAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryAssessmentDTO.CategoryAssessment"
                     }
                 },
                 "courseParticipationID": {
@@ -4704,6 +4862,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "categoryAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryAssessmentDTO.CategoryAssessment"
                     }
                 },
                 "courseParticipationID": {
@@ -4785,6 +4949,55 @@ const docTemplate = `{
                 "Tutor",
                 "Assessment"
             ]
+        },
+        "categoryAssessmentDTO.CategoryAssessment": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "authorID": {
+                    "type": "string"
+                },
+                "categoryID": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest": {
+            "type": "object",
+            "properties": {
+                "categoryID": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                }
+            }
         },
         "categoryDTO.CategoryWithCompetencies": {
             "type": "object",

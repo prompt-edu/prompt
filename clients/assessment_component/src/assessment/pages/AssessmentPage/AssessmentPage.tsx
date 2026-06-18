@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useMemo, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 
-import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 
 import { useCategoryStore } from '../../zustand/useCategoryStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
@@ -40,7 +39,7 @@ export const AssessmentPage = () => {
     return (
       categories.reduce((acc, category) => {
         return acc + category.competencies.length
-      }, 0) - (studentAssessment?.assessments?.length || 0)
+      }, 0) - (studentAssessment?.assessments?.length ?? 0)
     )
   }, [categories, studentAssessment?.assessments?.length])
 
@@ -57,12 +56,7 @@ export const AssessmentPage = () => {
   }, [participant, setAssessmentParticipation])
 
   if (isStudentAssessmentError) return <ErrorPage onRetry={refetchStudentAssessment} />
-  if (isStudentAssessmentPending)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+  if (isStudentAssessmentPending) return <LoadingPage />
 
   if (!studentAssessment) {
     return (

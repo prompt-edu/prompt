@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
 
-const APPROVE_WAIT_SECONDS = 8
+const APPROVE_WAIT_SECONDS = 5
 
 interface PrivacyDeletionReviewDialogProps {
   request: AdminPrivacyDeletionRequest | null

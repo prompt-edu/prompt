@@ -211,6 +211,30 @@ func (q *Queries) GetExportDocObjectKeysByExportID(ctx context.Context, exportID
 	return items, nil
 }
 
+const getExportIDsForUser = `-- name: GetExportIDsForUser :many
+SELECT id FROM privacy_export WHERE user_id = $1 AND status != 'archived'
+`
+
+func (q *Queries) GetExportIDsForUser(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getExportIDsForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getExportRecordByID = `-- name: GetExportRecordByID :one
 SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at FROM privacy_export WHERE id = $1 LIMIT 1
 `

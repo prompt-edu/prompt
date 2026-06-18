@@ -67,6 +67,15 @@ func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) (S
 	return i, err
 }
 
+const deleteStudentByID = `-- name: DeleteStudentByID :exec
+DELETE FROM student WHERE id = $1
+`
+
+func (q *Queries) DeleteStudentByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStudentByID, id)
+	return err
+}
+
 const getAllStudents = `-- name: GetAllStudents :many
 SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
 `

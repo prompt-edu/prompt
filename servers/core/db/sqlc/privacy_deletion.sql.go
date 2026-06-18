@@ -246,6 +246,18 @@ func (q *Queries) GetOpenDeletionRequestForUser(ctx context.Context, userID uuid
 	return i, err
 }
 
+const scrubDeletionRequestAuditorByID = `-- name: ScrubDeletionRequestAuditorByID :exec
+UPDATE privacy_deletion_request
+SET auditor_name  = '',
+    auditor_email = ''
+WHERE auditor_id = $1
+`
+
+func (q *Queries) ScrubDeletionRequestAuditorByID(ctx context.Context, auditorID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, scrubDeletionRequestAuditorByID, auditorID)
+	return err
+}
+
 const setDeletionRequestAuditor = `-- name: SetDeletionRequestAuditor :exec
 UPDATE privacy_deletion_request
 SET auditor_id           = $2,

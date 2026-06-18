@@ -44,6 +44,18 @@ CREATE TABLE privacy_deletion_subrequest (
   error_message         text                                NOT NULL DEFAULT ''
 );
 
+-- instructor notes: on delete cascade 
+ALTER TABLE note
+  DROP CONSTRAINT note_for_student_fkey,
+  ADD CONSTRAINT note_for_student_fkey
+    FOREIGN KEY (for_student) REFERENCES student(id) ON DELETE CASCADE;
+
+ALTER TABLE note_version
+  DROP CONSTRAINT note_version_for_note_fkey,
+  ADD CONSTRAINT note_version_for_note_fkey
+    FOREIGN KEY (for_note) REFERENCES note(id) ON DELETE CASCADE;
+
+
 CREATE VIEW privacy_deletion_request_with_subrequests AS
 SELECT
   r.id,

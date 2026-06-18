@@ -47,6 +47,9 @@ SELECT * FROM student
 WHERE university_login = $1
 LIMIT 1;
 
+-- name: DeleteStudentByID :exec
+DELETE FROM student WHERE id = $1;
+
 -- name: SearchStudents :many
 SELECT *
 FROM student

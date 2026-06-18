@@ -58,3 +58,9 @@ SET status        = $2,
     error_message = $3
 WHERE id = $1
 RETURNING *;
+
+-- name: ScrubDeletionRequestAuditorByID :exec
+UPDATE privacy_deletion_request
+SET auditor_name  = '',
+    auditor_email = ''
+WHERE auditor_id = $1;

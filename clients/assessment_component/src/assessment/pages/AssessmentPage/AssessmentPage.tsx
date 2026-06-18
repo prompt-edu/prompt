@@ -98,6 +98,7 @@ export const AssessmentPage = () => {
               .includes(assessment.competencyID),
           )}
           completed={studentAssessment.assessmentCompletion.completed}
+          courseParticipationID={courseParticipationID ?? ''}
         />
       ))}
 

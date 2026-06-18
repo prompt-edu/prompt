@@ -11,8 +11,7 @@ import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigSto
 
 import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
-import { ParticipantNavigation } from './components/ParticipantNavigation'
-import { AssessmentProfile } from './components/AssessmentProfile'
+import { AssessmentHeader } from './components/AssessmentHeader'
 import { CategoryAssessment } from './components/CategoryAssessment'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { FeedbackItemsPanel } from './components/FeedbackItemsPanel/FeedbackItemsPanel'
@@ -76,17 +75,15 @@ export const AssessmentPage = () => {
 
   return (
     <div className='space-y-4'>
-      <ManagementPageHeader>Assess Student</ManagementPageHeader>
-
-      <ParticipantNavigation />
-
       {participant && (
-        <AssessmentProfile
+        <AssessmentHeader
           participant={participant}
           studentAssessment={studentAssessment}
           remainingAssessments={remainingAssessments}
         />
       )}
+
+      <ManagementPageHeader>Assess Student</ManagementPageHeader>
 
       {categories.map((category) => (
         <CategoryAssessment

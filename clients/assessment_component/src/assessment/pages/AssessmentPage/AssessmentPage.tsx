@@ -75,6 +75,8 @@ export const AssessmentPage = () => {
 
   return (
     <div className='space-y-4'>
+      <ManagementPageHeader>Assess Student</ManagementPageHeader>
+
       {participant && (
         <AssessmentHeader
           participant={participant}
@@ -82,8 +84,6 @@ export const AssessmentPage = () => {
           remainingAssessments={remainingAssessments}
         />
       )}
-
-      <ManagementPageHeader>Assess Student</ManagementPageHeader>
 
       {categories.map((category) => (
         <CategoryAssessment

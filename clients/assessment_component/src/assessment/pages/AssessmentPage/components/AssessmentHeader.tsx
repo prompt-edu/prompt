@@ -79,8 +79,8 @@ export const AssessmentHeader = ({
         <div
           ref={barRef}
           className={cn(
-            'z-20 rounded-lg transition-colors duration-300',
-            docked && 'bg-background py-2 shadow-sm',
+            'z-20 transition-colors duration-300',
+            docked && 'rounded-md bg-background shadow-sm',
           )}
         >
           <div className='flex items-center gap-2'>

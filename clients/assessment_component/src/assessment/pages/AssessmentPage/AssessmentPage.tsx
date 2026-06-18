@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom'
 import { useMemo, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { ErrorPage } from '@tumaet/prompt-ui-components'
 
 import { useCategoryStore } from '../../zustand/useCategoryStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
@@ -75,8 +75,6 @@ export const AssessmentPage = () => {
 
   return (
     <div className='space-y-4'>
-      <ManagementPageHeader>Assess Student</ManagementPageHeader>
-
       {participant && (
         <AssessmentHeader
           participant={participant}

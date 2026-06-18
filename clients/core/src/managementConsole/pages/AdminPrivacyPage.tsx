@@ -88,6 +88,10 @@ export function AdminPrivacyPage() {
               pageSize={20}
             />
           )}
+          <p className='text-xs text-muted-foreground mt-4'>
+            <span className='font-medium'>Archived</span> means the corresponding export files have
+            been deleted from storage. The metadata row is kept for audit purposes.
+          </p>
         </TabsContent>
       </Tabs>
 

@@ -4,8 +4,10 @@ import {
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
 import { ColumnDef } from '@tanstack/react-table'
+import { Archive, CircleCheck, CircleX, Info, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
-import { StudentAvatar } from '@tumaet/prompt-ui-components'
+import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
+import { RequesterCell, requesterAccessor } from '../Privacy/RequesterCell'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
   if (docs.length === 0) return <span>0 {label}</span>
@@ -53,27 +55,51 @@ export const exportStatusLabel: Record<ExportStatus, string> = {
   [ExportStatus.archived]: 'Archived',
 }
 
+const exportStatusColor: Record<ExportStatus, string> = {
+  [ExportStatus.pending]: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  [ExportStatus.complete]: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  [ExportStatus.no_data]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [ExportStatus.failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  [ExportStatus.archived]: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+}
+
+function exportStatusIcon(status: ExportStatus) {
+  const className = 'h-3.5 w-3.5'
+  switch (status) {
+    case ExportStatus.pending:
+      return <Loader2 className={`${className} animate-spin`} />
+    case ExportStatus.complete:
+      return <CircleCheck className={className} />
+    case ExportStatus.no_data:
+      return <Info className={className} />
+    case ExportStatus.failed:
+      return <CircleX className={className} />
+    case ExportStatus.archived:
+      return <Archive className={className} />
+  }
+}
+
+function ExportStatusBadge({ status }: { status: ExportStatus }) {
+  return (
+    <PrivacyStatusBadge
+      label={exportStatusLabel[status]}
+      icon={exportStatusIcon(status)}
+      colorClass={exportStatusColor[status]}
+    />
+  )
+}
+
 export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => exportStatusLabel[row.original.status],
+    cell: ({ row }) => <ExportStatusBadge status={row.original.status} />,
   },
   {
     id: 'requester',
     header: 'Requester',
-    accessorFn: (row) =>
-      [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
-    cell: ({ row }) => (
-      <StudentAvatar
-        student={{
-          id: row.original.student_id ?? undefined,
-          firstName: row.original.student_first_name ?? '',
-          lastName: row.original.student_last_name ?? '',
-          email: row.original.student_email ?? '',
-        }}
-      />
-    ),
+    accessorFn: requesterAccessor,
+    cell: ({ row }) => <RequesterCell {...row.original} />,
   },
   {
     accessorKey: 'date_created',

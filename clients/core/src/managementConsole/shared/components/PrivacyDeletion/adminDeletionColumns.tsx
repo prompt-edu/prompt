@@ -5,9 +5,10 @@ import {
   type PrivacyDeletionSubrequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
 import { ColumnDef } from '@tanstack/react-table'
-import { StudentAvatar } from '@tumaet/prompt-ui-components'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
+import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
+import { RequesterCell, requesterAccessor } from '../Privacy/RequesterCell'
 
 const emptyCell = <span className='text-muted-foreground text-sm'>-</span>
 
@@ -19,7 +20,7 @@ export const deletionRequestStatusLabel: Record<DeletionRequestStatus, string> =
   [DeletionRequestStatus.rejected]: 'Rejected',
 }
 
-const deletionRequestStatusStyles: Record<DeletionRequestStatus, string> = {
+const deletionRequestStatusColor: Record<DeletionRequestStatus, string> = {
   [DeletionRequestStatus.pending_approval]:
     'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   [DeletionRequestStatus.in_progress]:
@@ -31,7 +32,7 @@ const deletionRequestStatusStyles: Record<DeletionRequestStatus, string> = {
     'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
 }
 
-function DeletionRequestStatusIcon({ status }: { status: DeletionRequestStatus }) {
+function deletionRequestStatusIcon(status: DeletionRequestStatus) {
   const className = 'h-3.5 w-3.5'
   switch (status) {
     case DeletionRequestStatus.pending_approval:
@@ -48,15 +49,11 @@ function DeletionRequestStatusIcon({ status }: { status: DeletionRequestStatus }
 
 function DeletionRequestStatusBadge({ status }: { status: DeletionRequestStatus }) {
   return (
-    <span
-      className={
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ' +
-        deletionRequestStatusStyles[status]
-      }
-    >
-      <DeletionRequestStatusIcon status={status} />
-      {deletionRequestStatusLabel[status]}
-    </span>
+    <PrivacyStatusBadge
+      label={deletionRequestStatusLabel[status]}
+      icon={deletionRequestStatusIcon(status)}
+      colorClass={deletionRequestStatusColor[status]}
+    />
   )
 }
 
@@ -107,18 +104,8 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
   {
     id: 'requester',
     header: 'Requester',
-    accessorFn: (row) =>
-      [row.student_first_name, row.student_last_name, row.student_email].filter(Boolean).join(' '),
-    cell: ({ row }) => (
-      <StudentAvatar
-        student={{
-          id: row.original.student_id ?? undefined,
-          firstName: row.original.student_first_name ?? '',
-          lastName: row.original.student_last_name ?? '',
-          email: row.original.student_email ?? '',
-        }}
-      />
-    ),
+    accessorFn: requesterAccessor,
+    cell: ({ row }) => <RequesterCell {...row.original} />,
   },
   {
     accessorKey: 'requested_at',

@@ -12,6 +12,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createAdminInitiatedDeletionRequest = `-- name: CreateAdminInitiatedDeletionRequest :one
+INSERT INTO privacy_deletion_request (
+  id, user_id, student_id, status,
+  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at
+)
+VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now())
+RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at
+`
+
+type CreateAdminInitiatedDeletionRequestParams struct {
+	ID           uuid.UUID   `json:"id"`
+	StudentID    pgtype.UUID `json:"student_id"`
+	AuditorID    pgtype.UUID `json:"auditor_id"`
+	AuditorName  string      `json:"auditor_name"`
+	AuditorEmail string      `json:"auditor_email"`
+	AuditorNote  string      `json:"auditor_note"`
+}
+
+func (q *Queries) CreateAdminInitiatedDeletionRequest(ctx context.Context, arg CreateAdminInitiatedDeletionRequestParams) (PrivacyDeletionRequest, error) {
+	row := q.db.QueryRow(ctx, createAdminInitiatedDeletionRequest,
+		arg.ID,
+		arg.StudentID,
+		arg.AuditorID,
+		arg.AuditorName,
+		arg.AuditorEmail,
+		arg.AuditorNote,
+	)
+	var i PrivacyDeletionRequest
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.StudentID,
+		&i.RequestedAt,
+		&i.Status,
+		&i.AuditorID,
+		&i.AuditorName,
+		&i.AuditorEmail,
+		&i.AuditorRespondedAt,
+		&i.AuditorNote,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
 const createNewDeletionRequest = `-- name: CreateNewDeletionRequest :one
 INSERT INTO privacy_deletion_request (id, user_id, student_id, status)
 VALUES ($1, $2, $3, $4)

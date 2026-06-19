@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -36,6 +37,28 @@ func ValidateUserMayCreateDeletionRequest(c *gin.Context) error {
 		return errors.New("an open deletion request already exists for this user")
 	}
 	return nil
+}
+
+func ValidateStudentsExist(c *gin.Context, studentIDs []uuid.UUID) error {
+	existing, err := PrivacyServiceSingleton.queries.GetExistingStudentIDs(c, studentIDs)
+	if err != nil {
+		return err
+	}
+	if len(existing) == len(studentIDs) {
+		return nil
+	}
+
+	existingSet := make(map[uuid.UUID]struct{}, len(existing))
+	for _, id := range existing {
+		existingSet[id] = struct{}{}
+	}
+	missing := make([]string, 0, len(studentIDs)-len(existing))
+	for _, id := range studentIDs {
+		if _, ok := existingSet[id]; !ok {
+			missing = append(missing, id.String())
+		}
+	}
+	return fmt.Errorf("unknown student_ids: %v", missing)
 }
 
 func ValidateDeletionRequestPending(c *gin.Context, requestID uuid.UUID) error {

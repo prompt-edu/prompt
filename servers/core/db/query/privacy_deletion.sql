@@ -20,6 +20,14 @@ INSERT INTO privacy_deletion_request (id, user_id, student_id, status)
 VALUES ($1, $2, $3, $4)
 RETURNING *;
 
+-- name: CreateAdminInitiatedDeletionRequest :one
+INSERT INTO privacy_deletion_request (
+  id, user_id, student_id, status,
+  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at
+)
+VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now())
+RETURNING *;
+
 -- name: SetDeletionRequestAuditor :exec
 UPDATE privacy_deletion_request
 SET auditor_id           = $2,

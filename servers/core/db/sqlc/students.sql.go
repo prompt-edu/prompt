@@ -202,6 +202,30 @@ func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([
 	return items, nil
 }
 
+const getExistingStudentIDs = `-- name: GetExistingStudentIDs :many
+SELECT id FROM student WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetExistingStudentIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getExistingStudentIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStudent = `-- name: GetStudent :one
 SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
 WHERE id = $1 LIMIT 1

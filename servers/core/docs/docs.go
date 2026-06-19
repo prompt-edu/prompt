@@ -3541,6 +3541,58 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates one privacy_deletion_request row per student_id, all already in\n'in_progress' state with the calling admin recorded as the auditor.\nReturns immediately; the actual fan-out runs in the background and can be\nobserved via GET /admin/data-deletions.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Admin-initiate one or more deletion requests",
+                "parameters": [
+                    {
+                        "description": "List of student IDs to delete",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.AdminInitiateDeletionBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/privacyDTO.PrivacyDeletionRequest"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid payload, batch too large, or unknown student_id",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/privacy/admin/data-deletions/{uuid}": {
@@ -6145,6 +6197,21 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
+        "privacyDTO.AdminInitiateDeletionBody": {
+            "type": "object",
+            "required": [
+                "student_ids"
+            ],
+            "properties": {
+                "student_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

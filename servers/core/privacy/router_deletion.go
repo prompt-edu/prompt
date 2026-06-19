@@ -24,6 +24,7 @@ func setupPrivacyDeletionRouter(privacyRouter *gin.RouterGroup, authMiddleware f
 	privacyRouter.GET("/data-deletion/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getDeletionRequest)
 
 	privacyRouter.GET("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllDeletionRequests)
+	privacyRouter.POST("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), adminInitiateDeletionRequests)
 	privacyRouter.POST("/admin/data-deletions/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), decideDeletionRequest)
 }
 
@@ -126,6 +127,49 @@ func getAllDeletionRequests(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, records)
+}
+
+// @Summary Admin-initiate one or more deletion requests
+// @Description Creates one privacy_deletion_request row per student_id, all already in
+// @Description 'in_progress' state with the calling admin recorded as the auditor.
+// @Description Returns immediately; the actual fan-out runs in the background and can be
+// @Description observed via GET /admin/data-deletions.
+// @Tags privacy
+// @Accept json
+// @Produce json
+// @Param body body privacyDTO.AdminInitiateDeletionBody true "List of student IDs to delete"
+// @Success 200 {array} privacyDTO.PrivacyDeletionRequest
+// @Failure 400 {object} coreutils.ErrorResponse "Invalid payload, batch too large, or unknown student_id"
+// @Failure 500 {object} coreutils.ErrorResponse
+// @Security BearerAuth
+// @Router /privacy/admin/data-deletions [post]
+func adminInitiateDeletionRequests(c *gin.Context) {
+	var body privacyDTO.AdminInitiateDeletionBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := service.ValidateStudentsExist(c, body.StudentIDs); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	records, err := service.CreateAdminInitiatedDeletionRequests(c, body.StudentIDs)
+	if err != nil {
+		log.Error("admin-initiated deletion creation failed: ", err)
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, records)
+
+	authHeader := c.GetHeader("Authorization")
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), service.DeletionRunTimeout)
+		defer cancel()
+		service.RunAdminInitiatedDeletions(ctx, authHeader, records)
+	}()
 }
 
 // @Summary Decide on a deletion request (admin only)

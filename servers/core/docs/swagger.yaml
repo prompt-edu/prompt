@@ -1232,6 +1232,16 @@ definitions:
       status:
         $ref: '#/definitions/db.ExportStatus'
     type: object
+  privacyDTO.AdminInitiateDeletionBody:
+    properties:
+      student_ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - student_ids
+    type: object
   privacyDTO.AdminPrivacyDeletionRequest:
     properties:
       auditor_email:
@@ -3935,6 +3945,43 @@ paths:
       security:
       - BearerAuth: []
       summary: List all deletion requests (admin only)
+      tags:
+      - privacy
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates one privacy_deletion_request row per student_id, all already in
+        'in_progress' state with the calling admin recorded as the auditor.
+        Returns immediately; the actual fan-out runs in the background and can be
+        observed via GET /admin/data-deletions.
+      parameters:
+      - description: List of student IDs to delete
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/privacyDTO.AdminInitiateDeletionBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
+            type: array
+        "400":
+          description: Invalid payload, batch too large, or unknown student_id
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Admin-initiate one or more deletion requests
       tags:
       - privacy
   /privacy/admin/data-deletions/{uuid}:

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -33,7 +32,7 @@ type Deletion struct {
 	ExternalDeletions []ServiceDeletionRequest
 }
 
-func PrepareDataDeletion(c *gin.Context, record privacyDTO.PrivacyDeletionRequest) (Deletion, error) {
+func PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionRequest) (Deletion, error) {
 	studentID := uuid.Nil
 	if record.StudentID != nil {
 		studentID = *record.StudentID

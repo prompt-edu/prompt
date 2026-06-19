@@ -21,6 +21,10 @@ type AuditorDecisionRequest struct {
 	Note     string          `json:"note"`
 }
 
+type AdminInitiateDeletionBody struct {
+	StudentIDs []uuid.UUID `json:"student_ids" binding:"required,min=1,dive,required"`
+}
+
 type AdminPrivacyDeletionRequest struct {
 	ID                 uuid.UUID                       `json:"id"`
 	UserID             *uuid.UUID                      `json:"user_id"`

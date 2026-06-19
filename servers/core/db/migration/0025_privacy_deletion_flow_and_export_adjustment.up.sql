@@ -17,7 +17,7 @@ CREATE TYPE privacy_deletion_subrequest_status AS ENUM (
 
 CREATE TABLE privacy_deletion_request (
   id                    uuid                              PRIMARY KEY,
-  user_id               uuid                              NOT NULL,
+  user_id               uuid,
   student_id            uuid                              REFERENCES student(id) ON DELETE SET NULL,
   requested_at          timestamptz                       NOT NULL DEFAULT now(),
   status                privacy_deletion_request_status   NOT NULL DEFAULT 'pending_approval',
@@ -29,11 +29,6 @@ CREATE TABLE privacy_deletion_request (
   completed_at          timestamptz
 );
 
--- Enforce: never more than one request in  in_progress  or  pending_approval  status.
-CREATE UNIQUE INDEX privacy_deletion_request_one_open_per_user
-  ON privacy_deletion_request (user_id)
-  WHERE status IN ('pending_approval', 'in_progress');
-
 CREATE TABLE privacy_deletion_subrequest (
   id                    uuid                                PRIMARY KEY,
   deletion_request_id   uuid                                NOT NULL REFERENCES privacy_deletion_request(id) ON DELETE CASCADE,
@@ -44,7 +39,11 @@ CREATE TABLE privacy_deletion_subrequest (
   error_message         text                                NOT NULL DEFAULT ''
 );
 
--- instructor notes: on delete cascade 
+-- privacy_export: user_id is nullable too (admin-initiated exports may have no Keycloak user).
+ALTER TABLE privacy_export
+  ALTER COLUMN user_id DROP NOT NULL;
+
+-- instructor notes: on delete cascade
 ALTER TABLE note
   DROP CONSTRAINT note_for_student_fkey,
   ADD CONSTRAINT note_for_student_fkey

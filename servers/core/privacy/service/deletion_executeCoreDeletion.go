@@ -82,6 +82,10 @@ func deleteStudentScopedData(ctx context.Context, q *db.Queries, studentID uuid.
 }
 
 func deleteUserScopedData(ctx context.Context, q *db.Queries, userID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return nil
+	}
+
 	if err := q.AnonymizeNotesByAuthor(ctx, userID); err != nil {
 		return fmt.Errorf("anonymize authored notes: %w", err)
 	}
@@ -106,6 +110,10 @@ func deleteApplicationFiles(ctx context.Context, fileIDs []uuid.UUID) error {
 }
 
 func archiveSubjectPrivacyExports(ctx context.Context, userID uuid.UUID) error {
+	if userID == uuid.Nil {
+		return nil
+	}
+
 	exportIDs, err := PrivacyServiceSingleton.queries.GetExportIDsForUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("list exports: %w", err)

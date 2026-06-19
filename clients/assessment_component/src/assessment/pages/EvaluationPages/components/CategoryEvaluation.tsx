@@ -47,7 +47,7 @@ export const CategoryEvaluation = ({
       </div>
 
       {isExpanded && (
-        <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-4 mt-2'>
+        <div id={`content-${category.id}`} className='space-y-4'>
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
               No competencies available in this category.

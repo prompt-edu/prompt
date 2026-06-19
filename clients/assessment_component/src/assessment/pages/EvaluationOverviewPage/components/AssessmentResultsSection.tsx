@@ -99,6 +99,7 @@ export const AssessmentResultsSection = () => {
                 .includes(assessment.competencyID),
             )}
             completed={true}
+            courseParticipationID={results.courseParticipationID}
             peerEvaluationResults={results.peerEvaluationResults}
             selfEvaluationResults={results.selfEvaluationResults}
             hidePeerEvaluationDetails={true}

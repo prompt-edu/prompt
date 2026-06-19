@@ -36,14 +36,15 @@ export const useParticipantNavigation = (): ParticipantNavigation => {
         lastName: member.lastName,
       }))
 
-    return (
-      teamMembers ??
-      participations.map((p) => ({
-        id: p.courseParticipationID,
-        firstName: p.student.firstName,
-        lastName: p.student.lastName,
-      }))
-    )
+    if (teamMembers && teamMembers.length > 0) {
+      return teamMembers
+    }
+
+    return participations.map((p) => ({
+      id: p.courseParticipationID,
+      firstName: p.student.firstName,
+      lastName: p.student.lastName,
+    }))
   }, [team?.members, participations])
 
   const currentIndex = members.findIndex((member) => member.id === courseParticipationID)

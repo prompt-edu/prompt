@@ -88,6 +88,7 @@ export const AssessmentHeader = ({
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
+                aria-label={`Navigate to previous participant: ${prevMember!.firstName} ${prevMember!.lastName}`}
                 onClick={() => navigate(`../${prevMember!.id}`, { relative: 'path' })}
               >
                 <ChevronLeft className='h-4 w-4' />
@@ -117,6 +118,7 @@ export const AssessmentHeader = ({
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
+                aria-label={`Navigate to next participant: ${nextMember!.firstName} ${nextMember!.lastName}`}
                 onClick={() => navigate(`../${nextMember!.id}`, { relative: 'path' })}
               >
                 <span className='hidden sm:inline'>

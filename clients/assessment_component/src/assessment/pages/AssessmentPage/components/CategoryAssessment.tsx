@@ -23,6 +23,7 @@ interface CategoryAssessmentProps {
   peerEvaluationResults?: AggregatedEvaluationResult[]
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
+  disabled?: boolean
 }
 
 export const CategoryAssessment = ({
@@ -33,6 +34,7 @@ export const CategoryAssessment = ({
   peerEvaluationResults,
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
+  disabled = false,
 }: CategoryAssessmentProps) => {
   const categoryAssessment = useStudentAssessmentStore((state) =>
     state.categoryAssessments.find((ca) => ca.categoryID === category.id),
@@ -46,6 +48,8 @@ export const CategoryAssessment = ({
 
   const categoryScore = getWeightedScoreLevel(assessments, [category])
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
+  const remainingCategoryAssessments = category.competencies.length - assessments.length
+  const isCategoryCompleted = remainingCategoryAssessments === 0
 
   return (
     <div className='mb-6'>
@@ -72,7 +76,8 @@ export const CategoryAssessment = ({
           )}
           {!completed && (
             <AssessmentStatusBadge
-              remainingAssessments={category.competencies.length - assessments.length}
+              remainingAssessments={remainingCategoryAssessments}
+              isFinalized={isCategoryCompleted}
             />
           )}
         </div>
@@ -85,6 +90,7 @@ export const CategoryAssessment = ({
             courseParticipationID={courseParticipationID}
             categoryAssessment={categoryAssessment}
             completed={completed}
+            disabled={disabled}
           />
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
@@ -110,6 +116,7 @@ export const CategoryAssessment = ({
                       competency={competency}
                       assessment={competencyAssessment}
                       completed={completed}
+                      disabled={disabled}
                       peerEvaluationAverageScore={peerAverage?.averageScoreNumeric}
                       selfEvaluationAverageScore={selfAverage?.averageScoreNumeric}
                       hidePeerEvaluationDetails={hidePeerEvaluationDetails}

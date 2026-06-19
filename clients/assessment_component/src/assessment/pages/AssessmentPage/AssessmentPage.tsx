@@ -31,9 +31,12 @@ export const AssessmentPage = () => {
   const {
     data: studentAssessment,
     isPending: isStudentAssessmentPending,
+    isFetching: isStudentAssessmentFetching,
+    isPlaceholderData: isPlaceholderStudentAssessmentData,
     isError: isStudentAssessmentError,
     refetch: refetchStudentAssessment,
   } = useGetStudentAssessment()
+  const isSwitchingParticipant = isStudentAssessmentFetching && isPlaceholderStudentAssessmentData
 
   const remainingAssessments = useMemo(() => {
     return (
@@ -68,7 +71,7 @@ export const AssessmentPage = () => {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-4' aria-busy={isSwitchingParticipant}>
       {participant && (
         <AssessmentHeader
           participant={participant}
@@ -87,6 +90,7 @@ export const AssessmentPage = () => {
               .includes(assessment.competencyID),
           )}
           completed={studentAssessment.assessmentCompletion.completed}
+          disabled={isSwitchingParticipant}
           courseParticipationID={courseParticipationID ?? ''}
         />
       ))}
@@ -97,7 +101,10 @@ export const AssessmentPage = () => {
 
       <AssessmentCompletion />
 
-      <PassStatusControls courseParticipationID={courseParticipationID} />
+      <PassStatusControls
+        courseParticipationID={courseParticipationID}
+        disabled={isSwitchingParticipant}
+      />
 
       <AssessmentExportMenu />
     </div>

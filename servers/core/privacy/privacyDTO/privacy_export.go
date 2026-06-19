@@ -20,7 +20,7 @@ type PrivacyExportDocument struct {
 
 type PrivacyExport struct {
 	ID                   uuid.UUID               `json:"id"`
-	UserID               uuid.UUID               `json:"userID"`
+	UserID               *uuid.UUID              `json:"userID"`
 	StudentID            *uuid.UUID              `json:"studentID"`
 	Status               db.ExportStatus         `json:"status"`
 	DateCreated          time.Time               `json:"date_created"`
@@ -37,7 +37,7 @@ type AdminExportDoc struct {
 
 type AdminPrivacyExport struct {
 	ID                   uuid.UUID        `json:"id"`
-	UserID               uuid.UUID        `json:"user_id"`
+	UserID               *uuid.UUID       `json:"user_id"`
 	StudentID            *uuid.UUID       `json:"student_id"`
 	StudentFirstName     *string          `json:"student_first_name"`
 	StudentLastName      *string          `json:"student_last_name"`
@@ -57,7 +57,7 @@ func GetAdminPrivacyExportDTOFromDBModel(model db.GetAllExportsRow) (AdminPrivac
 
 	return AdminPrivacyExport{
 		ID:                   model.ID,
-		UserID:               model.UserID,
+		UserID:               uuidPtr(model.UserID),
 		StudentID:            uuidPtr(model.StudentID),
 		StudentFirstName:     textPtr(model.StudentFirstName),
 		StudentLastName:      textPtr(model.StudentLastName),
@@ -83,7 +83,7 @@ func GetPrivacyExportDocDTOFromDBModel(model db.PrivacyExportDocument) PrivacyEx
 func GetPrivacyExportDTOFromDBModel(model db.PrivacyExport) PrivacyExport {
 	return PrivacyExport{
 		ID:                   model.ID,
-		UserID:               model.UserID,
+		UserID:               uuidPtr(model.UserID),
 		StudentID:            uuidPtr(model.StudentID),
 		Status:               model.Status,
 		DateCreated:          model.DateCreated.Time,
@@ -101,7 +101,7 @@ func GetPrivacyExportWithDocsDTOFromDBModel(model db.PrivacyExportWithDoc) (Priv
 
 	return PrivacyExport{
 		ID:                   model.ID,
-		UserID:               model.UserID,
+		UserID:               uuidPtr(model.UserID),
 		StudentID:            uuidPtr(model.StudentID),
 		Status:               model.Status,
 		DateCreated:          model.DateCreated.Time,

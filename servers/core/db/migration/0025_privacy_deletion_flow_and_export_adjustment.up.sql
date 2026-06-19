@@ -43,6 +43,37 @@ CREATE TABLE privacy_deletion_subrequest (
 ALTER TABLE privacy_export
   ALTER COLUMN user_id DROP NOT NULL;
 
+-- The privacy_export_with_docs view was created in 0024 when user_id was still NOT NULL,
+-- so its column-nullability metadata is stale. Drop and recreate so sqlc (and any other
+-- introspection tool) sees user_id as nullable.
+DROP VIEW IF EXISTS privacy_export_with_docs;
+
+CREATE VIEW privacy_export_with_docs AS
+SELECT
+  e.id,
+  e.user_id,
+  e.student_id,
+  e.status,
+  e.date_created,
+  e.valid_until,
+  e.next_request_allowed_at,
+  COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', ed.id,
+        'date_created', ed.date_created,
+        'source_name', ed.source_name,
+        'status', ed.status,
+        'file_size', ed.file_size,
+        'downloaded_at', ed.downloaded_at
+      ) ORDER BY ed.date_created ASC
+    ) FILTER (WHERE ed.id IS NOT NULL),
+    '[]'::jsonb
+  )::jsonb AS documents
+FROM privacy_export e
+LEFT JOIN privacy_export_document ed ON ed.export_id = e.id
+GROUP BY e.id;
+
 -- instructor notes: on delete cascade
 ALTER TABLE note
   DROP CONSTRAINT note_for_student_fkey,

@@ -20,7 +20,7 @@ RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_nam
 
 type CreateNewDeletionRequestParams struct {
 	ID        uuid.UUID                    `json:"id"`
-	UserID    uuid.UUID                    `json:"user_id"`
+	UserID    pgtype.UUID                  `json:"user_id"`
 	StudentID pgtype.UUID                  `json:"student_id"`
 	Status    PrivacyDeletionRequestStatus `json:"status"`
 }
@@ -95,7 +95,7 @@ ORDER BY v.requested_at DESC
 
 type GetAllDeletionRequestsRow struct {
 	ID                 uuid.UUID                    `json:"id"`
-	UserID             uuid.UUID                    `json:"user_id"`
+	UserID             pgtype.UUID                  `json:"user_id"`
 	StudentID          pgtype.UUID                  `json:"student_id"`
 	RequestedAt        pgtype.Timestamptz           `json:"requested_at"`
 	Status             PrivacyDeletionRequestStatus `json:"status"`
@@ -201,7 +201,7 @@ ORDER BY requested_at DESC
 LIMIT 1
 `
 
-func (q *Queries) GetLatestDeletionRequestForUserWithSubrequests(ctx context.Context, userID uuid.UUID) (PrivacyDeletionRequestWithSubrequest, error) {
+func (q *Queries) GetLatestDeletionRequestForUserWithSubrequests(ctx context.Context, userID pgtype.UUID) (PrivacyDeletionRequestWithSubrequest, error) {
 	row := q.db.QueryRow(ctx, getLatestDeletionRequestForUserWithSubrequests, userID)
 	var i PrivacyDeletionRequestWithSubrequest
 	err := row.Scan(
@@ -227,7 +227,7 @@ WHERE user_id = $1 AND status IN ('pending_approval', 'in_progress')
 LIMIT 1
 `
 
-func (q *Queries) GetOpenDeletionRequestForUser(ctx context.Context, userID uuid.UUID) (PrivacyDeletionRequest, error) {
+func (q *Queries) GetOpenDeletionRequestForUser(ctx context.Context, userID pgtype.UUID) (PrivacyDeletionRequest, error) {
 	row := q.db.QueryRow(ctx, getOpenDeletionRequestForUser, userID)
 	var i PrivacyDeletionRequest
 	err := row.Scan(

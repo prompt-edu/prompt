@@ -600,7 +600,7 @@ type PhaseDataDependencyGraph struct {
 
 type PrivacyDeletionRequest struct {
 	ID                 uuid.UUID                    `json:"id"`
-	UserID             uuid.UUID                    `json:"user_id"`
+	UserID             pgtype.UUID                  `json:"user_id"`
 	StudentID          pgtype.UUID                  `json:"student_id"`
 	RequestedAt        pgtype.Timestamptz           `json:"requested_at"`
 	Status             PrivacyDeletionRequestStatus `json:"status"`
@@ -614,7 +614,7 @@ type PrivacyDeletionRequest struct {
 
 type PrivacyDeletionRequestWithSubrequest struct {
 	ID                 uuid.UUID                    `json:"id"`
-	UserID             uuid.UUID                    `json:"user_id"`
+	UserID             pgtype.UUID                  `json:"user_id"`
 	StudentID          pgtype.UUID                  `json:"student_id"`
 	RequestedAt        pgtype.Timestamptz           `json:"requested_at"`
 	Status             PrivacyDeletionRequestStatus `json:"status"`
@@ -639,7 +639,7 @@ type PrivacyDeletionSubrequest struct {
 
 type PrivacyExport struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	Status               ExportStatus       `json:"status"`
 	DateCreated          pgtype.Timestamptz `json:"date_created"`
@@ -660,7 +660,7 @@ type PrivacyExportDocument struct {
 
 type PrivacyExportWithDoc struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	Status               ExportStatus       `json:"status"`
 	DateCreated          pgtype.Timestamptz `json:"date_created"`

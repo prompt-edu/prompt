@@ -71,7 +71,11 @@ func PrepareDataDeletion(c *gin.Context, record privacyDTO.PrivacyDeletionReques
 		return Deletion{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	subject, err := authService.AssembleSubjectIdentifiers(c, record.UserID, record.StudentID)
+	userID := uuid.Nil
+	if record.UserID != nil {
+		userID = *record.UserID
+	}
+	subject, err := authService.AssembleSubjectIdentifiers(c, userID, record.StudentID)
 	if err != nil {
 		return Deletion{}, fmt.Errorf("failed to assemble subject identifiers: %w", err)
 	}

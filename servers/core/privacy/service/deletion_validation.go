@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
 )
@@ -19,7 +20,7 @@ func ValidateDeletionRequestBelongsToCaller(c *gin.Context, requestID uuid.UUID)
 	if err != nil {
 		return errors.New("deletion request not found or not owned by the caller")
 	}
-	if record.UserID != userID {
+	if !record.UserID.Valid || record.UserID.Bytes != userID {
 		return errors.New("deletion request not found or not owned by the caller")
 	}
 	return nil
@@ -31,7 +32,7 @@ func ValidateUserMayCreateDeletionRequest(c *gin.Context) error {
 		return err
 	}
 
-	if _, err := PrivacyServiceSingleton.queries.GetOpenDeletionRequestForUser(c, userID); err == nil {
+	if _, err := PrivacyServiceSingleton.queries.GetOpenDeletionRequestForUser(c, pgtype.UUID{Bytes: userID, Valid: true}); err == nil {
 		return errors.New("an open deletion request already exists for this user")
 	}
 	return nil

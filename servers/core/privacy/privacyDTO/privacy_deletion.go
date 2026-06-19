@@ -23,7 +23,7 @@ type AuditorDecisionRequest struct {
 
 type AdminPrivacyDeletionRequest struct {
 	ID                 uuid.UUID                       `json:"id"`
-	UserID             uuid.UUID                       `json:"user_id"`
+	UserID             *uuid.UUID                      `json:"user_id"`
 	StudentID          *uuid.UUID                      `json:"student_id"`
 	StudentFirstName   *string                         `json:"student_first_name"`
 	StudentLastName    *string                         `json:"student_last_name"`
@@ -47,7 +47,7 @@ func GetAdminPrivacyDeletionRequestDTOFromDBModel(model db.GetAllDeletionRequest
 
 	return AdminPrivacyDeletionRequest{
 		ID:                 model.ID,
-		UserID:             model.UserID,
+		UserID:             uuidPtr(model.UserID),
 		StudentID:          uuidPtr(model.StudentID),
 		StudentFirstName:   textPtr(model.StudentFirstName),
 		StudentLastName:    textPtr(model.StudentLastName),
@@ -85,7 +85,7 @@ type PublicPrivacyDeletionSubrequest struct {
 
 type PrivacyDeletionRequest struct {
 	ID                 uuid.UUID                         `json:"id"`
-	UserID             uuid.UUID                         `json:"user_id"`
+	UserID             *uuid.UUID                        `json:"user_id"`
 	StudentID          *uuid.UUID                        `json:"student_id"`
 	RequestedAt        time.Time                         `json:"requested_at"`
 	Status             db.PrivacyDeletionRequestStatus   `json:"status"`
@@ -112,7 +112,7 @@ func GetPrivacyDeletionSubrequestDTOFromDBModel(model db.PrivacyDeletionSubreque
 func GetPrivacyDeletionRequestDTOFromDBModel(model db.PrivacyDeletionRequest) PrivacyDeletionRequest {
 	return PrivacyDeletionRequest{
 		ID:                 model.ID,
-		UserID:             model.UserID,
+		UserID:             uuidPtr(model.UserID),
 		StudentID:          uuidPtr(model.StudentID),
 		RequestedAt:        model.RequestedAt.Time,
 		Status:             model.Status,
@@ -134,7 +134,7 @@ func GetPrivacyDeletionRequestWithSubrequestsDTOFromDBModel(model db.PrivacyDele
 
 	return PrivacyDeletionRequest{
 		ID:                 model.ID,
-		UserID:             model.UserID,
+		UserID:             uuidPtr(model.UserID),
 		StudentID:          uuidPtr(model.StudentID),
 		RequestedAt:        model.RequestedAt.Time,
 		Status:             model.Status,

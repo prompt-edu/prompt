@@ -23,7 +23,7 @@ func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, e
 
 	record, err := PrivacyServiceSingleton.queries.CreateNewDeletionRequest(c, db.CreateNewDeletionRequestParams{
 		ID:        uuid.New(),
-		UserID:    subjectIdentifiers.UserID,
+		UserID:    pgtype.UUID{Bytes: subjectIdentifiers.UserID, Valid: subjectIdentifiers.UserID != uuid.Nil},
 		StudentID: pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
 		Status:    db.PrivacyDeletionRequestStatusPendingApproval,
 	})
@@ -47,7 +47,7 @@ func GetLatestDeletionRequestForUser(c *gin.Context) (*privacyDTO.PrivacyDeletio
 		return nil, fmt.Errorf("failed to resolve user identity: %w", err)
 	}
 
-	record, err := PrivacyServiceSingleton.queries.GetLatestDeletionRequestForUserWithSubrequests(c, userID)
+	record, err := PrivacyServiceSingleton.queries.GetLatestDeletionRequestForUserWithSubrequests(c, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

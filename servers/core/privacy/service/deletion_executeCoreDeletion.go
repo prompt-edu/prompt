@@ -114,7 +114,7 @@ func archiveSubjectPrivacyExports(ctx context.Context, userID uuid.UUID) error {
 		return nil
 	}
 
-	exportIDs, err := PrivacyServiceSingleton.queries.GetExportIDsForUser(ctx, userID)
+	exportIDs, err := PrivacyServiceSingleton.queries.GetExportIDsForUser(ctx, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		return fmt.Errorf("list exports: %w", err)
 	}

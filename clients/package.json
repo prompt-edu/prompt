@@ -58,7 +58,7 @@
     "framer-motion": "^12.40.0",
     "highlight.js": "^11.11.1",
     "jwt-decode": "^4.0.0",
-    "keycloak-js": "25.0.6",
+    "keycloak-js": "26.2.4",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.17.0",
     "postcss": "^8.5.15",

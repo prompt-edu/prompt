@@ -28,6 +28,10 @@ INSERT INTO privacy_deletion_request (
 VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now())
 RETURNING *;
 
+-- name: GetDeletionRequestsByIDsWithSubrequests :many
+SELECT * FROM privacy_deletion_request_with_subrequests
+WHERE id = ANY($1::uuid[]);
+
 -- name: SetDeletionRequestAuditor :exec
 UPDATE privacy_deletion_request
 SET auditor_id           = $2,

@@ -1325,6 +1325,16 @@ definitions:
     required:
     - decision
     type: object
+  privacyDTO.DeletionStatusBody:
+    properties:
+      ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - ids
+    type: object
   privacyDTO.PrivacyDeletionRequest:
     properties:
       auditor_email:
@@ -3953,8 +3963,8 @@ paths:
       description: |-
         Creates one privacy_deletion_request row per student_id, all already in
         'in_progress' state with the calling admin recorded as the auditor.
-        Returns immediately; the actual fan-out runs in the background and can be
-        observed via GET /admin/data-deletions.
+        Returns immediately; the actual fan-out runs in the background.
+        Use POST /admin/data-deletions/status to poll the batch to completion.
       parameters:
       - description: List of student IDs to delete
         in: body
@@ -3972,7 +3982,7 @@ paths:
               $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
             type: array
         "400":
-          description: Invalid payload, batch too large, or unknown student_id
+          description: Invalid payload or unknown student_id
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":
@@ -4024,6 +4034,43 @@ paths:
       security:
       - BearerAuth: []
       summary: Decide on a deletion request (admin only)
+      tags:
+      - privacy
+  /privacy/admin/data-deletions/status:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Targeted polling endpoint used by the bulk-deletion dialog to track when
+        each record reaches a terminal state. Returns only the records whose IDs
+        are in the request body.
+      parameters:
+      - description: List of deletion request IDs
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/privacyDTO.DeletionStatusBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/privacyDTO.PrivacyDeletionRequest'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Fetch the current status of a set of deletion requests
       tags:
       - privacy
   /privacy/admin/data-exports:

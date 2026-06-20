@@ -3548,7 +3548,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates one privacy_deletion_request row per student_id, all already in\n'in_progress' state with the calling admin recorded as the auditor.\nReturns immediately; the actual fan-out runs in the background and can be\nobserved via GET /admin/data-deletions.",
+                "description": "Creates one privacy_deletion_request row per student_id, all already in\n'in_progress' state with the calling admin recorded as the auditor.\nReturns immediately; the actual fan-out runs in the background.\nUse POST /admin/data-deletions/status to poll the batch to completion.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3581,7 +3581,61 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid payload, batch too large, or unknown student_id",
+                        "description": "Invalid payload or unknown student_id",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/admin/data-deletions/status": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Targeted polling endpoint used by the bulk-deletion dialog to track when\neach record reaches a terminal state. Returns only the records whose IDs\nare in the request body.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Fetch the current status of a set of deletion requests",
+                "parameters": [
+                    {
+                        "description": "List of deletion request IDs",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/privacyDTO.DeletionStatusBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/privacyDTO.PrivacyDeletionRequest"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -6339,6 +6393,21 @@ const docTemplate = `{
                 },
                 "note": {
                     "type": "string"
+                }
+            }
+        },
+        "privacyDTO.DeletionStatusBody": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

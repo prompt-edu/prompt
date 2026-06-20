@@ -112,3 +112,27 @@ export const decideOnDeletionRequest = async (
     throw err
   }
 }
+
+// Admin-initiated deletion
+
+export const adminInitiateDataDeletions = async (
+  studentIDs: string[],
+): Promise<PrivacyDeletionRequest[]> => {
+  try {
+    return (
+      await axiosInstance.post('/api/privacy/admin/data-deletions', { student_ids: studentIDs })
+    ).data
+  } catch (err) {
+    console.error(err)
+    throw err
+  }
+}
+
+export const getDataDeletionsStatus = async (ids: string[]): Promise<PrivacyDeletionRequest[]> => {
+  try {
+    return (await axiosInstance.post('/api/privacy/admin/data-deletions/status', { ids })).data
+  } catch (err) {
+    console.error(err)
+    throw err
+  }
+}

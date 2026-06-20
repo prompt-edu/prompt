@@ -14,10 +14,13 @@ import {
   Textarea,
 } from '@tumaet/prompt-ui-components'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Mail, Recycle, Trash2 } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PrivacyServiceAvailability } from '../Privacy/PrivacyServiceAvailability'
+import {
+  PrivacyDeletionHowItWorks,
+  PrivacyDeletionWhatGetsDeleted,
+} from './PrivacyDeletionExplainerContent'
 
 const APPROVE_WAIT_SECONDS = 5
 
@@ -120,49 +123,11 @@ export function PrivacyDeletionReviewDialog({
 
               <hr className='border-border' />
 
-              <div className='flex flex-col gap-3'>
-                <p className='font-medium'>How it works</p>
-                <ul className='flex flex-col gap-2.5'>
-                  <li className='flex items-start gap-3'>
-                    <Trash2 className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
-                    <span>
-                      Approval starts the deletion immediately across all services. This action
-                      cannot be undone.
-                    </span>
-                  </li>
-                  <li className='flex items-start gap-3'>
-                    <Recycle className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
-                    <span>Rejection leaves the user&apos;s data unchanged.</span>
-                  </li>
-                  <li className='flex items-start gap-3'>
-                    <Mail className='mt-0.5 h-4 w-4 shrink-0 text-muted-foreground' />
-                    <span>
-                      The user is notified of your decision and may submit another deletion request
-                      later.
-                    </span>
-                  </li>
-                </ul>
-
-                <PrivacyServiceAvailability />
-              </div>
+              <PrivacyDeletionHowItWorks variant='review' />
             </div>
 
             <div className='flex flex-col gap-4'>
-              <div className='flex flex-col gap-3'>
-                <p className='font-medium'>What gets deleted</p>
-                <p className='text-muted-foreground'>
-                  Approval permanently removes the user&apos;s personal data. Only services the user
-                  has actually interacted with are contacted, the rest are skipped. This may include
-                  (depending on the user&apos;s history):
-                </p>
-                <ul className='list-disc pl-5 text-muted-foreground space-y-1'>
-                  <li>Course enrollments</li>
-                  <li>Application data</li>
-                  <li>Assessment results</li>
-                  <li>Team allocation</li>
-                  <li>Instructor notes</li>
-                </ul>
-              </div>
+              <PrivacyDeletionWhatGetsDeleted variant='review' />
 
               <div className='flex flex-col gap-1'>
                 <label className='text-xs text-muted-foreground'>Note (optional)</label>

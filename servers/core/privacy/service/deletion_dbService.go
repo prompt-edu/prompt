@@ -62,6 +62,22 @@ func GetLatestDeletionRequestForUser(c *gin.Context) (*privacyDTO.PrivacyDeletio
 	return &dto, nil
 }
 
+func GetDeletionRequestsByIDs(c context.Context, ids []uuid.UUID) ([]privacyDTO.PrivacyDeletionRequest, error) {
+	rows, err := PrivacyServiceSingleton.queries.GetDeletionRequestsByIDsWithSubrequests(c, ids)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]privacyDTO.PrivacyDeletionRequest, 0, len(rows))
+	for _, row := range rows {
+		dto, err := privacyDTO.GetPrivacyDeletionRequestWithSubrequestsDTOFromDBModel(row)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, dto)
+	}
+	return results, nil
+}
+
 func GetAllDeletionRequests(c context.Context) ([]privacyDTO.AdminPrivacyDeletionRequest, error) {
 	dbRecords, err := PrivacyServiceSingleton.queries.GetAllDeletionRequests(c)
 	if err != nil {

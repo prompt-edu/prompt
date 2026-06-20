@@ -238,6 +238,44 @@ func (q *Queries) GetDeletionRequestByIDWithSubrequests(ctx context.Context, id 
 	return i, err
 }
 
+const getDeletionRequestsByIDsWithSubrequests = `-- name: GetDeletionRequestsByIDsWithSubrequests :many
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetDeletionRequestsByIDsWithSubrequests(ctx context.Context, dollar_1 []uuid.UUID) ([]PrivacyDeletionRequestWithSubrequest, error) {
+	rows, err := q.db.Query(ctx, getDeletionRequestsByIDsWithSubrequests, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PrivacyDeletionRequestWithSubrequest
+	for rows.Next() {
+		var i PrivacyDeletionRequestWithSubrequest
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.StudentID,
+			&i.RequestedAt,
+			&i.Status,
+			&i.AuditorID,
+			&i.AuditorName,
+			&i.AuditorEmail,
+			&i.AuditorRespondedAt,
+			&i.AuditorNote,
+			&i.CompletedAt,
+			&i.Subrequests,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestDeletionRequestForUserWithSubrequests = `-- name: GetLatestDeletionRequestForUserWithSubrequests :one
 SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
 WHERE user_id = $1

@@ -68,9 +68,9 @@ func (q *Queries) GetAllocationByCourseParticipationID(ctx context.Context, doll
 }
 
 const getStudentSkillResponseByCourseParticipationID = `-- name: GetStudentSkillResponseByCourseParticipationID :many
-SELECT sr.course_participation_id, sr.skill_id, sr.skill_level, s.id, s.course_phase_id, s.name 
-FROM student_skill_response sr, skill s 
-WHERE s.id = sr.skill_id 
+SELECT sr.course_participation_id, sr.skill_id, sr.skill_level, s.id, s.course_phase_id, s.name
+FROM student_skill_response sr, skill s
+WHERE s.id = sr.skill_id
 AND sr.course_participation_id = ANY($1::uuid[])
 `
 
@@ -155,14 +155,14 @@ func (q *Queries) GetStudentTeamPreferenceResponseByCourseParticipationID(ctx co
 	return items, nil
 }
 
-const getTutorByCourseParticipationIDs = `-- name: GetTutorByCourseParticipationIDs :many
+const getTutorsByCourseParticipationID = `-- name: GetTutorsByCourseParticipationID :many
 SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id
 FROM tutor t
 WHERE t.course_participation_id = ANY($1::uuid[])
 `
 
-func (q *Queries) GetTutorByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Tutor, error) {
-	rows, err := q.db.Query(ctx, getTutorByCourseParticipationIDs, dollar_1)
+func (q *Queries) GetTutorsByCourseParticipationID(ctx context.Context, dollar_1 []uuid.UUID) ([]Tutor, error) {
+	rows, err := q.db.Query(ctx, getTutorsByCourseParticipationID, dollar_1)
 	if err != nil {
 		return nil, err
 	}

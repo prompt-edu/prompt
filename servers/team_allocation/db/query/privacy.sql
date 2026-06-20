@@ -1,8 +1,7 @@
-
 -- name: GetStudentSkillResponseByCourseParticipationID :many
-SELECT sr.*, s.* 
-FROM student_skill_response sr, skill s 
-WHERE s.id = sr.skill_id 
+SELECT sr.*, s.*
+FROM student_skill_response sr, skill s
+WHERE s.id = sr.skill_id
 AND sr.course_participation_id = ANY($1::uuid[]);
 
 -- name: GetAllocationByCourseParticipationID :many
@@ -17,8 +16,7 @@ FROM student_team_preference_response spr, team t
 WHERE course_participation_id = ANY($1::uuid[])
 AND spr.team_id = t.id;
 
--- name: GetTutorByCourseParticipationIDs :many
+-- name: GetTutorsByCourseParticipationID :many
 SELECT t.*
 FROM tutor t
 WHERE t.course_participation_id = ANY($1::uuid[]);
-

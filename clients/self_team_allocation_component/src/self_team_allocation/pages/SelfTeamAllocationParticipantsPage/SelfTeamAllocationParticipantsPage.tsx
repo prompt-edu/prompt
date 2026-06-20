@@ -35,30 +35,38 @@ export const SelfTeamAllocationParticipantsPage = () => {
   const extraColumns: ExtraParticipantColumn<string>[] = useMemo(() => {
     if (!teams) return []
 
-    const teamByParticipation = new Map<string, string>()
+    const teamNameByParticipation = new Map<string, string>()
+
     for (const team of teams) {
       for (const member of team.members) {
-        if (member.id) teamByParticipation.set(member.id, team.name)
+        if (member.id) {
+          teamNameByParticipation.set(member.id, team.name)
+        }
       }
     }
+
+    const teamNameExtraData =
+      coursePhaseParticipations?.participations?.map((participation) => {
+        const teamName =
+          teamNameByParticipation.get(participation.courseParticipationID) ?? 'No Team'
+
+        return {
+          courseParticipationID: participation.courseParticipationID,
+          value: teamName,
+          stringValue: teamName,
+        }
+      }) ?? []
 
     return [
       {
         id: 'allocatedTeam',
         header: 'Allocated Team',
 
-        accessorFn: (row) => teamByParticipation.get(row.courseParticipationID) ?? 'No Team',
+        accessorFn: (row) => teamNameByParticipation.get(row.courseParticipationID) ?? 'No Team',
 
         cell: ({ getValue }) => getValue(),
 
-        extraData: (coursePhaseParticipations?.participations ?? []).map((p) => {
-          const name = teamByParticipation.get(p.courseParticipationID) ?? 'No Team'
-          return {
-            courseParticipationID: p.courseParticipationID,
-            value: name,
-            stringValue: name,
-          }
-        }),
+        extraData: teamNameExtraData,
         enableSorting: true,
         sortingFn: (rowA, rowB) => {
           const a = rowA.getValue('allocatedTeam') as string
@@ -73,7 +81,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
         },
       },
     ]
-  }, [teams, coursePhaseParticipations?.participations])
+  }, [coursePhaseParticipations?.participations, teams])
 
   const refetch = () => {
     refetchCoursePhaseParticipations()

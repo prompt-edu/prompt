@@ -12,14 +12,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getAllocationByCourseParticipationID = `-- name: GetAllocationByCourseParticipationID :many
+const getAllocationByCourseParticipationIDs = `-- name: GetAllocationByCourseParticipationIDs :many
 SELECT a.id, a.course_participation_id, a.team_id, a.course_phase_id, a.created_at, a.updated_at, a.student_first_name, a.student_last_name, t.id, t.name, t.course_phase_id, t.created_at
 FROM allocations a, team t
 WHERE a.course_participation_id = ANY($1::uuid[])
 AND a.team_id = t.id
 `
 
-type GetAllocationByCourseParticipationIDRow struct {
+type GetAllocationByCourseParticipationIDsRow struct {
 	ID                    uuid.UUID        `json:"id"`
 	CourseParticipationID uuid.UUID        `json:"course_participation_id"`
 	TeamID                uuid.UUID        `json:"team_id"`
@@ -34,15 +34,15 @@ type GetAllocationByCourseParticipationIDRow struct {
 	CreatedAt_2           pgtype.Timestamp `json:"created_at_2"`
 }
 
-func (q *Queries) GetAllocationByCourseParticipationID(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllocationByCourseParticipationIDRow, error) {
-	rows, err := q.db.Query(ctx, getAllocationByCourseParticipationID, dollar_1)
+func (q *Queries) GetAllocationByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllocationByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllocationByCourseParticipationIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAllocationByCourseParticipationIDRow
+	var items []GetAllocationByCourseParticipationIDsRow
 	for rows.Next() {
-		var i GetAllocationByCourseParticipationIDRow
+		var i GetAllocationByCourseParticipationIDsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CourseParticipationID,
@@ -67,14 +67,14 @@ func (q *Queries) GetAllocationByCourseParticipationID(ctx context.Context, doll
 	return items, nil
 }
 
-const getStudentSkillResponseByCourseParticipationID = `-- name: GetStudentSkillResponseByCourseParticipationID :many
+const getStudentSkillResponseByCourseParticipationIDs = `-- name: GetStudentSkillResponseByCourseParticipationIDs :many
 SELECT sr.course_participation_id, sr.skill_id, sr.skill_level, s.id, s.course_phase_id, s.name
 FROM student_skill_response sr, skill s
 WHERE s.id = sr.skill_id
 AND sr.course_participation_id = ANY($1::uuid[])
 `
 
-type GetStudentSkillResponseByCourseParticipationIDRow struct {
+type GetStudentSkillResponseByCourseParticipationIDsRow struct {
 	CourseParticipationID uuid.UUID  `json:"course_participation_id"`
 	SkillID               uuid.UUID  `json:"skill_id"`
 	SkillLevel            SkillLevel `json:"skill_level"`
@@ -83,15 +83,15 @@ type GetStudentSkillResponseByCourseParticipationIDRow struct {
 	Name                  string     `json:"name"`
 }
 
-func (q *Queries) GetStudentSkillResponseByCourseParticipationID(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStudentSkillResponseByCourseParticipationIDRow, error) {
-	rows, err := q.db.Query(ctx, getStudentSkillResponseByCourseParticipationID, dollar_1)
+func (q *Queries) GetStudentSkillResponseByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStudentSkillResponseByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getStudentSkillResponseByCourseParticipationIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetStudentSkillResponseByCourseParticipationIDRow
+	var items []GetStudentSkillResponseByCourseParticipationIDsRow
 	for rows.Next() {
-		var i GetStudentSkillResponseByCourseParticipationIDRow
+		var i GetStudentSkillResponseByCourseParticipationIDsRow
 		if err := rows.Scan(
 			&i.CourseParticipationID,
 			&i.SkillID,
@@ -110,14 +110,14 @@ func (q *Queries) GetStudentSkillResponseByCourseParticipationID(ctx context.Con
 	return items, nil
 }
 
-const getStudentTeamPreferenceResponseByCourseParticipationID = `-- name: GetStudentTeamPreferenceResponseByCourseParticipationID :many
+const getStudentTeamPreferenceResponseByCourseParticipationIDs = `-- name: GetStudentTeamPreferenceResponseByCourseParticipationIDs :many
 SELECT spr.course_participation_id, spr.team_id, spr.preference, t.id, t.name, t.course_phase_id, t.created_at
 FROM student_team_preference_response spr, team t
 WHERE course_participation_id = ANY($1::uuid[])
 AND spr.team_id = t.id
 `
 
-type GetStudentTeamPreferenceResponseByCourseParticipationIDRow struct {
+type GetStudentTeamPreferenceResponseByCourseParticipationIDsRow struct {
 	CourseParticipationID uuid.UUID        `json:"course_participation_id"`
 	TeamID                uuid.UUID        `json:"team_id"`
 	Preference            int32            `json:"preference"`
@@ -127,15 +127,15 @@ type GetStudentTeamPreferenceResponseByCourseParticipationIDRow struct {
 	CreatedAt             pgtype.Timestamp `json:"created_at"`
 }
 
-func (q *Queries) GetStudentTeamPreferenceResponseByCourseParticipationID(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStudentTeamPreferenceResponseByCourseParticipationIDRow, error) {
-	rows, err := q.db.Query(ctx, getStudentTeamPreferenceResponseByCourseParticipationID, dollar_1)
+func (q *Queries) GetStudentTeamPreferenceResponseByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetStudentTeamPreferenceResponseByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getStudentTeamPreferenceResponseByCourseParticipationIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetStudentTeamPreferenceResponseByCourseParticipationIDRow
+	var items []GetStudentTeamPreferenceResponseByCourseParticipationIDsRow
 	for rows.Next() {
-		var i GetStudentTeamPreferenceResponseByCourseParticipationIDRow
+		var i GetStudentTeamPreferenceResponseByCourseParticipationIDsRow
 		if err := rows.Scan(
 			&i.CourseParticipationID,
 			&i.TeamID,
@@ -155,14 +155,14 @@ func (q *Queries) GetStudentTeamPreferenceResponseByCourseParticipationID(ctx co
 	return items, nil
 }
 
-const getTutorsByCourseParticipationID = `-- name: GetTutorsByCourseParticipationID :many
+const getTutorByCourseParticipationIDs = `-- name: GetTutorByCourseParticipationIDs :many
 SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id
 FROM tutor t
 WHERE t.course_participation_id = ANY($1::uuid[])
 `
 
-func (q *Queries) GetTutorsByCourseParticipationID(ctx context.Context, dollar_1 []uuid.UUID) ([]Tutor, error) {
-	rows, err := q.db.Query(ctx, getTutorsByCourseParticipationID, dollar_1)
+func (q *Queries) GetTutorByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Tutor, error) {
+	rows, err := q.db.Query(ctx, getTutorByCourseParticipationIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}

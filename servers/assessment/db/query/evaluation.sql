@@ -28,6 +28,13 @@ WHERE course_participation_id = $1
   AND course_phase_id = $2
   AND type != 'tutor';
 
+-- name: GetEvaluationsForParticipantInPhaseByType :many
+SELECT *
+FROM evaluation
+WHERE course_participation_id = $1
+  AND course_phase_id = $2
+  AND type = $3;
+
 -- name: GetEvaluationsForTutorInPhase :many
 SELECT *
 FROM evaluation

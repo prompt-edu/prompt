@@ -41,23 +41,23 @@ func sendDeletionConfirmationMail(ctx context.Context, requestID uuid.UUID, reci
 }
 
 func deletionSuccessSubject() string {
-	return "Your PROMPT data deletion request has been completed"
+	return "Your PROMPT account and data have been deleted"
 }
 
 func deletionSuccessBody() string {
 	return `<p>Hello,</p>
-<p>Your request to delete your personal data from PROMPT has been processed successfully.</p>
-<p>All personal data associated with your account has been removed from our records. You can no longer sign in to the platform.</p>
+<p>Your PROMPT account and the personal data associated with it have been deleted.</p>
+<p>You can no longer sign in to the platform. If you have any questions about this deletion, please contact the PROMPT team.</p>
 <p>Kind regards,<br>The PROMPT Team</p>`
 }
 
 func deletionFailureSubject() string {
-	return "Your PROMPT data deletion request could not be completed"
+	return "Deletion of your PROMPT data could not be completed"
 }
 
 func deletionFailureBody() string {
 	return `<p>Hello,</p>
-<p>We attempted to process your PROMPT data deletion request, but one or more steps did not complete successfully.</p>
-<p>You do not need to take any further action right now. If you have questions, please contact your course administration.</p>
+<p>We attempted to delete your PROMPT data, but one or more steps did not complete successfully.</p>
+<p>Some of your data may still be present on the platform until the issue is resolved. If you have any questions, please contact the PROMPT team.</p>
 <p>Kind regards,<br>The PROMPT Team</p>`
 }

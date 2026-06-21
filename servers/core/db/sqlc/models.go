@@ -609,6 +609,7 @@ type PrivacyDeletionRequest struct {
 	AuditorEmail       string                       `json:"auditor_email"`
 	AuditorRespondedAt pgtype.Timestamptz           `json:"auditor_responded_at"`
 	AuditorNote        string                       `json:"auditor_note"`
+	RecipientEmail     string                       `json:"recipient_email"`
 	CompletedAt        pgtype.Timestamptz           `json:"completed_at"`
 }
 
@@ -623,6 +624,7 @@ type PrivacyDeletionRequestWithSubrequest struct {
 	AuditorEmail       string                       `json:"auditor_email"`
 	AuditorRespondedAt pgtype.Timestamptz           `json:"auditor_responded_at"`
 	AuditorNote        string                       `json:"auditor_note"`
+	RecipientEmail     string                       `json:"recipient_email"`
 	CompletedAt        pgtype.Timestamptz           `json:"completed_at"`
 	Subrequests        []byte                       `json:"subrequests"`
 }

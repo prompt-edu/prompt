@@ -16,16 +16,17 @@ SELECT * FROM privacy_deletion_request WHERE id = $1;
 SELECT * FROM privacy_deletion_request_with_subrequests WHERE id = $1;
 
 -- name: CreateNewDeletionRequest :one
-INSERT INTO privacy_deletion_request (id, user_id, student_id, status)
-VALUES ($1, $2, $3, $4)
+INSERT INTO privacy_deletion_request (id, user_id, student_id, status, recipient_email)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: CreateAdminInitiatedDeletionRequest :one
 INSERT INTO privacy_deletion_request (
   id, user_id, student_id, status,
-  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at
+  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at,
+  recipient_email
 )
-VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now())
+VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now(), $7)
 RETURNING *;
 
 -- name: GetDeletionRequestsByIDsWithSubrequests :many
@@ -76,3 +77,8 @@ UPDATE privacy_deletion_request
 SET auditor_name  = '',
     auditor_email = ''
 WHERE auditor_id = $1;
+
+-- name: ClearDeletionRequestRecipientEmail :exec
+UPDATE privacy_deletion_request
+SET recipient_email = ''
+WHERE id = $1;

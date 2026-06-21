@@ -22,10 +22,11 @@ func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, e
 	}
 
 	record, err := PrivacyServiceSingleton.queries.CreateNewDeletionRequest(c, db.CreateNewDeletionRequestParams{
-		ID:        uuid.New(),
-		UserID:    pgtype.UUID{Bytes: subjectIdentifiers.UserID, Valid: subjectIdentifiers.UserID != uuid.Nil},
-		StudentID: pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
-		Status:    db.PrivacyDeletionRequestStatusPendingApproval,
+		ID:             uuid.New(),
+		UserID:         pgtype.UUID{Bytes: subjectIdentifiers.UserID, Valid: subjectIdentifiers.UserID != uuid.Nil},
+		StudentID:      pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
+		Status:         db.PrivacyDeletionRequestStatusPendingApproval,
+		RecipientEmail: coreutils.GetUserEmailFromContext(c),
 	})
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to create deletion request: %w", err)

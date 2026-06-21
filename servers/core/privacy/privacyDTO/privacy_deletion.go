@@ -102,6 +102,7 @@ type PrivacyDeletionRequest struct {
 	AuditorEmail       string                            `json:"auditor_email"`
 	AuditorRespondedAt *time.Time                        `json:"auditor_responded_at"`
 	AuditorNote        string                            `json:"auditor_note"`
+	RecipientEmail     string                            `json:"-"`
 	CompletedAt        *time.Time                        `json:"completed_at"`
 	Subrequests        []PublicPrivacyDeletionSubrequest `json:"subrequests"`
 }
@@ -129,6 +130,7 @@ func GetPrivacyDeletionRequestDTOFromDBModel(model db.PrivacyDeletionRequest) Pr
 		AuditorEmail:       model.AuditorEmail,
 		AuditorRespondedAt: timePtr(model.AuditorRespondedAt),
 		AuditorNote:        model.AuditorNote,
+		RecipientEmail:     model.RecipientEmail,
 		CompletedAt:        timePtr(model.CompletedAt),
 		Subrequests:        []PublicPrivacyDeletionSubrequest{},
 	}
@@ -151,6 +153,7 @@ func GetPrivacyDeletionRequestWithSubrequestsDTOFromDBModel(model db.PrivacyDele
 		AuditorEmail:       model.AuditorEmail,
 		AuditorRespondedAt: timePtr(model.AuditorRespondedAt),
 		AuditorNote:        model.AuditorNote,
+		RecipientEmail:     model.RecipientEmail,
 		CompletedAt:        timePtr(model.CompletedAt),
 		Subrequests:        subrequests,
 	}, nil

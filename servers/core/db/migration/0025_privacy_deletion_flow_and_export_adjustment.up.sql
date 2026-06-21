@@ -26,6 +26,7 @@ CREATE TABLE privacy_deletion_request (
   auditor_email         text                              NOT NULL DEFAULT '',
   auditor_responded_at  timestamptz,
   auditor_note          text                              NOT NULL DEFAULT '',
+  recipient_email       text                              NOT NULL DEFAULT '',
   completed_at          timestamptz
 );
 
@@ -98,6 +99,7 @@ SELECT
   r.auditor_email,
   r.auditor_responded_at,
   r.auditor_note,
+  r.recipient_email,
   r.completed_at,
   COALESCE(
     jsonb_agg(

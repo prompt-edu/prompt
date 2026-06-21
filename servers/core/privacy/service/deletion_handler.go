@@ -112,7 +112,8 @@ func RunDataDeletion(ctx context.Context, authHeader string, state Deletion) {
 
 	wg.Wait()
 
-	UpdateDeletionRequestStatus(ctx, &state)
+	finalStatus := UpdateDeletionRequestStatus(ctx, &state)
+	sendDeletionConfirmationMail(context.WithoutCancel(ctx), state.Record.ID, state.Record.RecipientEmail, finalStatus)
 }
 
 func updateSubrequestStatus(ctx context.Context, subrequestID uuid.UUID, callErr error) {
@@ -129,7 +130,7 @@ func updateSubrequestStatus(ctx context.Context, subrequestID uuid.UUID, callErr
 	}
 }
 
-func UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) {
+func UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) db.PrivacyDeletionRequestStatus {
 	statusCtx := context.WithoutCancel(ctx)
 
 	anyFailed := state.CoreDeletion.Result == db.PrivacyDeletionSubrequestStatusFailed
@@ -151,4 +152,5 @@ func UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) {
 	}); err != nil {
 		log.WithError(err).Error("failed to set deletion request final status")
 	}
+	return finalStatus
 }

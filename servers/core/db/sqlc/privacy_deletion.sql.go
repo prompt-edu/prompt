@@ -12,22 +12,35 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearDeletionRequestRecipientEmail = `-- name: ClearDeletionRequestRecipientEmail :exec
+UPDATE privacy_deletion_request
+SET recipient_email = ''
+WHERE id = $1
+`
+
+func (q *Queries) ClearDeletionRequestRecipientEmail(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, clearDeletionRequestRecipientEmail, id)
+	return err
+}
+
 const createAdminInitiatedDeletionRequest = `-- name: CreateAdminInitiatedDeletionRequest :one
 INSERT INTO privacy_deletion_request (
   id, user_id, student_id, status,
-  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at
+  auditor_id, auditor_name, auditor_email, auditor_note, auditor_responded_at,
+  recipient_email
 )
-VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now())
-RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at
+VALUES ($1, NULL, $2, 'in_progress', $3, $4, $5, $6, now(), $7)
+RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at
 `
 
 type CreateAdminInitiatedDeletionRequestParams struct {
-	ID           uuid.UUID   `json:"id"`
-	StudentID    pgtype.UUID `json:"student_id"`
-	AuditorID    pgtype.UUID `json:"auditor_id"`
-	AuditorName  string      `json:"auditor_name"`
-	AuditorEmail string      `json:"auditor_email"`
-	AuditorNote  string      `json:"auditor_note"`
+	ID             uuid.UUID   `json:"id"`
+	StudentID      pgtype.UUID `json:"student_id"`
+	AuditorID      pgtype.UUID `json:"auditor_id"`
+	AuditorName    string      `json:"auditor_name"`
+	AuditorEmail   string      `json:"auditor_email"`
+	AuditorNote    string      `json:"auditor_note"`
+	RecipientEmail string      `json:"recipient_email"`
 }
 
 func (q *Queries) CreateAdminInitiatedDeletionRequest(ctx context.Context, arg CreateAdminInitiatedDeletionRequestParams) (PrivacyDeletionRequest, error) {
@@ -38,6 +51,7 @@ func (q *Queries) CreateAdminInitiatedDeletionRequest(ctx context.Context, arg C
 		arg.AuditorName,
 		arg.AuditorEmail,
 		arg.AuditorNote,
+		arg.RecipientEmail,
 	)
 	var i PrivacyDeletionRequest
 	err := row.Scan(
@@ -51,22 +65,24 @@ func (q *Queries) CreateAdminInitiatedDeletionRequest(ctx context.Context, arg C
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 	)
 	return i, err
 }
 
 const createNewDeletionRequest = `-- name: CreateNewDeletionRequest :one
-INSERT INTO privacy_deletion_request (id, user_id, student_id, status)
-VALUES ($1, $2, $3, $4)
-RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at
+INSERT INTO privacy_deletion_request (id, user_id, student_id, status, recipient_email)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at
 `
 
 type CreateNewDeletionRequestParams struct {
-	ID        uuid.UUID                    `json:"id"`
-	UserID    pgtype.UUID                  `json:"user_id"`
-	StudentID pgtype.UUID                  `json:"student_id"`
-	Status    PrivacyDeletionRequestStatus `json:"status"`
+	ID             uuid.UUID                    `json:"id"`
+	UserID         pgtype.UUID                  `json:"user_id"`
+	StudentID      pgtype.UUID                  `json:"student_id"`
+	Status         PrivacyDeletionRequestStatus `json:"status"`
+	RecipientEmail string                       `json:"recipient_email"`
 }
 
 func (q *Queries) CreateNewDeletionRequest(ctx context.Context, arg CreateNewDeletionRequestParams) (PrivacyDeletionRequest, error) {
@@ -75,6 +91,7 @@ func (q *Queries) CreateNewDeletionRequest(ctx context.Context, arg CreateNewDel
 		arg.UserID,
 		arg.StudentID,
 		arg.Status,
+		arg.RecipientEmail,
 	)
 	var i PrivacyDeletionRequest
 	err := row.Scan(
@@ -88,6 +105,7 @@ func (q *Queries) CreateNewDeletionRequest(ctx context.Context, arg CreateNewDel
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 	)
 	return i, err
@@ -128,7 +146,7 @@ func (q *Queries) CreateNewDeletionSubrequest(ctx context.Context, arg CreateNew
 
 const getAllDeletionRequests = `-- name: GetAllDeletionRequests :many
 SELECT
-  v.id, v.user_id, v.student_id, v.requested_at, v.status, v.auditor_id, v.auditor_name, v.auditor_email, v.auditor_responded_at, v.auditor_note, v.completed_at, v.subrequests,
+  v.id, v.user_id, v.student_id, v.requested_at, v.status, v.auditor_id, v.auditor_name, v.auditor_email, v.auditor_responded_at, v.auditor_note, v.recipient_email, v.completed_at, v.subrequests,
   s.first_name AS student_first_name,
   s.last_name  AS student_last_name,
   s.email      AS student_email
@@ -148,6 +166,7 @@ type GetAllDeletionRequestsRow struct {
 	AuditorEmail       string                       `json:"auditor_email"`
 	AuditorRespondedAt pgtype.Timestamptz           `json:"auditor_responded_at"`
 	AuditorNote        string                       `json:"auditor_note"`
+	RecipientEmail     string                       `json:"recipient_email"`
 	CompletedAt        pgtype.Timestamptz           `json:"completed_at"`
 	Subrequests        []byte                       `json:"subrequests"`
 	StudentFirstName   pgtype.Text                  `json:"student_first_name"`
@@ -175,6 +194,7 @@ func (q *Queries) GetAllDeletionRequests(ctx context.Context) ([]GetAllDeletionR
 			&i.AuditorEmail,
 			&i.AuditorRespondedAt,
 			&i.AuditorNote,
+			&i.RecipientEmail,
 			&i.CompletedAt,
 			&i.Subrequests,
 			&i.StudentFirstName,
@@ -192,7 +212,7 @@ func (q *Queries) GetAllDeletionRequests(ctx context.Context) ([]GetAllDeletionR
 }
 
 const getDeletionRequestByID = `-- name: GetDeletionRequestByID :one
-SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at FROM privacy_deletion_request WHERE id = $1
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at FROM privacy_deletion_request WHERE id = $1
 `
 
 func (q *Queries) GetDeletionRequestByID(ctx context.Context, id uuid.UUID) (PrivacyDeletionRequest, error) {
@@ -209,13 +229,14 @@ func (q *Queries) GetDeletionRequestByID(ctx context.Context, id uuid.UUID) (Pri
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 	)
 	return i, err
 }
 
 const getDeletionRequestByIDWithSubrequests = `-- name: GetDeletionRequestByIDWithSubrequests :one
-SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at, subrequests FROM privacy_deletion_request_with_subrequests WHERE id = $1
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at, subrequests FROM privacy_deletion_request_with_subrequests WHERE id = $1
 `
 
 func (q *Queries) GetDeletionRequestByIDWithSubrequests(ctx context.Context, id uuid.UUID) (PrivacyDeletionRequestWithSubrequest, error) {
@@ -232,6 +253,7 @@ func (q *Queries) GetDeletionRequestByIDWithSubrequests(ctx context.Context, id 
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 		&i.Subrequests,
 	)
@@ -239,7 +261,7 @@ func (q *Queries) GetDeletionRequestByIDWithSubrequests(ctx context.Context, id 
 }
 
 const getDeletionRequestsByIDsWithSubrequests = `-- name: GetDeletionRequestsByIDsWithSubrequests :many
-SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
 WHERE id = ANY($1::uuid[])
 `
 
@@ -263,6 +285,7 @@ func (q *Queries) GetDeletionRequestsByIDsWithSubrequests(ctx context.Context, d
 			&i.AuditorEmail,
 			&i.AuditorRespondedAt,
 			&i.AuditorNote,
+			&i.RecipientEmail,
 			&i.CompletedAt,
 			&i.Subrequests,
 		); err != nil {
@@ -277,7 +300,7 @@ func (q *Queries) GetDeletionRequestsByIDsWithSubrequests(ctx context.Context, d
 }
 
 const getLatestDeletionRequestForUserWithSubrequests = `-- name: GetLatestDeletionRequestForUserWithSubrequests :one
-SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at, subrequests FROM privacy_deletion_request_with_subrequests
 WHERE user_id = $1
 ORDER BY requested_at DESC
 LIMIT 1
@@ -297,6 +320,7 @@ func (q *Queries) GetLatestDeletionRequestForUserWithSubrequests(ctx context.Con
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 		&i.Subrequests,
 	)
@@ -304,7 +328,7 @@ func (q *Queries) GetLatestDeletionRequestForUserWithSubrequests(ctx context.Con
 }
 
 const getOpenDeletionRequestForUser = `-- name: GetOpenDeletionRequestForUser :one
-SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at FROM privacy_deletion_request
+SELECT id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at FROM privacy_deletion_request
 WHERE user_id = $1 AND status IN ('pending_approval', 'in_progress')
 LIMIT 1
 `
@@ -323,6 +347,7 @@ func (q *Queries) GetOpenDeletionRequestForUser(ctx context.Context, userID pgty
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 	)
 	return i, err
@@ -374,7 +399,7 @@ UPDATE privacy_deletion_request
 SET status       = $2,
     completed_at = CASE WHEN $2::privacy_deletion_request_status IN ('rejected', 'succeeded', 'failed') THEN now() ELSE completed_at END
 WHERE id = $1
-RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, completed_at
+RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at
 `
 
 type SetDeletionRequestStatusParams struct {
@@ -396,6 +421,7 @@ func (q *Queries) SetDeletionRequestStatus(ctx context.Context, arg SetDeletionR
 		&i.AuditorEmail,
 		&i.AuditorRespondedAt,
 		&i.AuditorNote,
+		&i.RecipientEmail,
 		&i.CompletedAt,
 	)
 	return i, err

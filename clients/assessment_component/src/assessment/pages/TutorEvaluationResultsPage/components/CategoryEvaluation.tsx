@@ -18,9 +18,14 @@ import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 interface CategoryEvaluationProps {
   category: CategoryWithCompetencies
   evaluations: Evaluation[]
+  assessmentType?: AssessmentType
 }
 
-export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluationProps) => {
+export const CategoryEvaluation = ({
+  category,
+  evaluations,
+  assessmentType = AssessmentType.TUTOR,
+}: CategoryEvaluationProps) => {
   const { teams } = useTeamStore()
 
   const getTeamMemberName = (authorCourseParticipationID: string) => {
@@ -104,7 +109,7 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
               <div key={competency.id} className='mb-6 last:mb-0'>
                 <div className='space-y-4 p-4 border rounded-md relative'>
                   <CompetencyHeader
-                    assessmentType={AssessmentType.TUTOR}
+                    assessmentType={assessmentType}
                     competency={competency}
                     completed={true}
                     onResetClick={() => {}}
@@ -112,7 +117,7 @@ export const CategoryEvaluation = ({ category, evaluations }: CategoryEvaluation
 
                   <ScoreLevelSelector
                     className='grid grid-cols-1 gap-1 md:grid-cols-5'
-                    assessmentType={AssessmentType.TUTOR}
+                    assessmentType={assessmentType}
                     competency={competency}
                     onScoreChange={() => {}}
                     completed={false}

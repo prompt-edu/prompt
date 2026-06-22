@@ -69,3 +69,13 @@ Thumbs.db
 # Local Tooling (not shared)
 # =============================================================================
 justfile
+
+# =============================================================================
+# Deploy (prompt-websec) - rendered secrets & runtime data (host-only)
+# =============================================================================
+deploy/.env.websec
+deploy/keycloakConfig.rendered.json
+deploy/postgres_data/
+deploy/postgres_*_data/
+deploy/keycloak_postgres_data/
+deploy/seaweedfs_*_data/

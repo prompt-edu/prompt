@@ -1,0 +1,782 @@
+# PROMPT 2.0 - test-prod deployment for the IT-security course on `prompt-websec`.
+#
+# Derived from ../docker-compose.prod.yml with three deliberate deviations (see deploy/README.md):
+#   1. HTTP-only Traefik on :80 (no HTTPS redirect, no Let's Encrypt) - the VM has no public TLS
+#      and the site is served at http://prompt-websec.aet.cit.tum.de/.
+#   2. Embedded Keycloak (+ its Postgres) served under the URL subpath /idp on the single host,
+#      since no DNS subdomains exist. Realm (incl. example users) is imported on first start.
+#   3. Router Host() rules use the bare literal domain, because ${CORE_HOST} carries the http://
+#      scheme (it is consumed as a full URL by the Go backend for CORS / mail links / inter-service).
+#
+# Run from the repo root:
+#   docker compose -f deploy/docker-compose.websec.yml --env-file deploy/.env.websec up --pull=always -d
+# Relative volume paths resolve against deploy/ (the compose file's directory).
+
+services:
+  reverse-proxy:
+    image: traefik:v2.11
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=prompt-network"
+      - "--entrypoints.web.address=:80"
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - prompt-network
+
+  maintenance:
+    image: nginx:alpine
+    container_name: prompt-maintenance
+    restart: unless-stopped
+    volumes:
+      - ../maintenance:/usr/share/nginx/html:ro
+      - ../maintenance/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.maintenance.rule=Host(`prompt-websec.aet.cit.tum.de`)"
+      - "traefik.http.routers.maintenance.entrypoints=web"
+      - "traefik.http.routers.maintenance.priority=1"
+      - "traefik.http.services.maintenance.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.maintenance-compress.compress=true"
+      - "traefik.http.routers.maintenance.middlewares=maintenance-compress"
+    expose:
+      - "80"
+    networks:
+      - prompt-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Authentication: Keycloak under /idp (relative path) + its own Postgres
+  # ---------------------------------------------------------------------------
+  keycloak-db:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-keycloak-db
+    environment:
+      - POSTGRES_USER=${KEYCLOAK_DB_USER}
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
+      - POSTGRES_DB=keycloak
+      - TZ=Europe/Berlin
+    volumes:
+      - ./keycloak_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.3
+    container_name: prompt-keycloak
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: keycloak-db
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # Served under http://prompt-websec.aet.cit.tum.de/idp behind Traefik (edge TLS termination N/A: plain HTTP).
+      KC_HOSTNAME: http://prompt-websec.aet.cit.tum.de
+      KC_HTTP_RELATIVE_PATH: /idp
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/idp`)"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - prompt-network
+    healthcheck:
+      # KC image has bash but no curl/wget; probe the realm endpoint over /dev/tcp.
+      # The realm is served under the /idp relative path once Keycloak is up and the import finished.
+      test:
+        [
+          "CMD-SHELL",
+          'exec 3<>/dev/tcp/localhost/8080; echo -e "GET /idp/realms/prompt HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; cat <&3 | head -n 1 | grep -qE " (200|301|302) "',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 40
+      start_period: 90s
+
+  # ---------------------------------------------------------------------------
+  # Backend services (Go). extra_hosts maps the public FQDN back to the host so
+  # OIDC issuer validation reaches Keycloak via http://.../idp through Traefik.
+  # ---------------------------------------------------------------------------
+  server-core:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-core:${SERVER_CORE_IMAGE_TAG}"
+    container_name: prompt-server-core
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-core.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/api`)"
+      - "traefik.http.services.server-core.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-core.entrypoints=web"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
+      - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
+      - "traefik.http.routers.server-core.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST
+      - DB_PORT
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_CLIENT_ID
+      - KEYCLOAK_CLIENT_SECRET
+      - KEYCLOAK_ID_OF_CLIENT
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
+      - SENDER_EMAIL
+      - SENDER_NAME
+      - SENTRY_DSN_CORE
+      - SENTRY_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_PUBLIC_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-team-allocation:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-team-allocation:${SERVER_TEAM_ALLOCATION_IMAGE_TAG}"
+    container_name: prompt-server-team-allocation
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/team-allocation/api`)"
+      - "traefik.http.services.server-team-allocation.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-team-allocation.entrypoints=web"
+      - "traefik.http.routers.server-team-allocation.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_TEAM_ALLOCATION
+      - DB_PORT_TEAM_ALLOCATION
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_TEAM_ALLOCATION
+      - SENTRY_ENABLED
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-self-team-allocation:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-self-team-allocation:${SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG}"
+    container_name: prompt-server-self-team-allocation
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-self-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/self-team-allocation/api`)"
+      - "traefik.http.services.server-self-team-allocation.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-self-team-allocation.entrypoints=web"
+      - "traefik.http.routers.server-self-team-allocation.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db-self-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_SELF_TEAM_ALLOCATION
+      - DB_PORT_SELF_TEAM_ALLOCATION
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_SELF_TEAM_ALLOCATION
+      - SENTRY_ENABLED
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-assessment:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-assessment:${SERVER_ASSESSMENT_IMAGE_TAG}"
+    container_name: prompt-server-assessment
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-assessment.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.services.server-assessment.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-assessment.entrypoints=web"
+      - "traefik.http.routers.server-assessment.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db-assessment:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_ASSESSMENT=db-assessment
+      - DB_PORT_ASSESSMENT=5432
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_ASSESSMENT
+      - SENTRY_ENABLED
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-interview:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-interview:${SERVER_INTERVIEW_IMAGE_TAG}"
+    container_name: prompt-server-interview
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-interview.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/interview/api`)"
+      - "traefik.http.services.server-interview.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-interview.entrypoints=web"
+      - "traefik.http.routers.server-interview.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db-interview:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_INTERVIEW=db-interview
+      - DB_PORT_INTERVIEW=5432
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_INTERVIEW
+      - SENTRY_ENABLED
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-certificate:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-certificate:${SERVER_CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-server-certificate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-certificate.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/certificate/api`)"
+      - "traefik.http.services.server-certificate.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-certificate.entrypoints=web"
+      - "traefik.http.routers.server-certificate.middlewares=api-ratelimit"
+    extra_hosts:
+      - "prompt-websec.aet.cit.tum.de:host-gateway"
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_CERTIFICATE=db-certificate
+      - DB_PORT_CERTIFICATE=5432
+      - DB_USER
+      - DB_NAME
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - SENTRY_DSN_CERTIFICATE
+      - SENTRY_ENABLED
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  # ---------------------------------------------------------------------------
+  # Databases (one Postgres per service, matching the stock prod layout)
+  # ---------------------------------------------------------------------------
+  db:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  db-team-allocation:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-team-allocation
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_team_allocation_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  db-self-team-allocation:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-self-team-allocation
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_self_team_allocation_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  db-interview:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-interview
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_interview_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  db-assessment:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-assessment
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_assessment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  db-certificate:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_certificate_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  # ---------------------------------------------------------------------------
+  # Micro-frontends (nginx). Served behind Traefik with path stripping.
+  # ---------------------------------------------------------------------------
+  client-assessment-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-assessment-component:${ASSESSMENT_IMAGE_TAG}"
+    container_name: prompt-client-assessment-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.assessment.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/assessment`)"
+      - "traefik.http.routers.assessment.entrypoints=web"
+      - "traefik.http.middlewares.assessment-strip-prefix.stripPrefix.prefixes=/assessment"
+      - "traefik.http.routers.assessment.middlewares=assessment-strip-prefix,assessment-compress"
+      - "traefik.http.middlewares.assessment-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-assessment
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-interview-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-interview-component:${INTERVIEW_IMAGE_TAG}"
+    container_name: prompt-client-interview-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.interview.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/interview`)"
+      - "traefik.http.routers.interview.entrypoints=web"
+      - "traefik.http.middlewares.interview-strip-prefix.stripPrefix.prefixes=/interview"
+      - "traefik.http.routers.interview.middlewares=interview-strip-prefix,interview-compress"
+      - "traefik.http.middlewares.interview-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-matching-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-matching-component:${MATCHING_IMAGE_TAG}"
+    container_name: prompt-client-matching-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.matching.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/matching`)"
+      - "traefik.http.routers.matching.entrypoints=web"
+      - "traefik.http.middlewares.matching-strip-prefix.stripPrefix.prefixes=/matching"
+      - "traefik.http.routers.matching.middlewares=matching-strip-prefix,matching-compress"
+      - "traefik.http.middlewares.matching-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-team-allocation-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-team-allocation-component:${TEAM_ALLOCATION_IMAGE_TAG}"
+    container_name: prompt-client-team-allocation-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/team-allocation`)"
+      - "traefik.http.routers.team-allocation.entrypoints=web"
+      - "traefik.http.middlewares.team-allocation-strip-prefix.stripPrefix.prefixes=/team-allocation"
+      - "traefik.http.routers.team-allocation.middlewares=team-allocation-strip-prefix,team-allocation-compress"
+      - "traefik.http.middlewares.team-allocation-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-self-team-allocation-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-self-team-allocation-component:${SELF_TEAM_ALLOCATION_IMAGE_TAG}"
+    container_name: prompt-client-self-team-allocation-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.self-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/self-team-allocation`)"
+      - "traefik.http.routers.self-team-allocation.entrypoints=web"
+      - "traefik.http.middlewares.self-team-allocation-strip-prefix.stripPrefix.prefixes=/self-team-allocation"
+      - "traefik.http.routers.self-team-allocation.middlewares=self-team-allocation-strip-prefix,self-team-allocation-compress"
+      - "traefik.http.middlewares.self-team-allocation-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-template-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-template-component:${TEMPLATE_IMAGE_TAG}"
+    container_name: prompt-client-template-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.template.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/template`)"
+      - "traefik.http.routers.template.entrypoints=web"
+      - "traefik.http.middlewares.template-strip-prefix.stripPrefix.prefixes=/template"
+      - "traefik.http.routers.template.middlewares=template-strip-prefix,template-compress"
+      - "traefik.http.middlewares.template-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-certificate-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-certificate-component:${CERTIFICATE_IMAGE_TAG}"
+    container_name: prompt-client-certificate-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.certificate.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/certificate`)"
+      - "traefik.http.routers.certificate.entrypoints=web"
+      - "traefik.http.middlewares.certificate-strip-prefix.stripPrefix.prefixes=/certificate"
+      - "traefik.http.routers.certificate.middlewares=certificate-strip-prefix,certificate-compress"
+      - "traefik.http.middlewares.certificate-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-certificate
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-core:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-core:${CORE_IMAGE_TAG}"
+    container_name: prompt-client-core
+    environment:
+      - TZ=Europe/Berlin
+      - ENVIRONMENT
+      - CORE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - CHAIR_NAME_SHORT
+      - CHAIR_NAME_LONG
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - ASSESSMENT_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.core.rule=Host(`prompt-websec.aet.cit.tum.de`)"
+      - "traefik.http.routers.core.entrypoints=web"
+      - "traefik.http.middlewares.core-compress.compress=true"
+      - "traefik.http.routers.core.middlewares=core-compress"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+    volumes:
+      # Placeholder imprint / privacy / logo (replace with real chair assets if desired).
+      - ./privacy.html:/usr/share/nginx/html/privacy.html:ro
+      - ./imprint.html:/usr/share/nginx/html/imprint.html:ro
+      - ./chair-logo.jpeg:/usr/share/nginx/html/chair-logo.jpeg:ro
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  # ---------------------------------------------------------------------------
+  # SeaweedFS S3-compatible file storage. S3 gateway exposed under /s3 (best-effort;
+  # presigned-URL path-style signing across a path prefix may need follow-up).
+  # ---------------------------------------------------------------------------
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:4.33
+    container_name: prompt-seaweedfs-master
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_master_data:/data
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+    expose:
+      - "9333"
+      - "19333"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9333/cluster/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:4.33
+    container_name: prompt-seaweedfs-volume
+    command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
+    volumes:
+      - ./seaweedfs_volume_data:/data
+    depends_on:
+      - seaweedfs-master
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
+    expose:
+      - "8080"
+      - "18080"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:4.33
+    container_name: prompt-seaweedfs-filer
+    command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
+    volumes:
+      - ./seaweedfs_filer_data:/data
+    depends_on:
+      - seaweedfs-master
+    restart: unless-stopped
+    expose:
+      - "8888"
+    networks:
+      - prompt-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:4.33
+    container_name: prompt-seaweedfs-s3
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        cat >/tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "prompt-s3",
+              "credentials": [
+                {
+                  "accessKey": "$$WEED_S3_DEFAULT_USER",
+                  "secretKey": "$$WEED_S3_DEFAULT_PWD"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write"]
+            }
+          ]
+        }
+        EOF
+        exec weed s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/tmp/s3.json
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-filer
+    restart: unless-stopped
+    environment:
+      - WEED_S3_DEFAULT_USER=${S3_ACCESS_KEY}
+      - WEED_S3_DEFAULT_PWD=${S3_SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seaweedfs-s3.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/s3`)"
+      - "traefik.http.routers.seaweedfs-s3.entrypoints=web"
+      - "traefik.http.middlewares.s3-strip-prefix.stripPrefix.prefixes=/s3"
+      - "traefik.http.routers.seaweedfs-s3.middlewares=s3-strip-prefix"
+      - "traefik.http.services.seaweedfs-s3.loadbalancer.server.port=8333"
+    expose:
+      - "8333"
+    networks:
+      - prompt-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "code=$(wget --server-response --spider -q http://localhost:8333/ 2>&1 | grep -Eo \"HTTP/[0-9.]+ [0-9]+\" | tail -1 | cut -d\" \" -f2); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"403\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  # Create the network manually in advance: docker network create prompt-network
+  prompt-network:
+    name: prompt-network
+    external: true

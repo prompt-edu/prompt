@@ -26,7 +26,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - prompt-network
+      prompt-network:
+        # Backends reach Keycloak via the public hostname through Traefik on the
+        # Docker network (avoids the UFW-blocked container->host:80 path).
+        aliases:
+          - prompt-websec.aet.cit.tum.de
 
   maintenance:
     image: nginx:alpine
@@ -88,8 +92,10 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      # Served under http://prompt-websec.aet.cit.tum.de/idp behind Traefik (edge TLS termination N/A: plain HTTP).
-      KC_HOSTNAME: http://prompt-websec.aet.cit.tum.de
+      # Served under http://prompt-websec.aet.cit.tum.de/idp behind Traefik (plain HTTP).
+      # The path is included in KC_HOSTNAME so the advertised issuer/frontend URLs
+      # carry /idp (must match what the backend validates: ${KEYCLOAK_HOST}/realms/...).
+      KC_HOSTNAME: http://prompt-websec.aet.cit.tum.de/idp
       KC_HTTP_RELATIVE_PATH: /idp
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
@@ -138,8 +144,6 @@ services:
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
       - "traefik.http.routers.server-core.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db:
         condition: service_healthy
@@ -192,8 +196,6 @@ services:
       - "traefik.http.services.server-team-allocation.loadbalancer.server.port=8080"
       - "traefik.http.routers.server-team-allocation.entrypoints=web"
       - "traefik.http.routers.server-team-allocation.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db-team-allocation:
         condition: service_healthy
@@ -226,8 +228,6 @@ services:
       - "traefik.http.services.server-self-team-allocation.loadbalancer.server.port=8080"
       - "traefik.http.routers.server-self-team-allocation.entrypoints=web"
       - "traefik.http.routers.server-self-team-allocation.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db-self-team-allocation:
         condition: service_healthy
@@ -260,8 +260,6 @@ services:
       - "traefik.http.services.server-assessment.loadbalancer.server.port=8080"
       - "traefik.http.routers.server-assessment.entrypoints=web"
       - "traefik.http.routers.server-assessment.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db-assessment:
         condition: service_healthy
@@ -294,8 +292,6 @@ services:
       - "traefik.http.services.server-interview.loadbalancer.server.port=8080"
       - "traefik.http.routers.server-interview.entrypoints=web"
       - "traefik.http.routers.server-interview.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db-interview:
         condition: service_healthy
@@ -329,8 +325,6 @@ services:
       - "traefik.http.services.server-certificate.loadbalancer.server.port=8080"
       - "traefik.http.routers.server-certificate.entrypoints=web"
       - "traefik.http.routers.server-certificate.middlewares=api-ratelimit"
-    extra_hosts:
-      - "prompt-websec.aet.cit.tum.de:host-gateway"
     depends_on:
       db-certificate:
         condition: service_healthy

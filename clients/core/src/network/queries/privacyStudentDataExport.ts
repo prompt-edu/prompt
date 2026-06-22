@@ -12,7 +12,9 @@ export const requestStudentDataExport = async (): Promise<PrivacyExport> => {
 export enum ExportStatus {
   pending = 'pending',
   complete = 'complete',
+  no_data = 'no_data',
   failed = 'failed',
+  archived = 'archived',
 }
 
 export interface PrivacyExport {
@@ -59,16 +61,24 @@ export type LatestExportResponse =
   | { status: 'rate_limited'; retry_after: string }
   | { status: 'ready' }
 
+export interface AdminExportDoc {
+  source_name: string
+  status: ExportStatus
+  downloaded: boolean
+}
+
 export interface AdminPrivacyExport {
   id: string
-  userID: string
-  studentID: string | null
+  user_id: string
+  student_id: string | null
+  student_first_name: string | null
+  student_last_name: string | null
+  student_email: string | null
   status: ExportStatus
   date_created: string
   valid_until: string
-  total_docs: number
-  downloaded_docs: number
-  last_downloaded_at: string | null
+  next_request_allowed_at: string
+  docs: AdminExportDoc[]
 }
 
 export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {
@@ -78,6 +88,14 @@ export const getAllExports = async (): Promise<AdminPrivacyExport[]> => {
     console.error(err)
     throw err
   }
+}
+
+export const deleteExport = async (
+  exportID: string,
+  opts?: { resetRateLimit?: boolean },
+): Promise<void> => {
+  const url = `/api/privacy/admin/data-exports/${exportID}${opts?.resetRateLimit ? '?reset_rate_limit=true' : ''}`
+  await axiosInstance.delete(url)
 }
 
 export const getLatestStudentDataExport = async (): Promise<LatestExportResponse> => {

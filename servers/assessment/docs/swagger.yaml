@@ -76,36 +76,43 @@ definitions:
         type: string
       author:
         type: string
-      comment:
+      authorID:
         type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       id:
         type: string
       scoreLevel:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
     type: object
+  assessmentDTO.AssessmentExport:
+    properties:
+      actionItems:
+        items:
+          $ref: '#/definitions/actionItemDTO.ActionItem'
+        type: array
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      exportedAt:
+        type: string
+      studentAssessment:
+        $ref: '#/definitions/assessmentDTO.StudentAssessment'
+    type: object
   assessmentDTO.CreateOrUpdateAssessmentRequest:
     properties:
       assessedAt:
-        type: string
-      author:
-        type: string
-      comment:
         type: string
       competencyID:
         type: string
       courseParticipationID:
         type: string
       coursePhaseID:
-        type: string
-      examples:
         type: string
       scoreLevel:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
@@ -117,6 +124,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -138,6 +149,10 @@ definitions:
       assessments:
         items:
           $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      categoryAssessments:
+        items:
+          $ref: '#/definitions/categoryAssessmentDTO.CategoryAssessment'
         type: array
       courseParticipationID:
         type: string
@@ -193,6 +208,38 @@ definitions:
     - Peer
     - Tutor
     - Assessment
+  categoryAssessmentDTO.CategoryAssessment:
+    properties:
+      author:
+        type: string
+      authorID:
+        type: string
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest:
+    properties:
+      categoryID:
+        type: string
+      comment:
+        type: string
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+    type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
       competencies:
@@ -472,6 +519,57 @@ definitions:
         type: string
       tutorEvaluationStart:
         type: string
+    type: object
+  coursePhaseConfigDTO.EvaluationReminderRecipients:
+    properties:
+      completedAuthors:
+        type: integer
+      deadline:
+        type: string
+      deadlinePassed:
+        type: boolean
+      evaluationDeadlinePlaceholder:
+        type: string
+      evaluationEnabled:
+        type: boolean
+      evaluationType:
+        $ref: '#/definitions/assessmentType.AssessmentType'
+      evaluationTypeLabel:
+        type: string
+      incompleteAuthorCourseParticipationIDs:
+        items:
+          type: string
+        type: array
+      totalAuthors:
+        type: integer
+    type: object
+  coursePhaseConfigDTO.EvaluationReminderSendReport:
+    properties:
+      deadline:
+        type: string
+      deadlinePassed:
+        type: boolean
+      evaluationType:
+        $ref: '#/definitions/assessmentType.AssessmentType'
+      failedEmails:
+        items:
+          type: string
+        type: array
+      previousSentAt:
+        type: string
+      requestedRecipients:
+        type: integer
+      sentAt:
+        type: string
+      successfulEmails:
+        items:
+          type: string
+        type: array
+    type: object
+  coursePhaseConfigDTO.SendEvaluationReminderRequest:
+    properties:
+      evaluationType:
+        $ref: '#/definitions/assessmentType.AssessmentType'
     type: object
   db.Category:
     properties:
@@ -1178,6 +1276,55 @@ paths:
       summary: Create category
       tags:
       - categories
+  /course_phase/{coursePhaseID}/category-assessment:
+    post:
+      consumes:
+      - application/json
+      description: Upserts the free-text comment for a (category, student) within
+        the course phase. The author identity is taken from the authenticated JWT
+        and any client-sent author fields are ignored.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update category assessment comment
+      tags:
+      - categoryAssessments
   /course_phase/{coursePhaseID}/category/{categoryID}:
     delete:
       description: Delete a category from the course phase.
@@ -1978,6 +2125,89 @@ paths:
       summary: Release assessment results
       tags:
       - course_phase_config
+  /course_phase/{coursePhaseID}/config/reminders/incomplete:
+    get:
+      description: Returns authors who have not fully completed evaluations for the
+        selected type.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation type (self|peer|tutor)
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseConfigDTO.EvaluationReminderRecipients'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List incomplete reminder recipients by evaluation type
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/config/reminders/send:
+    post:
+      consumes:
+      - application/json
+      description: Computes incomplete recipients in assessment and triggers core
+        manual mailing for the selected type.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Evaluation reminder send request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/coursePhaseConfigDTO.SendEvaluationReminderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseConfigDTO.EvaluationReminderSendReport'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Send evaluation reminders
+      tags:
+      - course_phase_config
   /course_phase/{coursePhaseID}/config/teams:
     get:
       description: Get teams for a course phase from core service.
@@ -2721,6 +2951,82 @@ paths:
       summary: List my evaluations
       tags:
       - evaluations
+  /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}:
+    get:
+      description: List peer evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List peer evaluations for participant in phase
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID}:
+    get:
+      description: List self evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List self evaluations for participant in phase
+      tags:
+      - evaluations
   /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID}:
     get:
       description: List evaluations for a tutor in a course phase.
@@ -2816,7 +3122,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create or update an assessment for a student.
+      description: Create or update an assessment for a student. The author identity
+        is taken from the authenticated JWT and any client-sent author fields are
+        ignored.
       parameters:
       - description: Course phase ID
         in: path
@@ -2840,6 +3148,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string
@@ -2921,6 +3235,47 @@ paths:
               type: string
             type: object
       summary: Get student assessment
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export:
+    get:
+      description: Export one student assessment in a text format.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      - default: json
+        description: Export format
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentDTO.AssessmentExport'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Export student assessment
       tags:
       - assessments
   /course_phase/{coursePhaseID}/student-assessment/action-item:

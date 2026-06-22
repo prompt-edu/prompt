@@ -1,6 +1,8 @@
 package privacy
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -14,5 +16,7 @@ func InitPrivacyModule(api *gin.RouterGroup, queries db.Queries, conn *pgxpool.P
 	setupPrivacyRouter(api, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 
 	service.InitPrivacyService(queries, conn)
+
+	service.StartExportDeletionRoutine(context.Background())
 
 }

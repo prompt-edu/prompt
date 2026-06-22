@@ -49,6 +49,7 @@ export const AssessmentResultsSection = () => {
     setStudentAssessment({
       courseParticipationID: results.courseParticipationID,
       assessments: results.assessments,
+      categoryAssessments: results.categoryAssessments ?? [],
       assessmentCompletion: results.assessmentCompletion,
       studentScore: results.studentScore,
       evaluations: [],
@@ -98,6 +99,7 @@ export const AssessmentResultsSection = () => {
                 .includes(assessment.competencyID),
             )}
             completed={true}
+            courseParticipationID={results.courseParticipationID}
             peerEvaluationResults={results.peerEvaluationResults}
             selfEvaluationResults={results.selfEvaluationResults}
             hidePeerEvaluationDetails={true}

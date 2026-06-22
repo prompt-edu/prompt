@@ -12,6 +12,8 @@ type PrivacyService struct {
 
 var PrivacyServiceSingleton *PrivacyService
 
+func (s *PrivacyService) GetConn() *pgxpool.Pool { return s.conn }
+
 func InitPrivacyService(queries db.Queries, conn *pgxpool.Pool) {
 
 	PrivacyServiceSingleton = &PrivacyService{

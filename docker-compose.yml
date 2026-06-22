@@ -578,7 +578,7 @@ services:
       - "5431:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.1
+    image: quay.io/keycloak/keycloak:26.6.3
     container_name: prompt-keycloak
     command:
       - start-dev

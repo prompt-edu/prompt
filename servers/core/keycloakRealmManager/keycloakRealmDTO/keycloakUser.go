@@ -1,6 +1,6 @@
 package keycloakRealmDTO
 
-import "github.com/Nerzal/gocloak/v13"
+import "github.com/Nerzal/gocloak/v14"
 
 type KeycloakUser struct {
 	Username  string `json:"username"`

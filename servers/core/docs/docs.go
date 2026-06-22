@@ -1161,7 +1161,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "course_phase_auth"
+                    "auth"
                 ],
                 "summary": "Get course phase participation",
                 "parameters": [
@@ -1177,7 +1177,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/coursePhaseAuthDTO.GetCoursePhaseParticipation"
+                            "$ref": "#/definitions/authDTO.GetCoursePhaseParticipation"
                         }
                     },
                     "400": {
@@ -1202,7 +1202,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "course_phase_auth"
+                    "auth"
                 ],
                 "summary": "Get course phase roles",
                 "parameters": [
@@ -1218,7 +1218,39 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/coursePhaseAuthDTO.GetCourseRoles"
+                            "$ref": "#/definitions/authDTO.GetCourseRoles"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/subject_identifiers": {
+            "get": {
+                "description": "For the user with the passed auth token, get the subject identifiers: userID, studentID, courseParticipationIDs",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get subject identifiers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/keycloakCoreRequests.SubjectIdentifiers"
                         }
                     },
                     "400": {
@@ -3417,6 +3449,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/mailing/{coursePhaseID}/manual": {
+            "post": {
+                "description": "Sends mails to the provided course participations using the provided template and placeholders",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mailing"
+                ],
+                "summary": "Manually trigger custom mails for a selected recipient list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Manual mail request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/mailingDTO.SendManualMailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/mailingDTO.ManualMailReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/privacy/admin/data-exports": {
             "get": {
                 "security": [
@@ -3439,6 +3524,46 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/privacyDTO.AdminPrivacyExport"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/admin/data-exports/{uuid}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes the export's files from S3 and marks the export and its documents as archived. DB records are retained for auditing.",
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Delete an export's files (admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Export UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
@@ -3517,6 +3642,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "A valid export already exists for this user",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "User is rate-limited from requesting another export",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3563,8 +3700,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
-                    "405": {
-                        "description": "Method Not Allowed",
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -4602,6 +4739,31 @@ const docTemplate = `{
                 }
             }
         },
+        "authDTO.GetCoursePhaseParticipation": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "isStudentOfCoursePhase": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "authDTO.GetCourseRoles": {
+            "type": "object",
+            "properties": {
+                "courseEditorRole": {
+                    "type": "string"
+                },
+                "courseLecturerRole": {
+                    "type": "string"
+                },
+                "customRolePrefix": {
+                    "type": "string"
+                }
+            }
+        },
         "courseCopyDTO.CheckCourseCopyableResponse": {
             "type": "object",
             "properties": {
@@ -4885,31 +5047,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "studentID": {
-                    "type": "string"
-                }
-            }
-        },
-        "coursePhaseAuthDTO.GetCoursePhaseParticipation": {
-            "type": "object",
-            "properties": {
-                "courseParticipationID": {
-                    "type": "string"
-                },
-                "isStudentOfCoursePhase": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "coursePhaseAuthDTO.GetCourseRoles": {
-            "type": "object",
-            "properties": {
-                "courseEditorRole": {
-                    "type": "string"
-                },
-                "courseLecturerRole": {
-                    "type": "string"
-                },
-                "customRolePrefix": {
                     "type": "string"
                 }
             }
@@ -5321,12 +5458,16 @@ const docTemplate = `{
             "enum": [
                 "pending",
                 "complete",
-                "failed"
+                "failed",
+                "no_data",
+                "archived"
             ],
             "x-enum-varnames": [
                 "ExportStatusPending",
                 "ExportStatusComplete",
-                "ExportStatusFailed"
+                "ExportStatusFailed",
+                "ExportStatusNoData",
+                "ExportStatusArchived"
             ]
         },
         "db.Gender": {
@@ -5543,6 +5684,29 @@ const docTemplate = `{
                 }
             }
         },
+        "keycloakCoreRequests.SubjectIdentifiers": {
+            "type": "object",
+            "required": [
+                "userID"
+            ],
+            "properties": {
+                "courseParticipationIDs": {
+                    "description": "CourseParticipationIDs lists the IDs of all course participations belonging to the student.\nOnly populated for student subjects — empty for platform users.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "studentID": {
+                    "description": "StudentID is the unique identifier of the student record.\nOnly set for student subjects — uuid.Nil indicates a platform user with no student record.",
+                    "type": "string"
+                },
+                "userID": {
+                    "description": "UserID is the platform-wide unique identifier of the user account.\nAlways present regardless of subject type.",
+                    "type": "string"
+                }
+            }
+        },
         "keycloakRealmDTO.AddStudentsToGroup": {
             "type": "object",
             "properties": {
@@ -5630,6 +5794,52 @@ const docTemplate = `{
                 }
             }
         },
+        "mailingDTO.ManualMailReport": {
+            "type": "object",
+            "properties": {
+                "failedEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requestedRecipients": {
+                    "type": "integer"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "successfulEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "mailingDTO.SendManualMailRequest": {
+            "type": "object",
+            "properties": {
+                "additionalPlaceholders": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "content": {
+                    "type": "string"
+                },
+                "recipientCourseParticipationIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
         "mailingDTO.SendStatusMail": {
             "type": "object",
             "properties": {
@@ -5653,31 +5863,54 @@ const docTemplate = `{
                 }
             }
         },
+        "privacyDTO.AdminExportDoc": {
+            "type": "object",
+            "properties": {
+                "downloaded": {
+                    "type": "boolean"
+                },
+                "source_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ExportStatus"
+                }
+            }
+        },
         "privacyDTO.AdminPrivacyExport": {
             "type": "object",
             "properties": {
                 "date_created": {
                     "type": "string"
                 },
-                "downloaded_docs": {
-                    "type": "integer"
+                "docs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/privacyDTO.AdminExportDoc"
+                    }
                 },
                 "id": {
                     "type": "string"
                 },
-                "last_downloaded_at": {
+                "next_request_allowed_at": {
                     "type": "string"
                 },
                 "status": {
                     "$ref": "#/definitions/db.ExportStatus"
                 },
-                "studentID": {
+                "student_email": {
                     "type": "string"
                 },
-                "total_docs": {
-                    "type": "integer"
+                "student_first_name": {
+                    "type": "string"
                 },
-                "userID": {
+                "student_id": {
+                    "type": "string"
+                },
+                "student_last_name": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 },
                 "valid_until": {
@@ -5698,6 +5931,9 @@ const docTemplate = `{
                     }
                 },
                 "id": {
+                    "type": "string"
+                },
+                "next_request_allowed_at": {
                     "type": "string"
                 },
                 "status": {

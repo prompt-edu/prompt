@@ -101,7 +101,7 @@ jobs:
           add_unique() {
             local list="$1"
             local value="$2"
-            echo "$list" | jq --arg v "$value" 'if contains([$v]) then . else . + [$v] end'
+            echo "$list" | jq --arg v "$value" 'if any(. == $v) then . else . + [$v] end'
           }
 
           client_workspace_modules=$(jq -cr '.workspaces.packages // []' clients/package.json)
@@ -113,12 +113,10 @@ jobs:
 
           server_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$server_root_changed" = "true" ] || [ "$force_all" = "true" ]; then
-            if compgen -G "servers/*/" > /dev/null; then
-              for dir in servers/*/; do
-                module=$(basename "$dir")
-                [ -f "$dir/go.mod" ] && server_modules=$(add_unique "$server_modules" "$module")
-              done
-            fi
+            while IFS= read -r modfile; do
+              module=$(echo "$modfile" | cut -d'/' -f2)
+              [ -n "$module" ] && server_modules=$(add_unique "$server_modules" "$module")
+            done < <(find servers -maxdepth 2 -name "go.mod" | sort)
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)
@@ -155,14 +153,12 @@ jobs:
 
           api_spec_directories="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$server_root_changed" = "true" ] || [ "$force_all" = "true" ]; then
-            if compgen -G "servers/*/" > /dev/null; then
-              for dir in servers/*/; do
-                module=$(basename "$dir")
-                if is_api_spec_module "$module"; then
-                  api_spec_directories=$(add_unique "$api_spec_directories" "$module")
-                fi
-              done
-            fi
+            while IFS= read -r modfile; do
+              module=$(echo "$modfile" | cut -d'/' -f2)
+              if [ -n "$module" ] && is_api_spec_module "$module"; then
+                api_spec_directories=$(add_unique "$api_spec_directories" "$module")
+              fi
+            done < <(find servers -mindepth 2 -maxdepth 2 -name "go.mod" | sort)
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)

@@ -1,6 +1,7 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { AssessmentReminderCard } from './components/AssessmentReminderCard/AssessmentReminderCard'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
 
@@ -15,6 +16,7 @@ export const SettingsPage = () => {
         assessmentType={AssessmentType.SELF}
         distinctionText='Reflection by the student on their own work in this phase.'
       />
+
       <EvaluationSettingsCard
         assessmentType={AssessmentType.PEER}
         distinctionText='Feedback between peers to assess collaboration and team contribution.'
@@ -23,6 +25,8 @@ export const SettingsPage = () => {
         assessmentType={AssessmentType.TUTOR}
         distinctionText='Feedback from students about their tutors in this phase.'
       />
+
+      <AssessmentReminderCard />
     </div>
   )
 }

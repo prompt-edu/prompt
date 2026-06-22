@@ -849,7 +849,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns the source phase and semester tag configuration for an infrastructure setup course phase.",
+                "description": "Returns the semester tag configuration for an infrastructure setup course phase. Upstream team and participation data is wired via the standard phase configurator.",
                 "produces": [
                     "application/json"
                 ],
@@ -899,7 +899,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Saves the source phase and semester tag configuration for an infrastructure setup course phase.",
+                "description": "Saves the semester tag configuration for an infrastructure setup course phase.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1019,12 +1019,6 @@ const docTemplate = `{
                 },
                 "semesterTag": {
                     "type": "string"
-                },
-                "studentSourceCoursePhaseId": {
-                    "type": "string"
-                },
-                "teamSourceCoursePhaseId": {
-                    "type": "string"
                 }
             }
         },
@@ -1032,12 +1026,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "semesterTag": {
-                    "type": "string"
-                },
-                "studentSourceCoursePhaseId": {
-                    "type": "string"
-                },
-                "teamSourceCoursePhaseId": {
                     "type": "string"
                 }
             }

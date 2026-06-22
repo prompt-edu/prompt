@@ -17,9 +17,7 @@ var semesterTagPattern = regexp.MustCompile(`^[a-z0-9]+$`)
 
 // validateUpsertRequest checks that the semester tag, when provided, is in a format
 // the execution worker can safely interpolate into provider resource names.
-// An empty tag is allowed — phases that do not yet use templated names skip this check.
-// Source phase IDs are optional; FK violations surface as DB errors from the upsert
-// query when the IDs do not refer to existing phases.
+// An empty tag is allowed - phases that do not yet use templated names skip this check.
 func validateUpsertRequest(req phaseconfigDTO.UpsertRequest) error {
 	tag := strings.TrimSpace(req.SemesterTag)
 	if tag == "" {

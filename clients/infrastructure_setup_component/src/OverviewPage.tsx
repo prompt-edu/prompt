@@ -11,7 +11,7 @@ import { Play, Server, Settings, ShieldCheck } from 'lucide-react'
 const sections = [
   {
     title: 'Setup',
-    description: 'Pick the team and student source phases and set the semester tag.',
+    description: 'Set the semester tag used in resource name templates.',
     icon: Settings,
     to: 'setup',
   },

@@ -40,10 +40,8 @@ func (s *Service) Upsert(ctx context.Context, coursePhaseID uuid.UUID, req phase
 	}
 
 	cfg, err := s.queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
-		CoursePhaseID:              coursePhaseID,
-		TeamSourceCoursePhaseID:    req.TeamSourceCoursePhaseID,
-		StudentSourceCoursePhaseID: req.StudentSourceCoursePhaseID,
-		SemesterTag:                req.SemesterTag,
+		CoursePhaseID: coursePhaseID,
+		SemesterTag:   req.SemesterTag,
 	})
 	if err != nil {
 		return phaseconfigDTO.Response{}, err

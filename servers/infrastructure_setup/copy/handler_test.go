@@ -99,13 +99,29 @@ func TestConfigHandlerReportsConfigurationStatus(t *testing.T) {
 	defer cleanup()
 
 	coursePhaseID := uuid.New()
-	sourceID := uuid.New()
 	if _, err := testDB.Queries.UpsertCoursePhaseConfig(context.Background(), db.UpsertCoursePhaseConfigParams{
-		CoursePhaseID:           coursePhaseID,
-		TeamSourceCoursePhaseID: &sourceID,
-		SemesterTag:             "ios26",
+		CoursePhaseID: coursePhaseID,
+		SemesterTag:   "ios26",
 	}); err != nil {
 		t.Fatalf("upsert course phase config: %v", err)
+	}
+	if _, err := testDB.Queries.UpsertProviderConfig(context.Background(), db.UpsertProviderConfigParams{
+		CoursePhaseID: coursePhaseID,
+		ProviderType:  db.ProviderTypeGitlab,
+		Credentials:   []byte("encrypted-credentials"),
+	}); err != nil {
+		t.Fatalf("upsert provider config: %v", err)
+	}
+	if _, err := testDB.Queries.CreateResourceConfig(context.Background(), db.CreateResourceConfigParams{
+		CoursePhaseID:       coursePhaseID,
+		ProviderType:        db.ProviderTypeGitlab,
+		ResourceType:        "group",
+		Scope:               db.ResourceScopePerTeam,
+		NameTemplate:        "{{teamName}}",
+		PermissionMapping:   []byte(`{"student":"developer"}`),
+		ResourceExtraConfig: []byte(`{}`),
+	}); err != nil {
+		t.Fatalf("create resource config: %v", err)
 	}
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -116,7 +132,7 @@ func TestConfigHandlerReportsConfigurationStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("HandlePhaseConfig returned error: %v", err)
 	}
-	if !status["sourcePhase"] || !status["semesterTag"] {
-		t.Fatalf("status = %+v, want configured sourcePhase and semesterTag", status)
+	if !status["semesterTag"] || !status["providerConfig"] || !status["resourceConfig"] {
+		t.Fatalf("status = %+v, want all flags true", status)
 	}
 }

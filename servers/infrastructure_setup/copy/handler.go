@@ -55,14 +55,18 @@ func (h *InfrastructureSetupCopyHandler) HandlePhaseCopy(c *gin.Context, req pro
 }
 
 // ConfigHandler implements the PhaseConfigHandler interface for core config status checks.
+// Upstream wiring (teams, team allocation) is owned by the phase configurator and
+// surfaced by core, so this handler only reports phase-local readiness.
 type ConfigHandler struct{}
 
 func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
+	empty := map[string]bool{
+		"semesterTag":      false,
+		"providerConfig":   false,
+		"resourceConfig":   false,
+	}
 	if CopyServiceSingleton == nil {
-		return map[string]bool{
-			"sourcePhase": false,
-			"semesterTag": false,
-		}, nil
+		return empty, nil
 	}
 
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -70,17 +74,26 @@ func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, erro
 		return nil, err
 	}
 
-	cfg, err := CopyServiceSingleton.queries.GetCoursePhaseConfig(c.Request.Context(), coursePhaseID)
+	ctx := c.Request.Context()
+	cfg, err := CopyServiceSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
-		return map[string]bool{
-			"sourcePhase": false,
-			"semesterTag": false,
-		}, nil
+		// No config row yet means nothing is configured but is not an error.
+		return empty, nil
+	}
+
+	providers, err := CopyServiceSingleton.queries.ListProviderConfigs(ctx, coursePhaseID)
+	if err != nil {
+		return empty, nil
+	}
+	resources, err := CopyServiceSingleton.queries.ListResourceConfigs(ctx, coursePhaseID)
+	if err != nil {
+		return empty, nil
 	}
 
 	return map[string]bool{
-		"sourcePhase": cfg.TeamSourceCoursePhaseID != nil || cfg.StudentSourceCoursePhaseID != nil,
-		"semesterTag": cfg.SemesterTag != "",
+		"semesterTag":    cfg.SemesterTag != "",
+		"providerConfig": len(providers) > 0,
+		"resourceConfig": len(resources) > 0,
 	}, nil
 }
 

@@ -37,8 +37,8 @@ func TestGetReturnsDefaultWhenConfigMissing(t *testing.T) {
 	if got.CoursePhaseID != coursePhaseID {
 		t.Fatalf("CoursePhaseID = %s, want %s", got.CoursePhaseID, coursePhaseID)
 	}
-	if got.TeamSourceCoursePhaseID != nil || got.StudentSourceCoursePhaseID != nil || got.SemesterTag != "" {
-		t.Fatalf("default config = %+v, want empty sources and semester tag", got)
+	if got.SemesterTag != "" {
+		t.Fatalf("default config = %+v, want empty semester tag", got)
 	}
 }
 
@@ -47,37 +47,23 @@ func TestUpsertCreatesAndUpdatesConfig(t *testing.T) {
 	defer cleanup()
 
 	coursePhaseID := uuid.New()
-	teamSourceID := uuid.New()
-	studentSourceID := uuid.New()
 	service := NewService(testDB.Conn)
 
 	created, err := service.Upsert(context.Background(), coursePhaseID, phaseconfigDTO.UpsertRequest{
-		TeamSourceCoursePhaseID:    &teamSourceID,
-		StudentSourceCoursePhaseID: &studentSourceID,
-		SemesterTag:                "ios26",
+		SemesterTag: "ios26",
 	})
 	if err != nil {
 		t.Fatalf("Upsert create returned error: %v", err)
-	}
-	if created.TeamSourceCoursePhaseID == nil || *created.TeamSourceCoursePhaseID != teamSourceID {
-		t.Fatalf("team source = %v, want %s", created.TeamSourceCoursePhaseID, teamSourceID)
-	}
-	if created.StudentSourceCoursePhaseID == nil || *created.StudentSourceCoursePhaseID != studentSourceID {
-		t.Fatalf("student source = %v, want %s", created.StudentSourceCoursePhaseID, studentSourceID)
 	}
 	if created.SemesterTag != "ios26" {
 		t.Fatalf("semester tag = %q, want ios26", created.SemesterTag)
 	}
 
 	updated, err := service.Upsert(context.Background(), coursePhaseID, phaseconfigDTO.UpsertRequest{
-		TeamSourceCoursePhaseID: nil,
-		SemesterTag:             "ss27",
+		SemesterTag: "ss27",
 	})
 	if err != nil {
 		t.Fatalf("Upsert update returned error: %v", err)
-	}
-	if updated.TeamSourceCoursePhaseID != nil || updated.StudentSourceCoursePhaseID != nil {
-		t.Fatalf("updated sources = team %v student %v, want nil", updated.TeamSourceCoursePhaseID, updated.StudentSourceCoursePhaseID)
 	}
 	if updated.SemesterTag != "ss27" {
 		t.Fatalf("updated semester tag = %q, want ss27", updated.SemesterTag)

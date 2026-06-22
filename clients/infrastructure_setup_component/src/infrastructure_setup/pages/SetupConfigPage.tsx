@@ -2,25 +2,20 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import {
+  Alert,
+  AlertDescription,
   Button,
   ErrorPage,
   Input,
   Label,
   LoadingPage,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { Save, Settings } from 'lucide-react'
+import { Info, Save, Settings } from 'lucide-react'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 
 import { getSetupConfig } from '../network/queries/getSetupConfig'
 import { updateSetupConfig } from '../network/mutations/updateSetupConfig'
-
-const UNSET = '__none__'
 
 export const SetupConfigPage = () => {
   const { courseId, phaseId: coursePhaseID } = useParams<{
@@ -32,11 +27,7 @@ export const SetupConfigPage = () => {
   const { courses } = useCourseStore()
 
   const course = courses.find((c) => c.id === courseId)
-  // Sibling phases that could supply team or student source data — exclude self.
-  const siblingPhases = (course?.coursePhases ?? []).filter((p) => p.id !== coursePhaseID)
 
-  const [teamSourceCoursePhaseID, setTeamSourceCoursePhaseID] = useState<string>('')
-  const [studentSourceCoursePhaseID, setStudentSourceCoursePhaseID] = useState<string>('')
   const [semesterTag, setSemesterTag] = useState('')
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -47,8 +38,6 @@ export const SetupConfigPage = () => {
 
   useEffect(() => {
     if (!data) return
-    setTeamSourceCoursePhaseID(data.teamSourceCoursePhaseId ?? '')
-    setStudentSourceCoursePhaseID(data.studentSourceCoursePhaseId ?? '')
     setSemesterTag(data.semesterTag ?? '')
   }, [data])
 
@@ -61,8 +50,6 @@ export const SetupConfigPage = () => {
   const { mutate: save, isPending } = useMutation({
     mutationFn: () =>
       updateSetupConfig(coursePhaseID!, {
-        teamSourceCoursePhaseId: teamSourceCoursePhaseID || null,
-        studentSourceCoursePhaseId: studentSourceCoursePhaseID || null,
         semesterTag: semesterTag.trim(),
       }),
     onSuccess: () => {
@@ -85,25 +72,6 @@ export const SetupConfigPage = () => {
     return <ErrorPage description='Failed to load setup configuration.' onRetry={() => refetch()} />
   }
 
-  const phaseSelect = (value: string, onChange: (value: string) => void, placeholder: string) => (
-    <Select
-      value={value === '' ? UNSET : value}
-      onValueChange={(v) => onChange(v === UNSET ? '' : v)}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={UNSET}>— none —</SelectItem>
-        {siblingPhases.map((phase) => (
-          <SelectItem key={phase.id} value={phase.id}>
-            {phase.name} ({phase.coursePhaseType})
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-
   return (
     <div className='max-w-3xl space-y-4 p-6'>
       <div className='flex items-center justify-between'>
@@ -117,43 +85,26 @@ export const SetupConfigPage = () => {
         </Button>
       </div>
 
-      <div className='space-y-4'>
-        <div className='space-y-1'>
-          <Label>Team source phase</Label>
-          {phaseSelect(
-            teamSourceCoursePhaseID,
-            setTeamSourceCoursePhaseID,
-            'Select a phase that provides teams',
-          )}
-          <p className='text-xs text-muted-foreground'>
-            Phase whose teams are read for <code>per_team</code> resource configs.
-          </p>
-        </div>
+      <Alert>
+        <Info className='h-4 w-4' />
+        <AlertDescription>
+          Teams and participation data come from upstream phases wired in the course&apos;s phase
+          configurator. Open the management console and connect a Team Allocation (or Self Team
+          Allocation) phase to this Infrastructure Setup phase if you haven&apos;t already.
+        </AlertDescription>
+      </Alert>
 
-        <div className='space-y-1'>
-          <Label>Student source phase</Label>
-          {phaseSelect(
-            studentSourceCoursePhaseID,
-            setStudentSourceCoursePhaseID,
-            'Select a phase that provides students',
-          )}
-          <p className='text-xs text-muted-foreground'>
-            Phase whose participants are read for <code>per_student</code> resource configs.
-          </p>
-        </div>
-
-        <div className='space-y-1'>
-          <Label htmlFor='semesterTag'>Semester tag</Label>
-          <Input
-            id='semesterTag'
-            value={semesterTag}
-            onChange={(event) => setSemesterTag(event.target.value)}
-            placeholder='ios26'
-          />
-          <p className='text-xs text-muted-foreground'>
-            Used as <code>{`{{semesterTag}}`}</code> in resource name templates.
-          </p>
-        </div>
+      <div className='space-y-1'>
+        <Label htmlFor='semesterTag'>Semester tag</Label>
+        <Input
+          id='semesterTag'
+          value={semesterTag}
+          onChange={(event) => setSemesterTag(event.target.value)}
+          placeholder='ios26'
+        />
+        <p className='text-xs text-muted-foreground'>
+          Used as <code>{`{{semesterTag}}`}</code> in resource name templates.
+        </p>
       </div>
     </div>
   )

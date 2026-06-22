@@ -17,7 +17,7 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 
 // getConfig godoc
 // @Summary Get infrastructure setup configuration
-// @Description Returns the source phase and semester tag configuration for an infrastructure setup course phase.
+// @Description Returns the semester tag configuration for an infrastructure setup course phase. Upstream team and participation data is wired via the standard phase configurator.
 // @Tags infrastructure-setup-config
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
@@ -45,7 +45,7 @@ func getConfig(svc *Service) gin.HandlerFunc {
 
 // upsertConfig godoc
 // @Summary Create or update infrastructure setup configuration
-// @Description Saves the source phase and semester tag configuration for an infrastructure setup course phase.
+// @Description Saves the semester tag configuration for an infrastructure setup course phase.
 // @Tags infrastructure-setup-config
 // @Accept json
 // @Produce json

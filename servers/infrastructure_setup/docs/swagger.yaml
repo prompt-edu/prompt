@@ -43,18 +43,10 @@ definitions:
         type: string
       semesterTag:
         type: string
-      studentSourceCoursePhaseId:
-        type: string
-      teamSourceCoursePhaseId:
-        type: string
     type: object
   phaseconfig.UpsertRequest:
     properties:
       semesterTag:
-        type: string
-      studentSourceCoursePhaseId:
-        type: string
-      teamSourceCoursePhaseId:
         type: string
     type: object
   providerconfig.AuthField:
@@ -721,8 +713,9 @@ paths:
       - resource-configs
   /course_phase/{coursePhaseID}/setup-config:
     get:
-      description: Returns the source phase and semester tag configuration for an
-        infrastructure setup course phase.
+      description: Returns the semester tag configuration for an infrastructure setup
+        course phase. Upstream team and participation data is wired via the standard
+        phase configurator.
       parameters:
       - description: Course phase ID
         in: path
@@ -756,8 +749,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Saves the source phase and semester tag configuration for an infrastructure
-        setup course phase.
+      description: Saves the semester tag configuration for an infrastructure setup
+        course phase.
       parameters:
       - description: Course phase ID
         in: path

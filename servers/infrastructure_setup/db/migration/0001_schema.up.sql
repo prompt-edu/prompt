@@ -4,12 +4,12 @@ CREATE TYPE provider_type AS ENUM ('gitlab', 'slack', 'outline', 'rancher', 'key
 CREATE TYPE resource_scope AS ENUM ('per_team', 'per_student');
 CREATE TYPE resource_status AS ENUM ('pending', 'in_progress', 'created', 'failed');
 
--- Stores where provisioning targets are resolved from.
+-- Phase-local configuration. Upstream team / participation data is wired via the
+-- standard phase configurator (core's meta_data_dependency_graph), so no source
+-- phase IDs are stored here.
 CREATE TABLE course_phase_config (
-    course_phase_id                uuid PRIMARY KEY,
-    team_source_course_phase_id    uuid,
-    student_source_course_phase_id uuid,
-    semester_tag                   text NOT NULL DEFAULT ''
+    course_phase_id uuid PRIMARY KEY,
+    semester_tag    text NOT NULL DEFAULT ''
 );
 
 -- Stores encrypted provider credentials, one row per (phase, provider type).

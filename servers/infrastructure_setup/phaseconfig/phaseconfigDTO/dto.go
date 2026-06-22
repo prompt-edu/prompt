@@ -6,26 +6,22 @@ import (
 )
 
 // UpsertRequest is the request body for infrastructure setup phase configuration.
+// Upstream team / participation data is now wired via the standard phase
+// configurator, so the request only carries phase-local settings.
 type UpsertRequest struct {
-	TeamSourceCoursePhaseID    *uuid.UUID `json:"teamSourceCoursePhaseId"`
-	StudentSourceCoursePhaseID *uuid.UUID `json:"studentSourceCoursePhaseId"`
-	SemesterTag                string     `json:"semesterTag"`
+	SemesterTag string `json:"semesterTag"`
 }
 
 // Response is the API response for infrastructure setup phase configuration.
 type Response struct {
-	CoursePhaseID              uuid.UUID  `json:"coursePhaseId"`
-	TeamSourceCoursePhaseID    *uuid.UUID `json:"teamSourceCoursePhaseId,omitempty"`
-	StudentSourceCoursePhaseID *uuid.UUID `json:"studentSourceCoursePhaseId,omitempty"`
-	SemesterTag                string     `json:"semesterTag"`
+	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
+	SemesterTag   string    `json:"semesterTag"`
 }
 
 // GetPhaseConfigDTOFromDBModel builds the API response from the DB row.
 func GetPhaseConfigDTOFromDBModel(cfg db.CoursePhaseConfig) Response {
 	return Response{
-		CoursePhaseID:              cfg.CoursePhaseID,
-		TeamSourceCoursePhaseID:    cfg.TeamSourceCoursePhaseID,
-		StudentSourceCoursePhaseID: cfg.StudentSourceCoursePhaseID,
-		SemesterTag:                cfg.SemesterTag,
+		CoursePhaseID: cfg.CoursePhaseID,
+		SemesterTag:   cfg.SemesterTag,
 	}
 }

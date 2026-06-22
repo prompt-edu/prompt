@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
@@ -135,6 +136,18 @@ func main() {
 	// Copy endpoint (global, not phase-scoped).
 	copyApi := router.Group("infrastructure-setup/api")
 	copy.InitCopyModule(copyApi, conn)
+
+	// Public /info endpoint consumed by the management console's System Status page.
+	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+		ServiceName: "infrastructure-setup",
+		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPhaseCopy:   true,
+			promptTypes.CapabilityPhaseConfig: true,
+		},
+	}, func() bool {
+		return conn.Ping(context.Background()) == nil
+	})
 
 	// Health check.
 	router.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })

@@ -600,7 +600,22 @@ func initInfrastructureSetup() error {
 			return err
 		}
 
-		// 2.) Commit the transaction
+		// 2.) Declare required inputs. Mirrors the assessment phase: teams are wired
+		// from team_allocation / self_team_allocation, and teamAllocation maps each
+		// participation to its team. Both are configured via the phase configurator.
+		err = qtx.InsertTeamRequiredInput(ctx, newInfrastructureSetup.ID)
+		if err != nil {
+			log.Error("failed to create required team input: ", err)
+			return err
+		}
+
+		err = qtx.InsertTeamAllocationRequiredInput(ctx, newInfrastructureSetup.ID)
+		if err != nil {
+			log.Error("failed to create required team allocation input: ", err)
+			return err
+		}
+
+		// 3.) Commit the transaction
 		if err := tx.Commit(ctx); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}

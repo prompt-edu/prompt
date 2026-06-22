@@ -13,10 +13,8 @@ CREATE TYPE resource_scope AS ENUM ('per_team', 'per_student');
 CREATE TYPE resource_status AS ENUM ('pending', 'in_progress', 'created', 'failed');
 
 CREATE TABLE course_phase_config (
-    course_phase_id                uuid PRIMARY KEY,
-    team_source_course_phase_id    uuid,
-    student_source_course_phase_id uuid,
-    semester_tag                   text NOT NULL DEFAULT ''
+    course_phase_id uuid PRIMARY KEY,
+    semester_tag    text NOT NULL DEFAULT ''
 );
 
 CREATE TABLE provider_config (

@@ -145,10 +145,8 @@ func (ns NullResourceStatus) Value() (driver.Value, error) {
 }
 
 type CoursePhaseConfig struct {
-	CoursePhaseID              uuid.UUID  `json:"coursePhaseId"`
-	TeamSourceCoursePhaseID    *uuid.UUID `json:"teamSourceCoursePhaseId"`
-	StudentSourceCoursePhaseID *uuid.UUID `json:"studentSourceCoursePhaseId"`
-	SemesterTag                string     `json:"semesterTag"`
+	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
+	SemesterTag   string    `json:"semesterTag"`
 }
 
 type ProviderConfig struct {

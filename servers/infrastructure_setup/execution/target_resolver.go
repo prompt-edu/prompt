@@ -2,7 +2,6 @@ package execution
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -12,6 +11,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
+	log "github.com/sirupsen/logrus"
 )
 
 // ProvisioningTarget is the normalized input used by execution and providers.
@@ -31,7 +31,10 @@ type TargetResolver interface {
 	ResolveInstanceTarget(ctx context.Context, authHeader string, instance db.ResourceInstance) (ProvisioningTarget, error)
 }
 
-// CoreTargetResolver fetches targets through core and phase resolution endpoints.
+// CoreTargetResolver fetches targets through core's resolution endpoints. The
+// upstream team / participation source is wired in the phase configurator, so
+// this resolver only needs THIS phase's own ID - core merges the upstream data
+// into the response automatically.
 type CoreTargetResolver struct {
 	queries *db.Queries
 	coreURL string
@@ -53,16 +56,9 @@ func (r *CoreTargetResolver) ResolveTargets(ctx context.Context, authHeader stri
 
 	switch scope {
 	case db.ResourceScopePerTeam:
-		if cfg.TeamSourceCoursePhaseID == nil {
-			return nil, errors.New("team source course phase is not configured")
-		}
-		return r.resolveTeamTargets(ctx, authHeader, cfg, *cfg.TeamSourceCoursePhaseID)
+		return r.resolveTeamTargets(ctx, authHeader, cfg, coursePhaseID)
 	case db.ResourceScopePerStudent:
-		sourceID := cfg.StudentSourceCoursePhaseID
-		if sourceID == nil {
-			return nil, errors.New("student source course phase is not configured")
-		}
-		return r.resolveStudentTargets(ctx, authHeader, cfg, *sourceID)
+		return r.resolveStudentTargets(ctx, authHeader, cfg, coursePhaseID)
 	default:
 		return nil, fmt.Errorf("unsupported resource scope: %s", scope)
 	}
@@ -93,10 +89,10 @@ func (r *CoreTargetResolver) ResolveInstanceTarget(ctx context.Context, authHead
 	return ProvisioningTarget{}, errors.New("resource instance target no longer exists")
 }
 
-func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHeader string, cfg db.CoursePhaseConfig, sourceCoursePhaseID uuid.UUID) ([]ProvisioningTarget, error) {
-	participations, err := promptSDK.FetchAndMergeParticipationsWithResolutions(r.coreURL, authHeader, sourceCoursePhaseID)
+func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHeader string, cfg db.CoursePhaseConfig, coursePhaseID uuid.UUID) ([]ProvisioningTarget, error) {
+	participations, err := promptSDK.FetchAndMergeParticipationsWithResolutions(r.coreURL, authHeader, coursePhaseID)
 	if err != nil {
-		return nil, fmt.Errorf("fetch student targets: %w", err)
+		return nil, fmt.Errorf("fetch participations: %w", err)
 	}
 
 	targets := make([]ProvisioningTarget, 0, len(participations))
@@ -124,32 +120,22 @@ func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHead
 	return targets, nil
 }
 
-func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader string, cfg db.CoursePhaseConfig, sourceCoursePhaseID uuid.UUID) ([]ProvisioningTarget, error) {
-	phaseData, err := promptSDK.FetchAndMergeCoursePhaseWithResolution(r.coreURL, authHeader, sourceCoursePhaseID)
+func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader string, cfg db.CoursePhaseConfig, coursePhaseID uuid.UUID) ([]ProvisioningTarget, error) {
+	phaseData, err := promptSDK.FetchAndMergeCoursePhaseWithResolution(r.coreURL, authHeader, coursePhaseID)
 	if err != nil {
-		return nil, fmt.Errorf("fetch team source phase data: %w", err)
+		return nil, fmt.Errorf("fetch phase data with resolution: %w", err)
 	}
 
 	teamsRaw, ok := phaseData["teams"]
 	if !ok {
-		return nil, errors.New("team source phase did not expose teams")
+		return nil, errors.New("teams input not wired - configure the phase data graph to feed teams into this phase")
 	}
-
-	teamsBytes, err := json.Marshal(teamsRaw)
+	teams, err := parseTeams(teamsRaw)
 	if err != nil {
-		return nil, fmt.Errorf("marshal teams: %w", err)
+		return nil, err
 	}
 
-	var teams []promptTypes.Team
-	if err := json.Unmarshal(teamsBytes, &teams); err != nil {
-		return nil, fmt.Errorf("unmarshal teams: %w", err)
-	}
-
-	studentSourceID := sourceCoursePhaseID
-	if cfg.StudentSourceCoursePhaseID != nil {
-		studentSourceID = *cfg.StudentSourceCoursePhaseID
-	}
-	studentsByParticipationID, err := r.studentsByParticipationID(ctx, authHeader, studentSourceID)
+	studentsByParticipationID, err := r.studentsByParticipationID(ctx, authHeader, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +143,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 	targets := make([]ProvisioningTarget, 0, len(teams))
 	for _, team := range teams {
 		teamID := team.ID
-		members := make([]provider.Member, 0, len(team.Members))
+		members := make([]provider.Member, 0, len(team.Members)+len(team.Tutors))
 		for _, member := range team.Members {
 			if student, ok := studentsByParticipationID[member.ID]; ok && student.Email != "" {
 				members = append(members, provider.Member{Email: student.Email, Role: "student"})
@@ -191,4 +177,86 @@ func (r *CoreTargetResolver) studentsByParticipationID(ctx context.Context, auth
 		students[participation.CourseParticipationID] = participation.Student
 	}
 	return students, nil
+}
+
+// parseTeams converts the resolved teams payload (returned as []interface{} by
+// FetchAndMergeCoursePhaseWithResolution) into a typed slice. Mirrors the
+// assessment phase's parser - keeping the logic local avoids a cross-service
+// Go import, which the rest of the codebase also avoids.
+func parseTeams(teamsRaw interface{}) ([]promptTypes.Team, error) {
+	teams := make([]promptTypes.Team, 0)
+	if teamsRaw == nil {
+		return teams, nil
+	}
+
+	teamsSlice, ok := teamsRaw.([]interface{})
+	if !ok {
+		return nil, errors.New("teams field is not a slice")
+	}
+
+	for i, raw := range teamsSlice {
+		team, ok := parseTeam(raw, i)
+		if ok {
+			teams = append(teams, team)
+		}
+	}
+	return teams, nil
+}
+
+func parseTeam(raw interface{}, index int) (promptTypes.Team, bool) {
+	m, ok := raw.(map[string]interface{})
+	if !ok {
+		log.Warnf("skipping team at index %d: not a map", index)
+		return promptTypes.Team{}, false
+	}
+
+	idStr, ok := m["id"].(string)
+	if !ok {
+		log.Warnf("skipping team at index %d: missing or invalid id", index)
+		return promptTypes.Team{}, false
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		log.Warnf("skipping team at index %d: invalid uuid: %v", index, err)
+		return promptTypes.Team{}, false
+	}
+
+	name, ok := m["name"].(string)
+	if !ok {
+		log.Warnf("skipping team at index %d: missing or invalid name", index)
+		return promptTypes.Team{}, false
+	}
+
+	return promptTypes.Team{
+		ID:      id,
+		Name:    name,
+		Members: parsePersons(m["members"]),
+		Tutors:  parsePersons(m["tutors"]),
+	}, true
+}
+
+func parsePersons(raw interface{}) []promptTypes.Person {
+	persons := make([]promptTypes.Person, 0)
+	if raw == nil {
+		return persons
+	}
+	slice, ok := raw.([]interface{})
+	if !ok {
+		return persons
+	}
+	for _, entry := range slice {
+		m, ok := entry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		idStr, _ := m["id"].(string)
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			continue
+		}
+		firstName, _ := m["firstName"].(string)
+		lastName, _ := m["lastName"].(string)
+		persons = append(persons, promptTypes.Person{ID: id, FirstName: firstName, LastName: lastName})
+	}
+	return persons
 }

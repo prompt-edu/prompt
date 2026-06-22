@@ -747,6 +747,19 @@ func (q *Queries) TestCertificateTypeExists(ctx context.Context) (bool, error) {
 	return does_exist, err
 }
 
+const testDevOpsChallengeTypeExists = `-- name: TestDevOpsChallengeTypeExists :one
+SELECT EXISTS (SELECT 1
+               FROM course_phase_type
+               WHERE name = 'DevOps Challenge') AS does_exist
+`
+
+func (q *Queries) TestDevOpsChallengeTypeExists(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, testDevOpsChallengeTypeExists)
+	var does_exist bool
+	err := row.Scan(&does_exist)
+	return does_exist, err
+}
+
 const testInfrastructureSetupTypeExists = `-- name: TestInfrastructureSetupTypeExists :one
 SELECT EXISTS (
         SELECT 1
@@ -758,19 +771,6 @@ SELECT EXISTS (
 
 func (q *Queries) TestInfrastructureSetupTypeExists(ctx context.Context) (bool, error) {
 	row := q.db.QueryRow(ctx, testInfrastructureSetupTypeExists)
-	var does_exist bool
-	err := row.Scan(&does_exist)
-	return does_exist, err
-}
-
-const testDevOpsChallengeTypeExists = `-- name: TestDevOpsChallengeTypeExists :one
-SELECT EXISTS (SELECT 1
-               FROM course_phase_type
-               WHERE name = 'DevOps Challenge') AS does_exist
-`
-
-func (q *Queries) TestDevOpsChallengeTypeExists(ctx context.Context) (bool, error) {
-	row := q.db.QueryRow(ctx, testDevOpsChallengeTypeExists)
 	var does_exist bool
 	err := row.Scan(&does_exist)
 	return does_exist, err

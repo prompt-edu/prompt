@@ -62,27 +62,6 @@
         "clientRole": false,
         "containerId": "befe7058-f9c7-4c29-a7f4-3617000cb436",
         "attributes": {}
-      },
-      {
-        "id": "2184d942-911c-40bd-b4f7-954638a95c32",
-        "name": "default-roles-prompt",
-        "description": "${role_default-roles}",
-        "composite": true,
-        "composites": {
-          "realm": [
-            "offline_access",
-            "uma_authorization"
-          ],
-          "client": {
-            "account": [
-              "view-profile",
-              "manage-account"
-            ]
-          }
-        },
-        "clientRole": false,
-        "containerId": "befe7058-f9c7-4c29-a7f4-3617000cb436",
-        "attributes": {}
       }
     ],
     "client": {

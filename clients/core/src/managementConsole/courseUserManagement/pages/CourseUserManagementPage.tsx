@@ -79,7 +79,7 @@ export const CourseUserManagementPage = () => {
 
       {dialogGroup && (
         <AddUserDialog
-          open={dialogGroup !== null}
+          open={true}
           onOpenChange={(open) => {
             if (!open) setDialogGroup(null)
           }}

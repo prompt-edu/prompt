@@ -62,14 +62,28 @@ interface ApplicationQuestionCardProps {
   ) => void
   submitAttempted: boolean
   onDelete: (id: string) => void
+  csvExportEnabled: boolean
+  csvExportDisabled: boolean
+  onCsvExportEnabledChange: (questionID: string, checked: boolean) => void
   dragHandleProps?: DraggableProvidedDragHandleProps | null
 }
 
 export const ApplicationQuestionCard = forwardRef<
   ApplicationQuestionCardRef | undefined, // or null if you prefer
   ApplicationQuestionCardProps
->(function ApplicationQuestionCard(
-  { question, index, originalQuestion, onUpdate, submitAttempted, onDelete, dragHandleProps },
+>(function ApplicationQuestionCardInner(
+  {
+    question,
+    index,
+    originalQuestion,
+    onUpdate,
+    submitAttempted,
+    onDelete,
+    csvExportEnabled,
+    csvExportDisabled,
+    onCsvExportEnabledChange,
+    dragHandleProps,
+  },
   ref,
 ) {
   const isNewQuestion = question.title === '' ? true : false
@@ -249,7 +263,14 @@ export const ApplicationQuestionCard = forwardRef<
                       />
                     )}
 
-                    <ExportSettingsFields form={form} />
+                    <ExportSettingsFields
+                      form={form}
+                      csvExportEnabled={csvExportEnabled}
+                      csvExportDisabled={csvExportDisabled}
+                      onCsvExportEnabledChange={(checked) =>
+                        onCsvExportEnabledChange(question.id, checked)
+                      }
+                    />
                   </CollapsibleContent>
                 </Collapsible>
               </Form>

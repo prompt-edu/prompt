@@ -20,20 +20,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-  lint-servers:
+  quality-servers:
     needs: detect-changes
-    uses: ./.github/workflows/lint-servers.yml
-    secrets: inherit
-    with:
-      modules: ${{ needs.detect-changes.outputs.server_modules }}
-  vet-servers:
-    needs: [detect-changes, lint-servers]
-    uses: ./.github/workflows/vet-servers.yml
-    secrets: inherit
+    uses: ./.github/workflows/quality-servers.yml
     with:
       modules: ${{ needs.detect-changes.outputs.server_modules }}
   test-servers:
-    needs: [detect-changes, vet-servers]
+    needs: [detect-changes, quality-servers]
     uses: ./.github/workflows/test-servers.yml
     secrets: inherit
     with:
@@ -44,14 +37,14 @@ jobs:
     secrets: inherit
     with:
       release_tag: "${{ github.event.release.tag_name }},latest"
-  lint-clients:
+  quality-clients:
     needs: detect-changes
-    uses: ./.github/workflows/lint-clients.yml
+    uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
-    needs: lint-clients
+    needs: quality-clients
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
     with:

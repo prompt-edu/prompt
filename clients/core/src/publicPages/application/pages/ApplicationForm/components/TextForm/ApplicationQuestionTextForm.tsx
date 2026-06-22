@@ -22,7 +22,7 @@ interface ApplicationQuestionTextFormProps {
   isInstructorView?: boolean
 }
 
-export const ApplicationQuestionTextForm = forwardRef(function ApplicationQuestionTextForm(
+export const ApplicationQuestionTextForm = forwardRef(function ApplicationQuestionTextFormInner(
   { question, initialAnswer, isInstructorView = false }: ApplicationQuestionTextFormProps,
   ref: React.Ref<QuestionTextFormRef>,
 ) {

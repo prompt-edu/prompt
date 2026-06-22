@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,6 +16,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
@@ -31,20 +34,14 @@ type AssessmentService struct {
 }
 
 var AssessmentServiceSingleton *AssessmentService
-var ErrValidationFailed = errors.New("validation failed: comment and examples are required for Strongly Disagree, Disagree, and Neutral scores")
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
+var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
+
+const AssessmentExportFormatJSON = "json"
 
 func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
-	// Validate scoreLevel is not empty
 	if req.ScoreLevel == "" {
 		return ErrInvalidScoreLevel
-	}
-
-	// Validate that comment and examples are provided for low score levels
-	if isLowScoreLevel(req.ScoreLevel) {
-		if req.Comment == "" || req.Examples == "" {
-			return ErrValidationFailed
-		}
 	}
 
 	tx, err := AssessmentServiceSingleton.conn.Begin(ctx)
@@ -65,9 +62,8 @@ func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpd
 		CoursePhaseID:         req.CoursePhaseID,
 		CompetencyID:          req.CompetencyID,
 		ScoreLevel:            scoreLevelDTO.MapDTOtoDBScoreLevel(req.ScoreLevel),
-		Examples:              req.Examples,
-		Comment:               pgtype.Text{String: req.Comment, Valid: true},
 		Author:                req.Author,
+		AuthorID:              req.AuthorID,
 	})
 	if err != nil {
 		log.Error("could not create or update assessment: ", err)
@@ -117,6 +113,12 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get assessments for student in phase")
 	}
 
+	categoryAssessments, err := categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not get category assessments for student in phase: ", err)
+		return assessmentDTO.StudentAssessment{}, errors.New("could not get category assessments for student in phase")
+	}
+
 	var completion = assessmentCompletionDTO.AssessmentCompletion{}
 	var studentScore = scoreLevelDTO.StudentScore{
 		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
@@ -159,10 +161,89 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 	return assessmentDTO.StudentAssessment{
 		CourseParticipationID: courseParticipationID,
 		Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+		CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
 		AssessmentCompletion:  completion,
 		StudentScore:          studentScore,
 		Evaluations:           evaluations,
 	}, nil
+}
+
+func ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, format string) (assessmentDTO.AssessmentExport, error) {
+	if format != AssessmentExportFormatJSON {
+		return assessmentDTO.AssessmentExport{}, ErrUnsupportedAssessmentExportFormat
+	}
+
+	assessments, err := ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not get assessments for export: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessments for export")
+	}
+
+	catAssessments, err := categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not get category assessments for export: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not get category assessments for export")
+	}
+
+	completion := assessmentCompletionDTO.AssessmentCompletion{}
+	completionExists, err := assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		log.Error("could not check assessment completion existence: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not check assessment completion existence")
+	}
+	if completionExists {
+		dbCompletion, err := assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get assessment completion: ", err)
+			return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment completion")
+		}
+		completion = assessmentCompletionDTO.MapDBAssessmentCompletionToAssessmentCompletionDTO(dbCompletion)
+	}
+
+	studentScore := scoreLevelDTO.StudentScore{
+		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
+		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
+	}
+	if len(assessments) > 0 {
+		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get score level: ", err)
+			return assessmentDTO.AssessmentExport{}, errors.New("could not get score level")
+		}
+	}
+
+	actionItems, err := getAssessmentExportActionItems(ctx, coursePhaseID, courseParticipationID)
+	if err != nil {
+		log.Error("could not get assessment export action items: ", err)
+		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment export action items")
+	}
+
+	return assessmentDTO.AssessmentExport{
+		ExportedAt:            time.Now().UTC(),
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: courseParticipationID,
+		StudentAssessment: assessmentDTO.StudentAssessment{
+			CourseParticipationID: courseParticipationID,
+			Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+			CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(catAssessments),
+			AssessmentCompletion:  completion,
+			StudentScore:          studentScore,
+			Evaluations:           []evaluationDTO.Evaluation{},
+		},
+		ActionItems: actionItems,
+	}, nil
+}
+
+func getAssessmentExportActionItems(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
+	actionItems, err := AssessmentServiceSingleton.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return actionItemDTO.GetActionItemDTOsFromDBModels(actionItems), nil
 }
 
 func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (assessmentDTO.StudentAssessmentResults, error) {
@@ -170,11 +251,17 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	var err error
 
 	assessments := []db.Assessment{}
+	categoryAssessments := []db.CategoryAssessment{}
 	if config.GradingSheetVisible {
 		assessments, err = ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessments for student in phase: ", err)
 			return results, errors.New("could not get assessments for student in phase")
+		}
+		categoryAssessments, err = categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			log.Error("could not get category assessments for student in phase: ", err)
+			return results, errors.New("could not get category assessments for student in phase")
 		}
 	}
 
@@ -238,6 +325,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 		Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+		CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
 		AssessmentCompletion:  assessmentCompletionDTO.MapDBAssessmentCompletionToAssessmentCompletionDTO(completion),
 		StudentScore:          studentScore,
 		PeerEvaluationResults: peerEvalResults,
@@ -280,12 +368,6 @@ func DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
-}
-
-func isLowScoreLevel(scoreLevel scoreLevelDTO.ScoreLevel) bool {
-	return scoreLevel == scoreLevelDTO.ScoreLevelVeryBad ||
-		scoreLevel == scoreLevelDTO.ScoreLevelBad ||
-		scoreLevel == scoreLevelDTO.ScoreLevelOk
 }
 
 func aggregateEvaluations(evals []evaluationDTO.Evaluation, targetType assessmentType.AssessmentType) []assessmentDTO.AggregatedEvaluationResult {

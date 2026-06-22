@@ -6,6 +6,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
@@ -19,6 +20,7 @@ func InitAssessmentModule(routerGroup *gin.RouterGroup, queries db.Queries, conn
 
 	// Initialize assessment sub-modules
 	assessmentCompletion.InitAssessmentCompletionModule(routerGroup, queries, conn)
+	categoryAssessment.InitCategoryAssessmentModule(routerGroup, queries, conn)
 	actionItem.InitActionItemModule(routerGroup, queries, conn)
 	scoreLevel.InitScoreLevelModule(routerGroup, queries, conn)
 }

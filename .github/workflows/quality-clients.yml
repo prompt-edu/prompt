@@ -1,0 +1,33 @@
+name: Quality Clients
+
+on:
+  workflow_call:
+    inputs:
+      modules:
+        description: "JSON array of client modules to check"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quality-client:
+    if: inputs.modules != '[]'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./clients
+    strategy:
+      matrix:
+        module: ${{ fromJson(inputs.modules) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+      - run: yarn install
+      - name: Type check ${{ matrix.module }}
+        run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
+      - name: Lint components in ${{ matrix.module }}
+        run: yarn eslint "${{ matrix.module }}" --config "${{ matrix.module }}/eslint.config.mjs"
+      - name: Build component ${{ matrix.module }}
+        run: yarn --cwd "${{ matrix.module }}" build

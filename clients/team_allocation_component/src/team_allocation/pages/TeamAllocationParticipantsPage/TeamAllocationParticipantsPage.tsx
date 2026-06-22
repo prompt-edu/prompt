@@ -48,36 +48,34 @@ export const TeamAllocationParticipantsPage = () => {
     if (!teams || !teamAllocations) return []
 
     const teamNameById = new Map(teams.map(({ id, name }) => [id, name]))
+    const teamNameByParticipation = new Map<string, string>()
 
-    const getTeamNameForParticipation = (courseParticipationID: string): string => {
-      const allocation = teamAllocations.find(({ students }) =>
-        students.includes(courseParticipationID),
-      )
-
-      if (!allocation) return 'No Team'
-
-      return teamNameById.get(allocation.projectId) ?? 'No Team'
-    }
-
-    const teamNameExtraData: any[] = []
     for (const { projectId, students } of teamAllocations) {
       const teamName = teamNameById.get(projectId) ?? 'No Team'
 
       for (const courseParticipationID of students) {
-        teamNameExtraData.push({
-          courseParticipationID,
-          value: teamName,
-          stringValue: teamName,
-        })
+        teamNameByParticipation.set(courseParticipationID, teamName)
       }
     }
+
+    const teamNameExtraData =
+      coursePhaseParticipations?.participations?.map((participation) => {
+        const teamName =
+          teamNameByParticipation.get(participation.courseParticipationID) ?? 'No Team'
+
+        return {
+          courseParticipationID: participation.courseParticipationID,
+          value: teamName,
+          stringValue: teamName,
+        }
+      }) ?? []
 
     return [
       {
         id: 'allocatedTeam',
         header: 'Allocated Team',
 
-        accessorFn: (row) => getTeamNameForParticipation(row.courseParticipationID),
+        accessorFn: (row) => teamNameByParticipation.get(row.courseParticipationID) ?? 'No Team',
 
         cell: ({ getValue }) => getValue(),
 
@@ -98,7 +96,7 @@ export const TeamAllocationParticipantsPage = () => {
         extraData: teamNameExtraData,
       } satisfies ExtraParticipantColumn<string>,
     ]
-  }, [teams, teamAllocations])
+  }, [coursePhaseParticipations?.participations, teams, teamAllocations])
 
   const refetch = () => {
     refetchCoursePhaseParticipations()

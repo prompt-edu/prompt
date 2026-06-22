@@ -143,7 +143,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 	targets := make([]ProvisioningTarget, 0, len(teams))
 	for _, team := range teams {
 		teamID := team.ID
-		members := make([]provider.Member, 0, len(team.Members)+len(team.Tutors))
+		members := make([]provider.Member, 0, len(team.Members))
 		for _, member := range team.Members {
 			if student, ok := studentsByParticipationID[member.ID]; ok && student.Email != "" {
 				members = append(members, provider.Member{Email: student.Email, Role: "student"})

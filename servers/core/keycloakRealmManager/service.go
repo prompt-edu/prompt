@@ -4,12 +4,38 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/Nerzal/gocloak/v13"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+// Sentinel errors for the course-team management API. Handlers map these to
+// HTTP status codes; everything else is surfaced as 500.
+var (
+	ErrInvalidGroupName = errors.New("invalid group name")
+	ErrSelfRemoval      = errors.New("cannot remove yourself from a course group via this API; ask another instructor or use the Keycloak admin console")
+	ErrInvalidQuery     = errors.New("search query must be at least 2 characters")
+	ErrUserNotFound     = errors.New("keycloak user not found")
+)
+
+// maxTeamMembers caps how many users are fetched per Lecturer/Editor group.
+// Keycloak's default page size is 100; we explicitly request a higher value to
+// avoid silently truncating larger course teams.
+const maxTeamMembers = 200
+
+// maxSearchResults caps a user search response. Larger values are clamped down.
+const maxSearchResults = 50
+
+// isAllowedCourseGroup returns true if name is one of the two course-team
+// subgroups we expose for management.
+func isAllowedCourseGroup(name string) bool {
+	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
+}
 
 func AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
 	courseGroupName, err := GetCourseGroupName(ctx, courseID)
@@ -148,6 +174,175 @@ func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName strin
 	return keycloakRealmDTO.GroupMembers{
 		Students:    studentDTOs,
 		NonStudents: notFoundUsers,
+	}, nil
+}
+
+// GetCourseTeam returns the Lecturer and Editor members of a course.
+func GetCourseTeam(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseTeam, error) {
+	token, err := LoginClient(ctx)
+	if err != nil {
+		return keycloakRealmDTO.CourseTeam{}, err
+	}
+
+	lecturers, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseLecturer)
+	if err != nil {
+		return keycloakRealmDTO.CourseTeam{}, err
+	}
+
+	editors, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseEditor)
+	if err != nil {
+		return keycloakRealmDTO.CourseTeam{}, err
+	}
+
+	return keycloakRealmDTO.CourseTeam{
+		Lecturers: lecturers,
+		Editors:   editors,
+	}, nil
+}
+
+func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, groupName string) ([]keycloakRealmDTO.TeamMember, error) {
+	group, err := GetCourseSubgroup(ctx, accessToken, courseID, groupName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve %s group: %w", groupName, err)
+	}
+
+	first := 0
+	max := maxTeamMembers
+	members, err := KeycloakRealmSingleton.client.GetGroupMembers(ctx, accessToken, KeycloakRealmSingleton.Realm, *group.ID, gocloak.GetGroupsParams{
+		First: &first,
+		Max:   &max,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch members of %s group: %w", groupName, err)
+	}
+
+	if len(members) == maxTeamMembers {
+		log.Warnf("course %s %s group hit the %d-member fetch cap; some members are not shown", courseID, groupName, maxTeamMembers)
+	}
+
+	result := make([]keycloakRealmDTO.TeamMember, 0, len(members))
+	for _, m := range members {
+		result = append(result, keycloakRealmDTO.GetTeamMemberFromKeycloakUser(m))
+	}
+	return result, nil
+}
+
+// AddUserToCourseGroup adds a Keycloak user to the Lecturer or Editor group of
+// a course. The groupName MUST come from the URL allow-list (the router
+// enforces this). The target user is verified to exist before any group
+// mutation. AddUserToGroup is idempotent at the Keycloak level.
+func AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
+	if !isAllowedCourseGroup(groupName) {
+		return ErrInvalidGroupName
+	}
+
+	token, err := LoginClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	if _, err := KeycloakRealmSingleton.client.GetUserByID(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID); err != nil {
+		// gocloak v13 sometimes returns an APIError with Code=0 and the status text
+		// in Message, so check both the structured code and the string as a fallback
+		// (same pattern used elsewhere in realmManagement.go).
+		var apiErr *gocloak.APIError
+		if (errors.As(err, &apiErr) && apiErr.Code == 404) || strings.Contains(err.Error(), "404") {
+			return ErrUserNotFound
+		}
+		log.Error("failed to verify target keycloak user: ", err)
+		return fmt.Errorf("failed to verify keycloak user: %w", err)
+	}
+
+	group, err := GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
+	if err != nil {
+		return fmt.Errorf("failed to resolve %s group: %w", groupName, err)
+	}
+
+	if err := KeycloakRealmSingleton.client.AddUserToGroup(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID, *group.ID); err != nil {
+		log.Error("failed to add user to group: ", err)
+		return fmt.Errorf("failed to add user to group: %w", err)
+	}
+
+	log.Infof("course-team audit: caller=%s action=add target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
+	return nil
+}
+
+// RemoveUserFromCourseGroup removes a Keycloak user from the Lecturer or
+// Editor group of a course. Self-removal is rejected: with this rule, the
+// final lecturer can never delete themselves, which makes a count check or
+// advisory lock unnecessary.
+func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
+	if !isAllowedCourseGroup(groupName) {
+		return ErrInvalidGroupName
+	}
+	if targetUserID == callerUserID {
+		return ErrSelfRemoval
+	}
+
+	token, err := LoginClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	group, err := GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
+	if err != nil {
+		return fmt.Errorf("failed to resolve %s group: %w", groupName, err)
+	}
+
+	if err := KeycloakRealmSingleton.client.DeleteUserFromGroup(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID, *group.ID); err != nil {
+		log.Error("failed to remove user from group: ", err)
+		return fmt.Errorf("failed to remove user from group: %w", err)
+	}
+
+	log.Infof("course-team audit: caller=%s action=remove target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
+	return nil
+}
+
+// SearchKeycloakUsers performs a realm-wide search by username/email/name.
+// Authorization for the route is "is a lecturer of any course" - see the
+// comment in router.go.
+func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloakRealmDTO.UserSearchResults, error) {
+	q := strings.TrimSpace(query)
+	if len(q) < 2 {
+		return keycloakRealmDTO.UserSearchResults{}, ErrInvalidQuery
+	}
+
+	if limit <= 0 || limit > maxSearchResults {
+		limit = maxSearchResults
+	}
+
+	token, err := LoginClient(ctx)
+	if err != nil {
+		return keycloakRealmDTO.UserSearchResults{}, err
+	}
+
+	// Fetch one more than the caller asked for so we can tell "exactly N matches"
+	// from "more than N matches" without an extra round-trip.
+	fetchMax := limit + 1
+	brief := true
+	users, err := KeycloakRealmSingleton.client.GetUsers(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetUsersParams{
+		Search:              &q,
+		Max:                 &fetchMax,
+		BriefRepresentation: &brief,
+	})
+	if err != nil {
+		log.Error("failed to search keycloak users: ", err)
+		return keycloakRealmDTO.UserSearchResults{}, fmt.Errorf("failed to search keycloak users: %w", err)
+	}
+
+	truncated := len(users) > limit
+	if truncated {
+		users = users[:limit]
+	}
+
+	results := make([]keycloakRealmDTO.TeamMember, 0, len(users))
+	for _, u := range users {
+		results = append(results, keycloakRealmDTO.GetTeamMemberFromKeycloakUser(u))
+	}
+
+	return keycloakRealmDTO.UserSearchResults{
+		Results:   results,
+		Truncated: truncated,
 	}, nil
 }
 

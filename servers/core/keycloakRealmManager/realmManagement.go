@@ -25,8 +25,16 @@ func LoginClient(ctx context.Context) (*gocloak.JWT, error) {
 
 // GetGroupByPath wraps client.GetGroupByPath, returning an error if
 // there is any Keycloak error or if the retrieved group name mismatches.
+//
+// The leading slash is stripped before delegating to gocloak. gocloak builds the
+// admin URL by joining path segments with "/", and a leading-slash groupPath
+// produces a "group-by-path//..." double slash that recent Keycloak versions
+// reject under strict path normalisation. Keycloak itself strips a leading slash
+// from the path internally (see KeycloakModelUtils.findGroupByPath), so passing
+// it without is equivalent at the business-logic layer.
 func GetGroupByPath(ctx context.Context, accessToken, groupPath, expectedName string) (*gocloak.Group, error) {
-	group, err := KeycloakRealmSingleton.client.GetGroupByPath(ctx, accessToken, KeycloakRealmSingleton.Realm, groupPath)
+	normalisedPath := strings.TrimPrefix(groupPath, "/")
+	group, err := KeycloakRealmSingleton.client.GetGroupByPath(ctx, accessToken, KeycloakRealmSingleton.Realm, normalisedPath)
 	if err != nil {
 		log.Errorf("failed to get group from Keycloak (path=%s): %v", groupPath, err)
 		return nil, fmt.Errorf("failed to get group at path %s: %w", groupPath, err)
@@ -99,13 +107,22 @@ func GetCourseGroup(ctx context.Context, accessToken string, courseID uuid.UUID)
 }
 
 func GetCourseEditorGroup(ctx context.Context, accessToken string, courseID uuid.UUID) (*gocloak.Group, error) {
+	return GetCourseSubgroup(ctx, accessToken, courseID, "Editor")
+}
+
+// GetCourseSubgroup returns the Keycloak group at /{TOP_LEVEL}/{courseGroupName}/{subgroup}.
+// subgroup MUST be a compile-time constant from permissionValidation (CourseLecturer or
+// CourseEditor); callers are responsible for validating any caller-supplied value against
+// an allow-list before invoking this function. The subgroup value is passed to
+// GetGroupByPath as expectedName so the existing name-mismatch guard fires if Keycloak
+// returns a misdirected group.
+func GetCourseSubgroup(ctx context.Context, accessToken string, courseID uuid.UUID, subgroup string) (*gocloak.Group, error) {
 	courseGroupName, err := GetCourseGroupName(ctx, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get course group name: %w", err)
 	}
-	groupPath := "/" + TOP_LEVEL_GROUP_NAME + "/" + courseGroupName + "/" + "Editor"
-
-	return GetGroupByPath(ctx, accessToken, groupPath, "Editor")
+	groupPath := "/" + TOP_LEVEL_GROUP_NAME + "/" + courseGroupName + "/" + subgroup
+	return GetGroupByPath(ctx, accessToken, groupPath, subgroup)
 }
 
 // GetOrCreateCustomTopLevelGroup returns the ID of the “CUSTOM_GROUPS_NAME” subgroup under the
@@ -116,8 +133,9 @@ func GetOrCreateCustomTopLevelGroup(ctx context.Context, accessToken string, cou
 		return "", fmt.Errorf("failed to get course group name: %w", err)
 	}
 
-	// Build path: /TOP_LEVEL_GROUP_NAME/<courseGroupName>/CUSTOM_GROUPS_NAME
-	groupPath := fmt.Sprintf("/%s/%s/%s", TOP_LEVEL_GROUP_NAME, courseGroupName, CUSTOM_GROUPS_NAME)
+	// Build path: TOP_LEVEL_GROUP_NAME/<courseGroupName>/CUSTOM_GROUPS_NAME (no leading
+	// slash - see GetGroupByPath docstring for the URL-normalisation reason).
+	groupPath := fmt.Sprintf("%s/%s/%s", TOP_LEVEL_GROUP_NAME, courseGroupName, CUSTOM_GROUPS_NAME)
 	group, err := KeycloakRealmSingleton.client.GetGroupByPath(ctx, accessToken, KeycloakRealmSingleton.Realm, groupPath)
 	if err == nil && group.Name != nil && *group.Name == CUSTOM_GROUPS_NAME {
 		// Found existing group
@@ -158,8 +176,9 @@ func GetOrCreateCustomGroup(ctx context.Context, accessToken, groupName string, 
 		return "", fmt.Errorf("failed to get course group name: %w", err)
 	}
 
-	// Build path: /TOP_LEVEL_GROUP_NAME/<courseGroupName>/CUSTOM_GROUPS_NAME/<groupName>
-	groupPath := fmt.Sprintf("/%s/%s/%s/%s", TOP_LEVEL_GROUP_NAME, courseGroupName, CUSTOM_GROUPS_NAME, groupName)
+	// Build path: TOP_LEVEL_GROUP_NAME/<courseGroupName>/CUSTOM_GROUPS_NAME/<groupName>
+	// (no leading slash - see GetGroupByPath docstring).
+	groupPath := fmt.Sprintf("%s/%s/%s/%s", TOP_LEVEL_GROUP_NAME, courseGroupName, CUSTOM_GROUPS_NAME, groupName)
 	group, err := KeycloakRealmSingleton.client.GetGroupByPath(ctx, accessToken, KeycloakRealmSingleton.Realm, groupPath)
 	if err == nil && group.Name != nil && *group.Name == groupName {
 		// Found existing subgroup

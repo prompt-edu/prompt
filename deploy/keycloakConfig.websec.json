@@ -310,6 +310,30 @@
           "clientRole": true,
           "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
           "attributes": {}
+        },
+        {
+          "id": "1ae9f271-a373-475c-a66b-091dbaab8c84",
+          "name": "PROMPT_Course_Editor",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
+        },
+        {
+          "id": "638cabc2-53c5-4bdd-aa4a-2f2af3074a30",
+          "name": "PROMPT_Course_Lecturer",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
+        },
+        {
+          "id": "e0a550a5-cf05-45e1-9a6a-9464e2359de9",
+          "name": "PROMPT_Student",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
         }
       ],
       "account": [

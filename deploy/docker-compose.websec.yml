@@ -1,11 +1,11 @@
 # PROMPT 2.0 - test-prod deployment for the IT-security course on `prompt-websec`.
 #
 # Derived from ../docker-compose.prod.yml with three deliberate deviations (see deploy/README.md):
-#   1. HTTP-only Traefik on :80 (no HTTPS redirect, no Let's Encrypt) - the VM has no public TLS
-#      and the site is served at http://prompt-websec.aet.cit.tum.de/.
+#   1. Traefik terminates TLS on :443, obtains/renews a Let's Encrypt certificate, and redirects
+#      all cleartext HTTP requests to https://prompt-websec.aet.cit.tum.de/.
 #   2. Embedded Keycloak (+ its Postgres) served under the URL subpath /idp on the single host,
 #      since no DNS subdomains exist. Realm (incl. example users) is imported on first start.
-#   3. Router Host() rules use the bare literal domain, because ${CORE_HOST} carries the http://
+#   3. Router Host() rules use the bare literal domain, because ${CORE_HOST} carries the https://
 #      scheme (it is consumed as a full URL by the Go backend for CORS / mail links / inter-service).
 #
 # Run from the repo root:
@@ -20,11 +20,19 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=prompt-network"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt
     networks:
       prompt-network:
         # Backends reach Keycloak via the public hostname through Traefik on the
@@ -42,7 +50,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.maintenance.rule=Host(`prompt-websec.aet.cit.tum.de`)"
-      - "traefik.http.routers.maintenance.entrypoints=web"
+      - "traefik.http.routers.maintenance.entrypoints=websecure"
+      - "traefik.http.routers.maintenance.tls.certresolver=letsencrypt"
       - "traefik.http.routers.maintenance.priority=1"
       - "traefik.http.services.maintenance.loadbalancer.server.port=80"
       - "traefik.http.middlewares.maintenance-compress.compress=true"
@@ -92,10 +101,10 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      # Served under http://prompt-websec.aet.cit.tum.de/idp behind Traefik (plain HTTP).
+      # Served under https://prompt-websec.aet.cit.tum.de/idp behind Traefik.
       # The path is included in KC_HOSTNAME so the advertised issuer/frontend URLs
       # carry /idp (must match what the backend validates: ${KEYCLOAK_HOST}/realms/...).
-      KC_HOSTNAME: http://prompt-websec.aet.cit.tum.de/idp
+      KC_HOSTNAME: https://prompt-websec.aet.cit.tum.de/idp
       KC_HTTP_RELATIVE_PATH: /idp
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
@@ -106,7 +115,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.keycloak.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/idp`)"
-      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.routers.keycloak.tls.certresolver=letsencrypt"
       - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
     depends_on:
       keycloak-db:
@@ -140,7 +150,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.server-core.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/api`)"
       - "traefik.http.services.server-core.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-core.entrypoints=web"
+      - "traefik.http.routers.server-core.entrypoints=websecure"
+      - "traefik.http.routers.server-core.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.average=300"
       - "traefik.http.middlewares.api-ratelimit.ratelimit.burst=100"
       - "traefik.http.routers.server-core.middlewares=api-ratelimit"
@@ -193,8 +204,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/team-allocation/api`)"
+      - "traefik.http.routers.server-team-allocation.priority=220"
       - "traefik.http.services.server-team-allocation.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-team-allocation.entrypoints=web"
+      - "traefik.http.routers.server-team-allocation.entrypoints=websecure"
+      - "traefik.http.routers.server-team-allocation.tls.certresolver=letsencrypt"
       - "traefik.http.routers.server-team-allocation.middlewares=api-ratelimit"
     depends_on:
       db-team-allocation:
@@ -225,8 +238,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server-self-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/self-team-allocation/api`)"
+      - "traefik.http.routers.server-self-team-allocation.priority=220"
       - "traefik.http.services.server-self-team-allocation.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-self-team-allocation.entrypoints=web"
+      - "traefik.http.routers.server-self-team-allocation.entrypoints=websecure"
+      - "traefik.http.routers.server-self-team-allocation.tls.certresolver=letsencrypt"
       - "traefik.http.routers.server-self-team-allocation.middlewares=api-ratelimit"
     depends_on:
       db-self-team-allocation:
@@ -257,8 +272,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server-assessment.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.routers.server-assessment.priority=220"
       - "traefik.http.services.server-assessment.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-assessment.entrypoints=web"
+      - "traefik.http.routers.server-assessment.entrypoints=websecure"
+      - "traefik.http.routers.server-assessment.tls.certresolver=letsencrypt"
       - "traefik.http.routers.server-assessment.middlewares=api-ratelimit"
     depends_on:
       db-assessment:
@@ -289,8 +306,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server-interview.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/interview/api`)"
+      - "traefik.http.routers.server-interview.priority=220"
       - "traefik.http.services.server-interview.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-interview.entrypoints=web"
+      - "traefik.http.routers.server-interview.entrypoints=websecure"
+      - "traefik.http.routers.server-interview.tls.certresolver=letsencrypt"
       - "traefik.http.routers.server-interview.middlewares=api-ratelimit"
     depends_on:
       db-interview:
@@ -322,8 +341,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.server-certificate.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/certificate/api`)"
+      - "traefik.http.routers.server-certificate.priority=220"
       - "traefik.http.services.server-certificate.loadbalancer.server.port=8080"
-      - "traefik.http.routers.server-certificate.entrypoints=web"
+      - "traefik.http.routers.server-certificate.entrypoints=websecure"
+      - "traefik.http.routers.server-certificate.tls.certresolver=letsencrypt"
       - "traefik.http.routers.server-certificate.middlewares=api-ratelimit"
     depends_on:
       db-certificate:
@@ -478,7 +499,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.assessment.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/assessment`)"
-      - "traefik.http.routers.assessment.entrypoints=web"
+      - "traefik.http.routers.assessment.priority=200"
+      - "traefik.http.routers.assessment.entrypoints=websecure"
+      - "traefik.http.routers.assessment.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.assessment-strip-prefix.stripPrefix.prefixes=/assessment"
       - "traefik.http.routers.assessment.middlewares=assessment-strip-prefix,assessment-compress"
       - "traefik.http.middlewares.assessment-compress.compress=true"
@@ -499,7 +522,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.interview.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/interview`)"
-      - "traefik.http.routers.interview.entrypoints=web"
+      - "traefik.http.routers.interview.priority=200"
+      - "traefik.http.routers.interview.entrypoints=websecure"
+      - "traefik.http.routers.interview.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.interview-strip-prefix.stripPrefix.prefixes=/interview"
       - "traefik.http.routers.interview.middlewares=interview-strip-prefix,interview-compress"
       - "traefik.http.middlewares.interview-compress.compress=true"
@@ -519,7 +544,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.matching.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/matching`)"
-      - "traefik.http.routers.matching.entrypoints=web"
+      - "traefik.http.routers.matching.entrypoints=websecure"
+      - "traefik.http.routers.matching.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.matching-strip-prefix.stripPrefix.prefixes=/matching"
       - "traefik.http.routers.matching.middlewares=matching-strip-prefix,matching-compress"
       - "traefik.http.middlewares.matching-compress.compress=true"
@@ -539,7 +565,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/team-allocation`)"
-      - "traefik.http.routers.team-allocation.entrypoints=web"
+      - "traefik.http.routers.team-allocation.priority=200"
+      - "traefik.http.routers.team-allocation.entrypoints=websecure"
+      - "traefik.http.routers.team-allocation.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.team-allocation-strip-prefix.stripPrefix.prefixes=/team-allocation"
       - "traefik.http.routers.team-allocation.middlewares=team-allocation-strip-prefix,team-allocation-compress"
       - "traefik.http.middlewares.team-allocation-compress.compress=true"
@@ -559,7 +587,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.self-team-allocation.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/self-team-allocation`)"
-      - "traefik.http.routers.self-team-allocation.entrypoints=web"
+      - "traefik.http.routers.self-team-allocation.priority=200"
+      - "traefik.http.routers.self-team-allocation.entrypoints=websecure"
+      - "traefik.http.routers.self-team-allocation.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.self-team-allocation-strip-prefix.stripPrefix.prefixes=/self-team-allocation"
       - "traefik.http.routers.self-team-allocation.middlewares=self-team-allocation-strip-prefix,self-team-allocation-compress"
       - "traefik.http.middlewares.self-team-allocation-compress.compress=true"
@@ -579,7 +609,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.template.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/template`)"
-      - "traefik.http.routers.template.entrypoints=web"
+      - "traefik.http.routers.template.entrypoints=websecure"
+      - "traefik.http.routers.template.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.template-strip-prefix.stripPrefix.prefixes=/template"
       - "traefik.http.routers.template.middlewares=template-strip-prefix,template-compress"
       - "traefik.http.middlewares.template-compress.compress=true"
@@ -599,7 +630,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.certificate.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/certificate`)"
-      - "traefik.http.routers.certificate.entrypoints=web"
+      - "traefik.http.routers.certificate.priority=200"
+      - "traefik.http.routers.certificate.entrypoints=websecure"
+      - "traefik.http.routers.certificate.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.certificate-strip-prefix.stripPrefix.prefixes=/certificate"
       - "traefik.http.routers.certificate.middlewares=certificate-strip-prefix,certificate-compress"
       - "traefik.http.middlewares.certificate-compress.compress=true"
@@ -637,7 +670,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`prompt-websec.aet.cit.tum.de`)"
-      - "traefik.http.routers.core.entrypoints=web"
+      - "traefik.http.routers.core.entrypoints=websecure"
+      - "traefik.http.routers.core.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.core-compress.compress=true"
       - "traefik.http.routers.core.middlewares=core-compress"
     expose:
@@ -753,7 +787,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.seaweedfs-s3.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/s3`)"
-      - "traefik.http.routers.seaweedfs-s3.entrypoints=web"
+      - "traefik.http.routers.seaweedfs-s3.entrypoints=websecure"
+      - "traefik.http.routers.seaweedfs-s3.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.s3-strip-prefix.stripPrefix.prefixes=/s3"
       - "traefik.http.routers.seaweedfs-s3.middlewares=s3-strip-prefix"
       - "traefik.http.services.seaweedfs-s3.loadbalancer.server.port=8333"
@@ -770,6 +805,113 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  # ---------------------------------------------------------------------------
+  # External course-phase modules. The core shell has these Module Federation
+  # remotes configured, so they must be served on this host as well.
+  # ---------------------------------------------------------------------------
+  db-intro-course:
+    image: postgres:15.18-alpine
+    container_name: prompt-db-intro-course
+    environment:
+      - POSTGRES_DB=${DB_INTRO_COURSE_NAME}
+      - POSTGRES_USER=${DB_INTRO_COURSE_USER}
+      - POSTGRES_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_intro_course_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_INTRO_COURSE_USER} -d ${DB_INTRO_COURSE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  server-intro-course:
+    image: ghcr.io/prompt-edu/prompt-intro-course/prompt-server-intro-course:${INTRO_COURSE_SERVER_IMAGE_TAG}
+    container_name: prompt-server-intro-course
+    environment:
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - DB_HOST=db-intro-course
+      - DB_PORT=5432
+      - DB_NAME=${DB_INTRO_COURSE_NAME}
+      - DB_USER=${DB_INTRO_COURSE_USER}
+      - DB_PASSWORD=${DB_INTRO_COURSE_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - KEYCLOAK_CLIENT_ID
+      - GITLAB_ACCESS_TOKEN
+      - SENTRY_DSN=${SENTRY_DSN_INTRO_COURSE}
+    depends_on:
+      db-intro-course:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.intro-course-api.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/intro-course/api`)"
+      - "traefik.http.routers.intro-course-api.entrypoints=websecure"
+      - "traefik.http.routers.intro-course-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.intro-course-api.priority=220"
+      - "traefik.http.services.intro-course-api.loadbalancer.server.port=8080"
+    expose:
+      - "8080"
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-intro-course:
+    image: ghcr.io/prompt-edu/prompt-intro-course/prompt-clients-intro-course-developer:${INTRO_COURSE_CLIENT_IMAGE_TAG}
+    container_name: prompt-client-intro-course
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.intro-course.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/intro-course`)"
+      - "traefik.http.routers.intro-course.entrypoints=websecure"
+      - "traefik.http.routers.intro-course.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.intro-course.priority=200"
+      - "traefik.http.middlewares.intro-course-strip.stripPrefix.prefixes=/intro-course"
+      - "traefik.http.routers.intro-course.middlewares=intro-course-strip"
+      - "traefik.http.routers.intro-course-developer.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/intro-course-developer`)"
+      - "traefik.http.routers.intro-course-developer.entrypoints=websecure"
+      - "traefik.http.routers.intro-course-developer.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.intro-course-developer.priority=210"
+      - "traefik.http.middlewares.intro-course-developer-strip.stripPrefix.prefixes=/intro-course-developer"
+      - "traefik.http.routers.intro-course-developer.middlewares=intro-course-developer-strip"
+      - "traefik.http.services.intro-course.loadbalancer.server.port=80"
+    expose:
+      - "80"
+    restart: unless-stopped
+    networks:
+      - prompt-network
+
+  client-github-challenge:
+    image: ghcr.io/prompt-edu/prompt-github-challenge/prompt-clients-github-challenge-component:${GITHUB_CHALLENGE_IMAGE_TAG}
+    container_name: prompt-client-github-challenge
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.devops-challenge.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/devops-challenge`)"
+      - "traefik.http.routers.devops-challenge.entrypoints=websecure"
+      - "traefik.http.routers.devops-challenge.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.devops-challenge.priority=200"
+      - "traefik.http.middlewares.devops-challenge-strip.stripPrefix.prefixes=/devops-challenge"
+      - "traefik.http.routers.devops-challenge.middlewares=devops-challenge-strip"
+      - "traefik.http.routers.github-challenge.rule=Host(`prompt-websec.aet.cit.tum.de`) && PathPrefix(`/github-challenge`)"
+      - "traefik.http.routers.github-challenge.entrypoints=websecure"
+      - "traefik.http.routers.github-challenge.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.github-challenge.priority=200"
+      - "traefik.http.middlewares.github-challenge-strip.stripPrefix.prefixes=/github-challenge"
+      - "traefik.http.routers.github-challenge.middlewares=github-challenge-strip"
+      - "traefik.http.services.github-challenge.loadbalancer.server.port=80"
+    expose:
+      - "80"
+    restart: unless-stopped
+    networks:
+      - prompt-network
 
 networks:
   # Create the network manually in advance: docker network create prompt-network

@@ -75,6 +75,7 @@ justfile
 # =============================================================================
 deploy/.env.websec
 deploy/keycloakConfig.rendered.json
+deploy/letsencrypt/
 deploy/postgres_data/
 deploy/postgres_*_data/
 deploy/keycloak_postgres_data/

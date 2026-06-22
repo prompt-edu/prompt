@@ -534,7 +534,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin",
+          "value": "__ADMIN_PASSWORD__",
           "temporary": false
         }
       ],
@@ -907,19 +907,18 @@
       "clientId": "prompt-client",
       "name": "prompt-client",
       "description": "",
-      "rootUrl": "http://prompt-websec.aet.cit.tum.de",
+      "rootUrl": "https://prompt-websec.aet.cit.tum.de",
       "adminUrl": "",
-      "baseUrl": "http://prompt-websec.aet.cit.tum.de",
+      "baseUrl": "https://prompt-websec.aet.cit.tum.de",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "http://prompt-websec.aet.cit.tum.de/*"
+        "https://prompt-websec.aet.cit.tum.de/*"
       ],
       "webOrigins": [
-        "http://prompt-websec.aet.cit.tum.de",
-        "+"
+        "https://prompt-websec.aet.cit.tum.de"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -934,7 +933,7 @@
       "attributes": {
         "access.token.lifespan": "60",
         "client.secret.creation.time": "1690570212",
-        "post.logout.redirect.uris": "http://prompt-websec.aet.cit.tum.de/*",
+        "post.logout.redirect.uris": "https://prompt-websec.aet.cit.tum.de/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",
@@ -1003,16 +1002,16 @@
       "clientId": "prompt-server",
       "name": "prompt-server",
       "description": "",
-      "rootUrl": "http://prompt-websec.aet.cit.tum.de/*",
+      "rootUrl": "https://prompt-websec.aet.cit.tum.de/*",
       "adminUrl": "",
-      "baseUrl": "http://prompt-websec.aet.cit.tum.de/*",
+      "baseUrl": "https://prompt-websec.aet.cit.tum.de/*",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "__PROMPT_SERVER_SECRET__",
       "redirectUris": [
-        "http://prompt-websec.aet.cit.tum.de/*"
+        "https://prompt-websec.aet.cit.tum.de/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -1027,7 +1026,7 @@
       "protocol": "openid-connect",
       "attributes": {
         "client.secret.creation.time": "1690570774",
-        "post.logout.redirect.uris": "http://prompt-websec.aet.cit.tum.de/*##",
+        "post.logout.redirect.uris": "https://prompt-websec.aet.cit.tum.de/*##",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",

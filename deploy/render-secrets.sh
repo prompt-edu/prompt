@@ -20,7 +20,7 @@ if [[ -f "$ENV_OUT" && "$FORCE" != "--force" ]]; then
 else
   cp "$ENV_IN" "$ENV_OUT"
   # Each secret var gets its own fresh value.
-  for var in DB_CORE_PASSWORD KEYCLOAK_DB_PASSWORD KEYCLOAK_CLIENT_SECRET KEYCLOAK_ADMIN_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY; do
+  for var in DB_CORE_PASSWORD DB_INTRO_COURSE_PASSWORD KEYCLOAK_DB_PASSWORD KEYCLOAK_CLIENT_SECRET KEYCLOAK_ADMIN_PASSWORD S3_ACCESS_KEY S3_SECRET_KEY; do
     secret="$(gen)"
     # Replace only the exact "VAR=__GENERATE__" line.
     sed -i "s|^${var}=__GENERATE__$|${var}=${secret}|" "$ENV_OUT"
@@ -39,10 +39,19 @@ if [[ -z "$KCS" || "$KCS" == "__GENERATE__" ]]; then
   echo "[render-secrets] ERROR: could not read KEYCLOAK_CLIENT_SECRET from $ENV_OUT" >&2
   exit 1
 fi
-sed "s|__PROMPT_SERVER_SECRET__|${KCS}|g" "$REALM_IN" > "$REALM_OUT"
-if grep -q "__PROMPT_SERVER_SECRET__" "$REALM_OUT"; then
-  echo "[render-secrets] ERROR: realm secret placeholder not substituted" >&2
+# The realm "admin" app user reuses the generated Keycloak admin password, so no
+# weak/known admin credential is ever committed or shipped.
+KCAP="$(grep -E '^KEYCLOAK_ADMIN_PASSWORD=' "$ENV_OUT" | head -n1 | cut -d= -f2-)"
+if [[ -z "$KCAP" || "$KCAP" == "__GENERATE__" ]]; then
+  echo "[render-secrets] ERROR: could not read KEYCLOAK_ADMIN_PASSWORD from $ENV_OUT" >&2
   exit 1
 fi
-echo "[render-secrets] wrote $REALM_OUT (prompt-server secret injected)"
+sed -e "s|__PROMPT_SERVER_SECRET__|${KCS}|g" -e "s|__ADMIN_PASSWORD__|${KCAP}|g" "$REALM_IN" > "$REALM_OUT"
+for ph in __PROMPT_SERVER_SECRET__ __ADMIN_PASSWORD__; do
+  if grep -q "$ph" "$REALM_OUT"; then
+    echo "[render-secrets] ERROR: realm placeholder $ph not substituted" >&2
+    exit 1
+  fi
+done
+echo "[render-secrets] wrote $REALM_OUT (prompt-server secret + admin password injected)"
 echo "[render-secrets] done."

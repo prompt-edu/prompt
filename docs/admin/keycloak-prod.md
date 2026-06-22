@@ -139,7 +139,11 @@ docker compose start keycloak
 PROMPT exposes a **User Management** page that lets course Lecturers and PROMPT Administrators add or remove Lecturers and Editors directly from the UI (see the [User Management](../user/user_management) section in the user guide). For this to work, the `prompt-server` client's service account needs read access to the realm's users and groups.
 
 ### Required Service-Account Role Mappings
-On the `prompt-server` client, open **Service Account Roles** and assign these roles from the `realm-management` client:
+
+> [!NOTE]
+> **Prerequisite:** The `Service accounts enabled` toggle must be **on** under `Clients > prompt-server > Settings > Capability config`. If the **Service account roles** tab is missing from the client view, this toggle is off. (For most existing PROMPT deployments this is already enabled, because the same service account is used for client-credentials login.)
+
+Open `Clients > prompt-server > Service account roles`, click **Assign role**, filter by client `realm-management`, and assign these roles:
 
 | Role | Used For |
 | :--- | :--- |

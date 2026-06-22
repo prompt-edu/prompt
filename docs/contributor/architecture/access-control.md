@@ -123,13 +123,15 @@ Lecturers and Editors are managed via Keycloak groups (`/Prompt/{semesterTag}-{c
 
 ### Endpoints
 
+The Authorization column uses the literal Keycloak role names the JWT must carry. `<course>` is the dynamic per-course suffix `<semester>-<courseName>-<role>` described above.
+
 | Method | Path | Authorization |
 | :--- | :--- | :--- |
-| `GET` | `/api/keycloak/:courseID/group/team` | `PromptAdmin`, `CourseLecturer` (per course) |
-| `PUT` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PromptAdmin`, `CourseLecturer` (per course) |
-| `DELETE` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PromptAdmin`, `CourseLecturer` (per course) |
-| `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PromptAdmin`, `CourseLecturer` (realm-wide) |
-| `GET` | `/api/keycloak/status` | `PromptAdmin` only |
+| `GET` | `/api/keycloak/:courseID/group/team` | `PROMPT_Admin` or `<course>-Lecturer` |
+| `PUT` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
+| `DELETE` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
+| `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PROMPT_Admin` or any `*-Lecturer` (any course) |
+| `GET` | `/api/keycloak/status` | `PROMPT_Admin` only |
 
 ### Security Model
 

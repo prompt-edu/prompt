@@ -298,6 +298,72 @@ func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupNam
 	return nil
 }
 
+// GetKeycloakStatus runs three independent probes against the configured
+// Keycloak service account: client-credentials login, read-users, and
+// read-groups. Each probe is performed even if a previous one failed, so the
+// caller can see exactly which permission is missing. Healthy is true only
+// when all probes pass.
+//
+// The read-users and read-groups probes only check that the API call returns
+// without error; an empty result set is treated as a pass (a freshly-seeded
+// realm with no users or no top-level Prompt group yet should still report
+// the service account as correctly configured).
+func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
+	capabilities := map[string]bool{
+		keycloakRealmDTO.CapabilityKeycloakLogin:      false,
+		keycloakRealmDTO.CapabilityKeycloakReadUsers:  false,
+		keycloakRealmDTO.CapabilityKeycloakReadGroups: false,
+	}
+
+	token, err := LoginClient(ctx)
+	if err != nil {
+		log.Warn("keycloak status: login probe failed: ", err)
+		return keycloakRealmDTO.KeycloakStatus{
+			ServiceName:  "Keycloak",
+			Healthy:      false,
+			Capabilities: capabilities,
+		}
+	}
+	capabilities[keycloakRealmDTO.CapabilityKeycloakLogin] = true
+
+	first := 0
+	max := 1
+	brief := true
+	if _, err := KeycloakRealmSingleton.client.GetUsers(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetUsersParams{
+		First:               &first,
+		Max:                 &max,
+		BriefRepresentation: &brief,
+	}); err != nil {
+		log.Warn("keycloak status: read-users probe failed: ", err)
+	} else {
+		capabilities[keycloakRealmDTO.CapabilityKeycloakReadUsers] = true
+	}
+
+	groupMax := 1
+	if _, err := KeycloakRealmSingleton.client.GetGroups(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetGroupsParams{
+		First: &first,
+		Max:   &groupMax,
+	}); err != nil {
+		log.Warn("keycloak status: read-groups probe failed: ", err)
+	} else {
+		capabilities[keycloakRealmDTO.CapabilityKeycloakReadGroups] = true
+	}
+
+	healthy := true
+	for _, ok := range capabilities {
+		if !ok {
+			healthy = false
+			break
+		}
+	}
+
+	return keycloakRealmDTO.KeycloakStatus{
+		ServiceName:  "Keycloak",
+		Healthy:      healthy,
+		Capabilities: capabilities,
+	}
+}
+
 // SearchKeycloakUsers performs a realm-wide search by username/email/name.
 // Authorization for the route is "is a lecturer of any course" - see the
 // comment in router.go.

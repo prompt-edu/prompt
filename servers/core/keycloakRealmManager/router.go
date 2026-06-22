@@ -42,6 +42,11 @@ func setupKeycloakRouter(router *gin.RouterGroup, authMiddleware func() gin.Hand
 		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer),
 		searchKeycloakUsers,
 	)
+	// Service-account health probe for the admin system-status page.
+	realmWide.GET("/status",
+		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin),
+		getKeycloakStatus,
+	)
 }
 
 // createCustomGroup godoc
@@ -316,6 +321,16 @@ func searchKeycloakUsers(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, results)
+}
+
+// getKeycloakStatus godoc
+// @Summary Probe the Keycloak service-account configuration
+// @Tags keycloak
+// @Produce json
+// @Success 200 {object} keycloakRealmDTO.KeycloakStatus
+// @Router /keycloak/status [get]
+func getKeycloakStatus(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, GetKeycloakStatus(c))
 }
 
 // writeServiceError maps service-layer sentinel errors to HTTP status codes.

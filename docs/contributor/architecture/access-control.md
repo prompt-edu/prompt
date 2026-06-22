@@ -115,3 +115,43 @@ Example: A course phase service may define team roles (`team-1`, `team-2`) and u
 | Course Student       | PROMPT Core | Per Phase    | Membership endpoint   |
 | Custom Role          | Keycloak    | Custom Logic | Service-defined usage |
 
+---
+
+## 🧑‍🤝‍🧑 Course Team Management API
+
+Lecturers and Editors are managed via Keycloak groups (`/Prompt/{semesterTag}-{courseName}/Lecturer` and `.../Editor`). The PROMPT Core server exposes a small REST API on top of those groups so the UI does not have to talk to Keycloak directly. All routes live in `servers/core/keycloakRealmManager/`.
+
+### Endpoints
+
+| Method | Path | Authorization |
+| :--- | :--- | :--- |
+| `GET` | `/api/keycloak/:courseID/group/team` | `PromptAdmin`, `CourseLecturer` (per course) |
+| `PUT` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PromptAdmin`, `CourseLecturer` (per course) |
+| `DELETE` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PromptAdmin`, `CourseLecturer` (per course) |
+| `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PromptAdmin`, `CourseLecturer` (realm-wide) |
+| `GET` | `/api/keycloak/status` | `PromptAdmin` only |
+
+### Security Model
+
+The defence against cross-course privilege escalation rests on **three** independent invariants:
+
+1. **The Keycloak group path is derived server-side from the `:courseID` in the URL.** The client never sends a group name, path, or ID. `GetCourseSubgroup` (in `realmManagement.go`) is the only function that resolves the path - it concatenates `courseGroupName` (built from the DB row) with the sanitised role suffix.
+2. **`:groupName` is validated against a hard-coded allow-list `{"Lecturer", "Editor"}` *before* any Keycloak call.** Anything else returns `400` immediately. The allow-list values are `permissionValidation.CourseLecturer` / `CourseEditor`, which are also passed to `GetGroupByPath` as `expectedName` so a Keycloak misdirect would still be rejected.
+3. **Self-removal is rejected at the server with `400`.** The caller's Keycloak `sub` (read from `keycloakTokenVerifier.CtxUserID`) is compared against the `:userID` path parameter. This single rule prevents an empty Lecturer group via this UI - the final remover can never delete themselves - which makes a count check or advisory lock unnecessary.
+
+Every mutating call also writes an INFO-level audit log line in the form:
+
+```text
+course-team audit: caller=<sub> action=<add|remove> target=<userID> group=<groupName> course=<courseID>
+```
+
+### Path Normalisation Gotcha
+
+`gocloak.GetGroupByPath` joins URL segments with `/`, so a leading-slash `groupPath` produces `group-by-path//Prompt/...` which recent Keycloak versions reject under strict path normalisation (`missingNormalization: Request path not normalized`). PROMPT's `GetGroupByPath` wrapper strips the leading slash before delegating. Keycloak itself strips a leading slash internally (see `KeycloakModelUtils.findGroupByPath`), so behaviour is unchanged at the business-logic layer.
+
+**If you add new code that calls `client.GetGroupByPath` directly, do not prefix the path with `/`.** Prefer routing through the `GetGroupByPath` wrapper or `GetCourseSubgroup`, both of which handle this for you.
+
+### Service-Account Requirements
+
+The Core server uses its `prompt-server` Keycloak client's service account for these calls. The required `realm-management` role mappings are documented in the [admin guide](../../admin/keycloak-prod#9-user-management-service-account). The `GET /api/keycloak/status` endpoint probes each of them and powers the **Keycloak** card on the admin **System Status** page.
+

@@ -131,3 +131,38 @@ docker exec -i prompt-keycloak-db \
   psql -U "${KEYCLOAK_DB_USER}" -d "${KEYCLOAK_DB_NAME}" < backup_YYYY-MM-DD.sql
 docker compose start keycloak
 ```
+
+---
+
+## 9. User Management Service Account
+
+PROMPT exposes a **User Management** page that lets course Lecturers and PROMPT Administrators add or remove Lecturers and Editors directly from the UI (see the [User Management](../user/user_management) section in the user guide). For this to work, the `prompt-server` client's service account needs read access to the realm's users and groups.
+
+### Required Service-Account Role Mappings
+On the `prompt-server` client, open **Service Account Roles** and assign these roles from the `realm-management` client:
+
+| Role | Used For |
+| :--- | :--- |
+| `view-users` | Searching for a user by name, email, or username when adding them to a course role. |
+| `view-groups` | Listing the Lecturer / Editor members of a course. |
+| `manage-users` | Adding or removing a user from a course's Lecturer / Editor group. |
+
+> [!NOTE]
+> `manage-users` is required because Keycloak treats group membership changes as user modifications. The service account does **not** need `manage-realm` or any global admin role - the User Management page only operates on the `/Prompt/{semesterTag}-{courseName}/(Lecturer|Editor)` subgroups, never on the realm itself.
+
+### Verifying the Configuration
+
+The fastest way to confirm the service account is set up correctly is the **System Status** page in the PROMPT admin console:
+
+1. Log in as a `PROMPT_Admin`.
+2. Open **System Status** from the top-level menu.
+3. The **Infrastructure** section shows a **Keycloak** card with three independent probes:
+   - **Client-credentials login** - the client ID / secret are valid.
+   - **Read users (view-users)** - the service account can list users.
+   - **Read groups (view-groups)** - the service account can list groups.
+4. Click the refresh icon on the card to re-run the probes on demand (for example, after changing role mappings in Keycloak).
+
+If any probe shows a red ✗, the corresponding role mapping is missing or the credentials have been rotated. Add the missing role on the service account and click refresh - no PROMPT restart needed.
+
+> [!CAUTION]
+> The probes only check **read access** to users and groups, and do not exercise `manage-users`. The first attempt to add or remove a Lecturer / Editor will fail with a clear error message if `manage-users` is missing.

@@ -1,0 +1,56 @@
+apiVersion: v2
+name: prompt
+description: >-
+  PROMPT 2.0 - a modular course-management platform (micro-frontend + Go
+  microservices). Umbrella chart composing the platform core, per-phase
+  subcharts, and the shared infrastructure (CloudNativePG, SeaweedFS,
+  Gateway API, optional Keycloak).
+type: application
+version: 0.1.0
+appVersion: "latest"
+home: https://prompt.aet.cit.tum.de
+sources:
+  - https://github.com/prompt-edu/prompt
+maintainers:
+  - name: PROMPT maintainers
+    url: https://github.com/prompt-edu/prompt
+
+dependencies:
+  - name: prompt-common
+    version: 0.1.0
+    repository: file://charts/prompt-common
+  - name: infrastructure
+    version: 0.1.0
+    repository: file://charts/infrastructure
+  - name: core
+    version: 0.1.0
+    repository: file://charts/core
+    condition: core.enabled
+  - name: assessment
+    version: 0.1.0
+    repository: file://charts/assessment
+    condition: assessment.enabled
+  - name: interview
+    version: 0.1.0
+    repository: file://charts/interview
+    condition: interview.enabled
+  - name: team-allocation
+    version: 0.1.0
+    repository: file://charts/team-allocation
+    condition: team-allocation.enabled
+  - name: self-team-allocation
+    version: 0.1.0
+    repository: file://charts/self-team-allocation
+    condition: self-team-allocation.enabled
+  - name: certificate
+    version: 0.1.0
+    repository: file://charts/certificate
+    condition: certificate.enabled
+  - name: matching
+    version: 0.1.0
+    repository: file://charts/matching
+    condition: matching.enabled
+  - name: template
+    version: 0.1.0
+    repository: file://charts/template
+    condition: template.enabled

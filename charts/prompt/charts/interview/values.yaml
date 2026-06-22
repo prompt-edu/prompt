@@ -1,0 +1,17 @@
+# Overridden by the umbrella `interview:` block; defaults for standalone use.
+enabled: true
+server:
+  enabled: true
+  image: prompt-server-interview
+  replicas: 1
+  port: 8080
+  apiPath: /interview/api
+  dbKey: interview
+  rateLimited: true
+client:
+  enabled: true
+  image: prompt-clients-interview-component
+  replicas: 1
+  port: 80
+  path: /interview
+  stripPrefix: true

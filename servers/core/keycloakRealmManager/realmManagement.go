@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v13"
+	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -106,6 +106,7 @@ func GetCourseGroup(ctx context.Context, accessToken string, courseID uuid.UUID)
 	return GetGroupByPath(ctx, accessToken, groupPath, courseGroupName)
 }
 
+// GetCourseEditorGroup returns the Editor subgroup for a course.
 func GetCourseEditorGroup(ctx context.Context, accessToken string, courseID uuid.UUID) (*gocloak.Group, error) {
 	return GetCourseSubgroup(ctx, accessToken, courseID, "Editor")
 }

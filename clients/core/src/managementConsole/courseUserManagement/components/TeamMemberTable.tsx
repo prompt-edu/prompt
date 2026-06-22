@@ -71,7 +71,9 @@ export const TeamMemberTable = ({
                 <TableHead>Name</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead className='w-12 text-right'>{''}</TableHead>
+                <TableHead className='w-12 text-right'>
+                  <span className='sr-only'>Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

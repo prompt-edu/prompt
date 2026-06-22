@@ -250,6 +250,13 @@ func addCourseTeamMember(c *gin.Context) {
 	}
 
 	callerUserID := c.GetString(keycloakTokenVerifier.CtxUserID)
+	if callerUserID == "" {
+		// Defence in depth: the auth middleware should always set the caller's
+		// Keycloak `sub` here. If it didn't, refuse the mutation rather than
+		// silently writing audit lines with an empty caller.
+		handleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
+		return
+	}
 
 	if err := AddUserToCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
 		writeServiceError(c, err)
@@ -285,6 +292,13 @@ func removeCourseTeamMember(c *gin.Context) {
 	}
 
 	callerUserID := c.GetString(keycloakTokenVerifier.CtxUserID)
+	if callerUserID == "" {
+		// Defence in depth: the auth middleware should always set the caller's
+		// Keycloak `sub` here. If it didn't, refuse the mutation - an empty
+		// callerUserID would also defeat the self-removal guard.
+		handleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
+		return
+	}
 
 	if err := RemoveUserFromCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
 		writeServiceError(c, err)

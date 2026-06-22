@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v13"
+	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"

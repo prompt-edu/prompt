@@ -10,9 +10,16 @@ type KeycloakStatus struct {
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
-// Capability keys. Kept stable - the frontend maps these to display labels.
+// Keycloak capability keys reported by the status endpoint. Kept stable -
+// the frontend maps these to display labels.
 const (
-	CapabilityKeycloakLogin      = "keycloak.login"
-	CapabilityKeycloakReadUsers  = "keycloak.read_users"
+	// CapabilityKeycloakLogin reports whether the service account can obtain
+	// an access token via client credentials.
+	CapabilityKeycloakLogin = "keycloak.login"
+	// CapabilityKeycloakReadUsers reports whether the service account can list
+	// realm users (requires Keycloak's view-users role).
+	CapabilityKeycloakReadUsers = "keycloak.read_users"
+	// CapabilityKeycloakReadGroups reports whether the service account can list
+	// realm groups (requires Keycloak's view-groups role).
 	CapabilityKeycloakReadGroups = "keycloak.read_groups"
 )

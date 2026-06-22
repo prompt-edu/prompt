@@ -3,13 +3,15 @@ import { Users } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 
+interface CourseUserManagementSidebarProps {
+  rootPath: string
+  title: string
+}
+
 export const CourseUserManagementSidebar = ({
   rootPath,
   title,
-}: {
-  rootPath: string
-  title: string
-}) => {
+}: CourseUserManagementSidebarProps) => {
   const item: SidebarMenuItemProps = {
     title: 'User Management',
     icon: <Users />,

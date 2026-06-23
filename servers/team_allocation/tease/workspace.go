@@ -15,8 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var defaultEmptyJSONArray = json.RawMessage("[]")
-
 var errInvalidAllocation = errors.New("invalid allocation")
 
 // GetTeaseWorkspace returns the persisted workspace for a course phase.
@@ -29,9 +27,9 @@ func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.T
 		if errors.Is(err, pgx.ErrNoRows) {
 			return teaseDTO.TeaseWorkspace{
 				CoursePhaseID:    coursePhaseID,
-				Constraints:      defaultEmptyJSONArray,
-				LockedStudents:   defaultEmptyJSONArray,
-				AllocationsDraft: defaultEmptyJSONArray,
+				Constraints:      jsonOrEmpty(nil),
+				LockedStudents:   jsonOrEmpty(nil),
+				AllocationsDraft: jsonOrEmpty(nil),
 			}, nil
 		}
 		log.Error("could not get tease workspace: ", err)
@@ -74,7 +72,16 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 
 	qtx := TeaseServiceSingleton.queries.WithTx(tx)
 
-	upsertParams := upsertParamsFromRequest(coursePhaseID, req.TeaseWorkspaceRequest, updatedBy)
+	allocationsDraft, err := json.Marshal(req.Allocations)
+	if err != nil {
+		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not encode allocations draft: %w", err)
+	}
+	wsReq := teaseDTO.TeaseWorkspaceRequest{
+		TeaseWorkspaceSettings: req.TeaseWorkspaceSettings,
+		AllocationsDraft:       allocationsDraft,
+	}
+
+	upsertParams := upsertParamsFromRequest(coursePhaseID, wsReq, updatedBy)
 	if _, err := qtx.UpsertTeaseWorkspace(ctx, upsertParams); err != nil {
 		log.Error("could not upsert tease workspace within save transaction: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
@@ -175,9 +182,9 @@ func workspaceFromDB(row db.TeaseWorkspace) teaseDTO.TeaseWorkspace {
 func upsertParamsFromRequest(coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) db.UpsertTeaseWorkspaceParams {
 	params := db.UpsertTeaseWorkspaceParams{
 		CoursePhaseID:    coursePhaseID,
-		Constraints:      []byte(jsonOrEmpty(req.Constraints)),
-		LockedStudents:   []byte(jsonOrEmpty(req.LockedStudents)),
-		AllocationsDraft: []byte(jsonOrEmpty(req.AllocationsDraft)),
+		Constraints:      jsonOrEmpty(req.Constraints),
+		LockedStudents:   jsonOrEmpty(req.LockedStudents),
+		AllocationsDraft: jsonOrEmpty(req.AllocationsDraft),
 		UpdatedBy:        pgtype.UUID{Bytes: updatedBy, Valid: true},
 	}
 	if req.AlgorithmType != nil {
@@ -186,9 +193,9 @@ func upsertParamsFromRequest(coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspac
 	return params
 }
 
-func jsonOrEmpty(b []byte) json.RawMessage {
+func jsonOrEmpty(b []byte) []byte {
 	if len(b) == 0 {
-		return defaultEmptyJSONArray
+		return []byte("[]")
 	}
-	return json.RawMessage(b)
+	return b
 }

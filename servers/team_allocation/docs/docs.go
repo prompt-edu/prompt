@@ -1546,9 +1546,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/teaseDTO.Allocation"
                     }
                 },
-                "allocationsDraft": {
-                    "type": "object"
-                },
                 "constraints": {
                     "type": "object"
                 },

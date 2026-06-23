@@ -191,8 +191,6 @@ definitions:
         items:
           $ref: '#/definitions/teaseDTO.Allocation'
         type: array
-      allocationsDraft:
-        type: object
       constraints:
         type: object
       lockedStudents:

@@ -19,16 +19,23 @@ type TeaseWorkspace struct {
 	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
 }
 
-// TeaseWorkspaceRequest is the client-editable workspace snapshot.
-type TeaseWorkspaceRequest struct {
-	Constraints      json.RawMessage `json:"constraints" swaggertype:"object"`
-	LockedStudents   json.RawMessage `json:"lockedStudents" swaggertype:"object"`
-	AllocationsDraft json.RawMessage `json:"allocationsDraft" swaggertype:"object"`
-	AlgorithmType    *string         `json:"algorithmType"`
+// TeaseWorkspaceSettings holds the non-allocation workspace fields shared by the
+// draft-save and publish requests.
+type TeaseWorkspaceSettings struct {
+	Constraints    json.RawMessage `json:"constraints" swaggertype:"object"`
+	LockedStudents json.RawMessage `json:"lockedStudents" swaggertype:"object"`
+	AlgorithmType  *string         `json:"algorithmType"`
 }
 
-// TeaseSaveRequest publishes a workspace and allocation set.
+// TeaseWorkspaceRequest is the client-editable workspace snapshot.
+type TeaseWorkspaceRequest struct {
+	TeaseWorkspaceSettings
+	AllocationsDraft json.RawMessage `json:"allocationsDraft" swaggertype:"object"`
+}
+
+// TeaseSaveRequest publishes a workspace and allocation set. The persisted draft
+// is derived from Allocations, so it is not sent separately.
 type TeaseSaveRequest struct {
-	TeaseWorkspaceRequest
+	TeaseWorkspaceSettings
 	Allocations []Allocation `json:"allocations"`
 }

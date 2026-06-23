@@ -77,14 +77,14 @@ export const AddUserDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='relative'>
+        <div className='relative w-full'>
           <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
           <Input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder='Type at least 2 characters...'
-            className='pl-9'
+            className='w-full pl-10'
           />
         </div>
 

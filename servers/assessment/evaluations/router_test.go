@@ -91,6 +91,48 @@ func (suite *EvaluationRouterTestSuite) TestGetAllEvaluationsByPhase() {
 	assert.NoError(suite.T(), err)
 }
 
+func (suite *EvaluationRouterTestSuite) TestGetSelfEvaluationsForParticipantInPhase() {
+	courseParticipationID := uuid.MustParse("01234567-1234-1234-1234-123456789012")
+	req, _ := http.NewRequest(http.MethodGet, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/self/"+courseParticipationID.String(), nil)
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+
+	var evaluations []evaluationDTO.Evaluation
+	err := json.Unmarshal(w.Body.Bytes(), &evaluations)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), evaluations)
+	for _, evaluation := range evaluations {
+		assert.Equal(suite.T(), assessmentType.Self, evaluation.Type)
+	}
+}
+
+func (suite *EvaluationRouterTestSuite) TestGetPeerEvaluationsForParticipantInPhase() {
+	courseParticipationID := uuid.MustParse("01234567-1234-1234-1234-123456789012")
+	req, _ := http.NewRequest(http.MethodGet, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/peer/"+courseParticipationID.String(), nil)
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+
+	var evaluations []evaluationDTO.Evaluation
+	err := json.Unmarshal(w.Body.Bytes(), &evaluations)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), evaluations)
+	for _, evaluation := range evaluations {
+		assert.Equal(suite.T(), assessmentType.Peer, evaluation.Type)
+	}
+}
+
+func (suite *EvaluationRouterTestSuite) TestInvalidCourseParticipationIDForTypedEvaluationResults() {
+	req, _ := http.NewRequest(http.MethodGet, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/self/invalid-uuid", nil)
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
+}
+
 // Test Student endpoints
 func (suite *EvaluationRouterTestSuite) TestGetMyEvaluations() {
 	req, _ := http.NewRequest(http.MethodGet, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/my-evaluations", nil)

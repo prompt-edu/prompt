@@ -113,6 +113,19 @@ func GetEvaluationsForParticipantInPhase(ctx context.Context, courseParticipatio
 	return evaluationDTO.MapToEvaluationDTOs(evaluations), nil
 }
 
+func GetEvaluationsForParticipantInPhaseByType(ctx context.Context, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID, evalType assessmentType.AssessmentType) ([]evaluationDTO.Evaluation, error) {
+	evaluations, err := EvaluationServiceSingleton.queries.GetEvaluationsForParticipantInPhaseByType(ctx, db.GetEvaluationsForParticipantInPhaseByTypeParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+		Type:                  assessmentType.MapDTOtoDBAssessmentType(evalType),
+	})
+	if err != nil {
+		log.Error("could not get evaluations for participant in phase by type: ", err)
+		return nil, errors.New("could not get evaluations for participant in phase by type")
+	}
+	return evaluationDTO.MapToEvaluationDTOs(evaluations), nil
+}
+
 func GetEvaluationsForTutorInPhase(ctx context.Context, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID) ([]evaluationDTO.Evaluation, error) {
 	evaluations, err := EvaluationServiceSingleton.queries.GetEvaluationsForTutorInPhase(ctx, db.GetEvaluationsForTutorInPhaseParams{
 		CourseParticipationID: courseParticipationID,

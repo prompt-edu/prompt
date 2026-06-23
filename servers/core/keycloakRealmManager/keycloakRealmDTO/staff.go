@@ -29,17 +29,10 @@ type UserSearchResults struct {
 // safely handling nil pointer fields by substituting empty strings.
 func GetStaffMemberFromKeycloakUser(user *gocloak.User) StaffMember {
 	return StaffMember{
-		KeycloakUserID: stringOrEmpty(user.ID),
-		Username:       stringOrEmpty(user.Username),
-		Email:          stringOrEmpty(user.Email),
-		FirstName:      stringOrEmpty(user.FirstName),
-		LastName:       stringOrEmpty(user.LastName),
+		KeycloakUserID: gocloak.PString(user.ID),
+		Username:       gocloak.PString(user.Username),
+		Email:          gocloak.PString(user.Email),
+		FirstName:      gocloak.PString(user.FirstName),
+		LastName:       gocloak.PString(user.LastName),
 	}
-}
-
-func stringOrEmpty(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

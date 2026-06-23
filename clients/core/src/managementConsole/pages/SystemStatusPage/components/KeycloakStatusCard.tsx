@@ -20,6 +20,7 @@ export const KeycloakStatusCard = () => {
 
   const capabilities = data?.capabilities ?? {}
   const isHealthy = data?.healthy === true
+  const status = isError || data == null ? 'Offline' : !isHealthy ? 'OnlineUnhealthy' : 'Online'
 
   return (
     <Card>
@@ -33,17 +34,7 @@ export const KeycloakStatusCard = () => {
             {isPending ? (
               <Skeleton className='h-5 w-16' />
             ) : (
-              <ServiceStatusBadge
-                status={(() => {
-                  if (isError || data == null) {
-                    return 'Offline'
-                  }
-                  if (!isHealthy) {
-                    return 'OnlineUnhealthy'
-                  }
-                  return 'Online'
-                })()}
-              />
+              <ServiceStatusBadge status={status} />
             )}
             <Button
               variant='ghost'

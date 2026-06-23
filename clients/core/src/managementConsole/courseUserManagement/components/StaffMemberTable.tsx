@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Trash2, UserPlus } from 'lucide-react'
-import { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
+import { CourseGroupName, StaffMember, staffMemberFullName } from '../interfaces/StaffMember'
 
 interface StaffMemberTableProps {
   title: string
@@ -31,9 +31,6 @@ interface StaffMemberTableProps {
   onRemove: (member: StaffMember) => void
   isRemoving: boolean
 }
-
-const fullName = (m: StaffMember) =>
-  [m.firstName, m.lastName].filter(Boolean).join(' ') || m.username
 
 export const StaffMemberTable = ({
   title,
@@ -97,7 +94,7 @@ export const StaffMemberTable = ({
                 )
                 return (
                   <TableRow key={member.keycloakUserID}>
-                    <TableCell className='font-medium'>{fullName(member)}</TableCell>
+                    <TableCell className='font-medium'>{staffMemberFullName(member)}</TableCell>
                     <TableCell>{member.username}</TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell className='text-right'>
@@ -130,7 +127,7 @@ export const StaffMemberTable = ({
         setOpen={(open) => {
           if (!open) setPendingRemoval(null)
         }}
-        deleteMessage={`Remove ${pendingRemoval ? fullName(pendingRemoval) : ''} from ${groupName}?`}
+        deleteMessage={`Remove ${pendingRemoval ? staffMemberFullName(pendingRemoval) : ''} from ${groupName}?`}
         onClick={(confirmed) => {
           if (confirmed && pendingRemoval) onRemove(pendingRemoval)
           setPendingRemoval(null)

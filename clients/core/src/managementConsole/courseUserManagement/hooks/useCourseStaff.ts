@@ -5,7 +5,7 @@ import { CourseStaff } from '../interfaces/StaffMember'
 export const courseStaffQueryKey = (courseId: string) => ['courseStaff', courseId] as const
 
 const getCourseStaff = async (courseId: string): Promise<CourseStaff> => {
-  return (await axiosInstance.get(`/api/keycloak/${courseId}/group/staff`)).data
+  return (await axiosInstance.get<CourseStaff>(`/api/keycloak/${courseId}/group/staff`)).data
 }
 
 export const useCourseStaff = (courseId: string | undefined) => {

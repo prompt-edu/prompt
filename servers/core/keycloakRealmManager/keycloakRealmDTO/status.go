@@ -5,7 +5,6 @@ package keycloakRealmDTO
 // Each capability is an independent sub-check; Healthy is true only when all
 // of them pass.
 type KeycloakStatus struct {
-	ServiceName  string          `json:"serviceName"`
 	Healthy      bool            `json:"healthy"`
 	Capabilities map[string]bool `json:"capabilities"`
 }

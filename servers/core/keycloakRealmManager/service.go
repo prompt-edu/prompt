@@ -319,7 +319,6 @@ func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 	if err != nil {
 		log.Warn("keycloak status: login probe failed: ", err)
 		return keycloakRealmDTO.KeycloakStatus{
-			ServiceName:  "Keycloak",
 			Healthy:      false,
 			Capabilities: capabilities,
 		}
@@ -358,7 +357,6 @@ func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 	}
 
 	return keycloakRealmDTO.KeycloakStatus{
-		ServiceName:  "Keycloak",
 		Healthy:      healthy,
 		Capabilities: capabilities,
 	}

@@ -17,3 +17,6 @@ export interface UserSearchResults {
 }
 
 export type CourseGroupName = 'Lecturer' | 'Editor'
+
+export const staffMemberFullName = (m: StaffMember): string =>
+  [m.firstName, m.lastName].filter(Boolean).join(' ') || m.username

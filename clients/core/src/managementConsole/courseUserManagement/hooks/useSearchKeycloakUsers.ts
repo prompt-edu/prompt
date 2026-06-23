@@ -4,7 +4,7 @@ import { UserSearchResults } from '../interfaces/StaffMember'
 
 const searchKeycloakUsers = async (query: string, limit = 20): Promise<UserSearchResults> => {
   return (
-    await axiosInstance.get('/api/keycloak/users/search', {
+    await axiosInstance.get<UserSearchResults>('/api/keycloak/users/search', {
       params: { q: query, limit },
     })
   ).data

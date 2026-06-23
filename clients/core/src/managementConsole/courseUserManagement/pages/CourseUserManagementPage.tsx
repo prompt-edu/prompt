@@ -2,20 +2,20 @@ import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { useCourseTeam } from '../hooks/useCourseTeam'
-import { useAddCourseTeamMember } from '../hooks/useAddCourseTeamMember'
-import { useRemoveCourseTeamMember } from '../hooks/useRemoveCourseTeamMember'
-import { TeamMemberTable } from '../components/TeamMemberTable'
+import { useCourseStaff } from '../hooks/useCourseStaff'
+import { useAddCourseStaffMember } from '../hooks/useAddCourseStaffMember'
+import { useRemoveCourseStaffMember } from '../hooks/useRemoveCourseStaffMember'
+import { StaffMemberTable } from '../components/StaffMemberTable'
 import { AddUserDialog } from '../components/AddUserDialog'
-import { CourseGroupName, TeamMember } from '../interfaces/TeamMember'
+import { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
 
 export const CourseUserManagementPage = () => {
   const { courseId } = useParams<{ courseId: string }>()
   const { user } = useAuthStore()
 
-  const { data, isLoading, isError, refetch } = useCourseTeam(courseId)
-  const addMember = useAddCourseTeamMember(courseId ?? '')
-  const removeMember = useRemoveCourseTeamMember(courseId ?? '')
+  const { data, isLoading, isError, refetch } = useCourseStaff(courseId)
+  const addMember = useAddCourseStaffMember(courseId ?? '')
+  const removeMember = useRemoveCourseStaffMember(courseId ?? '')
 
   const [dialogGroup, setDialogGroup] = useState<CourseGroupName | null>(null)
 
@@ -31,10 +31,10 @@ export const CourseUserManagementPage = () => {
   if (!courseId) return <ErrorPage onRetry={() => undefined} description='No course selected.' />
   if (isLoading) return <LoadingPage />
   if (isError || !data) {
-    return <ErrorPage onRetry={() => refetch()} description='Failed to load course team.' />
+    return <ErrorPage onRetry={() => refetch()} description='Failed to load course staff.' />
   }
 
-  const handleAdd = (groupName: CourseGroupName) => (member: TeamMember) => {
+  const handleAdd = (groupName: CourseGroupName) => (member: StaffMember) => {
     addMember.mutate(
       { groupName, keycloakUserID: member.keycloakUserID },
       {
@@ -43,7 +43,7 @@ export const CourseUserManagementPage = () => {
     )
   }
 
-  const handleRemove = (groupName: CourseGroupName) => (member: TeamMember) => {
+  const handleRemove = (groupName: CourseGroupName) => (member: StaffMember) => {
     removeMember.mutate({ groupName, keycloakUserID: member.keycloakUserID })
   }
 
@@ -52,12 +52,12 @@ export const CourseUserManagementPage = () => {
       <ManagementPageHeader>User Management</ManagementPageHeader>
       <p className='text-sm text-muted-foreground'>
         Manage who has Lecturer or Editor access to this course. Lecturers can manage the course
-        team and all course settings; Editors can manage course content but not the team.
+        staff and all course settings; Editors can manage course content but not the staff.
       </p>
 
-      <TeamMemberTable
+      <StaffMemberTable
         title='Lecturers'
-        description='Full course administration, including team management.'
+        description='Full course administration, including staff management.'
         groupName='Lecturer'
         members={data.lecturers}
         currentUsername={user?.username}
@@ -66,9 +66,9 @@ export const CourseUserManagementPage = () => {
         isRemoving={removeMember.isPending}
       />
 
-      <TeamMemberTable
+      <StaffMemberTable
         title='Editors'
-        description='Can edit course content but cannot manage the team.'
+        description='Can edit course content but cannot manage the staff.'
         groupName='Editor'
         members={data.editors}
         currentUsername={user?.username}

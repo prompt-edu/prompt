@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Sentinel errors for the course-team management API. Handlers map these to
+// Sentinel errors for the course-staff management API. Handlers map these to
 // HTTP status codes; everything else is surfaced as 500.
 var (
 	ErrInvalidGroupName = errors.New("invalid group name")
@@ -23,15 +23,15 @@ var (
 	ErrUserNotFound     = errors.New("keycloak user not found")
 )
 
-// maxTeamMembers caps how many users are fetched per Lecturer/Editor group.
+// maxStaffMembers caps how many users are fetched per Lecturer/Editor group.
 // Keycloak's default page size is 100; we explicitly request a higher value to
-// avoid silently truncating larger course teams.
-const maxTeamMembers = 200
+// avoid silently truncating larger course staffs.
+const maxStaffMembers = 200
 
 // maxSearchResults caps a user search response. Larger values are clamped down.
 const maxSearchResults = 50
 
-// isAllowedCourseGroup returns true if name is one of the two course-team
+// isAllowedCourseGroup returns true if name is one of the two course-staff
 // subgroups we expose for management.
 func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
@@ -177,37 +177,37 @@ func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName strin
 	}, nil
 }
 
-// GetCourseTeam returns the Lecturer and Editor members of a course.
-func GetCourseTeam(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseTeam, error) {
+// GetCourseStaff returns the Lecturer and Editor members of a course.
+func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseStaff, error) {
 	token, err := LoginClient(ctx)
 	if err != nil {
-		return keycloakRealmDTO.CourseTeam{}, err
+		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
 	lecturers, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseLecturer)
 	if err != nil {
-		return keycloakRealmDTO.CourseTeam{}, err
+		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
 	editors, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseEditor)
 	if err != nil {
-		return keycloakRealmDTO.CourseTeam{}, err
+		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
-	return keycloakRealmDTO.CourseTeam{
+	return keycloakRealmDTO.CourseStaff{
 		Lecturers: lecturers,
 		Editors:   editors,
 	}, nil
 }
 
-func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, groupName string) ([]keycloakRealmDTO.TeamMember, error) {
+func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
 	group, err := GetCourseSubgroup(ctx, accessToken, courseID, groupName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve %s group: %w", groupName, err)
 	}
 
 	first := 0
-	max := maxTeamMembers
+	max := maxStaffMembers
 	members, err := KeycloakRealmSingleton.client.GetGroupMembers(ctx, accessToken, KeycloakRealmSingleton.Realm, *group.ID, gocloak.GetGroupsParams{
 		First: &first,
 		Max:   &max,
@@ -216,13 +216,13 @@ func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uui
 		return nil, fmt.Errorf("failed to fetch members of %s group: %w", groupName, err)
 	}
 
-	if len(members) == maxTeamMembers {
-		log.Warnf("course %s %s group hit the %d-member fetch cap; some members are not shown", courseID, groupName, maxTeamMembers)
+	if len(members) == maxStaffMembers {
+		log.Warnf("course %s %s group hit the %d-member fetch cap; some members are not shown", courseID, groupName, maxStaffMembers)
 	}
 
-	result := make([]keycloakRealmDTO.TeamMember, 0, len(members))
+	result := make([]keycloakRealmDTO.StaffMember, 0, len(members))
 	for _, m := range members {
-		result = append(result, keycloakRealmDTO.GetTeamMemberFromKeycloakUser(m))
+		result = append(result, keycloakRealmDTO.GetStaffMemberFromKeycloakUser(m))
 	}
 	return result, nil
 }
@@ -263,7 +263,7 @@ func AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, ta
 		return fmt.Errorf("failed to add user to group: %w", err)
 	}
 
-	log.Infof("course-team audit: caller=%s action=add target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
+	log.Infof("course-staff audit: caller=%s action=add target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
 	return nil
 }
 
@@ -294,7 +294,7 @@ func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupNam
 		return fmt.Errorf("failed to remove user from group: %w", err)
 	}
 
-	log.Infof("course-team audit: caller=%s action=remove target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
+	log.Infof("course-staff audit: caller=%s action=remove target=%s group=%s course=%s", callerUserID, targetUserID, groupName, courseID)
 	return nil
 }
 
@@ -401,9 +401,9 @@ func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloak
 		users = users[:limit]
 	}
 
-	results := make([]keycloakRealmDTO.TeamMember, 0, len(users))
+	results := make([]keycloakRealmDTO.StaffMember, 0, len(users))
 	for _, u := range users {
-		results = append(results, keycloakRealmDTO.GetTeamMemberFromKeycloakUser(u))
+		results = append(results, keycloakRealmDTO.GetStaffMemberFromKeycloakUser(u))
 	}
 
 	return keycloakRealmDTO.UserSearchResults{

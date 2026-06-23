@@ -1,7 +1,7 @@
 package keycloakRealmDTO
 
 // KeycloakStatus reports whether the configured Keycloak service account is
-// usable for the operations the course-team management feature depends on.
+// usable for the operations the course-staff management feature depends on.
 // Each capability is an independent sub-check; Healthy is true only when all
 // of them pass.
 type KeycloakStatus struct {

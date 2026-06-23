@@ -19,23 +19,23 @@ import {
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Trash2, UserPlus } from 'lucide-react'
-import { CourseGroupName, TeamMember } from '../interfaces/TeamMember'
+import { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
 
-interface TeamMemberTableProps {
+interface StaffMemberTableProps {
   title: string
   description: string
   groupName: CourseGroupName
-  members: TeamMember[]
+  members: StaffMember[]
   currentUsername: string | undefined
   onAdd: () => void
-  onRemove: (member: TeamMember) => void
+  onRemove: (member: StaffMember) => void
   isRemoving: boolean
 }
 
-const fullName = (m: TeamMember) =>
+const fullName = (m: StaffMember) =>
   [m.firstName, m.lastName].filter(Boolean).join(' ') || m.username
 
-export const TeamMemberTable = ({
+export const StaffMemberTable = ({
   title,
   description,
   groupName,
@@ -44,8 +44,8 @@ export const TeamMemberTable = ({
   onAdd,
   onRemove,
   isRemoving,
-}: TeamMemberTableProps) => {
-  const [pendingRemoval, setPendingRemoval] = useState<TeamMember | null>(null)
+}: StaffMemberTableProps) => {
+  const [pendingRemoval, setPendingRemoval] = useState<StaffMember | null>(null)
 
   return (
     <Card>

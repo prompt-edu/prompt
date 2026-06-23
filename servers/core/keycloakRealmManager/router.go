@@ -27,10 +27,10 @@ func setupKeycloakRouter(router *gin.RouterGroup, authMiddleware func() gin.Hand
 	// Adding Students to a custom group
 	keycloak.PUT("/group/:groupName/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addStudentsToGroup)
 
-	// Course team management (Lecturer & Editor membership)
-	keycloak.GET("/group/team", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getCourseTeam)
-	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addCourseTeamMember)
-	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), removeCourseTeamMember)
+	// Course staff management (Lecturer & Editor membership)
+	keycloak.GET("/group/staff", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getCourseStaff)
+	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addCourseStaffMember)
+	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), removeCourseStaffMember)
 
 	// Realm-wide Keycloak user search. Not nested under :courseID because the
 	// query has no course context; permissionValidation.CheckAccessControlByRole
@@ -198,32 +198,32 @@ func handleError(c *gin.Context, statusCode int, err error) {
 	})
 }
 
-// getCourseTeam godoc
-// @Summary Get the team (Lecturers and Editors) of a course
+// getCourseStaff godoc
+// @Summary Get the staff (Lecturers and Editors) of a course
 // @Tags keycloak
 // @Produce json
 // @Param courseID path string true "Course UUID"
-// @Success 200 {object} keycloakRealmDTO.CourseTeam
+// @Success 200 {object} keycloakRealmDTO.CourseStaff
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
-// @Router /keycloak/{courseID}/group/team [get]
-func getCourseTeam(c *gin.Context) {
+// @Router /keycloak/{courseID}/group/staff [get]
+func getCourseStaff(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	team, err := GetCourseTeam(c, courseID)
+	staff, err := GetCourseStaff(c, courseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, team)
+	c.IndentedJSON(http.StatusOK, staff)
 }
 
-// addCourseTeamMember godoc
+// addCourseStaffMember godoc
 // @Summary Add a Keycloak user to the Lecturer or Editor group of a course
 // @Tags keycloak
 // @Produce json
@@ -235,7 +235,7 @@ func getCourseTeam(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/members/{userID} [put]
-func addCourseTeamMember(c *gin.Context) {
+func addCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -266,7 +266,7 @@ func addCourseTeamMember(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// removeCourseTeamMember godoc
+// removeCourseStaffMember godoc
 // @Summary Remove a Keycloak user from the Lecturer or Editor group of a course
 // @Tags keycloak
 // @Produce json
@@ -277,7 +277,7 @@ func addCourseTeamMember(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/members/{userID} [delete]
-func removeCourseTeamMember(c *gin.Context) {
+func removeCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)

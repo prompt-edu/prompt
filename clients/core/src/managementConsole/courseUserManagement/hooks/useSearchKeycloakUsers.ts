@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { UserSearchResults } from '../interfaces/TeamMember'
+import { UserSearchResults } from '../interfaces/StaffMember'
 
 const searchKeycloakUsers = async (query: string, limit = 20): Promise<UserSearchResults> => {
   return (

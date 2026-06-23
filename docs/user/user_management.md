@@ -19,8 +19,8 @@ Open any course you are a Lecturer of, then click **User Management** in the cou
 
 The page shows two tables:
 
-- **Lecturers** - full course administration, including team management.
-- **Editors** - can edit course content but cannot manage the team.
+- **Lecturers** - full course administration, including staff management.
+- **Editors** - can edit course content but cannot manage the staff.
 
 ---
 

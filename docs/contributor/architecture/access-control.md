@@ -117,7 +117,7 @@ Example: A course phase service may define team roles (`team-1`, `team-2`) and u
 
 ---
 
-## 🧑‍🤝‍🧑 Course Team Management API
+## 🧑‍🤝‍🧑 Course Staff Management API
 
 Lecturers and Editors are managed via Keycloak groups (`/Prompt/{semesterTag}-{courseName}/Lecturer` and `.../Editor`). The PROMPT Core server exposes a small REST API on top of those groups so the UI does not have to talk to Keycloak directly. All routes live in `servers/core/keycloakRealmManager/`.
 
@@ -127,7 +127,7 @@ The Authorization column uses the literal Keycloak role names the JWT must carry
 
 | Method | Path | Authorization |
 | :--- | :--- | :--- |
-| `GET` | `/api/keycloak/:courseID/group/team` | `PROMPT_Admin` or `<course>-Lecturer` |
+| `GET` | `/api/keycloak/:courseID/group/staff` | `PROMPT_Admin` or `<course>-Lecturer` |
 | `PUT` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
 | `DELETE` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
 | `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PROMPT_Admin` or any `*-Lecturer` (any course) |
@@ -144,7 +144,7 @@ The defence against cross-course privilege escalation rests on **three** indepen
 Every mutating call also writes an INFO-level audit log line in the form:
 
 ```text
-course-team audit: caller=<sub> action=<add|remove> target=<userID> group=<groupName> course=<courseID>
+course-staff audit: caller=<sub> action=<add|remove> target=<userID> group=<groupName> course=<courseID>
 ```
 
 ### Path Normalisation Gotcha

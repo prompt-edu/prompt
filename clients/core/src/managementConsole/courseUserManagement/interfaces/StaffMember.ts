@@ -1,4 +1,4 @@
-export interface TeamMember {
+export interface StaffMember {
   keycloakUserID: string
   username: string
   email: string
@@ -6,13 +6,13 @@ export interface TeamMember {
   lastName: string
 }
 
-export interface CourseTeam {
-  lecturers: TeamMember[]
-  editors: TeamMember[]
+export interface CourseStaff {
+  lecturers: StaffMember[]
+  editors: StaffMember[]
 }
 
 export interface UserSearchResults {
-  results: TeamMember[]
+  results: StaffMember[]
   truncated: boolean
 }
 

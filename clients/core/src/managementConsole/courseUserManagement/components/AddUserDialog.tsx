@@ -10,7 +10,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Loader2, Search } from 'lucide-react'
 import { useSearchKeycloakUsers } from '../hooks/useSearchKeycloakUsers'
-import { CourseGroupName, TeamMember } from '../interfaces/TeamMember'
+import { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
 
 interface AddUserDialogProps {
   open: boolean
@@ -18,7 +18,7 @@ interface AddUserDialogProps {
   groupName: CourseGroupName
   existingLecturerIDs: Set<string>
   existingEditorIDs: Set<string>
-  onSelect: (user: TeamMember) => void
+  onSelect: (user: StaffMember) => void
   isAdding: boolean
 }
 
@@ -31,7 +31,7 @@ const useDebouncedValue = <T,>(value: T, delayMs = 300): T => {
   return debounced
 }
 
-const memberLabel = (m: TeamMember) =>
+const memberLabel = (m: StaffMember) =>
   [m.firstName, m.lastName].filter(Boolean).join(' ') || m.username
 
 export const AddUserDialog = ({

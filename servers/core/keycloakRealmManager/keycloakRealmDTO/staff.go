@@ -2,8 +2,8 @@ package keycloakRealmDTO
 
 import "github.com/Nerzal/gocloak/v14"
 
-// TeamMember is a Keycloak user as displayed in the course team management UI.
-type TeamMember struct {
+// StaffMember is a Keycloak user as displayed in the course staff management UI.
+type StaffMember struct {
 	KeycloakUserID string `json:"keycloakUserID"`
 	Username       string `json:"username"`
 	Email          string `json:"email"`
@@ -11,24 +11,24 @@ type TeamMember struct {
 	LastName       string `json:"lastName"`
 }
 
-// CourseTeam is the Lecturer / Editor membership of a single course.
-type CourseTeam struct {
-	Lecturers []TeamMember `json:"lecturers"`
-	Editors   []TeamMember `json:"editors"`
+// CourseStaff is the Lecturer / Editor membership of a single course.
+type CourseStaff struct {
+	Lecturers []StaffMember `json:"lecturers"`
+	Editors   []StaffMember `json:"editors"`
 }
 
 // UserSearchResults is the response of the realm-wide Keycloak user search.
 // Truncated is true when more matches exist than were returned and the caller
 // should narrow their query.
 type UserSearchResults struct {
-	Results   []TeamMember `json:"results"`
+	Results   []StaffMember `json:"results"`
 	Truncated bool         `json:"truncated"`
 }
 
-// GetTeamMemberFromKeycloakUser maps a gocloak.User to a TeamMember,
+// GetStaffMemberFromKeycloakUser maps a gocloak.User to a StaffMember,
 // safely handling nil pointer fields by substituting empty strings.
-func GetTeamMemberFromKeycloakUser(user *gocloak.User) TeamMember {
-	return TeamMember{
+func GetStaffMemberFromKeycloakUser(user *gocloak.User) StaffMember {
+	return StaffMember{
 		KeycloakUserID: stringOrEmpty(user.ID),
 		Username:       stringOrEmpty(user.Username),
 		Email:          stringOrEmpty(user.Email),

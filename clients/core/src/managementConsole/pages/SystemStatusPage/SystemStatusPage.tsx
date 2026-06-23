@@ -5,8 +5,16 @@ import { CoursePhaseType } from './interfaces/coursePhaseType'
 import { getServiceInfo } from './network/getServiceCapabilities'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
 
+const isMicroserviceBaseUrl = (baseUrl: string): boolean => {
+  const url = baseUrl.trim().toLowerCase()
+  return url.startsWith('http://') || url.startsWith('https://')
+}
+
 export const SystemStatusPage = () => {
-  const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()
+  const { data: allCoursePhaseTypes = [] } = useGetCoursePhaseTypes()
+  const coursePhaseTypes = allCoursePhaseTypes.filter((service) =>
+    isMicroserviceBaseUrl(service.baseUrl),
+  )
 
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {

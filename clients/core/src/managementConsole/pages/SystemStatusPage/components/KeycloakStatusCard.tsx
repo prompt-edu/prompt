@@ -31,11 +31,7 @@ export const KeycloakStatusCard = () => {
             <CardTitle className='text-base'>Keycloak</CardTitle>
           </div>
           <div className='flex items-center gap-2'>
-            {isPending ? (
-              <Skeleton className='h-5 w-16' />
-            ) : (
-              <ServiceStatusBadge status={status} />
-            )}
+            {isPending ? <Skeleton className='h-5 w-16' /> : <ServiceStatusBadge status={status} />}
             <Button
               variant='ghost'
               size='icon'

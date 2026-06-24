@@ -10,7 +10,7 @@
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-template \
 	sqlc-certificate \
-	swagger install-clients install-hooks
+	swagger install-clients install-hooks setup-skills
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -171,3 +171,6 @@ install-clients: ## Install client dependencies
 
 install-hooks: ## Install git hooks
 	./scripts/install-githooks.sh
+
+setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
+	./scripts/setup-skills.sh

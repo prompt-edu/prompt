@@ -1,0 +1,6 @@
+# Files copied into new git worktrees (gitignore syntax).
+# Only matching files that are ALSO gitignored are copied; tracked files are never duplicated.
+# Keeps local env + per-dev Claude settings available so worktrees run out of the box.
+.env
+.env.dev
+.claude/settings.local.json

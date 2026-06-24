@@ -100,9 +100,12 @@ Agent configuration is shared with the team and split by purpose:
   files. Stacks: `common/` (always-on), `go/`, `react-typescript/`, `database/`,
   `module-federation/`, `docker/`. Other tools: see `AGENTS.override.md` (Codex).
 - **Skills** — repeatable procedures in `.agents/skills/` (canonical source), symlinked into
-  `.claude/skills/` via `make setup-skills`. Available: `new-course-phase`, `sqlc-migration`,
-  `add-shared-ui-component`, `module-federation-remote`, `keycloak-local-setup`,
-  `github-pull-request-creation`, `github-release-creation`.
+  `.claude/skills/` via `make setup-skills`.
+  - Repo-specific: `new-course-phase`, `sqlc-migration`, `add-shared-ui-component`,
+    `module-federation-remote`, `keycloak-local-setup`, `open-pr`, `address-pr-comments`,
+    `github-release-creation`.
+  - Reference patterns (vendored from ECC, MIT): `golang-patterns`, `postgres-patterns`,
+    `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
 - Full rollout rationale and community-skill references: `AI_TOOLING_PLAN.md`.

@@ -1,6 +1,6 @@
 {
   "name": "team_allocation_component",
-  "version": "2.13.1",
+  "version": "2.13.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

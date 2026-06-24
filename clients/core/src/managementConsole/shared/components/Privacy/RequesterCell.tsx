@@ -27,7 +27,7 @@ export function RequesterCell({
     )
   }
 
-  return <span className='text-sm text-muted-foreground'>Non-student user</span>
+  return <span className='text-sm text-muted-foreground'>Non-student user / removed</span>
 }
 
 export function requesterAccessor(row: {

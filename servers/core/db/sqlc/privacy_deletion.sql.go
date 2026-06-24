@@ -152,7 +152,7 @@ SELECT
   s.email      AS student_email
 FROM privacy_deletion_request_with_subrequests v
 LEFT JOIN student s ON s.id = v.student_id
-ORDER BY v.requested_at DESC
+ORDER BY (v.status = 'pending_approval') DESC, v.requested_at DESC
 `
 
 type GetAllDeletionRequestsRow struct {

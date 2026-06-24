@@ -6,6 +6,13 @@ paths:
 # Go Coding Style
 
 Stack: Go 1.26, Gin, PostgreSQL (pgx), sqlc, golang-migrate. Extends `../common/coding-style.md`.
+For deeper idioms (concurrency, errgroup, context, anti-patterns) use the `golang-patterns` skill.
+
+## Formatting & design
+
+- `gofmt` and `goimports` are mandatory — no style debates.
+- Accept interfaces, return concrete types (structs). Keep interfaces small (1–3 methods) and
+  defined on the consumer side.
 
 ## Naming
 
@@ -34,6 +41,14 @@ func handler(c *gin.Context) {
         return
     }
     // ... business logic
+}
+```
+
+Wrap errors with context as they propagate, using `%w` so callers can `errors.Is`/`errors.As`:
+
+```go
+if err != nil {
+    return fmt.Errorf("failed to fetch tutors for phase %s: %w", coursePhaseID, err)
 }
 ```
 

@@ -31,3 +31,24 @@ const { data, isLoading } = useQuery({
   `getCoursePhaseParticipations`, `updateCoursePhase` (JSON-Patch), `sendStatusMail`, …
 - Mutations should invalidate the relevant query keys and surface toast feedback (`useToast`).
 - Use the shared `axiosInstance` (JWT injection + CORS) and the global `env` config object.
+
+## State location decision tree
+
+1. Used by one component → `useState` inside it.
+2. Used by parent + a few children → lift to nearest common ancestor, pass via props.
+3. Shared across distant branches, **low-frequency** reads (theme, auth, locale) → React Context.
+4. Shared across the tree with **high-frequency** updates → Zustand store (`@tumaet/prompt-shared-state`).
+   Context misused for frequently-changing values re-renders every consumer on every update.
+5. Server-derived data → React Query — this is cache, not application state. Don't mirror it in Zustand.
+
+## Data fetching
+
+- **Never `fetch` in `useEffect`** when React Query is available — it handles deduping, caching,
+  invalidation, and retry. Raw `useEffect` fetches cause race conditions and miss the cache.
+- Pair every `Suspense` boundary with an `ErrorBoundary` above it; place boundaries close to where
+  data is needed, not at the route root.
+- List `key` must be stable and unique among siblings — never the array index for lists that can
+  reorder/insert/delete.
+
+For performance work (waterfalls, bundle size for Module Federation remotes, re-render reduction),
+use the `react-performance` skill (note: its RSC/Next.js sections don't apply to our Webpack setup).

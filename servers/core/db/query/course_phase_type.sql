@@ -98,6 +98,14 @@ SELECT EXISTS (
             name = 'Certificate'
     ) AS does_exist;
 
+-- name: TestInfrastructureSetupTypeExists :one
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Infrastructure Setup'
+    ) AS does_exist;
+
 -- name: CreateCoursePhaseType :exec
 INSERT INTO course_phase_type (id, name, initial_phase, base_url, description)
 VALUES ($1, $2, $3, $4, $5);

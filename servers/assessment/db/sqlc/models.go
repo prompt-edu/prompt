@@ -222,11 +222,6 @@ type Competency struct {
 	DescriptionVeryGood string      `json:"description_very_good"`
 }
 
-type CompetencyMap struct {
-	FromCompetencyID uuid.UUID `json:"from_competency_id"`
-	ToCompetencyID   uuid.UUID `json:"to_competency_id"`
-}
-
 type CompletedScoreLevel struct {
 	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`

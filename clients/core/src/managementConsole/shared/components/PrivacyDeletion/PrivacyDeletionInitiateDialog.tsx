@@ -20,7 +20,7 @@ import {
   PrivacyDeletionWhatGetsDeleted,
 } from './PrivacyDeletionExplainerContent'
 
-const BATCH_SIZE = 40
+const BATCH_SIZE = 20
 const WAIT_SECONDS = 5
 const POLL_INTERVAL_MS = 3000
 
@@ -54,7 +54,7 @@ export function PrivacyDeletionInitiateDialog({
   const queryClient = useQueryClient()
   const batches = useMemo(() => chunk(studentIDs, BATCH_SIZE), [studentIDs])
 
-  const [armingRemaining, setArmingRemaining] = useState(WAIT_SECONDS)
+  const [triggerCooldownRemaining, setTriggerCooldownRemaining] = useState(WAIT_SECONDS)
   const [phase, setPhase] = useState<Phase>('idle')
   const [currentBatch, setCurrentBatch] = useState(0)
   const [batchTerminalCount, setBatchTerminalCount] = useState(0)
@@ -63,14 +63,14 @@ export function PrivacyDeletionInitiateDialog({
 
   useEffect(() => {
     if (!open) return
-    setArmingRemaining(WAIT_SECONDS)
+    setTriggerCooldownRemaining(WAIT_SECONDS)
     setPhase('idle')
     setCurrentBatch(0)
     setBatchTerminalCount(0)
     setResults([])
     setErrorMsg(null)
     const interval = setInterval(() => {
-      setArmingRemaining((prev) => {
+      setTriggerCooldownRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(interval)
           return 0
@@ -151,10 +151,12 @@ export function PrivacyDeletionInitiateDialog({
                   <p className='font-medium'>
                     {studentIDs.length} student{studentIDs.length === 1 ? '' : 's'} selected
                   </p>
-                  <p className='text-muted-foreground'>
-                    Will be processed in {batches.length} batch{batches.length === 1 ? '' : 'es'} of
-                    up to {BATCH_SIZE}.
-                  </p>
+                  {studentIDs.length > BATCH_SIZE && (
+                    <p className='text-muted-foreground'>
+                      Processed in {batches.length} batch{batches.length === 1 ? '' : 'es'} of up to{' '}
+                      {BATCH_SIZE}.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -219,9 +221,11 @@ export function PrivacyDeletionInitiateDialog({
             <Button
               variant='destructive'
               onClick={start}
-              disabled={armingRemaining > 0 || studentIDs.length === 0}
+              disabled={triggerCooldownRemaining > 0 || studentIDs.length === 0}
             >
-              {armingRemaining > 0 ? `Start Deletion (${armingRemaining}s)` : `Start Deletion`}
+              {triggerCooldownRemaining > 0
+                ? `Start Deletion (${triggerCooldownRemaining}s)`
+                : `Start Deletion`}
             </Button>
           )}
           {phase === 'running' && (

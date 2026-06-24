@@ -7,9 +7,13 @@ import { useParticipationStore } from '../../../zustand/useParticipationStore'
 
 interface PassStatusControlsProps {
   courseParticipationID?: string
+  disabled?: boolean
 }
 
-export const PassStatusControls = ({ courseParticipationID }: PassStatusControlsProps) => {
+export const PassStatusControls = ({
+  courseParticipationID,
+  disabled = false,
+}: PassStatusControlsProps) => {
   const { permissions } = useAuthStore()
   const { participations } = useParticipationStore()
   const participant = participations.find(
@@ -30,6 +34,8 @@ export const PassStatusControls = ({ courseParticipationID }: PassStatusControls
   }
 
   const handleUpdatePassStatus = (status: PassStatus) => {
+    if (disabled) return
+
     updateParticipation({
       coursePhaseID: participant.coursePhaseID,
       courseParticipationID,
@@ -43,7 +49,7 @@ export const PassStatusControls = ({ courseParticipationID }: PassStatusControls
     <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t pt-4'>
       <Button
         variant='outline'
-        disabled={isPending || participant.passStatus === PassStatus.FAILED}
+        disabled={disabled || isPending || participant.passStatus === PassStatus.FAILED}
         className='border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700'
         onClick={() => handleUpdatePassStatus(PassStatus.FAILED)}
       >
@@ -52,7 +58,7 @@ export const PassStatusControls = ({ courseParticipationID }: PassStatusControls
 
       <Button
         variant='default'
-        disabled={isPending || participant.passStatus === PassStatus.PASSED}
+        disabled={disabled || isPending || participant.passStatus === PassStatus.PASSED}
         className='bg-green-500 hover:bg-green-600 text-white'
         onClick={() => handleUpdatePassStatus(PassStatus.PASSED)}
       >

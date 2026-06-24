@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -100,7 +101,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
 func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructor() {
 	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), 1, len(courses), "Expected the archived course to be visible to its instructor")
+	require.Len(suite.T(), courses, 1, "Expected the archived course to be visible to its instructor")
 	assert.True(suite.T(), courses[0].Archived, "Returned course should be archived")
 }
 

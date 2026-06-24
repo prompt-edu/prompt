@@ -76,7 +76,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: "**/*.sum"
+          cache-dependency-path: "servers/**/*.sum"
       - name: Install swag
         run: |
           go install github.com/swaggo/swag/cmd/swag@latest

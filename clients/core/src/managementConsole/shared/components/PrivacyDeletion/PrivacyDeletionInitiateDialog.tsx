@@ -20,7 +20,7 @@ import {
   PrivacyDeletionWhatGetsDeleted,
 } from './PrivacyDeletionExplainerContent'
 
-const BATCH_SIZE = 20
+const BATCH_SIZE = 10
 const WAIT_SECONDS = 5
 const POLL_INTERVAL_MS = 3000
 

@@ -6794,6 +6794,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "lastModified": {
+                    "type": "string"
+                },
                 "lastName": {
                     "type": "string"
                 },

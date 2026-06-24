@@ -123,6 +123,7 @@ SELECT
   s.has_university_account AS student_has_university_account,
   s.current_semester,
   s.study_program,
+  s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
       jsonb_build_object(
@@ -161,15 +162,16 @@ GROUP BY
 `
 
 type GetAllStudentsWithCourseParticipationsRow struct {
-	StudentID                   uuid.UUID   `json:"student_id"`
-	StudentFirstName            pgtype.Text `json:"student_first_name"`
-	StudentLastName             pgtype.Text `json:"student_last_name"`
-	StudentEmail                pgtype.Text `json:"student_email"`
-	StudentHasUniversityAccount pgtype.Bool `json:"student_has_university_account"`
-	CurrentSemester             pgtype.Int4 `json:"current_semester"`
-	StudyProgram                pgtype.Text `json:"study_program"`
-	Courses                     []byte      `json:"courses"`
-	NoteTags                    []byte      `json:"note_tags"`
+	StudentID                   uuid.UUID        `json:"student_id"`
+	StudentFirstName            pgtype.Text      `json:"student_first_name"`
+	StudentLastName             pgtype.Text      `json:"student_last_name"`
+	StudentEmail                pgtype.Text      `json:"student_email"`
+	StudentHasUniversityAccount pgtype.Bool      `json:"student_has_university_account"`
+	CurrentSemester             pgtype.Int4      `json:"current_semester"`
+	StudyProgram                pgtype.Text      `json:"study_program"`
+	StudentLastModified         pgtype.Timestamp `json:"student_last_modified"`
+	Courses                     []byte           `json:"courses"`
+	NoteTags                    []byte           `json:"note_tags"`
 }
 
 func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([]GetAllStudentsWithCourseParticipationsRow, error) {
@@ -189,6 +191,7 @@ func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([
 			&i.StudentHasUniversityAccount,
 			&i.CurrentSemester,
 			&i.StudyProgram,
+			&i.StudentLastModified,
 			&i.Courses,
 			&i.NoteTags,
 		); err != nil {

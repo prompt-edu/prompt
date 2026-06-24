@@ -86,6 +86,7 @@ SELECT
   s.has_university_account AS student_has_university_account,
   s.current_semester,
   s.study_program,
+  s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
       jsonb_build_object(

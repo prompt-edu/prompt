@@ -63,7 +63,7 @@ func (suite *CourseServiceTestSuite) TearDownSuite() {
 func (suite *CourseServiceTestSuite) TestGetAllCourses() {
 	courses, err := GetAllCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(courses), 10, "Expected all courses")
+	assert.Equal(suite.T(), len(courses), 11, "Expected all courses")
 
 	for _, course := range courses {
 		assert.NotEmpty(suite.T(), course.ID, "Course ID should not be empty")
@@ -93,6 +93,22 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
 		// Ensure that restricted data is not present
 		assert.Empty(suite.T(), course.RestrictedData, "Course should not have restricted data")
 	}
+}
+
+// Archived courses must remain visible to their instructors (lecturers/editors)
+// so they can still review older results. See issue #1264.
+func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructor() {
+	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, len(courses), "Expected the archived course to be visible to its instructor")
+	assert.True(suite.T(), courses[0].Archived, "Returned course should be archived")
+}
+
+// Student-only users must not see archived courses (preserves prior behavior).
+func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent() {
+	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 0, len(courses), "Archived course should be hidden from student-only users")
 }
 
 func (suite *CourseServiceTestSuite) TestGetCourseByID() {

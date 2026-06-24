@@ -61,7 +61,12 @@ Thumbs.db
 # =============================================================================
 # AI Assistant Config
 # =============================================================================
-.claude/
+# Track shared Claude config (rules/, agents/, settings.json); ignore only
+# local overrides and derived paths. Skill content is canonical in .agents/skills/
+# and symlinked into .claude/skills/ (symlinks regenerated via `npx skills`).
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
 .gemini/
 .worktrees/
 

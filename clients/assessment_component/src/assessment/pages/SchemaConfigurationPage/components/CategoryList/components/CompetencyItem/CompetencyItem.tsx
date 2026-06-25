@@ -6,16 +6,11 @@ import { Button, Badge } from '@tumaet/prompt-ui-components'
 import { AssessmentType } from '../../../../../../interfaces/assessmentType'
 import { Competency } from '../../../../../../interfaces/competency'
 
-import { useCoursePhaseConfigStore } from '../../../../../../zustand/useCoursePhaseConfigStore'
-import { useSelfEvaluationCategoryStore } from '../../../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../../../zustand/usePeerEvaluationCategoryStore'
-
 import { ScoreLevelSelector } from '../../../../../components/ScoreLevelSelector'
 
 import { DeleteConfirmDialog } from '../DeleteConfirmDialog'
 
 import { EditCompetencyDialog } from './components/EditCompetencyDialog'
-import { EvaluationMapping } from './components/EvaluationMapping'
 
 interface CompetencyItemProps {
   competency: Competency
@@ -27,7 +22,6 @@ interface CompetencyItemProps {
 export const CompetencyItem = ({
   competency,
   categoryID,
-  assessmentType,
   disabled = false,
 }: CompetencyItemProps) => {
   const [competencyToEdit, setCompetencyToEdit] = useState<Competency | undefined>(undefined)
@@ -39,20 +33,6 @@ export const CompetencyItem = ({
       }
     | undefined
   >(undefined)
-
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const isEvaluationEnabled =
-    coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled
-
-  const { allSelfEvaluationCompetencies } = useSelfEvaluationCategoryStore()
-  const { allPeerEvaluationCompetencies } = usePeerEvaluationCategoryStore()
-
-  const currentSelfMapping = competency.mappedFromCompetencies.find((id) =>
-    allSelfEvaluationCompetencies.some((comp) => comp.id === id),
-  )
-  const currentPeerMapping = competency.mappedFromCompetencies.find((id) =>
-    allPeerEvaluationCompetencies.some((comp) => comp.id === id),
-  )
 
   return (
     <div>
@@ -103,38 +83,6 @@ export const CompetencyItem = ({
           onScoreChange={() => {}}
           completed={false}
         />
-
-        {isEvaluationEnabled && assessmentType === AssessmentType.ASSESSMENT && (
-          <div>
-            <h3 className='text-sm font-medium mb-2'>
-              {coursePhaseConfig?.selfEvaluationEnabled && coursePhaseConfig?.peerEvaluationEnabled
-                ? 'Self and Peer Evaluation Mapping'
-                : coursePhaseConfig?.selfEvaluationEnabled
-                  ? 'Self Evaluation Mapping'
-                  : 'Peer Evaluation Mapping'}
-            </h3>
-
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-              {coursePhaseConfig?.selfEvaluationEnabled && (
-                <EvaluationMapping
-                  assessmentType={AssessmentType.SELF}
-                  competencies={allSelfEvaluationCompetencies}
-                  currentMapping={currentSelfMapping}
-                  competency={competency}
-                />
-              )}
-
-              {coursePhaseConfig?.peerEvaluationEnabled && (
-                <EvaluationMapping
-                  assessmentType={AssessmentType.PEER}
-                  competencies={allPeerEvaluationCompetencies}
-                  currentMapping={currentPeerMapping}
-                  competency={competency}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       <EditCompetencyDialog

@@ -34,8 +34,8 @@ export const useKeycloak = (): {
 
   const { keycloakUrl, keycloakRealmName, keycloakValue } = context
 
-  // re-set app state from incoming token
-  const syncStateFromToken = useCallback(
+  // set app state from incoming token
+  const setStateFromToken = useCallback(
     (keycloak: Keycloak) => {
       localStorage.setItem('jwt_token', keycloak.token ?? '')
       localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
@@ -71,7 +71,7 @@ export const useKeycloak = (): {
     keycloak.onTokenExpired = () => {
       keycloak
         .updateToken(5)
-        .then(() => syncStateFromToken(keycloak))
+        .then(() => setStateFromToken(keycloak))
         .catch(() => {
           clearUser()
           clearPermissions()
@@ -84,7 +84,7 @@ export const useKeycloak = (): {
       .init({ onLoad: 'login-required' })
       .then(() => {
         context.keycloakValue = keycloak // Update context dynamically
-        syncStateFromToken(keycloak)
+        setStateFromToken(keycloak)
       })
       .catch((err) => {
         clearUser()
@@ -93,7 +93,7 @@ export const useKeycloak = (): {
       })
 
     return keycloak
-  }, [context, clearUser, clearPermissions, syncStateFromToken, keycloakRealmName, keycloakUrl])
+  }, [context, clearUser, clearPermissions, setStateFromToken, keycloakRealmName, keycloakUrl])
 
   useEffect(() => {
     if (!keycloakValue) {
@@ -121,8 +121,7 @@ export const useKeycloak = (): {
         keycloakValue
           .updateToken(1000000) // Force immediate refresh
           .then(() => {
-            // re-sync all token-derived state so newly added roles apply without a reload
-            syncStateFromToken(keycloakValue)
+            setStateFromToken(keycloakValue)
             resolve() // Resolve the promise on success
           })
           .catch((err) => {

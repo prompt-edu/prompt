@@ -34,6 +34,33 @@ export const useKeycloak = (): {
 
   const { keycloakUrl, keycloakRealmName, keycloakValue } = context
 
+  // re-set app state from incoming token
+  const syncStateFromToken = useCallback(
+    (keycloak: Keycloak) => {
+      localStorage.setItem('jwt_token', keycloak.token ?? '')
+      localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
+
+      if (keycloak.token) {
+        const decodedJwt = parseJwt(keycloak.token)
+        if (decodedJwt) {
+          setUser({
+            firstName: decodedJwt.given_name || '',
+            lastName: decodedJwt.family_name || '',
+            email: decodedJwt.email || '',
+            username: decodedJwt.preferred_username || '',
+            matriculationNumber: decodedJwt.matriculation_number || '',
+            universityLogin: decodedJwt.university_login || '',
+          })
+        } else {
+          clearUser()
+        }
+        const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
+        setPermissions(resourceRoles)
+      }
+    },
+    [setUser, clearUser, setPermissions],
+  )
+
   const initializeKeycloak = useCallback(() => {
     const keycloak = new Keycloak({
       realm: keycloakRealmName,
@@ -44,10 +71,7 @@ export const useKeycloak = (): {
     keycloak.onTokenExpired = () => {
       keycloak
         .updateToken(5)
-        .then(() => {
-          localStorage.setItem('jwt_token', keycloak.token ?? '')
-          localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
-        })
+        .then(() => syncStateFromToken(keycloak))
         .catch(() => {
           clearUser()
           clearPermissions()
@@ -59,27 +83,8 @@ export const useKeycloak = (): {
     void keycloak
       .init({ onLoad: 'login-required' })
       .then(() => {
-        localStorage.setItem('jwt_token', keycloak.token ?? '')
-        localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
         context.keycloakValue = keycloak // Update context dynamically
-
-        if (keycloak.token) {
-          const decodedJwt = parseJwt(keycloak.token)
-          if (decodedJwt) {
-            setUser({
-              firstName: decodedJwt.given_name || '',
-              lastName: decodedJwt.family_name || '',
-              email: decodedJwt.email || '',
-              username: decodedJwt.preferred_username || '',
-              matriculationNumber: decodedJwt.matriculation_number || '',
-              universityLogin: decodedJwt.university_login || '',
-            })
-          } else {
-            clearUser()
-          }
-          const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
-          setPermissions(resourceRoles)
-        }
+        syncStateFromToken(keycloak)
       })
       .catch((err) => {
         clearUser()
@@ -88,15 +93,7 @@ export const useKeycloak = (): {
       })
 
     return keycloak
-  }, [
-    context,
-    clearUser,
-    clearPermissions,
-    setUser,
-    setPermissions,
-    keycloakRealmName,
-    keycloakUrl,
-  ])
+  }, [context, clearUser, clearPermissions, syncStateFromToken, keycloakRealmName, keycloakUrl])
 
   useEffect(() => {
     if (!keycloakValue) {
@@ -124,11 +121,8 @@ export const useKeycloak = (): {
         keycloakValue
           .updateToken(1000000) // Force immediate refresh
           .then(() => {
-            localStorage.setItem('jwt_token', keycloakValue.token ?? '')
-            localStorage.setItem('refreshToken', keycloakValue.refreshToken ?? '')
-            // reset permissions to apply newly added roles without reload
-            const resourceRoles = keycloakValue.resourceAccess?.['prompt-server']?.roles || []
-            setPermissions(resourceRoles)
+            // re-sync all token-derived state so newly added roles apply without a reload
+            syncStateFromToken(keycloakValue)
             resolve() // Resolve the promise on success
           })
           .catch((err) => {

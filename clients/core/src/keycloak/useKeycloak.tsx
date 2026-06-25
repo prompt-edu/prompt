@@ -40,25 +40,25 @@ export const useKeycloak = (): {
       localStorage.setItem('jwt_token', keycloak.token ?? '')
       localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
 
-      if (keycloak.token) {
-        const decodedJwt = parseJwt(keycloak.token)
-        if (decodedJwt) {
-          setUser({
-            firstName: decodedJwt.given_name || '',
-            lastName: decodedJwt.family_name || '',
-            email: decodedJwt.email || '',
-            username: decodedJwt.preferred_username || '',
-            matriculationNumber: decodedJwt.matriculation_number || '',
-            universityLogin: decodedJwt.university_login || '',
-          })
-        } else {
-          clearUser()
-        }
-        const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
-        setPermissions(resourceRoles)
+      const decodedJwt = keycloak.token ? parseJwt(keycloak.token) : null
+      if (!decodedJwt) {
+        clearUser()
+        clearPermissions()
+        return
       }
+
+      setUser({
+        firstName: decodedJwt.given_name || '',
+        lastName: decodedJwt.family_name || '',
+        email: decodedJwt.email || '',
+        username: decodedJwt.preferred_username || '',
+        matriculationNumber: decodedJwt.matriculation_number || '',
+        universityLogin: decodedJwt.university_login || '',
+      })
+      const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
+      setPermissions(resourceRoles)
     },
-    [setUser, clearUser, setPermissions],
+    [setUser, clearUser, setPermissions, clearPermissions],
   )
 
   const initializeKeycloak = useCallback(() => {

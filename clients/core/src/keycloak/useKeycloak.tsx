@@ -126,6 +126,9 @@ export const useKeycloak = (): {
           .then(() => {
             localStorage.setItem('jwt_token', keycloakValue.token ?? '')
             localStorage.setItem('refreshToken', keycloakValue.refreshToken ?? '')
+            // reset permissions to apply newly added roles without reload
+            const resourceRoles = keycloakValue.resourceAccess?.['prompt-server']?.roles || []
+            setPermissions(resourceRoles)
             resolve() // Resolve the promise on success
           })
           .catch((err) => {

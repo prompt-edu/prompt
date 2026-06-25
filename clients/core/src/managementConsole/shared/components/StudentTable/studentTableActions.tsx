@@ -1,9 +1,10 @@
 import { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
 import { RowAction } from '@tumaet/prompt-ui-components'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Trash2 } from 'lucide-react'
 
 interface passedFunctions {
   openStudent: (student: StudentWithCourses) => void
+  onInitiateDeletion?: (students: StudentWithCourses[]) => void
 }
 
 function hideWhenMulti(selectedRows: StudentWithCourses[]) {
@@ -12,8 +13,9 @@ function hideWhenMulti(selectedRows: StudentWithCourses[]) {
 
 export function getStudentTableActions({
   openStudent,
+  onInitiateDeletion,
 }: passedFunctions): RowAction<StudentWithCourses>[] {
-  return [
+  const actions: RowAction<StudentWithCourses>[] = [
     {
       label: 'Open Student',
       icon: <ArrowRight />,
@@ -23,4 +25,16 @@ export function getStudentTableActions({
       hide: hideWhenMulti,
     },
   ]
+
+  if (onInitiateDeletion) {
+    actions.push({
+      label: 'Delete Student Data',
+      icon: <Trash2 />,
+      onAction: (selectedRows: StudentWithCourses[]) => {
+        onInitiateDeletion(selectedRows)
+      },
+    })
+  }
+
+  return actions
 }

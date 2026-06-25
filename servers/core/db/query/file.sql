@@ -72,3 +72,9 @@ SELECT * FROM files
 WHERE tags && $1::VARCHAR[] AND deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: AnonymizeFilesByUploader :exec
+UPDATE files
+SET uploaded_by_user_id = '',
+    uploaded_by_email   = NULL
+WHERE uploaded_by_user_id = $1;

@@ -8,6 +8,7 @@ import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
 import { NoteTagColor } from '../../interfaces/InstructorNote'
 import { ColumnDef, Row } from '@tanstack/react-table'
 import { ProfilePicture } from '@tumaet/prompt-ui-components'
+import { format, subYears } from 'date-fns'
 
 export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {
@@ -90,6 +91,17 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
       if (!filterValue?.length) return true
 
       return row.original.noteTags.some((tag) => filterValue.includes(tag.id))
+    },
+  },
+  {
+    id: 'lastModified',
+    header: 'Last Modified',
+    accessorFn: (row: StudentWithCourses) => new Date(row.lastModified).getTime(),
+    cell: ({ row }) => format(new Date(row.original.lastModified), 'yyyy-MM-dd'),
+    sortingFn: 'basic',
+    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: number | undefined) => {
+      if (!filterValue) return true
+      return new Date(row.original.lastModified) < subYears(new Date(), filterValue)
     },
   },
 ]

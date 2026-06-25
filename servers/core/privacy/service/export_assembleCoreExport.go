@@ -24,7 +24,9 @@ func AggregateSubjectDataFromCore(ctx context.Context, doc ServiceExportRequest,
 
 	defer ex.Close()
 
-	getSubjectDataForUser(ctx, ex, subjectIdentifiers.UserID)
+	if subjectIdentifiers.UserID != uuid.Nil {
+		getSubjectDataForUser(ctx, ex, subjectIdentifiers.UserID)
+	}
 
 	if subjectIdentifiers.StudentID != uuid.Nil {
 		getSubjectDataForStudent(ctx, ex, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs)

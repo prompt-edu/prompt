@@ -1,0 +1,72 @@
+# PROMPT API Stress & Fuzz Suite
+
+A structured, repeatable harness that drives **every** PROMPT API endpoint to find
+what is **slow, degrades under load, errors, or has an access-control gap** - and
+actively tries to break the servers via the API only. Built for both humans and
+future AIs to read, run, and extend.
+
+## What it does
+
+| Layer | Tool | Purpose |
+|-------|------|---------|
+| Catalog | `catalog/endpoints.json` | Single source of truth: all 252 routes (method, path, roles, params). Regenerate with `catalog/merge_catalog.py`. |
+| Auth | `lib/auth.py` | Mint + cache one Keycloak token per role (password grant, public `prompt-client`). |
+| Fixtures | `lib/fixtures.py` | Seed 2 isolated courses (A + B for IDOR), phases per type, an enrolled student, per-service data, and Keycloak course-role assignment. |
+| Load | `k6/scenario.js`, `k6/exhaustion.js` | smoke / load / spike / soak + all-out exhaustion (flood, multi-MB & deeply-nested bodies). Per-endpoint tagged metrics. |
+| Fuzz | `fuzz/fuzz.py` | Input fuzzing, auth matrix (no/forged/alg=none/escalation), cross-course IDOR, file abuse, slowloris. |
+| Report | `report/build_report.py` | Merges everything into a prioritized `report.md` / `report.html` / `findings.json`. |
+
+## Running
+
+The suite targets an **isolated** Docker stack (project `prompt-stress`) so it never
+collides with another running PROMPT stack. First create the local env file (it is
+gitignored), then bring the stack up:
+
+```bash
+cp api-stress/stress.env.example api-stress/stress.env   # run.sh also does this automatically
+
+docker compose --env-file api-stress/stress.env \
+  -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
+  -p prompt-stress up -d \
+  db db-team-allocation db-self-team-allocation db-assessment db-template-server \
+  db-interview db-certificate keycloak-db keycloak \
+  seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3 \
+  server-core server-team-allocation server-self-team-allocation server-assessment \
+  server-template server-interview server-certificate
+```
+
+Then run the suite:
+
+```bash
+api-stress/run.sh                       # full run, medium intensity
+api-stress/run.sh --smoke-only          # quick reachability + latency baseline
+api-stress/run.sh --intensity brutal    # all-out
+api-stress/run.sh --no-exhaustion       # skip the destructive lane
+```
+
+Output lands in `api-stress/reports/<timestamp>/` (`report.md` first).
+
+### Isolated stack details
+
+Host ports are offset by +10000 to avoid collisions: core `18089`, team-alloc
+`18083`, self-team `18084`, assessment `18085`, template `18086`, interview
+`18087`, certificate `18088`, Keycloak `18081`, S3 `18334`. Keycloak is pinned to
+`26.4.7` (the repo's pinned `26.6.3` fails to import the committed realm on a fresh
+DB - see report finding). Sentry is disabled. Teardown:
+
+```bash
+docker compose -p prompt-stress down -v
+```
+
+## Extending
+
+- Add/fix a route: edit the relevant `catalog/partial_<service>.json`, then
+  `python3 catalog/merge_catalog.py`.
+- Tune intensity: `INTENSITY` presets live in `k6/scenario.js` / `k6/exhaustion.js`.
+- Add a fuzz axis: add a method to `fuzz/fuzz.py` and call it in `run()`.
+
+## How findings are prioritized
+
+- **P0** - auth bypass (no/forged/unsigned token accepted) or cross-course IDOR.
+- **P1** - 5xx on a valid request, load-induced degradation, oversized-body crash, slowloris.
+- **P2** - 5xx on malformed input / non-existent target (missing 404 handling), individually slow endpoints.

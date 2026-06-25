@@ -1,0 +1,222 @@
+[
+  {
+    "id": "self_team_allocation.get.hello",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/hello",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "main.func1",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.team",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseStudent"],
+    "category": "read",
+    "handler": "getAllTeams",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.post.team",
+    "service": "self_team_allocation",
+    "method": "POST",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseStudent"],
+    "category": "write",
+    "handler": "createTeams",
+    "bodyType": "teamDTO.CreateTeamsRequest"
+  },
+  {
+    "id": "self_team_allocation.put.team-teamID",
+    "service": "self_team_allocation",
+    "method": "PUT",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "updateTeam",
+    "bodyType": "teamDTO.UpdateTeamRequest"
+  },
+  {
+    "id": "self_team_allocation.put.team-teamID-assignment",
+    "service": "self_team_allocation",
+    "method": "PUT",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}/assignment",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["CourseStudent"],
+    "category": "write",
+    "handler": "assignTeam",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.delete.team-teamID-assignment",
+    "service": "self_team_allocation",
+    "method": "DELETE",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}/assignment",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["CourseStudent"],
+    "category": "destructive",
+    "handler": "leaveTeam",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.delete.team-teamID",
+    "service": "self_team_allocation",
+    "method": "DELETE",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "destructive",
+    "handler": "deleteTeam",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.team-teamID",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "getTeamByID",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.post.team-tutors",
+    "service": "self_team_allocation",
+    "method": "POST",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/tutors",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "importTutors",
+    "bodyType": "[]teamDTO.Tutor"
+  },
+  {
+    "id": "self_team_allocation.post.team-teamID-tutor",
+    "service": "self_team_allocation",
+    "method": "POST",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/{teamID}/tutor",
+    "pathParams": ["coursePhaseID", "teamID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "createManualTutor",
+    "bodyType": "object{firstName,lastName}"
+  },
+  {
+    "id": "self_team_allocation.delete.team-tutor-tutorID",
+    "service": "self_team_allocation",
+    "method": "DELETE",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/tutor/{tutorID}",
+    "pathParams": ["coursePhaseID", "tutorID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "destructive",
+    "handler": "deleteTutor",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.team-tutors",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/team/tutors",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "getTutors",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.timeframe",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/timeframe",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseStudent"],
+    "category": "read",
+    "handler": "getTimeframe",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.put.timeframe",
+    "service": "self_team_allocation",
+    "method": "PUT",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/timeframe",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "setTimeframe",
+    "bodyType": "timeframeDTO.Timeframe"
+  },
+  {
+    "id": "self_team_allocation.get.allocation",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/allocation",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "getAllAllocations",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.allocation-courseParticipationID",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/allocation/{courseParticipationID}",
+    "pathParams": ["coursePhaseID", "courseParticipationID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "getAllocationByCourseParticipationID",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.post.copy",
+    "service": "self_team_allocation",
+    "method": "POST",
+    "path": "/self-team-allocation/api/copy",
+    "pathParams": [],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "RegisterCopyEndpoint.func1",
+    "bodyType": "promptTypes.PhaseCopyRequest"
+  },
+  {
+    "id": "self_team_allocation.post.privacy-data-export",
+    "service": "self_team_allocation",
+    "method": "POST",
+    "path": "/self-team-allocation/api/privacy/data-export",
+    "pathParams": [],
+    "roles": ["custom"],
+    "category": "write",
+    "handler": "RegisterPrivacyDataExportEndpoint.func1",
+    "bodyType": "promptTypes.PrivacyDataExportRequest"
+  },
+  {
+    "id": "self_team_allocation.get.config",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "RegisterConfigEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "self_team_allocation.get.info",
+    "service": "self_team_allocation",
+    "method": "GET",
+    "path": "/self-team-allocation/api/info",
+    "pathParams": [],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "RegisterInfoEndpoint.func1",
+    "bodyType": null
+  }
+]

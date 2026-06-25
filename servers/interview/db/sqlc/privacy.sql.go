@@ -12,6 +12,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteInterviewAssignmentsByParticipationIDs = `-- name: DeleteInterviewAssignmentsByParticipationIDs :exec
+DELETE FROM interview_assignment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteInterviewAssignmentsByParticipationIDs(ctx context.Context, courseParticipationIds []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteInterviewAssignmentsByParticipationIDs, courseParticipationIds)
+	return err
+}
+
 const getInterviewAssignmentsByParticipationIDs = `-- name: GetInterviewAssignmentsByParticipationIDs :many
 SELECT
     ia.id,

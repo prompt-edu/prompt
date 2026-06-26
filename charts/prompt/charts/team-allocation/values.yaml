@@ -1,0 +1,17 @@
+# Overridden by the umbrella `team-allocation:` block; defaults for standalone use.
+enabled: true
+server:
+  enabled: true
+  image: prompt-server-team-allocation
+  replicas: 1
+  port: 8080
+  apiPath: /team-allocation/api
+  dbKey: team-allocation
+  rateLimited: true
+client:
+  enabled: true
+  image: prompt-clients-team-allocation-component
+  replicas: 1
+  port: 80
+  path: /team-allocation
+  stripPrefix: true

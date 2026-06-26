@@ -1,0 +1,301 @@
+# PROMPT 2.0 - umbrella chart values.
+# Defaults favour TUM AET but every stateful dependency is pluggable.
+# See docs/admin/kubernetes for the full configuration reference.
+#
+# NOTE: Helm only propagates the `global:` tree to subcharts. Anything a
+# subchart template reads (host, images, postgresql, gateway, ...) therefore
+# lives under `global`. Infra-only knobs live under `infrastructure:`.
+
+global:
+  # Bare apex hostname the platform is served from (no scheme).
+  host: prompt.example.com
+  scheme: https
+
+  # Container images. Every component pulls <registry>/<image>:<tag>.
+  image:
+    registry: ghcr.io/prompt-edu/prompt
+    tag: latest
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+
+  # Display / build metadata surfaced to the frontend.
+  environment: production
+  chairNameShort: AET
+  chairNameLong: "Applied Education Technologies"
+  githubSha: ""
+  githubRef: ""
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL (CloudNativePG). mode: in-cluster | external
+  # ---------------------------------------------------------------------------
+  postgresql:
+    mode: in-cluster
+    clusterName: prompt-pg
+    # In-cluster only:
+    instances: 3
+    storageSize: 10Gi
+    storageClass: ""          # "" = cluster default; use an encrypted SC in prod
+    maxConnections: "200"
+    pooler:
+      enabled: true
+      instances: 2
+    # external only: host/port/creds the per-phase DB secrets point at.
+    external:
+      host: ""
+      port: "5432"
+      user: prompt
+      password: ""
+    # Logical databases, one per phase (+ keycloak). hostVar/portVar are the
+    # env var names each service reads (core uses the generic DB_HOST/DB_PORT).
+    databases:
+      core:
+        dbName: prompt_core
+        owner: prompt_core
+        hostVar: DB_HOST
+        portVar: DB_PORT
+      assessment:
+        dbName: prompt_assessment
+        owner: prompt_assessment
+        hostVar: DB_HOST_ASSESSMENT
+        portVar: DB_PORT_ASSESSMENT
+      interview:
+        dbName: prompt_interview
+        owner: prompt_interview
+        hostVar: DB_HOST_INTERVIEW
+        portVar: DB_PORT_INTERVIEW
+      team-allocation:
+        dbName: prompt_team_allocation
+        owner: prompt_team_allocation
+        hostVar: DB_HOST_TEAM_ALLOCATION
+        portVar: DB_PORT_TEAM_ALLOCATION
+      self-team-allocation:
+        dbName: prompt_self_team_allocation
+        owner: prompt_self_team_allocation
+        hostVar: DB_HOST_SELF_TEAM_ALLOCATION
+        portVar: DB_PORT_SELF_TEAM_ALLOCATION
+      certificate:
+        dbName: prompt_certificate
+        owner: prompt_certificate
+        hostVar: DB_HOST_CERTIFICATE
+        portVar: DB_PORT_CERTIFICATE
+
+  # ---------------------------------------------------------------------------
+  # Keycloak. mode: external | in-cluster
+  # ---------------------------------------------------------------------------
+  keycloak:
+    mode: external
+    realm: prompt
+    clientId: prompt-server
+    idOfClient: ""
+    authorizedParty: prompt-client
+    # external mode: full URL of the existing Keycloak (e.g. https://auth.example.com)
+    externalHost: https://auth.example.com
+    # in-cluster mode is served at https://auth.<global.host>
+    dbKey: keycloak           # logical DB name created for the bundled Keycloak
+
+  # ---------------------------------------------------------------------------
+  # Object storage. mode: in-cluster (SeaweedFS) | external (S3-compatible)
+  # ---------------------------------------------------------------------------
+  objectStorage:
+    mode: in-cluster
+    bucket: prompt-files
+    region: us-east-1
+    forcePathStyle: "true"
+    presignUploadTtlSeconds: "60"
+    presignDownloadTtlSeconds: "30"
+    external:
+      endpoint: ""
+      publicEndpoint: ""
+
+  # ---------------------------------------------------------------------------
+  # Gateway API + TLS (shared by infrastructure Gateway and per-phase HTTPRoutes)
+  # ---------------------------------------------------------------------------
+  gateway:
+    gatewayClassName: eg            # Envoy Gateway GatewayClass
+    name: prompt-gateway
+    certManager:
+      enabled: true
+      issuerName: prompt-letsencrypt
+      create: true
+      email: admin@example.com
+      server: https://acme-v02.api.letsencrypt.org/directory
+    rateLimiting:
+      provider: envoygateway        # envoygateway | none
+      average: 300
+      burst: 100
+
+  # Shared application secrets (visible to every subchart so the secret name
+  # resolves). Provide values or reference an existing Secret (recommended in
+  # prod; integrates ESO / sealed-secrets).
+  appSecrets:
+    existingSecret: ""
+    data:
+      KEYCLOAK_CLIENT_SECRET: ""
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SENDER_EMAIL: ""
+      SENDER_NAME: PROMPT
+      S3_ACCESS_KEY: prompt-s3
+      S3_SECRET_KEY: ""
+      SENTRY_DSN_CORE: ""
+      SENTRY_DSN_ASSESSMENT: ""
+      SENTRY_DSN_INTERVIEW: ""
+      SENTRY_DSN_TEAM_ALLOCATION: ""
+      SENTRY_DSN_SELF_TEAM_ALLOCATION: ""
+      SENTRY_DSN_CERTIFICATE: ""
+
+  # Non-secret application config shared via a ConfigMap (envFrom on every pod).
+  appConfig:
+    sentryEnabled: "false"
+    maxFileUploadSizeMb: "20"
+    allowedFileTypes: "application/pdf"
+    serverAddress: "0.0.0.0:8080"
+
+# -----------------------------------------------------------------------------
+# Infrastructure subchart config (only the infrastructure subchart reads this).
+# -----------------------------------------------------------------------------
+infrastructure:
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.33
+    masterStorage: 1Gi
+    volumeStorage: 20Gi
+    filerStorage: 1Gi
+  backup:
+    enabled: false              # CNPG WAL + scheduled backup to object storage
+    schedule: "0 0 2 * * *"
+    retention: 30d
+    destinationPath: ""         # s3://bucket/path - recommend OFF-cluster storage
+  realmConfigMap: ""            # name of a ConfigMap holding the Keycloak realm.json
+
+# -----------------------------------------------------------------------------
+# Per-phase toggles + component config (each block is one subchart's .Values).
+# -----------------------------------------------------------------------------
+core:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-core
+    replicas: 2
+    port: 8080
+    apiPath: /api
+    dbKey: core
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-core
+    replicas: 1
+    port: 80
+    path: /
+    stripPrefix: false
+
+assessment:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-assessment
+    replicas: 1
+    port: 8080
+    apiPath: /assessment/api
+    dbKey: assessment
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-assessment-component
+    replicas: 1
+    port: 80
+    path: /assessment
+    stripPrefix: true
+
+interview:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-interview
+    replicas: 1
+    port: 8080
+    apiPath: /interview/api
+    dbKey: interview
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-interview-component
+    replicas: 1
+    port: 80
+    path: /interview
+    stripPrefix: true
+
+team-allocation:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-team-allocation
+    replicas: 1
+    port: 8080
+    apiPath: /team-allocation/api
+    dbKey: team-allocation
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-team-allocation-component
+    replicas: 1
+    port: 80
+    path: /team-allocation
+    stripPrefix: true
+
+self-team-allocation:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-self-team-allocation
+    replicas: 1
+    port: 8080
+    apiPath: /self-team-allocation/api
+    dbKey: self-team-allocation
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-self-team-allocation-component
+    replicas: 1
+    port: 80
+    path: /self-team-allocation
+    stripPrefix: true
+
+certificate:
+  enabled: true
+  server:
+    enabled: true
+    image: prompt-server-certificate
+    replicas: 1
+    port: 8080
+    apiPath: /certificate/api
+    dbKey: certificate
+    rateLimited: true
+  client:
+    enabled: true
+    image: prompt-clients-certificate-component
+    replicas: 1
+    port: 80
+    path: /certificate
+    stripPrefix: true
+
+matching:
+  enabled: true
+  client:
+    enabled: true
+    image: prompt-clients-matching-component
+    replicas: 1
+    port: 80
+    path: /matching
+    stripPrefix: true
+
+template:
+  enabled: true
+  client:
+    enabled: true
+    image: prompt-clients-template-component
+    replicas: 1
+    port: 80
+    path: /template
+    stripPrefix: true

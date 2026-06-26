@@ -1,0 +1,79 @@
+{{- if eq .Values.global.keycloak.mode "in-cluster" }}
+{{- $rel := .Release.Name -}}
+{{- $pg := .Values.global.postgresql -}}
+{{- $kcName := printf "%s-keycloak" $rel -}}
+{{- $dbHost := ternary (printf "%s-pooler-rw" $pg.clusterName) (printf "%s-rw" $pg.clusterName) $pg.pooler.enabled -}}
+{{/* Database for Keycloak (role created on the cluster in postgres.yaml). */}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ printf "%s-db-keycloak" $rel }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "db-keycloak") | nindent 4 }}
+spec:
+  cluster:
+    name: {{ $pg.clusterName }}
+  name: keycloak
+  owner: keycloak
+  ensure: present
+  databaseReclaimPolicy: retain
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: {{ $kcName }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+spec:
+  instances: 1
+  db:
+    vendor: postgres
+    host: {{ $dbHost }}
+    port: 5432
+    database: keycloak
+    usernameSecret:
+      name: {{ printf "%s-role-keycloak" $rel }}
+      key: username
+    passwordSecret:
+      name: {{ printf "%s-role-keycloak" $rel }}
+      key: password
+  hostname:
+    hostname: {{ printf "%s://auth.%s" .Values.global.scheme .Values.global.host | quote }}
+  http:
+    httpEnabled: true
+  ingress:
+    enabled: false
+  proxy:
+    headers: xforwarded
+{{- if .Values.realmConfigMap }}
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: {{ printf "%s-realm" $rel }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "keycloak-realm") | nindent 4 }}
+spec:
+  keycloakCRName: {{ $kcName }}
+  realm:
+    realm: {{ .Values.global.keycloak.realm | quote }}
+    enabled: true
+{{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-keycloak" $rel }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "keycloak") | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.gateway.name }}
+      sectionName: auth
+  hostnames:
+    - {{ printf "auth.%s" .Values.global.host | quote }}
+  rules:
+    - backendRefs:
+        - name: {{ printf "%s-service" $kcName }}
+          port: 8080
+{{- end }}

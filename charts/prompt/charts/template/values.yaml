@@ -1,0 +1,9 @@
+# Overridden by the umbrella `template:` block; defaults for standalone use.
+enabled: true
+client:
+  enabled: true
+  image: prompt-clients-template-component
+  replicas: 1
+  port: 80
+  path: /template
+  stripPrefix: true

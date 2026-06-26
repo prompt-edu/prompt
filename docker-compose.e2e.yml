@@ -1,0 +1,302 @@
+# ============================================================================
+# E2E stack: core server + core client + Keycloak + Postgres + SeaweedFS,
+# plus a containerized Playwright runner. Self-contained and ephemeral
+# (no host volume mounts on the databases) so every run starts from a clean,
+# deterministically seeded state.
+#
+# Run:   make test-e2e        (full Docker, CI-identical)
+#        make test-e2e-local  (app stack only, run Playwright on the host)
+#
+# Env comes from e2e/.env.e2e (committed, test-only credentials).
+# ============================================================================
+
+x-client-build-args: &client-build-args
+  IMAGE_TAG: local
+  NODE_ENV: development
+
+x-client-additional-contexts: &client-additional-contexts
+  "ghcr.io/prompt-edu/prompt/prompt-clients-base:local": "service:clients-base"
+
+services:
+  server-core:
+    build:
+      context: ./servers/core
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-core
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
+    # Alternate host port (18090) so the e2e stack can run alongside a dev stack.
+    ports:
+      - "18090:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - DB_USER=${DB_CORE_USER}
+      - DB_PASSWORD=${DB_CORE_PASSWORD}
+      - DB_HOST=${DB_CORE_HOST}
+      - DB_PORT=${DB_CORE_PORT}
+      - DB_NAME=${DB_CORE_NAME}
+      - SSL_MODE
+      - SERVER_ADDRESS
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - KEYCLOAK_CLIENT_ID
+      - KEYCLOAK_CLIENT_SECRET
+      - KEYCLOAK_ID_OF_CLIENT
+      - KEYCLOAK_AUTHORIZED_PARTY
+      - DEBUG
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+    # No container healthcheck: the server image is distroless (no shell/wget).
+    # Readiness is polled by the runner's global-setup against /api/hello instead.
+
+  client-core:
+    build:
+      context: ./clients/core
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-core
+    depends_on:
+      - clients-base
+    # Alternate host port (4000) so the e2e stack can run alongside a dev stack.
+    # The e2e realm's redirect URIs / web origins point at localhost:4000.
+    ports:
+      - "4000:80"
+    environment:
+      - ENVIRONMENT
+      - CORE_HOST=${CORE_API_HOST}
+      - INTRO_COURSE_HOST
+      - DEVOPS_CHALLENGE_HOST
+      - TEAM_ALLOCATION_HOST
+      - SELF_TEAM_ALLOCATION_HOST
+      - ASSESSMENT_HOST
+      - TEMPLATE_HOST
+      - INTERVIEW_HOST
+      - CERTIFICATE_HOST
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - CHAIR_NAME_SHORT
+      - CHAIR_NAME_LONG
+      - GITHUB_SHA
+      - GITHUB_REF
+      - SERVER_CORE_IMAGE_TAG
+    healthcheck:
+      # 127.0.0.1 (not localhost): nginx listens on IPv4 only, and busybox wget
+      # resolves localhost to ::1 first → connection refused.
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  clients-base:
+    build:
+      context: ./clients
+      dockerfile: Dockerfile
+    image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
+    # This is a build-only base image (used via additional_contexts). Keep the
+    # container alive so its immediate exit doesn't trip `--abort-on-container-exit`
+    # and tear the whole stack down before the runner finishes.
+    command: ["sleep", "infinity"]
+    init: true
+
+  db:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db
+    environment:
+      - POSTGRES_USER=${DB_CORE_USER}
+      - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
+      - POSTGRES_DB=${DB_CORE_NAME}
+      - TZ=Europe/Berlin
+    # Seed loaded on first init (db is ephemeral → always fresh each run).
+    volumes:
+      - ./e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_CORE_NAME} -U ${DB_CORE_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No host port: only server-core talks to the DB, over the compose network.
+
+  keycloak-db:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-keycloak-db
+    environment:
+      - POSTGRES_USER=${KEYCLOAK_DB_USER}
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
+      - POSTGRES_DB=${KEYCLOAK_DB_NAME}
+      - TZ=Europe/Berlin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.3
+    container_name: prompt-e2e-keycloak
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
+      - --hostname-strict=false
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: ${KEYCLOAK_DB_HOST}
+      KC_DB_URL_PORT: ${KEYCLOAK_DB_PORT}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_IMPORT_REALM: /opt/keycloak/data/import/realm.json
+      # No fixed KC_HOSTNAME: with hostname-strict=false the issuer is derived
+      # from the request host. The containerized runner reaches Keycloak as
+      # `keycloak:8080` (Docker DNS), so issuer == http://keycloak:8080/realms/...
+      # which the server (KEYCLOAK_HOST=http://keycloak:8080) validates against.
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    # Alternate host port (18081) so the e2e stack can run alongside a dev stack.
+    # The 9000 management port stays internal (healthcheck runs in-container).
+    ports:
+      - "18081:8080"
+    volumes:
+      # Dedicated e2e realm: same users/clients as keycloakConfig.json but with
+      # redirect URIs / web origins pointed at the e2e ports (4000 / 18090).
+      - ./e2e/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 4<>/dev/tcp/localhost/9000"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  seaweedfs-master:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-e2e-seaweedfs-master
+    command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:9333/cluster/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-e2e-seaweedfs-volume
+    command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-e2e-seaweedfs-filer
+    command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  seaweedfs-s3:
+    image: chrislusf/seaweedfs:latest
+    container_name: prompt-e2e-seaweedfs-s3
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        cat >/tmp/s3.json <<EOF
+        {
+          "identities": [
+            {
+              "name": "prompt-s3",
+              "credentials": [
+                {
+                  "accessKey": "$$WEED_S3_DEFAULT_USER",
+                  "secretKey": "$$WEED_S3_DEFAULT_PWD"
+                }
+              ],
+              "actions": ["Admin", "Read", "Write"]
+            }
+          ]
+        }
+        EOF
+        exec weed s3 -filer=seaweedfs-filer:8888 -ip.bind=0.0.0.0 -config=/tmp/s3.json
+    depends_on:
+      seaweedfs-master:
+        condition: service_healthy
+      seaweedfs-filer:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - WEED_S3_DEFAULT_USER=${S3_ACCESS_KEY}
+      - WEED_S3_DEFAULT_PWD=${S3_SECRET_KEY}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "code=$(wget --server-response --spider -q http://localhost:8333/ 2>&1 | grep -Eo \"HTTP/[0-9.]+ [0-9]+\" | tail -1 | cut -d\" \" -f2); [ \"$$code\" = \"200\" ] || [ \"$$code\" = \"403\" ]",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Containerized Playwright runner. Waits for the app to be healthy, then runs
+  # the suite. Its exit code is the suite result (read by `--exit-code-from`).
+  # The browser, the app's runtime config, the server, and Keycloak all address
+  # each other by Docker service name on the compose network — so the realm's
+  # redirect URIs (http://client-core/*) and the token issuer all line up.
+  e2e-runner:
+    build:
+      context: ./e2e
+      dockerfile: Dockerfile
+    container_name: prompt-e2e-runner
+    depends_on:
+      client-core:
+        condition: service_healthy
+      server-core:
+        # distroless server has no healthcheck; global-setup polls /api/hello.
+        condition: service_started
+    environment:
+      - CI
+      # Service-name URLs on the compose network. Chromium hard-codes
+      # localhost→loopback and ignores /etc/hosts, so the browser must use real
+      # DNS names (resolved by Docker) rather than a localhost+host-gateway remap.
+      - BASE_URL=http://client-core
+      - KEYCLOAK_URL=http://keycloak:8080
+      - CORE_API_URL=http://server-core:8080
+      - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
+    # Source is baked into the image; only the report/results dirs are mounted
+    # out so artifacts survive `docker compose down` (and CI can upload them).
+    volumes:
+      - ./e2e/playwright-report:/work/playwright-report
+      - ./e2e/test-results:/work/test-results

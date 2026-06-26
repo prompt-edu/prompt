@@ -20,10 +20,10 @@
     "sha256": "^0.2.0"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.7.11",
-    "@rspack/core": "^1.7.11",
+    "@rspack/cli": "^1.7.12",
+    "@rspack/core": "^1.7.12",
     "compression-webpack-plugin": "^12.0.0",
     "webpack-bundle-analyzer": "^5.3.0"
   },
-  "packageManager": "yarn@4.16.0"
+  "packageManager": "yarn@4.17.0"
 }

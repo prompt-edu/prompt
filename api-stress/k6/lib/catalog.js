@@ -80,6 +80,8 @@ function resolveParam(name, path, service) {
     case "courseParticipationID":
       return part;
     case "student-uuid":
+    case "studentID":
+    case "studentId":
       return student;
     case "searchString":
       return "no";

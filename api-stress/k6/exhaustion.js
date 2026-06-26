@@ -14,7 +14,6 @@ import {
   buildUrl,
   headersForRoles,
   tags,
-  tokenForRoles,
 } from "./lib/catalog.js";
 
 const INTENSITY = (__ENV.INTENSITY || "medium").toLowerCase();

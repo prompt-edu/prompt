@@ -48,7 +48,7 @@ def main() -> int:
             r.setdefault("bodyType", None)
             out.append(r)
 
-    out.sort(key=lambda r: (r["service"], r["path"], r["method"]))
+    out.sort(key=lambda r: (r.get("service", ""), r.get("path", ""), r.get("method", "")))
     catalog = {
         "_comment": "CANONICAL endpoint catalog (auto-merged from partial_*.json). "
         "Single source of truth for the stress/fuzz suite. Regenerate via merge_catalog.py.",

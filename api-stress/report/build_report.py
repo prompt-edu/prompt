@@ -145,8 +145,28 @@ def build_findings(k6, fuzz, summary):
             title=f.get("detail"), observed=f.get("observed"), expected=f.get("expected"),
             evidence=f.get("evidence"), repro=f.get("repro"), url=f.get("url"))
 
-    # --- from k6: 5xx on valid GET reads (real ids) = P1; others P2 ---
+    # --- service DOWN (P0): a service whose requests were overwhelmingly
+    # connection errors (status 0) was unreachable/crashed during the run - the
+    # single highest-severity signal, so it outranks any 5xx finding below.
     smoke = k6.get("smoke", {})
+    down = defaultdict(lambda: {"total": 0, "conn_err": 0})
+    for ep, d in smoke.items():
+        svc = CATALOG.get(ep, {}).get("service", "?")
+        for s, c in d["status"].items():
+            down[svc]["total"] += c
+            if s == "0":
+                down[svc]["conn_err"] += c
+    for svc, t in down.items():
+        if t["total"] >= 3 and t["conn_err"] >= 0.8 * t["total"]:
+            add("P0", kind="service-down", endpoint=svc, method=None,
+                title=f"service '{svc}' was unreachable during the run",
+                observed=f"{t['conn_err']}/{t['total']} requests were connection errors (status 0)",
+                expected="service stays reachable for the whole run",
+                evidence="all/most endpoints on this service failed to connect - the "
+                "service crashed, OOM'd, or the Docker host went down",
+                repro=None, url=None)
+
+    # --- from k6: 5xx on valid GET reads (real ids) = P1; others P2 ---
     for ep, d in smoke.items():
         n5 = sum(c for s, c in d["status"].items() if is_5xx(s))
         if not n5:
@@ -215,7 +235,7 @@ def main() -> int:
     idor = [f for f in findings if f["kind"] == "idor"]
 
     md = []
-    md.append(f"# PROMPT API Stress & Fuzz Report")
+    md.append("# PROMPT API Stress & Fuzz Report")
     md.append("")
     md.append(f"- Run: `{run_dir.name}`")
     for k in ("started", "intensity", "scenarios", "stack", "catalog_count"):

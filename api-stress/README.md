@@ -60,13 +60,13 @@ docker compose -p prompt-stress down -v
 
 ## Extending
 
-- Add/fix a route: edit the relevant `catalog/partial_<service>.json`, then
-  `python3 catalog/merge_catalog.py`.
+- Add/fix a route: edit the relevant `api-stress/catalog/partial_<service>.json`, then
+  `python3 api-stress/catalog/merge_catalog.py`.
 - Tune intensity: `INTENSITY` presets live in `k6/scenario.js` / `k6/exhaustion.js`.
 - Add a fuzz axis: add a method to `fuzz/fuzz.py` and call it in `run()`.
 
 ## How findings are prioritized
 
-- **P0** - auth bypass (no/forged/unsigned token accepted) or cross-course IDOR.
+- **P0** - auth bypass (no/forged/unsigned token accepted), cross-course IDOR, or a service that went DOWN.
 - **P1** - 5xx on a valid request, load-induced degradation, oversized-body crash, slowloris.
 - **P2** - 5xx on malformed input / non-existent target (missing 404 handling), individually slow endpoints.

@@ -135,7 +135,8 @@ export default function () {
     for (let i = 0; i < catalog.length; i++) fire(catalog[i]);
     return;
   }
-  // load/spike/soak: hit a random read/public endpoint
+  // load/spike/soak: walk read/public endpoints round-robin (deterministic, so
+  // every endpoint gets even coverage and runs are reproducible)
   const pool = READ_POOL.length ? READ_POOL : catalog;
   const ep = pool[exec.scenario.iterationInTest % pool.length];
   fire(ep);

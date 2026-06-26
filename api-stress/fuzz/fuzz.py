@@ -110,7 +110,7 @@ class Fuzzer:
                 val = ca
             elif p in ("course_participation_id", "courseParticipationID"):
                 val = part
-            elif p == "student-uuid":
+            elif p in ("student-uuid", "studentID", "studentId"):
                 val = student
             elif p == "searchString":
                 val = "a"

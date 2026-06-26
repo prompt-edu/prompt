@@ -90,7 +90,7 @@ Output lands in `api-stress/reports/<timestamp>/` (gitignored). Open `report.md`
 
 | Priority | Meaning |
 |----------|---------|
-| **P0** | Auth bypass (no / forged / `alg=none` token accepted) or cross-course IDOR/BOLA. |
+| **P0** | Auth bypass (no / forged / `alg=none` token accepted), cross-course IDOR/BOLA, or a service that went DOWN. |
 | **P1** | 5xx on a *valid* request, load-induced degradation, oversized-body crash, slowloris. |
 | **P2** | 5xx on malformed input / non-existent target (missing 404 handling), individually slow endpoints. |
 
@@ -118,8 +118,8 @@ These are deliberate design choices worth preserving when you extend the suite:
 
 ## Extending the suite
 
-- **Add or fix a route:** edit the relevant `catalog/partial_<service>.json`, then
-  `python3 catalog/merge_catalog.py` to regenerate `catalog/endpoints.json`. The
+- **Add or fix a route:** edit the relevant `api-stress/catalog/partial_<service>.json`, then
+  `python3 api-stress/catalog/merge_catalog.py` to regenerate `api-stress/catalog/endpoints.json`. The
   smoke run validates the catalog against the live server (a wrong path shows up as
   a 404).
 - **Tune intensity:** the `INTENSITY` presets (`gentle`/`medium`/`brutal`) live at

@@ -17,3 +17,5 @@ See the following pages:
 	- [Assessment Phase](assessment.md)
 - [Mailing](mailing.md)
 - [Templates](templates.md)
+- Reference
+	- [Glossary](glossary.md)

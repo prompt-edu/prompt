@@ -203,6 +203,20 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidJ
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
+func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaNotFound() {
+	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{
+		Name:        "Updated Schema",
+		Description: "Updated description",
+	}
+	body, _ := json.Marshal(updateReq)
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+uuid.New().String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+}
+
 func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchema() {
 	// First create a schema to delete
 	createReq := assessmentSchemaDTO.CreateAssessmentSchemaRequest{

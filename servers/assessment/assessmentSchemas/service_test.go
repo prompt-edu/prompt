@@ -123,7 +123,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNotFoun
 	}
 
 	err := UpdateAssessmentSchema(suite.suiteCtx, nonExistentID, updateReq)
-	assert.Error(suite.T(), err, "Should return error for non-existent schema")
+	assert.ErrorIs(suite.T(), err, ErrSchemaNotFound, "Should return ErrSchemaNotFound for non-existent schema")
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestDeleteAssessmentSchema() {

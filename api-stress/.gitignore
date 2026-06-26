@@ -1,0 +1,11 @@
+# Generated run artifacts (reports, fixtures, tokens, raw k6 output) - never commit
+reports/
+
+# Local Python virtualenv + caches
+.venv/
+__pycache__/
+*.pyc
+
+# Real env file (committed as stress.env.example; copy it to stress.env locally).
+# Also covered by the repo-root '**.env' rule, kept here for clarity.
+stress.env

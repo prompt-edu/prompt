@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "2.13.1",
+  "version": "2.14.0",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

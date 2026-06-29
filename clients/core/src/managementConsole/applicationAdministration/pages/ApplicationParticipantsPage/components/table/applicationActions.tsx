@@ -1,6 +1,6 @@
 import { RowAction } from '@tumaet/prompt-ui-components'
 import { ApplicationRow } from './applicationRow'
-import { CheckCircle, FileUser, Trash2, XCircle } from 'lucide-react'
+import { CheckCircle, Download, FileUser, Trash2, XCircle } from 'lucide-react'
 
 export function getApplicationActions(
   deleteApplications: (ids: string[]) => void,
@@ -8,9 +8,15 @@ export function getApplicationActions(
   actions: {
     setPassed: (rows: ApplicationRow[]) => void
     setFailed: (rows: ApplicationRow[]) => void
+    exportCsv: (rows: ApplicationRow[]) => void | Promise<void>
   },
 ): RowAction<ApplicationRow>[] {
   return [
+    {
+      label: 'Export CSV',
+      icon: <Download className='h-4 w-4' />,
+      onAction: actions.exportCsv,
+    },
     {
       label: 'Accept',
       icon: <CheckCircle className='h-4 w-4' />,

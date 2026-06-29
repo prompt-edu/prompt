@@ -22,11 +22,11 @@ jobs:
       run:
         working-directory: servers/${{ matrix.module }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
+          cache-dependency-path: "servers/**/*.sum"
       - name: Install dependencies
         run: go mod download
       - name: Install sqlc

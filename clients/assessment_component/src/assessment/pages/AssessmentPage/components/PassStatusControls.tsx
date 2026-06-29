@@ -1,5 +1,13 @@
+import { useParams } from 'react-router-dom'
+
 import { Button } from '@tumaet/prompt-ui-components'
-import { PassStatus, Role, useAuthStore } from '@tumaet/prompt-shared-state'
+import {
+  PassStatus,
+  Role,
+  getPermissionString,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 
 import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
 
@@ -14,7 +22,9 @@ export const PassStatusControls = ({
   courseParticipationID,
   disabled = false,
 }: PassStatusControlsProps) => {
+  const { courseId } = useParams<{ courseId: string }>()
   const { permissions } = useAuthStore()
+  const { courses } = useCourseStore()
   const { participations } = useParticipationStore()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
@@ -22,14 +32,15 @@ export const PassStatusControls = ({
 
   const { mutate: updateParticipation, isPending } = useUpdateCoursePhaseParticipation()
 
-  const isLecturerOrHigher = permissions.some(
-    (permission) =>
-      permission === Role.PROMPT_ADMIN ||
-      permission === Role.PROMPT_LECTURER ||
-      permission.endsWith(Role.COURSE_LECTURER),
-  )
+  const course = courses.find((c) => c.id === courseId)
+  const canSetPassStatus =
+    permissions.includes(getPermissionString(Role.PROMPT_ADMIN)) ||
+    permissions.includes(getPermissionString(Role.PROMPT_LECTURER)) ||
+    permissions.includes(
+      getPermissionString(Role.COURSE_LECTURER, course?.name, course?.semesterTag),
+    )
 
-  if (!isLecturerOrHigher || !participant || !courseParticipationID) {
+  if (!canSetPassStatus || !participant || !courseParticipationID) {
     return null
   }
 

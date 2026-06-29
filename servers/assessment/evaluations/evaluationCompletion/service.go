@@ -25,31 +25,24 @@ type EvaluationCompletionService struct {
 var EvaluationCompletionServiceSingleton *EvaluationCompletionService
 
 func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	var open bool
+	var err error
 	switch evaluationType {
 	case assessmentType.Self:
-		open, err := coursePhaseConfig.IsSelfEvaluationOpen(ctx, coursePhaseID)
-		if err != nil {
-			return err
-		}
-		if !open {
-			return coursePhaseConfig.ErrNotStarted
-		}
+		open, err = qtx.IsSelfEvaluationOpen(ctx, coursePhaseID)
 	case assessmentType.Peer:
-		open, err := coursePhaseConfig.IsPeerEvaluationOpen(ctx, coursePhaseID)
-		if err != nil {
-			return err
-		}
-		if !open {
-			return coursePhaseConfig.ErrNotStarted
-		}
+		open, err = qtx.IsPeerEvaluationOpen(ctx, coursePhaseID)
 	case assessmentType.Tutor:
-		open, err := coursePhaseConfig.IsTutorEvaluationOpen(ctx, coursePhaseID)
-		if err != nil {
-			return err
-		}
-		if !open {
-			return coursePhaseConfig.ErrNotStarted
-		}
+		open, err = qtx.IsTutorEvaluationOpen(ctx, coursePhaseID)
+	default:
+		open = true
+	}
+	if err != nil {
+		log.Error("could not check if evaluation is open: ", err)
+		return errors.New("could not check if evaluation is open")
+	}
+	if !open {
+		return coursePhaseConfig.ErrNotStarted
 	}
 
 	exists, err := qtx.CheckEvaluationCompletionExists(ctx, db.CheckEvaluationCompletionExistsParams{

@@ -18,7 +18,7 @@ jobs:
     outputs:
       directories: ${{ steps.resolve.outputs.directories }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: resolve
@@ -71,12 +71,12 @@ jobs:
         directory: ${{ fromJson(needs.resolve-directories.outputs.directories) }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: "**/*.sum"
+          cache-dependency-path: "servers/**/*.sum"
       - name: Install swag
         run: |
           go install github.com/swaggo/swag/cmd/swag@latest

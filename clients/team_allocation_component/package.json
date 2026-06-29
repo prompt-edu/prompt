@@ -1,6 +1,6 @@
 {
   "name": "team_allocation_component",
-  "version": "2.13.1",
+  "version": "2.14.0",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -12,8 +12,8 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.7.11",
-    "@rspack/core": "^1.7.11"
+    "@rspack/cli": "^2.0.8",
+    "@rspack/core": "^2.0.8"
   },
-  "packageManager": "yarn@4.16.0"
+  "packageManager": "yarn@4.17.0"
 }

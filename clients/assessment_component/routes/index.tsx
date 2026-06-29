@@ -16,8 +16,11 @@ import { AssessmentPage } from '../src/assessment/pages/AssessmentPage/Assessmen
 import { AssessmentStatisticsPage } from '../src/assessment/pages/AssessmentStatisticsPage/AssessmentStatisticsPage'
 import { TutorOverviewPage } from '../src/assessment/pages/TutorOverviewPage/TutorOverviewPage'
 import { TutorEvaluationResultsPage } from '../src/assessment/pages/TutorEvaluationResultsPage/TutorEvaluationResultsPage'
+import { EvaluationParticipantsOverviewPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantsOverviewPage'
+import { EvaluationParticipantResultsPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantResultsPage'
 import { SchemaConfigurationPage } from '../src/assessment/pages/SchemaConfigurationPage/SchemaConfigurationPage'
 import { SettingsPage } from '../src/assessment/pages/SettingsPage/SettingsPage'
+import { AssessmentType } from '../src/assessment/interfaces/assessmentType'
 
 const routes: ExtendedRouteObject[] = [
   {
@@ -131,6 +134,42 @@ const routes: ExtendedRouteObject[] = [
     element: (
       <AssessmentDataShell>
         <TutorEvaluationResultsPage />
+      </AssessmentDataShell>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/self-evaluations',
+    element: (
+      <AssessmentDataShell>
+        <EvaluationParticipantsOverviewPage assessmentType={AssessmentType.SELF} />
+      </AssessmentDataShell>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/self-evaluations/:courseParticipationID',
+    element: (
+      <AssessmentDataShell>
+        <EvaluationParticipantResultsPage assessmentType={AssessmentType.SELF} />
+      </AssessmentDataShell>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/peer-evaluations',
+    element: (
+      <AssessmentDataShell>
+        <EvaluationParticipantsOverviewPage assessmentType={AssessmentType.PEER} />
+      </AssessmentDataShell>
+    ),
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/peer-evaluations/:courseParticipationID',
+    element: (
+      <AssessmentDataShell>
+        <EvaluationParticipantResultsPage assessmentType={AssessmentType.PEER} />
       </AssessmentDataShell>
     ),
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

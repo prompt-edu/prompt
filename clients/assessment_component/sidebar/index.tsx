@@ -26,6 +26,16 @@ const sidebarItems: SidebarMenuItemProps = {
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
     },
     {
+      title: 'Self Evaluations',
+      goToPath: '/self-evaluations',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
+      title: 'Peer Evaluations',
+      goToPath: '/peer-evaluations',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
       title: 'Statistics',
       goToPath: '/statistics',
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

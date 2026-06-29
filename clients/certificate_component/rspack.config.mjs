@@ -94,7 +94,7 @@ const config = (env = {}) => {
         minify: !IS_DEV,
       }),
     ],
-    cache: { type: 'filesystem' },
+    cache: { type: 'persistent' },
   }
 }
 

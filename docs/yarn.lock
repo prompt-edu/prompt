@@ -6545,7 +6545,7 @@ __metadata:
     "@docusaurus/types": "npm:3.10.1"
     "@mdx-js/react": "npm:^3.1.1"
     clsx: "npm:^2.1.1"
-    lucide-react: "npm:^1.18.0"
+    lucide-react: "npm:^1.21.0"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^19.2.7"
     react-dom: "npm:^19.2.7"
@@ -8866,7 +8866,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.18.0":
+"lucide-react@npm:^1.21.0":
   version: 1.21.0
   resolution: "lucide-react@npm:1.21.0"
   peerDependencies:

@@ -110,7 +110,7 @@ export function PrivacyDeletionReviewDialog({
                       </p>
                       <p className='text-sm text-amber-700 dark:text-amber-300'>
                         This request has no associated student profile. The requester is likely an
-                        instructor or other staff member. Deletinc an instructor may have bigger
+                        instructor or other staff member. Deleting an instructor may have bigger
                         implications
                       </p>
                     </div>

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
@@ -33,8 +34,12 @@ func ValidateUserMayCreateDeletionRequest(c *gin.Context) error {
 		return err
 	}
 
-	if _, err := PrivacyServiceSingleton.queries.GetOpenDeletionRequestForUser(c, pgtype.UUID{Bytes: userID, Valid: true}); err == nil {
+	_, err = PrivacyServiceSingleton.queries.GetOpenDeletionRequestForUser(c, pgtype.UUID{Bytes: userID, Valid: true})
+	if err == nil {
 		return errors.New("an open deletion request already exists for this user")
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return err
 	}
 	return nil
 }

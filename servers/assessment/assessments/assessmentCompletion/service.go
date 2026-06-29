@@ -40,9 +40,10 @@ func CheckAssessmentCompletionExists(ctx context.Context, courseParticipationID,
 }
 
 func CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error {
-	open, err := coursePhaseConfig.IsAssessmentOpen(ctx, coursePhaseID)
+	open, err := qtx.IsAssessmentOpen(ctx, coursePhaseID)
 	if err != nil {
-		return err
+		log.Error("could not check if assessment is open: ", err)
+		return errors.New("could not check if assessment is open")
 	}
 	if !open {
 		return coursePhaseConfig.ErrNotStarted

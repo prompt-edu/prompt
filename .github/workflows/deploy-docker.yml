@@ -89,7 +89,7 @@ jobs:
             docker compose -f docker-compose.prod.yml --env-file=.env.prod rm -f $SERVICES
 
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Package maintenance assets
         run: |

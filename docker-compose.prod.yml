@@ -97,6 +97,7 @@ services:
       - SENDER_NAME
       - SENTRY_DSN_CORE
       - SENTRY_ENABLED
+      - GITHUB_SHA
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -139,6 +140,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_TEAM_ALLOCATION
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 
@@ -171,6 +173,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_SELF_TEAM_ALLOCATION
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 
@@ -203,6 +206,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_ASSESSMENT
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 
@@ -236,6 +240,7 @@ services:
       - KEYCLOAK_REALM_NAME
       - SENTRY_DSN_INTERVIEW
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 
@@ -270,6 +275,7 @@ services:
       - KEYCLOAK_AUTHORIZED_PARTY
       - SENTRY_DSN_CERTIFICATE
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 

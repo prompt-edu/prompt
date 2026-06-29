@@ -24,8 +24,14 @@ func TestLogTokenVerificationFailure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			prevLevel := log.GetLevel()
+			prevHooks := log.StandardLogger().Hooks
 			hook := test.NewGlobal()
 			log.SetLevel(log.DebugLevel)
+			t.Cleanup(func() {
+				log.SetLevel(prevLevel)
+				log.StandardLogger().ReplaceHooks(prevHooks)
+			})
 
 			logTokenVerificationFailure(tt.err)
 

@@ -563,7 +563,7 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 	if err != nil {
 		log.Error(err)
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "student_email_key" {
 			return uuid.Nil, ErrEmailAlreadyInUse
 		}
 		return uuid.Nil, errors.New("could not save the student")

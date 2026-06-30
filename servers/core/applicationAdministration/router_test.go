@@ -331,8 +331,9 @@ func (suite *ApplicationAdminRouterTestSuite) getStudentEmail() string {
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEndpoint_ReturnsTokenEmailWhenStale() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
 	suite.setStudentEmail("stale@example.com")
-	defer suite.setStudentEmail("existingstudent@example.com")
 
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 	req := httptest.NewRequest(http.MethodGet, "/api/apply/authenticated/"+coursePhaseID, nil)
@@ -349,6 +350,8 @@ func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEnd
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_SyncsTokenEmailWhenStale() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
 	suite.setStudentEmail("stale@example.com")
 
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"

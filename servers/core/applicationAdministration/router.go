@@ -215,10 +215,13 @@ func getApplicationAuthenticated(c *gin.Context) {
 
 	if applicationForm.Student != nil && userEmail != "" {
 		applicationForm.Student.Email = userEmail
-	}
-	if applicationForm.Student != nil && firstName != "" && lastName != "" {
-		applicationForm.Student.FirstName = firstName
-		applicationForm.Student.LastName = lastName
+		if firstName != "" && lastName != "" {
+			applicationForm.Student.FirstName = firstName
+			applicationForm.Student.LastName = lastName
+		}
+		if err := SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
+			log.Warn("could not sync student details from token: ", err)
+		}
 	}
 
 	c.IndentedJSON(http.StatusOK, applicationForm)

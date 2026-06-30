@@ -349,6 +349,21 @@ func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEnd
 	assert.Equal(suite.T(), "existingstudent@example.com", application.Student.Email)
 }
 
+func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEndpoint_PersistsTokenEmailToDB() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
+	suite.setStudentEmail("stale@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	req := httptest.NewRequest(http.MethodGet, "/api/apply/authenticated/"+coursePhaseID, nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	assert.Equal(suite.T(), "existingstudent@example.com", suite.getStudentEmail())
+}
+
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_SyncsTokenEmailWhenStale() {
 	originalEmail := suite.getStudentEmail()
 	defer suite.setStudentEmail(originalEmail)

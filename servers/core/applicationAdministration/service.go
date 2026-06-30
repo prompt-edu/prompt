@@ -19,6 +19,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -463,6 +464,24 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 	cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
+}
+
+func SyncStudentDetailsFromToken(ctx context.Context, s studentDTO.Student) error {
+	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent{
+		ID:                   s.ID,
+		FirstName:            s.FirstName,
+		LastName:             s.LastName,
+		Email:                s.Email,
+		MatriculationNumber:  s.MatriculationNumber,
+		UniversityLogin:      s.UniversityLogin,
+		HasUniversityAccount: s.HasUniversityAccount,
+		Gender:               s.Gender,
+		Nationality:          s.Nationality,
+		StudyDegree:          s.StudyDegree,
+		StudyProgram:         s.StudyProgram,
+		CurrentSemester:      s.CurrentSemester,
+	})
+	return err
 }
 
 func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (applicationDTO.Application, error) {

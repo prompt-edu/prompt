@@ -256,6 +256,10 @@ services:
         condition: service_healthy
       seaweedfs-filer:
         condition: service_healthy
+      # Without a registered volume server the master can't assign a volume, so
+      # the first object PUT fails ("Not enough data nodes found"). Gate on it.
+      seaweedfs-volume:
+        condition: service_healthy
     restart: unless-stopped
     environment:
       - WEED_S3_DEFAULT_USER=${S3_ACCESS_KEY}

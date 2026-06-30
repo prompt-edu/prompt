@@ -652,6 +652,14 @@ INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-2222222222
 
 
 --
+-- An open Application phase on iPraktikum, so the file-upload endpoints accept
+-- uploads (applicationEndDate in the future → CheckIfCoursePhaseIsOpenApplicationPhase passes).
+--
+
+INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationEndDate": "2099-12-31T23:59:59", "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+
+
+--
 -- Data for Name: course_phase_type_participation_provided_output_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
 

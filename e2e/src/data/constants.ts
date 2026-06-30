@@ -22,6 +22,10 @@ export const SEEDED_COURSES = {
 // Total non-template courses present in the seed.
 export const SEEDED_COURSE_COUNT = 3
 
+// An open Application phase on iPraktikum (applicationEndDate in the far future),
+// so the application file-upload endpoints accept uploads.
+export const OPEN_APPLICATION_PHASE_ID = 'aaaa1111-0000-0000-0000-0000000000a1'
+
 export const SEEDED_STUDENT = {
   id: '3869f209-9a21-4595-ae0e-bc6d6a3e2d63',
   firstName: 'Niclas',

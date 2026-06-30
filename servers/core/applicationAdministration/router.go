@@ -204,6 +204,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 
 	firstName := c.GetString("firstName")
 	lastName := c.GetString("lastName")
+	userEmail := c.GetString("userEmail")
 
 	applicationForm, err := GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(c, coursePhaseID, matriculationNumber, universityLogin)
 	if err != nil {
@@ -212,6 +213,9 @@ func getApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
+	if applicationForm.Student != nil && userEmail != "" {
+		applicationForm.Student.Email = userEmail
+	}
 	if applicationForm.Student != nil && firstName != "" && lastName != "" {
 		applicationForm.Student.FirstName = firstName
 		applicationForm.Student.LastName = lastName
@@ -378,13 +382,15 @@ func postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if application.Student.Email != userEmail ||
-		application.Student.MatriculationNumber != matriculationNumber ||
+	if application.Student.MatriculationNumber != matriculationNumber ||
 		application.Student.UniversityLogin != universityLogin {
 		handleError(c, http.StatusUnauthorized, errors.New("credentials do not match payload"))
 		return
 	}
 
+	if userEmail != "" {
+		application.Student.Email = userEmail
+	}
 	if firstName != "" && lastName != "" {
 		application.Student.FirstName = firstName
 		application.Student.LastName = lastName

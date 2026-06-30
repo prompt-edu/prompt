@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -32,6 +33,7 @@ var ApplicationServiceSingleton *ApplicationService
 var ErrNotFound = errors.New("application was not found")
 var ErrAlreadyApplied = errors.New("application already exists")
 var ErrStudentDetailsDoNotMatch = errors.New("student details do not match")
+var ErrEmailAlreadyInUse = errors.New("email already in use")
 
 func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
 	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
@@ -560,6 +562,10 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 	studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, application.Student)
 	if err != nil {
 		log.Error(err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return uuid.Nil, ErrEmailAlreadyInUse
+		}
 		return uuid.Nil, errors.New("could not save the student")
 	}
 

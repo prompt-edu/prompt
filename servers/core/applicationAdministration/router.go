@@ -236,6 +236,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 405 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID} [post]
 func postApplicationManual(c *gin.Context) {
@@ -262,6 +263,9 @@ func postApplicationManual(c *gin.Context) {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
 			handleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
+			return
+		} else if errors.Is(err, ErrEmailAlreadyInUse) {
+			handleError(c, http.StatusConflict, errors.New("email already in use"))
 			return
 		}
 
@@ -350,6 +354,7 @@ func postApplicationExtern(c *gin.Context) {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 401 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID} [post]
 func postApplicationAuthenticated(c *gin.Context) {
@@ -399,6 +404,10 @@ func postApplicationAuthenticated(c *gin.Context) {
 	courseParticipationID, err := PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
+		if errors.Is(err, ErrEmailAlreadyInUse) {
+			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			return
+		}
 		handleError(c, http.StatusInternalServerError, errors.New("could not post application"))
 		return
 	}

@@ -365,6 +365,23 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 	assert.Equal(suite.T(), "existingstudent@example.com", suite.getStudentEmail())
 }
 
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_UpdatesStudentEmail() {
+	defer suite.setStudentEmail("existingstudent@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	jsonBody, err := json.Marshal(authApplicationWithEmail("lecturer-updated@example.com"))
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/applications/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	assert.Equal(suite.T(), "lecturer-updated@example.com", suite.getStudentEmail())
+}
+
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_AlreadyApplied() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 	application := applicationDTO.PostApplication{

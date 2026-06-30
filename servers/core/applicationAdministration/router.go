@@ -214,12 +214,14 @@ func getApplicationAuthenticated(c *gin.Context) {
 	}
 
 	if applicationForm.Student != nil && userEmail != "" {
+		storedEmail := applicationForm.Student.Email
 		applicationForm.Student.Email = userEmail
 		if firstName != "" && lastName != "" {
 			applicationForm.Student.FirstName = firstName
 			applicationForm.Student.LastName = lastName
 		}
 		if err := SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
+			applicationForm.Student.Email = storedEmail
 			log.Warn("could not sync student details from token: ", err)
 		}
 	}
@@ -396,9 +398,7 @@ func postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if userEmail != "" {
-		application.Student.Email = userEmail
-	}
+	application.Student.Email = userEmail
 	if firstName != "" && lastName != "" {
 		application.Student.FirstName = firstName
 		application.Student.LastName = lastName

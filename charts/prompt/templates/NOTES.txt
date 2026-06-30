@@ -1,0 +1,24 @@
+PROMPT 2.0 has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Host:           {{ .Values.global.scheme }}://{{ .Values.global.host }}
+PostgreSQL:     {{ .Values.global.postgresql.mode }}
+Object storage: {{ .Values.global.objectStorage.mode }}{{ if eq .Values.global.objectStorage.mode "in-cluster" }} (S3 at {{ .Values.global.scheme }}://s3.{{ .Values.global.host }}){{ end }}
+Keycloak:       {{ .Values.global.keycloak.mode }}{{ if eq .Values.global.keycloak.mode "in-cluster" }} (at {{ .Values.global.scheme }}://auth.{{ .Values.global.host }}){{ end }}
+
+Prerequisites (must be installed in the cluster):
+  - CloudNativePG operator{{ if eq .Values.global.postgresql.mode "in-cluster" }} (REQUIRED for this config){{ end }}
+  - Envoy Gateway + Gateway API CRDs (GatewayClass: {{ .Values.global.gateway.gatewayClassName }})
+  - cert-manager with the Gateway API feature gate{{ if .Values.global.gateway.certManager.enabled }} (REQUIRED for TLS){{ end }}
+{{- if eq .Values.global.keycloak.mode "in-cluster" }}
+  - Keycloak Operator (REQUIRED for this config)
+{{- end }}
+
+Next steps:
+  1. Point DNS A/AAAA records at the Gateway's external address:
+       {{ .Values.global.host }}{{ if eq .Values.global.objectStorage.mode "in-cluster" }}, s3.{{ .Values.global.host }}{{ end }}{{ if eq .Values.global.keycloak.mode "in-cluster" }}, auth.{{ .Values.global.host }}{{ end }}
+  2. Watch the Gateway + certificates become ready:
+       kubectl -n {{ .Release.Namespace }} get gateway,certificate
+  3. Watch workloads roll out:
+       kubectl -n {{ .Release.Namespace }} get pods
+
+Full admin guide: docs/admin/kubernetes

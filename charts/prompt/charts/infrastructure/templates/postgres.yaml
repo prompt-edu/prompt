@@ -1,0 +1,135 @@
+{{- $pg := .Values.global.postgresql -}}
+{{- $inCluster := eq $pg.mode "in-cluster" -}}
+
+{{/* Assemble the database set; add keycloak when bundled in-cluster. */}}
+{{- $dbs := deepCopy $pg.databases -}}
+{{- if eq .Values.global.keycloak.mode "in-cluster" -}}
+{{- $_ := set $dbs "keycloak" (dict "dbName" "keycloak" "owner" "keycloak" "hostVar" "KC_DB_HOST" "portVar" "KC_DB_PORT") -}}
+{{- end -}}
+
+{{/* Resolve a persisted password per role (lookup pattern - never rotate on upgrade). */}}
+{{- $passwords := dict -}}
+{{- range $key, $db := $dbs -}}
+  {{- $roleSecret := printf "%s-role-%s" $.Release.Name $key -}}
+  {{- $existing := lookup "v1" "Secret" $.Release.Namespace $roleSecret -}}
+  {{- if $existing -}}
+    {{- $_ := set $passwords $key (index $existing.data "password" | b64dec) -}}
+  {{- else if and (eq $pg.mode "external") $pg.external.password -}}
+    {{- $_ := set $passwords $key $pg.external.password -}}
+  {{- else -}}
+    {{- $_ := set $passwords $key (randAlphaNum 32) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if $inCluster }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $pg.clusterName }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  instances: {{ $pg.instances }}
+  postgresql:
+    parameters:
+      max_connections: {{ $pg.maxConnections | quote }}
+  storage:
+    size: {{ $pg.storageSize }}
+    {{- if $pg.storageClass }}
+    storageClass: {{ $pg.storageClass }}
+    {{- end }}
+  managed:
+    roles:
+      {{- range $key, $db := $dbs }}
+      - name: {{ $db.owner }}
+        ensure: present
+        login: true
+        passwordSecret:
+          name: {{ printf "%s-role-%s" $.Release.Name $key }}
+      {{- end }}
+  {{- if .Values.backup.enabled }}
+  backup:
+    retentionPolicy: {{ .Values.backup.retention | quote }}
+    barmanObjectStore:
+      destinationPath: {{ .Values.backup.destinationPath | quote }}
+      s3Credentials:
+        accessKeyId:
+          name: {{ include "prompt.appSecretName" . }}
+          key: S3_ACCESS_KEY
+        secretAccessKey:
+          name: {{ include "prompt.appSecretName" . }}
+          key: S3_SECRET_KEY
+  {{- end }}
+{{- if $pg.pooler.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ printf "%s-pooler-rw" $pg.clusterName }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "postgres-pooler") | nindent 4 }}
+spec:
+  cluster:
+    name: {{ $pg.clusterName }}
+  instances: {{ $pg.pooler.instances }}
+  type: rw
+  pgbouncer:
+    poolMode: session
+{{- end }}
+{{- if .Values.backup.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ printf "%s-backup" $pg.clusterName }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "postgres-backup") | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ $pg.clusterName }}
+{{- end }}
+{{- end }}
+
+{{/* Per-role basic-auth secrets (CNPG) - in-cluster only. */}}
+{{- if $inCluster }}
+{{- range $key, $db := $dbs }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-role-%s" $.Release.Name $key }}
+  labels:
+    {{- include "prompt.labels" (dict "root" $ "component" (printf "role-%s" $key)) | nindent 4 }}
+type: kubernetes.io/basic-auth
+stringData:
+  username: {{ $db.owner | quote }}
+  password: {{ index $passwords $key | quote }}
+{{- end }}
+{{- end }}
+
+{{/* Per-phase application DB env secrets (both modes). */}}
+{{- range $key, $db := $pg.databases }}
+{{- $host := "" }}{{- $port := "" }}
+{{- if $inCluster }}
+  {{- if $pg.pooler.enabled }}{{ $host = printf "%s-pooler-rw" $pg.clusterName }}{{- else }}{{ $host = printf "%s-rw" $pg.clusterName }}{{- end }}
+  {{- $port = "5432" }}
+{{- else }}
+  {{- $host = $pg.external.host }}{{ $port = $pg.external.port }}
+{{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ printf "%s-db-%s" $.Release.Name $key }}
+  labels:
+    {{- include "prompt.labels" (dict "root" $ "component" (printf "db-%s" $key)) | nindent 4 }}
+type: Opaque
+stringData:
+  {{ $db.hostVar }}: {{ $host | quote }}
+  {{ $db.portVar }}: {{ $port | quote }}
+  DB_NAME: {{ $db.dbName | quote }}
+  DB_USER: {{ $db.owner | quote }}
+  DB_PASSWORD: {{ index $passwords $key | quote }}
+{{- end }}

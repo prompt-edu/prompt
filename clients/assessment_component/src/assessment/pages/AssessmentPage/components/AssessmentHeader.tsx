@@ -31,6 +31,9 @@ export const AssessmentHeader = ({
 
   const placeholderRef = useRef<HTMLDivElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
+  const profileRef = useRef<HTMLDivElement>(null)
+  const dockedRef = useRef(false)
+  const profileHeightRef = useRef(0)
   const [docked, setDocked] = useState(false)
 
   // CSS `position: sticky` is unreliable here because the core's scroll
@@ -41,11 +44,22 @@ export const AssessmentHeader = ({
   useEffect(() => {
     const placeholder = placeholderRef.current
     const bar = barRef.current
-    if (!placeholder || !bar) return
+    const profile = profileRef.current
+    if (!placeholder || !bar || !profile) return
 
     const update = () => {
       const { top, left, width } = placeholder.getBoundingClientRect()
-      const shouldDock = top <= HEADER_OFFSET_PX
+
+      if (!dockedRef.current) {
+        profileHeightRef.current = profile.offsetHeight
+      }
+
+      // Docking collapses the profile, removing its height from the page. On a
+      // short page that scrolls the bar back past the threshold, undocking it
+      // and looping. Require scrolling up past the freed height before undocking.
+      const shouldDock = dockedRef.current
+        ? top <= HEADER_OFFSET_PX + profileHeightRef.current
+        : top <= HEADER_OFFSET_PX
 
       if (shouldDock) {
         placeholder.style.height = `${bar.offsetHeight}px`
@@ -58,6 +72,7 @@ export const AssessmentHeader = ({
         bar.style.cssText = ''
       }
 
+      dockedRef.current = shouldDock
       setDocked(shouldDock)
     }
 
@@ -139,7 +154,7 @@ export const AssessmentHeader = ({
           docked ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
         )}
       >
-        <div className='overflow-hidden'>
+        <div ref={profileRef} className='overflow-hidden'>
           <AssessmentProfile
             participant={participant}
             studentAssessment={studentAssessment}

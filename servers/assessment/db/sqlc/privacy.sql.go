@@ -110,11 +110,7 @@ type GetAllAssessmentsByCourseParticipationIDsRow struct {
 	ScoreLevel            ScoreLevel         `json:"score_level"`
 }
 
-// Queries backing the GDPR data export. They intentionally list columns
-// explicitly and omit every author / third-party identifier, so that data about
-// the assessor (who is not the export subject) is never included. Adding a new
-// sensitive column to a table therefore excludes it from the export by default
-// until it is deliberately added here.
+// Queries for gdpr export.
 func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllAssessmentsByCourseParticipationIDsRow, error) {
 	rows, err := q.db.Query(ctx, getAllAssessmentsByCourseParticipationIDs, dollar_1)
 	if err != nil {

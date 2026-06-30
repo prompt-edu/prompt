@@ -467,20 +467,7 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 }
 
 func SyncStudentDetailsFromToken(ctx context.Context, s studentDTO.Student) error {
-	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent{
-		ID:                   s.ID,
-		FirstName:            s.FirstName,
-		LastName:             s.LastName,
-		Email:                s.Email,
-		MatriculationNumber:  s.MatriculationNumber,
-		UniversityLogin:      s.UniversityLogin,
-		HasUniversityAccount: s.HasUniversityAccount,
-		Gender:               s.Gender,
-		Nationality:          s.Nationality,
-		StudyDegree:          s.StudyDegree,
-		StudyProgram:         s.StudyProgram,
-		CurrentSemester:      s.CurrentSemester,
-	})
+	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent(s))
 	return err
 }
 

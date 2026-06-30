@@ -262,13 +262,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEnd
 	assert.Equal(suite.T(), applicationDTO.StatusNotApplied, application.Status)
 }
 
-func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_Success() {
-	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
-	application := applicationDTO.PostApplication{
+func authApplicationWithEmail(email string) applicationDTO.PostApplication {
+	return applicationDTO.PostApplication{
 		Student: studentDTO.CreateStudent{
 			FirstName:            "John",
 			LastName:             "Doe",
-			Email:                "existingstudent@example.com",
+			Email:                email,
 			Gender:               db.GenderDiverse,
 			HasUniversityAccount: true,
 			MatriculationNumber:  "03711111",
@@ -297,8 +296,11 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 			},
 		},
 	}
+}
 
-	jsonBody, err := json.Marshal(application)
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_Success() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	jsonBody, err := json.Marshal(authApplicationWithEmail("existingstudent@example.com"))
 	assert.NoError(suite.T(), err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+coursePhaseID, bytes.NewReader(jsonBody))
@@ -350,41 +352,7 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 	suite.setStudentEmail("stale@example.com")
 
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
-	application := applicationDTO.PostApplication{
-		Student: studentDTO.CreateStudent{
-			FirstName:            "John",
-			LastName:             "Doe",
-			Email:                "stale@example.com",
-			Gender:               db.GenderDiverse,
-			HasUniversityAccount: true,
-			MatriculationNumber:  "03711111",
-			UniversityLogin:      "ab12cde",
-			Nationality:          "DE",
-			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
-			StudyProgram:         "Computer Science",
-			StudyDegree:          "bachelor",
-		},
-		AnswersText: []applicationDTO.CreateAnswerText{
-			{
-				ApplicationQuestionID: uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c"),
-				Answer:                "Valid answer.",
-			},
-		},
-		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{
-			{
-				ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"),
-				Answer:                []string{"MacBook"},
-			},
-		},
-		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
-			{
-				ApplicationQuestionID: requiredFileUploadQuestionID,
-				FileID:                seededUploadFileID,
-			},
-		},
-	}
-
-	jsonBody, err := json.Marshal(application)
+	jsonBody, err := json.Marshal(authApplicationWithEmail("stale@example.com"))
 	assert.NoError(suite.T(), err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+coursePhaseID, bytes.NewReader(jsonBody))

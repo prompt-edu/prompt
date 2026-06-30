@@ -19,7 +19,7 @@ func ApplicationMiddleware() gin.HandlerFunc {
 		ctx := c.Request.Context()
 		idToken, err := verifier.Verify(ctx, tokenString)
 		if err != nil {
-			log.Error("Failed to validate token: ", err)
+			logTokenVerificationFailure(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}

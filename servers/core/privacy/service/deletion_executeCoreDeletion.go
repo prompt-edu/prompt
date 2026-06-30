@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -44,12 +45,12 @@ func ExecuteCoreDeletion(ctx context.Context, subject sdk.SubjectIdentifiers) er
 		return fmt.Errorf("commit deletion transaction: %w", err)
 	}
 
-	// applicationFiles — non-transactional (DB row + blob)
+	// applicationFiles
 	if err := deleteApplicationFiles(ctx, fileIDs); err != nil {
 		return fmt.Errorf("delete application files: %w", err)
 	}
 
-	// Privacy Exports — non-transactional (S3 + own DB writes)
+	// Privacy Exports
 	if err := archiveSubjectPrivacyExports(ctx, subject.UserID); err != nil {
 		return fmt.Errorf("archive privacy exports: %w", err)
 	}
@@ -70,11 +71,7 @@ func deleteStudentScopedData(ctx context.Context, q *db.Queries, studentID uuid.
 		return nil
 	}
 
-	// Cascade chain (migration 0025 added cascade to note FKs):
-	//   student -> course_participation -> course_phase_participation
-	//     -> application_answer_{text,multi_select,file_upload}
-	//     -> application_assessment
-	//   student -> note -> note_version, note_tag_relation
+	// related records delete with cascade
 	if err := q.DeleteStudentByID(ctx, studentID); err != nil {
 		return fmt.Errorf("delete student row: %w", err)
 	}
@@ -101,10 +98,15 @@ func deleteUserScopedData(ctx context.Context, q *db.Queries, userID uuid.UUID) 
 }
 
 func deleteApplicationFiles(ctx context.Context, fileIDs []uuid.UUID) error {
+	var errs []error
 	for _, fileID := range fileIDs {
 		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileID", fileID).Warn("failed to delete application file during privacy deletion")
+			errs = append(errs, fmt.Errorf("file %s: %w", fileID, err))
 		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to delete %d of %d application files: %w", len(errs), len(fileIDs), errors.Join(errs...))
 	}
 	return nil
 }

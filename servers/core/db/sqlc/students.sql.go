@@ -67,6 +67,15 @@ func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) (S
 	return i, err
 }
 
+const deleteStudentByID = `-- name: DeleteStudentByID :exec
+DELETE FROM student WHERE id = $1
+`
+
+func (q *Queries) DeleteStudentByID(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStudentByID, id)
+	return err
+}
+
 const getAllStudents = `-- name: GetAllStudents :many
 SELECT id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified FROM student
 `
@@ -114,6 +123,7 @@ SELECT
   s.has_university_account AS student_has_university_account,
   s.current_semester,
   s.study_program,
+  s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
       jsonb_build_object(
@@ -152,15 +162,16 @@ GROUP BY
 `
 
 type GetAllStudentsWithCourseParticipationsRow struct {
-	StudentID                   uuid.UUID   `json:"student_id"`
-	StudentFirstName            pgtype.Text `json:"student_first_name"`
-	StudentLastName             pgtype.Text `json:"student_last_name"`
-	StudentEmail                pgtype.Text `json:"student_email"`
-	StudentHasUniversityAccount pgtype.Bool `json:"student_has_university_account"`
-	CurrentSemester             pgtype.Int4 `json:"current_semester"`
-	StudyProgram                pgtype.Text `json:"study_program"`
-	Courses                     []byte      `json:"courses"`
-	NoteTags                    []byte      `json:"note_tags"`
+	StudentID                   uuid.UUID        `json:"student_id"`
+	StudentFirstName            pgtype.Text      `json:"student_first_name"`
+	StudentLastName             pgtype.Text      `json:"student_last_name"`
+	StudentEmail                pgtype.Text      `json:"student_email"`
+	StudentHasUniversityAccount pgtype.Bool      `json:"student_has_university_account"`
+	CurrentSemester             pgtype.Int4      `json:"current_semester"`
+	StudyProgram                pgtype.Text      `json:"study_program"`
+	StudentLastModified         pgtype.Timestamp `json:"student_last_modified"`
+	Courses                     []byte           `json:"courses"`
+	NoteTags                    []byte           `json:"note_tags"`
 }
 
 func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([]GetAllStudentsWithCourseParticipationsRow, error) {
@@ -180,12 +191,37 @@ func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([
 			&i.StudentHasUniversityAccount,
 			&i.CurrentSemester,
 			&i.StudyProgram,
+			&i.StudentLastModified,
 			&i.Courses,
 			&i.NoteTags,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getExistingStudentIDs = `-- name: GetExistingStudentIDs :many
+SELECT id FROM student WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetExistingStudentIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getExistingStudentIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

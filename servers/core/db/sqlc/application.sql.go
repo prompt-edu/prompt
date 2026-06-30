@@ -994,6 +994,32 @@ func (q *Queries) GetApplicationExistsForStudent(ctx context.Context, arg GetApp
 	return exists, err
 }
 
+const getApplicationFileIDsByCourseParticipationIDs = `-- name: GetApplicationFileIDsByCourseParticipationIDs :many
+SELECT file_id
+FROM application_answer_file_upload
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetApplicationFileIDsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getApplicationFileIDsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var file_id uuid.UUID
+		if err := rows.Scan(&file_id); err != nil {
+			return nil, err
+		}
+		items = append(items, file_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getApplicationPhaseIDForCourse = `-- name: GetApplicationPhaseIDForCourse :one
 SELECT cp.id
 FROM course_phase cp

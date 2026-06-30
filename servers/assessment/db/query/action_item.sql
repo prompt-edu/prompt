@@ -55,8 +55,3 @@ SELECT COUNT(*) AS action_item_count
 FROM action_item
 WHERE course_participation_id = $1
   AND course_phase_id = $2;
-
--- name: GetAllActionItemsByCourseParticipationIDs :many
-SELECT * 
-FROM action_item
-WHERE course_participation_id = ANY($1::uuid[]);

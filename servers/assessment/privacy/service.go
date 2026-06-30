@@ -17,24 +17,27 @@ var PrivacyServiceSingleton *PrivacyService
 
 func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
 	q := PrivacyServiceSingleton.Queries
+	ids := subject.CourseParticipationIDs
 
+	// The queries backing this export omit every author / third-party identifier
+	// at the SQL level, so no redaction is required here.
 	exp.AddJSON("Assessments", "student/assessment.json", func() (any, error) {
-		return GetAllAssessmentsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllAssessmentsByCourseParticipationIDs(c, ids)
 	})
 	exp.AddJSON("Assessment Completions", "student/assessment_completion.json", func() (any, error) {
-		return GetAllAssessmentCompletionsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllAssessmentCompletionsByCourseParticipationIDs(c, ids)
 	})
 	exp.AddJSON("Evaluations", "student/evaluation.json", func() (any, error) {
-		return GetAllEvaluationsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllEvaluationsByCourseParticipationIDs(c, ids)
 	})
 	exp.AddJSON("Evaluation Completions", "student/evaluation_completion.json", func() (any, error) {
-		return GetAllEvaluationCompletionsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllEvaluationCompletionsByCourseParticipationIDs(c, ids)
 	})
 	exp.AddJSON("Action Items", "student/action_item.json", func() (any, error) {
-		return GetAllActionItemsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllActionItemsByCourseParticipationIDs(c, ids)
 	})
 	exp.AddJSON("Feedback Items", "student/feedback_item.json", func() (any, error) {
-		return GetAllFeedbackItemsByCourseParticipationIDsNoAuthor(c, q, subject.CourseParticipationIDs)
+		return q.GetAllFeedbackItemsByCourseParticipationIDs(c, ids)
 	})
 
 	return nil

@@ -38,14 +38,14 @@ export const QuestionConfiguration = () => {
   )
 
   // Load initial questions from coursePhase
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only depend on coursePhase.id, not the entire object
   useEffect(() => {
     if (coursePhase) {
       const questions = coursePhase.restrictedData?.interviewQuestions ?? []
       setInterviewQuestions(questions)
       setIsLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coursePhase?.id]) // Only depend on coursePhase.id, not the entire object
+  }, [coursePhase?.id])
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

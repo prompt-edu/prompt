@@ -9,8 +9,7 @@ import { GradeSuggestionBadge } from '../assessment/pages/components/badges'
 import { Link } from 'react-router-dom'
 
 export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  studentId,
+  studentId: _studentId,
   coursePhaseId,
   courseId,
   courseParticipationId,

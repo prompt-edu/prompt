@@ -72,7 +72,7 @@ jobs:
             clients/**/yarn.lock
             clients/lerna.json
             clients/Dockerfile
-            clients/eslint.config.mjs
+            clients/biome.json
           base_sha: ${{ inputs.base_sha }}
       - uses: tj-actions/changed-files@v47
         id: changed-server-dependencies
@@ -133,12 +133,12 @@ jobs:
           client_modules="[]"
           if [ "$workflows_changed" = "true" ] || [ "$docker_compose_changed" = "true" ] || [ "$client_dependencies_changed" = "true" ] || [ "$force_all" = "true" ]; then
             while IFS= read -r module; do
-              [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+              [ -f "clients/$module/biome.json" ] && client_modules=$(add_unique "$client_modules" "$module")
             done < <(echo "$client_workspace_modules" | jq -r '.[]')
           else
             while IFS= read -r dir; do
               module=$(echo "$dir" | cut -d'/' -f2)
-              [ -n "$module" ] && is_client_workspace_module "$module" && [ -f "clients/$module/eslint.config.mjs" ] && client_modules=$(add_unique "$client_modules" "$module")
+              [ -n "$module" ] && is_client_workspace_module "$module" && [ -f "clients/$module/biome.json" ] && client_modules=$(add_unique "$client_modules" "$module")
             done < <(echo '${{ steps.changed-clients.outputs.all_changed_files }}' | jq -r '.[]')
           fi
 

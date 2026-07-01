@@ -9,10 +9,8 @@ import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import { RenderStudents } from '@tumaet/prompt-ui-components'
 
 export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  studentId,
+  studentId: _studentId,
   coursePhaseId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   courseId: _courseId,
   courseParticipationId,
 }) => {

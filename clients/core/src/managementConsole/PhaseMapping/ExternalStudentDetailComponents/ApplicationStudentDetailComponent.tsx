@@ -9,7 +9,6 @@ import { getStatusString } from '../../applicationAdministration/pages/Applicati
 import { Link } from 'react-router-dom'
 
 export const ApplicationStudentDetailComponent: React.FC<CoursePhaseStudentIdentifierProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   studentId: _studentId,
   coursePhaseId,
 

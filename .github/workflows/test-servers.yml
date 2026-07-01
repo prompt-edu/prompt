@@ -2,11 +2,7 @@ name: Test Go Servers
 
 on:
   workflow_call:
-    inputs:
-      directories:
-        description: "JSON array of server modules to test"
-        required: true
-        type: string
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,10 +10,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: inputs.directories != '[]'
     strategy:
       matrix:
-        directory: ${{ fromJson(inputs.directories) }}
+        directory:
+          - assessment
+          - certificate
+          - core
+          - interview
+          - self_team_allocation
+          - team_allocation
+          - template_server
     steps:
       - uses: actions/checkout@v7
       - name: Setup Go

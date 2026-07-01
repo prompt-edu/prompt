@@ -2,22 +2,24 @@ name: Quality Servers
 
 on:
   workflow_call:
-    inputs:
-      modules:
-        description: "JSON array of server modules to check"
-        required: true
-        type: string
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   quality-server:
-    if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{ fromJson(inputs.modules) }}
+        module:
+          - assessment
+          - certificate
+          - core
+          - interview
+          - self_team_allocation
+          - team_allocation
+          - template_server
     defaults:
       run:
         working-directory: servers/${{ matrix.module }}

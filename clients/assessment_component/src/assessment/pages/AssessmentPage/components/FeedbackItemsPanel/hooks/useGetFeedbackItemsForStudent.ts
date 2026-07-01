@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { FeedbackItem } from '../../../../../interfaces/feedbackItem'
+import type { FeedbackItem } from '../../../../../interfaces/feedbackItem'
 import { getFeedbackItemsForStudent } from '../../../../../network/queries/getFeedbackItemsForStudent'
 
 export const useGetFeedbackItemsForStudent = (courseParticipationID: string) => {

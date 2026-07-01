@@ -1,5 +1,5 @@
 import { CourseAvatar } from '@core/managementConsole/layout/Sidebar/CourseSwitchSidebar/components/CourseAvatar'
-import { CourseEnrollment } from '../../interfaces/StudentEnrollment'
+import type { CourseEnrollment } from '../../interfaces/StudentEnrollment'
 import { LinkHeading } from './LinkHeading'
 import { formatDate } from './util/formatDate'
 

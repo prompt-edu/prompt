@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 import { CoursePhaseTypePanelItem } from './CoursePhaseTypePanelItem'
 

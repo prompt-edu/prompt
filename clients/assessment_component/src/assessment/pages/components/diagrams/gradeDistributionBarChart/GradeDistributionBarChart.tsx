@@ -13,7 +13,7 @@ import { GRADE_CONFIG } from '../../../utils/gradeConfig'
 import { GradeDistributionBar } from './components/GradeDistributionBar'
 import { GradeDistributionLabel } from './components/GradeDistributionLabel'
 import { GradeDistributionTooltipContent } from './components/GradeDistributionTooltipContent'
-import { GradeDistributionDataPoint } from './interfaces/GradeDistributionDataPoint'
+import type { GradeDistributionDataPoint } from './interfaces/GradeDistributionDataPoint'
 
 export interface GradeDistributionBarChartProps {
   data: GradeDistributionDataPoint[]

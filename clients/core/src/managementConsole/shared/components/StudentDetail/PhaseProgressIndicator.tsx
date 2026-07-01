@@ -1,6 +1,6 @@
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import { Check, ChevronsRight, Clock, X } from 'lucide-react'
-import { ReactElement } from 'react'
+import type { ReactElement } from 'react'
 
 function RoundLayout({
   children,

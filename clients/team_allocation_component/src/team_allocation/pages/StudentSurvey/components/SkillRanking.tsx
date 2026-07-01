@@ -9,8 +9,8 @@ import {
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { Star } from 'lucide-react'
-import React from 'react'
-import { Skill } from '../../../interfaces/skill'
+import type React from 'react'
+import type { Skill } from '../../../interfaces/skill'
 import { SkillLevel } from '../../../interfaces/skillResponse'
 
 interface SkillRankingProps {

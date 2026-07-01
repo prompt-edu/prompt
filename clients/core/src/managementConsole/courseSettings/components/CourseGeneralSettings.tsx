@@ -6,7 +6,7 @@ import {
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
 import { updateCourseData } from '@core/network/mutations/updateCourseData'
 import { getAllCourses } from '@core/network/queries/course'
-import { EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
+import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Course, UpdateCourseData } from '@tumaet/prompt-shared-state'

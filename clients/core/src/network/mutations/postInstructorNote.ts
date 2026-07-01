@@ -1,4 +1,4 @@
-import {
+import type {
   CreateInstructorNote,
   InstructorNote,
 } from '@core/managementConsole/shared/interfaces/InstructorNote'

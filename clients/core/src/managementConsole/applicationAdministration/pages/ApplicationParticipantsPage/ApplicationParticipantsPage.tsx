@@ -1,5 +1,5 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { ApplicationManualAddingDialog } from './components/ApplicationManualAddingDialog/ApplicationManualAddingDialog'

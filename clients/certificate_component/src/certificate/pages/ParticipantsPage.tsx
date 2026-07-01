@@ -2,16 +2,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  ExtraParticipantColumn,
+  type ExtraParticipantColumn,
   ManagementPageHeader,
-  ParticipantRow,
-  RowAction,
+  type ParticipantRow,
+  type RowAction,
 } from '@tumaet/prompt-ui-components'
 import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { ParticipantWithDownloadStatus } from '../interfaces/participant'
+import type { ParticipantWithDownloadStatus } from '../interfaces/participant'
 import {
   downloadStudentCertificate,
   triggerBlobDownload,

@@ -1,4 +1,4 @@
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import * as z from 'zod'
 
 export const createValidationSchema = (question: ApplicationQuestionText) =>

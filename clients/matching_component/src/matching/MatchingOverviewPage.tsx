@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  CoursePhaseParticipationsWithResolution,
+  type CoursePhaseParticipationsWithResolution,
   getCoursePhaseParticipations,
 } from '@tumaet/prompt-shared-state'
 import {

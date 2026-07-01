@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { UpdateCategoryRequest } from '../../../../../interfaces/category'
+import type { UpdateCategoryRequest } from '../../../../../interfaces/category'
 import { updateCategory } from '../../../../../network/mutations/updateCategory'
 
 export const useUpdateCategory = (setError: (error: string | undefined) => void) => {

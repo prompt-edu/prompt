@@ -1,4 +1,4 @@
-import { SurveyTimeframe } from '../../interfaces/timeframe'
+import type { SurveyTimeframe } from '../../interfaces/timeframe'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getSurveyTimeframe = async (coursePhaseID: string): Promise<SurveyTimeframe> => {

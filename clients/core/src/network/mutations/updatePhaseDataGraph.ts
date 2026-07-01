@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { MetaDataGraphItem } from '../../managementConsole/courseConfigurator/interfaces/courseMetaGraphItem'
+import type { MetaDataGraphItem } from '../../managementConsole/courseConfigurator/interfaces/courseMetaGraphItem'
 
 export const updatePhaseDataGraph = async (
   courseID: string,

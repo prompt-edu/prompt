@@ -1,5 +1,5 @@
 import { Sidebar, useSidebar } from '@tumaet/prompt-ui-components'
-import * as React from 'react'
+import type * as React from 'react'
 import { CourseSwitchSidebar } from './CourseSwitchSidebar/CourseSwitchSidebar'
 import { InsideSidebar } from './InsideSidebar/InsideSidebar'
 

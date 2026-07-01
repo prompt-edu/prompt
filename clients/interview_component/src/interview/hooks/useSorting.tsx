@@ -9,7 +9,7 @@ export const useSorting = (sortBy: string | undefined) => {
     if (!sortBy) return participations
     return [...participations].sort((a, b) => {
       switch (sortBy) {
-        case 'Interview Date':
+        case 'Interview Date': {
           const aSlot = interviewSlots.find(
             (slot) => slot.courseParticipationID === a.courseParticipationID,
           )
@@ -32,15 +32,17 @@ export const useSorting = (sortBy: string | undefined) => {
             return a.student.firstName.localeCompare(b.student.firstName)
           }
           return timeComparison
+        }
         case 'First Name':
           return a.student.firstName.localeCompare(b.student.firstName)
         case 'Last Name':
           return a.student.lastName.localeCompare(b.student.lastName)
-        case 'Acceptance Status':
+        case 'Acceptance Status': {
           const statusOrder = [PassStatus.PASSED, PassStatus.NOT_ASSESSED, PassStatus.FAILED]
           const aIndex = statusOrder.indexOf(a.passStatus)
           const bIndex = statusOrder.indexOf(b.passStatus)
           return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+        }
         case 'Interview Score':
           return (
             (a.restrictedData.score || Number.MAX_VALUE) -

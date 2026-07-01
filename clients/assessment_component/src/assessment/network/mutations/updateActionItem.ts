@@ -1,4 +1,4 @@
-import { ActionItem, UpdateActionItemRequest } from '../../interfaces/actionItem'
+import type { ActionItem, UpdateActionItemRequest } from '../../interfaces/actionItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateActionItem = async (

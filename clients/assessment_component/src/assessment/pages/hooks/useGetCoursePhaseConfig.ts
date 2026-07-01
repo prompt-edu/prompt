@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
+import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { getCoursePhaseConfig } from '../../network/queries/getCoursePhaseConfig'
 
 export const useGetCoursePhaseConfig = () => {

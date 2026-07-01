@@ -1,6 +1,6 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@tumaet/prompt-ui-components'
 import { Bar, BarChart, LabelList, Rectangle, XAxis, YAxis } from 'recharts'
-import { DataPoint } from '../interfaces/DataPoint'
+import type { DataPoint } from '../interfaces/DataPoint'
 import { chartConfig } from './utils/chartConfig'
 import { getCornerRadius } from './utils/getCornerRadius'
 

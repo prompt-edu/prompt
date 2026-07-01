@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import {
-  AssessmentExportFormat,
+  type AssessmentExportFormat,
   exportStudentAssessment,
   triggerTextDownload,
 } from '../../../network/queries/exportStudentAssessment'

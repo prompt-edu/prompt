@@ -1,5 +1,5 @@
 import { PhaseStudentDetailMapping } from '@core/managementConsole/PhaseMapping/PhaseStudentDetailMapping'
-import {
+import type {
   CourseEnrollment,
   CoursePhaseEnrollment,
 } from '@core/managementConsole/shared/interfaces/StudentEnrollment'

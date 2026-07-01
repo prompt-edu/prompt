@@ -1,12 +1,12 @@
 import { create } from 'zustand'
-import { Assessment } from '../interfaces/assessment'
-import { AssessmentCompletion } from '../interfaces/assessmentCompletion'
-import { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
+import type { Assessment } from '../interfaces/assessment'
+import type { AssessmentCompletion } from '../interfaces/assessmentCompletion'
+import type { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
 import { AssessmentType } from '../interfaces/assessmentType'
-import { CategoryAssessment } from '../interfaces/categoryAssessment'
-import { Evaluation } from '../interfaces/evaluation'
-import { StudentAssessment } from '../interfaces/studentAssessment'
-import { StudentScore } from '../interfaces/studentScore'
+import type { CategoryAssessment } from '../interfaces/categoryAssessment'
+import type { Evaluation } from '../interfaces/evaluation'
+import type { StudentAssessment } from '../interfaces/studentAssessment'
+import type { StudentScore } from '../interfaces/studentScore'
 
 export interface StudentAssessmentStore {
   courseParticipationID: string | undefined

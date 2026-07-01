@@ -1,7 +1,7 @@
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
-import { Assessment } from '../../../../interfaces/assessment'
-import { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
-import { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { Assessment } from '../../../../interfaces/assessment'
+import type { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
+import type { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
 
 export interface ParticipationWithAssessment {
   participation: AssessmentParticipationWithStudent

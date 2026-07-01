@@ -1,10 +1,10 @@
 import { mapScoreLevelToNumber, ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
-  ExtraParticipantColumn,
+  type ExtraParticipantColumn,
   getLevelConfig,
-  ParticipantRow,
+  type ParticipantRow,
 } from '@tumaet/prompt-ui-components'
-import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
+import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 import { StudentScoreBadge } from '../../components/badges'
 
 export const createScoreLevelColumn = (

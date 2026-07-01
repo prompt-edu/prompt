@@ -1,4 +1,4 @@
-import { axiosInstance, Student } from '@tumaet/prompt-shared-state'
+import { axiosInstance, type Student } from '@tumaet/prompt-shared-state'
 
 export const updateStudent = async (student: Student): Promise<string | undefined> => {
   try {

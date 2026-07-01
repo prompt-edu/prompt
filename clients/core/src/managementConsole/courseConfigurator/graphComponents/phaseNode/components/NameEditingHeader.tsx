@@ -1,4 +1,4 @@
-import { CoursePhaseWithPosition } from '@core/managementConsole/courseConfigurator/interfaces/coursePhaseWithPosition'
+import type { CoursePhaseWithPosition } from '@core/managementConsole/courseConfigurator/interfaces/coursePhaseWithPosition'
 import { useCourseConfigurationState } from '@core/managementConsole/courseConfigurator/zustand/useCourseConfigurationStore'
 import {
   getPermissionString,

@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import {
+import type {
   EvaluationReminderReport,
   SendEvaluationReminderRequest,
 } from '../../interfaces/evaluationReminder'

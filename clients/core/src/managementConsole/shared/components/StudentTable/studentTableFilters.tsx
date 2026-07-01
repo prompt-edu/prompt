@@ -1,12 +1,12 @@
-import { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
+import type { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  TableFilter,
+  type TableFilter,
 } from '@tumaet/prompt-ui-components'
-import { NoteTagColor } from '../../interfaces/InstructorNote'
+import type { NoteTagColor } from '../../interfaces/InstructorNote'
 import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
 import { StudentCoursePreview } from './components/StudentCoursePreview'
 

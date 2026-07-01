@@ -5,7 +5,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { SortDropdownMenu } from '../../components/SortDropdownMenu'
 import { StudentCard } from '../../components/StudentCard'
 import { useSorting } from '../../hooks/useSorting'
-import { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 export const OverviewPage = () => {

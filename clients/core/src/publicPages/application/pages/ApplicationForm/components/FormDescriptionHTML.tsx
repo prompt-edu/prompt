@@ -10,7 +10,7 @@ export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
   const formContext = useFormContext()
 
   // allowing _blank in links, but only with noopener
-  DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     // set all elements owning target to target=_blank
     if ('target' in node) {
       node.setAttribute('target', '_blank')

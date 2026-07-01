@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import { UploadedStudent } from '../interfaces/UploadedStudent'
+import type { UploadedStudent } from '../interfaces/UploadedStudent'
 import { useMatchingStore } from '../zustand/useMatchingStore'
 
 /**

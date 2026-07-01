@@ -18,7 +18,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Clock, Plus, Trash } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { InterviewSlot } from '../interfaces/InterviewSlots'
+import type { InterviewSlot } from '../interfaces/InterviewSlots'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 

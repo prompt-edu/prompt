@@ -1,4 +1,4 @@
-import { CourseEnrollment } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
+import type { CourseEnrollment } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import { Button } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'

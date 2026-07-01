@@ -6,7 +6,7 @@ import {
   CardContent,
 } from '@tumaet/prompt-ui-components'
 import { useEffect, useState } from 'react'
-import { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
+import type { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
 import { contributorMapping } from './ContributorMapping'
 
 export const ContributorList = () => {

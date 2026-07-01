@@ -1,5 +1,5 @@
 import { ApplicationDetailsPage } from '@core/managementConsole/applicationAdministration/pages/ApplicationParticipantsPage/components/ApplicationDetailsDialog/ApplicationDetailsPage'
-import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
 import { ApplicationLandingPage } from '../../applicationAdministration/pages/ApplicationLandingPage/ApplicationLandingPage'
 import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'

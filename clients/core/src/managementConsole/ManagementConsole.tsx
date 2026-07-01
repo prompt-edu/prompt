@@ -1,7 +1,7 @@
 import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
-import { Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import { type Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   DarkModeProvider,
   ErrorPage,

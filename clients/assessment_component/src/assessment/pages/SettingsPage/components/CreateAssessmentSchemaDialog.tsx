@@ -12,7 +12,7 @@ import {
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
+import type { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
 import { useCreateAssessmentSchema } from '../hooks/useCreateAssessmentSchema'
 
 interface CreateAssessmentSchemaDialogProps {

@@ -1,10 +1,10 @@
-import { UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
+import { type UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
   Button,
   EmailTemplateEditor,
   ManagementPageHeader,
   MissingConfig,
-  MissingConfigItem,
+  type MissingConfigItem,
   Tabs,
   TabsContent,
   TabsList,
@@ -15,7 +15,7 @@ import { MailWarningIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useModifyCoursePhase } from '../../hooks/useModifyCoursePhase'
-import { ApplicationMailingMetaData } from '../../interfaces/applicationMailingMetaData'
+import type { ApplicationMailingMetaData } from '../../interfaces/applicationMailingMetaData'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import {
   applicationMailingPlaceholders,

@@ -1,4 +1,4 @@
-import { Team } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 import { create } from 'zustand'
 
 export interface TeamStore {

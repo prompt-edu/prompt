@@ -13,7 +13,7 @@ import { chartConfig } from '../utils/chartConfig'
 import { ScoreDistributionBar } from './components/ScoreDistributionBar'
 import { ScoreDistributionLabel } from './components/ScoreDistributionLabel'
 import { ScoreDistributionTooltipContent } from './components/ScoreDistributionTooltipContent'
-import { ScoreDistributionDataPoint } from './interfaces/ScoreDistributionDataPoint'
+import type { ScoreDistributionDataPoint } from './interfaces/ScoreDistributionDataPoint'
 
 export interface ScoreDistributionBarChartProps {
   data: ScoreDistributionDataPoint[]

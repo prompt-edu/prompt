@@ -1,6 +1,6 @@
-import { RowAction } from '@tumaet/prompt-ui-components'
+import type { RowAction } from '@tumaet/prompt-ui-components'
 import { Pencil, Trash2 } from 'lucide-react'
-import { NoteTag } from '../../shared/interfaces/InstructorNote'
+import type { NoteTag } from '../../shared/interfaces/InstructorNote'
 
 interface NoteTagTableActionsProps {
   onEdit: (tag: NoteTag) => void

@@ -9,7 +9,7 @@ import {
 } from '@tumaet/prompt-shared-state'
 import { ErrorPage, UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
-import { CourseParticipation } from '../interfaces/CourseParticipation'
+import type { CourseParticipation } from '../interfaces/CourseParticipation'
 
 interface PermissionRestrictionProps {
   requiredPermissions: Role[]

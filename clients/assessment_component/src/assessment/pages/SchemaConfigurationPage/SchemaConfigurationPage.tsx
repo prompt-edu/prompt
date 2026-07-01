@@ -10,7 +10,7 @@ import { ArrowLeft, Lock } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
+import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'

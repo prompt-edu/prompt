@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { StudentAssessment } from '../../../interfaces/studentAssessment'
+import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 import { getStudentAssessment } from '../../../network/queries/getStudentAssessment'
 
 export const useGetStudentAssessment = () => {

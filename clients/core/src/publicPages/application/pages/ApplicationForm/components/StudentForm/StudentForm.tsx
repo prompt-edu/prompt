@@ -1,11 +1,11 @@
-import { StudentFormValues, studentSchema } from '@core/validations/student'
+import { type StudentFormValues, studentSchema } from '@core/validations/student'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   countriesArr,
   Gender,
   getGenderString,
   getStudyDegreeString,
-  Student,
+  type Student,
   StudyDegree,
   translations,
 } from '@tumaet/prompt-shared-state'
@@ -37,7 +37,7 @@ import {
 import { Check, ChevronDown } from 'lucide-react'
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { StudentComponentRef } from '../../utils/StudentComponentRef'
+import type { StudentComponentRef } from '../../utils/StudentComponentRef'
 
 const studyPrograms = translations.university.studyPrograms.concat('Other')
 

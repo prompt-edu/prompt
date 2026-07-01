@@ -1,4 +1,4 @@
-import { UpdateFeedbackItemRequest } from '../../interfaces/feedbackItem'
+import type { UpdateFeedbackItemRequest } from '../../interfaces/feedbackItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateFeedbackItem = async (

@@ -1,6 +1,6 @@
-import { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 import { useEffect } from 'react'
-import { ApplicationMetaData } from '../interfaces/applicationMetaData'
+import type { ApplicationMetaData } from '../interfaces/applicationMetaData'
 
 export const useParseApplicationMetaData = (
   coursePhase: CoursePhaseWithMetaData | undefined,

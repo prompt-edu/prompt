@@ -1,4 +1,4 @@
-import { axiosInstance, CreateCoursePhase } from '@tumaet/prompt-shared-state'
+import { axiosInstance, type CreateCoursePhase } from '@tumaet/prompt-shared-state'
 
 export const postNewCoursePhase = async (
   coursePhase: CreateCoursePhase,

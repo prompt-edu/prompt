@@ -1,13 +1,13 @@
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { checkCheckBoxQuestion } from '@core/publicPages/application/pages/ApplicationForm/utils/CheckBoxRequirements'
 import {
-  QuestionConfigFormData,
-  QuestionConfigFormDataMultiSelect,
+  type QuestionConfigFormData,
+  type QuestionConfigFormDataMultiSelect,
   questionConfigSchema,
 } from '@core/validations/questionConfig'
-import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
+import type { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Button,
@@ -22,9 +22,9 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ChevronDown, ChevronUp, GripVertical, Trash2 } from 'lucide-react'
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { UseFormReturn, useForm } from 'react-hook-form'
+import { type UseFormReturn, useForm } from 'react-hook-form'
 import { DeleteConfirmation } from '../components/DeleteConfirmation'
-import { QuestionStatus, QuestionStatusBadge } from '../components/QuestionStatusBadge'
+import { type QuestionStatus, QuestionStatusBadge } from '../components/QuestionStatusBadge'
 import { questionsEqual } from '../handlers/computeQuestionsModified'
 import {
   AllowedFileTypesField,

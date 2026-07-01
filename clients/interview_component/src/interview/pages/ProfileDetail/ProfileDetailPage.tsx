@@ -1,4 +1,4 @@
-import { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
+import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,

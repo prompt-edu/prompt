@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  CoursePhaseParticipationWithStudent,
+  type CoursePhaseParticipationWithStudent,
   getOwnCoursePhaseParticipation,
-  Team,
+  type Team,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import {
@@ -14,7 +14,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Loader2, TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { Timeframe } from '../../interfaces/timeframe'
+import type { Timeframe } from '../../interfaces/timeframe'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamSelection } from './components/TeamSelection'

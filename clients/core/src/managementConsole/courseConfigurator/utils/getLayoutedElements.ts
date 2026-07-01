@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre'
-import { Edge, Node, Position } from '@xyflow/react'
+import { type Edge, type Node, Position } from '@xyflow/react'
 
 const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}))
 

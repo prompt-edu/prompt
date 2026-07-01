@@ -1,4 +1,4 @@
-import { EvaluationCompletionRequest } from '../../interfaces/evaluationCompletion'
+import type { EvaluationCompletionRequest } from '../../interfaces/evaluationCompletion'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const unmarkMyEvaluationAsCompleted = async (

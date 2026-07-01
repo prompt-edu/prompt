@@ -1,4 +1,4 @@
-import { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
+import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
 import { getAllOpenApplications } from '@core/network/queries/openApplications'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'

@@ -1,4 +1,4 @@
-import { InstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import type { InstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const getInstructorNotes = async (studentId: string): Promise<InstructorNote[]> => {

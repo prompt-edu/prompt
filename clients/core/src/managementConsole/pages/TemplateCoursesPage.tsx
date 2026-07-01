@@ -2,7 +2,7 @@ import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { useMemo, useState } from 'react'
 import { CourseCards } from '../shared/components/CourseCard/CourseCards'
 import { CourseTable } from '../shared/components/CourseTable/CourseTable'
-import { CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
+import { type CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
 
 export const TemplateCoursesPage = () => {
   const { courses } = useCourseStore()

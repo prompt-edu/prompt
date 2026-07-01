@@ -4,14 +4,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import { Bar, BarChart, XAxis, YAxis } from 'recharts'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
+import type { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 
 const chartConfig = {
   bachelor: {

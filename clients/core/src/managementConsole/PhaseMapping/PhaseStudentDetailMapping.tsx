@@ -1,4 +1,4 @@
-import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 import { ApplicationStudentDetailComponent } from './ExternalStudentDetailComponents/ApplicationStudentDetailComponent'
 import { AssessmentStudentDetailComponent } from './ExternalStudentDetailComponents/AssessmentStudentDetailComponent'
 import { DevOpsStudentDetailComponent } from './ExternalStudentDetailComponents/DevOpsStudentDetailComponent'

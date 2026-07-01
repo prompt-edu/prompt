@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
+import { type Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  ExtraParticipantColumn,
+  type ExtraParticipantColumn,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'

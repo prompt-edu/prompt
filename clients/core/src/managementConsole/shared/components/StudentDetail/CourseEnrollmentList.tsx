@@ -1,6 +1,6 @@
 import { useStudentEnrollments } from '@core/network/hooks/useStudentEnrollments'
 import { Loader2 } from 'lucide-react'
-import { CourseEnrollment } from '../../interfaces/StudentEnrollment'
+import type { CourseEnrollment } from '../../interfaces/StudentEnrollment'
 import { CourseEnrollmentSummary } from './CourseEnrollmentSummary'
 import { StudentCourseEnrollment } from './StudentCourseEnrollment'
 

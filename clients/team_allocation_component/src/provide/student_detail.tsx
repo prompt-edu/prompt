@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  CoursePhaseParticipationsWithResolution,
-  CoursePhaseStudentIdentifierProps,
+  type CoursePhaseParticipationsWithResolution,
+  type CoursePhaseStudentIdentifierProps,
   getCoursePhaseParticipations,
-  Student,
-  Team,
+  type Student,
+  type Team,
 } from '@tumaet/prompt-shared-state'
 import { RenderStudents } from '@tumaet/prompt-ui-components'
-import React, { useMemo } from 'react'
-import { Allocation } from '../team_allocation/interfaces/allocation'
+import type React from 'react'
+import { useMemo } from 'react'
+import type { Allocation } from '../team_allocation/interfaces/allocation'
 import { getAllTeams } from '../team_allocation/network/queries/getAllTeams'
 import { getTeamAllocations } from '../team_allocation/network/queries/getTeamAllocations'
 

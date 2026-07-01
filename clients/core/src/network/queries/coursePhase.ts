@@ -1,4 +1,4 @@
-import { axiosInstance, CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
+import { axiosInstance, type CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 
 export const getCoursePhaseByID = async (phaseId: string): Promise<CoursePhaseWithMetaData> => {
   try {

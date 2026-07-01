@@ -1,4 +1,4 @@
-import { PassStatus, Student } from '@tumaet/prompt-shared-state'
+import type { PassStatus, Student } from '@tumaet/prompt-shared-state'
 
 export interface ApplicationParticipation {
   coursePhaseID: string

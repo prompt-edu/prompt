@@ -3,7 +3,7 @@ import { Edit, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { AssessmentType } from '../../../../../../interfaces/assessmentType'
-import { Competency } from '../../../../../../interfaces/competency'
+import type { Competency } from '../../../../../../interfaces/competency'
 
 import { useCoursePhaseConfigStore } from '../../../../../../zustand/useCoursePhaseConfigStore'
 import { usePeerEvaluationCategoryStore } from '../../../../../../zustand/usePeerEvaluationCategoryStore'

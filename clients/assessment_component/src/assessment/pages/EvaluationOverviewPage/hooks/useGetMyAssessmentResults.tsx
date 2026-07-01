@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { StudentAssessmentResults } from '../../../interfaces/assessmentResults'
+import type { StudentAssessmentResults } from '../../../interfaces/assessmentResults'
 import { getMyAssessmentResults } from '../../../network/queries/getMyAssessmentResults'
 
 export const useGetMyAssessmentResults = (options?: { enabled?: boolean }) => {

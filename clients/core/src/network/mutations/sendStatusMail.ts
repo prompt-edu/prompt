@@ -1,4 +1,4 @@
-import { axiosInstance, MailingReport, SendStatusMail } from '@tumaet/prompt-shared-state'
+import { axiosInstance, type MailingReport, type SendStatusMail } from '@tumaet/prompt-shared-state'
 
 export const sendStatusMail = async (
   coursePhaseID: string,

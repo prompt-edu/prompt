@@ -1,6 +1,6 @@
 import { DeleteConfirmation } from '@tumaet/prompt-ui-components'
 import { useCallback, useState } from 'react'
-import { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
+import type { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
 
 interface DeleteConfirmationReturn {
   deleteDialogIsOpen: boolean

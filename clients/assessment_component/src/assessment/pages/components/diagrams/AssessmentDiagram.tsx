@@ -4,17 +4,17 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@tumaet/prompt-ui-components'
 import * as React from 'react'
 import { Label, Pie, PieChart } from 'recharts'
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { AssessmentType } from '../../../interfaces/assessmentType'
-import { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
-import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
+import type { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
+import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 
 const chartConfig = {
   notAssessed: {

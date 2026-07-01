@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  CoursePhaseParticipationsWithResolution,
+  type CoursePhaseParticipationsWithResolution,
   getCoursePhaseParticipations,
 } from '@tumaet/prompt-shared-state'
 import {
@@ -40,7 +40,7 @@ import { format } from 'date-fns'
 import { Calendar, Clock, MapPin, Pencil, Plus, Trash2, UserPlus, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface SlotFormData {

@@ -9,7 +9,7 @@ import {
 import { User, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { Competency } from '../../interfaces/competency'
+import type { Competency } from '../../interfaces/competency'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 

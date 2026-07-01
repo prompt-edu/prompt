@@ -11,7 +11,7 @@ import {
 import { endOfDay, startOfDay } from 'date-fns'
 import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { AssessmentSchema } from '../../../interfaces/assessmentSchema'
+import type { AssessmentSchema } from '../../../interfaces/assessmentSchema'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import { schemaSectionContent } from '../../schemaSectionContent'
 import { CreateAssessmentSchemaDialog } from './CreateAssessmentSchemaDialog'

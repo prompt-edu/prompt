@@ -1,5 +1,5 @@
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
-import { CompetencyScore } from './competencyScore'
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { CompetencyScore } from './competencyScore'
 
 export interface Assessment extends CompetencyScore {
   assessedAt: string // ISO 8601 date string

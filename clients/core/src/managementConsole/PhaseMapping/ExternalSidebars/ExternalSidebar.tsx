@@ -1,10 +1,10 @@
-import { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
+import type { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
 import {
   getPermissionString,
   Role,
-  SidebarMenuItemProps,
+  type SidebarMenuItemProps,
   useAuthStore,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'

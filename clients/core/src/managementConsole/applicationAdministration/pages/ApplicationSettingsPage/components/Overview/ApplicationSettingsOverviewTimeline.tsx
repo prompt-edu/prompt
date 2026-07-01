@@ -1,6 +1,6 @@
 import { Progress } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
-import * as React from 'react'
+import type * as React from 'react'
 import { formatTimeRemaining } from '../../../../utils/formatTimeRemaining'
 
 interface ApplicationTimelineProps {

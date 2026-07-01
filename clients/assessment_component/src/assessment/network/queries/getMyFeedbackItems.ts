@@ -1,4 +1,4 @@
-import { FeedbackItem } from '../../interfaces/feedbackItem'
+import type { FeedbackItem } from '../../interfaces/feedbackItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getMyFeedbackItems = async (coursePhaseID: string): Promise<FeedbackItem[]> => {

@@ -1,8 +1,8 @@
-import { Student } from '@tumaet/prompt-shared-state'
-import { ApplicationAnswerFileUpload } from './applicationAnswer/fileUpload/applicationAnswerFileUpload'
-import { ApplicationAnswerMultiSelect } from './applicationAnswer/multiSelect/applicationAnswerMultiSelect'
-import { ApplicationAnswerText } from './applicationAnswer/text/applicationAnswerText'
-import { ApplicationStatus } from './applicationStatus'
+import type { Student } from '@tumaet/prompt-shared-state'
+import type { ApplicationAnswerFileUpload } from './applicationAnswer/fileUpload/applicationAnswerFileUpload'
+import type { ApplicationAnswerMultiSelect } from './applicationAnswer/multiSelect/applicationAnswerMultiSelect'
+import type { ApplicationAnswerText } from './applicationAnswer/text/applicationAnswerText'
+import type { ApplicationStatus } from './applicationStatus'
 
 export interface GetApplication {
   id: string

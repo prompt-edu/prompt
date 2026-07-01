@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
-import { ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useTeamStore } from '../../zustand/useTeamStore'

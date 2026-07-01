@@ -18,7 +18,7 @@ import {
   InstructorNoteTag,
   InstructorNoteTagColor,
 } from '../../shared/components/InstructorNote/InstructorNoteTag'
-import { NoteTagColor } from '../../shared/interfaces/InstructorNote'
+import type { NoteTagColor } from '../../shared/interfaces/InstructorNote'
 
 const NOTE_TAG_COLORS: NoteTagColor[] = ['blue', 'green', 'red', 'yellow', 'orange', 'pink']
 

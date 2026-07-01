@@ -1,4 +1,4 @@
-import { TeaseStudent } from '../../interfaces/tease/student'
+import type { TeaseStudent } from '../../interfaces/tease/student'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getAllTeaseStudents = async (coursePhaseID: string): Promise<TeaseStudent[]> => {

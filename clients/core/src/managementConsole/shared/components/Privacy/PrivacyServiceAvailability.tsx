@@ -2,7 +2,7 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useGetCoursePhaseTypes } from '../../../pages/SystemStatusPage/hooks/useGetCoursePhaseTypes'
 import { getServiceInfo } from '../../../pages/SystemStatusPage/network/getServiceCapabilities'
 

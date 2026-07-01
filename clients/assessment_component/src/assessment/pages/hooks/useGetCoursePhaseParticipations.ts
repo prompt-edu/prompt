@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
 import { getCoursePhaseParticipations } from '../../network/queries/getCoursePhaseParticipations'
 
 export const useGetCoursePhaseParticipations = () => {

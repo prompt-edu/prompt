@@ -1,4 +1,4 @@
-import { Student } from '@tumaet/prompt-shared-state'
+import type { Student } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Checkbox,

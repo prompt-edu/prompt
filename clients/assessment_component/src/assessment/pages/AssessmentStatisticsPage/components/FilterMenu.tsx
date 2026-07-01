@@ -1,4 +1,4 @@
-import { Gender, getGenderString, Team } from '@tumaet/prompt-shared-state'
+import { Gender, getGenderString, type Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
   DropdownMenu,

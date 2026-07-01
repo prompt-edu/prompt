@@ -1,6 +1,6 @@
 import '../src/loadStyles'
 
-import { Role, SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { ClipboardList } from 'lucide-react'
 
 const sidebarItems: SidebarMenuItemProps = {

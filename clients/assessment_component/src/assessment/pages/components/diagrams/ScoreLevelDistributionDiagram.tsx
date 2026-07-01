@@ -8,8 +8,8 @@ import {
   CardTitle,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 
 import { BarChartWithScoreLevel } from './BarChartWithScoreLevel'
 

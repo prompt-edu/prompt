@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
+import { type Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  ExtraParticipantColumn,
+  type ExtraParticipantColumn,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Allocation } from '../../interfaces/allocation'
-import { StudentName } from '../../interfaces/studentNameUpdateRequest'
+import type { Allocation } from '../../interfaces/allocation'
+import type { StudentName } from '../../interfaces/studentNameUpdateRequest'
 import { addStudentNamesToTeams } from '../../network/mutations/addStudentNamesToTeams'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTeamAllocations } from '../../network/queries/getTeamAllocations'

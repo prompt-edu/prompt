@@ -1,4 +1,4 @@
-import { Evaluation } from '../../interfaces/evaluation'
+import type { Evaluation } from '../../interfaces/evaluation'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getSelfEvaluationsForParticipantInPhase = async (

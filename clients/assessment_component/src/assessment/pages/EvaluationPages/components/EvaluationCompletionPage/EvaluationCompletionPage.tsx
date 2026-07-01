@@ -3,7 +3,7 @@ import { Lock, Unlock } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../../interfaces/assessmentType'
 
 import { AssessmentCompletionDialog } from '../../../components/AssessmentCompletionDialog'
 import { DeadlineBadge } from '../../../components/badges'

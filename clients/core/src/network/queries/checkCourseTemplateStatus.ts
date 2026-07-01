@@ -1,4 +1,4 @@
-import { CourseTemplateStatus } from '@core/interfaces/courseTemplateStatus'
+import type { CourseTemplateStatus } from '@core/interfaces/courseTemplateStatus'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const checkCourseTemplateStatus = async (

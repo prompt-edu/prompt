@@ -12,7 +12,7 @@ import { AlertCircle, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 
-import { CreateCategoryRequest } from '../../../../../interfaces/category'
+import type { CreateCategoryRequest } from '../../../../../interfaces/category'
 
 import { useCreateCategory } from '../hooks/useCreateCategory'
 

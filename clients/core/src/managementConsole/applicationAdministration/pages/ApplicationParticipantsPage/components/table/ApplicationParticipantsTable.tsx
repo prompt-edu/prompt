@@ -3,17 +3,17 @@ import { useApplicationStore } from '@core/managementConsole/applicationAdminist
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { useQueryClient } from '@tanstack/react-query'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
-import { PromptTableURL, TableFilter, useToast } from '@tumaet/prompt-ui-components'
-import { ReactNode, useCallback, useMemo, useRef } from 'react'
+import { PromptTableURL, type TableFilter, useToast } from '@tumaet/prompt-ui-components'
+import { type ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
 import { downloadApplications } from '../../utils/downloadApplications'
 import { getApplicationActions } from './applicationActions'
 import { getApplicationColumns } from './applicationColumns'
 import { getApplicationFilters } from './applicationFilters'
-import { ApplicationRow, buildApplicationRows } from './applicationRow'
+import { type ApplicationRow, buildApplicationRows } from './applicationRow'
 
 const APPLICATION_EXPORT_CONCURRENCY = 10
 

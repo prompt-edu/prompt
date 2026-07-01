@@ -1,7 +1,7 @@
-import { Team } from '@tumaet/prompt-shared-state'
-import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
+import type { Team } from '@tumaet/prompt-shared-state'
+import type { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
 import { PeerEvaluationCompletionBadge } from '../../components/badges'
 import { createEvaluationLookup, getEvaluationCounts } from '../utils/evaluationUtils'
 

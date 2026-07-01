@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
-import { ApplicationMetaData } from '../../interfaces/applicationMetaData'
+import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { getApplicationStatus } from '../../utils/getApplicationStatus'
 import { useApplicationStore } from '../../zustand/useApplicationStore'

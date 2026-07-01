@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
-import { InstructorNote as InstructorNoteType } from '../../interfaces/InstructorNote'
+import type { InstructorNote as InstructorNoteType } from '../../interfaces/InstructorNote'
 import { NoteComposer } from './InstructorNoteComposer'
 import { NoteVersionHistoryItem } from './InstructorNoteVersionHistoryItem'
 import { NoteWrapper } from './InstructorNoteWrapper'

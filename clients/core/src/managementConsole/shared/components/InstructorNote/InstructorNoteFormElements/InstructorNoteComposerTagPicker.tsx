@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Tag } from 'lucide-react'
-import { NoteTag } from '../../../interfaces/InstructorNote'
+import type { NoteTag } from '../../../interfaces/InstructorNote'
 import { InstructorNoteTag } from '../InstructorNoteTag'
 
 interface InstructorNoteComposerTagPickerProps {

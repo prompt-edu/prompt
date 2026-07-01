@@ -1,4 +1,4 @@
-import { ProvidedOutputDTO } from '@core/managementConsole/courseConfigurator/interfaces/providedOutputDto'
+import type { ProvidedOutputDTO } from '@core/managementConsole/courseConfigurator/interfaces/providedOutputDto'
 import { Handle, Position } from '@xyflow/react'
 import { EDGE_COLOR_GREEN, EDGE_COLOR_PURPLE } from '../../edges/edgeColors'
 import { camelToTitle } from './utils/camelToTitle'

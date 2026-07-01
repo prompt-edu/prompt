@@ -13,7 +13,7 @@ import { User, Users } from 'lucide-react'
 import { useState } from 'react'
 
 import { AssessmentType } from '../../../../../../../interfaces/assessmentType'
-import { Competency } from '../../../../../../../interfaces/competency'
+import type { Competency } from '../../../../../../../interfaces/competency'
 
 import { useUpdateCompetencyMapping } from '../hooks/useUpdateCompetencyMapping'
 

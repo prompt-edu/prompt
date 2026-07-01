@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { AdditionalScoreUpload } from '../../managementConsole/applicationAdministration/interfaces/additionalScore/additionalScoreUpload'
+import type { AdditionalScoreUpload } from '../../managementConsole/applicationAdministration/interfaces/additionalScore/additionalScoreUpload'
 
 export const postAdditionalScore = async (
   phaseId: string,

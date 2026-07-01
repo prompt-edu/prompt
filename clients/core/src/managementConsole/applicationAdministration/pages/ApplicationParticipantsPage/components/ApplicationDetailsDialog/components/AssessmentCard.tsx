@@ -1,4 +1,4 @@
-import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
+import type { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
 import {
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
@@ -18,7 +18,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Check, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { InstructorComment } from '../../../../../interfaces/instructorComment'
+import type { InstructorComment } from '../../../../../interfaces/instructorComment'
 import { useModifyAssessment } from '../hooks/mutateAssessment'
 
 interface AssessmentCardProps {

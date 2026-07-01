@@ -1,12 +1,12 @@
-import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
-import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
-import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
-import { PostApplication } from '@core/interfaces/application/postApplication'
+import type { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
+import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
+import type { PostApplication } from '@core/interfaces/application/postApplication'
 import { postNewApplicationManual } from '@core/network/mutations/postApplicationManual'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { ApplicationFormView } from '@core/publicPages/application/pages/ApplicationForm/ApplicationFormView'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Student } from '@tumaet/prompt-shared-state'
+import type { Student } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -24,8 +24,8 @@ import {
 import { AlertCircle, ArrowLeft, Loader2, Plus } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
-import { ApplicationForm } from '../../../../interfaces/form/applicationForm'
+import type { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
+import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
 import { StudentSearch } from './components/StudentSearch'
 import { UniversitySelection } from './components/UniversitySelection'
 

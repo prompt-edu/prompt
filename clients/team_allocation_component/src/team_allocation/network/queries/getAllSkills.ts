@@ -1,4 +1,4 @@
-import { Skill } from '../../interfaces/skill'
+import type { Skill } from '../../interfaces/skill'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getAllSkills = async (coursePhaseID: string): Promise<Skill[]> => {

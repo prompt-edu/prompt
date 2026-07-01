@@ -2,7 +2,7 @@ import { ManagementPageHeader, MissingConfig } from '@tumaet/prompt-ui-component
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
-import { ApplicationMetaData } from '../../interfaces/applicationMetaData'
+import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { ApplicationGenderDiagram } from './diagrams/ApplicationGenderDiagram'

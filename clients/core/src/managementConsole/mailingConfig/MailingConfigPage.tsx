@@ -1,6 +1,6 @@
 import { type CourseMailingFormValues, courseMailingSchema } from '@core/validations/courseMailing'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CourseMailingSettings, useCourseStore } from '@tumaet/prompt-shared-state'
+import { type CourseMailingSettings, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   CardContent,

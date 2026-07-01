@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ScoreLevelWithParticipation } from '../interfaces/scoreLevelWithParticipation'
+import type { ScoreLevelWithParticipation } from '../interfaces/scoreLevelWithParticipation'
 
 export interface ScoreLevelStore {
   scoreLevels: ScoreLevelWithParticipation[]

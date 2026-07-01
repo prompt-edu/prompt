@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  CoursePhaseParticipationWithStudent,
+  type CoursePhaseParticipationWithStudent,
   getOwnCoursePhaseParticipation,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
@@ -107,18 +107,18 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
   })
 
   const {
-    selfEvaluationCompletion: selfEvaluationCompletion,
-    peerEvaluationCompletions: peerEvaluationCompletions,
-    tutorEvaluationCompletions: tutorEvaluationCompletions,
+    selfEvaluationCompletion,
+    peerEvaluationCompletions,
+    tutorEvaluationCompletions,
     isPending: isCompletionPending,
     isError: isCompletionError,
     refetch: refetchCompletion,
   } = useGetMyEvaluationCompletions({ enabled: isStudent })
 
   const {
-    selfEvaluations: selfEvaluations,
-    peerEvaluations: peerEvaluations,
-    tutorEvaluations: tutorEvaluations,
+    selfEvaluations,
+    peerEvaluations,
+    tutorEvaluations,
     isPending: isMyEvaluationsPending,
     isError: isMyEvaluationsError,
     refetch: refetchMyEvaluations,

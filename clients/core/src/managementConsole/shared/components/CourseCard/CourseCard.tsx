@@ -1,5 +1,5 @@
 import { formatDate } from '@core/utils/formatDate'
-import { Course, CourseTypeDetails, Role } from '@tumaet/prompt-shared-state'
+import { type Course, CourseTypeDetails, Role } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,

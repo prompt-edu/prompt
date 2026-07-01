@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NoteTag } from '../../interfaces/InstructorNote'
+import type { NoteTag } from '../../interfaces/InstructorNote'
 import { InstructorNoteComposerSubmitButton } from './InstructorNoteFormElements/InstructorNoteComposerSubmitButton'
 import { InstructorNoteComposerTagPicker } from './InstructorNoteFormElements/InstructorNoteComposerTagPicker'
 import { InstructorNoteTag } from './InstructorNoteTag'

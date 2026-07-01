@@ -1,4 +1,4 @@
-import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { OverviewPage } from '../src/OverviewPage'
 import { ParticipantsPage } from '../src/template_component/pages/ParticipantsPage'
 import { SettingsPage } from '../src/template_component/pages/SettingsPage'

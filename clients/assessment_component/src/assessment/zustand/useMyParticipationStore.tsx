@@ -1,4 +1,4 @@
-import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import { create } from 'zustand'
 
 export interface MyParticipationStore {

@@ -1,6 +1,6 @@
-import { RowAction } from '@tumaet/prompt-ui-components'
+import type { RowAction } from '@tumaet/prompt-ui-components'
 import { CheckCircle, Download, FileUser, Trash2, XCircle } from 'lucide-react'
-import { ApplicationRow } from './applicationRow'
+import type { ApplicationRow } from './applicationRow'
 
 export function getApplicationActions(
   deleteApplications: (ids: string[]) => void,

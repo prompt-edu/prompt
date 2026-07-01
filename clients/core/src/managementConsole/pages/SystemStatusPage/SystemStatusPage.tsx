@@ -1,8 +1,8 @@
 import { useQueries } from '@tanstack/react-query'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
-import { CoursePhaseType } from './interfaces/coursePhaseType'
-import { ServiceInfo } from './interfaces/serviceCapabilities'
+import type { CoursePhaseType } from './interfaces/coursePhaseType'
+import type { ServiceInfo } from './interfaces/serviceCapabilities'
 import { getServiceInfo } from './network/getServiceCapabilities'
 
 export const SystemStatusPage = () => {

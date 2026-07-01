@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { UploadedStudent } from '../interfaces/UploadedStudent'
+import type { UploadedStudent } from '../interfaces/UploadedStudent'
 import { useMatchingStore } from '../zustand/useMatchingStore'
 
 export const useDataDownload = () => {

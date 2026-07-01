@@ -7,7 +7,7 @@ import {
 import { Button, PromptTable } from '@tumaet/prompt-ui-components'
 import { Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
-import { CreateNoteTag, NoteTag, UpdateNoteTag } from '../shared/interfaces/InstructorNote'
+import type { CreateNoteTag, NoteTag, UpdateNoteTag } from '../shared/interfaces/InstructorNote'
 import { NoteTagFormDialog } from './components/NoteTagFormDialog'
 import { getNoteTagTableActions } from './components/noteTagTableActions'
 import { noteTagTableColumns } from './components/noteTagTableColumns'

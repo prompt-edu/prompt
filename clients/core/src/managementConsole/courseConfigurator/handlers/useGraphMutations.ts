@@ -5,10 +5,10 @@ import { updateParticipationDataGraph } from '@core/network/mutations/updatePart
 import { updatePhaseDataGraph } from '@core/network/mutations/updatePhaseDataGraph'
 import { updatePhaseGraph } from '@core/network/mutations/updatePhaseGraph'
 import { useMutation } from '@tanstack/react-query'
-import { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
-import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
-import { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdate'
+import type { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
+import type { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdate'
 
 export function useMutations() {
   const { courseId } = useParams<{ courseId: string }>()

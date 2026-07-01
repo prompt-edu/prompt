@@ -6,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { Assessment } from '../../../interfaces/assessment'
-import { CategoryWithCompetencies } from '../../../interfaces/category'
+import type { Assessment } from '../../../interfaces/assessment'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
 
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 

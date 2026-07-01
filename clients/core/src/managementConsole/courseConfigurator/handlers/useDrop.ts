@@ -1,7 +1,7 @@
-import { Node, useReactFlow } from '@xyflow/react'
+import { type Node, useReactFlow } from '@xyflow/react'
 import { useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
+import type { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
 import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 
 export const useDrop = (reactFlowWrapper, setNodes, setIsModified) => {

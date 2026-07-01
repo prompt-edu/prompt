@@ -1,6 +1,6 @@
 import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
 
 export const useModifyCoursePhase = (onSuccess: () => void, onError: () => void) => {

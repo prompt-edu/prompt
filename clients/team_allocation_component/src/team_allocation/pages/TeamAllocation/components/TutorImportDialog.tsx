@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Team } from '@tumaet/prompt-shared-state'
-import { Student, useCourseStore } from '@tumaet/prompt-shared-state'
+import { type Student, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Dialog,
@@ -20,7 +20,7 @@ import {
 import { Loader2, UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Tutor } from '../../../interfaces/tutor'
+import type { Tutor } from '../../../interfaces/tutor'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
 import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'

@@ -1,5 +1,5 @@
 import {
-  CoursePhaseParticipationWithStudent,
+  type CoursePhaseParticipationWithStudent,
   getGravatarUrl,
   getStatusColor,
   getStudyDegreeString,

@@ -1,4 +1,4 @@
-import { UpdateCoursePhase, useModifyCoursePhase } from '@tumaet/prompt-shared-state'
+import { type UpdateCoursePhase, useModifyCoursePhase } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 

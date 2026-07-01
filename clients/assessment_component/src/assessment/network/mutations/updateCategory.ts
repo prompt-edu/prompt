@@ -1,4 +1,4 @@
-import { Category, UpdateCategoryRequest } from '../../interfaces/category'
+import type { Category, UpdateCategoryRequest } from '../../interfaces/category'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateCategory = async (

@@ -1,6 +1,6 @@
 import { searchStudents } from '@core/network/queries/searchStudents'
 import { useQuery } from '@tanstack/react-query'
-import { Student, translations } from '@tumaet/prompt-shared-state'
+import { type Student, translations } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -20,7 +20,7 @@ import {
 import { Loader2, Search, UserPlus } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
+import type { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
 
 interface StudentSearchProps {
   onSelect: (selectedStudent: Student | null) => void

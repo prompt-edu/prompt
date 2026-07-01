@@ -15,7 +15,8 @@ import {
   TableRow,
 } from '@tumaet/prompt-ui-components'
 import { Equal } from 'lucide-react'
-import React, { forwardRef, useImperativeHandle, useState } from 'react'
+import type React from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 
 export interface Page2Ref {
   validate: () => boolean

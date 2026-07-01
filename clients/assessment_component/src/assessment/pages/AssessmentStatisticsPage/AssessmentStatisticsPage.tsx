@@ -18,7 +18,7 @@ import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentComp
 import { useGetAllAssessments } from '../hooks/useGetAllAssessments'
 import { FilterBadges } from './components/FilterBadges'
 
-import { FilterMenu, StatisticsFilter } from './components/FilterMenu'
+import { FilterMenu, type StatisticsFilter } from './components/FilterMenu'
 import { useFilteredParticipations } from './hooks/useFilteredParticipations'
 
 export const AssessmentStatisticsPage = () => {

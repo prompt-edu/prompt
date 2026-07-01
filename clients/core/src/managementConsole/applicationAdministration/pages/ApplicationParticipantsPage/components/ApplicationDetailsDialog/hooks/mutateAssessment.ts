@@ -1,4 +1,4 @@
-import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
+import type { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
 import { postApplicationAssessment } from '@core/network/mutations/postApplicationAssessment'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'

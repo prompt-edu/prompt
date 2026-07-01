@@ -1,6 +1,6 @@
 import { formatDate } from '@core/utils/formatDate'
-import { ColumnDef } from '@tanstack/react-table'
-import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import type { ColumnDef } from '@tanstack/react-table'
+import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import { DynamicIcon } from '@tumaet/prompt-ui-components'
 
 export const CourseTableColumns: ColumnDef<Course>[] = [

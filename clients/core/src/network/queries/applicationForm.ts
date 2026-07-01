@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { ApplicationForm } from '../../managementConsole/applicationAdministration/interfaces/form/applicationForm'
+import type { ApplicationForm } from '../../managementConsole/applicationAdministration/interfaces/form/applicationForm'
 
 export const getApplicationForm = async (coursePhaseId: string): Promise<ApplicationForm> => {
   try {

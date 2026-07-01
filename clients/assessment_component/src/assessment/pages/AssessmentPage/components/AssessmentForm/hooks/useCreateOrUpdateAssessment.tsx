@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { CreateOrUpdateAssessmentRequest } from '../../../../../interfaces/assessment'
+import type { CreateOrUpdateAssessmentRequest } from '../../../../../interfaces/assessment'
 import { createOrUpdateAssessment } from '../../../../../network/mutations/createOrUpdateAssessment'
 
 export const useCreateOrUpdateAssessment = (setError: (error: string | undefined) => void) => {

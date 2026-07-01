@@ -1,10 +1,10 @@
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
-import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd'
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import {
@@ -18,11 +18,11 @@ import {
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ApplicationForm } from '../../interfaces/form/applicationForm'
-import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
+import type { ApplicationForm } from '../../interfaces/form/applicationForm'
+import type { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
 import {
   APPLICATION_CSV_EXPORT_SETTINGS_KEY,
-  ApplicationCsvExportSettings,
+  type ApplicationCsvExportSettings,
   getApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../utils/applicationCsvExportSettings'
@@ -30,7 +30,7 @@ import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import {
   ApplicationQuestionCard,
-  ApplicationQuestionCardRef,
+  type ApplicationQuestionCardRef,
 } from './FormPages/ApplicationQuestionCard'
 import { computeQuestionsModified } from './handlers/computeQuestionsModified'
 import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'

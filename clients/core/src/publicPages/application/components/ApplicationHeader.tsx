@@ -1,4 +1,4 @@
-import { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
+import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
 import { Button } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'

@@ -1,14 +1,14 @@
 import {
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
-  ScoreLevel,
+  type ScoreLevel,
 } from '@tumaet/prompt-shared-state'
 import { Form, FormMessage } from '@tumaet/prompt-ui-components'
 import { useEffect, useState } from 'react'
-import { JSX } from 'react/jsx-runtime'
+import type { JSX } from 'react/jsx-runtime'
 import { useForm } from 'react-hook-form'
-import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
-import { Competency } from '../../../../interfaces/competency'
+import type { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
+import type { Competency } from '../../../../interfaces/competency'
 import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
 import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'

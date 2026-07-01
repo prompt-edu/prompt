@@ -1,7 +1,7 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { postNewCourse } from '@core/network/mutations/postNewCourse'
 import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
-import { TemplateFormValues } from '@core/validations/template'
+import type { TemplateFormValues } from '@core/validations/template'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,

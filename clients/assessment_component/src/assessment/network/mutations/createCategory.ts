@@ -1,4 +1,4 @@
-import { Category, CreateCategoryRequest } from '../../interfaces/category'
+import type { Category, CreateCategoryRequest } from '../../interfaces/category'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const createCategory = async (

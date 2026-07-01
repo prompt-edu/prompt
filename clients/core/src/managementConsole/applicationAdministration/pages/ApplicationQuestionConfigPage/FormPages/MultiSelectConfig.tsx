@@ -1,4 +1,4 @@
-import { QuestionConfigFormDataMultiSelect } from '@core/validations/questionConfig'
+import type { QuestionConfigFormDataMultiSelect } from '@core/validations/questionConfig'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import {
   Button,
@@ -14,7 +14,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { motion } from 'framer-motion'
 import { GripVertical, MinusIcon, PlusIcon } from 'lucide-react'
-import { UseFormReturn, useFieldArray } from 'react-hook-form'
+import { type UseFormReturn, useFieldArray } from 'react-hook-form'
 
 export function MultiSelectConfig({
   form,

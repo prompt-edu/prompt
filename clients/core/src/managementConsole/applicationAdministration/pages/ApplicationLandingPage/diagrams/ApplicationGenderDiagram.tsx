@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
+import type { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { StackedBarChartWithPassStatus } from './StackedBarChartWithPassStatus'
 
 interface GenderDistributionCardProps {

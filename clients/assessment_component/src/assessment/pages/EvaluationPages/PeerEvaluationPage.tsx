@@ -26,8 +26,7 @@ export const PeerEvaluationPage = () => {
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
   const { myParticipation } = useMyParticipationStore()
   const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { peerEvaluations: evaluations, peerEvaluationCompletions: peerEvaluationCompletions } =
-    useEvaluationStore()
+  const { peerEvaluations: evaluations, peerEvaluationCompletions } = useEvaluationStore()
   const completion = peerEvaluationCompletions.find(
     (c) => c.courseParticipationID === courseParticipationID,
   )

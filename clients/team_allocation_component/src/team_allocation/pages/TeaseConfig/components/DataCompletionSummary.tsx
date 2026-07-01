@@ -7,7 +7,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { BarChart3, ClipboardCheck, FileText } from 'lucide-react'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
-import { ValidationResult } from '../../../interfaces/validationResult'
+import type { ValidationResult } from '../../../interfaces/validationResult'
 
 const DataCompletionSummary = ({
   checks,

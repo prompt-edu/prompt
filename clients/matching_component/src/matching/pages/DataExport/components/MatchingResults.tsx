@@ -1,4 +1,4 @@
-import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -20,7 +20,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { AlertTriangle, Download } from 'lucide-react'
 import { useDataDownload } from '../../../hooks/useDataDownload'
-import { UploadedStudent } from '../../../interfaces/UploadedStudent'
+import type { UploadedStudent } from '../../../interfaces/UploadedStudent'
 
 interface MatchingResultsProps {
   matchedByMatriculation: UploadedStudent[]

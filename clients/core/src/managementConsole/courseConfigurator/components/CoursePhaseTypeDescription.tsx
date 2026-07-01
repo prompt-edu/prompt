@@ -8,7 +8,7 @@ import {
   EDGE_COLOR_PURPLE,
 } from '../graphComponents/edges/edgeColors'
 import { camelToTitle } from '../graphComponents/phaseNode/components/utils/camelToTitle'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
 
 interface CoursePhaseTypeDescriptionProps {
   phase: CoursePhaseType

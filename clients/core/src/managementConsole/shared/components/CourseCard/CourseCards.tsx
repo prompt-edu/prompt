@@ -1,4 +1,4 @@
-import { Course } from '@tumaet/prompt-shared-state'
+import type { Course } from '@tumaet/prompt-shared-state'
 import { AnimatePresence, motion } from 'framer-motion'
 import { CourseCard } from './CourseCard'
 

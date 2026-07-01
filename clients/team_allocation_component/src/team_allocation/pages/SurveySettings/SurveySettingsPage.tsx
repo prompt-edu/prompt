@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { Team } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
   ErrorPage,
   ManagementPageHeader,
   MissingSettings,
-  MissingSettingsItem,
+  type MissingSettingsItem,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Skill } from '../../interfaces/skill'
-import { SurveyTimeframe } from '../../interfaces/timeframe'
+import type { Skill } from '../../interfaces/skill'
+import type { SurveyTimeframe } from '../../interfaces/timeframe'
 import { getAllSkills } from '../../network/queries/getAllSkills'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getConfig } from '../../network/queries/getConfig'

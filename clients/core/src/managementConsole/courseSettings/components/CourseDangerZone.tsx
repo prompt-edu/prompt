@@ -3,7 +3,7 @@ import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/
 import { deleteCourse } from '@core/network/mutations/deleteCourse'
 import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Course, useCourseStore } from '@tumaet/prompt-shared-state'
+import { type Course, useCourseStore } from '@tumaet/prompt-shared-state'
 import { Button, DeleteConfirmation, SettingsCard, useToast } from '@tumaet/prompt-ui-components'
 import { CircleAlert } from 'lucide-react'
 import { useState } from 'react'

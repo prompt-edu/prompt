@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Assessment } from '../../interfaces/assessment'
+import type { Assessment } from '../../interfaces/assessment'
 import { getAllAssessmentsInPhase } from '../../network/queries/getAllAssessmentsInPhase'
 
 export const useGetAllAssessments = () => {

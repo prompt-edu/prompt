@@ -1,5 +1,5 @@
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
-import { CompetencyMapping } from './createCompetencyMapping'
+import type { CompetencyMapping } from './createCompetencyMapping'
 
 export const deleteCompetencyMapping = async (
   coursePhaseID: string,

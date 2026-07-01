@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { ApplicationParticipation } from '../../managementConsole/applicationAdministration/interfaces/applicationParticipation'
+import type { ApplicationParticipation } from '../../managementConsole/applicationAdministration/interfaces/applicationParticipation'
 
 export const getApplicationParticipations = async (
   coursePhaseID: string,

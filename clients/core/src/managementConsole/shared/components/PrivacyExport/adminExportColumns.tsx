@@ -3,7 +3,7 @@ import {
   type AdminPrivacyExport,
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {

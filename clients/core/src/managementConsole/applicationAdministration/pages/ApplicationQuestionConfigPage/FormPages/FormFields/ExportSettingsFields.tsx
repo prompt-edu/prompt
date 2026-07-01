@@ -1,4 +1,4 @@
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import type { QuestionConfigFormData } from '@core/validations/questionConfig'
 import {
   FormControl,
   FormDescription,
@@ -9,7 +9,7 @@ import {
   Input,
   Switch,
 } from '@tumaet/prompt-ui-components'
-import { UseFormReturn, useWatch } from 'react-hook-form'
+import { type UseFormReturn, useWatch } from 'react-hook-form'
 
 interface ExportSettingsFieldsProps {
   form: UseFormReturn<QuestionConfigFormData>

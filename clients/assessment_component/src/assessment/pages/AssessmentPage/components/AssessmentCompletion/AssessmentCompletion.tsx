@@ -12,7 +12,7 @@ import {
 import { Lock, Unlock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ActionItem } from '../../../../interfaces/actionItem'
+import type { ActionItem } from '../../../../interfaces/actionItem'
 import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
 

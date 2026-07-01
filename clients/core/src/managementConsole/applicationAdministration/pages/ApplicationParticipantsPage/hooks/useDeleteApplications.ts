@@ -1,5 +1,5 @@
 import { deleteApplications } from '@core/network/mutations/deleteApplications'
-import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
+import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 

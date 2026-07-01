@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from '@tumaet/prompt-ui-components'
 import { Book, Calendar, GraduationCap } from 'lucide-react'
 
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 
 import { StudentAssessmentBadges } from './StudentAssessmentBadges'

@@ -1,6 +1,6 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import {
-  PostCourse,
+  type PostCourse,
   serializePostCourse,
 } from '../../managementConsole/courseOverview/interfaces/postCourse'
 

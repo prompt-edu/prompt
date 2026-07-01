@@ -1,6 +1,6 @@
 import '../src/loadStyles'
 
-import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { AssessmentType } from '../src/assessment/interfaces/assessmentType'
 import { AssessmentDataShell } from '../src/assessment/pages/AssessmentDataShell'
 import { AssessmentPage } from '../src/assessment/pages/AssessmentPage/AssessmentPage'

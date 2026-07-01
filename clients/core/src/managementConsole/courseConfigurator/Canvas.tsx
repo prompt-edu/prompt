@@ -1,8 +1,8 @@
 import {
   Background,
   Controls,
-  EdgeTypes,
-  NodeTypes,
+  type EdgeTypes,
+  type NodeTypes,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,

@@ -1,11 +1,11 @@
 import { updateStudent } from '@core/network/mutations/updateStudent'
 import {
   formSchemaUniversityData,
-  UniversityDataFormValues,
+  type UniversityDataFormValues,
 } from '@core/validations/universityData'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Student, translations } from '@tumaet/prompt-shared-state'
+import { type Student, translations } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,

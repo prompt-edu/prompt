@@ -1,7 +1,7 @@
 import {
   ExportStatus,
   getExportDocDownloadURL,
-  PrivacyExport,
+  type PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, useToast } from '@tumaet/prompt-ui-components'
 import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'

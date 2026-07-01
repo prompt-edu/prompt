@@ -7,8 +7,8 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ClipboardCheck, RotateCcw } from 'lucide-react'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { Competency } from '../../interfaces/competency'
-import { CompetencyScore } from '../../interfaces/competencyScore'
+import type { Competency } from '../../interfaces/competency'
+import type { CompetencyScore } from '../../interfaces/competencyScore'
 
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
 

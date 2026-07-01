@@ -7,7 +7,7 @@ import {
   buildEvaluationPatch,
   buildRequestFromConfig,
   createDetailButtonLabel,
-  EvaluationAssessmentType,
+  type EvaluationAssessmentType,
   getEvaluationOriginalSnapshot,
   hasEvaluationCardChanges,
   isEvaluationDetailReady,

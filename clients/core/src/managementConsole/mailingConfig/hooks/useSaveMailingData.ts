@@ -1,6 +1,6 @@
 import { updateCourseData } from '@core/network/mutations/updateCourseData'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { UpdateCourseData } from '@tumaet/prompt-shared-state'
+import type { UpdateCourseData } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 

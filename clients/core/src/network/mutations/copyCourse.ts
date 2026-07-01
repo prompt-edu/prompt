@@ -1,5 +1,5 @@
 import {
-  CopyCourse,
+  type CopyCourse,
   serializeCopyCourse,
 } from '@core/managementConsole/courseOverview/interfaces/copyCourse'
 import { axiosInstance } from '@tumaet/prompt-shared-state'

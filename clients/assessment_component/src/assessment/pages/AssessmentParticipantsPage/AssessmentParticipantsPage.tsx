@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  ExtraParticipantColumn,
+  type ExtraParticipantColumn,
   ManagementPageHeader,
-  TableFilter,
+  type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'

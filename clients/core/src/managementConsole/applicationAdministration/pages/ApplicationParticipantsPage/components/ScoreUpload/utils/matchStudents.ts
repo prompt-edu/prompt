@@ -1,5 +1,5 @@
-import { IndividualScore } from '../../../../../interfaces/additionalScore/individualScore'
-import { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
+import type { IndividualScore } from '../../../../../interfaces/additionalScore/individualScore'
+import type { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
 
 export const matchStudents = (
   csvData: string[][],

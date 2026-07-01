@@ -1,5 +1,6 @@
 import type Keycloak from 'keycloak-js'
-import React, { createContext, ReactNode, useState } from 'react'
+import type React from 'react'
+import { createContext, type ReactNode, useState } from 'react'
 
 interface KeycloakContextType {
   keycloakUrl: string

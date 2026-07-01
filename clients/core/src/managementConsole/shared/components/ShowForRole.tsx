@@ -1,5 +1,5 @@
-import { getPermissionString, Role, useAuthStore } from '@tumaet/prompt-shared-state'
-import { PropsWithChildren } from 'react'
+import { getPermissionString, type Role, useAuthStore } from '@tumaet/prompt-shared-state'
+import type { PropsWithChildren } from 'react'
 
 type CourseRole = Extract<Role, Role.COURSE_LECTURER | Role.COURSE_EDITOR | Role.COURSE_STUDENT>
 

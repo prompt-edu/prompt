@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Team } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
 
 import { getAllTeams } from '../../network/queries/getAllTeams'

@@ -3,12 +3,12 @@ import {
   ErrorPage,
   ManagementPageHeader,
   MissingSettings,
-  MissingSettingsItem,
+  type MissingSettingsItem,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Timeframe } from '../../interfaces/timeframe'
+import type { Timeframe } from '../../interfaces/timeframe'
 import { getConfig } from '../../network/queries/getConfig'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTimeframeSettings'

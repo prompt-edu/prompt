@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useGetApplicationParticipations } from '../hooks/useGetApplicationParticipations'
-import { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
+import type { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
 import { useApplicationStore } from '../zustand/useApplicationStore'
 
 interface ApplicationDataWrapperProps {

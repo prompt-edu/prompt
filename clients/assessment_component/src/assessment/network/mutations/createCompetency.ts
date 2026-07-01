@@ -1,4 +1,4 @@
-import { Competency, CreateCompetencyRequest } from '../../interfaces/competency'
+import type { Competency, CreateCompetencyRequest } from '../../interfaces/competency'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const createCompetency = async (

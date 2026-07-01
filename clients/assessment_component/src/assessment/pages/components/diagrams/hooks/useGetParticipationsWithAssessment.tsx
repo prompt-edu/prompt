@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
-import { Assessment } from '../../../../interfaces/assessment'
-import { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
-import { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
-import { ScoreLevelWithParticipation } from '../../../../interfaces/scoreLevelWithParticipation'
+import type { Assessment } from '../../../../interfaces/assessment'
+import type { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
+import type { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
+import type { ScoreLevelWithParticipation } from '../../../../interfaces/scoreLevelWithParticipation'
 
-import { ParticipationWithAssessment } from '../interfaces/ParticipationWithAssessment'
+import type { ParticipationWithAssessment } from '../interfaces/ParticipationWithAssessment'
 
 export const useGetParticipationsWithAssessment = (
   participations: AssessmentParticipationWithStudent[],

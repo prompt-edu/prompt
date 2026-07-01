@@ -2,7 +2,7 @@ import { Alert, AlertDescription, Textarea } from '@tumaet/prompt-ui-components'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
+import type { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
 
 import { useCreateOrUpdateCategoryAssessment } from './hooks/useCreateOrUpdateCategoryAssessment'
 

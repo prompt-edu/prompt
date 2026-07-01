@@ -26,8 +26,7 @@ export const TutorEvaluationPage = () => {
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
   const { myParticipation } = useMyParticipationStore()
   const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
-  const { tutorEvaluations: evaluations, tutorEvaluationCompletions: tutorEvaluationCompletions } =
-    useEvaluationStore()
+  const { tutorEvaluations: evaluations, tutorEvaluationCompletions } = useEvaluationStore()
   const completion = tutorEvaluationCompletions.find(
     (c) => c.courseParticipationID === courseParticipationID,
   )

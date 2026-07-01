@@ -1,4 +1,7 @@
-import { NoteTag, UpdateNoteTag } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import type {
+  NoteTag,
+  UpdateNoteTag,
+} from '@core/managementConsole/shared/interfaces/InstructorNote'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const putNoteTag = async (tagId: string, tag: UpdateNoteTag): Promise<NoteTag> => {

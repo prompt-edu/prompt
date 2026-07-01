@@ -8,7 +8,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
-import { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
+import type { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
 import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 

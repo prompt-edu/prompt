@@ -1,4 +1,4 @@
-import { AssessmentSchema } from '../../interfaces/assessmentSchema'
+import type { AssessmentSchema } from '../../interfaces/assessmentSchema'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllAssessmentSchemas = async (

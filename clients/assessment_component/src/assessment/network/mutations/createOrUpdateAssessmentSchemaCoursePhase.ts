@@ -1,4 +1,4 @@
-import { CreateOrUpdateAssessmentSchemaCoursePhaseRequest } from '../../interfaces/assessmentSchema'
+import type { CreateOrUpdateAssessmentSchemaCoursePhaseRequest } from '../../interfaces/assessmentSchema'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const createOrUpdateAssessmentSchemaCoursePhase = async (

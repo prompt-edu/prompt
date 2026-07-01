@@ -1,6 +1,6 @@
 import {
   PassStatus,
-  UpdateCoursePhaseParticipation,
+  type UpdateCoursePhaseParticipation,
   useUpdateCoursePhaseParticipationBatch,
 } from '@tumaet/prompt-shared-state'
 import {

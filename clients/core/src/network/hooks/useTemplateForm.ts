@@ -1,5 +1,5 @@
 import {
-  MakeTemplateCourseFormValues,
+  type MakeTemplateCourseFormValues,
   makeTemplateCourseSchema,
 } from '@core/validations/makeTemplateCourse'
 import { zodResolver } from '@hookform/resolvers/zod'

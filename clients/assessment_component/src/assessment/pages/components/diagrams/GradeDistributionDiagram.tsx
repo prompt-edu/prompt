@@ -7,7 +7,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { VALID_GRADE_VALUES } from '../../utils/gradeConfig'
 
 import { BarChartWithGrades } from './BarChartWithGrades'

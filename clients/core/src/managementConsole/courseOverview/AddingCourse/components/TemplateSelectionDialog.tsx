@@ -1,7 +1,7 @@
 import { getTemplateCourses } from '@core/network/queries/getTemplateCourses'
 import { CopyCourseDialog } from '@managementConsole/courseOverview/components/CopyCourseDialog'
 import { useQuery } from '@tanstack/react-query'
-import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Dialog,
   DialogContent,

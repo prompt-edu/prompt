@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@tumaet/prompt-ui-components'
-import { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
+import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 import { ApplicationSettingsOverviewApplicationLink } from './ApplicationSettingsOverviewApplicationLink'
 import { ExternalStudentsStatusBadge } from './ApplicationSettingsOverviewExternalStudentsBadge'
 import { ApplicationSettingsOverviewHeader } from './ApplicationSettingsOverviewHeader'

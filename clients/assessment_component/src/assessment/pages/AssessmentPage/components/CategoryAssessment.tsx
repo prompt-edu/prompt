@@ -1,9 +1,9 @@
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
-import { Assessment } from '../../../interfaces/assessment'
-import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
-import { CategoryWithCompetencies } from '../../../interfaces/category'
+import type { Assessment } from '../../../interfaces/assessment'
+import type { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
 
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
 import { AssessmentStatusBadge, StudentScoreBadge } from '../../components/badges'

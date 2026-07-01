@@ -1,4 +1,4 @@
-import { CreateOrUpdateAssessmentCompletionRequest } from '../../interfaces/assessmentCompletion'
+import type { CreateOrUpdateAssessmentCompletionRequest } from '../../interfaces/assessmentCompletion'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateAssessmentCompletion = async (

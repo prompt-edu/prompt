@@ -1,4 +1,4 @@
-import { StudentNameUpdateRequest } from '../../interfaces/studentNameUpdateRequest'
+import type { StudentNameUpdateRequest } from '../../interfaces/studentNameUpdateRequest'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const addStudentNamesToTeams = async (

@@ -22,7 +22,7 @@ jobs:
       matrix:
         module: ${{ fromJson(inputs.modules) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - run: yarn install
       - name: Type check ${{ matrix.module }}

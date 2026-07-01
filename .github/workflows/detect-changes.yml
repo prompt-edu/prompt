@@ -30,7 +30,7 @@ jobs:
       api_spec_directories: ${{ steps.set-outputs.outputs.api_spec_directories }}
       client_modules: ${{ steps.set-outputs.outputs.client_modules }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: tj-actions/changed-files@v47

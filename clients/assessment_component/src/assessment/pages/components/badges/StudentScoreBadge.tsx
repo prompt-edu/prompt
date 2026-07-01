@@ -13,12 +13,14 @@ interface ScoreLevelBadgeProps {
   scoreLevel?: ScoreLevel
   scoreNumeric?: number
   showTooltip?: boolean
+  className?: string
 }
 
 export const StudentScoreBadge = ({
   scoreLevel,
   scoreNumeric,
   showTooltip = false,
+  className,
 }: ScoreLevelBadgeProps) => {
   if (!scoreLevel && !scoreNumeric) {
     return undefined // No score provided, nothing to display
@@ -42,7 +44,7 @@ export const StudentScoreBadge = ({
         <Tooltip>
           <TooltipTrigger>
             <Badge
-              className={`${config.textColor} ${config.selectedBg} hover:${config.selectedBg} cursor-help`}
+              className={`${config.textColor} ${config.selectedBg} hover:${config.selectedBg} cursor-help ${className ?? ''}`}
               style={{ whiteSpace: 'nowrap' }}
             >
               {scoreLevel ? config.title : ''}

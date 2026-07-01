@@ -1,11 +1,13 @@
 import { StudentFormValues, studentSchema } from '@core/validations/student'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {countriesArr, 
+import {
+  countriesArr,
   Gender,
   getGenderString,
   getStudyDegreeString,
   Student,
-  StudyDegree,translations 
+  StudyDegree,
+  translations,
 } from '@tumaet/prompt-shared-state'
 import {
   Button,

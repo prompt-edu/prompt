@@ -3,7 +3,8 @@ import {
   mapScoreLevelToNumber,
   PassStatus,
   ScoreLevel,
-  useAuthStore,useUpdateCoursePhaseParticipation 
+  useAuthStore,
+  useUpdateCoursePhaseParticipation,
 } from '@tumaet/prompt-shared-state'
 import {
   Button,

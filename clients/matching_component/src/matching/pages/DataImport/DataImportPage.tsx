@@ -1,4 +1,8 @@
-import { PassStatus, UpdateCoursePhaseParticipation, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
+import {
+  PassStatus,
+  UpdateCoursePhaseParticipation,
+  useUpdateCoursePhaseParticipationBatch,
+} from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,

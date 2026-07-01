@@ -1,14 +1,15 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
-  Button,DarkModeProvider, 
+  Button,
+  DarkModeProvider,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  LoadingPage
+  LoadingPage,
 } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { Footer } from './Footer'

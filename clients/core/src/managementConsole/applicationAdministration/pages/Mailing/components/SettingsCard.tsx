@@ -6,12 +6,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Label,ManualMailSending, 
+  Label,
+  ManualMailSending,
   Switch,
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger
+  TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Info } from 'lucide-react'
 import type { ApplicationMailingMetaData } from '../../../interfaces/applicationMailingMetaData'

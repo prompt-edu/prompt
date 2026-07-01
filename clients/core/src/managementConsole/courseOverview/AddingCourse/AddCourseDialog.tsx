@@ -9,9 +9,11 @@ import {
   AlertTitle,
   Button,
   Dialog,
-  DialogContent,DialogErrorDisplay, 
-  DialogHeader,DialogLoadingDisplay, 
-  DialogTitle
+  DialogContent,
+  DialogErrorDisplay,
+  DialogHeader,
+  DialogLoadingDisplay,
+  DialogTitle,
 } from '@tumaet/prompt-ui-components'
 import React, { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'

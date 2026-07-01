@@ -5,7 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,ThemeToggle 
+  DropdownMenuTrigger,
+  ThemeToggle,
 } from '@tumaet/prompt-ui-components'
 import { LogOut, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'

@@ -1,7 +1,13 @@
 import { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
-import { getPermissionString, Role, SidebarMenuItemProps, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import {
+  getPermissionString,
+  Role,
+  SidebarMenuItemProps,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { InsideSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/InsideSidebarMenuItem'

@@ -1,4 +1,7 @@
-import { MakeTemplateCourseFormValues, makeTemplateCourseSchema } from '@core/validations/makeTemplateCourse'
+import {
+  MakeTemplateCourseFormValues,
+  makeTemplateCourseSchema,
+} from '@core/validations/makeTemplateCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'

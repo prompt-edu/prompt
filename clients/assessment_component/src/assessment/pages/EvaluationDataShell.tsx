@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationWithStudent, getOwnCoursePhaseParticipation, useCourseStore } from '@tumaet/prompt-shared-state'
+import {
+  CoursePhaseParticipationWithStudent,
+  getOwnCoursePhaseParticipation,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,

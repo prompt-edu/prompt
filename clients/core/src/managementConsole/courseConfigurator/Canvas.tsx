@@ -11,7 +11,12 @@ import {
 import { useCallback, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { useQueryClient } from '@tanstack/react-query'
-import { getPermissionString, Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import {
+  getPermissionString,
+  Role,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import { ErrorPage, useDarkMode } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { CoursePhaseTypePanel } from './components/CoursePhaseTypePanel'

@@ -1,6 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationWithStudent, getOwnCoursePhaseParticipation, Team, useCourseStore } from '@tumaet/prompt-shared-state'
-import { Alert, AlertDescription, AlertTitle, ErrorPage, UnauthorizedPage } from '@tumaet/prompt-ui-components'
+import {
+  CoursePhaseParticipationWithStudent,
+  getOwnCoursePhaseParticipation,
+  Team,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  ErrorPage,
+  UnauthorizedPage,
+} from '@tumaet/prompt-ui-components'
 import { Loader2, TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { Timeframe } from '../../interfaces/timeframe'

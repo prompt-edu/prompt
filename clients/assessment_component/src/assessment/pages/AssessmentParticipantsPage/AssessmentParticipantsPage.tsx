@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationsTable, ErrorPage, ExtraParticipantColumn, ManagementPageHeader, TableFilter } from '@tumaet/prompt-ui-components'
+import {
+  CoursePhaseParticipationsTable,
+  ErrorPage,
+  ExtraParticipantColumn,
+  ManagementPageHeader,
+  TableFilter,
+} from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'

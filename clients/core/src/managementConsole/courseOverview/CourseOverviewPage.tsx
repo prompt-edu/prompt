@@ -1,9 +1,10 @@
 import type { Course } from '@tumaet/prompt-shared-state'
-import {CourseTypeDetails, 
+import {
+  CourseTypeDetails,
   getPermissionString,
   Role,
   useAuthStore,
-  useCourseStore
+  useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import {
   Card,

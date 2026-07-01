@@ -1,5 +1,6 @@
 import { QuestionConfigFormData } from '@core/validations/questionConfig'
-import {DescriptionMinimalTiptapEditor, 
+import {
+  DescriptionMinimalTiptapEditor,
   FormControl,
   FormField,
   FormItem,
@@ -7,7 +8,7 @@ import {DescriptionMinimalTiptapEditor,
   FormMessage,
   Input,
   Switch,
-  TooltipProvider
+  TooltipProvider,
 } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'

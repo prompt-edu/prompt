@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import type { CoursePhaseParticipationsWithResolution, Student, Team } from '@tumaet/prompt-shared-state'
+import type {
+  CoursePhaseParticipationsWithResolution,
+  Student,
+  Team,
+} from '@tumaet/prompt-shared-state'
 import { getCoursePhaseParticipations, getGravatarUrl } from '@tumaet/prompt-shared-state'
 import {
   Avatar,

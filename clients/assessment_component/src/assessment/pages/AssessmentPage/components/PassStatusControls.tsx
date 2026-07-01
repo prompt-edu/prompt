@@ -3,7 +3,8 @@ import {
   PassStatus,
   Role,
   useAuthStore,
-  useCourseStore,useUpdateCoursePhaseParticipation 
+  useCourseStore,
+  useUpdateCoursePhaseParticipation,
 } from '@tumaet/prompt-shared-state'
 import { Button } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'

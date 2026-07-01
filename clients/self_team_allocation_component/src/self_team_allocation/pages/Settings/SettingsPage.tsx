@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { ErrorPage, ManagementPageHeader, MissingSettings, MissingSettingsItem } from '@tumaet/prompt-ui-components'
+import {
+  ErrorPage,
+  ManagementPageHeader,
+  MissingSettings,
+  MissingSettingsItem,
+} from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'

@@ -12,7 +12,8 @@ import {
   FormLabel,
   FormMessage,
   Input,
-  Separator,SettingsCard 
+  Separator,
+  SettingsCard,
 } from '@tumaet/prompt-ui-components'
 import { Copy, EyeOff, Loader2, Mail, Plus, Save, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'

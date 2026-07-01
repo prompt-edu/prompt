@@ -1,12 +1,16 @@
 import { UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
-import { 
-  Button,EmailTemplateEditor, 
-  ManagementPageHeader,MissingConfig, MissingConfigItem, 
+import {
+  Button,
+  EmailTemplateEditor,
+  ManagementPageHeader,
+  MissingConfig,
+  MissingConfigItem,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-  useToast} from '@tumaet/prompt-ui-components'
+  useToast,
+} from '@tumaet/prompt-ui-components'
 import { MailWarningIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'

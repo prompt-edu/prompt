@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseParticipationsWithResolution, CoursePhaseStudentIdentifierProps, getCoursePhaseParticipations, Student, Team } from '@tumaet/prompt-shared-state'
+import {
+  CoursePhaseParticipationsWithResolution,
+  CoursePhaseStudentIdentifierProps,
+  getCoursePhaseParticipations,
+  Student,
+  Team,
+} from '@tumaet/prompt-shared-state'
 import { RenderStudents } from '@tumaet/prompt-ui-components'
 import React, { useMemo } from 'react'
 import { Allocation } from '../team_allocation/interfaces/allocation'

@@ -2,7 +2,14 @@ import { getTemplateCourses } from '@core/network/queries/getTemplateCourses'
 import { CopyCourseDialog } from '@managementConsole/courseOverview/components/CopyCourseDialog'
 import { useQuery } from '@tanstack/react-query'
 import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { Dialog, DialogContent, DialogErrorDisplay, DialogHeader, DialogLoadingDisplay, DialogTitle } from '@tumaet/prompt-ui-components'
+import {
+  Dialog,
+  DialogContent,
+  DialogErrorDisplay,
+  DialogHeader,
+  DialogLoadingDisplay,
+  DialogTitle,
+} from '@tumaet/prompt-ui-components'
 import { BookOpen, FileIcon } from 'lucide-react'
 import { useState } from 'react'
 import { CourseTemplateIcon } from './CourseTemplateIcon'

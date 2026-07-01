@@ -1,7 +1,12 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
-import { getPermissionString, Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import {
+  getPermissionString,
+  Role,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import { ErrorPage, UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { CourseParticipation } from '../interfaces/CourseParticipation'

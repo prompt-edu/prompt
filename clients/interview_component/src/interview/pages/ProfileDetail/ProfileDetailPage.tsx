@@ -1,5 +1,12 @@
 import { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
-import { Button, Card, CardContent, CardHeader, CardTitle, ExportedApplicationAnswerTable } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  ExportedApplicationAnswerTable,
+} from '@tumaet/prompt-ui-components'
 import { ChevronLeft, FileUserIcon } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'

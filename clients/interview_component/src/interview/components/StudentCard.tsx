@@ -1,6 +1,8 @@
 import {
-  CoursePhaseParticipationWithStudent,getGravatarUrl, getStatusColor, 
-  getStudyDegreeString
+  CoursePhaseParticipationWithStudent,
+  getGravatarUrl,
+  getStatusColor,
+  getStudyDegreeString,
 } from '@tumaet/prompt-shared-state'
 import {
   Avatar,

@@ -29,9 +29,10 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,SettingsCard, 
+  SelectValue,
+  SettingsCard,
   Textarea,
-  useToast
+  useToast,
 } from '@tumaet/prompt-ui-components'
 import { FileText, Loader2, Save } from 'lucide-react'
 import { useEffect } from 'react'

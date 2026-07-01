@@ -2,13 +2,16 @@ import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { DarkModeProvider, 
+import {
+  DarkModeProvider,
   ErrorPage,
   LoadingPage,
   Separator,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger, UnauthorizedPage } from '@tumaet/prompt-ui-components'
+  SidebarTrigger,
+  UnauthorizedPage,
+} from '@tumaet/prompt-ui-components'
 import React, { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useKeycloak } from '../keycloak/useKeycloak'

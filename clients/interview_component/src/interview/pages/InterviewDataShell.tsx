@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { 
+import {
   CoursePhaseParticipationsWithResolution,
-  CoursePhaseWithMetaData,getCoursePhase, getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
+  CoursePhaseWithMetaData,
+  getCoursePhase,
+  getCoursePhaseParticipations,
+} from '@tumaet/prompt-shared-state'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'

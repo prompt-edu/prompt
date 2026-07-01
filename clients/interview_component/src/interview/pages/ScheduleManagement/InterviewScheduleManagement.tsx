@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CoursePhaseParticipationsWithResolution, getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
+import {
+  CoursePhaseParticipationsWithResolution,
+  getCoursePhaseParticipations,
+} from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,

@@ -66,44 +66,26 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-  detect-changes:
-    uses: ./.github/workflows/detect-changes.yml
-    with:
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.before }}
-    permissions:
-      contents: read
-      pull-requests: read
   generate-api-spec:
-    needs: detect-changes
     uses: ./.github/workflows/generate-api-spec.yml
     secrets: inherit
-    with:
-      directories: ${{ needs.detect-changes.outputs.api_spec_directories }}
   quality-servers:
-    needs: detect-changes
     uses: ./.github/workflows/quality-servers.yml
-    with:
-      modules: ${{ needs.detect-changes.outputs.server_modules }}
   test-servers:
-    needs: [detect-changes, quality-servers]
+    needs: quality-servers
     uses: ./.github/workflows/test-servers.yml
     secrets: inherit
-    with:
-      directories: ${{ needs.detect-changes.outputs.server_modules }}
   build-servers:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
-    needs: [detect-changes, test-servers]
+    needs: test-servers
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
   quality-clients:
-    needs: detect-changes
     uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
-    with:
-      modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
-    needs: [detect-changes, quality-clients]
+    needs: quality-clients
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
   deploy-dev:

@@ -68,11 +68,11 @@ export function TutorImportDialog() {
     )
   }
 
-  const handleSelectAll = (students: Student[]) => {
-    if (selectedStudents.length === students.length) {
+  const handleSelectAll = (allStudents: Student[]) => {
+    if (selectedStudents.length === allStudents.length) {
       setSelectedStudents([])
     } else {
-      setSelectedStudents(students.map((s) => s.id).filter((id): id is string => !!id))
+      setSelectedStudents(allStudents.map((s) => s.id).filter((id): id is string => !!id))
     }
   }
 

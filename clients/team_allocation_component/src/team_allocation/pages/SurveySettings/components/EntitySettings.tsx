@@ -71,7 +71,7 @@ export const EntitySettings = <T extends Entity>({
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, newName }: { id: string; newName: string }) => updateFn(id, newName),
+    mutationFn: ({ id, newName: name }: { id: string; newName: string }) => updateFn(id, name),
     onSuccess: () => {
       invalidateCache()
       setUpdateError(null)

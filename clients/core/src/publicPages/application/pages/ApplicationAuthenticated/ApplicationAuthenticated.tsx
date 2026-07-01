@@ -63,13 +63,13 @@ export const ApplicationAuthenticated = () => {
   })
 
   const handleSubmit = (
-    student: Student,
+    applicationStudent: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
     answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => {
     const modifiedApplication: PostApplication = {
-      student,
+      student: applicationStudent,
       answersText: answersText,
       answersMultiSelect: answersMultiSelect,
       answersFileUpload: answersFileUpload,

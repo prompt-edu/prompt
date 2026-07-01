@@ -20,61 +20,24 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "none",
-      "complexity": {
-        "noArguments": "error",
-        "noUselessTypeConstraint": "error"
+      "recommended": true,
+      "a11y": {
+        "noAutofocus": "warn",
+        "noLabelWithoutControl": "warn",
+        "noStaticElementInteractions": "warn",
+        "noSvgWithoutTitle": "warn",
+        "useButtonType": "warn",
+        "useKeyWithClickEvents": "warn",
+        "useSemanticElements": "warn",
+        "useValidAnchor": "warn"
       },
       "correctness": {
-        "noChildrenProp": "error",
-        "noConstAssign": "error",
-        "noGlobalObjectCalls": "error",
-        "noInvalidBuiltinInstantiation": "error",
-        "noInvalidConstructorSuper": "error",
-        "noSetterReturn": "error",
-        "noUndeclaredVariables": "error",
-        "noUnreachable": "error",
-        "noUnreachableSuper": "error",
-        "noUnusedVariables": "error",
         "useExhaustiveDependencies": "warn",
-        "useHookAtTopLevel": "error",
-        "useJsxKeyInIterable": "error"
-      },
-      "security": { "noDangerouslySetInnerHtmlWithChildren": "error" },
-      "style": {
-        "noCommonJs": "error",
-        "noNamespace": "error",
-        "useArrayLiterals": "error",
-        "useAsConstAssertion": "error",
-        "useBlockStatements": "off",
-        "useConsistentArrowReturn": "off",
-        "useConst": "error",
-        "useSpreadOverApply": "error"
+        "useHookAtTopLevel": "error"
       },
       "suspicious": {
-        "noClassAssign": "off",
-        "noCommentText": "error",
-        "noDuplicateClassMembers": "off",
-        "noDuplicateEnumValues": "error",
-        "noDuplicateJsxProps": "error",
-        "noDuplicateObjectKeys": "error",
-        "noDuplicateParameters": "error",
-        "noExplicitAny": "error",
-        "noExtraNonNullAssertion": "error",
-        "noFunctionAssign": "error",
-        "noImportAssign": "off",
-        "noMisleadingInstantiator": "error",
-        "noNonNullAssertedOptionalChain": "error",
-        "noRedeclare": "off",
-        "noShadow": "error",
-        "noUnknownAttribute": "error",
-        "noUnsafeDeclarationMerging": "error",
-        "noUnsafeNegation": "error",
-        "noUnusedExpressions": "warn",
-        "noVar": "error",
-        "noWith": "off",
-        "useGetterReturn": "off",
-        "useNamespaceKeyword": "error"
+        "noExplicitAny": "warn",
+        "noShadow": "error"
       }
     },
     "includes": [

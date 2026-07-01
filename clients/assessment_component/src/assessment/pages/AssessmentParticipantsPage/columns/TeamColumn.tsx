@@ -1,6 +1,6 @@
 import { Team } from '@tumaet/prompt-shared-state'
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
+import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 
 export const createTeamColumn = (
   teams: Team[],

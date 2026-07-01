@@ -1,15 +1,12 @@
-import { useParams } from 'react-router-dom'
-
-import { Button } from '@tumaet/prompt-ui-components'
 import {
+  getPermissionString,
   PassStatus,
   Role,
-  getPermissionString,
   useAuthStore,
-  useCourseStore,
+  useCourseStore,useUpdateCoursePhaseParticipation 
 } from '@tumaet/prompt-shared-state'
-
-import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
+import { Button } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
 
 import { useParticipationStore } from '../../../zustand/useParticipationStore'
 

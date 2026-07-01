@@ -1,13 +1,13 @@
-import React, { forwardRef, useImperativeHandle } from 'react'
-import { useForm } from 'react-hook-form'
+import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Form, FormField, FormItem, FormMessage } from '@tumaet/prompt-ui-components'
+import React, { forwardRef, useImperativeHandle } from 'react'
+import { useForm } from 'react-hook-form'
+import { checkCheckBoxQuestion } from '../../utils/CheckBoxRequirements'
 import { QuestionMultiSelectFormRef } from '../../utils/QuestionMultiSelectFormRef'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { createValidationSchema } from './validationSchema'
 import { CheckboxQuestion } from './CheckboxQuestion'
 import { MultiSelectQuestion } from './MultiSelectQuestion'
-import { checkCheckBoxQuestion } from '../../utils/CheckBoxRequirements'
+import { createValidationSchema } from './validationSchema'
 
 interface ApplicationQuestionMultiSelectFormProps {
   question: ApplicationQuestionMultiSelect

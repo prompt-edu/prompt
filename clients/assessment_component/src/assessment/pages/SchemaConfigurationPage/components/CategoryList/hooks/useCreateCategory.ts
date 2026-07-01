@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
-import { createCategory } from '../../../../../network/mutations/createCategory'
 import { CreateCategoryRequest } from '../../../../../interfaces/category'
+import { createCategory } from '../../../../../network/mutations/createCategory'
 
 export const useCreateCategory = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()

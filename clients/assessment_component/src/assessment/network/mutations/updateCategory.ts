@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { Category, UpdateCategoryRequest } from '../../interfaces/category'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateCategory = async (
   coursePhaseID: string,

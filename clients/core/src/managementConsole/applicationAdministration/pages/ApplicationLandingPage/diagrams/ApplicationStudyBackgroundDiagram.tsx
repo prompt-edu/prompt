@@ -1,3 +1,4 @@
+import { translations } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -5,9 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { useMemo } from 'react'
-import { translations } from '@tumaet/prompt-shared-state'
+import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { StackedBarChartWithPassStatus } from './StackedBarChartWithPassStatus'
 
 const programsWithOther = translations.university.studyPrograms.concat('Other')

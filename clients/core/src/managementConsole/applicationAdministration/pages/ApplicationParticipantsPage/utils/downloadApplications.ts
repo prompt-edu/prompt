@@ -1,3 +1,8 @@
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { GetApplication } from '@core/interfaces/application/getApplication'
+import { saveAs } from 'file-saver'
 import { AdditionalScore } from '../../../interfaces/additionalScore/additionalScore'
 import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { ApplicationForm } from '../../../interfaces/form/applicationForm'
@@ -5,11 +10,6 @@ import {
   ApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../../utils/applicationCsvExportSettings'
-import { GetApplication } from '@core/interfaces/application/getApplication'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { saveAs } from 'file-saver'
 
 type ApplicationQuestion =
   | ApplicationQuestionText

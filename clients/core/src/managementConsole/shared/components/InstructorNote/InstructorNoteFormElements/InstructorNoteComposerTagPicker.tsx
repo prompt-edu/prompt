@@ -1,13 +1,13 @@
+import { useNoteTags } from '@core/network/hooks/useInstructorNoteTags'
 import {
-  DropdownMenuCheckboxItem,
   DropdownMenu,
-  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Tag } from 'lucide-react'
-import { InstructorNoteTag } from '../InstructorNoteTag'
 import { NoteTag } from '../../../interfaces/InstructorNote'
-import { useNoteTags } from '@core/network/hooks/useInstructorNoteTags'
+import { InstructorNoteTag } from '../InstructorNoteTag'
 
 interface InstructorNoteComposerTagPickerProps {
   selectedTags: NoteTag[]

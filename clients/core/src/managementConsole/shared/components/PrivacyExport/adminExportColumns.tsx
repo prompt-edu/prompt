@@ -3,8 +3,8 @@ import {
   type AdminPrivacyExport,
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 import { ColumnDef } from '@tanstack/react-table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
   if (docs.length === 0) return <span className='text-muted-foreground'>0 {label}</span>

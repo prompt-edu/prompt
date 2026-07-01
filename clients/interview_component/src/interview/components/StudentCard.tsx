@@ -1,21 +1,19 @@
-import { GraduationCap, BookOpen, Mic, FileUserIcon, Calendar, Clock, MapPin } from 'lucide-react'
 import {
+  CoursePhaseParticipationWithStudent,getGravatarUrl, getStatusColor, 
+  getStudyDegreeString
+} from '@tumaet/prompt-shared-state'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import {
-  getStudyDegreeString,
-  CoursePhaseParticipationWithStudent,
-} from '@tumaet/prompt-shared-state'
-import { getGravatarUrl } from '@tumaet/prompt-shared-state'
-import { getStatusColor } from '@tumaet/prompt-shared-state'
 import { format } from 'date-fns'
+import { BookOpen, Calendar, Clock, FileUserIcon, GraduationCap, MapPin, Mic } from 'lucide-react'
 
 interface InterviewSlotData {
   id: string

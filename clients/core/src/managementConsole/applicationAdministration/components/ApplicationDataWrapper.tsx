@@ -1,13 +1,13 @@
+import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
+import { useQuery } from '@tanstack/react-query'
+import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
+import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
-import { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
-import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { useGetApplicationParticipations } from '../hooks/useGetApplicationParticipations'
+import { AdditionalScore } from '../interfaces/additionalScore/additionalScore'
 import { useApplicationStore } from '../zustand/useApplicationStore'
-import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
 
 interface ApplicationDataWrapperProps {
   children: React.ReactNode

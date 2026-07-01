@@ -1,10 +1,10 @@
-import * as React from 'react'
-import { differenceInDays, differenceInHours, differenceInMinutes, format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
+import { differenceInDays, differenceInHours, differenceInMinutes, format } from 'date-fns'
+import * as React from 'react'
 import { ApplicationStatusBadge } from '../../../components/ApplicationStatusBadge'
-import { getApplicationStatus } from '../../../utils/getApplicationStatus'
 import { ApplicationMetaData } from '../../../interfaces/applicationMetaData'
 import { ApplicationStatus } from '../../../interfaces/applicationStatus'
+import { getApplicationStatus } from '../../../utils/getApplicationStatus'
 
 interface ApplicationStatusCardProps {
   applicationMetaData: ApplicationMetaData | null

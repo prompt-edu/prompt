@@ -1,8 +1,8 @@
-import { SidebarMenuButton, SidebarMenuItem, useSidebar } from '@tumaet/prompt-ui-components'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { SidebarMenuButton, SidebarMenuItem, useSidebar } from '@tumaet/prompt-ui-components'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CourseSidebarItemTooltip } from './CourseSidebarItemTooltip'
 import { CourseAvatar } from './CourseAvatar'
+import { CourseSidebarItemTooltip } from './CourseSidebarItemTooltip'
 
 interface CourseSidebarItemProps {
   course: Course

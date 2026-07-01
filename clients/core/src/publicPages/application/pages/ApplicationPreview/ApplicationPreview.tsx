@@ -1,10 +1,7 @@
-import { useState } from 'react'
-import { Eye } from 'lucide-react'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { Student } from '@tumaet/prompt-shared-state'
-import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
 import {
   Button,
   Dialog,
@@ -14,6 +11,9 @@ import {
   DialogTrigger,
   ScrollArea,
 } from '@tumaet/prompt-ui-components'
+import { Eye } from 'lucide-react'
+import { useState } from 'react'
+import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
 
 interface ApplicationPreviewProps {
   questionsText: ApplicationQuestionText[]

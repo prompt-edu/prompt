@@ -1,5 +1,5 @@
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { useCreateInstructorNote } from '@core/network/hooks/useInstructorNotes'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { ProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteComposer } from './InstructorNoteComposer'
 

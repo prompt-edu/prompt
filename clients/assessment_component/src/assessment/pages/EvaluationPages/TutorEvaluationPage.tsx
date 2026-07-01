@@ -1,17 +1,16 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
 import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
+import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
+import { useTeamStore } from '../../zustand/useTeamStore'
+import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'

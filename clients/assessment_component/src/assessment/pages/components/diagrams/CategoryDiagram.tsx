@@ -1,3 +1,4 @@
+import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -5,10 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-
-import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Assessment } from '../../../interfaces/assessment'
-import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
+import { CategoryWithCompetencies } from '../../../interfaces/category'
 
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 

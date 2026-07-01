@@ -1,6 +1,6 @@
+import { ColumnDef } from '@tanstack/react-table'
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import { ApplicationRow } from './applicationRow'
-import { ColumnDef } from '@tanstack/react-table'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
 
 export function getApplicationColumns(

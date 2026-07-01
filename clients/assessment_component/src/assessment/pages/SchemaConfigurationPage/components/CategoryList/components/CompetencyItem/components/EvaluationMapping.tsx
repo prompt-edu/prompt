@@ -1,5 +1,3 @@
-import { User, Users } from 'lucide-react'
-import { useState } from 'react'
 import {
   Select,
   SelectContent,
@@ -8,9 +6,11 @@ import {
   SelectValue,
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
   TooltipProvider,
+  TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
+import { User, Users } from 'lucide-react'
+import { useState } from 'react'
 
 import { AssessmentType } from '../../../../../../../interfaces/assessmentType'
 import { Competency } from '../../../../../../../interfaces/competency'

@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-
-import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
-
+import { useState } from 'react'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Evaluation } from '../../../interfaces/evaluation'
+import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
 
 import { EvaluationForm } from './EvaluationForm/EvaluationForm'
 

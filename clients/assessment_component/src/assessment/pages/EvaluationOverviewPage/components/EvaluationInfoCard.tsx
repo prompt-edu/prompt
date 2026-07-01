@@ -1,6 +1,5 @@
-import { useNavigate } from 'react-router-dom'
-
 import { Card } from '@tumaet/prompt-ui-components'
+import { useNavigate } from 'react-router-dom'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import { Evaluation } from '../../../interfaces/evaluation'

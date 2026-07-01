@@ -1,7 +1,6 @@
-import { Badge, getLevelConfig } from '@tumaet/prompt-ui-components'
-
-import { Competency } from '../../../../../interfaces/competency'
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import { Badge, getLevelConfig } from '@tumaet/prompt-ui-components'
+import { Competency } from '../../../../../interfaces/competency'
 
 import { getScoreLevelDescription } from '../../../../utils/getScoreLevelDescription'
 

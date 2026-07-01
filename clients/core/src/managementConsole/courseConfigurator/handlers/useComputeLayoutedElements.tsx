@@ -1,8 +1,8 @@
-import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
-import { getLayoutedElements } from '../utils/getLayoutedElements'
 import { ParticipantEdgeProps } from '../graphComponents/edges/ParticipantEdgeProps'
 import { ParticipationDataEdgeProps } from '../graphComponents/edges/ParticipationDataEdgeProps'
 import { PhaseDataEdgeProps } from '../graphComponents/edges/PhaseDataEdgeProps'
+import { getLayoutedElements } from '../utils/getLayoutedElements'
+import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 
 export const useComputeLayoutedElements = () => {
   const { coursePhases, coursePhaseGraph, participationDataGraph, phaseDataGraph } =

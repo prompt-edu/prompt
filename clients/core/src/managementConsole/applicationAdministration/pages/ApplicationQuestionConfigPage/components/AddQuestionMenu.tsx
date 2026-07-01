@@ -1,3 +1,6 @@
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import {
   Button,
   DropdownMenu,
@@ -5,9 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { Plus } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 

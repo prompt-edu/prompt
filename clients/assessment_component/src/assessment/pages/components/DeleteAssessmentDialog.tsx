@@ -1,13 +1,13 @@
-import { Trash2 } from 'lucide-react'
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Button,
 } from '@tumaet/prompt-ui-components'
+import { Trash2 } from 'lucide-react'
 
 interface DeleteAssessmentDialogProps {
   open: boolean

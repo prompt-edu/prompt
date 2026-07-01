@@ -1,23 +1,21 @@
 // src/hooks/useCourseSetup.ts
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
-import { CoursePhaseGraphItem } from '../interfaces/coursePhaseGraphItem'
-import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
-import { ApplicationForm } from '../../applicationAdministration/interfaces/form/applicationForm'
-import { AdditionalScore } from '../../applicationAdministration/interfaces/additionalScore/additionalScore'
-
-import { getAllCoursePhaseTypes } from '@core/network/queries/coursePhaseTypes'
-import { getCoursePhaseGraph } from '@core/network/queries/coursePhaseGraph'
+import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
+import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { getParticipationDataGraph } from '@core/network/queries/courseParticipationDataGraph'
 import { getPhaseDataGraph } from '@core/network/queries/coursePhaseDataGraph'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
-
-import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
+import { getCoursePhaseGraph } from '@core/network/queries/coursePhaseGraph'
+import { getAllCoursePhaseTypes } from '@core/network/queries/coursePhaseTypes'
+import { useQuery } from '@tanstack/react-query'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { AdditionalScore } from '../../applicationAdministration/interfaces/additionalScore/additionalScore'
+import { ApplicationForm } from '../../applicationAdministration/interfaces/form/applicationForm'
+import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
+import { CoursePhaseGraphItem } from '../interfaces/coursePhaseGraphItem'
+import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 
 export function useCourseConfiguratorDataSetup() {
   const { courses } = useCourseStore()

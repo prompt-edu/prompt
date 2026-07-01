@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { Competency, CreateCompetencyRequest } from '../../interfaces/competency'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const createCompetency = async (
   coursePhaseID: string,

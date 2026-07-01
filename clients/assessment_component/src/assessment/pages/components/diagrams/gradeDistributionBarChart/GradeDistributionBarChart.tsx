@@ -1,21 +1,19 @@
+import { ChartContainer } from '@tumaet/prompt-ui-components'
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Tooltip as ChartTooltip,
+  Label,
+  LabelList,
   XAxis,
   YAxis,
-  LabelList,
-  Label,
-  Tooltip as ChartTooltip,
-  CartesianGrid,
 } from 'recharts'
-import { ChartContainer } from '@tumaet/prompt-ui-components'
-
-import { GradeDistributionDataPoint } from './interfaces/GradeDistributionDataPoint'
 import { GRADE_CONFIG } from '../../../utils/gradeConfig'
-
-import { GradeDistributionTooltipContent } from './components/GradeDistributionTooltipContent'
 import { GradeDistributionBar } from './components/GradeDistributionBar'
 import { GradeDistributionLabel } from './components/GradeDistributionLabel'
+import { GradeDistributionTooltipContent } from './components/GradeDistributionTooltipContent'
+import { GradeDistributionDataPoint } from './interfaces/GradeDistributionDataPoint'
 
 export interface GradeDistributionBarChartProps {
   data: GradeDistributionDataPoint[]

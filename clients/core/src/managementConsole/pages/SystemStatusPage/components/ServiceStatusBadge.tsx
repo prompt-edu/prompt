@@ -1,5 +1,5 @@
 import { Badge } from '@tumaet/prompt-ui-components'
-import { XCircle, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
 
 interface ServiceStatusBadgeProps {
   status: 'Offline' | 'OnlineUnhealthy' | 'Online'

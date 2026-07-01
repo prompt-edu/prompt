@@ -1,3 +1,4 @@
+import { translations } from '@tumaet/prompt-shared-state'
 import {
   Table,
   TableBody,
@@ -7,7 +8,6 @@ import {
   TableRow,
 } from '@tumaet/prompt-ui-components'
 import { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
-import { translations } from '@tumaet/prompt-shared-state'
 
 interface Page3Props {
   matchedCount: number

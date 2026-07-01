@@ -1,7 +1,7 @@
 import { Student } from '@tumaet/prompt-shared-state'
+import { ApplicationAnswerFileUpload } from './applicationAnswer/fileUpload/applicationAnswerFileUpload'
 import { ApplicationAnswerMultiSelect } from './applicationAnswer/multiSelect/applicationAnswerMultiSelect'
 import { ApplicationAnswerText } from './applicationAnswer/text/applicationAnswerText'
-import { ApplicationAnswerFileUpload } from './applicationAnswer/fileUpload/applicationAnswerFileUpload'
 import { ApplicationStatus } from './applicationStatus'
 
 export interface GetApplication {

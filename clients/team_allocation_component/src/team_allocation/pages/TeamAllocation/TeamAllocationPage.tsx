@@ -1,32 +1,26 @@
-import type React from 'react'
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { Loader2, Users } from 'lucide-react'
-
-import type { CoursePhaseParticipationsWithResolution, Student } from '@tumaet/prompt-shared-state'
-import type { Team } from '@tumaet/prompt-shared-state'
-import type { Allocation } from '../../interfaces/allocation'
-
-import { getAllTeams } from '../../network/queries/getAllTeams'
-import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
-import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
-import { AllocationSummaryCard } from './components/AllocationSummaryCard'
-
-import { getGravatarUrl } from '@tumaet/prompt-shared-state'
-
+import type { CoursePhaseParticipationsWithResolution, Student, Team } from '@tumaet/prompt-shared-state'
+import { getCoursePhaseParticipations, getGravatarUrl } from '@tumaet/prompt-shared-state'
 import {
-  ErrorPage,
-  ManagementPageHeader,
-  Card,
-  CardContent,
-  CardHeader,
-  Badge,
-  Separator,
   Avatar,
   AvatarFallback,
   AvatarImage,
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  ErrorPage,
+  ManagementPageHeader,
+  Separator,
 } from '@tumaet/prompt-ui-components'
+import { Loader2, Users } from 'lucide-react'
+import type React from 'react'
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
+import type { Allocation } from '../../interfaces/allocation'
+import { getAllTeams } from '../../network/queries/getAllTeams'
+import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
+import { AllocationSummaryCard } from './components/AllocationSummaryCard'
 
 export const TeamAllocationPage: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

@@ -1,8 +1,8 @@
 import { Assessment } from './assessment'
 import { AssessmentCompletion } from './assessmentCompletion'
 import { CategoryAssessment } from './categoryAssessment'
-import { StudentScore } from './studentScore'
 import { Evaluation } from './evaluation'
+import { StudentScore } from './studentScore'
 
 export interface StudentAssessment {
   courseParticipationID: string // UUID

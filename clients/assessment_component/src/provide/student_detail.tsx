@@ -1,12 +1,10 @@
-import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
-
+import React from 'react'
+import { Link } from 'react-router-dom'
 import type { StudentAssessment } from '../assessment/interfaces/studentAssessment'
-
 import { getStudentAssessment } from '../assessment/network/queries/getStudentAssessment'
 import { GradeSuggestionBadge } from '../assessment/pages/components/badges'
-import { Link } from 'react-router-dom'
 
 export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
   studentId: _studentId,

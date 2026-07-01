@@ -1,12 +1,9 @@
 import { Team } from '@tumaet/prompt-shared-state'
-
+import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
-
 import { PeerEvaluationCompletionBadge } from '../../components/badges'
-
 import { createEvaluationLookup, getEvaluationCounts } from '../utils/evaluationUtils'
-import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
 
 export const createPeerEvalStatusColumn = (
   peerEvaluationCompletions: EvaluationCompletion[] | undefined,

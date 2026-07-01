@@ -1,18 +1,12 @@
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { CoursePhaseParticipationWithStudent, getOwnCoursePhaseParticipation, Team, useCourseStore } from '@tumaet/prompt-shared-state'
+import { Alert, AlertDescription, AlertTitle, ErrorPage, UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { Loader2, TriangleAlert } from 'lucide-react'
-
-import { Alert, AlertDescription, AlertTitle, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationWithStudent, Team } from '@tumaet/prompt-shared-state'
-
-import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
-import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
-
-import { TeamSelection } from './components/TeamSelection'
-import { getAllTeams } from '../../network/queries/getAllTeams'
+import { useParams } from 'react-router-dom'
 import { Timeframe } from '../../interfaces/timeframe'
+import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
+import { TeamSelection } from './components/TeamSelection'
 
 export const SelfTeamAllocationPage = () => {
   const { isStudentOfCourse } = useCourseStore()

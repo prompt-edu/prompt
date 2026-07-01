@@ -1,18 +1,14 @@
-import { useState } from 'react'
+import { mapNumberToScoreLevel, mapScoreLevelToNumber } from '@tumaet/prompt-shared-state'
+import { getLevelConfig } from '@tumaet/prompt-ui-components'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-
+import { useState } from 'react'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import { CategoryWithCompetencies } from '../../../interfaces/category'
 import { Evaluation } from '../../../interfaces/evaluation'
-import { mapNumberToScoreLevel, mapScoreLevelToNumber } from '@tumaet/prompt-shared-state'
-
 import { useTeamStore } from '../../../zustand/useTeamStore'
-
+import { StudentScoreBadge } from '../../components/badges'
 import { CompetencyHeader } from '../../components/CompetencyHeader'
 import { ScoreLevelSelector } from '../../components/ScoreLevelSelector'
-import { StudentScoreBadge } from '../../components/badges'
-
-import { getLevelConfig } from '@tumaet/prompt-ui-components'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 interface CategoryEvaluationProps {

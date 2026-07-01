@@ -1,5 +1,3 @@
-import { LogOut, Shield } from 'lucide-react'
-
 import {
   Button,
   DropdownMenu,
@@ -7,11 +5,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger,ThemeToggle 
 } from '@tumaet/prompt-ui-components'
-import { NavAvatar } from './NavAvatar'
-import { ThemeToggle } from '@tumaet/prompt-ui-components'
+import { LogOut, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { NavAvatar } from './NavAvatar'
 
 interface NavUserProps {
   onLogout: () => void

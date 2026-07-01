@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import { AxiosError } from 'axios'
-
-import { createOrUpdateCategoryAssessment } from '../../../../../network/mutations/createOrUpdateCategoryAssessment'
+import { useParams } from 'react-router-dom'
 import { CreateOrUpdateCategoryAssessmentRequest } from '../../../../../interfaces/categoryAssessment'
+import { createOrUpdateCategoryAssessment } from '../../../../../network/mutations/createOrUpdateCategoryAssessment'
 
 export const useCreateOrUpdateCategoryAssessment = (
   setError: (error: string | undefined) => void,

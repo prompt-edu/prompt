@@ -1,7 +1,7 @@
-import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
-import dayjs from 'dayjs'
-import { useEffect, useState } from 'react'
 import { Badge, Card, CardContent } from '@tumaet/prompt-ui-components'
+import dayjs from 'dayjs'
+import { AlertCircle, CheckCircle, Clock } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface SurveyStatusBarProps {
   deadline: Date

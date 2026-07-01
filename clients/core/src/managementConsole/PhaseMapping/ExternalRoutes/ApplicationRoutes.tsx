@@ -1,13 +1,12 @@
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
-import { ApplicationLandingPage } from '../../applicationAdministration/pages/ApplicationLandingPage/ApplicationLandingPage'
-import { ApplicationConfiguration } from '../../applicationAdministration/pages/ApplicationSettingsPage/ApplicationSettings'
-import { ApplicationQuestionConfig } from '../../applicationAdministration/pages/ApplicationQuestionConfigPage/ApplicationQuestionConfig'
-import { ExternalRoutes } from './ExternalRoutes'
-import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
-import { ApplicationMailingSettings } from '../../applicationAdministration/pages/Mailing/ApplicationMailingSettings'
-import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
 import { ApplicationDetailsPage } from '@core/managementConsole/applicationAdministration/pages/ApplicationParticipantsPage/components/ApplicationDetailsDialog/ApplicationDetailsPage'
+import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
+import { ApplicationLandingPage } from '../../applicationAdministration/pages/ApplicationLandingPage/ApplicationLandingPage'
+import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
+import { ApplicationQuestionConfig } from '../../applicationAdministration/pages/ApplicationQuestionConfigPage/ApplicationQuestionConfig'
+import { ApplicationConfiguration } from '../../applicationAdministration/pages/ApplicationSettingsPage/ApplicationSettings'
+import { ApplicationMailingSettings } from '../../applicationAdministration/pages/Mailing/ApplicationMailingSettings'
+import { ExternalRoutes } from './ExternalRoutes'
 
 const applicationRoutesObjects: ExtendedRouteObject[] = [
   {

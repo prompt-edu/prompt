@@ -1,5 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react'
 import { RowAction } from '@tumaet/prompt-ui-components'
+import { Pencil, Trash2 } from 'lucide-react'
 import { NoteTag } from '../../shared/interfaces/InstructorNote'
 
 interface NoteTagTableActionsProps {

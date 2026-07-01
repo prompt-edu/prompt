@@ -1,3 +1,4 @@
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,
@@ -6,11 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { ArrowLeft } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { ArrowLeft } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function PrivacyPage() {
   const navigate = useNavigate()

@@ -1,15 +1,12 @@
-import { useState } from 'react'
-
-import React from 'react'
-
-import ApplicationOverview from './components/Overview/ApplicationSettingsOverview'
-import { ApplicationMetaData } from '../../interfaces/applicationMetaData'
-import { getApplicationStatus } from '../../utils/getApplicationStatus'
-import { ApplicationGeneralSettings } from './components/SettingsGeneral/ApplicationSettingsGeneral'
-import { ApplicationSettingsCustomScores } from './components/SettingsCustomScores/ApplicationSettingsCustomScores'
-import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
+import React, { useState } from 'react'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
+import { ApplicationMetaData } from '../../interfaces/applicationMetaData'
+import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
+import { getApplicationStatus } from '../../utils/getApplicationStatus'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
+import ApplicationOverview from './components/Overview/ApplicationSettingsOverview'
+import { ApplicationSettingsCustomScores } from './components/SettingsCustomScores/ApplicationSettingsCustomScores'
+import { ApplicationGeneralSettings } from './components/SettingsGeneral/ApplicationSettingsGeneral'
 
 export const ApplicationConfiguration = () => {
   const [applicationMetaData, setApplicationMetaData] = useState<ApplicationMetaData | null>(null)

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { updateActionItem } from '../../../../../network/mutations/updateActionItem'
 import { UpdateActionItemRequest } from '../../../../../interfaces/actionItem'
+import { updateActionItem } from '../../../../../network/mutations/updateActionItem'
 
 export const useUpdateActionItem = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()

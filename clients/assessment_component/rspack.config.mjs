@@ -1,7 +1,7 @@
-import path from 'path'
 import rspack from '@rspack/core'
-import packageJson from '../package.json' with { type: 'json' }
+import path from 'path'
 import { fileURLToPath } from 'url'
+import packageJson from '../package.json' with { type: 'json' }
 
 const { ModuleFederationPlugin } = rspack.container
 

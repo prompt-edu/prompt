@@ -1,3 +1,4 @@
+import { create } from 'zustand'
 import { Assessment } from '../interfaces/assessment'
 import { AssessmentCompletion } from '../interfaces/assessmentCompletion'
 import { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
@@ -6,8 +7,6 @@ import { CategoryAssessment } from '../interfaces/categoryAssessment'
 import { Evaluation } from '../interfaces/evaluation'
 import { StudentAssessment } from '../interfaces/studentAssessment'
 import { StudentScore } from '../interfaces/studentScore'
-
-import { create } from 'zustand'
 
 export interface StudentAssessmentStore {
   courseParticipationID: string | undefined

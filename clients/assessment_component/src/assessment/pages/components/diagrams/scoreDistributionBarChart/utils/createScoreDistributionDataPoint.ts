@@ -1,8 +1,6 @@
-import { ScoreLevel, mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
-
-import { ScoreDistributionDataPoint } from '../interfaces/ScoreDistributionDataPoint'
-
+import { mapNumberToScoreLevel, ScoreLevel } from '@tumaet/prompt-shared-state'
 import { computeQuartile } from '../../utils/computeQuartile'
+import { ScoreDistributionDataPoint } from '../interfaces/ScoreDistributionDataPoint'
 
 export const createScoreDistributionDataPoint = (
   shortLabel: string,

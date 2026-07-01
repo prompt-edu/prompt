@@ -1,9 +1,9 @@
 import { useQueries } from '@tanstack/react-query'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
-import { ServiceInfo } from './interfaces/serviceCapabilities'
-import { CoursePhaseType } from './interfaces/coursePhaseType'
-import { getServiceInfo } from './network/getServiceCapabilities'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
+import { CoursePhaseType } from './interfaces/coursePhaseType'
+import { ServiceInfo } from './interfaces/serviceCapabilities'
+import { getServiceInfo } from './network/getServiceCapabilities'
 
 export const SystemStatusPage = () => {
   const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()

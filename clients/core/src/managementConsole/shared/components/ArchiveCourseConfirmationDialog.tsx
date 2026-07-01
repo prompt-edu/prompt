@@ -1,5 +1,6 @@
-import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { getCoursePhaseByID } from '@core/network/queries/coursePhase'
 import { useQuery } from '@tanstack/react-query'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +12,6 @@ import {
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
 import { isAfter } from 'date-fns'
-import { getCoursePhaseByID } from '@core/network/queries/coursePhase'
 
 interface ArchiveCourseConfirmationDialogProps {
   courseID: string

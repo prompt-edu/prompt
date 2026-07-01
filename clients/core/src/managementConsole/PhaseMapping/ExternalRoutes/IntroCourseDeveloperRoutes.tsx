@@ -1,7 +1,7 @@
-import React from 'react'
 import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { ExternalRoutes } from './ExternalRoutes'
+import React from 'react'
 import { LoadingError } from '../utils/LoadingError'
+import { ExternalRoutes } from './ExternalRoutes'
 
 export const IntroCourseDeveloperRoutes = React.lazy(() =>
   import('intro_course_developer_component/routes')

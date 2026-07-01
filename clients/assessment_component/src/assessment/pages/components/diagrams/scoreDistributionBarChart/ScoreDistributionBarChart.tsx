@@ -1,22 +1,19 @@
+import { ChartContainer } from '@tumaet/prompt-ui-components'
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Tooltip as ChartTooltip,
+  Label,
+  LabelList,
   XAxis,
   YAxis,
-  LabelList,
-  Label,
-  Tooltip as ChartTooltip,
-  CartesianGrid,
 } from 'recharts'
-import { ChartContainer } from '@tumaet/prompt-ui-components'
-
-import { ScoreDistributionDataPoint } from './interfaces/ScoreDistributionDataPoint'
-
 import { chartConfig } from '../utils/chartConfig'
-
-import { ScoreDistributionTooltipContent } from './components/ScoreDistributionTooltipContent'
 import { ScoreDistributionBar } from './components/ScoreDistributionBar'
 import { ScoreDistributionLabel } from './components/ScoreDistributionLabel'
+import { ScoreDistributionTooltipContent } from './components/ScoreDistributionTooltipContent'
+import { ScoreDistributionDataPoint } from './interfaces/ScoreDistributionDataPoint'
 
 export interface ScoreDistributionBarChartProps {
   data: ScoreDistributionDataPoint[]

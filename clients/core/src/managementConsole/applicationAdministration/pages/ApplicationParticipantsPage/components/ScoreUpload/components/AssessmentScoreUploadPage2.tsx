@@ -1,5 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
-import { Equal } from 'lucide-react'
+import { translations } from '@tumaet/prompt-shared-state'
 import {
   Input,
   Label,
@@ -15,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '@tumaet/prompt-ui-components'
-import { translations } from '@tumaet/prompt-shared-state'
+import { Equal } from 'lucide-react'
+import React, { forwardRef, useImperativeHandle, useState } from 'react'
 
 export interface Page2Ref {
   validate: () => boolean

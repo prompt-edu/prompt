@@ -1,27 +1,23 @@
-import { useKeycloak } from '../keycloak/useKeycloak'
-import { useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
-import { AppSidebar } from './layout/Sidebar/AppSidebar'
-import { EmptyPage } from './shared/components/EmptyPage'
-import {
+import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
+import { Footer } from '@core/publicPages/shared/components/Footer'
+import { useQuery } from '@tanstack/react-query'
+import { Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import { DarkModeProvider, 
+  ErrorPage,
+  LoadingPage,
+  Separator,
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
-  LoadingPage,
-  ErrorPage,
-  Separator,
-} from '@tumaet/prompt-ui-components'
+  SidebarTrigger, UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import React, { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Course } from '@tumaet/prompt-shared-state'
-import { getAllCourses } from '../network/queries/course'
-import { DarkModeProvider } from '@tumaet/prompt-ui-components'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import CourseNotFound from './shared/components/CourseNotFound'
+import { useKeycloak } from '../keycloak/useKeycloak'
+import { getAllCourses } from '../network/queries/course'
 import { Breadcrumbs } from './layout/Breadcrumbs/Breadcrumbs'
-import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
+import { AppSidebar } from './layout/Sidebar/AppSidebar'
 import { NavUserMenu } from './layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
-import { Footer } from '@core/publicPages/shared/components/Footer'
+import CourseNotFound from './shared/components/CourseNotFound'
+import { EmptyPage } from './shared/components/EmptyPage'
 
 export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => {
   const { keycloak, logout } = useKeycloak()

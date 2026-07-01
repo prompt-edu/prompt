@@ -1,12 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Team } from '@tumaet/prompt-shared-state'
+import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-
-import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
-import { Team } from '@tumaet/prompt-shared-state'
-
-import type { ColumnDef } from '@tanstack/react-table'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
@@ -14,12 +12,11 @@ import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAll
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useTeamStore } from '../../zustand/useTeamStore'
-
-import { PeerEvaluationCompletionBadge } from '../components/badges'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
 } from '../AssessmentParticipantsPage/utils/evaluationUtils'
+import { PeerEvaluationCompletionBadge } from '../components/badges'
 
 interface EvaluationParticipantRow {
   id: string

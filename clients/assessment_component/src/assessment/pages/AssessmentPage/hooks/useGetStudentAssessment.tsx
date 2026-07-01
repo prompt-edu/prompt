@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { getStudentAssessment } from '../../../network/queries/getStudentAssessment'
 import { StudentAssessment } from '../../../interfaces/studentAssessment'
+import { getStudentAssessment } from '../../../network/queries/getStudentAssessment'
 
 export const useGetStudentAssessment = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

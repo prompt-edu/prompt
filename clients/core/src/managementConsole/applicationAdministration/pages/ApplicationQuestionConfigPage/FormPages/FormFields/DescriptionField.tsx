@@ -1,17 +1,16 @@
-import { useState } from 'react'
-import { UseFormReturn } from 'react-hook-form'
-import {
+import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import {DescriptionMinimalTiptapEditor, 
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
   Input,
   Switch,
-  TooltipProvider,
+  TooltipProvider
 } from '@tumaet/prompt-ui-components'
-import { DescriptionMinimalTiptapEditor } from '@tumaet/prompt-ui-components'
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import { useState } from 'react'
+import { UseFormReturn } from 'react-hook-form'
 
 interface DescriptionFieldProps {
   form: UseFormReturn<QuestionConfigFormData>

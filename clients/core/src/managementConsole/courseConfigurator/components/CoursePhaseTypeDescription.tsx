@@ -1,14 +1,14 @@
-import { HelpCircle } from 'lucide-react'
 import { Card, CardContent } from '@tumaet/prompt-ui-components'
-import { useState, useRef } from 'react'
+import { HelpCircle } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
 import {
   EDGE_COLOR_BLUE,
   EDGE_COLOR_GREEN,
   EDGE_COLOR_PURPLE,
 } from '../graphComponents/edges/edgeColors'
 import { camelToTitle } from '../graphComponents/phaseNode/components/utils/camelToTitle'
+import { CoursePhaseType } from '../interfaces/coursePhaseType'
 
 interface CoursePhaseTypeDescriptionProps {
   phase: CoursePhaseType

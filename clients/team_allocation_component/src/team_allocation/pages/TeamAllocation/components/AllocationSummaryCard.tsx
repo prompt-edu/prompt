@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
 import { Badge, Button, Card, CardContent, CardHeader } from '@tumaet/prompt-ui-components'
 import { AlertCircle, ArrowRight, CheckCircle2, Users } from 'lucide-react'
-import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 import { Allocation } from '../../../interfaces/allocation'
 import { TutorImportDialog } from './TutorImportDialog'
 

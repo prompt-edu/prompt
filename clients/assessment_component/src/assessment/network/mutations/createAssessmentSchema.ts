@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { CreateAssessmentSchemaRequest } from '../../interfaces/assessmentSchema'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const createAssessmentSchema = async (
   coursePhaseID: string,

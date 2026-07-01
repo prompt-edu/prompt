@@ -1,12 +1,10 @@
-import { useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { Role, getPermissionString } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
-import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
-import { CourseParticipation } from '../interfaces/CourseParticipation'
 import { useQuery } from '@tanstack/react-query'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { getPermissionString, Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
+import { ErrorPage, UnauthorizedPage } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
+import { CourseParticipation } from '../interfaces/CourseParticipation'
 
 interface PermissionRestrictionProps {
   requiredPermissions: Role[]

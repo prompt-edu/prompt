@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
-
+import { Assessment } from '../../../../interfaces/assessment'
+import { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
 import { AssessmentParticipationWithStudent } from '../../../../interfaces/assessmentParticipationWithStudent'
 import { ScoreLevelWithParticipation } from '../../../../interfaces/scoreLevelWithParticipation'
-import { AssessmentCompletion } from '../../../../interfaces/assessmentCompletion'
-import { Assessment } from '../../../../interfaces/assessment'
 
 import { ParticipationWithAssessment } from '../interfaces/ParticipationWithAssessment'
 

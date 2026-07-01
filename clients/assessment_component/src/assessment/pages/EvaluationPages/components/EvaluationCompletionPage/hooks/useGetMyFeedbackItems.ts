@@ -1,6 +1,6 @@
-import { useParams } from 'react-router-dom'
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { FeedbackItem } from '../../../../../interfaces/feedbackItem'
 import { getMyFeedbackItems } from '../../../../../network/queries/getMyFeedbackItems'

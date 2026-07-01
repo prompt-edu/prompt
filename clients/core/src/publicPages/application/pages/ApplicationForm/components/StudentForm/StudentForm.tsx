@@ -1,43 +1,41 @@
-import {
-  Student,
+import { StudentFormValues, studentSchema } from '@core/validations/student'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {countriesArr, 
   Gender,
   getGenderString,
-  StudyDegree,
   getStudyDegreeString,
+  Student,
+  StudyDegree,translations 
 } from '@tumaet/prompt-shared-state'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { StudentComponentRef } from '../../utils/StudentComponentRef'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Button,
-  Input,
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@tumaet/prompt-ui-components'
-import { studentSchema, StudentFormValues } from '@core/validations/student'
-import { translations } from '@tumaet/prompt-shared-state'
 import { Check, ChevronDown } from 'lucide-react'
-import { countriesArr } from '@tumaet/prompt-shared-state'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { StudentComponentRef } from '../../utils/StudentComponentRef'
 
 const studyPrograms = translations.university.studyPrograms.concat('Other')
 

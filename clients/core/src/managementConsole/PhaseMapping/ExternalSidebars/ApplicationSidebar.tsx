@@ -1,7 +1,6 @@
-import { Role } from '@tumaet/prompt-shared-state'
+import { Role, SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { FileUser } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
-import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 
 export const ApplicationSidebar = ({
   rootPath,

@@ -1,6 +1,5 @@
+import { UpdateCoursePhase, useModifyCoursePhase } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { useModifyCoursePhase } from '@tumaet/prompt-shared-state'
-import { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
 
 export const useHideMailingWarning = () => {

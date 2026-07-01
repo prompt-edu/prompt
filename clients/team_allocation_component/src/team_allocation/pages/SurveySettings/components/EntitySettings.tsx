@@ -1,22 +1,22 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Save, X, Loader2, AlertCircle } from 'lucide-react'
-import { DeleteDialog } from './DeleteDialog'
 import {
+  Badge,
   Button,
-  Input,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Badge,
+  Input,
   Separator,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle, Loader2, Pencil, Plus, Save, X } from 'lucide-react'
+import { useState } from 'react'
+import { DeleteDialog } from './DeleteDialog'
 
 interface Entity {
   id: string

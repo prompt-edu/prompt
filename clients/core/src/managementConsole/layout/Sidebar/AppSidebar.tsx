@@ -1,8 +1,7 @@
-import * as React from 'react'
-
 import { Sidebar, useSidebar } from '@tumaet/prompt-ui-components'
-import { InsideSidebar } from './InsideSidebar/InsideSidebar'
+import * as React from 'react'
 import { CourseSwitchSidebar } from './CourseSwitchSidebar/CourseSwitchSidebar'
+import { InsideSidebar } from './InsideSidebar/InsideSidebar'
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar>
 

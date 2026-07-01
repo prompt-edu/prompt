@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllEvaluationCompletionsInPhase = async (
   coursePhaseID: string,

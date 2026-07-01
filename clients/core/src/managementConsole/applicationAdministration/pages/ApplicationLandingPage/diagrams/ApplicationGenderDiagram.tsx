@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Gender, getGenderString } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -6,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
+import { useMemo } from 'react'
 import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
-import { Gender, getGenderString } from '@tumaet/prompt-shared-state'
 import { StackedBarChartWithPassStatus } from './StackedBarChartWithPassStatus'
 
 interface GenderDistributionCardProps {

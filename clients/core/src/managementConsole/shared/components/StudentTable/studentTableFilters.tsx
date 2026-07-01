@@ -6,9 +6,9 @@ import {
   DropdownMenuSubTrigger,
   TableFilter,
 } from '@tumaet/prompt-ui-components'
-import { StudentCoursePreview } from './components/StudentCoursePreview'
-import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
 import { NoteTagColor } from '../../interfaces/InstructorNote'
+import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
+import { StudentCoursePreview } from './components/StudentCoursePreview'
 
 export function getStudentTableFilters(studentsWithCourses: StudentWithCourses[]): TableFilter[] {
   const tagOptions = Array.from(

@@ -1,10 +1,10 @@
-import { Node, Edge } from '@xyflow/react'
+import { UseMutateFunction } from '@tanstack/react-query'
 import { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import { Edge, Node } from '@xyflow/react'
+import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
 import { CoursePhaseGraphItem } from '../interfaces/coursePhaseGraphItem'
 import { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdate'
 import { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
-import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
-import { UseMutateFunction } from '@tanstack/react-query'
 import { getMetaDataGraphFromEdges } from '../utils/getMetaDataGraphFromEdges'
 
 interface HandleSaveProps {

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
-import { InstructorNoteTag } from './InstructorNoteTag'
+import { useEffect, useRef, useState } from 'react'
 import { NoteTag } from '../../interfaces/InstructorNote'
-import { InstructorNoteComposerTagPicker } from './InstructorNoteFormElements/InstructorNoteComposerTagPicker'
 import { InstructorNoteComposerSubmitButton } from './InstructorNoteFormElements/InstructorNoteComposerSubmitButton'
+import { InstructorNoteComposerTagPicker } from './InstructorNoteFormElements/InstructorNoteComposerTagPicker'
+import { InstructorNoteTag } from './InstructorNoteTag'
 
 interface NoteComposerProps {
   onSubmit: (content: string, tagIds: string[]) => Promise<void>

@@ -1,3 +1,7 @@
+import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
+import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
+import { PhaseSidebarMapping } from '@managementConsole/PhaseMapping/PhaseSidebarMapping'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -5,14 +9,10 @@ import {
   SidebarMenu,
 } from '@tumaet/prompt-ui-components'
 import { Gauge } from 'lucide-react'
-import { useParams } from 'react-router-dom'
-import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { Suspense, useMemo } from 'react'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useParams } from 'react-router-dom'
 import { DisabledSidebarMenuItem } from './components/DisabledSidebarMenuItem'
-import { PhaseSidebarMapping } from '@managementConsole/PhaseMapping/PhaseSidebarMapping'
-import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
-import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
+import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideCourseSidebar = () => {
   const { courseId } = useParams<{ courseId: string }>()

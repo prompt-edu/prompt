@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { AssessmentCompletion } from '../../../interfaces/assessmentCompletion'
+import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { ParticipationWithAssessment } from '../../components/diagrams/interfaces/ParticipationWithAssessment'
 import { StatisticsFilter } from '../components/FilterMenu'
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 
 interface UseFilteredParticipationsProps {
   participations: AssessmentParticipationWithStudent[] | null

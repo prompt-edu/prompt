@@ -1,6 +1,3 @@
-import * as React from 'react'
-import { Label, Pie, PieChart } from 'recharts'
-
 import {
   Card,
   CardContent,
@@ -12,11 +9,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../interfaces/assessmentType'
+import * as React from 'react'
+import { Label, Pie, PieChart } from 'recharts'
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
+import { AssessmentType } from '../../../interfaces/assessmentType'
 import { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
+import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 
 const chartConfig = {
   notAssessed: {

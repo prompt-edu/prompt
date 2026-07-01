@@ -1,10 +1,10 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { ApplicationParticipantsTable } from './components/table/ApplicationParticipantsTable'
 import { ReactNode } from 'react'
-import { useApplicationStore } from '../../zustand/useApplicationStore'
-import AssessmentScoreUpload from './components/ScoreUpload/ScoreUpload'
-import { ApplicationManualAddingDialog } from './components/ApplicationManualAddingDialog/ApplicationManualAddingDialog'
 import { useParams } from 'react-router-dom'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { ApplicationManualAddingDialog } from './components/ApplicationManualAddingDialog/ApplicationManualAddingDialog'
+import AssessmentScoreUpload from './components/ScoreUpload/ScoreUpload'
+import { ApplicationParticipantsTable } from './components/table/ApplicationParticipantsTable'
 
 export const ApplicationParticipantsPage = (): ReactNode => {
   const { phaseId } = useParams<{ phaseId: string }>()

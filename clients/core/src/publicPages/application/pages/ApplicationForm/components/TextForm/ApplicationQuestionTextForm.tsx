@@ -1,5 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Form,
@@ -11,10 +10,11 @@ import {
   Input,
   Textarea,
 } from '@tumaet/prompt-ui-components'
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { QuestionTextFormRef } from '../../utils/QuestionTextFormRef'
-import { createValidationSchema } from './validationSchema'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { FormDescriptionHTML } from '../FormDescriptionHTML'
+import { createValidationSchema } from './validationSchema'
 
 interface ApplicationQuestionTextFormProps {
   question: ApplicationQuestionText

@@ -1,4 +1,3 @@
-import { Bar, BarChart, XAxis, YAxis } from 'recharts'
 import {
   Card,
   CardContent,
@@ -10,8 +9,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { useMemo } from 'react'
+import { Bar, BarChart, XAxis, YAxis } from 'recharts'
+import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 
 const chartConfig = {
   bachelor: {

@@ -1,6 +1,6 @@
+import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
 import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
 import { AssessmentStatusBadge } from '../../components/badges'
-import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
 
 export const createSelfEvalStatusColumn = (
   selfEvaluationCompletions: EvaluationCompletion[] | undefined,

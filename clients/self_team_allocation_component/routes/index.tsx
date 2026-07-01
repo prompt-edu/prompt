@@ -1,8 +1,7 @@
-import { Role } from '@tumaet/prompt-shared-state'
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { SelfTeamAllocationPage } from '../src/self_team_allocation/pages/TeamAllocation/SelfTeamAllocationPage'
+import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { SelfTeamAllocationParticipantsPage } from '../src/self_team_allocation/pages/SelfTeamAllocationParticipantsPage/SelfTeamAllocationParticipantsPage'
 import { SettingsPage } from '../src/self_team_allocation/pages/Settings/SettingsPage'
+import { SelfTeamAllocationPage } from '../src/self_team_allocation/pages/TeamAllocation/SelfTeamAllocationPage'
 
 const routes: ExtendedRouteObject[] = [
   {

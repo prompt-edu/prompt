@@ -1,19 +1,19 @@
+import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHead,
-  TableRow,
-  ScrollArea,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  ScrollArea,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@tumaet/prompt-ui-components'
 import { UploadedStudent } from '../../../interfaces/UploadedStudent'
-import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 
 interface MatchingResultsProps {
   matchedStudents: CoursePhaseParticipationWithStudent[]

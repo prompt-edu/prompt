@@ -1,6 +1,5 @@
-import { useParams } from 'react-router-dom'
-
 import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { CategoryWithCompetencies } from '../../interfaces/category'

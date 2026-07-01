@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { useToast } from '@tumaet/prompt-ui-components'
-import { copyCourse } from '@core/network/mutations/copyCourse'
-import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
-import type { CopyCourse } from '../../managementConsole/courseOverview/interfaces/copyCourse'
-import type { CopyCourseFormValues } from '@core/validations/copyCourse'
-import type { DialogStep } from '../../managementConsole/courseOverview/interfaces/copyCourseDialogProps'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
+import { copyCourse } from '@core/network/mutations/copyCourse'
+import type { CopyCourseFormValues } from '@core/validations/copyCourse'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@tumaet/prompt-ui-components'
+import { useNavigate } from 'react-router-dom'
+import type { CopyCourse } from '../../managementConsole/courseOverview/interfaces/copyCourse'
+import type { DialogStep } from '../../managementConsole/courseOverview/interfaces/copyCourseDialogProps'
 
 export const useCopyCourse = (
   courseId: string,

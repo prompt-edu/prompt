@@ -1,5 +1,3 @@
-import { endOfDay, startOfDay } from 'date-fns'
-import { Link } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -10,14 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
+import { endOfDay, startOfDay } from 'date-fns'
 import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
-
-import { AssessmentType } from '../../../interfaces/assessmentType'
+import { Link } from 'react-router-dom'
 import { AssessmentSchema } from '../../../interfaces/assessmentSchema'
+import { AssessmentType } from '../../../interfaces/assessmentType'
 import { schemaSectionContent } from '../../schemaSectionContent'
-import { SettingsSwitchField } from './SettingsSwitchField'
 import { CreateAssessmentSchemaDialog } from './CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from './ErrorDisplay'
+import { SettingsSwitchField } from './SettingsSwitchField'
 
 export interface SchemaConfigurationCardProps {
   assessmentType: AssessmentType

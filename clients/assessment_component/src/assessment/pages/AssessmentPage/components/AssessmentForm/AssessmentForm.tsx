@@ -1,30 +1,24 @@
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-
-import { Form, FormMessage } from '@tumaet/prompt-ui-components'
-
-import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
-import { useTeamStore } from '../../../../zustand/useTeamStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
-
-import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
-import { Competency } from '../../../../interfaces/competency'
 import {
-  ScoreLevel,
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
+  ScoreLevel,
 } from '@tumaet/prompt-shared-state'
-
+import { Form, FormMessage } from '@tumaet/prompt-ui-components'
+import { useEffect, useState } from 'react'
+import { JSX } from 'react/jsx-runtime'
+import { useForm } from 'react-hook-form'
+import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
+import { Competency } from '../../../../interfaces/competency'
+import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
+import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
+import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
+import { useTeamStore } from '../../../../zustand/useTeamStore'
 import { CompetencyHeader } from '../../../components/CompetencyHeader'
 import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDialog'
 import { ScoreLevelSelector } from '../../../components/ScoreLevelSelector'
-
 import { EvaluationScoreDescriptionBadge } from './components/EvaluationScoreDescriptionBadge'
-
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
-import { JSX } from 'react/jsx-runtime'
 
 interface AssessmentFormProps {
   courseParticipationID: string

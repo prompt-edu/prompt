@@ -1,10 +1,9 @@
-import { ApplicationForm } from '../../../interfaces/form/applicationForm'
-import { UpdateApplicationForm } from '../../../interfaces/form/updateApplicationForm'
-
-import { ApplicationQuestionCardRef } from '../FormPages/ApplicationQuestionCard'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import { ApplicationForm } from '../../../interfaces/form/applicationForm'
+import { UpdateApplicationForm } from '../../../interfaces/form/updateApplicationForm'
+import { ApplicationQuestionCardRef } from '../FormPages/ApplicationQuestionCard'
 
 interface handleSubmitAllQuestionsProps {
   questionRefs: React.MutableRefObject<(ApplicationQuestionCardRef | null | undefined)[]>

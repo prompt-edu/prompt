@@ -1,6 +1,5 @@
+import { env, parseURL } from '@tumaet/prompt-shared-state'
 import axios from 'axios'
-import { parseURL } from '@tumaet/prompt-shared-state'
-import { env } from '@tumaet/prompt-shared-state'
 
 const certificateServer = env.CERTIFICATE_HOST || ''
 

@@ -1,5 +1,3 @@
-import { useMemo } from 'react'
-
 import {
   Card,
   CardContent,
@@ -7,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
+import { useMemo } from 'react'
 
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { VALID_GRADE_VALUES } from '../../utils/gradeConfig'

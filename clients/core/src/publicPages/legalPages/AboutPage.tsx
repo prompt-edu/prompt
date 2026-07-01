@@ -1,3 +1,4 @@
+import { env, useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,
@@ -10,21 +11,19 @@ import {
 import {
   ArrowLeft,
   Bug,
-  GitPullRequest,
-  Mail,
   FileText,
   FileUser,
+  GitPullRequest,
+  Layers,
+  Mail,
+  Mic,
+  Plus,
+  Upload,
   UserCheck,
   Users,
-  Mic,
-  Upload,
-  Plus,
-  Layers,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ContributorList } from './components/ContributorList'
-import { env } from '@tumaet/prompt-shared-state'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 
 export default function AboutPage() {
   const navigate = useNavigate()

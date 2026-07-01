@@ -1,8 +1,8 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import {
   CreateInstructorNote,
   InstructorNote,
 } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const postInstructorNote = async (
   studentId: string,

@@ -1,5 +1,5 @@
-import React from 'react'
 import { Badge } from '@tumaet/prompt-ui-components'
+import React from 'react'
 
 interface PeerEvaluationCompletionBadgeProps {
   completed: number

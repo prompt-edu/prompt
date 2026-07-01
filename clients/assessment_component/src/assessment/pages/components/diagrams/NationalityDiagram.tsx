@@ -1,3 +1,4 @@
+import { getCountryName } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -5,15 +6,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { getCountryName } from '@tumaet/prompt-shared-state'
-
-import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
+import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
 
 import { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
-
+import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
-import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
 
 import { getGridSpanClass } from './utils/getGridSpanClass'
 import { groupBy } from './utils/groupBy'

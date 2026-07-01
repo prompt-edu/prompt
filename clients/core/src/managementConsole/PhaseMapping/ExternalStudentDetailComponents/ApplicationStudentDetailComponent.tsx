@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react'
+import { getApplicationParticipations } from '@core/network/queries/applicationParticipations'
 import { useQuery } from '@tanstack/react-query'
 
 import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
-import type { ApplicationParticipation } from '../../applicationAdministration/interfaces/applicationParticipation'
-
-import { getApplicationParticipations } from '@core/network/queries/applicationParticipations'
-import { getStatusString } from '../../applicationAdministration/pages/ApplicationParticipantsPage/utils/getStatusBadge'
+import React, { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import type { ApplicationParticipation } from '../../applicationAdministration/interfaces/applicationParticipation'
+import { getStatusString } from '../../applicationAdministration/pages/ApplicationParticipantsPage/utils/getStatusBadge'
 
 export const ApplicationStudentDetailComponent: React.FC<CoursePhaseStudentIdentifierProps> = ({
   studentId: _studentId,

@@ -1,9 +1,9 @@
-import React from 'react'
-import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
+import React from 'react'
 
 interface CourseAppearancePreviewProps {
   color?: string

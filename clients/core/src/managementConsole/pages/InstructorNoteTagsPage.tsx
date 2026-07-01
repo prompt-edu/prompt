@@ -1,16 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
-import { Button, PromptTable } from '@tumaet/prompt-ui-components'
-import { NoteTag, CreateNoteTag, UpdateNoteTag } from '../shared/interfaces/InstructorNote'
 import {
-  useNoteTags,
   useCreateNoteTag,
-  useUpdateNoteTag,
   useDeleteNoteTag,
+  useNoteTags,
+  useUpdateNoteTag,
 } from '@core/network/hooks/useInstructorNoteTags'
+import { Button, PromptTable } from '@tumaet/prompt-ui-components'
+import { Plus } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { CreateNoteTag, NoteTag, UpdateNoteTag } from '../shared/interfaces/InstructorNote'
 import { NoteTagFormDialog } from './components/NoteTagFormDialog'
-import { noteTagTableColumns } from './components/noteTagTableColumns'
 import { getNoteTagTableActions } from './components/noteTagTableActions'
+import { noteTagTableColumns } from './components/noteTagTableColumns'
 
 export const StudentNoteTagsPage = () => {
   const { data: tags = [], isLoading, isError } = useNoteTags()

@@ -1,20 +1,18 @@
-import { Footer } from './Footer'
-import { Header } from './Header'
+import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
-  Button,
+  Button,DarkModeProvider, 
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  LoadingPage,
+  DialogHeader,
+  DialogTitle,
+  LoadingPage
 } from '@tumaet/prompt-ui-components'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
-
-import { DarkModeProvider } from '@tumaet/prompt-ui-components'
-import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { Footer } from './Footer'
+import { Header } from './Header'
 
 interface NonAuthenticatedPageWrapper {
   children: React.ReactNode

@@ -1,6 +1,6 @@
+import { create } from 'zustand'
 import { CategoryWithCompetencies } from '../interfaces/category'
 import { Competency } from '../interfaces/competency'
-import { create } from 'zustand'
 
 export interface PeerEvaluationCategoryStore {
   peerEvaluationCategories: CategoryWithCompetencies[]

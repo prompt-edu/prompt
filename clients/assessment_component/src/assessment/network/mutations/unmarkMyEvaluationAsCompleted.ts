@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { EvaluationCompletionRequest } from '../../interfaces/evaluationCompletion'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const unmarkMyEvaluationAsCompleted = async (
   coursePhaseID: string,

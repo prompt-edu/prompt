@@ -1,10 +1,9 @@
 import { Card, CardContent } from '@tumaet/prompt-ui-components'
-
-import { ApplicationTimeline } from './ApplicationSettingsOverviewTimeline'
-import { ApplicationSettingsOverviewHeader } from './ApplicationSettingsOverviewHeader'
-import { ExternalStudentsStatusBadge } from './ApplicationSettingsOverviewExternalStudentsBadge'
-import { ApplicationSettingsOverviewApplicationLink } from './ApplicationSettingsOverviewApplicationLink'
 import { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
+import { ApplicationSettingsOverviewApplicationLink } from './ApplicationSettingsOverviewApplicationLink'
+import { ExternalStudentsStatusBadge } from './ApplicationSettingsOverviewExternalStudentsBadge'
+import { ApplicationSettingsOverviewHeader } from './ApplicationSettingsOverviewHeader'
+import { ApplicationTimeline } from './ApplicationSettingsOverviewTimeline'
 
 type Props = {
   applicationMetaData: ApplicationMetaData | null

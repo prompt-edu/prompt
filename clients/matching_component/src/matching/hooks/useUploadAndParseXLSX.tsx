@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
-import { useMatchingStore } from '../zustand/useMatchingStore'
 import { UploadedStudent } from '../interfaces/UploadedStudent'
+import { useMatchingStore } from '../zustand/useMatchingStore'
 
 /**
  * This hook returns a function that, when called with a File,

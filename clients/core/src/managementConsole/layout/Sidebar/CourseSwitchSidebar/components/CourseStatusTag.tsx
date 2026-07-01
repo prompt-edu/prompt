@@ -1,6 +1,6 @@
 import { Course } from '@tumaet/prompt-shared-state'
-import { PropsWithChildren } from 'react'
 import { Archive, File } from 'lucide-react'
+import { PropsWithChildren } from 'react'
 
 interface CourseStatusTagProps {
   course: Course

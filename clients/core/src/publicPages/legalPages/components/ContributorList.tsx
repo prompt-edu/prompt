@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   Avatar,
   AvatarFallback,
@@ -6,6 +5,7 @@ import {
   Card,
   CardContent,
 } from '@tumaet/prompt-ui-components'
+import { useEffect, useState } from 'react'
 import { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
 import { contributorMapping } from './ContributorMapping'
 

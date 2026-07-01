@@ -1,7 +1,7 @@
-import React from 'react'
 import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { ExternalRoutes } from './ExternalRoutes'
+import React from 'react'
 import { LoadingError } from '../utils/LoadingError'
+import { ExternalRoutes } from './ExternalRoutes'
 
 export const TeamAllocationRoutes = React.lazy(() =>
   import('team_allocation_component/routes')

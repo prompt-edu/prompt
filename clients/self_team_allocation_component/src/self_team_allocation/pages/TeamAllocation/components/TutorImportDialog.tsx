@@ -1,15 +1,8 @@
-import { useState, useEffect } from 'react'
-import { Loader2, UserPlus } from 'lucide-react'
-import { useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCourseStore, Student } from '@tumaet/prompt-shared-state'
-import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'
-import { importTutors } from '../../../network/mutations/importTutors'
-import { Tutor } from '../../../interfaces/tutor'
-import { Team } from '@tumaet/prompt-shared-state'
-import { getAllTeams } from '../../../network/queries/getAllTeams'
+import { Student, Team, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,14 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Label,
-  Checkbox,
 } from '@tumaet/prompt-ui-components'
+import { Loader2, UserPlus } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { Tutor } from '../../../interfaces/tutor'
+import { importTutors } from '../../../network/mutations/importTutors'
+import { getAllTeams } from '../../../network/queries/getAllTeams'
+import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'
 
 export function TutorImportDialog() {
   const { phaseId } = useParams<{ phaseId: string }>()

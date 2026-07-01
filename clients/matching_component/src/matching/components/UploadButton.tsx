@@ -1,6 +1,6 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
+import { Loader2, UploadCloud } from 'lucide-react'
 import { type ReactNode, useRef, useState } from 'react'
-import { UploadCloud, Loader2 } from 'lucide-react'
 import { useMatchingStore } from '../zustand/useMatchingStore'
 
 interface UploadButtonProps {

@@ -1,7 +1,7 @@
-import { Course } from '@tumaet/prompt-shared-state'
-import { Archive, ArchiveRestore } from 'lucide-react'
 import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
+import { Course } from '@tumaet/prompt-shared-state'
 import { RowAction } from '@tumaet/prompt-ui-components'
+import { Archive, ArchiveRestore } from 'lucide-react'
 
 export const CourseTableActions: RowAction<Course>[] = [
   {

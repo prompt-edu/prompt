@@ -1,15 +1,4 @@
-import { useEffect, useState } from 'react'
-import { Check, Trash2, X } from 'lucide-react'
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Label,
-  Separator,
-  ScoreLevelSelector,
-} from '@tumaet/prompt-ui-components'
+import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
 import {
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
@@ -17,9 +6,20 @@ import {
   ScoreLevel,
   useAuthStore,
 } from '@tumaet/prompt-shared-state'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Label,
+  ScoreLevelSelector,
+  Separator,
+} from '@tumaet/prompt-ui-components'
+import { Check, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { InstructorComment } from '../../../../../interfaces/instructorComment'
 import { useModifyAssessment } from '../hooks/mutateAssessment'
-import { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
 
 interface AssessmentCardProps {
   score: number | null

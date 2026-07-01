@@ -1,5 +1,5 @@
-import * as z from 'zod'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import * as z from 'zod'
 
 export const createValidationSchema = (
   question: ApplicationQuestionMultiSelect,

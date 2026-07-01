@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { ScoreLevel } from '@tumaet/prompt-shared-state'
 
 import {
   Card,
@@ -7,8 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import { useMemo } from 'react'
 import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 

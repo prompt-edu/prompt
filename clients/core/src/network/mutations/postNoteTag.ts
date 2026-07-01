@@ -1,5 +1,5 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { CreateNoteTag, NoteTag } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const postNoteTag = async (tag: CreateNoteTag): Promise<NoteTag> => {
   try {

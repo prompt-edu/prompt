@@ -1,5 +1,5 @@
-import { create } from 'zustand'
 import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
+import { create } from 'zustand'
 import { UploadedStudent } from '../interfaces/UploadedStudent'
 
 export interface MatchingStore {

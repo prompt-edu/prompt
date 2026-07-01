@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
-import { createCompetency } from '../../../../../network/mutations/createCompetency'
 import { CreateCompetencyRequest } from '../../../../../interfaces/competency'
+import { createCompetency } from '../../../../../network/mutations/createCompetency'
 
 export const useCreateCompetency = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()

@@ -1,35 +1,29 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
-import { Lock, Unlock } from 'lucide-react'
-
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   Textarea,
-  Alert,
-  AlertDescription,
 } from '@tumaet/prompt-ui-components'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
-
+import { Lock, Unlock } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { ActionItem } from '../../../../interfaces/actionItem'
 import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
 
-import { ActionItem } from '../../../../interfaces/actionItem'
-
 import { AssessmentCompletionDialog } from '../../../components/AssessmentCompletionDialog'
 import { DeadlineBadge } from '../../../components/badges'
-
+import { validateGrade } from '../../../utils/gradeConfig'
 import { ActionItemPanel } from './components/ActionItemPanel'
 import { GradeSuggestion } from './components/GradeSuggestion'
-
 import { useCreateOrUpdateAssessmentCompletion } from './hooks/useCreateOrUpdateAssessmentCompletion'
 import { useMarkAssessmentAsComplete } from './hooks/useMarkAssessmentAsComplete'
 import { useUnmarkAssessmentAsCompleted } from './hooks/useUnmarkAssessmentAsCompleted'
-
-import { validateGrade } from '../../../utils/gradeConfig'
 
 interface AssessmentCompletionProps {
   readOnly?: boolean

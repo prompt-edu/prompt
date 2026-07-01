@@ -1,5 +1,5 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { StudentEnrollments } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const getStudentEnrollments = async (studentId: string): Promise<StudentEnrollments> => {
   try {

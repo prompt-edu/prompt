@@ -1,13 +1,13 @@
-import { UseFormReturn } from 'react-hook-form'
+import { QuestionConfigFormData } from '@core/validations/questionConfig'
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
   Input,
 } from '@tumaet/prompt-ui-components'
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import { UseFormReturn } from 'react-hook-form'
 
 interface PlaceholderFieldProps {
   form: UseFormReturn<QuestionConfigFormData>

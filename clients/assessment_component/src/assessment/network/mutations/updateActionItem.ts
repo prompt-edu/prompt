@@ -1,5 +1,5 @@
-import { assessmentAxiosInstance } from '../assessmentServerConfig'
 import { ActionItem, UpdateActionItemRequest } from '../../interfaces/actionItem'
+import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const updateActionItem = async (
   coursePhaseID: string,

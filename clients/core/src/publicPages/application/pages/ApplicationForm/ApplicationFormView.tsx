@@ -1,3 +1,13 @@
+import { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
+import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
+import { ApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/applicationAnswerMultiSelect'
+import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import { ApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/applicationAnswerText'
+import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { Student } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,
@@ -6,25 +16,15 @@ import {
   CardTitle,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/applicationAnswerText'
-import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
-import { ApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/applicationAnswerMultiSelect'
-import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
-import { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
-import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
-import { Student } from '@tumaet/prompt-shared-state'
 import { useEffect, useRef, useState } from 'react'
+import { ApplicationQuestionFileUploadForm } from './components/FileUploadForm/ApplicationQuestionFileUploadForm'
+import { ApplicationQuestionMultiSelectForm } from './components/MultiSelectForm/ApplicationQuestionMultiSelectForm'
 import { StudentForm } from './components/StudentForm/StudentForm'
 import { ApplicationQuestionTextForm } from './components/TextForm/ApplicationQuestionTextForm'
-import { ApplicationQuestionFileUploadForm } from './components/FileUploadForm/ApplicationQuestionFileUploadForm'
-import { QuestionTextFormRef } from './utils/QuestionTextFormRef'
-import { QuestionMultiSelectFormRef } from './utils/QuestionMultiSelectFormRef'
 import { QuestionFileUploadFormRef } from './utils/QuestionFileUploadFormRef'
+import { QuestionMultiSelectFormRef } from './utils/QuestionMultiSelectFormRef'
+import { QuestionTextFormRef } from './utils/QuestionTextFormRef'
 import { StudentComponentRef } from './utils/StudentComponentRef'
-import { ApplicationQuestionMultiSelectForm } from './components/MultiSelectForm/ApplicationQuestionMultiSelectForm'
 
 interface ApplicationFormProps {
   questionsText: ApplicationQuestionText[]

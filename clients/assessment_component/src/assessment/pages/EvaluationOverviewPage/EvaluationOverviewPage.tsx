@@ -1,24 +1,21 @@
+import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { GraduationCap, User, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
-import { Users, User, GraduationCap } from 'lucide-react'
-
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ManagementPageHeader, Card } from '@tumaet/prompt-ui-components'
-
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-
+import { useEvaluationStore } from '../../zustand/useEvaluationStore'
+import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
+import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
+import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
+import { useTeamStore } from '../../zustand/useTeamStore'
+import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
+import { TeamBadge } from '../components/badges'
 import { EvaluationInfoCard } from './components/EvaluationInfoCard'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
-import { SelfEvaluationStatusCard } from './components/SelfEvaluationStatusCard'
 import { PeerEvaluationStatusCard } from './components/PeerEvaluationStatusCard'
+import { SelfEvaluationStatusCard } from './components/SelfEvaluationStatusCard'
 import { TutorEvaluationStatusCard } from './components/TutorEvaluationStatusCard'
-import { TeamBadge } from '../components/badges'
 
 export const EvaluationOverviewPage = () => {
   const { isStudentOfCourse } = useCourseStore()

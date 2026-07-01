@@ -1,13 +1,13 @@
-import React from 'react'
 import {
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuItem,
   useSidebar,
 } from '@tumaet/prompt-ui-components'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { House } from 'lucide-react'
+import React from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const SidebarHeaderComponent = () => {
   const { setOpen } = useSidebar()

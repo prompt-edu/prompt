@@ -1,6 +1,6 @@
+import { PassStatus } from '@tumaet/prompt-shared-state'
 import { useMemo } from 'react'
 import { useParticipationStore } from '../zustand/useParticipationStore'
-import { PassStatus } from '@tumaet/prompt-shared-state'
 
 export const useSorting = (sortBy: string | undefined) => {
   const { participations, interviewSlots } = useParticipationStore()

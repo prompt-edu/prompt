@@ -1,10 +1,9 @@
-import { Role } from '@tumaet/prompt-shared-state'
-import { SurveySettingsPage } from '../src/team_allocation/pages/SurveySettings/SurveySettingsPage'
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
+import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { StudentSurveyPage } from '../src/team_allocation/pages/StudentSurvey/StudentSurveyPage'
+import { SurveySettingsPage } from '../src/team_allocation/pages/SurveySettings/SurveySettingsPage'
 import { TeamAllocationPage } from '../src/team_allocation/pages/TeamAllocation/TeamAllocationPage'
-import { TeaseConfigPage } from '../src/team_allocation/pages/TeaseConfig/TeaseConfigPage'
 import { TeamAllocationParticipantsPage } from '../src/team_allocation/pages/TeamAllocationParticipantsPage/TeamAllocationParticipantsPage'
+import { TeaseConfigPage } from '../src/team_allocation/pages/TeaseConfig/TeaseConfigPage'
 
 const routes: ExtendedRouteObject[] = [
   {

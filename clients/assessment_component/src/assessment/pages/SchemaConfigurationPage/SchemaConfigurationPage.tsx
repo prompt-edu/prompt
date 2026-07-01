@@ -1,4 +1,3 @@
-import { Link, useParams } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -8,6 +7,7 @@ import {
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
 import { ArrowLeft, Lock } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'

@@ -1,6 +1,5 @@
+import { env, parseURL } from '@tumaet/prompt-shared-state'
 import axios from 'axios'
-import { env } from '@tumaet/prompt-shared-state'
-import { parseURL } from '@tumaet/prompt-shared-state'
 
 const coreServer = env.CORE_HOST || ''
 

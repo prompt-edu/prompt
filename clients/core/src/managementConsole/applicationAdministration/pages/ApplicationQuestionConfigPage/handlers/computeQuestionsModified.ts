@@ -1,7 +1,7 @@
-import { ApplicationForm } from '../../../interfaces/form/applicationForm'
+import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import { ApplicationForm } from '../../../interfaces/form/applicationForm'
 
 export const computeQuestionsModified = (
   fetchedForm: ApplicationForm | undefined,

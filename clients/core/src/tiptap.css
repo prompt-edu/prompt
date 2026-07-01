@@ -399,8 +399,10 @@
 [data-rmiz-modal][open] {
   position: fixed;
   width: 100vw;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: dynamic viewport unit (dvw) fallback for older browsers */
   width: 100dvw;
   height: 100vh;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: dynamic viewport unit (dvh) fallback for older browsers */
   height: 100dvh;
   max-width: none;
   max-height: none;

@@ -32,7 +32,9 @@ export const StudentNoteTagsPage = () => {
 
   const handleDelete = useCallback(
     (tags_: NoteTag[]) => {
-      tags_.forEach((tag) => deleteTag.mutate(tag.id))
+      tags_.forEach((tag) => {
+        deleteTag.mutate(tag.id)
+      })
     },
     [deleteTag],
   )

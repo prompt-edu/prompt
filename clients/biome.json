@@ -32,6 +32,7 @@
         "useValidAnchor": "warn"
       },
       "correctness": {
+        "noInvalidPositionAtImportRule": "off",
         "useExhaustiveDependencies": "warn",
         "useHookAtTopLevel": "error"
       },

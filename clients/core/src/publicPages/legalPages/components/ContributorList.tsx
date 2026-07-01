@@ -39,18 +39,15 @@ export const ContributorList = () => {
 
   const mappedContributors: ContributorWithInfo[] = [...contributors, vali]
     .filter(
-      (contributor) =>
+      (contributor): contributor is Contributor =>
         contributor !== undefined &&
-        contributorMapping[contributor.login] &&
+        !!contributorMapping[contributor.login] &&
         contributor.type === 'User',
     )
     .map((contributor) => {
-      if (contributor === undefined) {
-        return
-      }
       return {
         ...contributor,
-        ...contributorMapping[contributor?.login],
+        ...contributorMapping[contributor.login],
       }
     })
     .filter((contributor): contributor is ContributorWithInfo => contributor !== undefined)

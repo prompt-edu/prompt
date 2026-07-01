@@ -10,7 +10,6 @@ export type Competency = {
   descriptionGood: string
   descriptionVeryGood: string
   weight: number
-  mappedFromCompetencies: string[]
 }
 
 export type CreateCompetencyRequest = {

@@ -1,0 +1,138 @@
+[
+  {
+    "id": "certificate.get.hello",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/hello",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "helloCertificate",
+    "bodyType": null
+  },
+
+  {
+    "id": "certificate.get.config.get",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "getConfig",
+    "bodyType": null
+  },
+  {
+    "id": "certificate.put.config.update",
+    "service": "certificate",
+    "method": "PUT",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "updateConfig",
+    "bodyType": "configDTO.UpdateConfigRequest"
+  },
+  {
+    "id": "certificate.put.config.releaseDate",
+    "service": "certificate",
+    "method": "PUT",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/config/release-date",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "updateReleaseDate",
+    "bodyType": "configDTO.UpdateReleaseDateRequest"
+  },
+  {
+    "id": "certificate.get.config.template",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/config/template",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "getTemplate",
+    "bodyType": null
+  },
+
+  {
+    "id": "certificate.get.participants.list",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/participants",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "read",
+    "handler": "getParticipants",
+    "bodyType": null
+  },
+
+  {
+    "id": "certificate.get.generator.download",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/certificate/download",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "downloadOwnCertificate",
+    "bodyType": null
+  },
+  {
+    "id": "certificate.get.generator.downloadStudent",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/certificate/download/{studentID}",
+    "pathParams": ["coursePhaseID", "studentID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "read",
+    "handler": "downloadStudentCertificate",
+    "bodyType": null
+  },
+  {
+    "id": "certificate.get.generator.status",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/certificate/status",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "getCertificateStatus",
+    "bodyType": null
+  },
+  {
+    "id": "certificate.get.generator.preview",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/course_phase/{coursePhaseID}/certificate/preview",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "previewCertificate",
+    "bodyType": null
+  },
+
+  {
+    "id": "certificate.post.privacy.dataExport",
+    "service": "certificate",
+    "method": "POST",
+    "path": "/certificate/api/privacy/data-export",
+    "pathParams": [],
+    "roles": ["custom"],
+    "category": "write",
+    "handler": "RegisterPrivacyDataExportEndpoint",
+    "bodyType": "promptTypes.PrivacyDataExportRequest"
+  },
+  {
+    "id": "certificate.get.info",
+    "service": "certificate",
+    "method": "GET",
+    "path": "/certificate/api/info",
+    "pathParams": [],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "RegisterInfoEndpoint",
+    "bodyType": null
+  }
+]

@@ -117,7 +117,13 @@ export const AssessmentHeader = ({
               <StudentAssessmentBadges
                 studentAssessment={studentAssessment}
                 remainingAssessments={remainingAssessments}
-                className='flex-nowrap hidden lg:flex'
+                variant='compact'
+                className='flex-nowrap xl:hidden'
+              />
+              <StudentAssessmentBadges
+                studentAssessment={studentAssessment}
+                remainingAssessments={remainingAssessments}
+                className='flex-nowrap hidden xl:flex'
               />
             </div>
 

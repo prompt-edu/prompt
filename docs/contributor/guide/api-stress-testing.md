@@ -24,7 +24,8 @@ agents**.
 The suite is a thin pipeline around a single source of truth (the endpoint catalog):
 
 ```
-catalog/endpoints.json   ── all 252 routes (method, path, roles, params)
+catalog/partial_*.json   ── all 252 routes (method, path, roles, params), per service
+        │                   merge_catalog.py → endpoints.json (generated each run)
         │
         ├─ lib/auth.py        mint + cache one Keycloak token per role
         ├─ lib/fixtures.py    seed 2 courses (A + B), phases, a student, kc roles
@@ -58,7 +59,7 @@ stack you already have running:
 ## Running it
 
 Prerequisites: Docker, [`k6`](https://k6.io/) (`brew install k6`), Python 3 with
-`httpx` (`python3 -m venv api-stress/.venv && api-stress/.venv/bin/pip install httpx`).
+`httpx` (`python3 -m venv api-stress/.venv && api-stress/.venv/bin/pip install -r api-stress/requirements.txt`).
 
 ```bash
 # 1. local env file (gitignored; run.sh also auto-creates it)

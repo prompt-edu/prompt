@@ -16,7 +16,8 @@ set -uo pipefail
 
 STRESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="$STRESS_DIR/.venv/bin/python"
-K6="$(command -v k6)"
+[[ -x "$PY" ]] || { echo "python venv not found at $PY (run: python3 -m venv $STRESS_DIR/.venv && $STRESS_DIR/.venv/bin/pip install -r $STRESS_DIR/requirements.txt)"; exit 1; }
+K6="$(command -v k6)" || { echo "k6 not found on PATH (install: brew install k6)"; exit 1; }
 CORE_URL="http://localhost:18089"
 KC_URL="http://localhost:18081"
 
@@ -41,6 +42,9 @@ while [[ $# -gt 0 ]]; do
     *) echo "unknown arg: $1"; exit 2;;
   esac
 done
+
+echo "==> regenerate endpoint catalog from partials"
+"$PY" "$STRESS_DIR/catalog/merge_catalog.py" || { echo "catalog merge failed"; exit 1; }
 
 echo "==> preflight"
 fail=0

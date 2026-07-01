@@ -107,7 +107,9 @@ def degradation(k6):
         if not pts:
             continue
         pts.sort(key=lambda x: x[0] or "")
-        # 5s windows by index proportion (timestamps are ISO; bucket into 10 slices)
+        # 10 equal-COUNT slices: each holds ~n/10 requests in
+        # chronological order, so under bursty load a slice spans less wall-clock.
+        # Reads as "latency progression across the run", not fixed-duration windows.
         n = len(pts)
         slices = 10
         buckets = []

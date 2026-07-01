@@ -1,6 +1,10 @@
 # Generated run artifacts (reports, fixtures, tokens, raw k6 output) - never commit
 reports/
 
+# Generated endpoint catalog: merged from partial_*.json by merge_catalog.py,
+# which run.sh invokes before every run. Committing it invites silent drift.
+catalog/endpoints.json
+
 # Local Python virtualenv + caches
 .venv/
 __pycache__/

@@ -7,7 +7,7 @@ explicitly out of scope as a load target). Course-scoped role tokens MUST be
 minted AFTER fixtures.py has added the users to the new course's Keycloak groups,
 otherwise the token carries no course role and every course-scoped call 403s.
 
-Usable both as a library (get_tokens) and a CLI (writes tokens.json).
+Usable both as a library (fetch_token) and a CLI (writes tokens.json).
 """
 from __future__ import annotations
 
@@ -53,15 +53,6 @@ def fetch_token(username: str, password: str, timeout: float = 10.0) -> dict:
             last = repr(e)
         time.sleep(1.5 * (attempt + 1))
     raise RuntimeError(f"could not get token for {username}: {last}")
-
-
-def get_tokens(users: dict[str, str] | None = None) -> dict[str, str]:
-    """Return {role_username: access_token}."""
-    users = users or USERS
-    out = {}
-    for user, pw in users.items():
-        out[user] = fetch_token(user, pw)["access_token"]
-    return out
 
 
 def main() -> int:

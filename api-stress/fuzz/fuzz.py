@@ -166,6 +166,32 @@ class Fuzzer:
         kw.setdefault("severity", "medium")
         self.findings.append(kw)
 
+    @staticmethod
+    def is_empty_body(txt):
+        # A cross-course 200 only proves data exposure if the body actually
+        # carries data. Normalize + parse instead of string-matching the raw
+        # (truncated) text, so wrapped-empty bodies ({"data":[]}), constant
+        # blobs of only-empty collections, or whitespace-padded [] / {} / null
+        # don't get reported as a spurious P0 IDOR.
+        if txt is None:
+            return True
+        s = txt.strip()
+        if not s:
+            return True
+        try:
+            v = json.loads(s)
+        except ValueError:
+            return False  # unparseable (e.g. truncated real payload) -> treat as data
+        return Fuzzer._empty_value(v)
+
+    @staticmethod
+    def _empty_value(v):
+        if v is None or v == [] or v == {} or v == "":
+            return True
+        if isinstance(v, dict):
+            return all(Fuzzer._empty_value(x) for x in v.values())
+        return False
+
     def token_user(self, name):
         return self.tokens.get(name)
 
@@ -178,10 +204,15 @@ class Fuzzer:
         return f"{head}.{payload}.AAAAinvalidsignatureAAAA"
 
     def none_aud_token(self):
-        # alg=none unsigned token forgery attempt
+        # alg=none unsigned token forgery attempt. The claims must match what a
+        # genuinely-accepted token needs so the probe can actually flip to 2xx on
+        # a vulnerable server: aud=prompt-server (checkAudience, middleware.go:142)
+        # and the real admin role string PROMPT_Admin under resource_access
+        # (checkKeycloakRoles, middleware.go:175). Omitting aud makes every role
+        # get dropped, masking a real alg=none bypass as a false negative.
         header = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').decode().rstrip("=")
         payload = base64.urlsafe_b64encode(
-            json.dumps({"sub": "attacker", "azp": "prompt-client",
+            json.dumps({"sub": "attacker", "azp": "prompt-client", "aud": "prompt-server",
                         "resource_access": {"prompt-server": {"roles": ["PROMPT_Admin"]}}}).encode()
         ).decode().rstrip("=")
         return f"{header}.{payload}."
@@ -327,7 +358,7 @@ class Fuzzer:
                 if not tok or roles.isdisjoint(actor_roles):
                     continue  # this actor wouldn't be allowed even in its own course
                 st, txt, _ = self.do(ep["method"], url_b, token=tok, label=f"idor-{name}-courseB")
-                if st == 200 and txt and txt not in ("[]", "{}", "null"):
+                if st == 200 and not self.is_empty_body(txt):
                     self.finding(axis="idor", endpoint=ep["id"], method=ep["method"], url=url_b,
                                  observed=f"HTTP 200 with body, {name} (course-A only) reading course B",
                                  expected="403/404 (actor not enrolled/assigned in course B)",

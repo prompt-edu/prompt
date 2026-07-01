@@ -50,7 +50,7 @@ SELECT EXISTS(
       )
 );
 
--- name: UpdateAssessmentSchema :exec
+-- name: UpdateAssessmentSchema :execrows
 UPDATE assessment_schema
 SET name        = $2,
     description = $3,

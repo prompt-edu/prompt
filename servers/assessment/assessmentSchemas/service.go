@@ -20,6 +20,7 @@ type AssessmentSchemaService struct {
 
 var AssessmentSchemaServiceSingleton *AssessmentSchemaService
 var ErrSchemaNotAccessible = errors.New("assessment schema is not accessible for this course phase")
+var ErrSchemaNotFound = errors.New("assessment schema not found")
 
 func NewAssessmentSchemaService(queries db.Queries, conn *pgxpool.Pool) *AssessmentSchemaService {
 	return &AssessmentSchemaService{
@@ -168,26 +169,12 @@ func GetAssessmentSchemaForCoursePhase(
 }
 
 func UpdateAssessmentSchema(ctx context.Context, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest) error {
-	// First check if schema exists
-	_, err := GetAssessmentSchema(ctx, schemaID)
-	if err != nil {
-		return err
-	}
-
-	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
-
-	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
-
 	var description pgtype.Text
 	if req.Description != "" {
 		description = pgtype.Text{String: req.Description, Valid: true}
 	}
 
-	err = qtx.UpdateAssessmentSchema(ctx, db.UpdateAssessmentSchemaParams{
+	rows, err := AssessmentSchemaServiceSingleton.queries.UpdateAssessmentSchema(ctx, db.UpdateAssessmentSchemaParams{
 		ID:          schemaID,
 		Name:        req.Name,
 		Description: description,
@@ -196,8 +183,11 @@ func UpdateAssessmentSchema(ctx context.Context, schemaID uuid.UUID, req assessm
 		log.WithError(err).Error("Failed to update assessment schema")
 		return err
 	}
+	if rows == 0 {
+		return ErrSchemaNotFound
+	}
 
-	return tx.Commit(ctx)
+	return nil
 }
 
 func DeleteAssessmentSchema(ctx context.Context, schemaID uuid.UUID) error {

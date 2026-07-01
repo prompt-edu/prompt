@@ -99,14 +99,7 @@ SELECT c.id,
                                'descriptionVeryGood',
                                cmp.description_very_good,
                                'weight',
-                               cmp.weight,
-                               'mappedFromCompetencies',
-                               COALESCE(
-                                       (SELECT json_agg(cm.from_competency_id)
-                                        FROM competency_map cm
-                                        WHERE cm.to_competency_id = cmp.id),
-                                       '[]'::json
-                               )
+                               cmp.weight
                        )
                                ) FILTER (
                            WHERE cmp.id IS NOT NULL

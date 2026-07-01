@@ -191,7 +191,7 @@ export const AssessmentForm = ({
           selfEvaluationScoreLevel={selfEvaluationScoreLevel}
           selfEvaluationStudentAnswers={selfEvaluationStudentAnswers}
           peerEvaluationCompetency={
-            peerEvaluationCompetency && peerEvaluationCompetency.id
+            peerEvaluationCompetency?.id
               ? {
                   ...peerEvaluationCompetency,
                   name:

@@ -82,7 +82,7 @@ export const AssessmentCard = ({
 
   const handleDeleteComment = (comment: InstructorComment) => {
     const filteredComments = comments.filter(
-      (c) => !(c.author == comment.author && c.timestamp === comment.timestamp),
+      (c) => !(c.author === comment.author && c.timestamp === comment.timestamp),
     )
     console.log(filteredComments)
     const assessment: ApplicationAssessment = {

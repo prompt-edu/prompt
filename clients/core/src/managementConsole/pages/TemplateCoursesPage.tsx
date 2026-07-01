@@ -19,7 +19,7 @@ export const TemplateCoursesPage = () => {
 
       {viewMode === 'cards' ? (
         <>
-          {filteredCourses.length == 0 && <p>No template courses yet</p>}
+          {filteredCourses.length === 0 && <p>No template courses yet</p>}
           <CourseCards courses={filteredCourses} />
         </>
       ) : (

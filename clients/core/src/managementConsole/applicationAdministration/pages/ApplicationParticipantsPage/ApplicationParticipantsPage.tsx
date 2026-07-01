@@ -9,7 +9,7 @@ import { ApplicationParticipantsTable } from './components/table/ApplicationPart
 export const ApplicationParticipantsPage = (): ReactNode => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const { participations, coursePhase } = useApplicationStore()
-  const customScoresEnabled = Boolean(coursePhase?.restrictedData?.['useCustomScores'])
+  const customScoresEnabled = Boolean(coursePhase?.restrictedData?.useCustomScores)
 
   return (
     <div className='relative flex flex-col min-w-0'>

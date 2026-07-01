@@ -6,7 +6,7 @@ interface ServiceStatusBadgeProps {
 }
 
 export function ServiceStatusBadge({ status }: ServiceStatusBadgeProps) {
-  if (status == 'Offline') {
+  if (status === 'Offline') {
     return (
       <Badge variant='destructive' className='flex items-center gap-1'>
         <XCircle className='h-3 w-3' />
@@ -14,7 +14,7 @@ export function ServiceStatusBadge({ status }: ServiceStatusBadgeProps) {
       </Badge>
     )
   }
-  if (status == 'OnlineUnhealthy') {
+  if (status === 'OnlineUnhealthy') {
     return (
       <Badge
         variant='outline'

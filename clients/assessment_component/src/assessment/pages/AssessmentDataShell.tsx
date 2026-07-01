@@ -189,7 +189,5 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
     setTutorEvaluationCategories,
   ])
 
-  return (
-    <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : <>{children}</>}</>
-  )
+  return <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : children}</>
 }

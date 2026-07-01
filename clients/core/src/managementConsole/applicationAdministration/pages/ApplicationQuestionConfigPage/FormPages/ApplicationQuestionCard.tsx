@@ -86,7 +86,7 @@ export const ApplicationQuestionCard = forwardRef<
   },
   ref,
 ) {
-  const isNewQuestion = question.title === '' ? true : false
+  const isNewQuestion = question.title === ''
   const [isExpanded, setIsExpanded] = useState(isNewQuestion)
   const isMultiSelectType = 'options' in question
   const isFileUploadType = 'allowedFileTypes' in question
@@ -141,7 +141,7 @@ export const ApplicationQuestionCard = forwardRef<
     setAdvancedSettingsOpen(!shouldCollapseAdvancedOptions(form.getValues()))
     // Cleanup subscription on unmount
     return () => subscription.unsubscribe()
-  }, [form.watch, question, onUpdate, form])
+  }, [form.watch, question, onUpdate, form, shouldCollapseAdvancedOptions])
 
   // allow to call validate from the parent component
   useImperativeHandle(ref, () => ({

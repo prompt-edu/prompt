@@ -48,7 +48,7 @@ export const ApplicationLoginCard = ({
             size='lg'
             onClick={() => {
               if (universityLoginAvailable) {
-                navigate(path + '/authenticated')
+                navigate(`${path}/authenticated`)
               } else {
                 onContinueWithoutLogin(false)
               }

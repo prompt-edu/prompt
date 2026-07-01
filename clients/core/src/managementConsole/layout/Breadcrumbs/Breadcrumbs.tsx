@@ -58,11 +58,11 @@ export const Breadcrumbs: React.FC = () => {
           if (studentsById[pathSegments[2]]) {
             const s = studentsById[pathSegments[2]]
             breadcrumbs.push({
-              title: s.firstName + ' ' + s.lastName,
-              path: '/management/students/' + pathSegments[2],
+              title: `${s.firstName} ${s.lastName}`,
+              path: `/management/students/${pathSegments[2]}`,
             })
           } else {
-            breadcrumbs.push({ title: 'Student', path: '/management/students/' + pathSegments[2] })
+            breadcrumbs.push({ title: 'Student', path: `/management/students/${pathSegments[2]}` })
           }
         }
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {

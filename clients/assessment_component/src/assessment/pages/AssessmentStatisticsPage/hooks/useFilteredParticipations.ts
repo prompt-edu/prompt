@@ -34,18 +34,18 @@ export const useFilteredParticipations = ({
     let partsWithAssessments = participationsWithAssessments
 
     if (filters.genders && filters.genders.length > 0) {
-      parts = parts.filter((p) => p.student.gender && filters.genders!.includes(p.student.gender))
+      parts = parts.filter((p) => p.student.gender && filters.genders?.includes(p.student.gender))
       partsWithAssessments = partsWithAssessments.filter(
         (p) =>
           p.participation.student.gender &&
-          filters.genders!.includes(p.participation.student.gender),
+          filters.genders?.includes(p.participation.student.gender),
       )
     }
 
     if (filters.teams && filters.teams.length > 0) {
-      parts = parts.filter((p) => filters.teams!.includes(p.teamID))
+      parts = parts.filter((p) => filters.teams?.includes(p.teamID))
       partsWithAssessments = partsWithAssessments.filter((p) =>
-        filters.teams!.includes(p.participation.teamID),
+        filters.teams?.includes(p.participation.teamID),
       )
     }
 

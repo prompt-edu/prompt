@@ -9,7 +9,7 @@ export const CourseTableColumns: ColumnDef<Course>[] = [
     header: 'Icon',
     enableSorting: false,
     cell: ({ row }) => {
-      const iconName = row.original.studentReadableData?.['icon'] || 'graduation-cap'
+      const iconName = row.original.studentReadableData?.icon || 'graduation-cap'
       const bgColor = row.original.studentReadableData?.['bg-color'] || 'bg-gray-50'
       return (
         <div

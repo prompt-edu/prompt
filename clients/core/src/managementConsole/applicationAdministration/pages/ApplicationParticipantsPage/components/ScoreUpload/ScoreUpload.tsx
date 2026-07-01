@@ -10,7 +10,7 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Upload } from 'lucide-react'
-import React, { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { AdditionalScoreUpload } from '../../../../interfaces/additionalScore/additionalScoreUpload'
 import type { IndividualScore } from '../../../../interfaces/additionalScore/individualScore'

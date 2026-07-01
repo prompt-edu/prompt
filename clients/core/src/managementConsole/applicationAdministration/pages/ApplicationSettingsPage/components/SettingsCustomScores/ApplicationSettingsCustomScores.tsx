@@ -2,7 +2,7 @@ import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { Card, CardContent, Label, Switch } from '@tumaet/prompt-ui-components'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 

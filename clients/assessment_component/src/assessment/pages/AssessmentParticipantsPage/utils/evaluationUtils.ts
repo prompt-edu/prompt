@@ -19,8 +19,8 @@ export const createEvaluationLookup = (
       lookup.set(completion.authorCourseParticipationID, new Map())
     }
     lookup
-      .get(completion.authorCourseParticipationID)!
-      .set(completion.courseParticipationID, completion.completed)
+      .get(completion.authorCourseParticipationID)
+      ?.set(completion.courseParticipationID, completion.completed)
   })
 
   return lookup

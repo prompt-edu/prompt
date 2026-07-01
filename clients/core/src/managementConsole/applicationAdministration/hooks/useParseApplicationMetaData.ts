@@ -8,12 +8,12 @@ export const useParseApplicationMetaData = (
 ) => {
   return useEffect(() => {
     if (coursePhase) {
-      const externalStudentsAllowed = coursePhase?.restrictedData?.['externalStudentsAllowed']
-      const applicationStartDate = coursePhase?.restrictedData?.['applicationStartDate']
-      const applicationEndDate = coursePhase?.restrictedData?.['applicationEndDate']
-      const universityLoginAvailable = coursePhase?.restrictedData?.['universityLoginAvailable']
-      const autoAccept = coursePhase?.restrictedData?.['autoAccept']
-      const customScores = coursePhase?.restrictedData?.['useCustomScores']
+      const externalStudentsAllowed = coursePhase?.restrictedData?.externalStudentsAllowed
+      const applicationStartDate = coursePhase?.restrictedData?.applicationStartDate
+      const applicationEndDate = coursePhase?.restrictedData?.applicationEndDate
+      const universityLoginAvailable = coursePhase?.restrictedData?.universityLoginAvailable
+      const autoAccept = coursePhase?.restrictedData?.autoAccept
+      const customScores = coursePhase?.restrictedData?.useCustomScores
 
       const parsedMetaData: ApplicationMetaData = {
         applicationStartDate: applicationStartDate ? new Date(applicationStartDate) : undefined,

@@ -407,7 +407,7 @@ export const InterviewScheduleManagement = () => {
                   min='1'
                   value={formData.capacity}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     setFormData({ ...formData, capacity: value > 0 ? value : 1 })
                   }}
                 />
@@ -474,7 +474,7 @@ export const InterviewScheduleManagement = () => {
                 min='1'
                 value={formData.capacity}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value)
+                  const value = parseInt(e.target.value, 10)
                   setFormData({ ...formData, capacity: value > 0 ? value : 1 })
                 }}
               />

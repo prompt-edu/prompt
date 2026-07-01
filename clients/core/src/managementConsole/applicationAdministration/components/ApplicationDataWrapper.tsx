@@ -71,15 +71,13 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
   return (
     <>
       {isError ? (
-        <>
-          <ErrorPage onRetry={refetch} />
-        </>
+        <ErrorPage onRetry={refetch} />
       ) : isPending ? (
         <div className='flex justify-center items-center grow'>
           <Loader2 className='h-12 w-12 animate-spin text-primary' />
         </div>
       ) : (
-        <>{children}</>
+        children
       )}
     </>
   )

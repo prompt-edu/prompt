@@ -110,7 +110,7 @@ export const EntitySettings = <T extends Entity>({
   }
 
   const handleUpdateItem = () => {
-    if (editingItem && editingItem.name.trim()) {
+    if (editingItem?.name.trim()) {
       setUpdateError(null)
       updateMutation.mutate({ id: editingItem.id, newName: editingItem.name.trim() })
       setEditingItem(null)

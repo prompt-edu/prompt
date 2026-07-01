@@ -36,7 +36,7 @@ export const TeamDiagram = ({
     }),
   ).map(([teamName, participations]) => {
     return {
-      shortLabel: teamName.length > 10 ? teamName.substring(0, 8) + '...' : teamName,
+      shortLabel: teamName.length > 10 ? `${teamName.substring(0, 8)}...` : teamName,
       label: teamName,
       participationWithAssessment: participations,
     }

@@ -38,5 +38,5 @@ interface ShowForRoleProps extends PropsWithChildren {
 export function ShowForRole({ roles = [], anyCourseRole = [], children }: ShowForRoleProps) {
   const allowed = useHasRolePermission({ roles, anyCourseRole })
 
-  return allowed ? <>{children}</> : null
+  return allowed ? children : null
 }

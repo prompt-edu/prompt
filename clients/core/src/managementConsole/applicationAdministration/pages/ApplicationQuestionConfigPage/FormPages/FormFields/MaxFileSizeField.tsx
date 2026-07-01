@@ -20,7 +20,7 @@ export const MaxFileSizeField = ({ form }: MaxFileSizeFieldProps) => {
               placeholder='10'
               {...field}
               value={field.value || ''}
-              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : '')}
             />
           </FormControl>
         </FormItem>

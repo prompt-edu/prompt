@@ -69,12 +69,10 @@ export const ExternalSidebarComponent: React.FC<ExternalSidebarProps> = ({
   // we ignore this error if the user has access anyway
   if (isCourseParticipationError && !hasComponentPermission) {
     return (
-      <>
-        <ErrorPage
-          message='Failed to get the course participation data'
-          onRetry={refetchCourseParticipation}
-        />
-      </>
+      <ErrorPage
+        message='Failed to get the course participation data'
+        onRetry={refetchCourseParticipation}
+      />
     )
   }
 

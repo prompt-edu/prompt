@@ -60,7 +60,7 @@ export const UploadButton = ({
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       setIsUploading(true)
       handleUpload(e.dataTransfer.files[0])
     }

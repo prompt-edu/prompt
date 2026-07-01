@@ -64,7 +64,7 @@ export function PrivacyServiceAvailability() {
 
   const cpmResults = useQueries({
     queries: coursePhaseTypes.map((service) => ({
-      queryKey: ['serviceInfo-' + service.id],
+      queryKey: [`serviceInfo-${service.id}`],
       queryFn: () => getServiceInfo(service),
       retry: false,
       staleTime: 30_000,

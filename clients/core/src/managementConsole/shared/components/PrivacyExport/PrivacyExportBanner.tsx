@@ -61,7 +61,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
     }
   }
 
-  const isDownloading = downloading != -1
+  const isDownloading = downloading !== -1
   const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
   return (

@@ -149,7 +149,7 @@ export function MultiSelectConfig({
                   min={0}
                   max={Math.min(maxSelect, options.length)}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     field.onChange(value > maxSelect ? maxSelect : value)
                   }}
                 />
@@ -175,7 +175,7 @@ export function MultiSelectConfig({
                   min={Math.max(1, minSelect)}
                   max={options.length}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     field.onChange(value < minSelect ? minSelect : value)
                   }}
                 />

@@ -15,7 +15,7 @@ export const CourseSidebarItem = ({ course }: CourseSidebarItemProps) => {
 
   const isActive = course.id === courseId
   const bgColor = course.studentReadableData?.['bg-color'] || 'bg-gray-100'
-  const iconName = course.studentReadableData?.['icon'] || 'graduation-cap'
+  const iconName = course.studentReadableData?.icon || 'graduation-cap'
 
   const containerRing = isActive
     ? course.template

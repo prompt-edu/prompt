@@ -70,7 +70,7 @@ export const TemplateSelectionDialog = ({ open, onOpenChange }: TemplateSelectio
                       }
                     >
                       <CourseTemplateIcon
-                        iconName={template.studentReadableData?.['icon'] || 'graduation-cap'}
+                        iconName={template.studentReadableData?.icon || 'graduation-cap'}
                         bgColor={template.studentReadableData?.['bg-color'] || 'bg-gray-100'}
                       />
                       <div className='flex flex-col flex-1 min-w-0'>

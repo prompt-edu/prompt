@@ -45,7 +45,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
           <div className='flex items-center gap-4 min-w-0'>
             <div className='size-6 shrink-0'>
               <DynamicIcon
-                name={course.studentReadableData?.['icon'] || 'graduation-cap'}
+                name={course.studentReadableData?.icon || 'graduation-cap'}
                 color='black'
               />
             </div>

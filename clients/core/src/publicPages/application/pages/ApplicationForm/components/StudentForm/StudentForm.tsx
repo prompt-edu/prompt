@@ -386,7 +386,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                     disabled={isInstructorView}
                     value={
                       otherStudyProgram ||
-                      (field.value != '' && !studyPrograms.includes(field.value))
+                      (field.value !== '' && !studyPrograms.includes(field.value))
                         ? 'Other'
                         : field.value
                     }
@@ -424,7 +424,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                       pattern='\d{1,2}'
                       placeholder='Bachelor (+ Master) Semesters'
                       onChange={(e) => {
-                        const value = parseInt(e.target.value)
+                        const value = parseInt(e.target.value, 10)
                         field.onChange(value)
                       }}
                     />
@@ -436,7 +436,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
           </div>
 
           {(otherStudyProgram ||
-            (currStudyProgram != '' && !studyPrograms.includes(currStudyProgram))) && (
+            (currStudyProgram !== '' && !studyPrograms.includes(currStudyProgram))) && (
             <FormField
               control={form.control}
               name='studyProgram'

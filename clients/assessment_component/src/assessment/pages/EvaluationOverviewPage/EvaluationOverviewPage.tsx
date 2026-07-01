@@ -181,7 +181,7 @@ export const EvaluationOverviewPage = () => {
                       className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
                     >
                       <EvaluationInfoCard
-                        name={member.firstName + ' ' + member.lastName}
+                        name={`${member.firstName} ${member.lastName}`}
                         navigationPath={`${path}/peer-evaluation/${member?.id}`}
                         competencyCount={peerEvaluationCompetencyCount}
                         completed={
@@ -219,7 +219,7 @@ export const EvaluationOverviewPage = () => {
                       className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
                     >
                       <EvaluationInfoCard
-                        name={tutor.firstName + ' ' + tutor.lastName}
+                        name={`${tutor.firstName} ${tutor.lastName}`}
                         navigationPath={`${path}/tutor-evaluation/${tutor?.id}`}
                         competencyCount={tutorEvaluationCompetencyCount}
                         completed={

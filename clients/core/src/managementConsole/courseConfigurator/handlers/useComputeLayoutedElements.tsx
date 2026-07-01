@@ -17,7 +17,7 @@ export const useComputeLayoutedElements = () => {
 
   const initialPersonEdges = coursePhaseGraph.map((item) => {
     return {
-      id: 'person-edge-' + item.fromCoursePhaseID + '-' + item.toCoursePhaseID,
+      id: `person-edge-${item.fromCoursePhaseID}-${item.toCoursePhaseID}`,
       source: item.fromCoursePhaseID,
       target: item.toCoursePhaseID,
       type: 'selectableEdge',

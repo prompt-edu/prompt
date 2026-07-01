@@ -42,7 +42,7 @@ export const matchStudents = (
     if (matchedRow) {
       const commaSeparatedScores = matchedRow[scoreColumnIndex].replace(',', '.')
       const score = parseFloat(commaSeparatedScores)
-      if (!isNaN(score)) {
+      if (!Number.isNaN(score)) {
         matchedApplications.push({
           courseParticipationID: app.courseParticipationID,
           score,

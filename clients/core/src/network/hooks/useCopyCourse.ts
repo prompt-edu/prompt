@@ -74,7 +74,7 @@ export const useCopyCourse = (
       semesterTag: formData.semesterTag,
       startDate: formData.dateRange?.from ?? new Date(),
       endDate: formData.dateRange?.to ?? new Date(),
-      template: createTemplate ? true : false,
+      template: !!createTemplate,
       shortDescription: formData.shortDescription,
       longDescription: formData.longDescription || undefined,
     }

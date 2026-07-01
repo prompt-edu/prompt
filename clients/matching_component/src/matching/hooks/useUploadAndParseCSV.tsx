@@ -34,7 +34,7 @@ export const useUploadAndParseCSV = () => {
       })
 
       // 2. Basic validations
-      if (!result || !result.data || result.data.length === 0) {
+      if (!result?.data || result.data.length === 0) {
         throw new Error('No data found in the CSV file.')
       }
 

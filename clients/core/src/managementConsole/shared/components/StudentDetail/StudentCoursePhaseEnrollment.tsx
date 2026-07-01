@@ -10,7 +10,7 @@ import { LinkHeading } from './LinkHeading'
 import { ProgressIndicator } from './PhaseProgressIndicator'
 
 export function parsePostgresTimestamp(ts: string): Date {
-  return new Date(ts.replace(' ', 'T') + 'Z')
+  return new Date(`${ts.replace(' ', 'T')}Z`)
 }
 
 export function formatDateTime(ts: string | null): string {

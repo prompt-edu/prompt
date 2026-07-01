@@ -52,14 +52,14 @@ export const InsideCourseSidebar = () => {
                     fallback={<DisabledSidebarMenuItem key={phase.id} title={'Loading...'} />}
                   >
                     <PhaseComponent
-                      rootPath={rootPath + '/' + phase.id}
+                      rootPath={`${rootPath}/${phase.id}`}
                       title={phase.name}
                       coursePhaseID={phase.id}
                     />
                   </Suspense>
                 )
               } else {
-                return <DisabledSidebarMenuItem key={phase.id} title={'Unknown ' + phase.name} />
+                return <DisabledSidebarMenuItem key={phase.id} title={`Unknown ${phase.name}`} />
               }
             })}
           </SidebarGroupContent>

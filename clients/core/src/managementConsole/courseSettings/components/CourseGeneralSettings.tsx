@@ -68,7 +68,7 @@ export function CourseGeneralSettings() {
   const course = allCourses.find((c) => c.id === courseId) as Course | undefined
 
   const initialColor = (course?.studentReadableData?.['bg-color'] as string) || DEFAULT_COURSE_COLOR
-  const initialIcon = (course?.studentReadableData?.['icon'] as string) || DEFAULT_COURSE_ICON
+  const initialIcon = (course?.studentReadableData?.icon as string) || DEFAULT_COURSE_ICON
 
   const form = useForm<EditCourseFormValues>({
     resolver: zodResolver(editCourseSchema),
@@ -94,7 +94,7 @@ export function CourseGeneralSettings() {
     if (course) {
       const newInitialColor =
         (course.studentReadableData?.['bg-color'] as string) || DEFAULT_COURSE_COLOR
-      const newInitialIcon = (course.studentReadableData?.['icon'] as string) || DEFAULT_COURSE_ICON
+      const newInitialIcon = (course.studentReadableData?.icon as string) || DEFAULT_COURSE_ICON
 
       form.reset({
         dateRange: {

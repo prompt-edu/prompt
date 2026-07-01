@@ -31,7 +31,7 @@ export interface Page2Ref {
 }
 
 export const AssessmentScoreUploadPage2 = forwardRef<Page2Ref>(
-  function AssessmentScoreUploadPage2Inner(props, ref) {
+  function AssessmentScoreUploadPage2Inner(_props, ref) {
     const [file, setFile] = useState<File | null>(null)
     const [csvData, setCsvData] = useState<string[][]>([])
     const [matchBy, setMatchBy] = useState<'email' | 'universityLogin' | 'matriculationNumber'>(

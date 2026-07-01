@@ -8,7 +8,7 @@ interface NavAvatarProps {
 export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
   const { user } = useAuthStore()
 
-  const userName = user?.firstName + ' ' + user?.lastName || ' Unknown User'
+  const userName = `${user?.firstName} ${user?.lastName}` || ' Unknown User'
   const userEmail = user?.email || 'Unknown Email'
   const initials = `${user?.firstName.charAt(0)}${user?.lastName.charAt(0)}` || '??'
 

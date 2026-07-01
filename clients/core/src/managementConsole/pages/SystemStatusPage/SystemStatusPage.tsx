@@ -11,7 +11,7 @@ export const SystemStatusPage = () => {
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {
       return {
-        queryKey: ['serviceInfo-' + service.id],
+        queryKey: [`serviceInfo-${service.id}`],
         queryFn: () => getServiceInfo(service),
         retry: false,
         staleTime: 30_000,

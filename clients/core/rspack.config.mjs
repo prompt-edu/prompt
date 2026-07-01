@@ -1,7 +1,7 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import rspack from '@rspack/core'
 import CompressionPlugin from 'compression-webpack-plugin'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
 import packageJson from '../package.json' with { type: 'json' }
 

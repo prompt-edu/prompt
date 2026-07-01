@@ -11,9 +11,7 @@ function RoundLayout({
 }): ReactElement {
   return (
     <div
-      className={
-        'w-7 h-7 overflow-hidden rounded-full flex items-center justify-center ' + className
-      }
+      className={`w-7 h-7 overflow-hidden rounded-full flex items-center justify-center ${className}`}
     >
       {children}
     </div>
@@ -27,22 +25,22 @@ export function ProgressIndicator({
 }): ReactElement {
   return (
     <>
-      {passStatus == PassStatus.PASSED && (
+      {passStatus === PassStatus.PASSED && (
         <RoundLayout className='bg-green-100 dark:bg-green-900'>
           <Check className='w-4 h-4 text-green-800 dark:text-green-300' />
         </RoundLayout>
       )}
-      {passStatus == PassStatus.FAILED && (
+      {passStatus === PassStatus.FAILED && (
         <RoundLayout className='bg-red-100 dark:bg-red-900'>
           <X className='w-4 h-4 text-red-800 dark:text-red-300' />
         </RoundLayout>
       )}
-      {passStatus == PassStatus.NOT_ASSESSED && (
+      {passStatus === PassStatus.NOT_ASSESSED && (
         <RoundLayout className='bg-gray-100 dark:bg-gray-900'>
           <Clock className='w-4 h-4 text-gray-800 dark:text-gray-300' />
         </RoundLayout>
       )}
-      {passStatus == 'CURRENT' && (
+      {passStatus === 'CURRENT' && (
         <RoundLayout className='bg-blue-100 dark:bg-blue-900'>
           {/* <img src='/prompt_logo.svg' alt='Prompt logo' className='size-6' /> */}
           <ChevronsRight className='w-5 h-5 text-blue-800 dark:text-blue-300' />

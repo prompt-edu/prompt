@@ -73,7 +73,7 @@ export const SelfTeamAllocationPage = () => {
   }
 
   if (isStudent && isError) {
-    if (participationError && participationError.message.includes('404')) {
+    if (participationError?.message.includes('404')) {
       return <UnauthorizedPage backUrl={`/management/course/${courseId}`} />
     }
     return <ErrorPage onRetry={refetch} />

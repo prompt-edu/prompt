@@ -73,7 +73,6 @@ const isAssessmentTypeEnabled = (
       return config.peerEvaluationEnabled
     case AssessmentType.TUTOR:
       return config.tutorEvaluationEnabled
-    case AssessmentType.ASSESSMENT:
     default:
       return true
   }

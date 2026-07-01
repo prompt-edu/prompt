@@ -6,7 +6,6 @@ import {
   useSidebar,
 } from '@tumaet/prompt-ui-components'
 import { House } from 'lucide-react'
-import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const SidebarHeaderComponent = () => {

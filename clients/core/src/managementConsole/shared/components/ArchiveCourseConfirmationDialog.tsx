@@ -37,8 +37,8 @@ export function ArchiveCourseConfirmationDialog({
     enabled: isOpen && !!applicationPhase,
   })
 
-  const applicationEndDate = applicationPhaseData?.restrictedData?.['applicationEndDate']
-    ? new Date(applicationPhaseData.restrictedData['applicationEndDate'])
+  const applicationEndDate = applicationPhaseData?.restrictedData?.applicationEndDate
+    ? new Date(applicationPhaseData.restrictedData.applicationEndDate)
     : undefined
 
   const hasActiveApplicationPhase = !!applicationEndDate && isAfter(applicationEndDate, new Date())

@@ -61,7 +61,7 @@ query($owner: String!, $repo: String!, $pr: Int!, $endCursor: String) {
   }
 }' -F owner="$owner" -F repo="$repo" -F pr="$pr" \
   --jq '.data.repository.pullRequest.reviewThreads.nodes[]
-        | select(.isResolved == false and .isOutdated == false)
+        | select(.isResolved == false)
         | {
             path,
             line: (.line // .originalLine),

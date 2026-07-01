@@ -1,370 +1,162 @@
 ---
 name: docker-patterns
-description: Docker and Docker Compose patterns for local development, container security, networking, volume strategies, and multi-service orchestration.
+description: Docker Compose patterns for PROMPT's local multi-service stack — networking, volumes, container security, and debugging. Use when editing docker-compose*.yml, adding a service, or troubleshooting containers.
 metadata:
   origin: ECC
 ---
 
 <!--
 Vendored from Everything Claude Code (ECC) — https://github.com/affaan-m/everything-claude-code
-License: MIT (Copyright 2026 Affaan Mustafa). Adapted for PROMPT 2.0.
+License: MIT (Copyright 2026 Affaan Mustafa). Adapted for PROMPT 2.0 — the Node/npm/Redis
+sample stack and Dockerfiles were replaced with pointers to our real compose files, keeping
+only the stack-agnostic networking, volume, security, and debugging guidance.
 -->
 
 # Docker Patterns
 
-Docker and Docker Compose best practices for containerized development.
+Docker Compose practices for PROMPT's local stack. PROMPT runs on **Compose v2** (`docker compose`,
+not `docker-compose`) with per-phase Go services, React micro-frontends, a **separate PostgreSQL
+per microservice**, and Keycloak.
+
+For the concrete service layout — build contexts, the shared `servers/../Dockerfile`, per-phase
+`server-<name>` / `client-<name>-component` / `db-<name>` blocks, and the
+`.yml` / `.minimal.yml` / `.prod.yml` / `.extern.prod.yml` variants — see the **`docker/compose.md`
+rule** and the **`new-course-phase`** skill. This skill covers the stack-agnostic mechanics.
 
 ## When to Activate
 
-- Setting up Docker Compose for local development
-- Designing multi-container architectures
-- Troubleshooting container networking or volume issues
-- Reviewing Dockerfiles for security and size
-- Migrating from local dev to containerized workflow
+- Editing `docker-compose*.yml` or adding a service
+- Troubleshooting container networking, volumes, or startup ordering
+- Reviewing a Compose change for security or reproducibility
 
-## Docker Compose for Local Development
+## Networking
 
-### Standard Web App Stack
+Services on the same Compose network resolve each other by **service name** — this is why the
+`DB_*_HOST` and `KEYCLOAK_*` values in `.env` use container hostnames while `.env.dev` overrides
+them to `localhost` for host-side runs:
+
+```txt
+# From a server container, the db and keycloak resolve by service name:
+db-team-allocation:5432
+keycloak:8080
+```
+
+Restrict exposure to what the host actually needs:
 
 ```yaml
-# docker-compose.yml
 services:
-  app:
-    build:
-      context: .
-      target: dev                     # Use dev stage of multi-stage Dockerfile
+  db-team-allocation:
     ports:
-      - "3000:3000"
-    volumes:
-      - .:/app                        # Bind mount for hot reload
-      - /app/node_modules             # Anonymous volume -- preserves container deps
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/app_dev
-      - REDIS_URL=redis://redis:6379/0
-      - NODE_ENV=development
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    command: npm run dev
+      - "127.0.0.1:5433:5432"   # Reachable from the host only, not the wider network
+    # Omit `ports` entirely for services only other containers talk to.
+```
 
-  db:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: app_dev
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+## Startup Ordering
+
+A service that needs its database or Keycloak up first must wait on a **healthcheck**, not just
+`depends_on` (which only waits for the container to start, not to be ready):
+
+```yaml
+services:
+  server-team-allocation:
+    depends_on:
+      db-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  db-team-allocation:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
       retries: 5
+```
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+## Volumes
+
+Each database gets its **own named volume** so data survives restarts and services never share
+state:
+
+```yaml
+services:
+  db-team-allocation:
     volumes:
-      - redisdata:/data
-
-  mailpit:                            # Local email testing
-    image: axllent/mailpit
-    ports:
-      - "8025:8025"                   # Web UI
-      - "1025:1025"                   # SMTP
+      - postgres_team_allocation_data:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
-  redisdata:
+  postgres_team_allocation_data:   # one dedicated volume per microservice db
 ```
 
-### Development vs Production Dockerfile
-
-```dockerfile
-# Stage: dependencies
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Stage: dev (hot reload, debug tools)
-FROM node:22-alpine AS dev
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
-
-# Stage: build
-FROM node:22-alpine AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run build && npm prune --production
-
-# Stage: production (minimal image)
-FROM node:22-alpine AS production
-WORKDIR /app
-RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001
-USER appuser
-COPY --from=build --chown=appuser:appgroup /app/dist ./dist
-COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
-COPY --from=build --chown=appuser:appgroup /app/package.json ./
-ENV NODE_ENV=production
-EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://localhost:3000/health || exit 1
-CMD ["node", "dist/server.js"]
-```
-
-### Override Files
-
-```yaml
-# docker-compose.override.yml (auto-loaded, dev-only settings)
-services:
-  app:
-    environment:
-      - DEBUG=app:*
-      - LOG_LEVEL=debug
-    ports:
-      - "9229:9229"                   # Node.js debugger
-
-# docker-compose.prod.yml (explicit for production)
-services:
-  app:
-    build:
-      target: production
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 512M
-```
-
-```bash
-# Development (auto-loads override)
-docker compose up
-
-# Production
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-## Networking
-
-### Service Discovery
-
-Services in the same Compose network resolve by service name:
-```txt
-# From "app" container:
-postgres://postgres:postgres@db:5432/app_dev    # "db" resolves to the db container
-redis://redis:6379/0                             # "redis" resolves to the redis container
-```
-
-### Custom Networks
-
-```yaml
-services:
-  frontend:
-    networks:
-      - frontend-net
-
-  api:
-    networks:
-      - frontend-net
-      - backend-net
-
-  db:
-    networks:
-      - backend-net              # Only reachable from api, not frontend
-
-networks:
-  frontend-net:
-  backend-net:
-```
-
-### Exposing Only What's Needed
-
-```yaml
-services:
-  db:
-    ports:
-      - "127.0.0.1:5432:5432"   # Only accessible from host, not network
-    # Omit ports entirely in production -- accessible only within Docker network
-```
-
-## Volume Strategies
-
-```yaml
-volumes:
-  # Named volume: persists across container restarts, managed by Docker
-  pgdata:
-
-  # Bind mount: maps host directory into container (for development)
-  # - ./src:/app/src
-
-  # Anonymous volume: preserves container-generated content from bind mount override
-  # - /app/node_modules
-```
-
-### Common Patterns
-
-```yaml
-services:
-  app:
-    volumes:
-      - .:/app                   # Source code (bind mount for hot reload)
-      - /app/node_modules        # Protect container's node_modules from host
-      - /app/.next               # Protect build cache
-
-  db:
-    volumes:
-      - pgdata:/var/lib/postgresql/data          # Persistent data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql  # Init scripts
-```
+- **Named volume** (above): persistent, Docker-managed — use for database data.
+- **Bind mount** (`./path:/in/container`): maps a host directory in — use for init SQL or local
+  config, not for production data.
+- `docker compose down -v` **deletes** these volumes (all local DB data). `down` without `-v` keeps
+  them.
 
 ## Container Security
 
-### Dockerfile Hardening
-
 ```dockerfile
-# 1. Use specific tags (never :latest)
-FROM node:22.12-alpine3.20
+# Pin a specific tag — never :latest — for reproducible builds
+FROM golang:1.26-alpine3.20
 
-# 2. Run as non-root
-RUN addgroup -g 1001 -S app && adduser -S app -u 1001
+# Run as a non-root user
+RUN addgroup -S app && adduser -S app -G app
 USER app
-
-# 3. Drop capabilities (in compose)
-# 4. Read-only root filesystem where possible
-# 5. No secrets in image layers
 ```
-
-### Compose Security
 
 ```yaml
 services:
-  app:
+  server-team-allocation:
     security_opt:
       - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /app/.cache
     cap_drop:
       - ALL
-    cap_add:
-      - NET_BIND_SERVICE          # Only if binding to ports < 1024
 ```
 
-### Secret Management
+**Secrets** come from the environment, never image layers or committed files:
 
 ```yaml
-# GOOD: Use environment variables (injected at runtime)
 services:
-  app:
+  server-team-allocation:
     env_file:
-      - .env                     # Never commit .env to git
+      - .env          # gitignored — see security.md and the .gitignore AI-config block
     environment:
-      - API_KEY                  # Inherits from host environment
-
-# GOOD: Docker secrets (Swarm mode)
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
-
-services:
-  db:
-    secrets:
-      - db_password
-
-# BAD: Hardcoded in image
-# ENV API_KEY=sk-proj-xxxxx      # NEVER DO THIS
+      - DB_TEAM_ALLOCATION_PASSWORD   # inherited from the host / .env, not hardcoded
 ```
 
-## .dockerignore
-
-```dockerignore
-node_modules
-.git
-.env
-.env.*
-dist
-coverage
-*.log
-.next
-.cache
-docker-compose*.yml
-Dockerfile*
-README.md
-tests/
-```
+Never bake a secret into the image (`ENV API_KEY=...`) or commit it to `docker-compose.yml`.
 
 ## Debugging
 
-### Common Commands
-
 ```bash
-# View logs
-docker compose logs -f app           # Follow app logs
-docker compose logs --tail=50 db     # Last 50 lines from db
-
-# Execute commands in running container
-docker compose exec app sh           # Shell into app
-docker compose exec db psql -U postgres  # Connect to postgres
-
-# Inspect
-docker compose ps                     # Running services
-docker compose top                    # Processes in each container
-docker stats                          # Resource usage
-
-# Rebuild
-docker compose up --build             # Rebuild images
-docker compose build --no-cache app   # Force full rebuild
-
-# Clean up
-docker compose down                   # Stop and remove containers
-docker compose down -v                # Also remove volumes (DESTRUCTIVE)
-docker system prune                   # Remove unused images/containers
+docker compose logs -f server-team-allocation   # follow one service's logs
+docker compose ps                                # what's running / health status
+docker compose exec server-team-allocation sh    # shell into a container
+docker compose exec db-team-allocation psql -U postgres   # open psql in the db container
+docker compose up --build                        # rebuild after code/Dockerfile changes
+docker compose down                              # stop & remove containers (volumes kept)
 ```
 
-### Debugging Network Issues
+Network issues — verify service-name DNS and reachability from inside a container:
 
 ```bash
-# Check DNS resolution inside container
-docker compose exec app nslookup db
-
-# Check connectivity
-docker compose exec app wget -qO- http://api:3000/health
-
-# Inspect network
-docker network ls
-docker network inspect <project>_default
+docker compose exec server-team-allocation nslookup db-team-allocation
+docker compose exec server-team-allocation wget -qO- http://keycloak:8080/health
 ```
 
 ## Anti-Patterns
 
-```txt
-# BAD: Using docker compose in production without orchestration
-# Use Kubernetes, ECS, or Docker Swarm for production multi-container workloads
+- **`:latest` tags** — unpinned images break reproducibility; pin a version.
+- **Data in the container, not a volume** — containers are ephemeral; DB data must live in a named
+  volume.
+- **Running as root** — create and use a non-root user.
+- **Sharing one database across services** — every PROMPT microservice owns its own DB.
+- **Secrets in `docker-compose.yml` or image layers** — use `.env` (gitignored) instead.
+- **`depends_on` without `condition: service_healthy`** for services that need a ready DB/Keycloak.
 
-# BAD: Storing data in containers without volumes
-# Containers are ephemeral -- all data lost on restart without volumes
+## Related
 
-# BAD: Running as root
-# Always create and use a non-root user
-
-# BAD: Using :latest tag
-# Pin to specific versions for reproducible builds
-
-# BAD: One giant container with all services
-# Separate concerns: one process per container
-
-# BAD: Putting secrets in docker-compose.yml
-# Use .env files (gitignored) or Docker secrets
-```
+- Rule: `docker/compose.md` — PROMPT's per-phase service layout and compose variants
+- Rule: `common/security.md` — never-commit-secrets policy and `${VAR}` interpolation
+- Skill: `new-course-phase` — scaffolds the three per-phase services end to end

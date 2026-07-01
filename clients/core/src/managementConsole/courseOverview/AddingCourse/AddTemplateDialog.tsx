@@ -1,4 +1,8 @@
-import React, { useCallback, useEffect } from 'react'
+import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { postNewCourse } from '@core/network/mutations/postNewCourse'
+import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
+import type { TemplateFormValues } from '@core/validations/template'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   AlertDescription,
@@ -6,21 +10,17 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogErrorDisplay,
   DialogHeader,
+  DialogLoadingDisplay,
   DialogTitle,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { AddCourseAppearance } from './AddCourseAppearance'
-import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { PostCourse } from '../interfaces/postCourse'
-import { postNewCourse } from '@core/network/mutations/postNewCourse'
+import React, { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useKeycloak } from '@core/keycloak/useKeycloak'
-import { DialogLoadingDisplay } from '@tumaet/prompt-ui-components'
-import { DialogErrorDisplay } from '@tumaet/prompt-ui-components'
+import type { PostCourse } from '../interfaces/postCourse'
+import { AddCourseAppearance } from './AddCourseAppearance'
 import { AddTemplateProperties } from './AddTemplateProperties'
-import { TemplateFormValues } from '@core/validations/template'
 
 interface AddTemplateDialogProps {
   open?: boolean

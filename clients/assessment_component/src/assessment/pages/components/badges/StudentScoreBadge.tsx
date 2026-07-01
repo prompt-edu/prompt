@@ -1,4 +1,4 @@
-import React from 'react'
+import { mapNumberToScoreLevel, ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   Badge,
   getLevelConfig,
@@ -7,7 +7,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { mapNumberToScoreLevel, ScoreLevel } from '@tumaet/prompt-shared-state'
 
 interface ScoreLevelBadgeProps {
   scoreLevel?: ScoreLevel

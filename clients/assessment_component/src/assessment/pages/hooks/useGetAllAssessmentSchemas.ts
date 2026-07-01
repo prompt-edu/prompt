@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
-import { AssessmentSchema } from '../../interfaces/assessmentSchema'
+import type { AssessmentSchema } from '../../interfaces/assessmentSchema'
 import { getAllAssessmentSchemas } from '../../network/queries/getAllAssessmentSchemas'
 
 export const useGetAllAssessmentSchemas = () => {

@@ -1,10 +1,9 @@
+import { Button, cn } from '@tumaet/prompt-ui-components'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-import { Button, cn } from '@tumaet/prompt-ui-components'
-
-import { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 
 import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
@@ -103,12 +102,12 @@ export const AssessmentHeader = ({
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to previous participant: ${prevMember!.firstName} ${prevMember!.lastName}`}
-                onClick={() => navigate(`../${prevMember!.id}`, { relative: 'path' })}
+                aria-label={`Navigate to previous participant: ${prevMember?.firstName} ${prevMember?.lastName}`}
+                onClick={() => navigate(`../${prevMember?.id}`, { relative: 'path' })}
               >
                 <ChevronLeft className='h-4 w-4' />
                 <span className='hidden sm:inline'>
-                  {prevMember!.firstName} {prevMember!.lastName}
+                  {prevMember?.firstName} {prevMember?.lastName}
                 </span>
               </Button>
             )}
@@ -133,11 +132,11 @@ export const AssessmentHeader = ({
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to next participant: ${nextMember!.firstName} ${nextMember!.lastName}`}
-                onClick={() => navigate(`../${nextMember!.id}`, { relative: 'path' })}
+                aria-label={`Navigate to next participant: ${nextMember?.firstName} ${nextMember?.lastName}`}
+                onClick={() => navigate(`../${nextMember?.id}`, { relative: 'path' })}
               >
                 <span className='hidden sm:inline'>
-                  {nextMember!.firstName} {nextMember!.lastName}
+                  {nextMember?.firstName} {nextMember?.lastName}
                 </span>
                 <ChevronRight className='h-4 w-4' />
               </Button>

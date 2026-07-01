@@ -1,33 +1,36 @@
-import { useCallback, useRef, useState } from 'react'
 import {
+  Background,
+  Controls,
+  type EdgeTypes,
+  type NodeTypes,
   ReactFlow,
   ReactFlowProvider,
-  useNodesState,
   useEdgesState,
-  Controls,
-  NodeTypes,
-  EdgeTypes,
-  Background,
+  useNodesState,
 } from '@xyflow/react'
+import { useCallback, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
-import { PhaseNode } from './graphComponents/phaseNode/PhaseNode'
-import { SelectableEdge } from './graphComponents/edges/SelectableEdge'
-import { useConnect } from './handlers/useConnect'
-import { useValidation } from './handlers/useValidation'
-import { useDrop } from './handlers/useDrop'
-import { useDarkMode } from '@tumaet/prompt-ui-components'
-import { useCourseConfigurationState } from './zustand/useCourseConfigurationStore'
 import { useQueryClient } from '@tanstack/react-query'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
+import {
+  getPermissionString,
+  Role,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
+import { ErrorPage, useDarkMode } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
-import { handleSave } from './handlers/handleSave'
-import { useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { getPermissionString, Role } from '@tumaet/prompt-shared-state'
-import { useComputeLayoutedElements } from './handlers/useComputeLayoutedElements'
-import { useDeleteConfirmation } from './handlers/useDeleteConfirmation'
-import { useMutations } from './handlers/useGraphMutations'
 import { CoursePhaseTypePanel } from './components/CoursePhaseTypePanel'
 import { UnsavedChangesAlert } from './components/UnsavedChangesAlert'
+import { SelectableEdge } from './graphComponents/edges/SelectableEdge'
+import { PhaseNode } from './graphComponents/phaseNode/PhaseNode'
+import { handleSave } from './handlers/handleSave'
+import { useComputeLayoutedElements } from './handlers/useComputeLayoutedElements'
+import { useConnect } from './handlers/useConnect'
+import { useDeleteConfirmation } from './handlers/useDeleteConfirmation'
+import { useDrop } from './handlers/useDrop'
+import { useMutations } from './handlers/useGraphMutations'
+import { useValidation } from './handlers/useValidation'
+import { useCourseConfigurationState } from './zustand/useCourseConfigurationStore'
 
 const nodeTypes: NodeTypes = {
   phaseNode: PhaseNode,

@@ -1,7 +1,7 @@
-import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { formatDate } from '@core/utils/formatDate'
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
+import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { DynamicIcon } from '@tumaet/prompt-ui-components'
 
 export const CourseTableColumns: ColumnDef<Course>[] = [
   {
@@ -9,7 +9,7 @@ export const CourseTableColumns: ColumnDef<Course>[] = [
     header: 'Icon',
     enableSorting: false,
     cell: ({ row }) => {
-      const iconName = row.original.studentReadableData?.['icon'] || 'graduation-cap'
+      const iconName = row.original.studentReadableData?.icon || 'graduation-cap'
       const bgColor = row.original.studentReadableData?.['bg-color'] || 'bg-gray-50'
       return (
         <div

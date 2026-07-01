@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@tumaet/prompt-ui-components'
-import { HelpCircle, Lightbulb, MousePointer, ArrowRight } from 'lucide-react'
+import { ArrowRight, HelpCircle, Lightbulb, MousePointer } from 'lucide-react'
 import { useState } from 'react'
 
 export const HelpDialog = () => {

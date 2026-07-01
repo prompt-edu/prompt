@@ -1,9 +1,10 @@
-import type React from 'react'
-import { useEffect } from 'react'
+import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
+import { type CourseFormValues, courseFormSchema } from '@core/validations/course'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Button,
-  Input,
-  Textarea,
+  DatePickerWithRange,
   Form,
   FormControl,
   FormDescription,
@@ -11,18 +12,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  DatePickerWithRange,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Textarea,
 } from '@tumaet/prompt-ui-components'
-import { courseFormSchema, type CourseFormValues } from '@core/validations/course'
-import { zodResolver } from '@hookform/resolvers/zod'
+import type React from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
 
 interface AddCoursePropertiesProps {
   onNext: (data: CourseFormValues) => void

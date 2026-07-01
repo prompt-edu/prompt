@@ -1,10 +1,10 @@
-import { Comment } from './comment'
-import { Device } from './device'
-import { Gender } from './gender'
-import { Language } from './language'
-import { ProjectPreference } from './projectPreference'
-import { SkillProficiency } from './skillProficiency'
-import { StudentSkill } from './studentSkill'
+import type { Comment } from './comment'
+import type { Device } from './device'
+import type { Gender } from './gender'
+import type { Language } from './language'
+import type { ProjectPreference } from './projectPreference'
+import type { SkillProficiency } from './skillProficiency'
+import type { StudentSkill } from './studentSkill'
 
 export interface TeaseStudent {
   devices: Array<Device>

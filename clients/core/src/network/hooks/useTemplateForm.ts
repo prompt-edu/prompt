@@ -1,10 +1,12 @@
-import { useForm } from 'react-hook-form'
+import {
+  type MakeTemplateCourseFormValues,
+  makeTemplateCourseSchema,
+} from '@core/validations/makeTemplateCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import type { DialogStep } from '../../managementConsole/courseOverview/interfaces/copyCourseDialogProps'
-import { MakeTemplateCourseFormValues } from '@core/validations/makeTemplateCourse'
-import { makeTemplateCourseSchema } from '@core/validations/makeTemplateCourse'
 
 export const useTemplateForm = (courseId: string, setCurrentStep: (step: DialogStep) => void) => {
   const { courses } = useCourseStore()

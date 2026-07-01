@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
-import { useTeamStore } from '../../../zustand/useTeamStore'
 import { useParticipationStore } from '../../../zustand/useParticipationStore'
+import { useTeamStore } from '../../../zustand/useTeamStore'
 
 interface NavigationMember {
   id: string

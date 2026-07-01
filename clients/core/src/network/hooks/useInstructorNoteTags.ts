@@ -1,13 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useToast } from '@tumaet/prompt-ui-components'
-import { getNoteTags } from '../queries/getNoteTags'
-import { postNoteTag } from '../mutations/postNoteTag'
-import { putNoteTag } from '../mutations/putNoteTag'
-import { deleteNoteTag } from '../mutations/deleteNoteTag'
 import type {
   CreateNoteTag,
   UpdateNoteTag,
 } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@tumaet/prompt-ui-components'
+import { deleteNoteTag } from '../mutations/deleteNoteTag'
+import { postNoteTag } from '../mutations/postNoteTag'
+import { putNoteTag } from '../mutations/putNoteTag'
+import { getNoteTags } from '../queries/getNoteTags'
 
 export const useNoteTags = () => {
   return useQuery({

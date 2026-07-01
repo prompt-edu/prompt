@@ -1,4 +1,4 @@
-import { SurveyResponse } from '../../interfaces/surveyResponse'
+import type { SurveyResponse } from '../../interfaces/surveyResponse'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getSurveyOwnResponse = async (coursePhaseID: string): Promise<SurveyResponse> => {

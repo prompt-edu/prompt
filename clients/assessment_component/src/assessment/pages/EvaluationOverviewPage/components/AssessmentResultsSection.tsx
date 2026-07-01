@@ -1,20 +1,17 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
-
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
 import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
-import { useTeamStore } from '../../../zustand/useTeamStore'
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
-
-import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
-import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCategoriesWithCompetencies'
-
-import { CategoryAssessment } from '../../AssessmentPage/components/CategoryAssessment'
+import { useTeamStore } from '../../../zustand/useTeamStore'
 import { AssessmentCompletion } from '../../AssessmentPage/components/AssessmentCompletion/AssessmentCompletion'
+import { CategoryAssessment } from '../../AssessmentPage/components/CategoryAssessment'
+import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
 export const AssessmentResultsSection = () => {
   const { courseId } = useParams<{ courseId: string }>()

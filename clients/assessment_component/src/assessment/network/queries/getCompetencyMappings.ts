@@ -1,5 +1,5 @@
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
-import { CompetencyMapping } from '../mutations/createCompetencyMapping'
+import type { CompetencyMapping } from '../mutations/createCompetencyMapping'
 
 export const getAllCompetencyMappings = async (
   coursePhaseID: string,

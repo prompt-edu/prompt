@@ -1,4 +1,4 @@
-import { Tutor } from '../../interfaces/tutor'
+import type { Tutor } from '../../interfaces/tutor'
 import { selfTeamAllocationAxiosInstance } from '../selfTeamAllocationServerConfig'
 
 export const importTutors = async (coursePhaseID: string, tutors: Tutor[]): Promise<void> => {

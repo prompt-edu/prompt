@@ -1,5 +1,5 @@
-import { CategoryWithCompetencies } from '../interfaces/category'
 import { create } from 'zustand'
+import type { CategoryWithCompetencies } from '../interfaces/category'
 
 export interface CategoryStore {
   categories: CategoryWithCompetencies[]

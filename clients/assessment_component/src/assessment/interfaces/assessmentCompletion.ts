@@ -1,4 +1,4 @@
-import { CompetencyScoreCompletion } from './competencyScoreCompletion'
+import type { CompetencyScoreCompletion } from './competencyScoreCompletion'
 
 export type AssessmentCompletion = CompetencyScoreCompletion & {
   author: string

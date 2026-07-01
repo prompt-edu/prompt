@@ -15,7 +15,7 @@ interface GradeDistributionTooltipProps {
 }
 
 export function GradeDistributionTooltipContent(props: GradeDistributionTooltipProps) {
-  if (!props.active || !props.payload || !props.payload[0]) {
+  if (!props.active || !props.payload?.[0]) {
     return undefined
   }
 

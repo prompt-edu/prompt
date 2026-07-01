@@ -1,19 +1,18 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { AlertCircle } from 'lucide-react'
-
 import {
+  Alert,
+  AlertDescription,
   Button,
-  Input,
-  Label,
-  Textarea,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Alert,
-  AlertDescription,
+  Input,
+  Label,
+  Textarea,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 import type { CreateCompetencyRequest } from '../../../../../interfaces/competency'
 

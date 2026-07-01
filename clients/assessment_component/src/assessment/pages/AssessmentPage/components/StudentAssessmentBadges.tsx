@@ -3,9 +3,9 @@ import { cn } from '@tumaet/prompt-ui-components'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 
 import {
-  StudentScoreBadge,
   AssessmentStatusBadge,
   GradeSuggestionBadgeWithTooltip,
+  StudentScoreBadge,
 } from '../../components/badges'
 
 interface StudentAssessmentBadgesProps {

@@ -1,5 +1,5 @@
-import { Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { TableFilter } from '@tumaet/prompt-ui-components'
+import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import type { TableFilter } from '@tumaet/prompt-ui-components'
 
 export const CourseTableFilters: TableFilter[] = [
   {

@@ -1,9 +1,7 @@
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
-
-import { StudentOverviewPage } from '../src/certificate/pages/StudentOverviewPage'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { ParticipantsPage } from '../src/certificate/pages/ParticipantsPage'
 import { SettingsPage } from '../src/certificate/pages/SettingsPage'
+import { StudentOverviewPage } from '../src/certificate/pages/StudentOverviewPage'
 
 const routes: ExtendedRouteObject[] = [
   {

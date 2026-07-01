@@ -1,4 +1,6 @@
-import React, { useMemo } from 'react'
+import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
+import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,10 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@tumaet/prompt-ui-components'
+import React, { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
-import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 
 interface BreadcrumbProps {
   title: string
@@ -58,11 +58,11 @@ export const Breadcrumbs: React.FC = () => {
           if (studentsById[pathSegments[2]]) {
             const s = studentsById[pathSegments[2]]
             breadcrumbs.push({
-              title: s.firstName + ' ' + s.lastName,
-              path: '/management/students/' + pathSegments[2],
+              title: `${s.firstName} ${s.lastName}`,
+              path: `/management/students/${pathSegments[2]}`,
             })
           } else {
-            breadcrumbs.push({ title: 'Student', path: '/management/students/' + pathSegments[2] })
+            breadcrumbs.push({ title: 'Student', path: `/management/students/${pathSegments[2]}` })
           }
         }
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {

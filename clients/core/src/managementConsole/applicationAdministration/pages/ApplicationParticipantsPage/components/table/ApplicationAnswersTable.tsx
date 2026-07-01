@@ -1,12 +1,19 @@
-import { useState } from 'react'
+import type { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
+import type { ApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/applicationAnswerMultiSelect'
+import type { ApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/applicationAnswerText'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { getApplicationFileDownloadUrl } from '@core/network/queries/applicationFileDownloadUrl'
+import { formatFileSize, openFileDownload } from '@tumaet/prompt-shared-state'
 import {
   Badge,
+  Button,
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -14,17 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/applicationAnswerText'
-import { ApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/applicationAnswerMultiSelect'
-import { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
-import { formatFileSize } from '@tumaet/prompt-shared-state'
-import { openFileDownload } from '@tumaet/prompt-shared-state'
-import { getApplicationFileDownloadUrl } from '@core/network/queries/applicationFileDownloadUrl'
-
-import { AlignLeft, CheckSquare, Paperclip, Download } from 'lucide-react'
+import { AlignLeft, CheckSquare, Download, Paperclip } from 'lucide-react'
+import { useState } from 'react'
 
 interface ApplicationAnswersTableProps {
   coursePhaseId: string

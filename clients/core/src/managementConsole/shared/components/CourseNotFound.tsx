@@ -1,11 +1,11 @@
 import {
   Button,
   Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
 } from '@tumaet/prompt-ui-components'
 import { useNavigate } from 'react-router-dom'
 

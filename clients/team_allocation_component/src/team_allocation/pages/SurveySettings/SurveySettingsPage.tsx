@@ -1,20 +1,24 @@
-import { Skill } from '../../interfaces/skill'
-import { getAllSkills } from '../../network/queries/getAllSkills'
-import { useParams } from 'react-router-dom'
-import { Team } from '@tumaet/prompt-shared-state'
-import { getAllTeams } from '../../network/queries/getAllTeams'
-import { Loader2 } from 'lucide-react'
-import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
 import { useQuery } from '@tanstack/react-query'
-import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
-import { SurveyTimeframe } from '../../interfaces/timeframe'
-import { TeamSettings } from './components/TeamSettings'
-import { SkillSettings } from './components/SkillSettings'
-import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
-import { SurveyLinkCard } from './components/SurveyLinkCard'
-import { getConfig } from '../../network/queries/getConfig'
-import { MissingSettings, MissingSettingsItem } from '@tumaet/prompt-ui-components'
+import type { Team } from '@tumaet/prompt-shared-state'
+import {
+  ErrorPage,
+  ManagementPageHeader,
+  MissingSettings,
+  type MissingSettingsItem,
+} from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { Skill } from '../../interfaces/skill'
+import type { SurveyTimeframe } from '../../interfaces/timeframe'
+import { getAllSkills } from '../../network/queries/getAllSkills'
+import { getAllTeams } from '../../network/queries/getAllTeams'
+import { getConfig } from '../../network/queries/getConfig'
+import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
+import { SkillSettings } from './components/SkillSettings'
+import { SurveyLinkCard } from './components/SurveyLinkCard'
+import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
+import { TeamSettings } from './components/TeamSettings'
 
 export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

@@ -1,18 +1,17 @@
-import * as React from 'react'
-import { Label, Pie, PieChart } from 'recharts'
-
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
+import * as React from 'react'
+import { Label, Pie, PieChart } from 'recharts'
+import type { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 
 const chartConfig = {
   applications: {

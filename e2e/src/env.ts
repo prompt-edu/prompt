@@ -1,7 +1,8 @@
 // Centralized environment config. Defaults target the e2e stack's host-published
-// ports (4000 / 18081 / 18090 — chosen to avoid clashing with a dev stack) so
-// host mode (`make test-e2e-local`) works with no env vars; the containerized
-// runner overrides these via docker-compose.e2e.yml.
+// ports (4000 / 18081 / 18090, chosen to avoid clashing with a dev stack) so
+// running Playwright directly on the host (cd e2e && npx playwright test) works
+// against a running stack with no env vars; the containerized runner overrides
+// these via docker-compose.e2e.yml.
 
 export const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4000'
 export const KEYCLOAK_URL = process.env.KEYCLOAK_URL ?? 'http://localhost:18081'

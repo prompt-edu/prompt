@@ -5,7 +5,6 @@
 # deterministically seeded state.
 #
 # Run:   make test-e2e        (full Docker, CI-identical)
-#        make test-e2e-local  (app stack only, run Playwright on the host)
 #
 # Env comes from e2e/.env.e2e (committed, test-only credentials).
 # ============================================================================
@@ -188,7 +187,7 @@ services:
       start_period: 30s
 
   seaweedfs-master:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.37
     container_name: prompt-e2e-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     restart: unless-stopped
@@ -199,7 +198,7 @@ services:
       retries: 3
 
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.37
     container_name: prompt-e2e-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     depends_on:
@@ -213,7 +212,7 @@ services:
       retries: 3
 
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.37
     container_name: prompt-e2e-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     depends_on:
@@ -227,7 +226,7 @@ services:
       retries: 3
 
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:latest
+    image: chrislusf/seaweedfs:4.37
     container_name: prompt-e2e-seaweedfs-s3
     entrypoint:
       - /bin/sh

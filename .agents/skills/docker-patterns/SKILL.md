@@ -160,7 +160,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ### Service Discovery
 
 Services in the same Compose network resolve by service name:
-```
+```txt
 # From "app" container:
 postgres://postgres:postgres@db:5432/app_dev    # "db" resolves to the db container
 redis://redis:6379/0                             # "redis" resolves to the redis container
@@ -289,7 +289,7 @@ services:
 
 ## .dockerignore
 
-```
+```dockerignore
 node_modules
 .git
 .env
@@ -349,7 +349,7 @@ docker network inspect <project>_default
 
 ## Anti-Patterns
 
-```
+```txt
 # BAD: Using docker compose in production without orchestration
 # Use Kubernetes, ECS, or Docker Swarm for production multi-container workloads
 

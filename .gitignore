@@ -63,7 +63,7 @@ Thumbs.db
 # =============================================================================
 # Track shared Claude config (rules/, agents/, settings.json); ignore only
 # local overrides and derived paths. Skill content is canonical in .agents/skills/
-# and symlinked into .claude/skills/ (symlinks regenerated via `npx skills`).
+# and symlinked into .claude/skills/ (symlinks regenerated via `make setup-skills`).
 .claude/settings.local.json
 .claude/skills/
 .claude/worktrees/

@@ -15,13 +15,18 @@ the SDK auth middleware depends on this path structure.
 ## Wiring
 
 ```go
-import promptSDK "github.com/ls1intum/prompt-sdk"
+import (
+    log "github.com/sirupsen/logrus"
+    promptSDK "github.com/ls1intum/prompt-sdk"
+)
 
 // once in main.go
-promptSDK.InitAuthenticationMiddleware(keycloakURL, realm, coreURL)
+if err := promptSDK.InitAuthenticationMiddleware(keycloakURL, realm, coreURL); err != nil {
+    log.Fatalf("Failed to initialize keycloak: %v", err)
+}
 
 // per route — middleware factory takes allowed roles
-router.GET("/endpoint", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler)
+router.GET("/endpoint", promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler)
 ```
 
 ## Roles

@@ -128,7 +128,8 @@ end-to-end tests use Playwright (`e2e-testing` skill). Details: `.claude/rules/c
 - Backend: protected routes under `/api/course_phase/:coursePhaseID` with correct roles; `db/sqlc/`
   regenerated and committed with any migration/query change.
 - Frontend: no `any`; reuse shared libraries over custom code.
-- PR title uses the backtick feature-tag format (`github-pull-request-creation` skill).
+- PR title uses the backtick feature-tag format (`open-pr` skill; `address-pr-comments` for review
+  follow-ups).
 
 ## UI Guidelines
 

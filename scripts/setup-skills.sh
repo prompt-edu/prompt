@@ -18,6 +18,10 @@ fi
 
 mkdir -p "$dst"
 
+# Remove existing skill symlinks so links for deleted skills don't linger and
+# .claude/skills/ stays in sync with the canonical .agents/skills/ set.
+find "$dst" -mindepth 1 -maxdepth 1 -type l -delete
+
 count=0
 for skill_dir in "$src"/*/; do
   [ -d "$skill_dir" ] || continue

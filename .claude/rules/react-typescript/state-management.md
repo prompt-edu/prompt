@@ -14,8 +14,8 @@ paths:
 
 ```typescript
 // shared_library/network/queries/
-export const getCoursePhase = async (id: string): Promise<CoursePhase> => {
-  const response = await axios.get(`/api/course_phases/${id}`);
+export const getCoursePhase = async (coursePhaseID: string): Promise<CoursePhase> => {
+  const response = await axios.get(`/api/course_phase/${coursePhaseID}`);
   return response.data;
 };
 

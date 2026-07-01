@@ -5,8 +5,7 @@ import { Form, FormMessage } from '@tumaet/prompt-ui-components'
 
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
 import { useTeamStore } from '../../../../zustand/useTeamStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
+import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 
 import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
 import { Competency } from '../../../../interfaces/competency'
@@ -104,14 +103,19 @@ export const AssessmentForm = ({
     }
   }
 
-  const selfEvaluationCompetency =
-    useSelfEvaluationCategoryStore().allSelfEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
-  const peerEvaluationCompetency =
-    usePeerEvaluationCategoryStore().allPeerEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
+  // Self/peer evaluation scores are only shown when the evaluation uses the same schema as the
+  // assessment. In that case the evaluation references the exact same competency IDs, so we match
+  // by competency directly. With a different schema configured, the badges are hidden.
+  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const selfEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.selfEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+  const peerEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.peerEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+
+  const selfEvaluationCompetency = selfEvaluationSameSchema ? competency : undefined
+  const peerEvaluationCompetency = peerEvaluationSameSchema ? competency : undefined
 
   const {
     selfEvaluations: allSelfEvaluationsForThisStudent,

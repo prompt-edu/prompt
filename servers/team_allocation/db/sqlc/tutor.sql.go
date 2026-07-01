@@ -9,34 +9,11 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createTutor = `-- name: CreateTutor :exec
-INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id)
-VALUES ($1, $2, $3, $4, $5)
-`
-
-type CreateTutorParams struct {
-	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-	FirstName             string    `json:"first_name"`
-	LastName              string    `json:"last_name"`
-	TeamID                uuid.UUID `json:"team_id"`
-}
-
-func (q *Queries) CreateTutor(ctx context.Context, arg CreateTutorParams) error {
-	_, err := q.db.Exec(ctx, createTutor,
-		arg.CoursePhaseID,
-		arg.CourseParticipationID,
-		arg.FirstName,
-		arg.LastName,
-		arg.TeamID,
-	)
-	return err
-}
-
 const getTutorByCourseParticipationID = `-- name: GetTutorByCourseParticipationID :one
-SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id
+SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
 FROM tutor t
 WHERE t.course_participation_id = $1
   AND t.course_phase_id = $2
@@ -56,12 +33,13 @@ func (q *Queries) GetTutorByCourseParticipationID(ctx context.Context, arg GetTu
 		&i.FirstName,
 		&i.LastName,
 		&i.TeamID,
+		&i.UniversityLogin,
 	)
 	return i, err
 }
 
 const getTutorByTeamID = `-- name: GetTutorByTeamID :one
-SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id
+SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
 FROM tutor t
 WHERE t.team_id = $1
   AND t.course_phase_id = $2
@@ -81,6 +59,78 @@ func (q *Queries) GetTutorByTeamID(ctx context.Context, arg GetTutorByTeamIDPara
 		&i.FirstName,
 		&i.LastName,
 		&i.TeamID,
+		&i.UniversityLogin,
 	)
 	return i, err
+}
+
+const getTutorTeamByUniversityLogin = `-- name: GetTutorTeamByUniversityLogin :one
+SELECT team_id
+FROM tutor
+WHERE course_phase_id = $1
+  AND university_login = $2
+`
+
+type GetTutorTeamByUniversityLoginParams struct {
+	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
+	UniversityLogin pgtype.Text `json:"university_login"`
+}
+
+func (q *Queries) GetTutorTeamByUniversityLogin(ctx context.Context, arg GetTutorTeamByUniversityLoginParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getTutorTeamByUniversityLogin, arg.CoursePhaseID, arg.UniversityLogin)
+	var team_id uuid.UUID
+	err := row.Scan(&team_id)
+	return team_id, err
+}
+
+const updateTutorTeam = `-- name: UpdateTutorTeam :execrows
+UPDATE tutor
+SET team_id = $3
+WHERE course_phase_id = $1
+  AND university_login = $2
+`
+
+type UpdateTutorTeamParams struct {
+	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
+	UniversityLogin pgtype.Text `json:"university_login"`
+	TeamID          uuid.UUID   `json:"team_id"`
+}
+
+func (q *Queries) UpdateTutorTeam(ctx context.Context, arg UpdateTutorTeamParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateTutorTeam, arg.CoursePhaseID, arg.UniversityLogin, arg.TeamID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const upsertTutor = `-- name: UpsertTutor :exec
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (course_phase_id, course_participation_id) DO UPDATE
+    SET team_id          = EXCLUDED.team_id,
+        university_login = EXCLUDED.university_login,
+        first_name       = EXCLUDED.first_name,
+        last_name        = EXCLUDED.last_name
+`
+
+type UpsertTutorParams struct {
+	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FirstName             string      `json:"first_name"`
+	LastName              string      `json:"last_name"`
+	TeamID                uuid.UUID   `json:"team_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+}
+
+func (q *Queries) UpsertTutor(ctx context.Context, arg UpsertTutorParams) error {
+	_, err := q.db.Exec(ctx, upsertTutor,
+		arg.CoursePhaseID,
+		arg.CourseParticipationID,
+		arg.FirstName,
+		arg.LastName,
+		arg.TeamID,
+		arg.UniversityLogin,
+	)
+	return err
 }

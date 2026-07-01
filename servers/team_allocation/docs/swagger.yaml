@@ -168,11 +168,20 @@ definitions:
         type: string
       teamID:
         type: string
+      universityLogin:
+        type: string
     type: object
   teamDTO.UpdateTeamRequest:
     properties:
       newTeamName:
         type: string
+    type: object
+  teamDTO.UpdateTutorTeamRequest:
+    properties:
+      teamID:
+        type: string
+    required:
+    - teamID
     type: object
   teaseDTO.Allocation:
     properties:
@@ -294,6 +303,12 @@ paths:
             $ref: '#/definitions/allocationDTO.AllocationWithParticipation'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
           schema:
             additionalProperties:
               type: string
@@ -774,6 +789,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -897,6 +918,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -906,6 +933,56 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Import tutors
+      tags:
+      - team
+  /course_phase/{coursePhaseID}/team/tutors/{universityLogin}:
+    put:
+      consumes:
+      - application/json
+      description: Reassign a tutor to a different team by their university login
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Tutor university login (TUM format aa00aaa)
+        in: path
+        name: universityLogin
+        required: true
+        type: string
+      - description: New team ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teamDTO.UpdateTutorTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update tutor team assignment
       tags:
       - team
   /tease/course_phase/{coursePhaseID}/save:

@@ -110,9 +110,10 @@ type TeaseWorkspace struct {
 }
 
 type Tutor struct {
-	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-	FirstName             string    `json:"first_name"`
-	LastName              string    `json:"last_name"`
-	TeamID                uuid.UUID `json:"team_id"`
+	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FirstName             string      `json:"first_name"`
+	LastName              string      `json:"last_name"`
+	TeamID                uuid.UUID   `json:"team_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
 }

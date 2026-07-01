@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -13,6 +15,12 @@ import (
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	ErrTutorNotFound       = errors.New("tutor not found")
+	ErrDuplicateLogin      = errors.New("university login already assigned to another tutor in this phase")
+	ErrInvalidTeamForPhase = errors.New("team does not belong to this course phase")
 )
 
 type TeamsService struct {
@@ -128,7 +136,6 @@ func AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUp
 }
 
 func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO.Tutor) error {
-	// add students to the keycloak group
 	tx, err := TeamsServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -137,15 +144,20 @@ func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO
 	qtx := TeamsServiceSingleton.queries.WithTx(tx)
 
 	for _, tutor := range tutors {
-		// store tutor in database
-		err := qtx.CreateTutor(ctx, db.CreateTutorParams{
+		normalizedLogin := strings.TrimSpace(strings.ToLower(tutor.UniversityLogin))
+		err := qtx.UpsertTutor(ctx, db.UpsertTutorParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: tutor.CourseParticipationID,
 			FirstName:             tutor.FirstName,
 			LastName:              tutor.LastName,
 			TeamID:                tutor.TeamID,
+			UniversityLogin:       teamDTO.UniversityLoginParam(normalizedLogin),
 		})
 		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				return ErrDuplicateLogin
+			}
 			return err
 		}
 	}
@@ -155,5 +167,24 @@ func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+func UpdateTutorTeam(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string, teamID uuid.UUID) error {
+	rows, err := TeamsServiceSingleton.queries.UpdateTutorTeam(ctx, db.UpdateTutorTeamParams{
+		CoursePhaseID:   coursePhaseID,
+		UniversityLogin: teamDTO.UniversityLoginParam(universityLogin),
+		TeamID:          teamID,
+	})
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return ErrInvalidTeamForPhase
+		}
+		return err
+	}
+	if rows == 0 {
+		return ErrTutorNotFound
+	}
 	return nil
 }

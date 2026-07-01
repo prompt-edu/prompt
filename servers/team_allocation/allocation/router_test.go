@@ -41,7 +41,7 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "03711111", "ab12cde")
 	}
-	setupAllocationRouter(api, testMiddleware)
+	setupAllocationRouter(api, testMiddleware, *testDB.Queries)
 }
 
 func (suite *AllocationRouterTestSuite) TearDownSuite() {

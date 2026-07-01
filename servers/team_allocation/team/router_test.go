@@ -43,7 +43,7 @@ func (suite *TeamRouterTestSuite) SetupSuite() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
-	setupTeamRouter(api, testMiddleware)
+	setupTeamRouter(api, testMiddleware, *testDB.Queries)
 }
 
 func (suite *TeamRouterTestSuite) TearDownSuite() {

@@ -2,12 +2,12 @@ package survey
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -31,7 +31,7 @@ func GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.Surv
 	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get survey timeframe: ", err)
-		return surveyDTO.SurveyForm{}, errors.New("could not get survey timeframe")
+		return surveyDTO.SurveyForm{}, fmt.Errorf("could not get survey timeframe: %w", err)
 	}
 	// Ensure survey has started.
 	if time.Now().Before(timeframe.SurveyStart.Time) {
@@ -171,7 +171,7 @@ func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStar
 
 func GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error) {
 	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return surveyDTO.SurveyTimeframe{TimeframeSet: false}, nil
 	} else if err != nil {
 		log.Error("could not get survey timeframe: ", err)

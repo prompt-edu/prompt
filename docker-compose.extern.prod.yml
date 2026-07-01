@@ -65,6 +65,7 @@ services:
       - SENDER_NAME
       - SENTRY_DSN_CORE
       - SENTRY_ENABLED
+      - GITHUB_SHA
     networks:
       - prompt-network
 

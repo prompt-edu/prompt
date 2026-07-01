@@ -176,7 +176,7 @@ func CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, 
 			ID:                   existingStudent.ID, // make sure the id is not overwritten
 			FirstName:            studentInput.FirstName,
 			LastName:             studentInput.LastName,
-			Email:                existingStudent.Email,
+			Email:                studentInput.Email,
 			MatriculationNumber:  matriculationNumber,
 			UniversityLogin:      studentInput.UniversityLogin,
 			HasUniversityAccount: studentInput.HasUniversityAccount,

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "template_server.get.hello",
+    "service": "template_server",
+    "method": "GET",
+    "path": "/template-service/api/course_phase/{coursePhaseID}/hello",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "helloTemplateServer",
+    "bodyType": null
+  },
+  {
+    "id": "template_server.post.copy",
+    "service": "template_server",
+    "method": "POST",
+    "path": "/template-service/api/copy",
+    "pathParams": [],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "RegisterCopyEndpoint.func1",
+    "bodyType": "promptTypes.PhaseCopyRequest"
+  },
+  {
+    "id": "template_server.get.info",
+    "service": "template_server",
+    "method": "GET",
+    "path": "/template-service/api/info",
+    "pathParams": [],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "RegisterInfoEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "template_server.get.config",
+    "service": "template_server",
+    "method": "GET",
+    "path": "/template-service/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "RegisterConfigEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "template_server.get.info-phase",
+    "service": "template_server",
+    "method": "GET",
+    "path": "/template-service/api/course_phase/{coursePhaseID}/info",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "getTemplateInfo",
+    "bodyType": null
+  }
+]

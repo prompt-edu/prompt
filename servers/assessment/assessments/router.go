@@ -25,6 +25,7 @@ func setupAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 
 	assessmentRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listAssessmentsByCoursePhase)
 	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createOrUpdateAssessment)
+	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), exportStudentAssessment)
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listAssessmentsByStudentInPhase)
 	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteAssessment)
@@ -125,6 +126,45 @@ func getStudentAssessment(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, studentAssessment)
+}
+
+// exportStudentAssessment godoc
+// @Summary Export student assessment
+// @Description Export one student assessment in a text format.
+// @Tags assessments
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param courseParticipationID path string true "Course participation ID"
+// @Param format query string false "Export format" default(json)
+// @Success 200 {object} assessmentDTO.AssessmentExport
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export [get]
+func exportStudentAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	format := c.DefaultQuery("format", AssessmentExportFormatJSON)
+	export, err := ExportStudentAssessment(c, coursePhaseID, courseParticipationID, format)
+	if err != nil {
+		if errors.Is(err, ErrUnsupportedAssessmentExportFormat) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename=assessment_"+courseParticipationID.String()+".json")
+	c.JSON(http.StatusOK, export)
 }
 
 // getMyAssessmentResults godoc

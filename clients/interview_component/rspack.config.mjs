@@ -1,26 +1,18 @@
 import path from 'path'
-import 'webpack-dev-server'
-import HtmlWebpackPlugin from 'html-webpack-plugin'
+import rspack from '@rspack/core'
 import packageJson from '../package.json' with { type: 'json' }
-import webpack from 'webpack'
 import { fileURLToPath } from 'url'
-import CopyPlugin from 'copy-webpack-plugin'
 
-const { ModuleFederationPlugin } = webpack.container
+const { ModuleFederationPlugin } = rspack.container
 
-// ########################################
-// ### Component specific configuration ###
-// ########################################
-const COMPONENT_NAME = 'self_team_allocation_component'
-const COMPONENT_DEV_PORT = 3009
+const COMPONENT_NAME = 'interview_component'
+const COMPONENT_DEV_PORT = 3002
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const config = (env) => {
-  const getVariable = (name) => env[name]
-
-  const IS_DEV = getVariable('NODE_ENV') !== 'production'
+const config = (env = {}) => {
+  const IS_DEV = env.NODE_ENV !== 'production'
   const deps = packageJson.dependencies
 
   return {
@@ -29,33 +21,37 @@ const config = (env) => {
     devtool: IS_DEV ? 'source-map' : undefined,
     entry: './src/index.js',
     devServer: {
-      static: {
-        directory: path.join(__dirname, 'public'),
-      },
+      static: { directory: path.join(__dirname, 'public') },
       compress: true,
       hot: true,
       historyApiFallback: true,
       port: COMPONENT_DEV_PORT,
-      client: {
-        progress: true,
-      },
+      client: { progress: true },
       open: false,
     },
     module: {
       rules: [
         {
           test: /\.tsx?$/,
-          use: 'ts-loader',
+          use: {
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: { syntax: 'typescript', tsx: true },
+                transform: { react: { runtime: 'automatic' } },
+              },
+            },
+          },
           exclude: /node_modules/,
         },
         {
           test: /\.css$/i,
           use: ['style-loader', 'css-loader', 'postcss-loader'],
-          exclude: /node_modules/, // 🛠 Only apply postcss-loader to your src/
+          exclude: /node_modules/,
         },
         {
           test: /\.css$/i,
-          include: /node_modules/, // 🛠 Load node_modules CSS without postcss-loader
+          include: /node_modules/,
           use: ['style-loader', 'css-loader'],
         },
       ],
@@ -63,14 +59,15 @@ const config = (env) => {
     output: {
       filename: '[name].[contenthash].js',
       path: path.resolve(__dirname, 'build'),
-      publicPath: 'auto', // Whole Domain is crucial when deployed under other domain!
+      publicPath: 'auto',
+      clean: true,
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx'],
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: COMPONENT_NAME, // TODO: rename this to your component name
+        name: COMPONENT_NAME,
         filename: 'remoteEntry.js',
         exposes: {
           './routes': './routes',
@@ -91,28 +88,13 @@ const config = (env) => {
           },
         },
       }),
-      new CopyPlugin({
-        patterns: [{ from: 'public' }],
-      }),
-      new HtmlWebpackPlugin({
+      new rspack.CopyRspackPlugin({ patterns: [{ from: 'public' }] }),
+      new rspack.HtmlRspackPlugin({
         template: 'public/template.html',
-        minify: {
-          removeComments: true,
-          collapseWhitespace: true,
-          removeRedundantAttributes: true,
-          useShortDoctype: true,
-          removeEmptyAttributes: true,
-          removeStyleLinkTypeAttributes: true,
-          keepClosingSlash: true,
-          minifyJS: true,
-          minifyCSS: true,
-          minifyURLs: true,
-        },
+        minify: !IS_DEV,
       }),
-    ].filter(Boolean),
-    cache: {
-      type: 'filesystem',
-    },
+    ],
+    cache: { type: 'persistent' },
   }
 }
 

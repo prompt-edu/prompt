@@ -189,6 +189,10 @@ class Fuzzer:
         if v is None or v == [] or v == {} or v == "":
             return True
         if isinstance(v, dict):
+            payload_keys = {"data", "items", "results", "entries"}
+            present = payload_keys.intersection(v)
+            if present and all(Fuzzer._empty_value(v[k]) for k in present):
+                return True  # empty paginated envelope: metadata like total/success is not content
             return all(Fuzzer._empty_value(x) for x in v.values())
         return False
 

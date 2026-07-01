@@ -207,8 +207,7 @@ const getAllActiveCoursesRestricted = `-- name: GetAllActiveCoursesRestricted :m
             INNER JOIN
            parsed_roles pr
            ON c.name = pr.course_name
-            AND c.semester_tag = pr.semester_tag
-          WHERE c.archived = FALSE)
+            AND c.semester_tag = pr.semester_tag)
 SELECT ucr.id,
        ucr.name,
        ucr.start_date,
@@ -241,6 +240,11 @@ GROUP BY ucr.id,
          ucr.long_description,
          ucr.archived,
          ucr.archived_on
+HAVING NOT (
+           ucr.archived
+           AND COUNT(ucr.user_role) = 1
+           AND MAX(ucr.user_role) = 'Student'
+       )
 ORDER BY ucr.template,
          ucr.semester_tag,
          ucr.name DESC

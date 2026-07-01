@@ -1,10 +1,12 @@
 package survey
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 	log "github.com/sirupsen/logrus"
@@ -49,6 +51,8 @@ func getSurveyForm(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "survey has not started yet" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else if errors.Is(err, pgx.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "survey timeframe not configured"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}

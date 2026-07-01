@@ -391,6 +391,43 @@ VALUES
                 NULL
     );
 
+INSERT INTO
+    course (
+        id,
+        name,
+        start_date,
+        end_date,
+        semester_tag,
+        course_type,
+        ects,
+                restricted_data,
+                student_readable_data,
+                template,
+                archived,
+                archived_on
+    )
+VALUES
+    (
+        'b2c3d4e5-1111-4000-8000-000000000001',
+        'Archived Course',
+        '2023-10-01',
+        '2024-03-01',
+        'ios2425',
+        'practical course',
+        10,
+        '{
+          "icon": "archive",
+          "bg-color": "bg-gray-100"
+                }',
+                '{
+                    "icon": "archive",
+                    "bg-color": "bg-gray-100"
+                }',
+                FALSE,
+                TRUE,
+                '2024-03-02 00:00:00+00'
+    );
+
 --
 -- Name: course course_pkey; Type: CONSTRAINT; Schema: public; Owner: prompt-postgres
 --

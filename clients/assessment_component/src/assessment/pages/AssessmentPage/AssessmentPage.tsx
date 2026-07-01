@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useMemo, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 
 import { useCategoryStore } from '../../zustand/useCategoryStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
@@ -11,8 +10,7 @@ import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigSto
 
 import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
-import { ParticipantNavigation } from './components/ParticipantNavigation'
-import { AssessmentProfile } from './components/AssessmentProfile'
+import { AssessmentHeader } from './components/AssessmentHeader'
 import { CategoryAssessment } from './components/CategoryAssessment'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { FeedbackItemsPanel } from './components/FeedbackItemsPanel/FeedbackItemsPanel'
@@ -33,15 +31,18 @@ export const AssessmentPage = () => {
   const {
     data: studentAssessment,
     isPending: isStudentAssessmentPending,
+    isFetching: isStudentAssessmentFetching,
+    isPlaceholderData: isPlaceholderStudentAssessmentData,
     isError: isStudentAssessmentError,
     refetch: refetchStudentAssessment,
   } = useGetStudentAssessment()
+  const isSwitchingParticipant = isStudentAssessmentFetching && isPlaceholderStudentAssessmentData
 
   const remainingAssessments = useMemo(() => {
     return (
       categories.reduce((acc, category) => {
         return acc + category.competencies.length
-      }, 0) - (studentAssessment?.assessments?.length || 0)
+      }, 0) - (studentAssessment?.assessments?.length ?? 0)
     )
   }, [categories, studentAssessment?.assessments?.length])
 
@@ -58,12 +59,7 @@ export const AssessmentPage = () => {
   }, [participant, setAssessmentParticipation])
 
   if (isStudentAssessmentError) return <ErrorPage onRetry={refetchStudentAssessment} />
-  if (isStudentAssessmentPending)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+  if (isStudentAssessmentPending) return <LoadingPage />
 
   if (!studentAssessment) {
     return (
@@ -75,13 +71,9 @@ export const AssessmentPage = () => {
   }
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>Assess Student</ManagementPageHeader>
-
-      <ParticipantNavigation />
-
+    <div className='space-y-4' aria-busy={isSwitchingParticipant}>
       {participant && (
-        <AssessmentProfile
+        <AssessmentHeader
           participant={participant}
           studentAssessment={studentAssessment}
           remainingAssessments={remainingAssessments}
@@ -98,6 +90,7 @@ export const AssessmentPage = () => {
               .includes(assessment.competencyID),
           )}
           completed={studentAssessment.assessmentCompletion.completed}
+          disabled={isSwitchingParticipant}
           courseParticipationID={courseParticipationID ?? ''}
         />
       ))}
@@ -108,7 +101,10 @@ export const AssessmentPage = () => {
 
       <AssessmentCompletion />
 
-      <PassStatusControls courseParticipationID={courseParticipationID} />
+      <PassStatusControls
+        courseParticipationID={courseParticipationID}
+        disabled={isSwitchingParticipant}
+      />
 
       <AssessmentExportMenu />
     </div>

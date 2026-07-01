@@ -1523,6 +1523,10 @@ paths:
           description: Method Not Allowed
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -2074,6 +2078,10 @@ paths:
             $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":

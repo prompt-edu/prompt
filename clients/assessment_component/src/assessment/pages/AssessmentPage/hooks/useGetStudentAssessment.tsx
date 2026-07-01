@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { getStudentAssessment } from '../../../network/queries/getStudentAssessment'
 import { StudentAssessment } from '../../../interfaces/studentAssessment'
@@ -10,5 +10,8 @@ export const useGetStudentAssessment = () => {
   return useQuery<StudentAssessment>({
     queryKey: ['assessments', phaseId, courseParticipationID],
     queryFn: () => getStudentAssessment(phaseId ?? '', courseParticipationID ?? ''),
+    // Keep the previous student's data on screen while the next one loads so the
+    // page does not collapse to a loader, which would reset the scroll position.
+    placeholderData: keepPreviousData,
   })
 }

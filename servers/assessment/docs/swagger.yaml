@@ -244,7 +244,7 @@ definitions:
     properties:
       competencies:
         items:
-          $ref: '#/definitions/competencyDTO.CompetencyWithMappedCompetencies'
+          $ref: '#/definitions/competencyDTO.Competency'
         type: array
       description:
         type: string
@@ -309,36 +309,6 @@ definitions:
       weight:
         type: integer
     type: object
-  competencyDTO.CompetencyWithMappedCompetencies:
-    properties:
-      categoryID:
-        type: string
-      description:
-        type: string
-      descriptionBad:
-        type: string
-      descriptionGood:
-        type: string
-      descriptionOk:
-        type: string
-      descriptionVeryBad:
-        type: string
-      descriptionVeryGood:
-        type: string
-      id:
-        type: string
-      mappedFromCompetencies:
-        description: List of competency IDs that map to this competency
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-      shortName:
-        type: string
-      weight:
-        type: integer
-    type: object
   competencyDTO.CreateCompetencyRequest:
     properties:
       categoryID:
@@ -384,13 +354,6 @@ definitions:
         type: string
       weight:
         type: integer
-    type: object
-  competencyMapDTO.CompetencyMapping:
-    properties:
-      fromCompetencyId:
-        type: string
-      toCompetencyId:
-        type: string
     type: object
   coursePhaseConfigDTO.AssessmentParticipationWithStudent:
     properties:
@@ -1610,230 +1573,6 @@ paths:
       summary: Create competency
       tags:
       - competencies
-  /course_phase/{coursePhaseID}/competency-mappings:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a mapping between competencies.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Competency mapping payload
-        in: body
-        name: mapping
-        required: true
-        schema:
-          $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete competency mapping
-      tags:
-      - competency_mappings
-    get:
-      description: List all competency mappings.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List competency mappings
-      tags:
-      - competency_mappings
-    post:
-      consumes:
-      - application/json
-      description: Create a mapping between competencies.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Competency mapping payload
-        in: body
-        name: mapping
-        required: true
-        schema:
-          $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create competency mapping
-      tags:
-      - competency_mappings
-  /course_phase/{coursePhaseID}/competency-mappings/evaluations/{fromCompetencyID}:
-    get:
-      description: List evaluations using the mapped competency relationships.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Source competency ID
-        in: path
-        name: fromCompetencyID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              additionalProperties: true
-              type: object
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List evaluations by mapped competency
-      tags:
-      - competency_mappings
-  /course_phase/{coursePhaseID}/competency-mappings/from/{fromCompetencyID}:
-    get:
-      description: List mappings from the given competency.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Source competency ID
-        in: path
-        name: fromCompetencyID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List mappings from a competency
-      tags:
-      - competency_mappings
-  /course_phase/{coursePhaseID}/competency-mappings/to/{toCompetencyID}:
-    get:
-      description: List mappings to the given competency.
-      parameters:
-      - description: Course phase ID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Target competency ID
-        in: path
-        name: toCompetencyID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/competencyMapDTO.CompetencyMapping'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List mappings to a competency
-      tags:
-      - competency_mappings
   /course_phase/{coursePhaseID}/competency/{competencyID}:
     delete:
       description: Delete a competency.
@@ -2949,6 +2688,82 @@ paths:
               type: string
             type: object
       summary: List my evaluations
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}:
+    get:
+      description: List peer evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List peer evaluations for participant in phase
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID}:
+    get:
+      description: List self evaluations for a course participation in a course phase.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participation ID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/evaluationDTO.Evaluation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List self evaluations for participant in phase
       tags:
       - evaluations
   /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID}:

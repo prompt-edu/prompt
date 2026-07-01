@@ -130,6 +130,7 @@ export function TutorImportDialog() {
       FirstName: s.firstName,
       LastName: s.lastName,
       TeamID: tutorTeamAssignments[s.id!] || '',
+      UniversityLogin: s.universityLogin ?? '',
     }))
 
     const allAssigned = studentsAsTutors.every((t) => t.TeamID !== '')

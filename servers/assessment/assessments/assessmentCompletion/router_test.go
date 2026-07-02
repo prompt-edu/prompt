@@ -20,6 +20,7 @@ import (
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
 type AssessmentCompletionRouterTestSuite struct {
@@ -73,10 +74,20 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentInvalidJSON(
 
 func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompletedReturnsError() {
 	// Use the course phase ID from test data to ensure there are competencies,
-	// but use a random participant ID to ensure there are remaining assessments (no assessments for this participant)
+	// but use a random participant ID with no assessments so remaining assessments exist.
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New() // Random participant ID - no assessments for this participant
-	// minimal JSON to bind
+
+	// Seed an incomplete completion so the mark-complete guard reaches the remaining-assessments check.
+	err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+		CoursePhaseID:         phaseID,
+		CourseParticipationID: partID,
+		Author:                "tester",
+		GradeSuggestion:       utils.MapFloat64ToNumeric(0),
+		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+	})
+	assert.NoError(suite.T(), err)
+
 	payload := dto.AssessmentCompletion{
 		CoursePhaseID:         phaseID,
 		CourseParticipationID: partID,
@@ -88,8 +99,8 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompletedR
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
-	// service returns error when assessments remain (or student doesn't exist)
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+	// Assessments still remain, so marking as completed is rejected.
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TestGetAssessmentCompletionNotFound() {
@@ -225,12 +236,10 @@ func (suite *AssessmentCompletionRouterTestSuite) TestDeleteAssessmentCompletion
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompleteEndpoint() {
-	// Use the course phase ID from test data to ensure there are competencies,
-	// but use a random participant ID to ensure there are remaining assessments
+	// Random participant ID with no completion row yet
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	partID := uuid.New() // Random participant ID - no assessments for this participant
+	partID := uuid.New()
 
-	// Test with valid payload but expect error due to remaining assessments
 	payload := dto.AssessmentCompletion{
 		CoursePhaseID:         phaseID,
 		CourseParticipationID: partID,
@@ -244,8 +253,8 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompleteEn
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
-	// Should return error because there are remaining assessments for the student
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+	// No completion exists to mark as completed
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompleteInvalidJSON() {
@@ -331,17 +340,16 @@ func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentAsComplete
 	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	partID := uuid.New()
 
-	// First create an assessment completion to unmark
-	payload := dto.AssessmentCompletion{
+	// Seed a completed completion directly (the service refuses to complete while assessments remain)
+	err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
 		CoursePhaseID:         phaseID,
 		CourseParticipationID: partID,
 		Author:                "Test Author",
 		Comment:               "Test comment",
-		GradeSuggestion:       4.0,
+		GradeSuggestion:       utils.MapFloat64ToNumeric(4.0),
 		Completed:             true,
 		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
-	}
-	err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, payload)
+	})
 	assert.NoError(suite.T(), err)
 
 	// Test PUT /unmark endpoint
@@ -395,7 +403,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCo
 		Author:                "Test Author",
 		Comment:               "Test comment",
 		GradeSuggestion:       4.0,
-		Completed:             true,
+		Completed:             false,
 		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
 	}
 	body, _ := json.Marshal(payload)
@@ -417,10 +425,9 @@ func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCo
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompleteResponseFormat() {
-	// Use the course phase ID from test data to ensure there are competencies,
-	// but use a random participant ID to ensure there are remaining assessments
+	// Random participant ID with no completion row yet
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	partID := uuid.New() // Random participant ID - no assessments for this participant
+	partID := uuid.New()
 
 	payload := dto.AssessmentCompletion{
 		CoursePhaseID:         phaseID,
@@ -435,8 +442,8 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompleteRe
 	resp := httptest.NewRecorder()
 
 	suite.router.ServeHTTP(resp, req)
-	// Should return error because there are remaining assessments but verify format
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+	// No completion exists to mark as completed, but verify the error response format
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 
 	// Verify error response format
 	var response map[string]interface{}

@@ -73,12 +73,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-  generate-api-spec:
-    needs: detect-changes
-    uses: ./.github/workflows/generate-api-spec.yml
-    secrets: inherit
-    with:
-      directories: ${{ needs.detect-changes.outputs.api_spec_directories }}
   quality-servers:
     needs: detect-changes
     uses: ./.github/workflows/quality-servers.yml

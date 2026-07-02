@@ -24,7 +24,14 @@ type EvaluationCompletionService struct {
 
 var EvaluationCompletionServiceSingleton *EvaluationCompletionService
 
+var ErrInvalidEvaluationType = errors.New("invalid evaluation type")
+var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target its author")
+
 func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	if evaluationType == assessmentType.Self && courseParticipationID != authorCourseParticipationID {
+		return ErrSelfEvaluationTargetMismatch
+	}
+
 	var open bool
 	var err error
 	switch evaluationType {
@@ -35,7 +42,7 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParti
 	case assessmentType.Tutor:
 		open, err = qtx.IsTutorEvaluationOpen(ctx, coursePhaseID)
 	default:
-		open = true
+		return ErrInvalidEvaluationType
 	}
 	if err != nil {
 		log.Error("could not check if evaluation is open: ", err)

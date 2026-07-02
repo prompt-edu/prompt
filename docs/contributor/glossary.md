@@ -45,7 +45,7 @@ See: `servers/core/db/query/course_phase_type.sql`
 
 **Course Phase Graph**
 The directed, linear ordering students follow through a course's phases. Forward-only, no branches or loops.
-See: `servers/core/coursePhaseGraph/`, `servers/core/db/sqlc/models.go`
+See: `servers/core/course/`, `servers/core/db/sqlc/models.go`
 
 **Course Configurator**
 The instructor-facing UI for building the phase graph and configuring data flow between phases.
@@ -53,15 +53,15 @@ See: `clients/core/`
 
 **Course Participation**
 A student's enrollment in a course. Links a Student to a Course at the course level.
-See: `servers/core/courseParticipation/`
+See: `servers/core/course/courseParticipation/`
 
 **Course Phase Participation**
 A student's enrollment record inside one specific phase. Carries the pass status for that phase plus the per-phase metadata payloads.
-See: `servers/core/coursePhaseParticipation/`
+See: `servers/core/coursePhase/coursePhaseParticipation/`
 
 **Pass Status**
 Per-phase outcome enum: `passed`, `failed`, `not_assessed`. Drives student progression to the next phase.
-See: `servers/core/coursePhaseParticipation/`
+See: `servers/core/coursePhase/coursePhaseParticipation/`
 
 **Restricted Data**
 JSON metadata writable by Lecturers and readable only by Lecturers/Editors. Used for confidential per-phase or per-participation state.
@@ -73,11 +73,11 @@ See: `servers/core/coursePhase/coursePhaseDTO/`
 
 **Participation Data Dependency Graph**
 Defines which per-student outputs of one phase become inputs to a later phase (e.g., application scores feeding the matching phase).
-See: `servers/core/coursePhaseGraph/`, `servers/core/db/sqlc/models.go`
+See: `servers/core/course/`, `servers/core/db/sqlc/models.go`
 
 **Phase Data Dependency Graph**
 Same idea as above, but at the phase (aggregate) level rather than per-student.
-See: `servers/core/coursePhaseGraph/`, `servers/core/db/sqlc/models.go`
+See: `servers/core/course/`, `servers/core/db/sqlc/models.go`
 
 **Template**
 A course flagged as `template = true`. Used as a blueprint to clone a fresh course instance with the same phase structure, graphs, and application form.
@@ -99,7 +99,7 @@ See: `docs/contributor/keycloak-dev.md`
 
 **Microfrontend / Module Federation**
 Each course phase ships a client bundle (a Webpack Module Federation remote) that the core client loads dynamically at runtime. The shell hands the remote a context object and embeds the phase UI inline.
-See: `docs/contributor/new_microfrontend.md`, `clients/shared_library/`
+See: `docs/contributor/new_microfrontend.md`, `clients/core/`
 
 **Remote Entry Service**
 The mechanism that resolves a phase type to the URL of its microfrontend bundle, allowing the shell to discover and load phase clients without redeploying.
@@ -116,7 +116,7 @@ Each phase below has a paragraph definition, a short list of key terms, and a "C
 Collects student applications via a configurable form. Outcomes feed the rest of the course.
 
 - Application Form, Application Question, Application Answer, Auto Accept
-- Code: client lives in `clients/shared_library/` (application module shipped from core), server in `servers/core/` (application is part of core)
+- Code: client lives in `clients/core/` (application module shipped from core), server in `servers/core/` (application is part of core)
 
 ### Interview
 
@@ -148,9 +148,9 @@ Student-driven team formation inside a configurable survey window.
 
 ### Assessment
 
-Structured per-student evaluation using a configurable rubric.
+Structured per-student evaluation using a configurable schema.
 
-- Competency, Category, Rubric / Assessment Schema, Score Level (`VeryBad`, `Bad`, `Ok`, `Good`, `VeryGood`), Self-Evaluation, Peer Evaluation
+- Competency, Category, Assessment Schema, Score Level (`VeryBad`, `Bad`, `Ok`, `Good`, `VeryGood`), Self Evaluation, Peer Evaluation, Tutor Evaluation
 - Code: client `clients/assessment_component/`, server `servers/assessment/`
 
 ### Certificate

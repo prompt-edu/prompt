@@ -35,7 +35,7 @@ Developers can find the technical equivalent of this page in the [Contributor Gu
 A class you run for a group of students, like an iOS Practical or a Patterns Seminar. A course has a name, start and end dates, a semester label, and the phases students go through.
 
 **Semester**
-A short label that pins your course to a term, such as `ss25` or `ws24`. You set it once when you create the course and it stays the same afterwards.
+A short label that pins your course to a term, such as `ss25` or `ws24`. You set it once when you create the course and it stays the same afterward.
 
 **Phase**
 A single step in your course - for example, collecting applications, running interviews, or evaluating students at the end. You chain phases together to define the path students take from start to finish.
@@ -124,10 +124,10 @@ Evaluate students against a structured set of criteria at the end of the course.
 
 - **Competency** - a single skill or behavior you are evaluating, such as "code quality" or "communication".
 - **Category** - a group of related competencies that belong together.
-- **Rubric** - the full set of categories and competencies you grade against.
+- **Schema** - the full set of categories and competencies you grade against.
 - **Score Level** - one of the levels a student can receive on a competency, from very bad to very good.
-- **Self-Evaluation** - the student's own grading of their performance.
-- **Peer Evaluation** - a teammate's grading of the student's performance.
+- **Self Evaluation** - the student's own grading of their performance.
+- **Tutor Evaluation** - a student's grading of their tutor's performance.
 
 ### Certificate
 

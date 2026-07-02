@@ -1,25 +1,19 @@
 import { useMemo } from 'react'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-  ChartLegendContent,
-  ChartConfig,
-  useIsMobile,
-} from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
+import { ChartConfig } from '@tumaet/prompt-ui-components'
 import { PreferenceCount, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
-import { createRoundedStackShape } from '../utils/roundedStackShape'
-import { commonWordPrefix, ordinal, truncate } from '../utils/chartFormatters'
+import { commonWordPrefix, ordinal } from '../utils/chartFormatters'
+import { StackedBarChart } from './StackedBarChart'
 
 interface TeamPopularityChartProps {
   data: TeamPopularityStats[]
 }
 
+type ChoiceKey = `choice${number}`
+
 interface ChartRow extends TeamPopularityStats {
   displayName: string
   topChoiceTotal: number
-  [key: `choice${number}`]: number
+  [key: ChoiceKey]: number
 }
 
 interface CustomTooltipProps {
@@ -70,18 +64,18 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 }
 
 export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
-  const isMobile = useIsMobile()
-
-  const { choiceKeys, chartConfig, chartData, shapes } = useMemo(() => {
+  const { choiceKeys, seriesColors, chartConfig, chartData } = useMemo(() => {
     const numTeams = data.length
     const numTopChoices = Math.min(MAX_TOP_CHOICES, numTeams)
-    const keys = Array.from({ length: numTopChoices }, (_, i) => `choice${i + 1}` as const)
+    const keys = Array.from({ length: numTopChoices }, (_, i) => `choice${i + 1}` as ChoiceKey)
+
+    const colors = Object.fromEntries(keys.map((key, i) => [key, TOP_CHOICE_COLORS[i]])) as Record<
+      ChoiceKey,
+      string
+    >
 
     const config: ChartConfig = Object.fromEntries(
-      keys.map((key, i) => [
-        key,
-        { label: `${ordinal(i + 1)} choice`, color: TOP_CHOICE_COLORS[i] },
-      ]),
+      keys.map((key, i) => [key, { label: `${ordinal(i + 1)} choice`, color: colors[key] }]),
     )
 
     const sorted = [...data].sort((a, b) => {
@@ -112,68 +106,18 @@ export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
       return row
     })
 
-    const shapeByKey = Object.fromEntries(
-      keys.map((key, i) => [key, createRoundedStackShape(keys, key, TOP_CHOICE_COLORS[i])]),
-    )
-
-    return { choiceKeys: keys, chartConfig: config, chartData: rows, shapes: shapeByKey }
+    return { choiceKeys: keys, seriesColors: colors, chartConfig: config, chartData: rows }
   }, [data])
 
   return (
-    <ChartContainer config={chartConfig} className='mx-auto w-full h-[320px]'>
-      <BarChart data={chartData} margin={{ top: 25, right: 10, bottom: 0, left: 10 }}>
-        <CartesianGrid
-          horizontal={true}
-          vertical={false}
-          strokeDasharray='5 5'
-          stroke='#e5e7eb'
-          opacity={1}
-        />
-        <XAxis
-          dataKey='displayName'
-          axisLine={false}
-          tickLine={false}
-          tick={isMobile ? { fontSize: 10, angle: -30, textAnchor: 'end' } : { fontSize: 12 }}
-          tickFormatter={(value: string) => truncate(value, isMobile ? 10 : 12)}
-          interval={0}
-          height={isMobile ? 60 : 50}
-        />
-        <YAxis
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 12, fill: '#a3a3a3' }}
-          allowDecimals={false}
-          width={isMobile ? 30 : 60}
-        >
-          {!isMobile && <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />}
-        </YAxis>
-        <ChartTooltip cursor={false} content={<CustomTooltip />} />
-        <ChartLegend
-          content={<ChartLegendContent />}
-          itemSorter={(item) =>
-            choiceKeys.indexOf(String(item.dataKey) as (typeof choiceKeys)[number])
-          }
-        />
-        {choiceKeys.map((key, index) => (
-          <Bar
-            key={key}
-            dataKey={key}
-            stackId='choices'
-            fill={TOP_CHOICE_COLORS[index]}
-            shape={shapes[key]}
-          >
-            {index === choiceKeys.length - 1 && (
-              <LabelList
-                dataKey='topChoiceTotal'
-                position='top'
-                offset={8}
-                className='fill-foreground'
-                fontSize={12}
-              />
-            )}
-          </Bar>
-        ))}
-      </BarChart>
-    </ChartContainer>
+    <StackedBarChart
+      data={chartData}
+      xKey='displayName'
+      seriesKeys={choiceKeys}
+      seriesColors={seriesColors}
+      chartConfig={chartConfig}
+      totalKey='topChoiceTotal'
+      tooltip={<CustomTooltip />}
+    />
   )
 }

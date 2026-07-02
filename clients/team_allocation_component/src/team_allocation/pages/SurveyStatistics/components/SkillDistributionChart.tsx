@@ -1,20 +1,11 @@
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartLegend,
-  ChartLegendContent,
-  ChartConfig,
-  useIsMobile,
-} from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
+import { ChartConfig } from '@tumaet/prompt-ui-components'
 import { SkillDistributionStats } from '../../../interfaces/surveyStatistics'
 import {
   SkillLevel,
   SKILL_LEVEL_LABELS,
   SKILL_LEVEL_ORDER,
 } from '../../../interfaces/skillResponse'
-import { createRoundedStackShape } from '../utils/roundedStackShape'
-import { truncate } from '../utils/chartFormatters'
+import { StackedBarChart } from './StackedBarChart'
 
 interface SkillDistributionChartProps {
   data: SkillDistributionStats[]
@@ -34,7 +25,7 @@ interface CustomTooltipProps {
 
 const SKILL_LEVELS: SkillLevelValue[] = SKILL_LEVEL_ORDER
 
-const SKILL_LEVEL_COLORS: Record<SkillLevel, string> = {
+const SKILL_LEVEL_COLORS: Record<SkillLevelValue, string> = {
   [SkillLevel.VERY_BAD]: '#fca5a5',
   [SkillLevel.BAD]: '#fdba74',
   [SkillLevel.OK]: '#fde68a',
@@ -46,13 +37,6 @@ const chartConfig: ChartConfig = Object.fromEntries(
   SKILL_LEVELS.map((level) => [
     level,
     { label: SKILL_LEVEL_LABELS[level], color: SKILL_LEVEL_COLORS[level] },
-  ]),
-)
-
-const SKILL_LEVEL_SHAPES = Object.fromEntries(
-  SKILL_LEVELS.map((level) => [
-    level,
-    createRoundedStackShape(SKILL_LEVELS, level, SKILL_LEVEL_COLORS[level]),
   ]),
 )
 
@@ -90,8 +74,6 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 }
 
 export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) => {
-  const isMobile = useIsMobile()
-
   const chartData: SkillChartRow[] = data.map((skill) => {
     const levelCounts = Object.fromEntries(
       SKILL_LEVELS.map((level) => [level, skill.levelCounts[level] ?? 0]),
@@ -104,58 +86,14 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
   })
 
   return (
-    <ChartContainer config={chartConfig} className='mx-auto w-full h-[320px]'>
-      <BarChart data={chartData} margin={{ top: 30, right: 10, bottom: 0, left: 10 }}>
-        <CartesianGrid
-          horizontal={true}
-          vertical={false}
-          strokeDasharray='5 5'
-          stroke='#e5e7eb'
-          opacity={1}
-        />
-        <XAxis
-          dataKey='dataKey'
-          axisLine={false}
-          tickLine={false}
-          tick={isMobile ? { fontSize: 10, angle: -30, textAnchor: 'end' } : { fontSize: 12 }}
-          tickFormatter={(value: string) => truncate(value, isMobile ? 10 : 12)}
-          interval={0}
-          height={isMobile ? 60 : 50}
-        />
-        <YAxis
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 12, fill: '#a3a3a3' }}
-          allowDecimals={false}
-          width={isMobile ? 30 : 60}
-        >
-          {!isMobile && <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />}
-        </YAxis>
-        <ChartTooltip cursor={false} content={<CustomTooltip />} />
-        <ChartLegend
-          content={<ChartLegendContent />}
-          itemSorter={(item) => SKILL_LEVELS.indexOf(String(item.dataKey) as SkillLevelValue)}
-        />
-        {SKILL_LEVELS.map((level, index) => (
-          <Bar
-            key={level}
-            dataKey={level}
-            stackId='levels'
-            fill={SKILL_LEVEL_COLORS[level]}
-            shape={SKILL_LEVEL_SHAPES[level]}
-          >
-            {index === SKILL_LEVELS.length - 1 && (
-              <LabelList
-                dataKey='total'
-                position='top'
-                offset={10}
-                className='fill-foreground'
-                fontSize={12}
-              />
-            )}
-          </Bar>
-        ))}
-      </BarChart>
-    </ChartContainer>
+    <StackedBarChart
+      data={chartData}
+      xKey='dataKey'
+      seriesKeys={SKILL_LEVELS}
+      seriesColors={SKILL_LEVEL_COLORS}
+      chartConfig={chartConfig}
+      totalKey='total'
+      tooltip={<CustomTooltip />}
+    />
   )
 }

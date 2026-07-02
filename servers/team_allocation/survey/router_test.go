@@ -107,6 +107,10 @@ func (suite *SurveyRouterTestSuite) TestSubmitSurveyResponse() {
 				TeamID:     uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
 				Preference: 5,
 			},
+			{
+				TeamID:     uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff"),
+				Preference: 6,
+			},
 		},
 		SkillResponses: []surveyDTO.StudentSkillResponse{
 			{
@@ -192,13 +196,20 @@ func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsWhileSurveyOpen() {
 	err := json.Unmarshal(resp.Body.Bytes(), &stats)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int64(6), stats.RespondentCount)
-	assert.Len(suite.T(), stats.TeamPopularityStatistics, 5)
+	assert.Len(suite.T(), stats.TeamPopularityStatistics, 6)
 	assert.NotEmpty(suite.T(), stats.SkillDistributionStatistics)
 
 	mostPopular := stats.TeamPopularityStatistics[0]
 	assert.Equal(suite.T(), "Team Alpha", mostPopular.TeamName)
 	assert.Equal(suite.T(), int64(6), mostPopular.ResponseCount)
 	assert.NotNil(suite.T(), mostPopular.AvgPreference)
+
+	unratedTeam := stats.TeamPopularityStatistics[len(stats.TeamPopularityStatistics)-1]
+	assert.Equal(suite.T(), "Team Zeta", unratedTeam.TeamName)
+	assert.Equal(suite.T(), int64(0), unratedTeam.ResponseCount)
+	assert.Nil(suite.T(), unratedTeam.AvgPreference)
+	assert.NotNil(suite.T(), unratedTeam.PreferenceCounts)
+	assert.Empty(suite.T(), unratedTeam.PreferenceCounts)
 
 	var unratedSkill *surveyDTO.SkillDistributionStats
 	for i := range stats.SkillDistributionStatistics {

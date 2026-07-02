@@ -51,12 +51,16 @@ func GetSurveyStatisticsDTOFromDBModels(
 			v := row.AvgPreference
 			avgPref = &v
 		}
+		prefCounts := prefCountMap[row.TeamID]
+		if prefCounts == nil {
+			prefCounts = []PreferenceCount{}
+		}
 		teamStats = append(teamStats, TeamPopularityStats{
 			TeamID:           row.TeamID,
 			TeamName:         row.TeamName,
 			AvgPreference:    avgPref,
 			ResponseCount:    row.ResponseCount,
-			PreferenceCounts: prefCountMap[row.TeamID],
+			PreferenceCounts: prefCounts,
 		})
 	}
 

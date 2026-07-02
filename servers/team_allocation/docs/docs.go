@@ -1524,6 +1524,9 @@ const docTemplate = `{
         "surveyDTO.SurveyStatistics": {
             "type": "object",
             "properties": {
+                "respondentCount": {
+                    "type": "integer"
+                },
                 "skillDistributionStatistics": {
                     "type": "array",
                     "items": {

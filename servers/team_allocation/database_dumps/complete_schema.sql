@@ -138,6 +138,11 @@ VALUES
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
         'Team Epsilon',
         '4179d58a-d00d-4fa7-94a5-397bc69fab02'
+    ),
+    (
+        'ffffffff-ffff-ffff-ffff-ffffffffffff',
+        'Team Zeta',
+        '4179d58a-d00d-4fa7-94a5-397bc69fab02'
     );
 
 -- Student skill responses for testing

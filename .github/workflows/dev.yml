@@ -85,6 +85,7 @@ jobs:
   quality-clients:
     uses: ./.github/workflows/quality-clients.yml
   e2e-tests:
+    needs: [quality-servers, quality-clients]
     uses: ./.github/workflows/test-e2e.yml
     permissions:
       contents: read

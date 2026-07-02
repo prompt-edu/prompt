@@ -83,17 +83,17 @@ SELECT
     r.skill_level,
     COUNT(r.course_participation_id) AS count
 FROM skill s
-JOIN student_skill_response r ON r.skill_id = s.id
+LEFT JOIN student_skill_response r ON r.skill_id = s.id
 WHERE s.course_phase_id = $1
 GROUP BY s.id, s.name, r.skill_level
 ORDER BY s.name, r.skill_level
 `
 
 type GetSkillDistributionStatisticsRow struct {
-	SkillID    uuid.UUID  `json:"skill_id"`
-	SkillName  string     `json:"skill_name"`
-	SkillLevel SkillLevel `json:"skill_level"`
-	Count      int64      `json:"count"`
+	SkillID    uuid.UUID      `json:"skill_id"`
+	SkillName  string         `json:"skill_name"`
+	SkillLevel NullSkillLevel `json:"skill_level"`
+	Count      int64          `json:"count"`
 }
 
 func (q *Queries) GetSkillDistributionStatistics(ctx context.Context, coursePhaseID uuid.UUID) ([]GetSkillDistributionStatisticsRow, error) {

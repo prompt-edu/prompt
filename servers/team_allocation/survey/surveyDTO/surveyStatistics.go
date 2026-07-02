@@ -71,7 +71,9 @@ func GetSurveyStatisticsDTOFromDBModels(
 			}
 			skillOrder = append(skillOrder, row.SkillID)
 		}
-		skillMap[row.SkillID].LevelCounts[row.SkillLevel] = row.Count
+		if row.SkillLevel.Valid {
+			skillMap[row.SkillID].LevelCounts[row.SkillLevel.SkillLevel] = row.Count
+		}
 	}
 
 	skillStats := make([]SkillDistributionStats, 0, len(skillOrder))

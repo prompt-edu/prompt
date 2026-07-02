@@ -5,10 +5,11 @@ type CornerRadius = [number, number, number, number]
 const RADIUS = 4
 
 const getCornerRadius = (
-  payload: Record<string, number>,
+  payload: Record<string, number> | undefined,
   stackOrder: readonly string[],
   segmentKey: string,
 ): CornerRadius => {
+  if (!payload) return [0, 0, 0, 0]
   const activeSegments = stackOrder.filter((key) => (payload[key] ?? 0) > 0)
   const idx = activeSegments.indexOf(segmentKey)
   if (idx === -1) return [0, 0, 0, 0]
@@ -24,7 +25,11 @@ export const createRoundedStackShape = (
 ) => {
   const Shape = (props: BarShapeProps) => {
     const { x, y, width, height, payload } = props
-    const radius = getCornerRadius(payload as Record<string, number>, stackOrder, segmentKey)
+    const radius = getCornerRadius(
+      payload as Record<string, number> | undefined,
+      stackOrder,
+      segmentKey,
+    )
     return <Rectangle x={x} y={y} width={width} height={height} radius={radius} fill={fill} />
   }
   Shape.displayName = `RoundedStackShape(${segmentKey})`

@@ -125,6 +125,10 @@ func (suite *SurveyRouterTestSuite) TestSubmitSurveyResponse() {
 				SkillID:    uuid.MustParse("44444444-4444-4444-4444-444444444444"),
 				SkillLevel: db.SkillLevelVeryGood,
 			},
+			{
+				SkillID:    uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+				SkillLevel: db.SkillLevelOk,
+			},
 		},
 	}
 
@@ -195,6 +199,15 @@ func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsWhileSurveyOpen() {
 	assert.Equal(suite.T(), "Team Alpha", mostPopular.TeamName)
 	assert.Equal(suite.T(), int64(6), mostPopular.ResponseCount)
 	assert.NotNil(suite.T(), mostPopular.AvgPreference)
+
+	var unratedSkill *surveyDTO.SkillDistributionStats
+	for i := range stats.SkillDistributionStatistics {
+		if stats.SkillDistributionStatistics[i].SkillName == "Kotlin" {
+			unratedSkill = &stats.SkillDistributionStatistics[i]
+		}
+	}
+	assert.NotNil(suite.T(), unratedSkill, "skills without responses should still be listed")
+	assert.Empty(suite.T(), unratedSkill.LevelCounts)
 }
 
 func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsEmptyPhase() {

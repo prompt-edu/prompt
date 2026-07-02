@@ -5909,9 +5909,6 @@ const docTemplate = `{
         },
         "keycloakCoreRequests.SubjectIdentifiers": {
             "type": "object",
-            "required": [
-                "userID"
-            ],
             "properties": {
                 "courseParticipationIDs": {
                     "description": "CourseParticipationIDs lists the IDs of all course participations belonging to the student.\nOnly populated for student subjects — empty for platform users.",
@@ -5925,7 +5922,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userID": {
-                    "description": "UserID is the platform-wide unique identifier of the user account.\nAlways present regardless of subject type.",
+                    "description": "UserID is the platform-wide unique identifier of the user account.\nuuid.Nil indicates a student without a Keycloak account; downstream services\nshould skip user-account-scoped operations in that case.",
                     "type": "string"
                 }
             }

@@ -19,6 +19,7 @@ import { Role } from '@tumaet/prompt-shared-state'
 import { env } from '@tumaet/prompt-shared-state'
 import { parseURL } from './utils/parseURL'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
+import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
 import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPage'
 import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPage'
@@ -187,6 +188,18 @@ export const App = () => {
                     requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
                   >
                     <CourseSettingsPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/user-management'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
+                  >
+                    <CourseUserManagementPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

@@ -220,7 +220,6 @@ func getSurveyTimeframe(c *gin.Context) {
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Success 200 {object} surveyDTO.SurveyStatistics
 // @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/survey/statistics [get]
@@ -234,10 +233,6 @@ func getSurveyStatistics(c *gin.Context) {
 
 	statistics, err := GetSurveyStatistics(c, coursePhaseID)
 	if err != nil {
-		if errors.Is(err, ErrStatisticsNotAvailable) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

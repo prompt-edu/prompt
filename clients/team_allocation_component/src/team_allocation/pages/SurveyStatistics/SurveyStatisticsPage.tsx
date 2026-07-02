@@ -2,6 +2,9 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Card,
   CardContent,
   CardDescription,
@@ -11,16 +14,15 @@ import {
   ManagementPageHeader,
   Skeleton,
 } from '@tumaet/prompt-ui-components'
-import { AxiosError } from 'axios'
+import dayjs from 'dayjs'
 import { BarChart3, Clock, Star } from 'lucide-react'
 import { getSurveyStatistics } from '../../network/queries/getSurveyStatistics'
+import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { SurveyStatistics } from '../../interfaces/surveyStatistics'
+import { SurveyTimeframe } from '../../interfaces/timeframe'
 import { TeamPopularityChart } from './components/TeamPopularityChart'
 import { SkillDistributionChart } from './components/SkillDistributionChart'
 import { SurveySummaryCards } from './components/SurveySummaryCards'
-
-const isSurveyStillOpenError = (error: unknown): boolean =>
-  error instanceof AxiosError && error.response?.status === 409
 
 const StatisticsSkeleton = () => (
   <>
@@ -41,7 +43,6 @@ export const SurveyStatisticsPage = () => {
     data: statistics,
     isPending,
     isError,
-    error,
   } = useQuery<SurveyStatistics>({
     queryKey: ['team_allocation_survey_statistics', phaseId],
     queryFn: () => getSurveyStatistics(phaseId!),
@@ -50,34 +51,18 @@ export const SurveyStatisticsPage = () => {
 
   const { data: participations } = useGetCoursePhaseParticipants()
 
-  if (isError && isSurveyStillOpenError(error)) {
-    return (
-      <div className='flex flex-col gap-6'>
-        <ManagementPageHeader>Survey Statistics</ManagementPageHeader>
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex items-center gap-2'>
-              <Clock className='h-5 w-5' />
-              Statistics Not Yet Available
-            </CardTitle>
-            <CardDescription>
-              Survey statistics will be available once the survey deadline has passed.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className='text-sm text-muted-foreground'>
-              Please check back after the survey closes to view team popularity and skill
-              distribution data.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  const { data: timeframe } = useQuery<SurveyTimeframe>({
+    queryKey: ['team_allocation_survey_timeframe', phaseId],
+    queryFn: () => getSurveyTimeframe(phaseId!),
+    enabled: !!phaseId,
+  })
 
   if (isError) {
     return <ErrorPage />
   }
+
+  const surveyStillOpen =
+    !!timeframe?.timeframeSet && dayjs(timeframe.surveyDeadline).isAfter(dayjs())
 
   const hasTeamData = (statistics?.teamPopularityStatistics ?? []).length > 0
   const hasSkillData = (statistics?.skillDistributionStatistics ?? []).length > 0
@@ -90,6 +75,18 @@ export const SurveyStatisticsPage = () => {
         <StatisticsSkeleton />
       ) : (
         <>
+          {surveyStillOpen && (
+            <Alert>
+              <Clock className='h-4 w-4' />
+              <AlertTitle>Survey still open</AlertTitle>
+              <AlertDescription>
+                Students can respond until{' '}
+                {dayjs(timeframe.surveyDeadline).format('MMM D, YYYY [at] h:mm A')} — these results
+                are live and will change as more responses come in.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <SurveySummaryCards
             statistics={statistics}
             participantCount={participations?.participations?.length}
@@ -103,7 +100,7 @@ export const SurveyStatisticsPage = () => {
               </CardTitle>
               <CardDescription>
                 Number of students who ranked each team as one of their top choices — taller bars
-                mean higher demand. Hover a bar for the full rank breakdown.
+                mean higher demand. Hover or tap a bar for the full rank breakdown.
               </CardDescription>
             </CardHeader>
             <CardContent>

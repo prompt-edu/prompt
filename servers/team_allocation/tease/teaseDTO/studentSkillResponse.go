@@ -21,8 +21,7 @@ func GetTeaseStudentSkillResponseFromDBModel(skillResponses []db.GetStudentSkill
 	return skills
 }
 
-// Maps the 5-level survey scale to TEASE's 4-level proficiency scale.
-// The two lowest levels both collapse to Novice.
+// Tease defines the Skill Levels upper case, while the DB (and Assessment) defines them lower case
 func getTeaseSkillLevel(skillLevel db.SkillLevel) string {
 	switch skillLevel {
 	case db.SkillLevelVeryBad:

@@ -19,13 +19,8 @@ import { TeamPopularityChart } from './components/TeamPopularityChart'
 import { SkillDistributionChart } from './components/SkillDistributionChart'
 import { SurveySummaryCards } from './components/SurveySummaryCards'
 
-const isSurveyStillOpenError = (error: unknown): boolean => {
-  if (error instanceof AxiosError) {
-    const message: string = (error.response?.data as { error?: string })?.error ?? ''
-    return message.includes('not available')
-  }
-  return false
-}
+const isSurveyStillOpenError = (error: unknown): boolean =>
+  error instanceof AxiosError && error.response?.status === 409
 
 const StatisticsSkeleton = () => (
   <>

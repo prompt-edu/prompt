@@ -25,6 +25,12 @@ type SurveyService struct {
 // SurveyServiceSingleton provides a global instance.
 var SurveyServiceSingleton *SurveyService
 
+// ErrStatisticsNotAvailable marks the pre-deadline state so the router can
+// return a conflict status instead of a server error.
+var ErrStatisticsNotAvailable = errors.New(
+	"survey statistics are not available until the survey deadline has passed",
+)
+
 // GetSurveyForm returns available teams and skills if the survey has started.
 func GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyForm, error) {
 	// Get survey timeframe
@@ -173,12 +179,15 @@ func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStar
 // Statistics are only available after the survey deadline has passed.
 func GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyStatistics, error) {
 	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return surveyDTO.SurveyStatistics{}, ErrStatisticsNotAvailable
+	}
 	if err != nil {
 		log.Error("could not get survey timeframe for statistics: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not get survey timeframe")
 	}
 	if time.Now().Before(timeframe.SurveyDeadline.Time) {
-		return surveyDTO.SurveyStatistics{}, errors.New("survey statistics are not available until the survey deadline has passed")
+		return surveyDTO.SurveyStatistics{}, ErrStatisticsNotAvailable
 	}
 
 	teamRows, err := SurveyServiceSingleton.queries.GetTeamPopularityStatistics(ctx, coursePhaseID)
@@ -196,7 +205,12 @@ func GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDT
 		log.Error("could not get skill distribution statistics: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not get skill distribution statistics")
 	}
-	return surveyDTO.GetSurveyStatisticsDTOFromDBModels(teamRows, teamCountRows, skillRows), nil
+	respondentCount, err := SurveyServiceSingleton.queries.CountSurveyRespondents(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not count survey respondents: ", err)
+		return surveyDTO.SurveyStatistics{}, errors.New("could not count survey respondents")
+	}
+	return surveyDTO.GetSurveyStatisticsDTOFromDBModels(respondentCount, teamRows, teamCountRows, skillRows), nil
 }
 
 func GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error) {

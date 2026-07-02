@@ -19,7 +19,7 @@ const formatTeamSummary = (team: TeamPopularityStats): string => {
 export const SurveySummaryCards = ({ statistics, participantCount }: SurveySummaryCardsProps) => {
   const teamStats = statistics.teamPopularityStatistics
 
-  const respondentCount = teamStats.reduce((max, team) => Math.max(max, team.responseCount), 0)
+  const respondentCount = statistics.respondentCount
   const responseRate =
     participantCount && participantCount > 0
       ? Math.min(100, Math.round((respondentCount / participantCount) * 100))

@@ -1,4 +1,4 @@
-export type SkillLevel = 'very_bad' | 'bad' | 'ok' | 'good' | 'very_good'
+import { SkillLevel } from './skillResponse'
 
 export interface PreferenceCount {
   rank: number
@@ -8,7 +8,7 @@ export interface PreferenceCount {
 export interface TeamPopularityStats {
   teamId: string
   teamName: string
-  avgPreference: number | null // null when no responses yet
+  avgPreference: number | null
   responseCount: number
   preferenceCounts: PreferenceCount[]
 }
@@ -20,6 +20,7 @@ export interface SkillDistributionStats {
 }
 
 export interface SurveyStatistics {
+  respondentCount: number
   teamPopularityStatistics: TeamPopularityStats[]
   skillDistributionStatistics: SkillDistributionStats[]
 }

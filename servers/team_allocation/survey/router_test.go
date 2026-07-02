@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
@@ -174,6 +175,64 @@ func (suite *SurveyRouterTestSuite) TestSetSurveyTimeframe() {
 	localRouter.ServeHTTP(resp, req)
 
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsBeforeDeadline() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/4179d58a-d00d-4fa7-94a5-397bc69fab02/survey/statistics", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+}
+
+func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsWithoutTimeframe() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+uuid.NewString()+"/survey/statistics", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+}
+
+func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsAfterDeadline() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	original, err := suite.surveyService.queries.GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+
+	err = suite.surveyService.queries.SetSurveyTimeframe(suite.suiteCtx, db.SetSurveyTimeframeParams{
+		CoursePhaseID:  coursePhaseID,
+		SurveyStart:    original.SurveyStart,
+		SurveyDeadline: pgtype.Timestamp{Time: time.Now().Add(-24 * time.Hour), Valid: true},
+	})
+	assert.NoError(suite.T(), err)
+	defer func() {
+		err := suite.surveyService.queries.SetSurveyTimeframe(suite.suiteCtx, db.SetSurveyTimeframeParams{
+			CoursePhaseID:  coursePhaseID,
+			SurveyStart:    original.SurveyStart,
+			SurveyDeadline: original.SurveyDeadline,
+		})
+		assert.NoError(suite.T(), err)
+	}()
+
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID.String()+"/survey/statistics", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var stats surveyDTO.SurveyStatistics
+	err = json.Unmarshal(resp.Body.Bytes(), &stats)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(6), stats.RespondentCount)
+	assert.Len(suite.T(), stats.TeamPopularityStatistics, 5)
+	assert.NotEmpty(suite.T(), stats.SkillDistributionStatistics)
+
+	mostPopular := stats.TeamPopularityStatistics[0]
+	assert.Equal(suite.T(), "Team Alpha", mostPopular.TeamName)
+	assert.Equal(suite.T(), int64(6), mostPopular.ResponseCount)
+	assert.NotNil(suite.T(), mostPopular.AvgPreference)
 }
 
 func TestSurveyRouterTestSuite(t *testing.T) {

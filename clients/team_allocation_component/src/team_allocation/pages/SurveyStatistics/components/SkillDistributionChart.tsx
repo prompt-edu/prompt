@@ -6,7 +6,12 @@ import {
   ChartConfig,
 } from '@tumaet/prompt-ui-components'
 import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
-import { SkillDistributionStats, SkillLevel } from '../../../interfaces/surveyStatistics'
+import { SkillDistributionStats } from '../../../interfaces/surveyStatistics'
+import {
+  SkillLevel,
+  SKILL_LEVEL_LABELS,
+  SKILL_LEVEL_ORDER,
+} from '../../../interfaces/skillResponse'
 import { createRoundedStackShape } from '../utils/roundedStackShape'
 import { truncate } from '../utils/chartFormatters'
 
@@ -14,7 +19,9 @@ interface SkillDistributionChartProps {
   data: SkillDistributionStats[]
 }
 
-interface SkillChartRow extends Record<SkillLevel, number> {
+type SkillLevelValue = `${SkillLevel}`
+
+interface SkillChartRow extends Record<SkillLevelValue, number> {
   dataKey: string
   total: number
 }
@@ -24,29 +31,27 @@ interface CustomTooltipProps {
   payload?: { payload: SkillChartRow }[]
 }
 
-const SKILL_LEVEL_ORDER: SkillLevel[] = ['very_bad', 'bad', 'ok', 'good', 'very_good']
+const SKILL_LEVELS: SkillLevelValue[] = SKILL_LEVEL_ORDER
 
-// Exact same colors as the assessment component's chartConfig
 const SKILL_LEVEL_COLORS: Record<SkillLevel, string> = {
-  very_bad: '#fca5a5', // red-300
-  bad: '#fdba74', // orange-300
-  ok: '#fde68a', // amber-200
-  good: '#86efac', // green-300
-  very_good: '#93c5fd', // blue-300
-}
-
-const SKILL_LEVEL_LABELS: Record<SkillLevel, string> = {
-  very_bad: 'Very Bad',
-  bad: 'Bad',
-  ok: 'Ok',
-  good: 'Good',
-  very_good: 'Very Good',
+  [SkillLevel.VERY_BAD]: '#fca5a5',
+  [SkillLevel.BAD]: '#fdba74',
+  [SkillLevel.OK]: '#fde68a',
+  [SkillLevel.GOOD]: '#86efac',
+  [SkillLevel.VERY_GOOD]: '#93c5fd',
 }
 
 const chartConfig: ChartConfig = Object.fromEntries(
-  SKILL_LEVEL_ORDER.map((level) => [
+  SKILL_LEVELS.map((level) => [
     level,
     { label: SKILL_LEVEL_LABELS[level], color: SKILL_LEVEL_COLORS[level] },
+  ]),
+)
+
+const SKILL_LEVEL_SHAPES = Object.fromEntries(
+  SKILL_LEVELS.map((level) => [
+    level,
+    createRoundedStackShape(SKILL_LEVELS, level, SKILL_LEVEL_COLORS[level]),
   ]),
 )
 
@@ -57,7 +62,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     <div className='rounded-lg border bg-background px-3 py-2 text-sm shadow-md'>
       <p className='font-medium mb-1'>{row.dataKey}</p>
       <div className='flex flex-col gap-0.5'>
-        {SKILL_LEVEL_ORDER.map((level) => {
+        {SKILL_LEVELS.map((level) => {
           const count = row[level]
           const percentage = row.total > 0 ? Math.round((count / row.total) * 100) : 0
           return (
@@ -86,12 +91,12 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) => {
   const chartData: SkillChartRow[] = data.map((skill) => {
     const levelCounts = Object.fromEntries(
-      SKILL_LEVEL_ORDER.map((level) => [level, skill.levelCounts[level] ?? 0]),
+      SKILL_LEVELS.map((level) => [level, skill.levelCounts[level] ?? 0]),
     ) as Record<SkillLevel, number>
     return {
       ...levelCounts,
       dataKey: skill.skillName,
-      total: SKILL_LEVEL_ORDER.reduce((sum, level) => sum + levelCounts[level], 0),
+      total: SKILL_LEVELS.reduce((sum, level) => sum + levelCounts[level], 0),
     }
   })
 
@@ -110,7 +115,7 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12 }}
-          tickFormatter={truncate}
+          tickFormatter={(value: string) => truncate(value)}
           interval={0}
           height={50}
         />
@@ -124,15 +129,15 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
         </YAxis>
         <ChartTooltip cursor={false} content={<CustomTooltip />} />
         <ChartLegend content={<ChartLegendContent />} />
-        {SKILL_LEVEL_ORDER.map((level, index) => (
+        {SKILL_LEVELS.map((level, index) => (
           <Bar
             key={level}
             dataKey={level}
             stackId='levels'
             fill={SKILL_LEVEL_COLORS[level]}
-            shape={createRoundedStackShape(SKILL_LEVEL_ORDER, level, SKILL_LEVEL_COLORS[level])}
+            shape={SKILL_LEVEL_SHAPES[level]}
           >
-            {index === SKILL_LEVEL_ORDER.length - 1 && (
+            {index === SKILL_LEVELS.length - 1 && (
               <LabelList
                 dataKey='total'
                 position='top'

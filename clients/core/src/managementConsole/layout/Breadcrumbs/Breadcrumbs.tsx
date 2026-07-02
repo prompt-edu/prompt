@@ -23,8 +23,6 @@ const capitalizeFirstLetter = (string: string) => {
 
 const SEGMENT_LABELS: Record<string, string> = {
   'tease-config': 'TEASE Configuration',
-  statistics: 'Survey Statistics',
-  settings: 'Settings',
 }
 
 const segmentLabel = (segment: string) => SEGMENT_LABELS[segment] ?? capitalizeFirstLetter(segment)

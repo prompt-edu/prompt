@@ -1114,6 +1114,17 @@ definitions:
           type: string
         type: array
     type: object
+  keycloakRealmDTO.CourseStaff:
+    properties:
+      editors:
+        items:
+          $ref: '#/definitions/keycloakRealmDTO.StaffMember'
+        type: array
+      lecturers:
+        items:
+          $ref: '#/definitions/keycloakRealmDTO.StaffMember'
+        type: array
+    type: object
   keycloakRealmDTO.CreateGroup:
     properties:
       groupName:
@@ -1130,6 +1141,15 @@ definitions:
           $ref: '#/definitions/studentDTO.Student'
         type: array
     type: object
+  keycloakRealmDTO.KeycloakStatus:
+    properties:
+      capabilities:
+        additionalProperties:
+          type: boolean
+        type: object
+      healthy:
+        type: boolean
+    type: object
   keycloakRealmDTO.KeycloakUser:
     properties:
       email:
@@ -1140,6 +1160,28 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  keycloakRealmDTO.StaffMember:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      keycloakUserID:
+        type: string
+      lastName:
+        type: string
+      username:
+        type: string
+    type: object
+  keycloakRealmDTO.UserSearchResults:
+    properties:
+      results:
+        items:
+          $ref: '#/definitions/keycloakRealmDTO.StaffMember'
+        type: array
+      truncated:
+        type: boolean
     type: object
   mailingDTO.MailingReport:
     properties:
@@ -3600,6 +3642,77 @@ paths:
       summary: Create a custom group
       tags:
       - keycloak
+  /keycloak/{courseID}/group/{groupName}/members/{userID}:
+    delete:
+      parameters:
+      - description: Course UUID
+        in: path
+        name: courseID
+        required: true
+        type: string
+      - description: Group name (Lecturer or Editor)
+        in: path
+        name: groupName
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Remove a Keycloak user from the Lecturer or Editor group of a course
+      tags:
+      - keycloak
+    put:
+      parameters:
+      - description: Course UUID
+        in: path
+        name: courseID
+        required: true
+        type: string
+      - description: Group name (Lecturer or Editor)
+        in: path
+        name: groupName
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Add a Keycloak user to the Lecturer or Editor group of a course
+      tags:
+      - keycloak
   /keycloak/{courseID}/group/{groupName}/students:
     get:
       description: Get all students in a specific group for a course
@@ -3706,6 +3819,74 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Add students to the editor group
+      tags:
+      - keycloak
+  /keycloak/{courseID}/group/staff:
+    get:
+      parameters:
+      - description: Course UUID
+        in: path
+        name: courseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/keycloakRealmDTO.CourseStaff'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get the staff (Lecturers and Editors) of a course
+      tags:
+      - keycloak
+  /keycloak/status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/keycloakRealmDTO.KeycloakStatus'
+      summary: Probe the Keycloak service-account configuration
+      tags:
+      - keycloak
+  /keycloak/users/search:
+    get:
+      parameters:
+      - description: Search query (>=2 characters)
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Max results (default 20, max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/keycloakRealmDTO.UserSearchResults'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Search Keycloak users by name, email, or username
       tags:
       - keycloak
   /mailing/{coursePhaseID}:

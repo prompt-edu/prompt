@@ -74,18 +74,18 @@ jobs:
   test-servers:
     needs: quality-servers
     uses: ./.github/workflows/test-servers.yml
-    secrets: inherit
   build-servers:
-    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
-    needs: test-servers
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'skipped') }}
+    needs:
+      - generate-api-spec
+      - quality-servers
+      - test-servers
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
   quality-clients:
     uses: ./.github/workflows/quality-clients.yml
-    secrets: inherit
   e2e-tests:
     uses: ./.github/workflows/test-e2e.yml
-    secrets: inherit
     permissions:
       contents: read
   build-clients:

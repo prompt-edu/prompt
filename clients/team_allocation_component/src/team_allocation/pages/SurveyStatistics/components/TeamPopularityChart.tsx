@@ -5,17 +5,19 @@ import {
   ChartLegend,
   ChartLegendContent,
   ChartConfig,
+  useIsMobile,
 } from '@tumaet/prompt-ui-components'
 import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
 import { PreferenceCount, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
 import { createRoundedStackShape } from '../utils/roundedStackShape'
-import { ordinal, truncate } from '../utils/chartFormatters'
+import { commonWordPrefix, ordinal, truncate } from '../utils/chartFormatters'
 
 interface TeamPopularityChartProps {
   data: TeamPopularityStats[]
 }
 
 interface ChartRow extends TeamPopularityStats {
+  displayName: string
   topChoiceTotal: number
   [key: `choice${number}`]: number
 }
@@ -68,6 +70,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 }
 
 export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
+  const isMobile = useIsMobile()
+
   const { choiceKeys, chartConfig, chartData, shapes } = useMemo(() => {
     const numTeams = data.length
     const numTopChoices = Math.min(MAX_TOP_CHOICES, numTeams)
@@ -87,6 +91,8 @@ export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
       return a.avgPreference - b.avgPreference
     })
 
+    const namePrefix = commonWordPrefix(sorted.map((team) => team.teamName))
+
     const rows: ChartRow[] = sorted.map((team) => {
       const countsByRank = new Map((team.preferenceCounts ?? []).map((pc) => [pc.rank, pc.count]))
       const allCounts: PreferenceCount[] = Array.from({ length: numTeams }, (_, i) => ({
@@ -95,6 +101,7 @@ export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
       }))
       const row: ChartRow = {
         ...team,
+        displayName: team.teamName.slice(namePrefix.length),
         preferenceCounts: allCounts,
         topChoiceTotal: 0,
       }
@@ -123,24 +130,30 @@ export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
           opacity={1}
         />
         <XAxis
-          dataKey='teamName'
+          dataKey='displayName'
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 12 }}
-          tickFormatter={(value: string) => truncate(value)}
+          tick={isMobile ? { fontSize: 10, angle: -30, textAnchor: 'end' } : { fontSize: 12 }}
+          tickFormatter={(value: string) => truncate(value, isMobile ? 10 : 12)}
           interval={0}
-          height={50}
+          height={isMobile ? 60 : 50}
         />
         <YAxis
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12, fill: '#a3a3a3' }}
           allowDecimals={false}
+          width={isMobile ? 30 : 60}
         >
-          <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />
+          {!isMobile && <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />}
         </YAxis>
         <ChartTooltip cursor={false} content={<CustomTooltip />} />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={<ChartLegendContent />}
+          itemSorter={(item) =>
+            choiceKeys.indexOf(String(item.dataKey) as (typeof choiceKeys)[number])
+          }
+        />
         {choiceKeys.map((key, index) => (
           <Bar
             key={key}

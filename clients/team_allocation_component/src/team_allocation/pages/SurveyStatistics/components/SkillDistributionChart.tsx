@@ -4,6 +4,7 @@ import {
   ChartLegend,
   ChartLegendContent,
   ChartConfig,
+  useIsMobile,
 } from '@tumaet/prompt-ui-components'
 import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
 import { SkillDistributionStats } from '../../../interfaces/surveyStatistics'
@@ -89,6 +90,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 }
 
 export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) => {
+  const isMobile = useIsMobile()
+
   const chartData: SkillChartRow[] = data.map((skill) => {
     const levelCounts = Object.fromEntries(
       SKILL_LEVELS.map((level) => [level, skill.levelCounts[level] ?? 0]),
@@ -114,21 +117,25 @@ export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) =>
           dataKey='dataKey'
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 12 }}
-          tickFormatter={(value: string) => truncate(value)}
+          tick={isMobile ? { fontSize: 10, angle: -30, textAnchor: 'end' } : { fontSize: 12 }}
+          tickFormatter={(value: string) => truncate(value, isMobile ? 10 : 12)}
           interval={0}
-          height={50}
+          height={isMobile ? 60 : 50}
         />
         <YAxis
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12, fill: '#a3a3a3' }}
           allowDecimals={false}
+          width={isMobile ? 30 : 60}
         >
-          <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />
+          {!isMobile && <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />}
         </YAxis>
         <ChartTooltip cursor={false} content={<CustomTooltip />} />
-        <ChartLegend content={<ChartLegendContent />} />
+        <ChartLegend
+          content={<ChartLegendContent />}
+          itemSorter={(item) => SKILL_LEVELS.indexOf(String(item.dataKey) as SkillLevelValue)}
+        />
         {SKILL_LEVELS.map((level, index) => (
           <Bar
             key={level}

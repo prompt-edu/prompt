@@ -5,6 +5,7 @@ import { StudentSurveyPage } from '../src/team_allocation/pages/StudentSurvey/St
 import { TeamAllocationPage } from '../src/team_allocation/pages/TeamAllocation/TeamAllocationPage'
 import { TeaseConfigPage } from '../src/team_allocation/pages/TeaseConfig/TeaseConfigPage'
 import { TeamAllocationParticipantsPage } from '../src/team_allocation/pages/TeamAllocationParticipantsPage/TeamAllocationParticipantsPage'
+import { SurveyStatisticsPage } from '../src/team_allocation/pages/SurveyStatistics/SurveyStatisticsPage'
 
 const routes: ExtendedRouteObject[] = [
   {
@@ -35,6 +36,11 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '/participants',
     element: <TeamAllocationParticipantsPage />,
+    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  },
+  {
+    path: '/statistics',
+    element: <SurveyStatisticsPage />,
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
   },
 ]

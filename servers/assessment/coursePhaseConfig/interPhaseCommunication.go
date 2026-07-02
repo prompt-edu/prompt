@@ -42,13 +42,31 @@ func parsePersons(personsRaw interface{}) []promptTypes.Person {
 		return persons
 	}
 
-	personsSlice := personsRaw.([]interface{})
+	personsSlice, isSlice := personsRaw.([]interface{})
+	if !isSlice {
+		log.Warn("Skipping persons: not a valid slice")
+		return persons
+	}
 	for _, personData := range personsSlice {
-		memberMap := personData.(map[string]interface{})
+		memberMap, isMap := personData.(map[string]interface{})
+		if !isMap {
+			log.Warn("Skipping person: not a valid map")
+			continue
+		}
 
-		id, _ := uuid.Parse(memberMap["id"].(string))
-		firstName := memberMap["firstName"].(string)
-		lastName := memberMap["lastName"].(string)
+		idStr, isString := memberMap["id"].(string)
+		if !isString {
+			log.Warn("Skipping person: missing or non-string 'id' field")
+			continue
+		}
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			log.Warnf("Skipping person: invalid UUID format for 'id': %v", err)
+			continue
+		}
+
+		firstName, _ := memberMap["firstName"].(string)
+		lastName, _ := memberMap["lastName"].(string)
 
 		member := promptTypes.Person{
 			ID:        id,

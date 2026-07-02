@@ -3,7 +3,7 @@ BEGIN;
 
 -- Schema for allocations
 DO $$ BEGIN
-    CREATE TYPE skill_level AS ENUM ('novice', 'intermediate', 'advanced', 'expert');
+    CREATE TYPE skill_level AS ENUM ('very_bad', 'bad', 'ok', 'good', 'very_good');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;

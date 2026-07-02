@@ -99,23 +99,39 @@ func (suite *SurveyRouterTestSuite) TestSubmitSurveyResponse() {
 				TeamID:     uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
 				Preference: 3,
 			},
+			{
+				TeamID:     uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+				Preference: 4,
+			},
+			{
+				TeamID:     uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+				Preference: 5,
+			},
+			{
+				TeamID:     uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff"),
+				Preference: 6,
+			},
 		},
 		SkillResponses: []surveyDTO.StudentSkillResponse{
 			{
 				SkillID:    uuid.MustParse("11111111-1111-1111-1111-111111111111"),
-				SkillLevel: db.SkillLevelIntermediate,
+				SkillLevel: db.SkillLevelOk,
 			},
 			{
 				SkillID:    uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-				SkillLevel: db.SkillLevelAdvanced,
+				SkillLevel: db.SkillLevelGood,
 			},
 			{
 				SkillID:    uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-				SkillLevel: db.SkillLevelNovice,
+				SkillLevel: db.SkillLevelBad,
 			},
 			{
 				SkillID:    uuid.MustParse("44444444-4444-4444-4444-444444444444"),
-				SkillLevel: db.SkillLevelExpert,
+				SkillLevel: db.SkillLevelVeryGood,
+			},
+			{
+				SkillID:    uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+				SkillLevel: db.SkillLevelOk,
 			},
 		},
 	}
@@ -166,6 +182,59 @@ func (suite *SurveyRouterTestSuite) TestSetSurveyTimeframe() {
 	localRouter.ServeHTTP(resp, req)
 
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsWhileSurveyOpen() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/4179d58a-d00d-4fa7-94a5-397bc69fab02/survey/statistics", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var stats surveyDTO.SurveyStatistics
+	err := json.Unmarshal(resp.Body.Bytes(), &stats)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(6), stats.RespondentCount)
+	assert.Len(suite.T(), stats.TeamPopularityStatistics, 6)
+	assert.NotEmpty(suite.T(), stats.SkillDistributionStatistics)
+
+	mostPopular := stats.TeamPopularityStatistics[0]
+	assert.Equal(suite.T(), "Team Alpha", mostPopular.TeamName)
+	assert.Equal(suite.T(), int64(6), mostPopular.ResponseCount)
+	assert.NotNil(suite.T(), mostPopular.AvgPreference)
+
+	unratedTeam := stats.TeamPopularityStatistics[len(stats.TeamPopularityStatistics)-1]
+	assert.Equal(suite.T(), "Team Zeta", unratedTeam.TeamName)
+	assert.Equal(suite.T(), int64(0), unratedTeam.ResponseCount)
+	assert.Nil(suite.T(), unratedTeam.AvgPreference)
+	assert.NotNil(suite.T(), unratedTeam.PreferenceCounts)
+	assert.Empty(suite.T(), unratedTeam.PreferenceCounts)
+
+	var unratedSkill *surveyDTO.SkillDistributionStats
+	for i := range stats.SkillDistributionStatistics {
+		if stats.SkillDistributionStatistics[i].SkillName == "Kotlin" {
+			unratedSkill = &stats.SkillDistributionStatistics[i]
+		}
+	}
+	assert.NotNil(suite.T(), unratedSkill, "skills without responses should still be listed")
+	assert.Empty(suite.T(), unratedSkill.LevelCounts)
+}
+
+func (suite *SurveyRouterTestSuite) TestGetSurveyStatisticsEmptyPhase() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+uuid.NewString()+"/survey/statistics", nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var stats surveyDTO.SurveyStatistics
+	err := json.Unmarshal(resp.Body.Bytes(), &stats)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), int64(0), stats.RespondentCount)
+	assert.Empty(suite.T(), stats.TeamPopularityStatistics)
+	assert.Empty(suite.T(), stats.SkillDistributionStatistics)
 }
 
 func TestSurveyRouterTestSuite(t *testing.T) {

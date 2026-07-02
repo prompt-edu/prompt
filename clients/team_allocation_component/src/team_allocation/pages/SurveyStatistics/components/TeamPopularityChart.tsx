@@ -1,74 +1,64 @@
-import { ChartContainer, ChartTooltip, ChartConfig } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Cell } from 'recharts'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartLegend,
+  ChartLegendContent,
+  ChartConfig,
+} from '@tumaet/prompt-ui-components'
+import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
 import { PreferenceCount, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
+import { createRoundedStackShape } from '../utils/roundedStackShape'
+import { ordinal, truncate } from '../utils/chartFormatters'
 
 interface TeamPopularityChartProps {
   data: TeamPopularityStats[]
 }
 
-const getColor = (avg: number | null, min: number, max: number): string => {
-  if (avg === null) return '#e2e8f0' // slate-200 — no responses
-  if (max === min) return '#5eead4'
-  const normalized = (avg - min) / (max - min)
-  if (normalized < 0.2) return '#5eead4' // teal-300   — most popular
-  if (normalized < 0.4) return '#7dd3fc' // sky-300
-  if (normalized < 0.6) return '#a5b4fc' // indigo-300
-  if (normalized < 0.8) return '#d8b4fe' // purple-300
-  return '#f9a8d4' // pink-300   — least popular
+interface ChartRow extends TeamPopularityStats {
+  topChoiceTotal: number
+  [key: `choice${number}`]: number
 }
-
-const chartConfig: ChartConfig = {
-  avgPreference: { label: 'Avg. choice rank' },
-}
-
-const ordinal = (n: number) => {
-  const mod100 = n % 100
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`
-  switch (n % 10) {
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
-  }
-}
-
-type TooltipRow = TeamPopularityStats & { fill: string; preferenceCounts: PreferenceCount[] }
 
 interface CustomTooltipProps {
   active?: boolean
-  payload?: { payload: TooltipRow }[]
+  payload?: { payload: ChartRow }[]
 }
+
+const TOP_CHOICE_COLORS = ['#5eead4', '#7dd3fc', '#a5b4fc'] // teal-300, sky-300, indigo-300
+const MAX_TOP_CHOICES = TOP_CHOICE_COLORS.length
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (!active || !payload?.length) return null
-  const { teamName, avgPreference, responseCount, fill, preferenceCounts } = payload[0].payload
+  const { teamName, avgPreference, responseCount, preferenceCounts } = payload[0].payload
   const sorted: PreferenceCount[] = [...(preferenceCounts ?? [])].sort((a, b) => a.rank - b.rank)
   return (
     <div className='rounded-lg border bg-background px-3 py-2 text-sm shadow-md'>
       <p className='font-medium mb-1'>{teamName}</p>
       <div className='flex items-center gap-2'>
-        <span className='h-2.5 w-2.5 shrink-0 rounded-[2px]' style={{ backgroundColor: fill }} />
+        <span className='h-2.5 w-2.5 shrink-0' />
         <span className='text-muted-foreground'>Avg. choice rank</span>
-        <span className='ml-auto font-mono font-medium'>
+        <span className='ml-auto pl-4 font-mono font-medium'>
           {avgPreference !== null ? avgPreference.toFixed(2) : '—'}
         </span>
       </div>
       <div className='flex items-center gap-2 mt-0.5'>
         <span className='h-2.5 w-2.5 shrink-0' />
         <span className='text-muted-foreground'>Responses</span>
-        <span className='ml-auto font-mono font-medium'>{responseCount}</span>
+        <span className='ml-auto pl-4 font-mono font-medium'>{responseCount}</span>
       </div>
       {sorted.length > 0 && (
         <div className='mt-1.5 border-t pt-1.5 flex flex-col gap-0.5'>
           {sorted.map((pc) => (
             <div key={pc.rank} className='flex items-center gap-2'>
-              <span className='h-2.5 w-2.5 shrink-0' />
+              <span
+                className='h-2.5 w-2.5 shrink-0 rounded-[2px]'
+                style={{
+                  backgroundColor:
+                    pc.rank <= MAX_TOP_CHOICES ? TOP_CHOICE_COLORS[pc.rank - 1] : 'transparent',
+                }}
+              />
               <span className='text-muted-foreground'>{ordinal(pc.rank)} choice</span>
-              <span className='ml-auto font-mono font-medium'>{pc.count}</span>
+              <span className='ml-auto pl-4 font-mono font-medium'>{pc.count}</span>
             </div>
           ))}
         </div>
@@ -79,52 +69,89 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 
 export const TeamPopularityChart = ({ data }: TeamPopularityChartProps) => {
   const numTeams = data.length
-  // Sort rated teams first (ascending avg), unrated teams last
+  const numTopChoices = Math.min(MAX_TOP_CHOICES, numTeams)
+  const choiceKeys = Array.from({ length: numTopChoices }, (_, i) => `choice${i + 1}` as const)
+
+  const chartConfig: ChartConfig = Object.fromEntries(
+    choiceKeys.map((key, i) => [
+      key,
+      { label: `${ordinal(i + 1)} choice`, color: TOP_CHOICE_COLORS[i] },
+    ]),
+  )
+
   const sorted = [...data].sort((a, b) => {
     if (a.avgPreference === null && b.avgPreference === null) return 0
     if (a.avgPreference === null) return 1
     if (b.avgPreference === null) return -1
     return a.avgPreference - b.avgPreference
   })
-  const ratedTeams = sorted.filter((t) => t.avgPreference !== null)
-  const min = ratedTeams[0]?.avgPreference ?? 1
-  const max = ratedTeams[ratedTeams.length - 1]?.avgPreference ?? 1
 
-  const chartData = sorted.map((team) => {
+  const chartData: ChartRow[] = sorted.map((team) => {
     const countsByRank = new Map((team.preferenceCounts ?? []).map((pc) => [pc.rank, pc.count]))
     const allCounts: PreferenceCount[] = Array.from({ length: numTeams }, (_, i) => ({
       rank: i + 1,
       count: countsByRank.get(i + 1) ?? 0,
     }))
-    return { ...team, preferenceCounts: allCounts, fill: getColor(team.avgPreference, min, max) }
+    const row: ChartRow = {
+      ...team,
+      preferenceCounts: allCounts,
+      topChoiceTotal: 0,
+    }
+    choiceKeys.forEach((key, i) => {
+      row[key] = countsByRank.get(i + 1) ?? 0
+      row.topChoiceTotal += row[key]
+    })
+    return row
   })
 
   return (
-    <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px]'>
+    <ChartContainer config={chartConfig} className='mx-auto w-full h-[320px]'>
       <BarChart data={chartData} margin={{ top: 25, right: 10, bottom: 0, left: 10 }}>
+        <CartesianGrid
+          horizontal={true}
+          vertical={false}
+          strokeDasharray='5 5'
+          stroke='#e5e7eb'
+          opacity={1}
+        />
         <XAxis
           dataKey='teamName'
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12 }}
+          tickFormatter={truncate}
           interval={0}
           height={50}
         />
-        <YAxis hide />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#a3a3a3' }}
+          allowDecimals={false}
+        >
+          <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />
+        </YAxis>
         <ChartTooltip cursor={false} content={<CustomTooltip />} />
-        <Bar dataKey='avgPreference' radius={[4, 4, 0, 0]}>
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.fill} />
-          ))}
-          <LabelList
-            dataKey='avgPreference'
-            position='top'
-            offset={8}
-            className='fill-foreground'
-            fontSize={12}
-            formatter={(v) => (typeof v === 'number' ? v.toFixed(1) : '—')}
-          />
-        </Bar>
+        <ChartLegend content={<ChartLegendContent />} />
+        {choiceKeys.map((key, index) => (
+          <Bar
+            key={key}
+            dataKey={key}
+            stackId='choices'
+            fill={TOP_CHOICE_COLORS[index]}
+            shape={createRoundedStackShape(choiceKeys, key, TOP_CHOICE_COLORS[index])}
+          >
+            {index === choiceKeys.length - 1 && (
+              <LabelList
+                dataKey='topChoiceTotal'
+                position='top'
+                offset={8}
+                className='fill-foreground'
+                fontSize={12}
+              />
+            )}
+          </Bar>
+        ))}
       </BarChart>
     </ChartContainer>
   )

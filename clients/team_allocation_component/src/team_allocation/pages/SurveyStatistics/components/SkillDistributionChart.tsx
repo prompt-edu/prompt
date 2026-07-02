@@ -1,14 +1,27 @@
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
   ChartConfig,
 } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Rectangle, BarShapeProps } from 'recharts'
+import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
 import { SkillDistributionStats, SkillLevel } from '../../../interfaces/surveyStatistics'
+import { createRoundedStackShape } from '../utils/roundedStackShape'
+import { truncate } from '../utils/chartFormatters'
 
 interface SkillDistributionChartProps {
   data: SkillDistributionStats[]
+}
+
+interface SkillChartRow extends Record<SkillLevel, number> {
+  dataKey: string
+  total: number
+}
+
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: { payload: SkillChartRow }[]
 }
 
 const SKILL_LEVEL_ORDER: SkillLevel[] = ['very_bad', 'bad', 'ok', 'good', 'very_good']
@@ -37,64 +50,87 @@ const chartConfig: ChartConfig = Object.fromEntries(
   ]),
 )
 
-type CornerRadius = [number, number, number, number]
-
-function getCornerRadius(payload: Record<string, number>, segmentKey: string): CornerRadius {
-  const activeSegments = SKILL_LEVEL_ORDER.filter((k) => (payload[k] ?? 0) > 0)
-  if (!activeSegments.includes(segmentKey as SkillLevel)) return [0, 0, 0, 0]
-  const idx = activeSegments.indexOf(segmentKey as SkillLevel)
-  const isTop = idx === activeSegments.length - 1
-  const isBottom = idx === 0
-  const r = 4
-  return [isTop ? r : 0, isTop ? r : 0, isBottom ? r : 0, isBottom ? r : 0]
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (!active || !payload?.length) return null
+  const row = payload[0].payload
+  return (
+    <div className='rounded-lg border bg-background px-3 py-2 text-sm shadow-md'>
+      <p className='font-medium mb-1'>{row.dataKey}</p>
+      <div className='flex flex-col gap-0.5'>
+        {SKILL_LEVEL_ORDER.map((level) => {
+          const count = row[level]
+          const percentage = row.total > 0 ? Math.round((count / row.total) * 100) : 0
+          return (
+            <div key={level} className='flex items-center gap-2'>
+              <span
+                className='h-2.5 w-2.5 shrink-0 rounded-[2px]'
+                style={{ backgroundColor: SKILL_LEVEL_COLORS[level] }}
+              />
+              <span className='text-muted-foreground'>{SKILL_LEVEL_LABELS[level]}</span>
+              <span className='ml-auto pl-4 font-mono font-medium'>
+                {count} <span className='text-muted-foreground'>({percentage}%)</span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <div className='mt-1.5 border-t pt-1.5 flex items-center gap-2'>
+        <span className='h-2.5 w-2.5 shrink-0' />
+        <span className='text-muted-foreground'>Responses</span>
+        <span className='ml-auto pl-4 font-mono font-medium'>{row.total}</span>
+      </div>
+    </div>
+  )
 }
 
 export const SkillDistributionChart = ({ data }: SkillDistributionChartProps) => {
-  const chartData = data.map((skill) => ({
-    dataKey: skill.skillName,
-    ...Object.fromEntries(SKILL_LEVEL_ORDER.map((level) => [level, skill.levelCounts[level] ?? 0])),
-    total: Object.values(skill.levelCounts).reduce((sum, v) => sum + v, 0),
-  }))
-
-  const createRoundedShape = (level: SkillLevel) => {
-    const Shape = (props: BarShapeProps) => {
-      const { x, y, width, height, payload } = props
-      const radius = getCornerRadius(payload as Record<string, number>, level)
-      return (
-        <Rectangle
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          radius={radius}
-          fill={SKILL_LEVEL_COLORS[level]}
-        />
-      )
+  const chartData: SkillChartRow[] = data.map((skill) => {
+    const levelCounts = Object.fromEntries(
+      SKILL_LEVEL_ORDER.map((level) => [level, skill.levelCounts[level] ?? 0]),
+    ) as Record<SkillLevel, number>
+    return {
+      ...levelCounts,
+      dataKey: skill.skillName,
+      total: SKILL_LEVEL_ORDER.reduce((sum, level) => sum + levelCounts[level], 0),
     }
-    Shape.displayName = `Shape(${level})`
-    return Shape
-  }
+  })
 
   return (
-    <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px]'>
+    <ChartContainer config={chartConfig} className='mx-auto w-full h-[320px]'>
       <BarChart data={chartData} margin={{ top: 30, right: 10, bottom: 0, left: 10 }}>
+        <CartesianGrid
+          horizontal={true}
+          vertical={false}
+          strokeDasharray='5 5'
+          stroke='#e5e7eb'
+          opacity={1}
+        />
         <XAxis
           dataKey='dataKey'
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12 }}
+          tickFormatter={truncate}
           interval={0}
           height={50}
         />
-        <YAxis hide />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#a3a3a3' }}
+          allowDecimals={false}
+        >
+          <Label value='Students' angle={-90} position='insideLeft' fill='#a3a3a3' />
+        </YAxis>
+        <ChartTooltip cursor={false} content={<CustomTooltip />} />
+        <ChartLegend content={<ChartLegendContent />} />
         {SKILL_LEVEL_ORDER.map((level, index) => (
           <Bar
             key={level}
             dataKey={level}
             stackId='levels'
             fill={SKILL_LEVEL_COLORS[level]}
-            shape={createRoundedShape(level)}
+            shape={createRoundedStackShape(SKILL_LEVEL_ORDER, level, SKILL_LEVEL_COLORS[level])}
           >
             {index === SKILL_LEVEL_ORDER.length - 1 && (
               <LabelList

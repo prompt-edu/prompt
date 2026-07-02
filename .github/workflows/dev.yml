@@ -66,9 +66,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-  generate-api-spec:
-    uses: ./.github/workflows/generate-api-spec.yml
-    secrets: inherit
   quality-servers:
     uses: ./.github/workflows/quality-servers.yml
   test-servers:
@@ -77,7 +74,6 @@ jobs:
   build-servers:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'skipped') }}
     needs:
-      - generate-api-spec
       - quality-servers
       - test-servers
     uses: ./.github/workflows/build-and-push-servers.yml

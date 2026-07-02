@@ -1096,7 +1096,7 @@ components:
         competencies:
           type: array
           items:
-            $ref: "#/components/schemas/CompetencyWithMappedCompetencies"
+            $ref: "#/components/schemas/Competency"
 
     ############################
     # Competency Schemas
@@ -1128,15 +1128,6 @@ components:
           type: string
         weight:
           type: integer
-    CompetencyWithMappedCompetencies:
-      allOf:
-        - $ref: "#/components/schemas/Competency"
-        - type: object
-          properties:
-            mappedFromCompetencies:
-              type: array
-              items:
-                type: string
     CreateCompetencyRequest:
       type: object
       required:

@@ -81,7 +81,8 @@ export const ApplicationAnswersTable = ({
             <TableHeader>
               <TableRow>
                 <TableHead className='w-1/12'>Type</TableHead>
-                <TableHead className='w-1/3'>Question</TableHead>
+                <TableHead className='w-1/4'>Question</TableHead>
+                <TableHead className='w-1/4'>Description</TableHead>
                 <TableHead>Answer</TableHead>
               </TableRow>
             </TableHeader>
@@ -115,6 +116,11 @@ export const ApplicationAnswersTable = ({
                     <TableCell className='font-medium'>
                       <div className='flex items-center space-x-2'>
                         <span>{question.title}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className='text-muted-foreground'>
+                      <div className='flex items-center space-x-2'>
+                        <span>{question.description}</span>
                       </div>
                     </TableCell>
                     <TableCell>

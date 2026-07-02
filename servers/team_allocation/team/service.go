@@ -43,7 +43,7 @@ func GetTeamByID(ctx context.Context, coursePhaseID uuid.UUID, teamID uuid.UUID)
 	})
 	if err != nil {
 		log.Error("could not get the teams from the database: ", err)
-		return promptTypes.Team{}, errors.New("could not get the teams from the database")
+		return promptTypes.Team{}, fmt.Errorf("could not get the teams from the database: %w", err)
 	}
 	return teamDTO.GetTeamDTOFromDBModel(dbTeam), nil
 }

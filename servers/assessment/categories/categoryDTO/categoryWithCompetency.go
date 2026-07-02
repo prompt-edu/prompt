@@ -10,19 +10,19 @@ import (
 )
 
 type CategoryWithCompetencies struct {
-	ID           uuid.UUID                                        `json:"id"`
-	Name         string                                           `json:"name"`
-	ShortName    string                                           `json:"shortName"`
-	Description  string                                           `json:"description"`
-	Weight       int32                                            `json:"weight"`
-	Competencies []competencyDTO.CompetencyWithMappedCompetencies `json:"competencies"`
+	ID           uuid.UUID                  `json:"id"`
+	Name         string                     `json:"name"`
+	ShortName    string                     `json:"shortName"`
+	Description  string                     `json:"description"`
+	Weight       int32                      `json:"weight"`
+	Competencies []competencyDTO.Competency `json:"competencies"`
 }
 
 func MapToCategoryWithCompetenciesDTO(rows []db.GetCategoriesWithCompetenciesRow) []CategoryWithCompetencies {
 	var result = make([]CategoryWithCompetencies, 0, len(rows))
 
 	for _, row := range rows {
-		var competencies []competencyDTO.CompetencyWithMappedCompetencies
+		var competencies []competencyDTO.Competency
 		if row.Competencies != nil {
 			if err := json.Unmarshal(row.Competencies, &competencies); err != nil {
 				log.Printf("Error unmarshalling competencies for category %s: %v", row.ID, err)

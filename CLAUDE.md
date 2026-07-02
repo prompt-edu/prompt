@@ -1,12 +1,11 @@
 # CLAUDE.md
 
-**PROMPT 2.0** - A modular course management platform for project-based university teaching (micro-frontend + microservices architecture).
+@AGENTS.md
 
-## Project Instructions
+General project guidance lives in `AGENTS.md` (imported above). Language and path-specific
+conventions load automatically from `.claude/rules/`. Add only Claude Code-specific instructions
+below.
 
-All project conventions, architecture details, and development workflows are documented in:
+## Claude-specific notes
 
-- **[`AGENTS.md`](AGENTS.md)** - Full project guide (architecture, code conventions, patterns, commands)
-- **[`.github/pull_request_template.md`](.github/pull_request_template.md)** - PR template
-
-Read `AGENTS.md` before making any changes to the codebase.
+_None yet._

@@ -33,7 +33,7 @@ func KeycloakMiddleware() gin.HandlerFunc {
 		ctx := c.Request.Context()
 		idToken, err := verifier.Verify(ctx, tokenString)
 		if err != nil {
-			log.Error("Failed to validate token: ", err)
+			logTokenVerificationFailure(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}
@@ -119,6 +119,17 @@ func KeycloakMiddleware() gin.HandlerFunc {
 		c.Set(CtxLastName, lastName)
 		c.Next()
 	}
+}
+
+// logTokenVerificationFailure logs a failed token verification, downgrading the routine
+// expired-token case to Debug so it is not reported to Sentry as an error.
+func logTokenVerificationFailure(err error) {
+	var expiredErr *oidc.TokenExpiredError
+	if errors.As(err, &expiredErr) {
+		log.Debug("Rejected expired token: ", err)
+		return
+	}
+	log.Error("Failed to validate token: ", err)
 }
 
 // extractBearerToken retrieves and validates the Bearer token from the request's Authorization header.

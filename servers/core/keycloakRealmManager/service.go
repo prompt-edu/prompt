@@ -12,6 +12,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // Sentinel errors for the course-staff management API. Handlers map these to
@@ -177,20 +178,40 @@ func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName strin
 	}, nil
 }
 
-// GetCourseStaff returns the Lecturer and Editor members of a course.
+// GetCourseStaff returns the Lecturer and Editor members of a course. The parent
+// course group name is resolved once (one DB round-trip instead of two) and the
+// Lecturer + Editor lookups run concurrently so wall-clock time is bounded by
+// the slower of the two Keycloak calls.
 func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseStaff, error) {
 	token, err := LoginClient(ctx)
 	if err != nil {
 		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
-	lecturers, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseLecturer)
+	courseGroupName, err := GetCourseGroupName(ctx, courseID)
 	if err != nil {
-		return keycloakRealmDTO.CourseStaff{}, err
+		return keycloakRealmDTO.CourseStaff{}, fmt.Errorf("failed to get course group name: %w", err)
 	}
 
-	editors, err := getCourseGroupMembers(ctx, token.AccessToken, courseID, permissionValidation.CourseEditor)
-	if err != nil {
+	var lecturers, editors []keycloakRealmDTO.StaffMember
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		members, err := getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseLecturer)
+		if err != nil {
+			return err
+		}
+		lecturers = members
+		return nil
+	})
+	g.Go(func() error {
+		members, err := getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseEditor)
+		if err != nil {
+			return err
+		}
+		editors = members
+		return nil
+	})
+	if err := g.Wait(); err != nil {
 		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
@@ -200,8 +221,9 @@ func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.C
 	}, nil
 }
 
-func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
-	group, err := GetCourseSubgroup(ctx, accessToken, courseID, groupName)
+func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, courseGroupName, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
+	groupPath := "/" + TOP_LEVEL_GROUP_NAME + "/" + courseGroupName + "/" + groupName
+	group, err := GetGroupByPath(ctx, accessToken, groupPath, groupName)
 	if err != nil {
 		// A missing Lecturer/Editor subgroup (e.g. legacy course, manual cleanup)
 		// should not blank out the other group's table. Treat 404 as "no members

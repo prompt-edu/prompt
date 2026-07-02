@@ -1,10 +1,12 @@
 package teams
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
@@ -83,7 +85,11 @@ func getTeamByID(c *gin.Context) {
 
 	team, err := GetTeamByID(c, coursePhaseID, teamID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			handleError(c, http.StatusNotFound, err)
+		} else {
+			handleError(c, http.StatusInternalServerError, err)
+		}
 		return
 	}
 	c.JSON(http.StatusOK, team)

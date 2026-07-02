@@ -12,6 +12,7 @@ interface CategoryCommentProps {
   courseParticipationID: string
   categoryAssessment?: CategoryAssessment
   completed?: boolean
+  disabled?: boolean
 }
 
 export const CategoryComment = ({
@@ -19,6 +20,7 @@ export const CategoryComment = ({
   courseParticipationID,
   categoryAssessment,
   completed = false,
+  disabled = false,
 }: CategoryCommentProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
@@ -40,7 +42,7 @@ export const CategoryComment = ({
   const { mutate: saveCategoryAssessment } = useCreateOrUpdateCategoryAssessment(setError)
 
   const handleBlur = () => {
-    if (completed) return
+    if (completed || disabled) return
     const trimmed = comment.trim()
     const previous = (categoryAssessment?.comment ?? '').trim()
     if (trimmed === previous) return
@@ -70,7 +72,7 @@ export const CategoryComment = ({
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         onBlur={handleBlur}
-        disabled={completed}
+        disabled={completed || disabled}
       />
       {error && (
         <Alert variant='destructive'>

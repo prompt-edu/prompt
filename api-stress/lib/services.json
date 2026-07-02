@@ -1,0 +1,22 @@
+{
+  "_comment": "Service -> host base URL + health probe. Ports are the ISOLATED stress-stack host ports (project prompt-stress, base+10000). Override base via STRESS_HOST_PREFIX env if needed.",
+  "keycloak": {
+    "base_url": "http://localhost:18081",
+    "realm": "prompt",
+    "token_path": "/realms/prompt/protocol/openid-connect/token",
+    "admin_user": "admin",
+    "admin_pass": "admin"
+  },
+  "s3": {
+    "public_endpoint": "http://localhost:18334"
+  },
+  "services": {
+    "core":                 { "base_url": "http://localhost:18089", "health": "/api/hello" },
+    "team_allocation":      { "base_url": "http://localhost:18083", "health": "/team-allocation/api/course_phase/{coursePhaseID}/hello" },
+    "self_team_allocation": { "base_url": "http://localhost:18084", "health": "/self-team-allocation/api/course_phase/{coursePhaseID}/hello" },
+    "assessment":           { "base_url": "http://localhost:18085", "health": "/assessment/api/course_phase/{coursePhaseID}/hello" },
+    "template_server":      { "base_url": "http://localhost:18086", "health": "/template-service/api/course_phase/{coursePhaseID}/hello" },
+    "interview":            { "base_url": "http://localhost:18087", "health": "/interview/api/course_phase/{coursePhaseID}/hello" },
+    "certificate":          { "base_url": "http://localhost:18088", "health": "/certificate/api/course_phase/{coursePhaseID}/hello" }
+  }
+}

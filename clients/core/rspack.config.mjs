@@ -154,7 +154,7 @@ const config = (env = {}) => {
       },
       minimizer: ['...', new rspack.LightningCssMinimizerRspackPlugin()],
     },
-    cache: { type: 'filesystem' },
+    cache: { type: 'persistent' },
   }
 }
 

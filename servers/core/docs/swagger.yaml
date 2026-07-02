@@ -1091,10 +1091,9 @@ definitions:
       userID:
         description: |-
           UserID is the platform-wide unique identifier of the user account.
-          Always present regardless of subject type.
+          uuid.Nil indicates a student without a Keycloak account; downstream services
+          should skip user-account-scoped operations in that case.
         type: string
-    required:
-    - userID
     type: object
   keycloakRealmDTO.AddStudentsToGroup:
     properties:

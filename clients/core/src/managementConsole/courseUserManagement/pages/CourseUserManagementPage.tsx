@@ -13,7 +13,7 @@ export const CourseUserManagementPage = () => {
   const { courseId } = useParams<{ courseId: string }>()
   const { user } = useAuthStore()
 
-  const { data, isLoading, isError, refetch } = useCourseStaff(courseId)
+  const { data, isLoading, isError, error, refetch } = useCourseStaff(courseId)
   const addMember = useAddCourseStaffMember(courseId ?? '')
   const removeMember = useRemoveCourseStaffMember(courseId ?? '')
 
@@ -31,7 +31,14 @@ export const CourseUserManagementPage = () => {
   if (!courseId) return <ErrorPage onRetry={() => undefined} description='No course selected.' />
   if (isLoading) return <LoadingPage />
   if (isError || !data) {
-    return <ErrorPage onRetry={() => refetch()} description='Failed to load course staff.' />
+    const serverMessage = (error as { response?: { data?: { error?: string } } })?.response?.data
+      ?.error
+    return (
+      <ErrorPage
+        onRetry={() => refetch()}
+        description={serverMessage ?? 'Failed to load course staff.'}
+      />
+    )
   }
 
   const handleAdd = (groupName: CourseGroupName) => (member: StaffMember) => {

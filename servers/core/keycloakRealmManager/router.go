@@ -323,9 +323,12 @@ func searchKeycloakUsers(c *gin.Context) {
 
 	limit := 20
 	if raw := c.Query("limit"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			handleError(c, http.StatusBadRequest, errors.New("limit must be an integer"))
+			return
 		}
+		limit = parsed
 	}
 
 	results, err := SearchKeycloakUsers(c, query, limit)

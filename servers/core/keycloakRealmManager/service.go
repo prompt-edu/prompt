@@ -203,6 +203,14 @@ func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.C
 func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
 	group, err := GetCourseSubgroup(ctx, accessToken, courseID, groupName)
 	if err != nil {
+		// A missing Lecturer/Editor subgroup (e.g. legacy course, manual cleanup)
+		// should not blank out the other group's table. Treat 404 as "no members
+		// yet" and let the caller render the other group normally. Genuine
+		// permission/transport failures still bubble up as 500.
+		if strings.Contains(err.Error(), "404") {
+			log.Warnf("course %s %s group not found in Keycloak; treating as empty", courseID, groupName)
+			return []keycloakRealmDTO.StaffMember{}, nil
+		}
 		return nil, fmt.Errorf("failed to resolve %s group: %w", groupName, err)
 	}
 

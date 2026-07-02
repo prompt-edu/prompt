@@ -17,6 +17,7 @@ export const useCreateOrUpdateAssessmentCompletion = (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assessments', phaseId] })
       queryClient.invalidateQueries({ queryKey: ['scoreLevels', phaseId] })
+      queryClient.invalidateQueries({ queryKey: ['assessmentCompletions', phaseId] })
       setError(undefined)
     },
     onError: (error: any) => {

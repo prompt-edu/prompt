@@ -7,10 +7,11 @@
 	test test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-template \
 	test-certificate \
+	test-e2e test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-template \
 	sqlc-certificate \
-	swagger install-clients install-hooks
+	swagger install-clients install-hooks setup-skills
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -136,6 +137,37 @@ test-template: ## Run template server tests
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
 
+# ─── End-to-End Tests ──────────────────────────────────────────────────────────
+
+E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
+
+# The Makefile exports .env / .env.dev (host-mode overrides like DB_CORE_HOST=localhost),
+# which Compose ranks above --env-file. Unset the keys e2e/.env.e2e defines so it stays authoritative.
+E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
+
+test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
+	@mkdir -p e2e/playwright-report e2e/test-results
+	unset $(E2E_ENV_KEYS); \
+		$(E2E_COMPOSE) build; \
+		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
+		$(E2E_COMPOSE) down -v; \
+		exit $$status
+
+test-e2e-down: ## Tear down the e2e stack and remove volumes
+	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v
+
+test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1:8123
+	@mkdir -p e2e/playwright-report e2e/test-results
+	@echo "Starting the interactive Playwright UI - open http://127.0.0.1:8123 once it prints 'Listening'."
+	unset $(E2E_ENV_KEYS); \
+		$(E2E_COMPOSE) run --rm --build -p 8123:8123 \
+		-v "$(CURDIR)/e2e/tests:/work/tests" \
+		-v "$(CURDIR)/e2e/src:/work/src" \
+		-v "$(CURDIR)/e2e/playwright-report:/work/playwright-report" \
+		-v "$(CURDIR)/e2e/test-results:/work/test-results" \
+		e2e-runner npx playwright test --ui-host=0.0.0.0 --ui-port=8123; \
+		$(E2E_COMPOSE) down -v
+
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
 sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-template sqlc-certificate ## Generate sqlc code for all servers
@@ -171,3 +203,6 @@ install-clients: ## Install client dependencies
 
 install-hooks: ## Install git hooks
 	./scripts/install-githooks.sh
+
+setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
+	./scripts/setup-skills.sh

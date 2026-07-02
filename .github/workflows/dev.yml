@@ -101,6 +101,11 @@ jobs:
     secrets: inherit
     with:
       modules: ${{ needs.detect-changes.outputs.client_modules }}
+  e2e-tests:
+    uses: ./.github/workflows/test-e2e.yml
+    secrets: inherit
+    permissions:
+      contents: read
   build-clients:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
     needs: [detect-changes, quality-clients]

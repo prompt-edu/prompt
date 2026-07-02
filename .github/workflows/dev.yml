@@ -83,6 +83,11 @@ jobs:
   quality-clients:
     uses: ./.github/workflows/quality-clients.yml
     secrets: inherit
+  e2e-tests:
+    uses: ./.github/workflows/test-e2e.yml
+    secrets: inherit
+    permissions:
+      contents: read
   build-clients:
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
     needs: quality-clients

@@ -7,6 +7,7 @@ import { KeycloakProvider } from './keycloak/KeycloakProvider'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
+import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ManagementRoot } from './managementConsole/ManagementConsole'
 import { TemplateRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/TemplateRoutes'
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
@@ -186,6 +187,18 @@ export const App = () => {
                     requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
                   >
                     <CourseSettingsPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/user-management'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
+                  >
+                    <CourseUserManagementPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

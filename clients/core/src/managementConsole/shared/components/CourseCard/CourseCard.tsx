@@ -39,7 +39,10 @@ export const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate()
 
   return (
-    <Card className='overflow-hidden border border-gray-200 h-full flex flex-col'>
+    <Card
+      data-testid={`course-card-${course.id}`}
+      className='overflow-hidden border border-gray-200 h-full flex flex-col'
+    >
       <CardHeader className={`rounded-t-lg ${bgColor} py-6 px-6 border-b`}>
         <div className='flex items-center justify-between gap-4'>
           <div className='flex items-center gap-4 min-w-0'>

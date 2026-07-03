@@ -1,5 +1,6 @@
 import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
 import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
+import { CourseUserManagementSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseUserManagementSidebar'
 import { PhaseSidebarMapping } from '@managementConsole/PhaseMapping/PhaseSidebarMapping'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
@@ -36,6 +37,7 @@ export const InsideCourseSidebar = () => {
           <InsideSidebarMenuItem goToPath={rootPath} icon={<Gauge />} title='Overview' />
           <CourseConfiguratorSidebar rootPath={rootPath} title='Course Configurator' />
           <CourseSettingsSidebar rootPath={rootPath} title='Settings' />
+          <CourseUserManagementSidebar rootPath={rootPath} title='User Management' />
         </SidebarGroupContent>
       </SidebarGroup>
 

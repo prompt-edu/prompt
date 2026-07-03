@@ -353,24 +353,3 @@ ADD CONSTRAINT assessment_competency_id_fkey FOREIGN KEY (competency_id) REFEREN
 
 ALTER TABLE ONLY public.evaluation
 ADD CONSTRAINT evaluation_competency_id_fkey FOREIGN KEY (competency_id) REFERENCES public.competency (id) ON DELETE CASCADE;
-
---
--- Competency Map Table (added for GetCategoriesWithCompetencies support)
---
-
-CREATE TABLE IF NOT EXISTS public.competency_map (
-    from_competency_id uuid NOT NULL,
-    to_competency_id uuid NOT NULL,
-    CONSTRAINT competency_map_pkey PRIMARY KEY (from_competency_id, to_competency_id),
-    CONSTRAINT competency_map_from_competency_id_fkey FOREIGN KEY (from_competency_id) REFERENCES public.competency(id) ON DELETE CASCADE,
-    CONSTRAINT competency_map_to_competency_id_fkey FOREIGN KEY (to_competency_id) REFERENCES public.competency(id) ON DELETE CASCADE
-);
-
--- Sample competency map test data
--- Map some competencies to demonstrate the functionality
-INSERT INTO competency_map (from_competency_id, to_competency_id)
-SELECT c1.id, c2.id
-FROM competency c1, competency c2
-WHERE c1.id != c2.id
-AND c1.category_id = c2.category_id
-LIMIT 5;

@@ -15,10 +15,11 @@ import (
 type SkillLevel string
 
 const (
-	SkillLevelNovice       SkillLevel = "novice"
-	SkillLevelIntermediate SkillLevel = "intermediate"
-	SkillLevelAdvanced     SkillLevel = "advanced"
-	SkillLevelExpert       SkillLevel = "expert"
+	SkillLevelVeryBad  SkillLevel = "very_bad"
+	SkillLevelBad      SkillLevel = "bad"
+	SkillLevelOk       SkillLevel = "ok"
+	SkillLevelGood     SkillLevel = "good"
+	SkillLevelVeryGood SkillLevel = "very_good"
 )
 
 func (e *SkillLevel) Scan(src interface{}) error {

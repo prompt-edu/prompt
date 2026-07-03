@@ -9,6 +9,7 @@ import type { JSX } from 'react/jsx-runtime'
 import { useForm } from 'react-hook-form'
 import type { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
 import type { Competency } from '../../../../interfaces/competency'
+import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
 import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
@@ -98,14 +99,19 @@ export const AssessmentForm = ({
     }
   }
 
-  const selfEvaluationCompetency =
-    useSelfEvaluationCategoryStore().allSelfEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
-  const peerEvaluationCompetency =
-    usePeerEvaluationCategoryStore().allPeerEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
+  // Self/peer evaluation scores are only shown when the evaluation uses the same schema as the
+  // assessment. In that case the evaluation references the exact same competency IDs, so we match
+  // by competency directly. With a different schema configured, the badges are hidden.
+  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const selfEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.selfEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+  const peerEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.peerEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+
+  const selfEvaluationCompetency = selfEvaluationSameSchema ? competency : undefined
+  const peerEvaluationCompetency = peerEvaluationSameSchema ? competency : undefined
 
   const {
     selfEvaluations: allSelfEvaluationsForThisStudent,

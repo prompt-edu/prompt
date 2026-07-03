@@ -24,13 +24,15 @@ func GetTeaseStudentSkillResponseFromDBModel(skillResponses []db.GetStudentSkill
 // Tease defines the Skill Levels upper case, while the DB (and Assessment) defines them lower case
 func getTeaseSkillLevel(skillLevel db.SkillLevel) string {
 	switch skillLevel {
-	case db.SkillLevelNovice:
+	case db.SkillLevelVeryBad:
 		return "Novice"
-	case db.SkillLevelIntermediate:
+	case db.SkillLevelBad:
+		return "Novice"
+	case db.SkillLevelOk:
 		return "Intermediate"
-	case db.SkillLevelAdvanced:
+	case db.SkillLevelGood:
 		return "Advanced"
-	case db.SkillLevelExpert:
+	case db.SkillLevelVeryGood:
 		return "Expert"
 	default:
 		return "Unknown"

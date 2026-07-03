@@ -1,7 +1,7 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import {
-  SendEvaluationReminderRequest,
+import type {
   EvaluationReminderReport,
+  SendEvaluationReminderRequest,
 } from '../../interfaces/evaluationReminder'
 
 export const sendEvaluationReminder = async (

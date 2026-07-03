@@ -1,4 +1,4 @@
-import { type PrivacyExportDocument } from '@core/network/queries/privacyStudentDataExport'
+import type { PrivacyExportDocument } from '@core/network/queries/privacyStudentDataExport'
 import { Collapsible, CollapsibleTrigger } from '@tumaet/prompt-ui-components'
 import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'

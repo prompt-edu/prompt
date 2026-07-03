@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { KeycloakStatus } from '../interfaces/keycloakStatus'
+import type { KeycloakStatus } from '../interfaces/keycloakStatus'
 import { getKeycloakStatus } from '../network/getKeycloakStatus'
 
 export function useKeycloakStatus() {

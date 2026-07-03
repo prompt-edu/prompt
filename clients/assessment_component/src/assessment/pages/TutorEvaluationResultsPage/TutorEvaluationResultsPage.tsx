@@ -1,17 +1,15 @@
+import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
-
-import { ManagementPageHeader, Card, CardContent, ErrorPage } from '@tumaet/prompt-ui-components'
 
 import { useTeamStore } from '../../zustand/useTeamStore'
 import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
 
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
-
+import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
-import { CategoryEvaluation } from './components/CategoryEvaluation'
 
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()

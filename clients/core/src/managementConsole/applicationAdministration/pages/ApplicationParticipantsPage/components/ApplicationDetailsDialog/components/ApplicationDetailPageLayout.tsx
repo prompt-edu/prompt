@@ -1,7 +1,7 @@
+import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tumaet/prompt-ui-components'
 import { ClipboardList, NotepadText } from 'lucide-react'
-import { ReactNode } from 'react'
-import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
+import type { ReactNode } from 'react'
 
 interface ApplicationDetailPageLayoutProps {
   left: ReactNode

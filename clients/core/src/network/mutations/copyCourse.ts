@@ -1,8 +1,8 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import {
-  CopyCourse,
+  type CopyCourse,
   serializeCopyCourse,
 } from '@core/managementConsole/courseOverview/interfaces/copyCourse'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const copyCourse = async (
   courseID: string,

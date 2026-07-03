@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { PostApplication } from '../../interfaces/application/postApplication'
+import type { PostApplication } from '../../interfaces/application/postApplication'
 
 export const postNewApplicationManual = async (
   phaseId: string,

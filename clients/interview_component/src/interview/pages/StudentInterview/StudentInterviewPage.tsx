@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { interviewAxiosInstance } from '../../network/interviewServerConfig'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Badge,
-  Alert,
-  AlertDescription,
-  AlertTitle,
   cn,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { Clock, MapPin, Users, AlertCircle, TriangleAlert } from 'lucide-react'
 import { format } from 'date-fns'
+import { AlertCircle, Clock, MapPin, TriangleAlert, Users } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface InterviewSlot {
   id: string

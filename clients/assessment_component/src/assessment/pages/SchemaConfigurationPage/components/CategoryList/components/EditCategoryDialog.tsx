@@ -1,11 +1,7 @@
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { AlertCircle } from 'lucide-react'
-
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-
 import {
+  Alert,
+  AlertDescription,
   Button,
   Dialog,
   DialogContent,
@@ -21,9 +17,11 @@ import {
   FormMessage,
   Input,
   Textarea,
-  Alert,
-  AlertDescription,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
 
 import type {
   CategoryWithCompetencies,

@@ -1,5 +1,5 @@
-import { SkillResponse } from './skillResponse'
-import { TeamPreference } from './teamPreference'
+import type { SkillResponse } from './skillResponse'
+import type { TeamPreference } from './teamPreference'
 
 export type SurveyResponse = {
   skillResponses: SkillResponse[]

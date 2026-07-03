@@ -1,16 +1,16 @@
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
+import {
+  Button,
+  DeleteConfirmation,
+  Input,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { GripVertical, Loader2, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Plus, GripVertical, Trash2 } from 'lucide-react'
 import { useDebouncedCallback } from 'use-debounce'
 import type { InterviewQuestion } from '../../interfaces/InterviewQuestion'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
-import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
-import {
-  DeleteConfirmation,
-  Input,
-  Button,
-  ManagementPageHeader,
-} from '@tumaet/prompt-ui-components'
 
 export const QuestionConfiguration = () => {
   const { coursePhase } = useCoursePhaseStore()
@@ -38,14 +38,14 @@ export const QuestionConfiguration = () => {
   )
 
   // Load initial questions from coursePhase
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only depend on coursePhase.id, not the entire object
   useEffect(() => {
     if (coursePhase) {
       const questions = coursePhase.restrictedData?.interviewQuestions ?? []
       setInterviewQuestions(questions)
       setIsLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coursePhase?.id]) // Only depend on coursePhase.id, not the entire object
+  }, [coursePhase?.id])
 
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

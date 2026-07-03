@@ -1,4 +1,3 @@
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
@@ -16,13 +15,14 @@ import {
 } from '@tumaet/prompt-ui-components'
 import dayjs from 'dayjs'
 import { BarChart3, Clock, Star } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import type { SurveyStatistics } from '../../interfaces/surveyStatistics'
+import type { SurveyTimeframe } from '../../interfaces/timeframe'
 import { getSurveyStatistics } from '../../network/queries/getSurveyStatistics'
 import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
-import { SurveyStatistics } from '../../interfaces/surveyStatistics'
-import { SurveyTimeframe } from '../../interfaces/timeframe'
-import { TeamPopularityChart } from './components/TeamPopularityChart'
 import { SkillDistributionChart } from './components/SkillDistributionChart'
 import { SurveySummaryCards } from './components/SurveySummaryCards'
+import { TeamPopularityChart } from './components/TeamPopularityChart'
 
 const StatisticsSkeleton = () => (
   <>

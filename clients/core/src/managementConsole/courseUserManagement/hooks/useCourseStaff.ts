@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { CourseStaff } from '../interfaces/StaffMember'
+import type { CourseStaff } from '../interfaces/StaffMember'
 
 export const courseStaffQueryKey = (courseId: string) => ['courseStaff', courseId] as const
 

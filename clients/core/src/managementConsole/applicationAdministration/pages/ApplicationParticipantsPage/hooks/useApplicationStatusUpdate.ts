@@ -1,8 +1,8 @@
-import { useToast } from '@tumaet/prompt-ui-components'
-import { useMutation, UseMutationResult, useQueryClient } from '@tanstack/react-query'
 import { updateApplicationStatus } from '@core/network/mutations/updateApplicationStatus'
+import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { UpdateCoursePhaseParticipationStatus } from '@tumaet/prompt-shared-state'
+import { useToast } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
-import { UpdateCoursePhaseParticipationStatus } from '@tumaet/prompt-shared-state'
 
 export const useApplicationStatusUpdate = (): UseMutationResult<
   void,

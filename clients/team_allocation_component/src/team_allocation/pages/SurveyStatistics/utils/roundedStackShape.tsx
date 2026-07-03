@@ -1,4 +1,4 @@
-import { Rectangle, BarShapeProps } from 'recharts'
+import { type BarShapeProps, Rectangle } from 'recharts'
 
 type CornerRadius = [number, number, number, number]
 

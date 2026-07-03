@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, Progress } from '@tumaet/prompt-ui-components'
 import { Star, TrendingDown, Users } from 'lucide-react'
-import { SurveyStatistics, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
+import type { SurveyStatistics, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
 
 interface SurveySummaryCardsProps {
   statistics: SurveyStatistics

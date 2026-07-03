@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
-import { CreateFeedbackItemRequest } from '../../../../../interfaces/feedbackItem'
+import type { CreateFeedbackItemRequest } from '../../../../../interfaces/feedbackItem'
 import { createFeedbackItem } from '../../../../../network/mutations/createFeedbackItem'
 
 export const useCreateFeedbackItem = (setError: (error: string | undefined) => void) => {

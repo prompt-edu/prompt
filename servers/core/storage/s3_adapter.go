@@ -241,6 +241,10 @@ func (s *S3Adapter) GetMetadata(ctx context.Context, storageKey string) (*FileMe
 	})
 
 	if err != nil {
+		var notFoundErr *types.NotFound
+		if errors.As(err, &notFoundErr) {
+			return nil, fmt.Errorf("storage key %q not found: %w", storageKey, ErrObjectNotFound)
+		}
 		log.WithError(err).WithField("key", storageKey).Error("Failed to get file metadata from S3")
 		return nil, fmt.Errorf("failed to get metadata from S3: %w", err)
 	}

@@ -2,8 +2,12 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 )
+
+// ErrObjectNotFound is returned by adapters when a storage key does not exist.
+var ErrObjectNotFound = errors.New("storage object not found")
 
 // FileMetadata represents metadata about an uploaded file
 type FileMetadata struct {

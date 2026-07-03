@@ -623,6 +623,12 @@ INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestC
 -- Data for Name: course_participation; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- The Keycloak e2e users `student` / `student2` enrolled in iPraktikum
+-- (matched to the student rows below via matriculation_number/university_login
+-- token claims). Neither is enrolled in TestCourse — its self team allocation
+-- phase is the negative-auth fixture.
+INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000005-0000-4000-8000-000000000005');
+INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
 
 
 --
@@ -635,12 +641,18 @@ INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestC
 -- Data for Name: course_phase_graph; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+INSERT INTO public.course_phase_graph VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'aaaa2222-0000-0000-0000-0000000000a2');
 
 
 --
 -- Data for Name: course_phase_participation; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Both e2e students participate in the iPraktikum self team allocation phase
+-- (needed by the student UI's own-participation lookup and the lecturer
+-- participants table; backend auth checks course-level enrollment).
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000005-0000-4000-8000-000000000005', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000007-0000-4000-8000-000000000007', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
 
 
 --
@@ -649,6 +661,10 @@ INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestC
 
 INSERT INTO public.course_phase_type VALUES ('a1111111-1111-1111-1111-111111111111', 'Application', true, 'core', 'Application collection phase');
 INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'Template', false, 'template', 'Template phase');
+-- Fixed UUID so seeded course phases can reference it deterministically; the
+-- core server's startup init matches by name and skips creating it (it would
+-- otherwise use a random UUID). {CORE_HOST} is replaced by core at read time.
+INSERT INTO public.course_phase_type VALUES ('a3333333-3333-3333-3333-333333333333', 'Self Team Allocation', false, '{CORE_HOST}/self-team-allocation/api', 'Students form teams themselves');
 
 
 --
@@ -658,11 +674,23 @@ INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-2222222222
 
 INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationEndDate": "2099-12-31T23:59:59", "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 
+--
+-- A Self Team Allocation phase on iPraktikum (follows Application in the
+-- graph), plus one on TestCourse with no participants and no graph edge: the
+-- negative-auth fixture (the e2e students are not enrolled in TestCourse).
+--
+
+INSERT INTO public.course_phase VALUES ('aaaa2222-0000-0000-0000-0000000000a2', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
+INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 'be780b32-a678-4b79-ae1c-80071771d254', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
+
 
 --
 -- Data for Name: course_phase_type_participation_provided_output_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Mirrors core's InsertTeamAllocationOutput (skipped at startup because the
+-- phase type above already exists).
+INSERT INTO public.course_phase_type_participation_provided_output_dto VALUES ('d1000001-0000-4000-8000-000000000001', 'a3333333-3333-3333-3333-333333333333', 'teamAllocation', 1, '/allocation', '{"type": "string"}');
 
 
 --
@@ -675,6 +703,8 @@ INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 
 -- Data for Name: course_phase_type_phase_provided_output_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Mirrors core's InsertTeamOutput.
+INSERT INTO public.course_phase_type_phase_provided_output_dto VALUES ('d1000002-0000-4000-8000-000000000002', 'a3333333-3333-3333-3333-333333333333', 'teams', 1, '/team', '{"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}}, "required": ["id", "name"]}}');
 
 
 --
@@ -767,6 +797,10 @@ INSERT INTO public.student VALUES ('65828d3e-11bc-4168-8edc-3968b53f4f83', 'Exte
 INSERT INTO public.student VALUES ('2d8c24b4-b91a-4219-9bd8-3f2502774ebc', 'Test-100', 'User-Update', 'user@test.de', '', '', false, 'diverse', 'AL', NULL, 'bachelor', NULL, '2025-01-07 18:22:05.814353');
 INSERT INTO public.student VALUES ('1c62c564-491b-43e3-9929-7be39509e32e', 'Niclas', 'Heun', 'test@leeeeeel.de', '00000000', 'hh88hhh', true, 'female', 'DE', 'Computer Science', 'master', 5, '2025-01-07 22:50:17.814704');
 INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Niclas', 'Heuni', 'heuni@heuni.de', '', '', false, 'prefer_not_to_say', 'DE', 'Information Systems', 'bachelor', 5, '2025-01-07 23:05:43.120086');
+-- The two Keycloak e2e student users (matriculation_number/university_login
+-- must match the realm user attributes in e2e/keycloak/realm.json).
+INSERT INTO public.student VALUES ('a5000005-0000-4000-8000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 
 
 --

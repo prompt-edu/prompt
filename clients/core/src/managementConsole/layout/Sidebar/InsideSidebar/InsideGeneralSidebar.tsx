@@ -23,7 +23,10 @@ export const InsideGeneralSidebar = () => {
                 title='Template Courses'
               />
             </ShowForRole>
-            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <ShowForRole
+              roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}
+              anyCourseRole={[Role.COURSE_LECTURER, Role.COURSE_EDITOR]}
+            >
               <InsideSidebarMenuItem
                 icon={<Archive />}
                 goToPath={'/management/course-archive'}

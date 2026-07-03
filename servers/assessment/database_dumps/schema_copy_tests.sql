@@ -132,16 +132,6 @@ CREATE TABLE public.evaluation (
     FOREIGN KEY (competency_id) REFERENCES competency (id) ON DELETE CASCADE
 );
 
-CREATE TABLE public.competency_map (
-    id uuid NOT NULL,
-    from_competency_id uuid NOT NULL,
-    to_competency_id uuid NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT competency_map_pkey PRIMARY KEY (id),
-    FOREIGN KEY (from_competency_id) REFERENCES competency (id) ON DELETE CASCADE,
-    FOREIGN KEY (to_competency_id) REFERENCES competency (id) ON DELETE CASCADE
-);
-
 CREATE TABLE public.schema_migrations (
     version bigint NOT NULL,
     dirty boolean NOT NULL,

@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
+import { KeycloakStatusCard } from './components/KeycloakStatusCard'
 import { ServiceInfo } from './interfaces/serviceCapabilities'
 import { CoursePhaseType } from './interfaces/coursePhaseType'
 import { getServiceInfo } from './network/getServiceCapabilities'
@@ -38,6 +39,15 @@ export const SystemStatusPage = () => {
   return (
     <div className='flex flex-col gap-8 w-full'>
       <h1 className='text-3xl font-bold tracking-tight'>System Status</h1>
+
+      <div className='flex flex-col gap-3'>
+        <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
+          Infrastructure
+        </h2>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+          <KeycloakStatusCard />
+        </div>
+      </div>
 
       <div className='flex flex-col gap-3'>
         <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>

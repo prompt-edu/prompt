@@ -5,8 +5,7 @@ import { Form, FormMessage } from '@tumaet/prompt-ui-components'
 
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
 import { useTeamStore } from '../../../../zustand/useTeamStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
+import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 
 import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
 import { Competency } from '../../../../interfaces/competency'
@@ -31,6 +30,7 @@ interface AssessmentFormProps {
   competency: Competency
   assessment?: Assessment
   completed?: boolean
+  disabled?: boolean
   peerEvaluationAverageScore?: number
   selfEvaluationAverageScore?: number
   hidePeerEvaluationDetails?: boolean
@@ -41,6 +41,7 @@ export const AssessmentForm = ({
   competency,
   assessment,
   completed = false,
+  disabled = false,
   peerEvaluationAverageScore,
   selfEvaluationAverageScore,
   hidePeerEvaluationDetails = false,
@@ -62,6 +63,7 @@ export const AssessmentForm = ({
   const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError)
   const deleteAssessment = useDeleteAssessment(setError)
   const selectedScore = form.watch('scoreLevel')
+  const controlsDisabled = completed || disabled
 
   useEffect(() => {
     form.reset({
@@ -72,19 +74,20 @@ export const AssessmentForm = ({
   }, [form, courseParticipationID, competency.id, assessment])
 
   const saveAssessment = () => {
-    if (completed) return
+    if (controlsDisabled) return
     const data = form.getValues()
     if (!data.scoreLevel) return
     createOrUpdateAssessment(data)
   }
 
   const handleScoreChange = (value: ScoreLevel) => {
-    if (completed) return
+    if (controlsDisabled) return
     form.setValue('scoreLevel', value)
     saveAssessment()
   }
 
   const handleDelete = () => {
+    if (controlsDisabled) return
     if (assessment?.id) {
       deleteAssessment.mutate(assessment.id, {
         onSuccess: () => {
@@ -100,14 +103,19 @@ export const AssessmentForm = ({
     }
   }
 
-  const selfEvaluationCompetency =
-    useSelfEvaluationCategoryStore().allSelfEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
-  const peerEvaluationCompetency =
-    usePeerEvaluationCategoryStore().allPeerEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
+  // Self/peer evaluation scores are only shown when the evaluation uses the same schema as the
+  // assessment. In that case the evaluation references the exact same competency IDs, so we match
+  // by competency directly. With a different schema configured, the badges are hidden.
+  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const selfEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.selfEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+  const peerEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.peerEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+
+  const selfEvaluationCompetency = selfEvaluationSameSchema ? competency : undefined
+  const peerEvaluationCompetency = peerEvaluationSameSchema ? competency : undefined
 
   const {
     selfEvaluations: allSelfEvaluationsForThisStudent,
@@ -179,7 +187,7 @@ export const AssessmentForm = ({
         <CompetencyHeader
           competency={competency}
           competencyScore={assessment}
-          completed={completed}
+          completed={controlsDisabled}
           onResetClick={() => setDeleteDialogOpen(true)}
         />
 
@@ -188,7 +196,7 @@ export const AssessmentForm = ({
           competency={competency}
           selectedScore={selectedScore}
           onScoreChange={handleScoreChange}
-          completed={completed}
+          completed={controlsDisabled}
           selfEvaluationCompetency={selfEvaluationCompetency}
           selfEvaluationScoreLevel={selfEvaluationScoreLevel}
           selfEvaluationStudentAnswers={selfEvaluationStudentAnswers}
@@ -208,7 +216,7 @@ export const AssessmentForm = ({
           peerEvaluationStudentAnswers={peerEvaluationStudentAnswers}
         />
 
-        {error && !completed && <FormMessage className='mt-2'>{error}</FormMessage>}
+        {error && !controlsDisabled && <FormMessage className='mt-2'>{error}</FormMessage>}
 
         {assessment && (
           <DeleteAssessmentDialog

@@ -17,5 +17,6 @@ See the following pages:
 	- [Assessment Phase](assessment.md)
 - [Mailing](mailing.md)
 - [Templates](templates.md)
+- [User Management](user_management.md)
 - Reference
 	- [Glossary](glossary.md)

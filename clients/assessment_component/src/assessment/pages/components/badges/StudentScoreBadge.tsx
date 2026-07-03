@@ -12,6 +12,7 @@ interface ScoreLevelBadgeProps {
   scoreLevel?: ScoreLevel
   scoreNumeric?: number
   showTooltip?: boolean
+  compact?: boolean
   className?: string
 }
 
@@ -19,6 +20,7 @@ export const StudentScoreBadge = ({
   scoreLevel,
   scoreNumeric,
   showTooltip = false,
+  compact = false,
   className,
 }: ScoreLevelBadgeProps) => {
   if (!scoreLevel && !scoreNumeric) {
@@ -33,6 +35,13 @@ export const StudentScoreBadge = ({
         : ScoreLevel.VeryBad,
   )
 
+  const fullText =
+    (scoreLevel ? config.title : '') +
+    (scoreLevel && scoreNumeric ? ` (${scoreNumeric.toFixed(1)})` : '') +
+    (!scoreLevel && scoreNumeric ? `${scoreNumeric.toFixed(1)}` : '')
+  const compactText = scoreLevel ? config.title : scoreNumeric ? `${scoreNumeric.toFixed(1)}` : ''
+  const content = compact ? compactText : fullText
+
   const tooltipText =
     'This score is automatically generated based on the assessment input. ' +
     'It is intended to assist you in making your final grading decision.'
@@ -46,9 +55,7 @@ export const StudentScoreBadge = ({
               className={`${config.textColor} ${config.selectedBg} hover:${config.selectedBg} cursor-help ${className ?? ''}`}
               style={{ whiteSpace: 'nowrap' }}
             >
-              {scoreLevel ? config.title : ''}
-              {scoreLevel && scoreNumeric ? ` (${scoreNumeric.toFixed(1)})` : ''}
-              {!scoreLevel && scoreNumeric ? `${scoreNumeric.toFixed(1)}` : ''}
+              {content}
             </Badge>
           </TooltipTrigger>
           <TooltipContent side='top'>
@@ -63,9 +70,7 @@ export const StudentScoreBadge = ({
       className={`${config.textColor} ${config.selectedBg} hover:${config.selectedBg} cursor-help`}
       style={{ whiteSpace: 'nowrap' }}
     >
-      {scoreLevel ? config.title : ''}
-      {scoreLevel && scoreNumeric ? ` (${scoreNumeric.toFixed(1)})` : ''}
-      {!scoreLevel && scoreNumeric ? `${scoreNumeric.toFixed(1)}` : ''}
+      {content}
     </Badge>
   )
 }

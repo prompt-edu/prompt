@@ -8,6 +8,7 @@ interface AssessmentStatusBadgeProps {
   remainingAssessments: number
   assessmentType?: AssessmentType
   isFinalized?: boolean
+  compact?: boolean
 }
 
 export function AssessmentStatusBadge({
@@ -15,10 +16,20 @@ export function AssessmentStatusBadge({
   remainingAssessments,
   assessmentType = AssessmentType.ASSESSMENT,
   isFinalized,
+  compact = false,
 }: AssessmentStatusBadgeProps) {
   const isCompleted = remainingAssessments === 0
   const isInProgress = remainingAssessments > 0
   const isCompletedButNotFinalized = isCompleted && !isFinalized
+
+  const noun =
+    assessmentType === AssessmentType.ASSESSMENT
+      ? remainingAssessments === 1
+        ? 'assessment'
+        : 'assessments'
+      : remainingAssessments === 1
+        ? 'question'
+        : 'questions'
 
   const badgeStyles = cn(
     'items-center gap-1',
@@ -46,31 +57,21 @@ export function AssessmentStatusBadge({
       {isCompleted && isFinalized && (
         <>
           <CheckCircle className='h-3.5 w-3.5' />
-          <span>Completed</span>
+          {!compact && <span>Completed</span>}
         </>
       )}
 
       {isCompletedButNotFinalized && (
         <>
           <CircleCheck className='h-3.5 w-3.5' />
-          <span>Ready to finalize</span>
+          {!compact && <span>Ready to finalize</span>}
         </>
       )}
 
       {isInProgress && (
         <>
           <Clock className='h-3.5 w-3.5' />
-          <span>
-            {remainingAssessments}{' '}
-            {assessmentType === AssessmentType.ASSESSMENT
-              ? remainingAssessments === 1
-                ? 'assessment'
-                : 'assessments'
-              : remainingAssessments === 1
-                ? 'question'
-                : 'questions'}{' '}
-            left
-          </span>
+          <span>{compact ? remainingAssessments : `${remainingAssessments} ${noun} left`}</span>
         </>
       )}
     </Badge>

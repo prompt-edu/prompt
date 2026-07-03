@@ -13,6 +13,7 @@ import { StudentAssessmentBadges } from './StudentAssessmentBadges'
 
 // The global management header (`h-14`) stays at the top; the bar docks beneath it.
 const HEADER_OFFSET_PX = 56
+const UNDOCK_HYSTERESIS_PX = 8
 
 interface AssessmentHeaderProps {
   participant: AssessmentParticipationWithStudent
@@ -30,9 +31,7 @@ export const AssessmentHeader = ({
 
   const placeholderRef = useRef<HTMLDivElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
-  const profileRef = useRef<HTMLDivElement>(null)
   const dockedRef = useRef(false)
-  const profileHeightRef = useRef(0)
   const [docked, setDocked] = useState(false)
 
   // CSS `position: sticky` is unreliable here because the core's scroll
@@ -43,21 +42,14 @@ export const AssessmentHeader = ({
   useEffect(() => {
     const placeholder = placeholderRef.current
     const bar = barRef.current
-    const profile = profileRef.current
-    if (!placeholder || !bar || !profile) return
+    if (!placeholder || !bar) return
 
     const update = () => {
       const { top, left, width } = placeholder.getBoundingClientRect()
 
-      if (!dockedRef.current) {
-        profileHeightRef.current = profile.offsetHeight
-      }
-
-      // Docking collapses the profile, removing its height from the page. On a
-      // short page that scrolls the bar back past the threshold, undocking it
-      // and looping. Require scrolling up past the freed height before undocking.
+      // Small hysteresis buffer so a docked bar doesn't jitter at the threshold.
       const shouldDock = dockedRef.current
-        ? top <= HEADER_OFFSET_PX + profileHeightRef.current
+        ? top <= HEADER_OFFSET_PX + UNDOCK_HYSTERESIS_PX
         : top <= HEADER_OFFSET_PX
 
       if (shouldDock) {
@@ -106,7 +98,7 @@ export const AssessmentHeader = ({
                 onClick={() => navigate(`../${prevMember?.id}`, { relative: 'path' })}
               >
                 <ChevronLeft className='h-4 w-4' />
-                <span className='hidden sm:inline'>
+                <span className='hidden md:inline'>
                   {prevMember?.firstName} {prevMember?.lastName}
                 </span>
               </Button>
@@ -124,7 +116,13 @@ export const AssessmentHeader = ({
               <StudentAssessmentBadges
                 studentAssessment={studentAssessment}
                 remainingAssessments={remainingAssessments}
-                className='flex-nowrap'
+                variant='compact'
+                className='flex-nowrap xl:hidden'
+              />
+              <StudentAssessmentBadges
+                studentAssessment={studentAssessment}
+                remainingAssessments={remainingAssessments}
+                className='flex-nowrap hidden xl:flex'
               />
             </div>
 
@@ -135,7 +133,7 @@ export const AssessmentHeader = ({
                 aria-label={`Navigate to next participant: ${nextMember?.firstName} ${nextMember?.lastName}`}
                 onClick={() => navigate(`../${nextMember?.id}`, { relative: 'path' })}
               >
-                <span className='hidden sm:inline'>
+                <span className='hidden md:inline'>
                   {nextMember?.firstName} {nextMember?.lastName}
                 </span>
                 <ChevronRight className='h-4 w-4' />
@@ -153,7 +151,7 @@ export const AssessmentHeader = ({
           docked ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
         )}
       >
-        <div ref={profileRef} className='overflow-hidden'>
+        <div className='overflow-hidden'>
           <AssessmentProfile
             participant={participant}
             studentAssessment={studentAssessment}

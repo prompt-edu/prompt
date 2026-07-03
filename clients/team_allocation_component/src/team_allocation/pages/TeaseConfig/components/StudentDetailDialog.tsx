@@ -1,23 +1,22 @@
-import { Award, BookOpen, Loader2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   Badge,
   Card,
   CardContent,
-  Separator,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   ErrorPage,
+  Separator,
 } from '@tumaet/prompt-ui-components'
-
-import type { TeaseStudent } from '../../../interfaces/tease/student'
+import { Award, BookOpen, Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getAllTeams } from '../../../network/queries/getAllTeams'
+import type { TeaseStudent } from '../../../interfaces/tease/student'
 import { getAllSkills } from '../../../network/queries/getAllSkills'
-import type { Team } from '@tumaet/prompt-shared-state'
+import { getAllTeams } from '../../../network/queries/getAllTeams'
 import { getLevelConfig } from './ProficiencyBadge'
 
 interface StudentDetailDialogProps {

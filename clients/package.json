@@ -1,6 +1,6 @@
 {
   "name": "prompt-module-federation",
-  "version": "2.14.1",
+  "version": "2.15.1",
   "private": true,
   "workspaces": {
     "packages": [
@@ -18,7 +18,12 @@
     "dev": "lerna run --parallel dev",
     "start": "lerna run --parallel start",
     "build": "lerna run build",
-    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\""
+    "lint": "biome lint",
+    "lint:fix": "biome lint --fix",
+    "format": "biome format",
+    "format:fix": "biome format --fix",
+    "check": "biome check",
+    "check:fix": "biome check --fix"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -76,6 +81,7 @@
     "ts-node": "^10.9.2",
     "ts-node-register": "^1.0.0",
     "use-debounce": "^10.1.1",
+    "zod": "^3.25.76",
     "zustand": "^5.0.14"
   },
   "resolutions": {
@@ -85,29 +91,16 @@
     "tar": "^7.5.16"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.1.0",
-    "@eslint/eslintrc": "^3.3.5",
-    "@eslint/js": "^10.0.1",
+    "@biomejs/biome": "2.5.2",
     "@module-federation/runtime-tools": "^2.0.0",
     "@rspack/cli": "^2.0.8",
     "@rspack/dev-server": "^2.0.0",
     "@tailwindcss/postcss": "^4.3.1",
-    "@types/eslint": "^9.6.1",
     "@types/node": "^25.9.4",
     "@types/react": "^19.2.17",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^10.5.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-n": "^18.1.0",
-    "eslint-plugin-prettier": "^5.5.6",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
     "lerna": "^9.0.7",
-    "prettier": "^3.8.4",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
     "webpack-bundle-analyzer": "^5.3.0"

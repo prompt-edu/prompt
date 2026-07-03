@@ -1,5 +1,5 @@
-import { Badge, getLevelConfig } from '@tumaet/prompt-ui-components'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
+import { Badge, getLevelConfig } from '@tumaet/prompt-ui-components'
 
 interface GradeSuggestionBadgeProps {
   gradeSuggestion: number | undefined

@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo } from 'react'
+import type React from 'react'
+import { Component, type ErrorInfo } from 'react'
 
 interface ErrorBoundaryProps {
   fallback: React.ReactNode

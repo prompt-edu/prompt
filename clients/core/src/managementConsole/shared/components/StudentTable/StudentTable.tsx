@@ -1,15 +1,15 @@
 import {
   getStudentsWithCourses,
-  StudentWithCourses,
+  type StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
-import { ColumnDef } from '@tanstack/react-table'
-import { PromptTable, RowAction, TableFilter } from '@tumaet/prompt-ui-components'
+import type { ColumnDef } from '@tanstack/react-table'
+import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useStudentStore } from '../../store/student.store'
+import { getStudentTableActions } from './studentTableActions'
 import { studentTableColumns } from './studentTableColumns'
 import { getStudentTableFilters } from './studentTableFilters'
-import { getStudentTableActions } from './studentTableActions'
-import { useStudentStore } from '../../store/student.store'
 
 export const StudentTable = () => {
   const [studentsWithCourses, setStudentsWithCourses] = useState<Array<StudentWithCourses>>([])

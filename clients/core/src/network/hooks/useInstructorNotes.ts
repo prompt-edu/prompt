@@ -1,9 +1,9 @@
+import type { CreateInstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { getInstructorNotes } from '../queries/getInstructorNotes'
 import { deleteInstructorNote } from '../mutations/deleteInstructorNote'
 import { postInstructorNote } from '../mutations/postInstructorNote'
-import type { CreateInstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { getInstructorNotes } from '../queries/getInstructorNotes'
 
 export const useInstructorNotes = (studentId?: string) => {
   return useQuery({

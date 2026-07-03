@@ -1,6 +1,6 @@
 import Papa from 'papaparse'
+import type { UploadedStudent } from '../interfaces/UploadedStudent'
 import { useMatchingStore } from '../zustand/useMatchingStore'
-import { UploadedStudent } from '../interfaces/UploadedStudent'
 
 /**
  * This hook returns a function that, when called with a CSV File,
@@ -34,7 +34,7 @@ export const useUploadAndParseCSV = () => {
       })
 
       // 2. Basic validations
-      if (!result || !result.data || result.data.length === 0) {
+      if (!result?.data || result.data.length === 0) {
         throw new Error('No data found in the CSV file.')
       }
 

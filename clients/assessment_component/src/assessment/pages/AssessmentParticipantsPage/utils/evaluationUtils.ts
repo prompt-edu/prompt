@@ -1,5 +1,5 @@
-import { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
-import { EvaluationCounts } from '../interfaces/EvaluationCounts'
+import type { EvaluationCompletion } from '../../../interfaces/evaluationCompletion'
+import type { EvaluationCounts } from '../interfaces/EvaluationCounts'
 
 /**
  * Creates a lookup map from evaluation completions for O(1) access
@@ -19,8 +19,8 @@ export const createEvaluationLookup = (
       lookup.set(completion.authorCourseParticipationID, new Map())
     }
     lookup
-      .get(completion.authorCourseParticipationID)!
-      .set(completion.courseParticipationID, completion.completed)
+      .get(completion.authorCourseParticipationID)
+      ?.set(completion.courseParticipationID, completion.completed)
   })
 
   return lookup

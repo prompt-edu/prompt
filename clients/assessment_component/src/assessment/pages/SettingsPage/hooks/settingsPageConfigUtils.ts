@@ -1,5 +1,5 @@
 import { AssessmentType } from '../../../interfaces/assessmentType'
-import {
+import type {
   CoursePhaseConfig,
   CreateOrUpdateCoursePhaseConfigRequest,
 } from '../../../interfaces/coursePhaseConfig'

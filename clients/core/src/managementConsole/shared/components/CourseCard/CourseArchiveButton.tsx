@@ -1,5 +1,5 @@
-import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
 import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/components/ArchiveCourseConfirmationDialog'
+import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
 import {
   Button,
   Tooltip,

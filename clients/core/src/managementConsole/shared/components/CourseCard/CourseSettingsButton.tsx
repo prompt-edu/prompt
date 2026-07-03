@@ -1,4 +1,4 @@
-import { Tooltip, TooltipTrigger, Button, TooltipContent } from '@tumaet/prompt-ui-components'
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 import { Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 

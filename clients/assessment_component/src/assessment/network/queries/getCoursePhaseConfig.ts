@@ -1,4 +1,4 @@
-import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
+import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getCoursePhaseConfig = async (coursePhaseID: string): Promise<CoursePhaseConfig> => {

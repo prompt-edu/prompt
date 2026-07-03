@@ -1,10 +1,10 @@
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { CourseCard } from './components/CourseCard'
-import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
-import { useQuery } from '@tanstack/react-query'
-import { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
+import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
 import { getAllOpenApplications } from '@core/network/queries/openApplications'
+import { useQuery } from '@tanstack/react-query'
+import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { NonAuthenticatedPageWrapper } from '../shared/components/NonAuthenticatedPageWrapper'
+import { CourseCard } from './components/CourseCard'
 
 export function LandingPage() {
   const {

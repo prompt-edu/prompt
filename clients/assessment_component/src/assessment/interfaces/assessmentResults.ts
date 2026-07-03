@@ -1,8 +1,8 @@
-import { Assessment } from './assessment'
-import { AssessmentCompletion } from './assessmentCompletion'
-import { ActionItem } from './actionItem'
-import { CategoryAssessment } from './categoryAssessment'
-import { StudentScore } from './studentScore'
+import type { ActionItem } from './actionItem'
+import type { Assessment } from './assessment'
+import type { AssessmentCompletion } from './assessmentCompletion'
+import type { CategoryAssessment } from './categoryAssessment'
+import type { StudentScore } from './studentScore'
 
 export interface AggregatedEvaluationResult {
   competencyID: string

@@ -1,5 +1,5 @@
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { CoursePhaseGraphUpdate } from '../../managementConsole/courseConfigurator/interfaces/coursePhaseGraphUpdate'
+import type { CoursePhaseGraphUpdate } from '../../managementConsole/courseConfigurator/interfaces/coursePhaseGraphUpdate'
 
 export const updatePhaseGraph = async (
   courseID: string,

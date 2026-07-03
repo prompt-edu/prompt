@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Button,
   Card,
@@ -19,7 +18,12 @@ import {
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Trash2, UserPlus } from 'lucide-react'
-import { CourseGroupName, StaffMember, staffMemberFullName } from '../interfaces/StaffMember'
+import { useState } from 'react'
+import {
+  type CourseGroupName,
+  type StaffMember,
+  staffMemberFullName,
+} from '../interfaces/StaffMember'
 
 interface StaffMemberTableProps {
   title: string

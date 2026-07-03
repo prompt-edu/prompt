@@ -1,16 +1,16 @@
-import type React from 'react'
-import { Users, UserPlus, LogOut, Trash2, GraduationCap } from 'lucide-react'
 import type { Team } from '@tumaet/prompt-shared-state'
 import {
+  Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  Badge,
-  Button,
 } from '@tumaet/prompt-ui-components'
+import { GraduationCap, LogOut, Trash2, UserPlus, Users } from 'lucide-react'
+import type React from 'react'
 
 export interface TeamCardProps {
   team: Team

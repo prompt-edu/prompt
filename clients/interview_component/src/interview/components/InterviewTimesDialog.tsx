@@ -1,26 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
-import { Clock, Plus, Trash } from 'lucide-react'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  Button,
-  Separator,
   Input,
+  ScrollArea,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  ScrollArea,
+  Separator,
 } from '@tumaet/prompt-ui-components'
+import { Clock, Plus, Trash } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { InterviewSlot } from '../interfaces/InterviewSlots'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
-import { InterviewSlot } from '../interfaces/InterviewSlots'
-import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 
 export const InterviewTimesDialog = () => {
   const { coursePhase } = useCoursePhaseStore()

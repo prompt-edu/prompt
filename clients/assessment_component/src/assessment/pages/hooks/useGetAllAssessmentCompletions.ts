@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 
-import { AssessmentCompletion } from '../../interfaces/assessmentCompletion'
+import type { AssessmentCompletion } from '../../interfaces/assessmentCompletion'
 import { getAllAssessmentCompletionsInPhase } from '../../network/queries/getAllAssessmentCompletionsInPhase'
 
 export const useGetAllAssessmentCompletions = () => {

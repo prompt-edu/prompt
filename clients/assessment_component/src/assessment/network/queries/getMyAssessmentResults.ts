@@ -1,4 +1,4 @@
-import { StudentAssessmentResults } from '../../interfaces/assessmentResults'
+import type { StudentAssessmentResults } from '../../interfaces/assessmentResults'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getMyAssessmentResults = async (

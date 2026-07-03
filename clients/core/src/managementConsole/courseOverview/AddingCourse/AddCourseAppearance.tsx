@@ -1,4 +1,9 @@
-import React from 'react'
+import { courseAppearanceColors } from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import {
+  type CourseAppearanceFormValues,
+  courseAppearanceFormSchema,
+} from '@core/validations/courseAppearance'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Button,
   Form,
@@ -13,16 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
-
+import type React from 'react'
 import { useForm } from 'react-hook-form'
-import {
-  CourseAppearanceFormValues,
-  courseAppearanceFormSchema,
-} from '@core/validations/courseAppearance'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { IconSelector } from './components/IconSelector'
 import { CourseAppearancePreview } from '../components/CourseAppearancePreview'
-import { courseAppearanceColors } from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import { IconSelector } from './components/IconSelector'
 
 interface AddCourseAppearanceProps {
   onBack: () => void

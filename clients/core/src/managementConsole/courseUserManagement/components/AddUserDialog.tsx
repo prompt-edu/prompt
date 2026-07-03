@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Dialog,
@@ -9,8 +8,13 @@ import {
   Input,
 } from '@tumaet/prompt-ui-components'
 import { Loader2, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchKeycloakUsers } from '../hooks/useSearchKeycloakUsers'
-import { CourseGroupName, StaffMember, staffMemberFullName } from '../interfaces/StaffMember'
+import {
+  type CourseGroupName,
+  type StaffMember,
+  staffMemberFullName,
+} from '../interfaces/StaffMember'
 
 interface AddUserDialogProps {
   open: boolean

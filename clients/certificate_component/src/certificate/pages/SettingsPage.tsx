@@ -1,40 +1,39 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Loader2,
-  Upload,
-  CheckCircle2,
-  Eye,
-  AlertCircle,
-  X,
-  HelpCircle,
-  AlertTriangle,
-  CalendarCheck,
-} from 'lucide-react'
-
-import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Textarea,
   DatePicker,
+  ErrorPage,
+  ManagementPageHeader,
   Popover,
   PopoverContent,
   PopoverTrigger,
-  ManagementPageHeader,
-  ErrorPage,
-  Alert,
-  AlertDescription,
-  AlertTitle,
+  Textarea,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import {
+  AlertCircle,
+  AlertTriangle,
+  CalendarCheck,
+  CheckCircle2,
+  Eye,
+  HelpCircle,
+  Loader2,
+  Upload,
+  X,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
-import { previewCertificate, type PreviewError } from '../network/queries/previewCertificate'
+import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
 /**
  * Format a date string to European format: DD.MM.YYYY HH:mm

@@ -1,12 +1,12 @@
+import { useQuery } from '@tanstack/react-query'
+import { cn, ManagementPageHeader, useScreenSize } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { cn, ManagementPageHeader, useScreenSize } from '@tumaet/prompt-ui-components'
-import { StudentCard } from '../../components/StudentCard'
 import { SortDropdownMenu } from '../../components/SortDropdownMenu'
+import { StudentCard } from '../../components/StudentCard'
 import { useSorting } from '../../hooks/useSorting'
-import { useQuery } from '@tanstack/react-query'
+import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
-import { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 
 export const OverviewPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

@@ -1,12 +1,12 @@
-import { useState } from 'react'
 import { Dialog, DialogContent } from '@tumaet/prompt-ui-components'
+import { useState } from 'react'
 import { useCopyCourse } from '../../../network/hooks/useCopyCourse'
 import { useCourseForm } from '../../../network/hooks/useCourseForm'
-import { CopyCourseForm } from './CopyCourseForm'
-import { WarningStep } from './WarningStep'
-import type { CourseCopyDialogProps, DialogStep } from '../interfaces/copyCourseDialogProps'
-import { MakeTemplateCourseForm } from './MakeTemplateCourseForm'
 import { useTemplateForm } from '../../../network/hooks/useTemplateForm'
+import type { CourseCopyDialogProps, DialogStep } from '../interfaces/copyCourseDialogProps'
+import { CopyCourseForm } from './CopyCourseForm'
+import { MakeTemplateCourseForm } from './MakeTemplateCourseForm'
+import { WarningStep } from './WarningStep'
 
 export const CopyCourseDialog = ({
   courseId,

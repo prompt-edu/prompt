@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { TriangleAlert } from 'lucide-react'
-
-import { useCourseStore, CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
+import {
+  type CoursePhaseParticipationWithStudent,
+  getOwnCoursePhaseParticipation,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -11,23 +11,24 @@ import {
   ErrorPage,
   LoadingPage,
 } from '@tumaet/prompt-ui-components'
-import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
+import { TriangleAlert } from 'lucide-react'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { useCoursePhaseConfigStore } from '../zustand/useCoursePhaseConfigStore'
-import { useTeamStore } from '../zustand/useTeamStore'
-import { useMyParticipationStore } from '../zustand/useMyParticipationStore'
-import { useSelfEvaluationCategoryStore } from '../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../zustand/usePeerEvaluationCategoryStore'
-import { useTutorEvaluationCategoryStore } from '../zustand/useTutorEvaluationCategoryStore'
 import { useEvaluationStore } from '../zustand/useEvaluationStore'
-
-import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
+import { useMyParticipationStore } from '../zustand/useMyParticipationStore'
+import { usePeerEvaluationCategoryStore } from '../zustand/usePeerEvaluationCategoryStore'
+import { useSelfEvaluationCategoryStore } from '../zustand/useSelfEvaluationCategoryStore'
+import { useTeamStore } from '../zustand/useTeamStore'
+import { useTutorEvaluationCategoryStore } from '../zustand/useTutorEvaluationCategoryStore'
 import { useGetAllTeams } from './hooks/useGetAllTeams'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
+import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
 import { useGetMyEvaluationCompletions } from './hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from './hooks/useGetMyEvaluations'
+import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
+import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
+import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 
 interface EvaluationDataShellProps {
   children: React.ReactNode
@@ -106,18 +107,18 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
   })
 
   const {
-    selfEvaluationCompletion: selfEvaluationCompletion,
-    peerEvaluationCompletions: peerEvaluationCompletions,
-    tutorEvaluationCompletions: tutorEvaluationCompletions,
+    selfEvaluationCompletion,
+    peerEvaluationCompletions,
+    tutorEvaluationCompletions,
     isPending: isCompletionPending,
     isError: isCompletionError,
     refetch: refetchCompletion,
   } = useGetMyEvaluationCompletions({ enabled: isStudent })
 
   const {
-    selfEvaluations: selfEvaluations,
-    peerEvaluations: peerEvaluations,
-    tutorEvaluations: tutorEvaluations,
+    selfEvaluations,
+    peerEvaluations,
+    tutorEvaluations,
     isPending: isMyEvaluationsPending,
     isError: isMyEvaluationsError,
     refetch: refetchMyEvaluations,

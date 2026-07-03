@@ -114,11 +114,11 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
         </React.Suspense>
     ```
 
-### ESLint
-**ESLint** is used for code linting to maintain consistent coding standards across all components:
-- The main file is located in the root directory: `eslint.config.mjs`
-- Each component has its own eslint file, which imports the root config and allows for changes if necessary
-  - `<your_component>/eslint.config.mjs` 
+### Biome
+**Biome** is used for code linting and formatting to maintain consistent coding standards across all components:
+- The main configuration is located in the root directory: `biome.json`
+- Each component has its own `biome.json`, which extends the root config via `"extends": "//"` and allows for changes if necessary
+  - `<your_component>/biome.json` 
 
 ---
 

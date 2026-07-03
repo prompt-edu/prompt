@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-
+import { useState } from 'react'
+import type { AssessmentType } from '../../../interfaces/assessmentType'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
+import type { Evaluation } from '../../../interfaces/evaluation'
 import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
-
-import { AssessmentType } from '../../../interfaces/assessmentType'
-import { CategoryWithCompetencies } from '../../../interfaces/category'
-import { Evaluation } from '../../../interfaces/evaluation'
 
 import { EvaluationForm } from './EvaluationForm/EvaluationForm'
 

@@ -1,3 +1,5 @@
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Badge,
   Card,
@@ -7,8 +9,6 @@ import {
   CardTitle,
 } from '@tumaet/prompt-ui-components'
 import { ClipboardList, GripVertical } from 'lucide-react'
-import type { Team } from '@tumaet/prompt-shared-state'
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd'
 
 interface TeamRankingProps {
   teamRanking: string[]

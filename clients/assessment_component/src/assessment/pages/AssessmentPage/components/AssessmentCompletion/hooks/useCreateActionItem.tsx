@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import type { CreateActionItemRequest } from '../../../../../interfaces/actionItem'
 import { createActionItem } from '../../../../../network/mutations/createActionItem'
-import { CreateActionItemRequest } from '../../../../../interfaces/actionItem'
 
 export const useCreateActionItem = (setError: (error: string | undefined) => void) => {
   const queryClient = useQueryClient()

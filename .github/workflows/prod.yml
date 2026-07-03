@@ -13,24 +13,11 @@ permissions:
   packages: write
 
 jobs:
-  detect-changes:
-    uses: ./.github/workflows/detect-changes.yml
-    with:
-      base_sha: ${{ github.event.before }}
-    permissions:
-      contents: read
-      pull-requests: read
   quality-servers:
-    needs: detect-changes
     uses: ./.github/workflows/quality-servers.yml
-    with:
-      modules: ${{ needs.detect-changes.outputs.server_modules }}
   test-servers:
-    needs: [detect-changes, quality-servers]
+    needs: quality-servers
     uses: ./.github/workflows/test-servers.yml
-    secrets: inherit
-    with:
-      directories: ${{ needs.detect-changes.outputs.server_modules }}
   build-servers:
     needs: test-servers
     uses: ./.github/workflows/build-and-push-servers.yml
@@ -38,11 +25,7 @@ jobs:
     with:
       release_tag: "${{ github.event.release.tag_name }},latest"
   quality-clients:
-    needs: detect-changes
     uses: ./.github/workflows/quality-clients.yml
-    secrets: inherit
-    with:
-      modules: ${{ needs.detect-changes.outputs.client_modules }}
   build-clients:
     needs: quality-clients
     uses: ./.github/workflows/build-and-push-clients.yml

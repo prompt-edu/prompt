@@ -1,15 +1,15 @@
-import { AdditionalScore } from '../../../interfaces/additionalScore/additionalScore'
-import { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
-import { ApplicationForm } from '../../../interfaces/form/applicationForm'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { GetApplication } from '@core/interfaces/application/getApplication'
+import { saveAs } from 'file-saver'
+import type { AdditionalScore } from '../../../interfaces/additionalScore/additionalScore'
+import type { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
+import type { ApplicationForm } from '../../../interfaces/form/applicationForm'
 import {
-  ApplicationCsvExportSettings,
+  type ApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../../utils/applicationCsvExportSettings'
-import { GetApplication } from '@core/interfaces/application/getApplication'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { saveAs } from 'file-saver'
 
 type ApplicationQuestion =
   | ApplicationQuestionText

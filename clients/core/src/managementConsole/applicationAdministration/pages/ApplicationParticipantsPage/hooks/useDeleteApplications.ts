@@ -1,7 +1,7 @@
-import { useToast } from '@tumaet/prompt-ui-components'
-import { useMutation, UseMutationResult, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import { deleteApplications } from '@core/network/mutations/deleteApplications'
+import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
 
 export const useDeleteApplications = (): UseMutationResult<void, Error, string[], unknown> => {
   const { phaseId } = useParams<{ phaseId: string }>()

@@ -1,8 +1,16 @@
-import { useCallback, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import type { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
+import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
+import type { PostApplication } from '@core/interfaces/application/postApplication'
+import { postNewApplicationManual } from '@core/network/mutations/postApplicationManual'
+import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { ApplicationFormView } from '@core/publicPages/application/pages/ApplicationForm/ApplicationFormView'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Plus, AlertCircle, ArrowLeft } from 'lucide-react'
+import type { Student } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Dialog,
   DialogContent,
@@ -11,23 +19,15 @@ import {
   DialogTitle,
   DialogTrigger,
   ScrollArea,
-  Alert,
-  AlertDescription,
-  AlertTitle,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { ApplicationForm } from '../../../../interfaces/form/applicationForm'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { UniversitySelection } from './components/UniversitySelection'
-import { ApplicationFormView } from '@core/publicPages/application/pages/ApplicationForm/ApplicationFormView'
+import { AlertCircle, ArrowLeft, Loader2, Plus } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
+import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
 import { StudentSearch } from './components/StudentSearch'
-import { Student } from '@tumaet/prompt-shared-state'
-import { postNewApplicationManual } from '@core/network/mutations/postApplicationManual'
-import { PostApplication } from '@core/interfaces/application/postApplication'
-import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
-import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
-import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
-import { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
+import { UniversitySelection } from './components/UniversitySelection'
 
 interface ApplicationManualAddingDialog {
   existingApplications: ApplicationParticipation[]

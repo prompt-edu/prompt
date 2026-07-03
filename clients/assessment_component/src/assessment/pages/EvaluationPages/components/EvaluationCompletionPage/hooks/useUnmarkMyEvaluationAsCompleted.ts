@@ -1,7 +1,7 @@
-import { useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 
-import { EvaluationCompletionRequest } from '../../../../../interfaces/evaluationCompletion'
+import type { EvaluationCompletionRequest } from '../../../../../interfaces/evaluationCompletion'
 import { unmarkMyEvaluationAsCompleted } from '../../../../../network/mutations/unmarkMyEvaluationAsCompleted'
 
 export const useUnmarkMyEvaluationAsCompleted = (setError: (error: string | undefined) => void) => {

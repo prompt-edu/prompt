@@ -1,5 +1,5 @@
-import { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
-import { RowAction } from '@tumaet/prompt-ui-components'
+import type { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
+import type { RowAction } from '@tumaet/prompt-ui-components'
 import { ArrowRight } from 'lucide-react'
 
 interface passedFunctions {

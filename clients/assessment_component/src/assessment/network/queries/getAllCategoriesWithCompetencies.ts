@@ -1,5 +1,5 @@
-import { AssessmentType } from '../../interfaces/assessmentType'
-import { CategoryWithCompetencies } from '../../interfaces/category'
+import type { AssessmentType } from '../../interfaces/assessmentType'
+import type { CategoryWithCompetencies } from '../../interfaces/category'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllCategoriesWithCompetencies = async (

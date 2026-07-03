@@ -1,3 +1,4 @@
+import { Gender, getGenderString, type Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
   DropdownMenu,
@@ -9,7 +10,6 @@ import {
   Input,
 } from '@tumaet/prompt-ui-components'
 import { Filter } from 'lucide-react'
-import { Gender, getGenderString, Team } from '@tumaet/prompt-shared-state'
 
 export interface StatisticsFilter {
   genders?: Gender[]

@@ -12,6 +12,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countSurveyRespondents = `-- name: CountSurveyRespondents :one
+SELECT COUNT(DISTINCT course_participation_id)::bigint AS respondent_count
+FROM (
+    SELECT r.course_participation_id
+    FROM student_team_preference_response r
+    JOIN team t ON t.id = r.team_id
+    WHERE t.course_phase_id = $1
+    UNION
+    SELECT r.course_participation_id
+    FROM student_skill_response r
+    JOIN skill s ON s.id = r.skill_id
+    WHERE s.course_phase_id = $1
+) AS respondents
+`
+
+func (q *Queries) CountSurveyRespondents(ctx context.Context, coursePhaseID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countSurveyRespondents, coursePhaseID)
+	var respondent_count int64
+	err := row.Scan(&respondent_count)
+	return respondent_count, err
+}
+
 const deleteStudentSkillResponses = `-- name: DeleteStudentSkillResponses :exec
 DELETE FROM student_skill_response
 WHERE course_participation_id = $1
@@ -52,6 +74,51 @@ type DeleteStudentTeamPreferencesParams struct {
 func (q *Queries) DeleteStudentTeamPreferences(ctx context.Context, arg DeleteStudentTeamPreferencesParams) error {
 	_, err := q.db.Exec(ctx, deleteStudentTeamPreferences, arg.CourseParticipationID, arg.CoursePhaseID)
 	return err
+}
+
+const getSkillDistributionStatistics = `-- name: GetSkillDistributionStatistics :many
+SELECT
+    s.id AS skill_id,
+    s.name AS skill_name,
+    r.skill_level,
+    COUNT(r.course_participation_id) AS count
+FROM skill s
+LEFT JOIN student_skill_response r ON r.skill_id = s.id
+WHERE s.course_phase_id = $1
+GROUP BY s.id, s.name, r.skill_level
+ORDER BY s.name, r.skill_level
+`
+
+type GetSkillDistributionStatisticsRow struct {
+	SkillID    uuid.UUID      `json:"skill_id"`
+	SkillName  string         `json:"skill_name"`
+	SkillLevel NullSkillLevel `json:"skill_level"`
+	Count      int64          `json:"count"`
+}
+
+func (q *Queries) GetSkillDistributionStatistics(ctx context.Context, coursePhaseID uuid.UUID) ([]GetSkillDistributionStatisticsRow, error) {
+	rows, err := q.db.Query(ctx, getSkillDistributionStatistics, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSkillDistributionStatisticsRow
+	for rows.Next() {
+		var i GetSkillDistributionStatisticsRow
+		if err := rows.Scan(
+			&i.SkillID,
+			&i.SkillName,
+			&i.SkillLevel,
+			&i.Count,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getStudentSkillResponses = `-- name: GetStudentSkillResponses :many
@@ -149,6 +216,89 @@ func (q *Queries) GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUI
 	var i GetSurveyTimeframeRow
 	err := row.Scan(&i.SurveyStart, &i.SurveyDeadline)
 	return i, err
+}
+
+const getTeamPopularityStatistics = `-- name: GetTeamPopularityStatistics :many
+SELECT
+    t.id AS team_id,
+    t.name AS team_name,
+    COALESCE(AVG(r.preference), 0)::float8 AS avg_preference,
+    COUNT(r.course_participation_id)::bigint AS response_count
+FROM team t
+LEFT JOIN student_team_preference_response r ON r.team_id = t.id
+WHERE t.course_phase_id = $1
+GROUP BY t.id, t.name
+ORDER BY AVG(r.preference) ASC NULLS LAST
+`
+
+type GetTeamPopularityStatisticsRow struct {
+	TeamID        uuid.UUID `json:"team_id"`
+	TeamName      string    `json:"team_name"`
+	AvgPreference float64   `json:"avg_preference"`
+	ResponseCount int64     `json:"response_count"`
+}
+
+func (q *Queries) GetTeamPopularityStatistics(ctx context.Context, coursePhaseID uuid.UUID) ([]GetTeamPopularityStatisticsRow, error) {
+	rows, err := q.db.Query(ctx, getTeamPopularityStatistics, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeamPopularityStatisticsRow
+	for rows.Next() {
+		var i GetTeamPopularityStatisticsRow
+		if err := rows.Scan(
+			&i.TeamID,
+			&i.TeamName,
+			&i.AvgPreference,
+			&i.ResponseCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeamPreferenceCounts = `-- name: GetTeamPreferenceCounts :many
+SELECT
+    t.id AS team_id,
+    r.preference,
+    COUNT(r.course_participation_id)::int AS count
+FROM student_team_preference_response r
+JOIN team t ON t.id = r.team_id
+WHERE t.course_phase_id = $1
+GROUP BY t.id, r.preference
+ORDER BY t.id, r.preference
+`
+
+type GetTeamPreferenceCountsRow struct {
+	TeamID     uuid.UUID `json:"team_id"`
+	Preference int32     `json:"preference"`
+	Count      int32     `json:"count"`
+}
+
+func (q *Queries) GetTeamPreferenceCounts(ctx context.Context, coursePhaseID uuid.UUID) ([]GetTeamPreferenceCountsRow, error) {
+	rows, err := q.db.Query(ctx, getTeamPreferenceCounts, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeamPreferenceCountsRow
+	for rows.Next() {
+		var i GetTeamPreferenceCountsRow
+		if err := rows.Scan(&i.TeamID, &i.Preference, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertStudentSkillResponse = `-- name: InsertStudentSkillResponse :exec

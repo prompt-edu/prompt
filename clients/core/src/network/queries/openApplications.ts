@@ -1,5 +1,5 @@
 import { notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
-import { OpenApplicationDetails } from '../../interfaces/application/openApplicationDetails'
+import type { OpenApplicationDetails } from '../../interfaces/application/openApplicationDetails'
 
 export const getAllOpenApplications = async (): Promise<OpenApplicationDetails[]> => {
   try {

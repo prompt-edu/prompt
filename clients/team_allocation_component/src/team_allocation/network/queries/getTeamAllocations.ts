@@ -1,4 +1,4 @@
-import { Allocation } from '../../interfaces/allocation'
+import type { Allocation } from '../../interfaces/allocation'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getTeamAllocations = async (coursePhaseID: string): Promise<Allocation[]> => {

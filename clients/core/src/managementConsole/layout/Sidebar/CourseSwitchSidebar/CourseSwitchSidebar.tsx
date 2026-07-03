@@ -1,3 +1,4 @@
+import { Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Sidebar,
   SidebarContent,
@@ -6,13 +7,11 @@ import {
   SidebarGroupContent,
   SidebarMenu,
 } from '@tumaet/prompt-ui-components'
-import SidebarHeaderComponent from './components/SidebarHeader'
-import { CourseSidebarItem } from './components/CourseSidebarItem'
-import { AddCourseButton } from './components/AddCourseSidebarItem'
-import { useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useParams } from 'react-router-dom'
+import { AddCourseButton } from './components/AddCourseSidebarItem'
+import { CourseSidebarItem } from './components/CourseSidebarItem'
+import SidebarHeaderComponent from './components/SidebarHeader'
 
 export const CourseSwitchSidebar = () => {
   const { courses } = useCourseStore()

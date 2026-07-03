@@ -1,21 +1,21 @@
+import type { Course } from '@tumaet/prompt-shared-state'
 import {
+  CourseTypeDetails,
   getPermissionString,
   Role,
   useAuthStore,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@tumaet/prompt-ui-components'
-import { CalendarDays, GraduationCap, Clock, Calendar } from 'lucide-react'
-import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { Calendar, CalendarDays, Clock, GraduationCap } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { CourseStatusTag } from '../layout/Sidebar/CourseSwitchSidebar/components/CourseStatusTag'
-import type { Course } from '@tumaet/prompt-shared-state'
 import { CourseSettingsButton } from '../shared/components/CourseCard/CourseSettingsButton'
 
 export const CourseOverview = () => {

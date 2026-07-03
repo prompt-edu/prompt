@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Dialog,
@@ -11,7 +11,7 @@ import {
   Input,
 } from '@tumaet/prompt-ui-components'
 import { PlusCircle } from 'lucide-react'
-import { Team } from '@tumaet/prompt-shared-state'
+import { useState } from 'react'
 
 interface Props {
   disabled?: boolean

@@ -1,13 +1,18 @@
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
-import { Course, Role } from '@tumaet/prompt-shared-state'
-import { CalendarDays, GraduationCap, Clock, Calendar, ChevronRight } from 'lucide-react'
-import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { DynamicIcon } from '@tumaet/prompt-ui-components'
 import { formatDate } from '@core/utils/formatDate'
-import { CourseArchiveButton } from './CourseArchiveButton'
+import { type Course, CourseTypeDetails, Role } from '@tumaet/prompt-shared-state'
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  DynamicIcon,
+} from '@tumaet/prompt-ui-components'
+import { Calendar, CalendarDays, ChevronRight, Clock, GraduationCap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { CourseSettingsButton } from './CourseSettingsButton'
 import { ShowForRole } from '../ShowForRole'
+import { CourseArchiveButton } from './CourseArchiveButton'
+import { CourseSettingsButton } from './CourseSettingsButton'
 
 type CourseMetaItemProps = {
   icon: React.ReactNode
@@ -34,13 +39,16 @@ export const CourseCard = ({ course }: CourseCardProps) => {
   const navigate = useNavigate()
 
   return (
-    <Card className='overflow-hidden border border-gray-200 h-full flex flex-col'>
+    <Card
+      data-testid={`course-card-${course.id}`}
+      className='overflow-hidden border border-gray-200 h-full flex flex-col'
+    >
       <CardHeader className={`rounded-t-lg ${bgColor} py-6 px-6 border-b`}>
         <div className='flex items-center justify-between gap-4'>
           <div className='flex items-center gap-4 min-w-0'>
             <div className='size-6 shrink-0'>
               <DynamicIcon
-                name={course.studentReadableData?.['icon'] || 'graduation-cap'}
+                name={course.studentReadableData?.icon || 'graduation-cap'}
                 color='black'
               />
             </div>

@@ -262,13 +262,12 @@ func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEnd
 	assert.Equal(suite.T(), applicationDTO.StatusNotApplied, application.Status)
 }
 
-func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_Success() {
-	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
-	application := applicationDTO.PostApplication{
+func authApplicationWithEmail(email string) applicationDTO.PostApplication {
+	return applicationDTO.PostApplication{
 		Student: studentDTO.CreateStudent{
 			FirstName:            "John",
 			LastName:             "Doe",
-			Email:                "existingstudent@example.com",
+			Email:                email,
 			Gender:               db.GenderDiverse,
 			HasUniversityAccount: true,
 			MatriculationNumber:  "03711111",
@@ -297,8 +296,11 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 			},
 		},
 	}
+}
 
-	jsonBody, err := json.Marshal(application)
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_Success() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	jsonBody, err := json.Marshal(authApplicationWithEmail("existingstudent@example.com"))
 	assert.NoError(suite.T(), err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+coursePhaseID, bytes.NewReader(jsonBody))
@@ -312,6 +314,90 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 	err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "application posted", responseBody["message"])
+}
+
+const seededStudentID = "3a774200-39a7-4656-bafb-92b7210a93c1"
+
+func (suite *ApplicationAdminRouterTestSuite) setStudentEmail(email string) {
+	_, err := suite.applicationAdminService.conn.Exec(suite.ctx, "UPDATE student SET email = $1 WHERE id = $2", email, seededStudentID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ApplicationAdminRouterTestSuite) getStudentEmail() string {
+	var email string
+	err := suite.applicationAdminService.conn.QueryRow(suite.ctx, "SELECT email FROM student WHERE id = $1", seededStudentID).Scan(&email)
+	assert.NoError(suite.T(), err)
+	return email
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEndpoint_ReturnsTokenEmailWhenStale() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
+	suite.setStudentEmail("stale@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	req := httptest.NewRequest(http.MethodGet, "/api/apply/authenticated/"+coursePhaseID, nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	var application applicationDTO.Application
+	err := json.Unmarshal(resp.Body.Bytes(), &application)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), application.Student)
+	assert.Equal(suite.T(), "existingstudent@example.com", application.Student.Email)
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestGetApplicationAuthenticatedEndpoint_PersistsTokenEmailToDB() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
+	suite.setStudentEmail("stale@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	req := httptest.NewRequest(http.MethodGet, "/api/apply/authenticated/"+coursePhaseID, nil)
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	assert.Equal(suite.T(), "existingstudent@example.com", suite.getStudentEmail())
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_SyncsTokenEmailWhenStale() {
+	originalEmail := suite.getStudentEmail()
+	defer suite.setStudentEmail(originalEmail)
+	suite.setStudentEmail("stale@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	jsonBody, err := json.Marshal(authApplicationWithEmail("stale@example.com"))
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	assert.Equal(suite.T(), "existingstudent@example.com", suite.getStudentEmail())
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_UpdatesStudentEmail() {
+	defer suite.setStudentEmail("existingstudent@example.com")
+
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	jsonBody, err := json.Marshal(authApplicationWithEmail("lecturer-updated@example.com"))
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/applications/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	assert.Equal(suite.T(), "lecturer-updated@example.com", suite.getStudentEmail())
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_AlreadyApplied() {

@@ -1,9 +1,9 @@
-import { Button } from '@tumaet/prompt-ui-components'
+import { NavUserMenu } from '@managementConsole/layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { Button } from '@tumaet/prompt-ui-components'
 import { LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import packageJSON from '../../../../package.json'
-import { NavUserMenu } from '@managementConsole/layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 
 interface HeaderProps {
   withLoginButton?: boolean

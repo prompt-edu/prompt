@@ -1,0 +1,156 @@
+[
+  {
+    "id": "interview.get.hello",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/course_phase/{coursePhaseID}/hello",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "PromptLecturer", "CourseLecturer", "CourseEditor", "CourseStudent"],
+    "category": "read",
+    "handler": "helloInterviewServer",
+    "bodyType": null
+  },
+  {
+    "id": "interview.get.info",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/info",
+    "pathParams": [],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "RegisterInfoEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "interview.post.copy",
+    "service": "interview",
+    "method": "POST",
+    "path": "/interview/api/copy",
+    "pathParams": [],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "RegisterCopyEndpoint.func1",
+    "bodyType": "promptTypes.PhaseCopyRequest"
+  },
+  {
+    "id": "interview.post.privacy-data-export",
+    "service": "interview",
+    "method": "POST",
+    "path": "/interview/api/privacy/data-export",
+    "pathParams": [],
+    "roles": ["custom"],
+    "category": "write",
+    "handler": "RegisterPrivacyDataExportEndpoint.func1",
+    "bodyType": "promptTypes.PrivacyDataExportRequest"
+  },
+  {
+    "id": "interview.get.config",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "RegisterConfigEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "interview.post.interview-slots",
+    "service": "interview",
+    "method": "POST",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-slots",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "write",
+    "handler": "createInterviewSlot",
+    "bodyType": "interviewSlotDTO.CreateInterviewSlotRequest"
+  },
+  {
+    "id": "interview.get.interview-slots",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-slots",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "PromptLecturer", "CourseStudent"],
+    "category": "read",
+    "handler": "getAllInterviewSlots",
+    "bodyType": null
+  },
+  {
+    "id": "interview.get.interview-slots-slotId",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-slots/{slotId}",
+    "pathParams": ["coursePhaseID", "slotId"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "PromptLecturer", "CourseStudent"],
+    "category": "read",
+    "handler": "getInterviewSlot",
+    "bodyType": null
+  },
+  {
+    "id": "interview.put.interview-slots-slotId",
+    "service": "interview",
+    "method": "PUT",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-slots/{slotId}",
+    "pathParams": ["coursePhaseID", "slotId"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "write",
+    "handler": "updateInterviewSlot",
+    "bodyType": "interviewSlotDTO.UpdateInterviewSlotRequest"
+  },
+  {
+    "id": "interview.delete.interview-slots-slotId",
+    "service": "interview",
+    "method": "DELETE",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-slots/{slotId}",
+    "pathParams": ["coursePhaseID", "slotId"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "destructive",
+    "handler": "deleteInterviewSlot",
+    "bodyType": null
+  },
+  {
+    "id": "interview.post.interview-assignments",
+    "service": "interview",
+    "method": "POST",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-assignments",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "PromptLecturer", "CourseStudent"],
+    "category": "write",
+    "handler": "createInterviewAssignment",
+    "bodyType": "interviewAssignmentDTO.CreateInterviewAssignmentRequest"
+  },
+  {
+    "id": "interview.post.interview-assignments-admin",
+    "service": "interview",
+    "method": "POST",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-assignments/admin",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "write",
+    "handler": "createInterviewAssignmentAdmin",
+    "bodyType": "interviewAssignmentDTO.CreateInterviewAssignmentAdminRequest"
+  },
+  {
+    "id": "interview.get.interview-assignments-my-assignment",
+    "service": "interview",
+    "method": "GET",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-assignments/my-assignment",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "PromptLecturer", "CourseStudent"],
+    "category": "read",
+    "handler": "getMyInterviewAssignment",
+    "bodyType": null
+  },
+  {
+    "id": "interview.delete.interview-assignments-assignmentId",
+    "service": "interview",
+    "method": "DELETE",
+    "path": "/interview/api/course_phase/{coursePhaseID}/interview-assignments/{assignmentId}",
+    "pathParams": ["coursePhaseID", "assignmentId"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor", "PromptLecturer", "CourseStudent"],
+    "category": "destructive",
+    "handler": "deleteInterviewAssignment",
+    "bodyType": null
+  }
+]

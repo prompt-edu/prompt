@@ -1,9 +1,10 @@
 import { useQueries } from '@tanstack/react-query'
+import { KeycloakStatusCard } from './components/KeycloakStatusCard'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
-import { ServiceInfo } from './interfaces/serviceCapabilities'
-import { CoursePhaseType } from './interfaces/coursePhaseType'
-import { getServiceInfo } from './network/getServiceCapabilities'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
+import type { CoursePhaseType } from './interfaces/coursePhaseType'
+import type { ServiceInfo } from './interfaces/serviceCapabilities'
+import { getServiceInfo } from './network/getServiceCapabilities'
 
 export const SystemStatusPage = () => {
   const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()
@@ -11,7 +12,7 @@ export const SystemStatusPage = () => {
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {
       return {
-        queryKey: ['serviceInfo-' + service.id],
+        queryKey: [`serviceInfo-${service.id}`],
         queryFn: () => getServiceInfo(service),
         retry: false,
         staleTime: 30_000,
@@ -38,6 +39,15 @@ export const SystemStatusPage = () => {
   return (
     <div className='flex flex-col gap-8 w-full'>
       <h1 className='text-3xl font-bold tracking-tight'>System Status</h1>
+
+      <div className='flex flex-col gap-3'>
+        <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
+          Infrastructure
+        </h2>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+          <KeycloakStatusCard />
+        </div>
+      </div>
 
       <div className='flex flex-col gap-3'>
         <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>

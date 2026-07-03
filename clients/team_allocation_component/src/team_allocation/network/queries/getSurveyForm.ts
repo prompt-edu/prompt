@@ -1,4 +1,4 @@
-import { SurveyForm } from '../../interfaces/surveyForm'
+import type { SurveyForm } from '../../interfaces/surveyForm'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getSurveyForm = async (coursePhaseID: string): Promise<SurveyForm | null> => {

@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import { Lock, Plus } from 'lucide-react'
-
 import {
   Button,
   Card,
@@ -9,20 +6,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-
-import { useCategoryStore } from '../../../../zustand/useCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
-import { useTutorEvaluationCategoryStore } from '../../../../zustand/useTutorEvaluationCategoryStore'
-
+import { Lock, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../interfaces/category'
+import { useCategoryStore } from '../../../../zustand/useCategoryStore'
+import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
+import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
+import { useTutorEvaluationCategoryStore } from '../../../../zustand/useTutorEvaluationCategoryStore'
 import { schemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
-import { EditCategoryDialog } from './components/EditCategoryDialog'
-import { DeleteConfirmDialog } from './components/DeleteConfirmDialog'
 import { CreateCategoryForm } from './components/CreateCategoryForm'
+import { DeleteConfirmDialog } from './components/DeleteConfirmDialog'
+import { EditCategoryDialog } from './components/EditCategoryDialog'
 
 interface CategoryListProps {
   assessmentSchemaID: string

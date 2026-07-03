@@ -1,8 +1,7 @@
 import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 import { format } from 'date-fns'
-
-import type { CoursePhaseConfig } from '../../../../interfaces/coursePhaseConfig'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { CoursePhaseConfig } from '../../../../interfaces/coursePhaseConfig'
 import type {
   AssessmentReminderMetaData,
   EvaluationReminderType,

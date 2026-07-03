@@ -1,18 +1,15 @@
+import { Alert, AlertDescription, Button } from '@tumaet/prompt-ui-components'
+import { Lock, Unlock } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Lock, Unlock } from 'lucide-react'
 
-import { Button, Alert, AlertDescription } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../../interfaces/assessmentType'
 
 import { AssessmentCompletionDialog } from '../../../components/AssessmentCompletionDialog'
 import { DeadlineBadge } from '../../../components/badges'
-
+import { FeedbackItemPanel } from './components/FeedbackItemPanel'
 import { useMarkMyEvaluationAsCompleted } from './hooks/useMarkMyEvaluationAsCompleted'
 import { useUnmarkMyEvaluationAsCompleted } from './hooks/useUnmarkMyEvaluationAsCompleted'
-
-import { FeedbackItemPanel } from './components/FeedbackItemPanel'
 
 interface EvaluationCompletionPageProps {
   type: AssessmentType

@@ -1,6 +1,6 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { serializeUpdateCourse } from '@core/managementConsole/courseOverview/interfaces/postCourse'
 import type { UpdateCourseData } from '@tumaet/prompt-shared-state'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const updateCourseData = async (
   courseID: string,

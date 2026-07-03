@@ -1,5 +1,5 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 export const getTemplateCourses = async (): Promise<Course[]> => {
   try {

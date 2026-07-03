@@ -1,3 +1,4 @@
+import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -9,17 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
-
 import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
-import { useSelfEvaluationCategoryStore } from '../../../../../zustand/useSelfEvaluationCategoryStore'
 import { usePeerEvaluationCategoryStore } from '../../../../../zustand/usePeerEvaluationCategoryStore'
+import { useSelfEvaluationCategoryStore } from '../../../../../zustand/useSelfEvaluationCategoryStore'
 import { useStudentAssessmentStore } from '../../../../../zustand/useStudentAssessmentStore'
-import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
-
+import { StudentScoreBadge } from '../../../../components/badges'
 import { getWeightedScoreLevel } from '../../../../utils/getWeightedScoreLevel'
 import { GRADE_SELECT_OPTIONS } from '../../../../utils/gradeConfig'
-
-import { StudentScoreBadge } from '../../../../components/badges'
 
 interface GradeSuggestionProps {
   onGradeSuggestionChange: (value: string) => void

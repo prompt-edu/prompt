@@ -1,6 +1,6 @@
+import type { QuestionConfigFormData } from '@core/validations/questionConfig'
 import { FormControl, FormField, FormItem, FormLabel, Input } from '@tumaet/prompt-ui-components'
-import { UseFormReturn } from 'react-hook-form'
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import type { UseFormReturn } from 'react-hook-form'
 
 interface MaxFileSizeFieldProps {
   form: UseFormReturn<QuestionConfigFormData>
@@ -20,7 +20,7 @@ export const MaxFileSizeField = ({ form }: MaxFileSizeFieldProps) => {
               placeholder='10'
               {...field}
               value={field.value || ''}
-              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : '')}
             />
           </FormControl>
         </FormItem>

@@ -161,29 +161,11 @@ Competencies are individual skills within categories:
 
 ---
 
-## 🗺️ Setting Up the Competency Map
+## 🤝 Showing Self and Peer Evaluation Results
 
-The competency map allows you to link competencies from your self and peer evaluation templates to your assessment, so they show up in the assessment view.
+Self and peer evaluation results appear in the assessment view automatically when the self/peer evaluation uses the **same schema** as the assessment. Because both then share the same competencies, each evaluation score lines up with its assessment competency without any extra configuration.
 
-### Understanding Competency Mapping
-
-When you have self or peer evaluation enabled, you can map evaluation competencies to the main assessment:
-
-- **Self Evaluation → Assessment**: Link self evaluation competencies to the main assessment competencies
-- **Peer Evaluation → Assessment**: Link peer evaluation competencies to the main assessment competencies
-
-This enables them to show up in the main assessment view to be taken into account in the main assessment.
-
-### Creating Mappings
-
-1. **Navigate to Settings**: Go to the Settings page in your assessment phase
-2. **Find Competency**: Locate the competency you want to map to
-3. **Select Mapping**: In the assessment mapping section:
-   - Choose the source competency from the self or peer evaluation dropdown
-   - Select "No mapping" to remove an existing mapping
-4. **Save Changes**: Mappings are saved automatically
-
-⚠️ **Note**: You can map only one self and one peer competency to each assessment competency.
+If a **different schema** is configured for self or peer evaluation, those scores are not shown in the assessment view (feedback items are still shown).
 
 📺 **Video Tutorial**: Coming soon
 
@@ -249,11 +231,10 @@ Final Score = Sum of all weighted category scores / Sum of all category weights
 - **Balanced Weights**: Distribute weights logically across categories and competencies
 - **Consistent Granularity**: Keep similar levels of detail across all competencies
 
-### Competency Mapping
+### Self and Peer Evaluation
 
-- **Strategic Mapping**: Only map competencies where cross-evaluation adds value
-- **Documentation**: Keep notes on your mapping rationale for future reference
-- **Validation**: Test your mapping strategy with a small group before full deployment
+- **Shared Schema**: Use the same schema for assessment and self/peer evaluation so evaluation results show up in the assessment view
+- **Consistency**: Keep competency descriptions identical across the shared schema so scores stay comparable
 
 ---
 

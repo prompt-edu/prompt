@@ -1,19 +1,19 @@
 {
   "name": "certificate_component",
-  "version": "2.14.0",
+  "version": "2.15.1",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
     "dev": "rspack serve --mode development",
-    "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "lint": "biome check src",
+    "lint:fix": "biome check src --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "build": "rspack --mode=production --env NODE_ENV=production",
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.7.11",
-    "@rspack/core": "^1.7.11"
+    "@rspack/cli": "^2.0.8",
+    "@rspack/core": "^2.0.8"
   },
-  "packageManager": "yarn@4.16.0"
+  "packageManager": "yarn@4.17.0"
 }

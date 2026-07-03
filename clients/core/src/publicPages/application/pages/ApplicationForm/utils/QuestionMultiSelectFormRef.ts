@@ -1,4 +1,4 @@
-import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
 
 export interface QuestionMultiSelectFormRef {
   validate: () => Promise<boolean>

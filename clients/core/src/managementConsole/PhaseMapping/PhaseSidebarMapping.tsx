@@ -1,14 +1,14 @@
-import { TemplateSidebar } from './ExternalSidebars/TemplateSidebar'
-import { InterviewSidebar } from './ExternalSidebars/InterviewSidebar'
 import { ApplicationSidebar } from './ExternalSidebars/ApplicationSidebar'
-import { MatchingSidebar } from './ExternalSidebars/MatchingSidebar'
-import { IntroCourseDeveloperSidebar } from './ExternalSidebars/IntroCourseDeveloperSidebar'
 import { AssessmentSidebar } from './ExternalSidebars/AssessmentSidebar'
-import { DevOpsChallengeSidebar } from './ExternalSidebars/DevOpsChallengeSidebar'
-import { TeamAllocationSidebar } from './ExternalSidebars/TeamAllocationSidebar'
-import { SelfTeamAllocationSidebar } from './ExternalSidebars/SelfTeamAllocationSidebar'
 import { CertificateSidebar } from './ExternalSidebars/CertificateSidebar'
+import { DevOpsChallengeSidebar } from './ExternalSidebars/DevOpsChallengeSidebar'
 import { InfrastructureSetupSidebar } from './ExternalSidebars/InfrastructureSetupSidebar'
+import { InterviewSidebar } from './ExternalSidebars/InterviewSidebar'
+import { IntroCourseDeveloperSidebar } from './ExternalSidebars/IntroCourseDeveloperSidebar'
+import { MatchingSidebar } from './ExternalSidebars/MatchingSidebar'
+import { SelfTeamAllocationSidebar } from './ExternalSidebars/SelfTeamAllocationSidebar'
+import { TeamAllocationSidebar } from './ExternalSidebars/TeamAllocationSidebar'
+import { TemplateSidebar } from './ExternalSidebars/TemplateSidebar'
 
 export const PhaseSidebarMapping: {
   [key: string]: React.FC<{ rootPath: string; title: string; coursePhaseID: string }>

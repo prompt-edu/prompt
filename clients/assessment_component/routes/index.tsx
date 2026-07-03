@@ -1,26 +1,23 @@
 import '../src/loadStyles'
 
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
-
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { AssessmentType } from '../src/assessment/interfaces/assessmentType'
+import { AssessmentDataShell } from '../src/assessment/pages/AssessmentDataShell'
+import { AssessmentPage } from '../src/assessment/pages/AssessmentPage/AssessmentPage'
+import { AssessmentParticipantsPage } from '../src/assessment/pages/AssessmentParticipantsPage/AssessmentParticipantsPage'
+import { AssessmentStatisticsPage } from '../src/assessment/pages/AssessmentStatisticsPage/AssessmentStatisticsPage'
 import { EvaluationDataShell } from '../src/assessment/pages/EvaluationDataShell'
 import { EvaluationOverviewPage } from '../src/assessment/pages/EvaluationOverviewPage/EvaluationOverviewPage'
 import { EvaluationResultsPage } from '../src/assessment/pages/EvaluationOverviewPage/EvaluationResultsPage'
-import { SelfEvaluationPage } from '../src/assessment/pages/EvaluationPages/SelfEvaluationPage'
 import { PeerEvaluationPage } from '../src/assessment/pages/EvaluationPages/PeerEvaluationPage'
+import { SelfEvaluationPage } from '../src/assessment/pages/EvaluationPages/SelfEvaluationPage'
 import { TutorEvaluationPage } from '../src/assessment/pages/EvaluationPages/TutorEvaluationPage'
-
-import { AssessmentDataShell } from '../src/assessment/pages/AssessmentDataShell'
-import { AssessmentParticipantsPage } from '../src/assessment/pages/AssessmentParticipantsPage/AssessmentParticipantsPage'
-import { AssessmentPage } from '../src/assessment/pages/AssessmentPage/AssessmentPage'
-import { AssessmentStatisticsPage } from '../src/assessment/pages/AssessmentStatisticsPage/AssessmentStatisticsPage'
-import { TutorOverviewPage } from '../src/assessment/pages/TutorOverviewPage/TutorOverviewPage'
-import { TutorEvaluationResultsPage } from '../src/assessment/pages/TutorEvaluationResultsPage/TutorEvaluationResultsPage'
-import { EvaluationParticipantsOverviewPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantsOverviewPage'
 import { EvaluationParticipantResultsPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantResultsPage'
+import { EvaluationParticipantsOverviewPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantsOverviewPage'
 import { SchemaConfigurationPage } from '../src/assessment/pages/SchemaConfigurationPage/SchemaConfigurationPage'
 import { SettingsPage } from '../src/assessment/pages/SettingsPage/SettingsPage'
-import { AssessmentType } from '../src/assessment/interfaces/assessmentType'
+import { TutorEvaluationResultsPage } from '../src/assessment/pages/TutorEvaluationResultsPage/TutorEvaluationResultsPage'
+import { TutorOverviewPage } from '../src/assessment/pages/TutorOverviewPage/TutorOverviewPage'
 
 const routes: ExtendedRouteObject[] = [
   {

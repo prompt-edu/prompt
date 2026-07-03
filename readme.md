@@ -264,7 +264,7 @@ cd servers/<service> && sqlc generate
 cd servers/<service> && go test ./...
 
 # Lint clients
-cd clients && yarn eslint "core" --config "core/eslint.config.mjs"
+cd clients && yarn biome check "core"
 
 # Add shadcn/ui component
 cd clients/shared_library && yarn dlx shadcn add <component-name>

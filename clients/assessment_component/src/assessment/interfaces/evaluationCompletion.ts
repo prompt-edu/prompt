@@ -1,5 +1,5 @@
-import { AssessmentType } from './assessmentType'
-import { CompetencyScoreCompletion } from './competencyScoreCompletion'
+import type { AssessmentType } from './assessmentType'
+import type { CompetencyScoreCompletion } from './competencyScoreCompletion'
 
 export type EvaluationCompletion = CompetencyScoreCompletion & {
   authorCourseParticipationID: string

@@ -1,10 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { getTemplateInfo } from '../network/queries/getTemplateInfo'
+import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
-import { Card, CardContent } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
+import { getTemplateInfo } from '../network/queries/getTemplateInfo'
 
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

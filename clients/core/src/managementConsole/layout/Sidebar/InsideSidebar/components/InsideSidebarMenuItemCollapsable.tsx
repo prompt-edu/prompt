@@ -1,13 +1,13 @@
 import {
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
+  CollapsibleTrigger,
   SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@tumaet/prompt-ui-components'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'

@@ -1,8 +1,8 @@
-import { SidebarMenuButton, SidebarMenuItem, useSidebar } from '@tumaet/prompt-ui-components'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { SidebarMenuButton, SidebarMenuItem, useSidebar } from '@tumaet/prompt-ui-components'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CourseSidebarItemTooltip } from './CourseSidebarItemTooltip'
 import { CourseAvatar } from './CourseAvatar'
+import { CourseSidebarItemTooltip } from './CourseSidebarItemTooltip'
 
 interface CourseSidebarItemProps {
   course: Course
@@ -15,7 +15,7 @@ export const CourseSidebarItem = ({ course }: CourseSidebarItemProps) => {
 
   const isActive = course.id === courseId
   const bgColor = course.studentReadableData?.['bg-color'] || 'bg-gray-100'
-  const iconName = course.studentReadableData?.['icon'] || 'graduation-cap'
+  const iconName = course.studentReadableData?.icon || 'graduation-cap'
 
   const containerRing = isActive
     ? course.template

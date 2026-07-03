@@ -1,14 +1,14 @@
-import { useMutation } from '@tanstack/react-query'
-import { postNewCoursePhase } from '@core/network/mutations/postNewCoursePhase'
-import { updatePhaseGraph } from '@core/network/mutations/updatePhaseGraph'
-import { updateParticipationDataGraph } from '@core/network/mutations/updateParticipationDataGraph'
 import { deleteCoursePhase } from '@core/network/mutations/deleteCoursePhase'
+import { postNewCoursePhase } from '@core/network/mutations/postNewCoursePhase'
 import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
-import { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
-import { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdate'
-import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
-import { useParams } from 'react-router-dom'
+import { updateParticipationDataGraph } from '@core/network/mutations/updateParticipationDataGraph'
 import { updatePhaseDataGraph } from '@core/network/mutations/updatePhaseDataGraph'
+import { updatePhaseGraph } from '@core/network/mutations/updatePhaseGraph'
+import { useMutation } from '@tanstack/react-query'
+import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import { useParams } from 'react-router-dom'
+import type { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
+import type { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdate'
 
 export function useMutations() {
   const { courseId } = useParams<{ courseId: string }>()

@@ -62,7 +62,14 @@ Thumbs.db
 # =============================================================================
 # AI Assistant Config
 # =============================================================================
-.claude/
+# Track shared Claude config (rules/, agents/, settings.json); ignore only
+# local overrides and derived paths. Only team-safe values belong in the tracked
+# settings.json — keep env secrets and any apiKeyHelper in the ignored
+# settings.local.json. Skill content is canonical in .agents/skills/
+# and symlinked into .claude/skills/ (symlinks regenerated via `make setup-skills`).
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
 .gemini/
 .worktrees/
 

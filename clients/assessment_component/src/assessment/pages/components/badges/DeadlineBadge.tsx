@@ -1,6 +1,6 @@
+import { Badge } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
 import { Clock } from 'lucide-react'
-import { Badge } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 

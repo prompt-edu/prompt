@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, Label, Switch } from '@tumaet/prompt-ui-components'
 import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
-import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import { Card, CardContent, Label, Switch } from '@tumaet/prompt-ui-components'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 
 interface Props {
   initialData: ApplicationMetaData

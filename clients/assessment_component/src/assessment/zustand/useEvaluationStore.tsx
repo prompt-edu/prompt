@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { Evaluation } from '../interfaces/evaluation'
-import { EvaluationCompletion } from '../interfaces/evaluationCompletion'
+import type { Evaluation } from '../interfaces/evaluation'
+import type { EvaluationCompletion } from '../interfaces/evaluationCompletion'
 
 export interface EvaluationStore {
   selfEvaluations: Evaluation[]

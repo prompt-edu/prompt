@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { CoursePhaseTypePanelItem } from './CoursePhaseTypePanelItem'
 
 interface CoursePhaseTypePanelProps {

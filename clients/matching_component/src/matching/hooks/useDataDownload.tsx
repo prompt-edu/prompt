@@ -1,6 +1,6 @@
-import { UploadedStudent } from '../interfaces/UploadedStudent'
-import { useMatchingStore } from '../zustand/useMatchingStore'
 import * as XLSX from 'xlsx'
+import type { UploadedStudent } from '../interfaces/UploadedStudent'
+import { useMatchingStore } from '../zustand/useMatchingStore'
 
 export const useDataDownload = () => {
   const { uploadedFile: file } = useMatchingStore()

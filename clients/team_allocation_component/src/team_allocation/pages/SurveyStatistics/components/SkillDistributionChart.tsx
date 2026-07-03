@@ -1,10 +1,10 @@
-import { ChartConfig } from '@tumaet/prompt-ui-components'
-import { SkillDistributionStats } from '../../../interfaces/surveyStatistics'
+import type { ChartConfig } from '@tumaet/prompt-ui-components'
 import {
-  SkillLevel,
   SKILL_LEVEL_LABELS,
   SKILL_LEVEL_ORDER,
+  SkillLevel,
 } from '../../../interfaces/skillResponse'
+import type { SkillDistributionStats } from '../../../interfaces/surveyStatistics'
 import { StackedBarChart } from './StackedBarChart'
 
 interface SkillDistributionChartProps {

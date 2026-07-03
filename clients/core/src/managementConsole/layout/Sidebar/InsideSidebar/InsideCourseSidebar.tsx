@@ -1,3 +1,8 @@
+import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
+import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
+import { CourseUserManagementSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseUserManagementSidebar'
+import { PhaseSidebarMapping } from '@managementConsole/PhaseMapping/PhaseSidebarMapping'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -5,15 +10,10 @@ import {
   SidebarMenu,
 } from '@tumaet/prompt-ui-components'
 import { Gauge } from 'lucide-react'
-import { useParams } from 'react-router-dom'
-import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 import { Suspense, useMemo } from 'react'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useParams } from 'react-router-dom'
 import { DisabledSidebarMenuItem } from './components/DisabledSidebarMenuItem'
-import { PhaseSidebarMapping } from '@managementConsole/PhaseMapping/PhaseSidebarMapping'
-import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
-import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
-import { CourseUserManagementSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseUserManagementSidebar'
+import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideCourseSidebar = () => {
   const { courseId } = useParams<{ courseId: string }>()
@@ -54,14 +54,14 @@ export const InsideCourseSidebar = () => {
                     fallback={<DisabledSidebarMenuItem key={phase.id} title={'Loading...'} />}
                   >
                     <PhaseComponent
-                      rootPath={rootPath + '/' + phase.id}
+                      rootPath={`${rootPath}/${phase.id}`}
                       title={phase.name}
                       coursePhaseID={phase.id}
                     />
                   </Suspense>
                 )
               } else {
-                return <DisabledSidebarMenuItem key={phase.id} title={'Unknown ' + phase.name} />
+                return <DisabledSidebarMenuItem key={phase.id} title={`Unknown ${phase.name}`} />
               }
             })}
           </SidebarGroupContent>

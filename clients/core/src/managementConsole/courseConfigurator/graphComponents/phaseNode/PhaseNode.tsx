@@ -1,12 +1,12 @@
-import { useCallback } from 'react'
+import { Badge, Card, CardContent, CardHeader, Separator } from '@tumaet/prompt-ui-components'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 import { Users } from 'lucide-react'
-import { EDGE_COLOR_BLUE } from '../edges/edgeColors'
+import { useCallback } from 'react'
 import { useCourseConfigurationState } from '../../zustand/useCourseConfigurationStore'
-import { Badge, Card, CardContent, CardHeader, Separator } from '@tumaet/prompt-ui-components'
+import { EDGE_COLOR_BLUE } from '../edges/edgeColors'
 import { IncomingDataHandle } from './components/IncomingDataHandle'
-import { OutgoingDataHandle } from './components/OutgoingDataHandle'
 import { NameEditingHeader } from './components/NameEditingHeader'
+import { OutgoingDataHandle } from './components/OutgoingDataHandle'
 
 export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) {
   // Retrieve phase and phase type data

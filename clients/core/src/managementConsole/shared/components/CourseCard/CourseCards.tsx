@@ -1,6 +1,6 @@
-import { Course } from '@tumaet/prompt-shared-state'
-import { CourseCard } from './CourseCard'
+import type { Course } from '@tumaet/prompt-shared-state'
 import { AnimatePresence, motion } from 'framer-motion'
+import { CourseCard } from './CourseCard'
 
 interface CourseCardsProps {
   courses: Course[]

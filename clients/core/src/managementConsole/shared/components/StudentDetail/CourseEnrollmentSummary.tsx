@@ -1,5 +1,5 @@
 import { PassStatus } from '@tumaet/prompt-shared-state'
-import { CourseEnrollment } from '../../interfaces/StudentEnrollment'
+import type { CourseEnrollment } from '../../interfaces/StudentEnrollment'
 
 interface CourseEnrollmentSummaryProps {
   enrollments: CourseEnrollment[]

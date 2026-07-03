@@ -1,22 +1,22 @@
+import type { CopyCourseFormValues } from '@core/validations/copyCourse'
 import {
-  DialogHeader,
-  DialogTitle,
+  Button,
+  DatePickerWithRange,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
   Input,
   Textarea,
-  Button,
-  DatePickerWithRange,
 } from '@tumaet/prompt-ui-components'
 import type { UseFormReturn } from 'react-hook-form'
-import type { CopyCourseFormValues } from '@core/validations/copyCourse'
 
 interface CopyCourseFormProps {
   form: UseFormReturn<CopyCourseFormValues>

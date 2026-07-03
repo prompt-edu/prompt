@@ -1,5 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
-import { Equal } from 'lucide-react'
+import { translations } from '@tumaet/prompt-shared-state'
 import {
   Input,
   Label,
@@ -15,7 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from '@tumaet/prompt-ui-components'
-import { translations } from '@tumaet/prompt-shared-state'
+import { Equal } from 'lucide-react'
+import type React from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 
 export interface Page2Ref {
   validate: () => boolean
@@ -30,7 +31,7 @@ export interface Page2Ref {
 }
 
 export const AssessmentScoreUploadPage2 = forwardRef<Page2Ref>(
-  function AssessmentScoreUploadPage2Inner(props, ref) {
+  function AssessmentScoreUploadPage2Inner(_props, ref) {
     const [file, setFile] = useState<File | null>(null)
     const [csvData, setCsvData] = useState<string[][]>([])
     const [matchBy, setMatchBy] = useState<'email' | 'universityLogin' | 'matriculationNumber'>(

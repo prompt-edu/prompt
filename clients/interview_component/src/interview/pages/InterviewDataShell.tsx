@@ -1,18 +1,18 @@
-import { useParams } from 'react-router-dom'
-import { useParticipationStore } from '../zustand/useParticipationStore'
-import { useEffect } from 'react'
-import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
 import {
-  CoursePhaseWithMetaData,
-  CoursePhaseParticipationsWithResolution,
+  type CoursePhaseParticipationsWithResolution,
+  type CoursePhaseWithMetaData,
+  getCoursePhase,
+  getCoursePhaseParticipations,
 } from '@tumaet/prompt-shared-state'
-import { getCoursePhase } from '@tumaet/prompt-shared-state'
-import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
-import { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
+import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import type { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../network/interviewServerConfig'
+import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
+import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewDataShellProps {
   children: React.ReactNode
@@ -110,7 +110,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
           <Loader2 className='h-12 w-12 animate-spin text-primary' />
         </div>
       ) : (
-        <>{children}</>
+        children
       )}
     </>
   )

@@ -1,8 +1,8 @@
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
 import { getLevelConfig } from '@tumaet/prompt-ui-components'
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
 
 export function ScoreDistributionTooltipContent(props: any) {
-  if (!props.active || !props.payload || !props.payload[0]) {
+  if (!props.active || !props.payload?.[0]) {
     return undefined
   }
 

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { CourseGroupName } from '../interfaces/StaffMember'
+import type { CourseGroupName } from '../interfaces/StaffMember'
 import { courseStaffQueryKey } from './useCourseStaff'
 
 interface AddMemberArgs {

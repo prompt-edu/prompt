@@ -1,5 +1,5 @@
-import { ApplicationAssessment } from '../../managementConsole/applicationAdministration/interfaces/applicationAssessment'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
+import type { ApplicationAssessment } from '../../managementConsole/applicationAdministration/interfaces/applicationAssessment'
 
 export const postApplicationAssessment = async (
   phaseId: string,

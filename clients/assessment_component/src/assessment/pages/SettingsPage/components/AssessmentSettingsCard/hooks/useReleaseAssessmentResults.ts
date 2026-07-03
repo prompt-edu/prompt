@@ -1,7 +1,6 @@
 import { useState } from 'react'
-
-import { useParticipationStore } from '../../../../../zustand/useParticipationStore'
 import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
+import { useParticipationStore } from '../../../../../zustand/useParticipationStore'
 import { useGetAllAssessmentCompletions } from '../../../../hooks/useGetAllAssessmentCompletions'
 import { useReleaseResults } from '../../../hooks/useReleaseResults'
 import { useUnreleaseResults } from '../../../hooks/useUnreleaseResults'

@@ -1,8 +1,7 @@
 import '../src/loadStyles'
 
+import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { ClipboardList } from 'lucide-react'
-import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
 
 const sidebarItems: SidebarMenuItemProps = {
   title: 'Assessment Component',

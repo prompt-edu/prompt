@@ -1,12 +1,16 @@
-import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
-import { Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
-import { InsideSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/InsideSidebarMenuItem'
-import { getPermissionString } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
-import { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
+import type { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
+import {
+  getPermissionString,
+  Role,
+  type SidebarMenuItemProps,
+  useAuthStore,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
+import { InsideSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/InsideSidebarMenuItem'
 
 interface ExternalSidebarProps {
   rootPath: string
@@ -65,12 +69,10 @@ export const ExternalSidebarComponent: React.FC<ExternalSidebarProps> = ({
   // we ignore this error if the user has access anyway
   if (isCourseParticipationError && !hasComponentPermission) {
     return (
-      <>
-        <ErrorPage
-          message='Failed to get the course participation data'
-          onRetry={refetchCourseParticipation}
-        />
-      </>
+      <ErrorPage
+        message='Failed to get the course participation data'
+        onRetry={refetchCourseParticipation}
+      />
     )
   }
 

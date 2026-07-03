@@ -1,8 +1,11 @@
-import React from 'react'
-import { useForm } from 'react-hook-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, XCircle } from 'lucide-react'
+import { updateStudent } from '@core/network/mutations/updateStudent'
+import {
+  formSchemaUniversityData,
+  type UniversityDataFormValues,
+} from '@core/validations/universityData'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { type Student, translations } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -15,13 +18,9 @@ import {
   FormMessage,
   Input,
 } from '@tumaet/prompt-ui-components'
-import {
-  UniversityDataFormValues,
-  formSchemaUniversityData,
-} from '@core/validations/universityData'
-import { Student } from '@tumaet/prompt-shared-state'
-import { updateStudent } from '@core/network/mutations/updateStudent'
-import { translations } from '@tumaet/prompt-shared-state'
+import { AlertCircle, XCircle } from 'lucide-react'
+import React from 'react'
+import { useForm } from 'react-hook-form'
 
 interface MissingUniversityDataProps {
   student: Student

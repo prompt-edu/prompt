@@ -1,5 +1,5 @@
+import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 import { create } from 'zustand'
-import { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 
 export interface CoursePhaseStore {
   coursePhase: CoursePhaseWithMetaData | undefined

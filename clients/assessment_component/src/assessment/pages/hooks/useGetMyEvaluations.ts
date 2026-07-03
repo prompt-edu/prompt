@@ -1,9 +1,9 @@
-import { useParams } from 'react-router-dom'
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { Evaluation } from '../../interfaces/evaluation'
+import type { Evaluation } from '../../interfaces/evaluation'
 
 import { getMyEvaluations } from '../../network/queries/getMyEvaluations'
 

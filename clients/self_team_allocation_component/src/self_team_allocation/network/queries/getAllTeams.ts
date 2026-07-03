@@ -1,4 +1,4 @@
-import { Team } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 
 import { selfTeamAllocationAxiosInstance } from '../selfTeamAllocationServerConfig'
 

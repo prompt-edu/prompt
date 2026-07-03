@@ -1,8 +1,8 @@
-import { useContext, useEffect, useCallback } from 'react'
-import Keycloak from 'keycloak-js'
-import { KeycloakContext } from './KeycloakProvider'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { jwtDecode } from 'jwt-decode'
+import Keycloak from 'keycloak-js'
+import { useCallback, useContext, useEffect } from 'react'
+import { KeycloakContext } from './KeycloakProvider'
 
 // Helper function to decode JWT safely
 const parseJwt = (token: string) => {

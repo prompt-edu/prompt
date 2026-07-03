@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import { checkCourseTemplateStatus } from '@core/network/queries/checkCourseTemplateStatus'
-import { updateCourseTemplateStatus } from '@core/network/mutations/updateCourseTemplateStatus'
 import type { CourseTemplateStatus } from '@core/interfaces/courseTemplateStatus'
+import { updateCourseTemplateStatus } from '@core/network/mutations/updateCourseTemplateStatus'
+import { checkCourseTemplateStatus } from '@core/network/queries/checkCourseTemplateStatus'
+import { useCallback, useEffect, useState } from 'react'
 
 export const useCourseTemplate = (courseId: string) => {
   const [templateStatus, setTemplateStatus] = useState<CourseTemplateStatus | null>(null)

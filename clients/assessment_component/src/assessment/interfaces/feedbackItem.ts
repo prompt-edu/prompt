@@ -1,4 +1,4 @@
-import { AssessmentType } from './assessmentType'
+import type { AssessmentType } from './assessmentType'
 
 export type FeedbackType = 'positive' | 'negative'
 

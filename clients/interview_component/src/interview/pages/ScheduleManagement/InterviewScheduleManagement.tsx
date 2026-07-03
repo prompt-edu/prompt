@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { interviewAxiosInstance } from '../../network/interviewServerConfig'
-import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
-import { CoursePhaseParticipationsWithResolution } from '@tumaet/prompt-shared-state'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  type CoursePhaseParticipationsWithResolution,
+  getCoursePhaseParticipations,
+} from '@tumaet/prompt-shared-state'
+import {
+  Alert,
+  AlertDescription,
+  Badge,
   Button,
   Card,
   CardContent,
@@ -20,26 +22,26 @@ import {
   DialogTrigger,
   Input,
   Label,
-  Badge,
+  ManagementPageHeader,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  ManagementPageHeader,
-  Alert,
-  AlertDescription,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { Calendar, Clock, MapPin, Users, Plus, Pencil, Trash2, X, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
-import { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import { Calendar, Clock, MapPin, Pencil, Plus, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface SlotFormData {
   startTime: string
@@ -405,7 +407,7 @@ export const InterviewScheduleManagement = () => {
                   min='1'
                   value={formData.capacity}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     setFormData({ ...formData, capacity: value > 0 ? value : 1 })
                   }}
                 />
@@ -472,7 +474,7 @@ export const InterviewScheduleManagement = () => {
                 min='1'
                 value={formData.capacity}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value)
+                  const value = parseInt(e.target.value, 10)
                   setFormData({ ...formData, capacity: value > 0 ? value : 1 })
                 }}
               />

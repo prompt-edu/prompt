@@ -355,6 +355,22 @@
           "clientRole": true,
           "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
           "attributes": {}
+        },
+        {
+          "name": "ios2425-iPraktikumFull-Lecturer",
+          "description": "Course-scoped lecturer role for the seeded iPraktikumFull course.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
+        },
+        {
+          "name": "ios2425-iPraktikumFull-Editor",
+          "description": "Course-scoped editor role for the seeded iPraktikumFull course.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
         }
       ],
       "account": [
@@ -604,7 +620,8 @@
       },
       "clientRoles": {
         "prompt-server": [
-          "PROMPT_Lecturer"
+          "PROMPT_Lecturer",
+          "ios2425-iPraktikumFull-Lecturer"
         ]
       }
     },
@@ -633,7 +650,8 @@
       },
       "clientRoles": {
         "prompt-server": [
-          "PROMPT_Course_Lecturer"
+          "PROMPT_Course_Lecturer",
+          "ios2425-iPraktikumFull-Lecturer"
         ]
       }
     },
@@ -662,7 +680,8 @@
       },
       "clientRoles": {
         "prompt-server": [
-          "PROMPT_Course_Editor"
+          "PROMPT_Course_Editor",
+          "ios2425-iPraktikumFull-Editor"
         ]
       }
     },

@@ -160,12 +160,45 @@ The seed is a **consistent dump of the current (v24) schema** with a small
 deterministic data set. It records `schema_migrations = 24`, so the core
 server's startup `migrate up` is a clean no-op and the data loads as-is.
 
+It contains three read-only courses (`iPraktikum`, `iPraktikum-Test`,
+`TestCourse`) plus **`iPraktikumFull`**, a course with a full linear phase graph
+(Application → Interview → Matching → Team Allocation → Assessment), ~6 course
+participations, and a funnel of phase participations. The seeded `student` user
+maps to a DB `student` row (matriculation `00000005` / login `no42tum`) that
+participates in every `iPraktikumFull` phase; that is how a student gets course
+access (roles are DB-derived from `matriculation_number` + `university_login`,
+not from Keycloak). The `lecturer` and `course-lecturer` users hold the
+`ios2425-iPraktikumFull-Lecturer` role and `course-editor` holds
+`ios2425-iPraktikumFull-Editor` (added to `keycloak/realm.json`). See
+`FULL_COURSE_PHASES`, `FULL_COURSE_STUDENT`, and `FULL_COURSE_ROLES` in
+`src/data/constants.ts`.
+
+> The course name (`iPraktikumFull`) and `semester_tag` (`ios2425`) are
+> **hyphen-free on purpose**: the course-list query parses course roles with
+> `split_part(role, '-', N)`, so a hyphen in either would break course
+> visibility for non-admins.
+
+> The `Interview` / `Matching` / `Team Allocation` / `Assessment` phase types are
+> seeded by their canonical names (matching
+> `servers/core/coursePhaseType/initializeTypes.go`), so core's startup
+> initializer skips re-creating them. As a result they carry **no provided/
+> required DTO metadata** — fine for phase-graph, participant-list, and
+> role-access tests, but the inter-phase data-dependency graph is not exercised.
+> The phase micro-frontend remotes (Interview/Matching/…) are also not built into
+> the e2e client, so tests should target core-level views (course config, phase
+> graph, participant lists, role-based access), not the phase remotes' own UIs.
+
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
 > as an e2e seed — it's a hand-maintained Go-test fixture whose schema is
 > internally inconsistent (some tables migrated, others not; `schema_migrations`
 > stuck at 9), so `migrate up` cannot run against it.
 
-To regenerate after a schema change, apply the migrations to a throwaway
+**Data-only changes** (adding courses, phases, participations, students, roles
+without a schema migration) are made by editing the `INSERT` blocks in
+`seed/e2e_seed.sql` directly and keeping `schema_migrations = 24`. Full
+regeneration is only needed when a core migration changes the schema.
+
+To regenerate after a **schema** change, apply the migrations to a throwaway
 Postgres, insert the data, and dump it:
 
 ```bash

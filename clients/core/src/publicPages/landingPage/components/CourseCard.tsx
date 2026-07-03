@@ -1,17 +1,17 @@
+import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
+import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Badge,
   Button,
   Card,
+  CardContent,
   CardHeader,
   CardTitle,
-  CardContent,
 } from '@tumaet/prompt-ui-components'
-import { DeadlineInfo } from './DeadlineInfo'
-import { BookOpen, ArrowRight, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
-import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
-import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import { ArrowRight, BookOpen, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { DeadlineInfo } from './DeadlineInfo'
 
 interface CourseCardProps {
   courseDetails: OpenApplicationDetails

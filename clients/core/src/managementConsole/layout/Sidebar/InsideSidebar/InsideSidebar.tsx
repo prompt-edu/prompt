@@ -1,8 +1,8 @@
 import { Sidebar, SidebarContent, SidebarHeader } from '@tumaet/prompt-ui-components'
 import { useLocation } from 'react-router-dom'
+import { PromptLogo } from './components/PromptLogo'
 import { InsideCourseSidebar } from './InsideCourseSidebar'
 import { InsideGeneralSidebar } from './InsideGeneralSidebar'
-import { PromptLogo } from './components/PromptLogo'
 
 export const InsideSidebar = () => {
   // set the correct header

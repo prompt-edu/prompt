@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   Avatar,
   AvatarFallback,
@@ -6,7 +5,8 @@ import {
   Card,
   CardContent,
 } from '@tumaet/prompt-ui-components'
-import { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
+import { useEffect, useState } from 'react'
+import type { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
 import { contributorMapping } from './ContributorMapping'
 
 export const ContributorList = () => {
@@ -39,18 +39,15 @@ export const ContributorList = () => {
 
   const mappedContributors: ContributorWithInfo[] = [...contributors, vali]
     .filter(
-      (contributor) =>
+      (contributor): contributor is Contributor =>
         contributor !== undefined &&
-        contributorMapping[contributor.login] &&
+        !!contributorMapping[contributor.login] &&
         contributor.type === 'User',
     )
     .map((contributor) => {
-      if (contributor === undefined) {
-        return
-      }
       return {
         ...contributor,
-        ...contributorMapping[contributor?.login],
+        ...contributorMapping[contributor.login],
       }
     })
     .filter((contributor): contributor is ContributorWithInfo => contributor !== undefined)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../interfaces/assessmentParticipationWithStudent'
 
 export interface ParticipationStore {
   participations: AssessmentParticipationWithStudent[]

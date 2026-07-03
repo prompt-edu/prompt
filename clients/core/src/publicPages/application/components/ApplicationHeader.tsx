@@ -1,7 +1,7 @@
-import { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
-import { ArrowLeft, Calendar, Clock } from 'lucide-react'
-import { format } from 'date-fns'
+import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
 import { Button } from '@tumaet/prompt-ui-components'
+import { format } from 'date-fns'
+import { ArrowLeft, Calendar, Clock } from 'lucide-react'
 
 interface ApplicationHeaderProps {
   applicationPhase: OpenApplicationDetails

@@ -1,4 +1,4 @@
-import { ActionItem } from '../../interfaces/actionItem'
+import type { ActionItem } from '../../interfaces/actionItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getMyActionItems = async (coursePhaseID: string): Promise<ActionItem[]> => {

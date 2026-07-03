@@ -1,6 +1,6 @@
-import { CategoryWithCompetencies } from '../interfaces/category'
-import { Competency } from '../interfaces/competency'
 import { create } from 'zustand'
+import type { CategoryWithCompetencies } from '../interfaces/category'
+import type { Competency } from '../interfaces/competency'
 
 export interface TutorEvaluationCategoryStore {
   tutorEvaluationCategories: CategoryWithCompetencies[]

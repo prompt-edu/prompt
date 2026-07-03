@@ -1,4 +1,4 @@
-import { Team } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllTeams = async (coursePhaseID: string): Promise<Team[]> => {

@@ -1,21 +1,21 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, set, parse, formatISO } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import {
   Button,
-  Label,
-  Switch,
-  DatePicker,
-  Input,
   Card,
   CardContent,
+  DatePicker,
+  Input,
+  Label,
+  Switch,
 } from '@tumaet/prompt-ui-components'
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
+import { format, formatISO, parse, set } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 import { ApplicationConfigDialogError } from './ApplicationSettingsGeneralErrorMessage'
 
 interface ApplicationConfigDialogProps {

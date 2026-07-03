@@ -1,14 +1,13 @@
+import type { ColumnDef } from '@tanstack/react-table'
+import { type Course, Role } from '@tumaet/prompt-shared-state'
+import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
+import { ArrowRight, Settings } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ColumnDef } from '@tanstack/react-table'
-import { PromptTable } from '@tumaet/prompt-ui-components'
-import { Course, Role } from '@tumaet/prompt-shared-state'
-import { ArrowRight, Settings } from 'lucide-react'
-import { RowAction, TableFilter } from '@tumaet/prompt-ui-components'
-import { CourseTableColumns } from './CourseTableColumns'
-import { CourseTableActions } from './CourseTableActions'
-import { CourseTableFilters } from './CourseTableFilters'
 import { useHasRolePermission } from '../ShowForRole'
+import { CourseTableActions } from './CourseTableActions'
+import { CourseTableColumns } from './CourseTableColumns'
+import { CourseTableFilters } from './CourseTableFilters'
 
 interface CourseTableProps {
   courses: Course[]

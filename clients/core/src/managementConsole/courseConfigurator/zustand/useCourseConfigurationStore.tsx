@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
-import { CoursePhaseGraphItem } from '../interfaces/coursePhaseGraphItem'
-import { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
-import { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
+import type { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
+import type { CoursePhaseGraphItem } from '../interfaces/coursePhaseGraphItem'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
 
 interface CourseConfigurationState {
   coursePhaseTypes: CoursePhaseType[]

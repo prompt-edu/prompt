@@ -1,5 +1,5 @@
 import { ArrowUpRight } from 'lucide-react'
-import { PropsWithChildren } from 'react'
+import type { PropsWithChildren } from 'react'
 import { Link } from 'react-router-dom'
 
 interface LinkHeadingProps extends PropsWithChildren {

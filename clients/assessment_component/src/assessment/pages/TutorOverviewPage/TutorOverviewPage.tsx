@@ -1,13 +1,9 @@
-import { ReactNode, useMemo } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { PromptTable } from '@tumaet/prompt-ui-components'
-
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-
 import type { ColumnDef } from '@tanstack/react-table'
+import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import { type ReactNode, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useTeamStore } from '../../zustand/useTeamStore'
 
 interface TutorRow {
   id: string

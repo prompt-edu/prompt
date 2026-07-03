@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Dialog,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@tumaet/prompt-ui-components'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { useEffect, useState } from 'react'
 import { Footer } from './Footer'
 import { Header } from './Header'
 

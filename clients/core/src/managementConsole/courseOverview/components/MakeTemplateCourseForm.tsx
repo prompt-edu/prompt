@@ -1,21 +1,21 @@
+import type { MakeTemplateCourseFormValues } from '@core/validations/makeTemplateCourse'
 import {
-  DialogHeader,
-  DialogTitle,
+  Button,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
   Input,
   Textarea,
-  Button,
 } from '@tumaet/prompt-ui-components'
 import type { UseFormReturn } from 'react-hook-form'
-import type { MakeTemplateCourseFormValues } from '@core/validations/makeTemplateCourse'
 
 interface MakeTemplateCourseFormProps {
   form: UseFormReturn<MakeTemplateCourseFormValues>

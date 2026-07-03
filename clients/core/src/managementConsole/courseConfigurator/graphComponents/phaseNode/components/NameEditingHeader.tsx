@@ -1,15 +1,15 @@
-import { CoursePhaseWithPosition } from '@core/managementConsole/courseConfigurator/interfaces/coursePhaseWithPosition'
+import type { CoursePhaseWithPosition } from '@core/managementConsole/courseConfigurator/interfaces/coursePhaseWithPosition'
 import { useCourseConfigurationState } from '@core/managementConsole/courseConfigurator/zustand/useCourseConfigurationStore'
-import { Pen } from 'lucide-react'
-import { Button, Input, CardTitle } from '@tumaet/prompt-ui-components'
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import {
   getPermissionString,
   Role,
   useAuthStore,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
+import { Button, CardTitle, Input } from '@tumaet/prompt-ui-components'
+import { Pen } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 interface NameEditingHeaderProps {
   phaseID: string

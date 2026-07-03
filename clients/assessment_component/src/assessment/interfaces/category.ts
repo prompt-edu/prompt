@@ -1,4 +1,4 @@
-import { Competency } from './competency'
+import type { Competency } from './competency'
 
 export type Category = {
   id: string

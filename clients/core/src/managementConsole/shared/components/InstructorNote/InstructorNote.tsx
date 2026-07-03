@@ -1,21 +1,21 @@
-import { useState } from 'react'
-import { InstructorNote as InstructorNoteType } from '../../interfaces/InstructorNote'
 import {
-  useDeleteInstructorNote,
   useCreateInstructorNote,
+  useDeleteInstructorNote,
 } from '@core/network/hooks/useInstructorNotes'
-import { NoteWrapper } from './InstructorNoteWrapper'
-import { NoteComposer } from './InstructorNoteComposer'
-import { NoteVersionHistoryItem } from './InstructorNoteVersionHistoryItem'
 import {
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
 } from '@tumaet/prompt-ui-components'
+import { useState } from 'react'
+import type { InstructorNote as InstructorNoteType } from '../../interfaces/InstructorNote'
+import { NoteComposer } from './InstructorNoteComposer'
+import { NoteVersionHistoryItem } from './InstructorNoteVersionHistoryItem'
+import { NoteWrapper } from './InstructorNoteWrapper'
 
 interface NoteProps {
   note: InstructorNoteType

@@ -1,8 +1,4 @@
-import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Loader2, FileCheck2 } from 'lucide-react'
-import { useState } from 'react'
-
 import {
   Button,
   Card,
@@ -10,13 +6,15 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  ManagementPageHeader,
   ErrorPage,
+  ManagementPageHeader,
   useToast,
 } from '@tumaet/prompt-ui-components'
-
-import { getCertificateStatus } from '../network/queries/getCertificateStatus'
+import { Download, FileCheck2, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { downloadOwnCertificate, triggerBlobDownload } from '../network/queries/downloadCertificate'
+import { getCertificateStatus } from '../network/queries/getCertificateStatus'
 
 export const StudentOverviewPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

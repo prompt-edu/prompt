@@ -47,7 +47,7 @@ export const DeadlineInfo = ({ deadline }: { deadline: Date | string }) => {
     const hoursString = hours > 0 ? `${hours} hour${hours !== 1 ? 's' : ''}` : ''
 
     // Join the two parts if both are present.
-    timeRemainingText = [daysString, hoursString].filter(Boolean).join(' and ') + ' remaining'
+    timeRemainingText = `${[daysString, hoursString].filter(Boolean).join(' and ')} remaining`
   }
 
   return (

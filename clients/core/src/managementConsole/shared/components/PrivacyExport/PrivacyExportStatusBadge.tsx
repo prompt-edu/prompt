@@ -31,7 +31,7 @@ export function PrivacyExportStatus({
     <AnimatePresence mode='wait' initial={false}>
       <motion.div
         key={privacy_export_status}
-        className={'inline-flex shrink-0 p-2 rounded-full ' + statusStyles[privacy_export_status]}
+        className={`inline-flex shrink-0 p-2 rounded-full ${statusStyles[privacy_export_status]}`}
         initial={{ scale: 0.5 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 20 }}

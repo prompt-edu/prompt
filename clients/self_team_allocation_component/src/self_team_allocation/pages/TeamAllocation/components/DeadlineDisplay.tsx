@@ -1,5 +1,5 @@
-import { AlertCircle, Clock } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
+import { AlertCircle, Clock } from 'lucide-react'
 import type { Timeframe } from '../../../interfaces/timeframe'
 
 interface DeadlineDisplayProps {

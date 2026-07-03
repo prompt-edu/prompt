@@ -1,13 +1,12 @@
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { InterviewDataShell } from '../src/interview/pages/InterviewDataShell'
-import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
+import { InterviewParticipantsPage } from '../src/interview/pages/InterviewParticipantsPage/InterviewParticipantsPage'
+import { MailingPage } from '../src/interview/pages/Mailing/MailingPage'
 import OverviewPage from '../src/interview/pages/Overview/OverviewPage'
 import { ProfileDetailPage } from '../src/interview/pages/ProfileDetail/ProfileDetailPage'
-import { MailingPage } from '../src/interview/pages/Mailing/MailingPage'
-import { QuestionConfiguration } from '../src/interview/pages/Settings/QuestionConfiguration'
 import { InterviewScheduleManagement } from '../src/interview/pages/ScheduleManagement/InterviewScheduleManagement'
-import { InterviewParticipantsPage } from '../src/interview/pages/InterviewParticipantsPage/InterviewParticipantsPage'
+import { QuestionConfiguration } from '../src/interview/pages/Settings/QuestionConfiguration'
+import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
 
 const interviewRoutes: ExtendedRouteObject[] = [
   {

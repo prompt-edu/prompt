@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import {
   Button,
   Dialog,
@@ -12,9 +10,10 @@ import {
   Textarea,
 } from '@tumaet/prompt-ui-components'
 import { Plus } from 'lucide-react'
-
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
 import { useCreateAssessmentSchema } from '../hooks/useCreateAssessmentSchema'
-import { CreateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
 
 interface CreateAssessmentSchemaDialogProps {
   onError: (error: string | undefined) => void

@@ -1,5 +1,5 @@
+import type { ActionItem, CreateActionItemRequest } from '../../interfaces/actionItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
-import { ActionItem, CreateActionItemRequest } from '../../interfaces/actionItem'
 
 export const createActionItem = async (
   coursePhaseID: string,

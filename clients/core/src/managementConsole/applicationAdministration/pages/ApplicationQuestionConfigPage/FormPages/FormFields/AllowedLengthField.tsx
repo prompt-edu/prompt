@@ -1,14 +1,14 @@
-import { UseFormReturn } from 'react-hook-form'
+import type { QuestionConfigFormData } from '@core/validations/questionConfig'
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
   Input,
 } from '@tumaet/prompt-ui-components'
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import type { UseFormReturn } from 'react-hook-form'
 
 interface AllowedLengthFieldProps {
   form: UseFormReturn<QuestionConfigFormData>

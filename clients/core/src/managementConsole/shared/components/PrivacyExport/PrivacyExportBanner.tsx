@@ -1,12 +1,12 @@
-import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
 import {
   ExportStatus,
   getExportDocDownloadURL,
-  PrivacyExport,
+  type PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, useToast } from '@tumaet/prompt-ui-components'
-import { formatFileSize } from './formatFileSize'
+import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
+import { formatFileSize } from './formatFileSize'
 
 interface PrivacyExportBannerProps {
   inProgress: boolean
@@ -61,7 +61,7 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
     }
   }
 
-  const isDownloading = downloading != -1
+  const isDownloading = downloading !== -1
   const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
   return (

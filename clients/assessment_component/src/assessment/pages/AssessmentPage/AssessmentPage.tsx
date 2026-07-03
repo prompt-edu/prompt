@@ -1,21 +1,18 @@
-import { useParams } from 'react-router-dom'
-import { useMemo, useEffect } from 'react'
-
 import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
+import { useEffect, useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { useCategoryStore } from '../../zustand/useCategoryStore'
+import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-
-import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
-
+import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
+import { AssessmentExportMenu } from './components/AssessmentExportMenu'
 import { AssessmentHeader } from './components/AssessmentHeader'
 import { CategoryAssessment } from './components/CategoryAssessment'
-import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { FeedbackItemsPanel } from './components/FeedbackItemsPanel/FeedbackItemsPanel'
 import { PassStatusControls } from './components/PassStatusControls'
-import { AssessmentExportMenu } from './components/AssessmentExportMenu'
+import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
 export const AssessmentPage = () => {
   const { courseParticipationID } = useParams<{ courseParticipationID: string }>()

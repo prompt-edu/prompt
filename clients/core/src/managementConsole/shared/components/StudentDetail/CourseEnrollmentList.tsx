@@ -1,8 +1,8 @@
-import { Loader2 } from 'lucide-react'
 import { useStudentEnrollments } from '@core/network/hooks/useStudentEnrollments'
-import { StudentCourseEnrollment } from './StudentCourseEnrollment'
+import { Loader2 } from 'lucide-react'
+import type { CourseEnrollment } from '../../interfaces/StudentEnrollment'
 import { CourseEnrollmentSummary } from './CourseEnrollmentSummary'
-import { CourseEnrollment } from '../../interfaces/StudentEnrollment'
+import { StudentCourseEnrollment } from './StudentCourseEnrollment'
 
 interface CourseEnrollmentsProps {
   studentId: string

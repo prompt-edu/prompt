@@ -1,5 +1,5 @@
-import { CheckCircle, Clock, CircleCheck } from 'lucide-react'
-import { cn, Badge } from '@tumaet/prompt-ui-components'
+import { Badge, cn } from '@tumaet/prompt-ui-components'
+import { CheckCircle, CircleCheck, Clock } from 'lucide-react'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 

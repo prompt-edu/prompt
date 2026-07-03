@@ -1,18 +1,23 @@
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import {
+  type CoursePhaseParticipationWithStudent,
+  getOwnCoursePhaseParticipation,
+  type Team,
+  useCourseStore,
+} from '@tumaet/prompt-shared-state'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  ErrorPage,
+  UnauthorizedPage,
+} from '@tumaet/prompt-ui-components'
 import { Loader2, TriangleAlert } from 'lucide-react'
-
-import { Alert, AlertDescription, AlertTitle, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationWithStudent, Team } from '@tumaet/prompt-shared-state'
-
-import { UnauthorizedPage } from '@tumaet/prompt-ui-components'
-import { getOwnCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
-
-import { TeamSelection } from './components/TeamSelection'
+import { useParams } from 'react-router-dom'
+import type { Timeframe } from '../../interfaces/timeframe'
 import { getAllTeams } from '../../network/queries/getAllTeams'
-import { Timeframe } from '../../interfaces/timeframe'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
+import { TeamSelection } from './components/TeamSelection'
 
 export const SelfTeamAllocationPage = () => {
   const { isStudentOfCourse } = useCourseStore()
@@ -68,7 +73,7 @@ export const SelfTeamAllocationPage = () => {
   }
 
   if (isStudent && isError) {
-    if (participationError && participationError.message.includes('404')) {
+    if (participationError?.message.includes('404')) {
       return <UnauthorizedPage backUrl={`/management/course/${courseId}`} />
     }
     return <ErrorPage onRetry={refetch} />

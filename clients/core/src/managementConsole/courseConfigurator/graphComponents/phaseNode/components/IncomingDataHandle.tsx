@@ -1,17 +1,17 @@
 import type { RequiredInputDTO } from '@core/managementConsole/courseConfigurator/interfaces/requiredInputDto'
-import { Handle, Position, useHandleConnections } from '@xyflow/react'
-import { useEffect, useState } from 'react'
-import { schemaFulfills } from './utils/compareSchema'
 import { useCourseConfigurationState } from '@core/managementConsole/courseConfigurator/zustand/useCourseConfigurationStore'
-import { CircleCheckBig, OctagonX, TriangleAlert } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { camelToTitle } from './utils/camelToTitle'
+import { Handle, Position, useHandleConnections } from '@xyflow/react'
+import { CircleCheckBig, OctagonX, TriangleAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { EDGE_COLOR_GREEN, EDGE_COLOR_PURPLE } from '../../edges/edgeColors'
+import { camelToTitle } from './utils/camelToTitle'
+import { schemaFulfills } from './utils/compareSchema'
 
 interface IncomingDataHandleProps {
   phaseID: string

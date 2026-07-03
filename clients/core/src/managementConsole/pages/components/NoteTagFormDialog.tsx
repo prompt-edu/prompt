@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Button,
   Dialog,
@@ -14,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
-import { NoteTagColor } from '../../shared/interfaces/InstructorNote'
+import { useState } from 'react'
 import {
   InstructorNoteTag,
   InstructorNoteTagColor,
 } from '../../shared/components/InstructorNote/InstructorNoteTag'
+import type { NoteTagColor } from '../../shared/interfaces/InstructorNote'
 
 const NOTE_TAG_COLORS: NoteTagColor[] = ['blue', 'green', 'red', 'yellow', 'orange', 'pink']
 

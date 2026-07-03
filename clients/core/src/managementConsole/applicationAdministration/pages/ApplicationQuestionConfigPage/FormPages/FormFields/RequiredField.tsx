@@ -1,6 +1,6 @@
-import { UseFormReturn } from 'react-hook-form'
-import { FormField, FormItem, FormControl, FormLabel, Checkbox } from '@tumaet/prompt-ui-components'
-import { QuestionConfigFormData } from '@core/validations/questionConfig'
+import type { QuestionConfigFormData } from '@core/validations/questionConfig'
+import { Checkbox, FormControl, FormField, FormItem, FormLabel } from '@tumaet/prompt-ui-components'
+import type { UseFormReturn } from 'react-hook-form'
 
 interface RequiredFieldProps {
   form: UseFormReturn<QuestionConfigFormData>

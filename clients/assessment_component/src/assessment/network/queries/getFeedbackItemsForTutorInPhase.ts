@@ -1,5 +1,5 @@
+import type { FeedbackItem } from '../../interfaces/feedbackItem'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
-import { FeedbackItem } from '../../interfaces/feedbackItem'
 
 export const getFeedbackItemsForTutorInPhase = async (
   coursePhaseID: string,

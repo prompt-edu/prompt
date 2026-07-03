@@ -1,13 +1,13 @@
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@tumaet/prompt-ui-components'
-import { ValidationResult } from '../../../interfaces/validationResult'
-import { ClipboardCheck, FileText, BarChart3 } from 'lucide-react'
+import { BarChart3, ClipboardCheck, FileText } from 'lucide-react'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
+import type { ValidationResult } from '../../../interfaces/validationResult'
 
 const DataCompletionSummary = ({
   checks,

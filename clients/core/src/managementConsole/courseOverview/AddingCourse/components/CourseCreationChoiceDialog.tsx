@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { AddCourseDialog } from '@managementConsole/courseOverview/AddingCourse/AddCourseDialog'
 import {
   Dialog,
   DialogContent,
@@ -6,10 +6,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@tumaet/prompt-ui-components'
-import { Plus, FileIcon as FileTemplate, LayoutTemplate } from 'lucide-react'
-import { AddCourseDialog } from '@managementConsole/courseOverview/AddingCourse/AddCourseDialog'
-import { TemplateSelectionDialog } from './TemplateSelectionDialog'
+import { FileIcon as FileTemplate, LayoutTemplate, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { AddTemplateDialog } from '../AddTemplateDialog'
+import { TemplateSelectionDialog } from './TemplateSelectionDialog'
 
 interface CourseCreationChoiceDialogProps {
   children: React.ReactNode

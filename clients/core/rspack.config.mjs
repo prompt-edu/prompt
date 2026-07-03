@@ -1,9 +1,9 @@
-import path from 'path'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import rspack from '@rspack/core'
 import CompressionPlugin from 'compression-webpack-plugin'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
 import packageJson from '../package.json' with { type: 'json' }
-import { fileURLToPath } from 'url'
 
 const { ModuleFederationPlugin } = rspack.container
 

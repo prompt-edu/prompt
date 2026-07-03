@@ -1,6 +1,5 @@
-import { ApplicationParticipation } from '@core/managementConsole/applicationAdministration/interfaces/applicationParticipation'
-import type { Student } from '@tumaet/prompt-shared-state'
-import { PassStatus } from '@tumaet/prompt-shared-state'
+import type { ApplicationParticipation } from '@core/managementConsole/applicationAdministration/interfaces/applicationParticipation'
+import type { PassStatus, Student } from '@tumaet/prompt-shared-state'
 
 export interface ApplicationRow {
   id: string

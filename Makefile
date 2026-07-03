@@ -94,14 +94,7 @@ db-down: ## Stop database and Keycloak
 lint: lint-clients lint-servers ## Lint all code
 
 lint-clients: ## Lint all clients
-	cd clients && yarn eslint "core" --config "core/eslint.config.mjs"
-	cd clients && yarn eslint "assessment_component" --config "assessment_component/eslint.config.mjs"
-	cd clients && yarn eslint "interview_component" --config "interview_component/eslint.config.mjs"
-	cd clients && yarn eslint "matching_component" --config "matching_component/eslint.config.mjs"
-	cd clients && yarn eslint "self_team_allocation_component" --config "self_team_allocation_component/eslint.config.mjs"
-	cd clients && yarn eslint "team_allocation_component" --config "team_allocation_component/eslint.config.mjs"
-	cd clients && yarn eslint "template_component" --config "template_component/eslint.config.mjs"
-	cd clients && yarn eslint "certificate_component" --config "certificate_component/eslint.config.mjs"
+	cd clients && yarn biome check
 
 lint-servers: ## Run go vet on all servers
 	cd servers/core && go vet ./...

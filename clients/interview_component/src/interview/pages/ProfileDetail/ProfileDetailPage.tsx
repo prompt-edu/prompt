@@ -1,11 +1,17 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  ExportedApplicationAnswerTable,
+} from '@tumaet/prompt-ui-components'
 import { ChevronLeft, FileUserIcon } from 'lucide-react'
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { StudentCard } from '../../components/StudentCard'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'
-import { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
-import { ExportedApplicationAnswerTable } from '@tumaet/prompt-ui-components'
+import { StudentCard } from '../../components/StudentCard'
+import { useParticipationStore } from '../../zustand/useParticipationStore'
 
 export const ProfileDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()

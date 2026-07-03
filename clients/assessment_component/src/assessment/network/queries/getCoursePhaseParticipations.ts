@@ -1,4 +1,4 @@
-import { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
+import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getCoursePhaseParticipations = async (

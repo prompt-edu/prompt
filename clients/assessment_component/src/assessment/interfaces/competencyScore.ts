@@ -1,4 +1,4 @@
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
 
 export type CompetencyScore = {
   id: string // UUID

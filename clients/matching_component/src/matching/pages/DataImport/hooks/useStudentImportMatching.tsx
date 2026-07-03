@@ -1,6 +1,6 @@
-import { CoursePhaseParticipationWithStudent, PassStatus } from '@tumaet/prompt-shared-state'
+import { type CoursePhaseParticipationWithStudent, PassStatus } from '@tumaet/prompt-shared-state'
 import { useEffect, useState } from 'react'
-import { UploadedStudent } from '../../../interfaces/UploadedStudent'
+import type { UploadedStudent } from '../../../interfaces/UploadedStudent'
 import { useMatchingStore } from '../../../zustand/useMatchingStore'
 
 export const useStudentImportMatching = () => {

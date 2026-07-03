@@ -1,11 +1,11 @@
-import { useParams } from 'react-router-dom'
 import { useStudent } from '@core/network/hooks/useStudent'
-import { Loader2 } from 'lucide-react'
 import { StudentProfile } from '@tumaet/prompt-ui-components'
-import { InstructorNotes } from '../shared/components/InstructorNote/InstructorNotes'
-import { StudentDetailContentLayout } from '../shared/components/StudentDetail/StudentDetailContentLayout'
-import { CourseEnrollments } from '../shared/components/StudentDetail/CourseEnrollmentList'
+import { Loader2 } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { EmptyPage } from '../shared/components/EmptyPage'
+import { InstructorNotes } from '../shared/components/InstructorNote/InstructorNotes'
+import { CourseEnrollments } from '../shared/components/StudentDetail/CourseEnrollmentList'
+import { StudentDetailContentLayout } from '../shared/components/StudentDetail/StudentDetailContentLayout'
 
 export const StudentDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()

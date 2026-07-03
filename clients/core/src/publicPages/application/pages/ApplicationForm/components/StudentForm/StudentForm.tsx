@@ -1,43 +1,43 @@
-import {
-  Student,
-  Gender,
-  getGenderString,
-  StudyDegree,
-  getStudyDegreeString,
-} from '@tumaet/prompt-shared-state'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { StudentComponentRef } from '../../utils/StudentComponentRef'
-import { useForm } from 'react-hook-form'
+import { type StudentFormValues, studentSchema } from '@core/validations/student'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+  countriesArr,
+  Gender,
+  getGenderString,
+  getStudyDegreeString,
+  type Student,
+  StudyDegree,
+  translations,
+} from '@tumaet/prompt-shared-state'
+import {
   Button,
-  Input,
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@tumaet/prompt-ui-components'
-import { studentSchema, StudentFormValues } from '@core/validations/student'
-import { translations } from '@tumaet/prompt-shared-state'
 import { Check, ChevronDown } from 'lucide-react'
-import { countriesArr } from '@tumaet/prompt-shared-state'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { StudentComponentRef } from '../../utils/StudentComponentRef'
 
 const studyPrograms = translations.university.studyPrograms.concat('Other')
 
@@ -386,7 +386,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                     disabled={isInstructorView}
                     value={
                       otherStudyProgram ||
-                      (field.value != '' && !studyPrograms.includes(field.value))
+                      (field.value !== '' && !studyPrograms.includes(field.value))
                         ? 'Other'
                         : field.value
                     }
@@ -424,7 +424,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                       pattern='\d{1,2}'
                       placeholder='Bachelor (+ Master) Semesters'
                       onChange={(e) => {
-                        const value = parseInt(e.target.value)
+                        const value = parseInt(e.target.value, 10)
                         field.onChange(value)
                       }}
                     />
@@ -436,7 +436,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
           </div>
 
           {(otherStudyProgram ||
-            (currStudyProgram != '' && !studyPrograms.includes(currStudyProgram))) && (
+            (currStudyProgram !== '' && !studyPrograms.includes(currStudyProgram))) && (
             <FormField
               control={form.control}
               name='studyProgram'

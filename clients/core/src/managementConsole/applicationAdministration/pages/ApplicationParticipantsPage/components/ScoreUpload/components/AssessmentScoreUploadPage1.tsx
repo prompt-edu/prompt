@@ -1,13 +1,13 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
-import { AlertCircle } from 'lucide-react'
 import {
-  Input,
-  Label,
-  Switch,
   Alert,
   AlertDescription,
   AlertTitle,
+  Input,
+  Label,
+  Switch,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle } from 'lucide-react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 
 export interface Page1Ref {
   validate: () => boolean
@@ -20,7 +20,7 @@ export interface Page1Ref {
 }
 
 export const AssessmentScoreUploadPage1 = forwardRef<Page1Ref>(
-  function AssessmentScoreUploadPage1Inner(props, ref) {
+  function AssessmentScoreUploadPage1Inner(_props, ref) {
     const [scoreName, setScoreName] = useState('')
     const [hasThreshold, setHasThreshold] = useState(false)
     const [threshold, setThreshold] = useState('')
@@ -45,7 +45,7 @@ export const AssessmentScoreUploadPage1 = forwardRef<Page1Ref>(
           newErrors.threshold = 'Threshold is required when enabled'
         } else {
           const thresholdValue = parseFloat(threshold)
-          if (isNaN(thresholdValue)) {
+          if (Number.isNaN(thresholdValue)) {
             newErrors.threshold = 'Threshold must be a number'
           } else if (thresholdValue < 0) {
             newErrors.threshold = 'Threshold must be a positive number'

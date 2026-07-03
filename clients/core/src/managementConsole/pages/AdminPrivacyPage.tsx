@@ -3,21 +3,21 @@ import {
   ExportStatus,
   getAllExports,
 } from '@core/network/queries/privacyStudentDataExport'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ManagementPageHeader,
   PromptTable,
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
 } from '@tumaet/prompt-ui-components'
+import { Download, Trash2 } from 'lucide-react'
+import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
 import {
   adminExportColumns,
   exportStatusLabel,
 } from '../shared/components/PrivacyExport/adminExportColumns'
-import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Trash2 } from 'lucide-react'
 
 export function AdminPrivacyPage() {
   const queryClient = useQueryClient()

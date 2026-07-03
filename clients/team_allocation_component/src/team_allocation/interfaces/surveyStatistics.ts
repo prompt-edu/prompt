@@ -1,4 +1,4 @@
-import { SkillLevel } from './skillResponse'
+import type { SkillLevel } from './skillResponse'
 
 export interface PreferenceCount {
   rank: number

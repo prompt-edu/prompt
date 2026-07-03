@@ -1,6 +1,6 @@
+import type { ChartConfig } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
-import { ChartConfig } from '@tumaet/prompt-ui-components'
-import { PreferenceCount, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
+import type { PreferenceCount, TeamPopularityStats } from '../../../interfaces/surveyStatistics'
 import { commonWordPrefix, ordinal } from '../utils/chartFormatters'
 import { StackedBarChart } from './StackedBarChart'
 

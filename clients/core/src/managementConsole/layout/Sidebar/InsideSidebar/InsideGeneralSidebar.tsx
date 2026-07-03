@@ -1,9 +1,9 @@
-import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, File, FileText, Shield, Activity, Tag, Users } from 'lucide-react'
-import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
-import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { Role } from '@tumaet/prompt-shared-state'
+import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
+import { Activity, Archive, File, FileText, Shield, Tag, Users } from 'lucide-react'
+import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
+import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideGeneralSidebar = () => {
   return (

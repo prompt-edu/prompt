@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react'
-import { User, Users } from 'lucide-react'
+import { ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   ScoreLevelSelector as BaseScoreLevelSelector,
   Tooltip,
@@ -7,10 +6,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-
+import { User, Users } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { Competency } from '../../interfaces/competency'
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { Competency } from '../../interfaces/competency'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 

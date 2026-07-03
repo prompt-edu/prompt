@@ -1,31 +1,31 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Check, MessageSquare, User, X } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Separator,
-  TooltipProvider,
-  MinimalTiptapEditor,
-  ScoreLevelSelector,
-  Input,
-  Label,
-} from '@tumaet/prompt-ui-components'
-import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
-import { useParticipationStore } from '../zustand/useParticipationStore'
-import type { InterviewQuestion } from '../interfaces/InterviewQuestion'
-import type { InterviewAnswer } from '../interfaces/InterviewAnswer'
 import {
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
   PassStatus,
   ScoreLevel,
   useAuthStore,
+  useUpdateCoursePhaseParticipation,
 } from '@tumaet/prompt-shared-state'
-import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  MinimalTiptapEditor,
+  ScoreLevelSelector,
+  Separator,
+  TooltipProvider,
+} from '@tumaet/prompt-ui-components'
+import { Check, MessageSquare, User, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { InterviewAnswer } from '../interfaces/InterviewAnswer'
+import type { InterviewQuestion } from '../interfaces/InterviewQuestion'
+import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
+import { useParticipationStore } from '../zustand/useParticipationStore'
 
 const SCORE_LEVEL_LABELS: Partial<Record<ScoreLevel, string>> = {
   [ScoreLevel.VeryGood]: 'Very Good',

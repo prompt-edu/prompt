@@ -1,5 +1,5 @@
 import { GripVertical } from 'lucide-react'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { CoursePhaseTypeDescription } from './CoursePhaseTypeDescription'
 
 interface CoursePhaseTypePanelItemProps {

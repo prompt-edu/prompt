@@ -7,8 +7,8 @@ import {
   Skeleton,
 } from '@tumaet/prompt-ui-components'
 import { CheckCircle2, Server, XCircle } from 'lucide-react'
-import { CAPABILITY_LABELS, ServiceInfo } from '../interfaces/serviceCapabilities'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
+import { CAPABILITY_LABELS, type ServiceInfo } from '../interfaces/serviceCapabilities'
 import { ServiceStatusBadge } from './ServiceStatusBadge'
 import { ServiceStatusCardSkeleton } from './ServiceStatusCardSkeleton'
 

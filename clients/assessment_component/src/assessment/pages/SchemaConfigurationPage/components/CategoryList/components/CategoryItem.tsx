@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { ChevronRight, ChevronDown, Edit, Trash2, Plus } from 'lucide-react'
-
 import { Button } from '@tumaet/prompt-ui-components'
+import { ChevronDown, ChevronRight, Edit, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
-import { AssessmentType } from '../../../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../../interfaces/category'
 
 import { CompetencyItem } from './CompetencyItem/CompetencyItem'

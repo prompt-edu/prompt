@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
 import { getStudentEnrollments } from '@core/network/queries/getStudentEnrollments'
+import { useQuery } from '@tanstack/react-query'
 
 export const useStudentEnrollments = (studentId?: string) => {
   return useQuery({

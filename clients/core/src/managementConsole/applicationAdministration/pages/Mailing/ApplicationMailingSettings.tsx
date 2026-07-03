@@ -1,28 +1,28 @@
-import { useEffect, useState } from 'react'
-import { ApplicationMailingMetaData } from '../../interfaces/applicationMailingMetaData'
-import { parseApplicationMailingMetaData } from './utils/parseApplicaitonMailingMetaData'
-import { useModifyCoursePhase } from '../../hooks/useModifyCoursePhase'
-import { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
-import {
-  applicationMailingPlaceholders,
-  CustomApplicationPlaceHolder,
-} from './components/CustomApplicationPlaceHolder'
-import { EmailTemplateEditor } from '@tumaet/prompt-ui-components'
+import { type UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
   Button,
+  EmailTemplateEditor,
+  ManagementPageHeader,
+  MissingConfig,
+  type MissingConfigItem,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-  ManagementPageHeader,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { SettingsCard } from './components/SettingsCard'
-import { useApplicationStore } from '../../zustand/useApplicationStore'
-import { useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
-import { MissingConfig, MissingConfigItem } from '@tumaet/prompt-ui-components'
 import { MailWarningIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { useModifyCoursePhase } from '../../hooks/useModifyCoursePhase'
+import type { ApplicationMailingMetaData } from '../../interfaces/applicationMailingMetaData'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import {
+  applicationMailingPlaceholders,
+  CustomApplicationPlaceHolder,
+} from './components/CustomApplicationPlaceHolder'
+import { SettingsCard } from './components/SettingsCard'
+import { parseApplicationMailingMetaData } from './utils/parseApplicaitonMailingMetaData'
 
 export const ApplicationMailingSettings = () => {
   const { phaseId, courseId } = useParams<{ courseId: string; phaseId: string }>()

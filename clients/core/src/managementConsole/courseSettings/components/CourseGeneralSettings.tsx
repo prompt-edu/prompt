@@ -1,43 +1,43 @@
-import { useForm } from 'react-hook-form'
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { IconSelector } from '@core/managementConsole/courseOverview/AddingCourse/components/IconSelector'
+import {
+  courseAppearanceColors,
+  DEFAULT_COURSE_COLOR,
+  DEFAULT_COURSE_ICON,
+} from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import { updateCourseData } from '@core/network/mutations/updateCourseData'
+import { getAllCourses } from '@core/network/queries/course'
+import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Course, UpdateCourseData } from '@tumaet/prompt-shared-state'
+import { CourseType, CourseTypeDetails, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
+  CardContent,
+  CardFooter,
+  DatePickerWithRange,
+  ErrorPage,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  DatePickerWithRange,
+  Input,
+  LoadingPage,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Input,
+  SettingsCard,
   Textarea,
   useToast,
-  CardFooter,
-  CardContent,
-  LoadingPage,
-  ErrorPage,
 } from '@tumaet/prompt-ui-components'
-import { CourseType, CourseTypeDetails, useCourseStore } from '@tumaet/prompt-shared-state'
-import { EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
-import { updateCourseData } from '@core/network/mutations/updateCourseData'
-import type { Course, UpdateCourseData } from '@tumaet/prompt-shared-state'
-import {
-  DEFAULT_COURSE_COLOR,
-  DEFAULT_COURSE_ICON,
-  courseAppearanceColors,
-} from '@core/managementConsole/courseOverview/constants/courseAppearance'
-import { IconSelector } from '@core/managementConsole/courseOverview/AddingCourse/components/IconSelector'
 import { FileText, Loader2, Save } from 'lucide-react'
-import { SettingsCard } from '@tumaet/prompt-ui-components'
-import { getAllCourses } from '@core/network/queries/course'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { useParams } from 'react-router-dom'
 
 export function CourseGeneralSettings() {
   const { courseId } = useParams<{ courseId: string }>()
@@ -68,7 +68,7 @@ export function CourseGeneralSettings() {
   const course = allCourses.find((c) => c.id === courseId) as Course | undefined
 
   const initialColor = (course?.studentReadableData?.['bg-color'] as string) || DEFAULT_COURSE_COLOR
-  const initialIcon = (course?.studentReadableData?.['icon'] as string) || DEFAULT_COURSE_ICON
+  const initialIcon = (course?.studentReadableData?.icon as string) || DEFAULT_COURSE_ICON
 
   const form = useForm<EditCourseFormValues>({
     resolver: zodResolver(editCourseSchema),
@@ -94,7 +94,7 @@ export function CourseGeneralSettings() {
     if (course) {
       const newInitialColor =
         (course.studentReadableData?.['bg-color'] as string) || DEFAULT_COURSE_COLOR
-      const newInitialIcon = (course.studentReadableData?.['icon'] as string) || DEFAULT_COURSE_ICON
+      const newInitialIcon = (course.studentReadableData?.icon as string) || DEFAULT_COURSE_ICON
 
       form.reset({
         dateRange: {

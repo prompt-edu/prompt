@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useMemo, useState } from 'react'
 import { CourseCards } from '../shared/components/CourseCard/CourseCards'
 import { CourseTable } from '../shared/components/CourseTable/CourseTable'
-import { CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
+import { type CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
 
 export const ActiveCoursesPage = () => {
   const { courses } = useCourseStore()
@@ -13,7 +13,7 @@ export const ActiveCoursesPage = () => {
     [courses],
   )
 
-  const isEmpty = activeCourses.length == 0
+  const isEmpty = activeCourses.length === 0
 
   return (
     <div className='flex flex-col gap-6 w-full'>

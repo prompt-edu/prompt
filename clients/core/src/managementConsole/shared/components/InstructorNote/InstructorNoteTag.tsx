@@ -1,4 +1,4 @@
-import { NoteTag, NoteTagColor } from '../../interfaces/InstructorNote'
+import type { NoteTag, NoteTagColor } from '../../interfaces/InstructorNote'
 
 const tagColorClass: Record<NoteTagColor, string> = {
   green: 'bg-green-200 border-green-600 dark:bg-green-800',

@@ -1,8 +1,8 @@
-import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
-import { getLayoutedElements } from '../utils/getLayoutedElements'
 import { ParticipantEdgeProps } from '../graphComponents/edges/ParticipantEdgeProps'
 import { ParticipationDataEdgeProps } from '../graphComponents/edges/ParticipationDataEdgeProps'
 import { PhaseDataEdgeProps } from '../graphComponents/edges/PhaseDataEdgeProps'
+import { getLayoutedElements } from '../utils/getLayoutedElements'
+import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 
 export const useComputeLayoutedElements = () => {
   const { coursePhases, coursePhaseGraph, participationDataGraph, phaseDataGraph } =
@@ -17,7 +17,7 @@ export const useComputeLayoutedElements = () => {
 
   const initialPersonEdges = coursePhaseGraph.map((item) => {
     return {
-      id: 'person-edge-' + item.fromCoursePhaseID + '-' + item.toCoursePhaseID,
+      id: `person-edge-${item.fromCoursePhaseID}-${item.toCoursePhaseID}`,
       source: item.fromCoursePhaseID,
       target: item.toCoursePhaseID,
       type: 'selectableEdge',

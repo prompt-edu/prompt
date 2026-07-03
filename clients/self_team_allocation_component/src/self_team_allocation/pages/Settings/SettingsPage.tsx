@@ -1,13 +1,17 @@
-import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTimeframeSettings'
-import { Timeframe } from '../../interfaces/timeframe'
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
-import { useParams } from 'react-router-dom'
-import { getConfig } from '../../network/queries/getConfig'
-import { MissingSettings, MissingSettingsItem } from '@tumaet/prompt-ui-components'
+import {
+  ErrorPage,
+  ManagementPageHeader,
+  MissingSettings,
+  type MissingSettingsItem,
+} from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { Timeframe } from '../../interfaces/timeframe'
+import { getConfig } from '../../network/queries/getConfig'
+import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
+import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTimeframeSettings'
 
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

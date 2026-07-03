@@ -1,6 +1,6 @@
-import { ApplicationStatus } from '../interfaces/applicationStatus'
-import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { Badge } from '@tumaet/prompt-ui-components'
+import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { ApplicationStatus } from '../interfaces/applicationStatus'
 
 interface ApplicationConfigurationHeaderProps {
   applicationPhaseIsConfigured: boolean

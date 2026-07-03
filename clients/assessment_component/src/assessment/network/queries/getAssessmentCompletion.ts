@@ -1,4 +1,4 @@
-import { AssessmentCompletion } from '../../interfaces/assessmentCompletion'
+import type { AssessmentCompletion } from '../../interfaces/assessmentCompletion'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAssessmentCompletion = async (

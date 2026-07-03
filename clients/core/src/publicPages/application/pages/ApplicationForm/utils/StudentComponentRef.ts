@@ -1,4 +1,4 @@
-import { Student } from '@tumaet/prompt-shared-state'
+import type { Student } from '@tumaet/prompt-shared-state'
 
 export interface StudentComponentRef {
   validate: () => Promise<boolean>

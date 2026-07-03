@@ -1,4 +1,4 @@
-import { cn, Badge } from '@tumaet/prompt-ui-components'
+import { Badge, cn } from '@tumaet/prompt-ui-components'
 
 export const TeamBadge = ({ teamName }: { teamName: string }) => {
   return (

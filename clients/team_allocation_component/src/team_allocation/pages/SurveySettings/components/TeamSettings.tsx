@@ -1,10 +1,10 @@
-import { useParams } from 'react-router-dom'
 import type { Team } from '@tumaet/prompt-shared-state'
+import { User, Users2 } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { createTeams } from '../../../network/mutations/createTeams'
 import { deleteTeam } from '../../../network/mutations/deleteTeam'
 import { updateTeam } from '../../../network/mutations/updateTeam'
 import { EntitySettings } from './EntitySettings'
-import { User, Users2 } from 'lucide-react'
 
 interface TeamSettingsProps {
   teams: Team[]

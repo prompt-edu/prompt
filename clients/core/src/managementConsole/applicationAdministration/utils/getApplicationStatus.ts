@@ -1,5 +1,5 @@
 import { isAfter, isBefore, isWithinInterval } from 'date-fns'
-import { ApplicationMetaData } from '../interfaces/applicationMetaData'
+import type { ApplicationMetaData } from '../interfaces/applicationMetaData'
 import { ApplicationStatus } from '../interfaces/applicationStatus'
 
 export const getApplicationStatus = (

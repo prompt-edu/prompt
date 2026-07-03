@@ -1,9 +1,9 @@
-import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Archive, File, FileText, Shield, Activity, Tag, Users } from 'lucide-react'
-import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
-import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { Role } from '@tumaet/prompt-shared-state'
+import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
+import { Activity, Archive, File, FileText, Shield, Tag, Users } from 'lucide-react'
+import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
+import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideGeneralSidebar = () => {
   return (
@@ -23,7 +23,10 @@ export const InsideGeneralSidebar = () => {
                 title='Template Courses'
               />
             </ShowForRole>
-            <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
+            <ShowForRole
+              roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}
+              anyCourseRole={[Role.COURSE_LECTURER, Role.COURSE_EDITOR]}
+            >
               <InsideSidebarMenuItem
                 icon={<Archive />}
                 goToPath={'/management/course-archive'}

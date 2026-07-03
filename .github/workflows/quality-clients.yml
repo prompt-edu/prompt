@@ -2,32 +2,34 @@ name: Quality Clients
 
 on:
   workflow_call:
-    inputs:
-      modules:
-        description: "JSON array of client modules to check"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 jobs:
   quality-client:
-    if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./clients
     strategy:
       matrix:
-        module: ${{ fromJson(inputs.modules) }}
+        module:
+          - core
+          - interview_component
+          - matching_component
+          - template_component
+          - assessment_component
+          - team_allocation_component
+          - self_team_allocation_component
+          - certificate_component
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - run: yarn install
       - name: Type check ${{ matrix.module }}
         run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
       - name: Lint components in ${{ matrix.module }}
-        run: yarn eslint "${{ matrix.module }}" --config "${{ matrix.module }}/eslint.config.mjs"
+        run: yarn biome check "${{ matrix.module }}"
       - name: Build component ${{ matrix.module }}
         run: yarn --cwd "${{ matrix.module }}" build

@@ -1,7 +1,6 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type { CourseArchiveStatus } from '@core/interfaces/courseArchiveStatus'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
 import type { Course } from '@tumaet/prompt-shared-state'
+import { axiosInstance, useCourseStore } from '@tumaet/prompt-shared-state'
 
 const updateCourseArchiveStatus = async (
   courseId: string,

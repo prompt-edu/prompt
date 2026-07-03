@@ -54,6 +54,8 @@ func copyCoursePhases(c *gin.Context, qtx *db.Queries, sourceID, targetID uuid.U
 		}
 		delete(sanitizedRestrictedData, "applicationStartDate")
 		delete(sanitizedRestrictedData, "applicationEndDate")
+		sanitizedRestrictedData["useCustomScores"] = false
+		delete(sanitizedRestrictedData, "additionalScores")
 
 		newPhase := coursePhaseDTO.CreateCoursePhase{
 			Name:                phase.Name,

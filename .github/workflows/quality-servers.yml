@@ -2,31 +2,32 @@ name: Quality Servers
 
 on:
   workflow_call:
-    inputs:
-      modules:
-        description: "JSON array of server modules to check"
-        required: true
-        type: string
 
 permissions:
   contents: read
 
 jobs:
   quality-server:
-    if: inputs.modules != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: ${{ fromJson(inputs.modules) }}
+        module:
+          - assessment
+          - certificate
+          - core
+          - interview
+          - self_team_allocation
+          - team_allocation
+          - template_server
     defaults:
       run:
         working-directory: servers/${{ matrix.module }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: "servers/${{ matrix.module }}/*.sum"
+          cache-dependency-path: "servers/**/*.sum"
       - name: Install dependencies
         run: go mod download
       - name: Install sqlc
@@ -42,6 +43,25 @@ jobs:
             echo "  cd servers/${MODULE} && sqlc generate"
             git status --short -- db/sqlc
             git diff -- db/sqlc
+            exit 1
+          fi
+      - name: Check API spec files are current
+        env:
+          MODULE: ${{ matrix.module }}
+        run: |
+          if ! grep -q "swaggo/swag" go.mod; then
+            echo "Module does not use swaggo/swag; skipping API spec check."
+            exit 0
+          fi
+
+          go install github.com/swaggo/swag/cmd/swag@v1.16.6
+          "../../scripts/generate-api-spec.sh" "${MODULE}"
+
+          if [ -n "$(git status --porcelain -- docs)" ]; then
+            echo "API spec files are out of date. Run:"
+            echo "  ./scripts/generate-api-spec.sh ${MODULE}"
+            git status --short -- docs
+            git diff -- docs
             exit 1
           fi
       - name: golangci-lint

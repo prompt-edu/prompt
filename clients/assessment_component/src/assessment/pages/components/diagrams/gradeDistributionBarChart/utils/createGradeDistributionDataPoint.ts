@@ -2,7 +2,7 @@ import { VALID_GRADE_VALUES } from '../../../../utils/gradeConfig'
 
 import { computeQuartile } from '../../utils/computeQuartile'
 
-import { GradeDistributionDataPoint } from '../interfaces/GradeDistributionDataPoint'
+import type { GradeDistributionDataPoint } from '../interfaces/GradeDistributionDataPoint'
 
 export const createGradeDistributionDataPoint = (
   shortLabel: string,

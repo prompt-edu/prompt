@@ -1,4 +1,4 @@
-import { Timeframe } from '../../interfaces/timeframe'
+import type { Timeframe } from '../../interfaces/timeframe'
 import { selfTeamAllocationAxiosInstance } from '../selfTeamAllocationServerConfig'
 
 export const getTimeframe = async (coursePhaseID: string): Promise<Timeframe> => {

@@ -1,3 +1,5 @@
+import type { QuestionConfigFormDataMultiSelect } from '@core/validations/questionConfig'
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import {
   Button,
   Card,
@@ -10,11 +12,9 @@ import {
   FormMessage,
   Input,
 } from '@tumaet/prompt-ui-components'
-import { GripVertical, MinusIcon, PlusIcon } from 'lucide-react'
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
-import { useFieldArray, UseFormReturn } from 'react-hook-form'
-import { QuestionConfigFormDataMultiSelect } from '@core/validations/questionConfig'
 import { motion } from 'framer-motion'
+import { GripVertical, MinusIcon, PlusIcon } from 'lucide-react'
+import { type UseFormReturn, useFieldArray } from 'react-hook-form'
 
 export function MultiSelectConfig({
   form,
@@ -149,7 +149,7 @@ export function MultiSelectConfig({
                   min={0}
                   max={Math.min(maxSelect, options.length)}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     field.onChange(value > maxSelect ? maxSelect : value)
                   }}
                 />
@@ -175,7 +175,7 @@ export function MultiSelectConfig({
                   min={Math.max(1, minSelect)}
                   max={options.length}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value)
+                    const value = parseInt(e.target.value, 10)
                     field.onChange(value < minSelect ? minSelect : value)
                   }}
                 />

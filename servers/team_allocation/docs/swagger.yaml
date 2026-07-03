@@ -9,16 +9,18 @@ definitions:
     type: object
   db.SkillLevel:
     enum:
-    - novice
-    - intermediate
-    - advanced
-    - expert
+    - very_bad
+    - bad
+    - ok
+    - good
+    - very_good
     type: string
     x-enum-varnames:
-    - SkillLevelNovice
-    - SkillLevelIntermediate
-    - SkillLevelAdvanced
-    - SkillLevelExpert
+    - SkillLevelVeryBad
+    - SkillLevelBad
+    - SkillLevelOk
+    - SkillLevelGood
+    - SkillLevelVeryGood
   promptTypes.Person:
     properties:
       firstName:
@@ -83,6 +85,25 @@ definitions:
       newSkillName:
         type: string
     type: object
+  surveyDTO.PreferenceCount:
+    properties:
+      count:
+        type: integer
+      rank:
+        type: integer
+    type: object
+  surveyDTO.SkillDistributionStats:
+    properties:
+      levelCounts:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      skillId:
+        type: string
+      skillName:
+        type: string
+    type: object
   surveyDTO.StudentSkillResponse:
     properties:
       skillID:
@@ -121,6 +142,19 @@ definitions:
           $ref: '#/definitions/promptTypes.Team'
         type: array
     type: object
+  surveyDTO.SurveyStatistics:
+    properties:
+      respondentCount:
+        type: integer
+      skillDistributionStatistics:
+        items:
+          $ref: '#/definitions/surveyDTO.SkillDistributionStats'
+        type: array
+      teamPopularityStatistics:
+        items:
+          $ref: '#/definitions/surveyDTO.TeamPopularityStats'
+        type: array
+    type: object
   surveyDTO.SurveyTimeframe:
     properties:
       surveyDeadline:
@@ -132,6 +166,21 @@ definitions:
     required:
     - surveyDeadline
     - surveyStart
+    type: object
+  surveyDTO.TeamPopularityStats:
+    properties:
+      avgPreference:
+        type: number
+      preferenceCounts:
+        items:
+          $ref: '#/definitions/surveyDTO.PreferenceCount'
+        type: array
+      responseCount:
+        type: integer
+      teamId:
+        type: string
+      teamName:
+        type: string
     type: object
   teamDTO.CreateTeamsRequest:
     properties:
@@ -173,6 +222,58 @@ definitions:
     properties:
       newTeamName:
         type: string
+    type: object
+  teaseDTO.Allocation:
+    properties:
+      projectId:
+        type: string
+      students:
+        items:
+          type: string
+        type: array
+    type: object
+  teaseDTO.TeaseSaveRequest:
+    properties:
+      algorithmType:
+        type: string
+      allocations:
+        items:
+          $ref: '#/definitions/teaseDTO.Allocation'
+        type: array
+      constraints:
+        type: object
+      lockedStudents:
+        type: object
+    type: object
+  teaseDTO.TeaseWorkspace:
+    properties:
+      algorithmType:
+        type: string
+      allocationsDraft:
+        type: object
+      constraints:
+        type: object
+      coursePhaseId:
+        type: string
+      lastExportedAt:
+        type: string
+      lastSavedAt:
+        type: string
+      lockedStudents:
+        type: object
+      updatedBy:
+        type: string
+    type: object
+  teaseDTO.TeaseWorkspaceRequest:
+    properties:
+      algorithmType:
+        type: string
+      allocationsDraft:
+        type: object
+      constraints:
+        type: object
+      lockedStudents:
+        type: object
     type: object
 externalDocs:
   description: PROMPT Documentation
@@ -512,6 +613,40 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get survey form
+      tags:
+      - survey
+  /course_phase/{coursePhaseID}/survey/statistics:
+    get:
+      description: Get aggregated team preference and skill distribution statistics
+        for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/surveyDTO.SurveyStatistics'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get survey statistics
       tags:
       - survey
   /course_phase/{coursePhaseID}/survey/timeframe:
@@ -856,6 +991,144 @@ paths:
       summary: Import tutors
       tags:
       - team
+  /tease/course_phase/{coursePhaseID}/save:
+    post:
+      consumes:
+      - application/json
+      description: Save the TEASE workspace and replace the published allocation set
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: TEASE workspace and allocations
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teaseDTO.TeaseSaveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Publish TEASE allocations
+      tags:
+      - tease
+  /tease/course_phase/{coursePhaseID}/workspace:
+    get:
+      description: Get the persisted TEASE workspace for a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get TEASE workspace
+      tags:
+      - tease
+    put:
+      consumes:
+      - application/json
+      description: Upsert the TEASE workspace snapshot without publishing allocations
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: TEASE workspace
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/teaseDTO.TeaseWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/teaseDTO.TeaseWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Save TEASE workspace draft
+      tags:
+      - tease
 securityDefinitions:
   ApiKeyAuth:
     description: 'Bearer token authentication. Use format: Bearer {token}'

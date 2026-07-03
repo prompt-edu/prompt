@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { Alert, AlertDescription, Textarea } from '@tumaet/prompt-ui-components'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { Alert, AlertDescription, Textarea } from '@tumaet/prompt-ui-components'
-
-import { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
+import type { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
 
 import { useCreateOrUpdateCategoryAssessment } from './hooks/useCreateOrUpdateCategoryAssessment'
 
@@ -12,6 +11,7 @@ interface CategoryCommentProps {
   courseParticipationID: string
   categoryAssessment?: CategoryAssessment
   completed?: boolean
+  disabled?: boolean
 }
 
 export const CategoryComment = ({
@@ -19,6 +19,7 @@ export const CategoryComment = ({
   courseParticipationID,
   categoryAssessment,
   completed = false,
+  disabled = false,
 }: CategoryCommentProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
@@ -40,7 +41,7 @@ export const CategoryComment = ({
   const { mutate: saveCategoryAssessment } = useCreateOrUpdateCategoryAssessment(setError)
 
   const handleBlur = () => {
-    if (completed) return
+    if (completed || disabled) return
     const trimmed = comment.trim()
     const previous = (categoryAssessment?.comment ?? '').trim()
     if (trimmed === previous) return
@@ -70,7 +71,7 @@ export const CategoryComment = ({
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         onBlur={handleBlur}
-        disabled={completed}
+        disabled={completed || disabled}
       />
       {error && (
         <Alert variant='destructive'>

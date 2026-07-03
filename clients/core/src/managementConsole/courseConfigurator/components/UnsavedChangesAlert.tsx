@@ -1,7 +1,5 @@
-import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
+import { Alert, AlertDescription, AlertTitle, Button } from '@tumaet/prompt-ui-components'
 import { AlertCircle } from 'lucide-react'
-
-import { Button } from '@tumaet/prompt-ui-components'
 
 interface UnsavedChangesAlertProps {
   handleRevert: () => void

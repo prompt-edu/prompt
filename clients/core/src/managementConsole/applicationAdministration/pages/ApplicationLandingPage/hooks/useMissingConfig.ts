@@ -1,8 +1,8 @@
-import { useMemo } from 'react'
-import { CalendarX, MailWarningIcon } from 'lucide-react'
 import type { MissingConfigItem } from '@tumaet/prompt-ui-components'
-import { getIsApplicationConfigured } from '../../../utils/getApplicationIsConfigured'
+import { CalendarX, MailWarningIcon } from 'lucide-react'
+import { useMemo } from 'react'
 import type { ApplicationMetaData } from '../../../interfaces/applicationMetaData'
+import { getIsApplicationConfigured } from '../../../utils/getApplicationIsConfigured'
 
 export const useMissingConfigs = (
   applicationMetaData: ApplicationMetaData | null,

@@ -528,6 +528,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/survey/statistics": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get aggregated team preference and skill distribution statistics for a course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "survey"
+                ],
+                "summary": "Get survey statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/surveyDTO.SurveyStatistics"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/survey/timeframe": {
             "get": {
                 "security": [
@@ -1059,6 +1111,220 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/tease/course_phase/{coursePhaseID}/save": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Save the TEASE workspace and replace the published allocation set",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tease"
+                ],
+                "summary": "Publish TEASE allocations",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "TEASE workspace and allocations",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/teaseDTO.TeaseSaveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teaseDTO.TeaseWorkspace"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tease/course_phase/{coursePhaseID}/workspace": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get the persisted TEASE workspace for a course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tease"
+                ],
+                "summary": "Get TEASE workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teaseDTO.TeaseWorkspace"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Upsert the TEASE workspace snapshot without publishing allocations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tease"
+                ],
+                "summary": "Save TEASE workspace draft",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "TEASE workspace",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/teaseDTO.TeaseWorkspaceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/teaseDTO.TeaseWorkspace"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1076,16 +1342,18 @@ const docTemplate = `{
         "db.SkillLevel": {
             "type": "string",
             "enum": [
-                "novice",
-                "intermediate",
-                "advanced",
-                "expert"
+                "very_bad",
+                "bad",
+                "ok",
+                "good",
+                "very_good"
             ],
             "x-enum-varnames": [
-                "SkillLevelNovice",
-                "SkillLevelIntermediate",
-                "SkillLevelAdvanced",
-                "SkillLevelExpert"
+                "SkillLevelVeryBad",
+                "SkillLevelBad",
+                "SkillLevelOk",
+                "SkillLevelGood",
+                "SkillLevelVeryGood"
             ]
         },
         "promptTypes.Person": {
@@ -1165,6 +1433,35 @@ const docTemplate = `{
                 }
             }
         },
+        "surveyDTO.PreferenceCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "rank": {
+                    "type": "integer"
+                }
+            }
+        },
+        "surveyDTO.SkillDistributionStats": {
+            "type": "object",
+            "properties": {
+                "levelCounts": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "skillId": {
+                    "type": "string"
+                },
+                "skillName": {
+                    "type": "string"
+                }
+            }
+        },
         "surveyDTO.StudentSkillResponse": {
             "type": "object",
             "properties": {
@@ -1224,6 +1521,26 @@ const docTemplate = `{
                 }
             }
         },
+        "surveyDTO.SurveyStatistics": {
+            "type": "object",
+            "properties": {
+                "respondentCount": {
+                    "type": "integer"
+                },
+                "skillDistributionStatistics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/surveyDTO.SkillDistributionStats"
+                    }
+                },
+                "teamPopularityStatistics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/surveyDTO.TeamPopularityStats"
+                    }
+                }
+            }
+        },
         "surveyDTO.SurveyTimeframe": {
             "type": "object",
             "required": [
@@ -1239,6 +1556,29 @@ const docTemplate = `{
                 },
                 "timeframeSet": {
                     "type": "boolean"
+                }
+            }
+        },
+        "surveyDTO.TeamPopularityStats": {
+            "type": "object",
+            "properties": {
+                "avgPreference": {
+                    "type": "number"
+                },
+                "preferenceCounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/surveyDTO.PreferenceCount"
+                    }
+                },
+                "responseCount": {
+                    "type": "integer"
+                },
+                "teamId": {
+                    "type": "string"
+                },
+                "teamName": {
+                    "type": "string"
                 }
             }
         },
@@ -1303,6 +1643,86 @@ const docTemplate = `{
             "properties": {
                 "newTeamName": {
                     "type": "string"
+                }
+            }
+        },
+        "teaseDTO.Allocation": {
+            "type": "object",
+            "properties": {
+                "projectId": {
+                    "type": "string"
+                },
+                "students": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "teaseDTO.TeaseSaveRequest": {
+            "type": "object",
+            "properties": {
+                "algorithmType": {
+                    "type": "string"
+                },
+                "allocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/teaseDTO.Allocation"
+                    }
+                },
+                "constraints": {
+                    "type": "object"
+                },
+                "lockedStudents": {
+                    "type": "object"
+                }
+            }
+        },
+        "teaseDTO.TeaseWorkspace": {
+            "type": "object",
+            "properties": {
+                "algorithmType": {
+                    "type": "string"
+                },
+                "allocationsDraft": {
+                    "type": "object"
+                },
+                "constraints": {
+                    "type": "object"
+                },
+                "coursePhaseId": {
+                    "type": "string"
+                },
+                "lastExportedAt": {
+                    "type": "string"
+                },
+                "lastSavedAt": {
+                    "type": "string"
+                },
+                "lockedStudents": {
+                    "type": "object"
+                },
+                "updatedBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "teaseDTO.TeaseWorkspaceRequest": {
+            "type": "object",
+            "properties": {
+                "algorithmType": {
+                    "type": "string"
+                },
+                "allocationsDraft": {
+                    "type": "object"
+                },
+                "constraints": {
+                    "type": "object"
+                },
+                "lockedStudents": {
+                    "type": "object"
                 }
             }
         }

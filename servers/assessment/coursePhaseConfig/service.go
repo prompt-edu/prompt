@@ -94,6 +94,12 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 			log.WithError(err).Error("Failed to commit transaction for course phase config creation")
 			return coursePhaseConfigDTO.CoursePhaseConfig{}, err
 		}
+
+		config, err = CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+		if err != nil {
+			log.Error("could not get course phase config after creating defaults: ", err)
+			return coursePhaseConfigDTO.CoursePhaseConfig{}, errors.New("could not get course phase config")
+		}
 	} else if err != nil {
 		log.Error("could not get course phase config: ", err)
 		return coursePhaseConfigDTO.CoursePhaseConfig{}, errors.New("could not get course phase config")

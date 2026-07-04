@@ -31,7 +31,7 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 
 	courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
 	if errCourseParts != nil {
-		courseParticipationIDs = []uuid.UUID{}
+		return sdk.SubjectIdentifiers{}, errCourseParts
 	}
 
 	return sdk.SubjectIdentifiers{

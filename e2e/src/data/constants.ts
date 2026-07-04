@@ -50,6 +50,11 @@ export const SELF_TEAM_ALLOCATION_PHASE_ID = 'aaaa2222-0000-0000-0000-0000000000
 // the e2e students must be rejected (negative auth fixture).
 export const SELF_TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'aaaa3333-0000-0000-0000-0000000000a3'
 
+// Standalone Self Team Allocation phase owned by the lecturer-overview spec
+// (no graph edge, navigate by URL): teams formed there never collide with the
+// student journey's phase when spec files run in parallel workers.
+export const SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID = 'aaaa4444-0000-0000-0000-0000000000a4'
+
 // Students matching the Keycloak users (see e2e/keycloak/realm.json attributes).
 export const SEEDED_PHASE_STUDENTS = {
   student: { firstName: 'Stan', lastName: 'Stan' },
@@ -65,6 +70,21 @@ export const FULL_COURSE_PHASES = {
   assessment: { id: 'd0000005-0000-0000-0000-000000000005', type: 'Assessment' },
 }
 
+// Standalone Assessment phases on fullCourse (no graph edges, so they are not
+// in the course sidebar — navigate by URL). One phase per spec file, so release
+// state and schema locking never leak between parallel Playwright files:
+// the graph-tail assessment phase above is used by the lecturer journey + smoke,
+// `visibility` by the student-visibility spec (Stan + Selma participate), and
+// `selfEvaluation` by the self-evaluation spec (Stan participates).
+export const ASSESSMENT_FIXTURE_PHASES = {
+  visibility: 'd0000006-0000-0000-0000-000000000006',
+  selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
+}
+
+// Assessment phase on TestCourse with NO participants: requests by the e2e
+// students must be rejected (negative auth fixture).
+export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
+
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.
@@ -73,6 +93,15 @@ export const FULL_COURSE_STUDENT = {
   courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
   matriculationNumber: '00000005',
   universityLogin: 'no42tum',
+}
+
+// The student mapping to the Keycloak `student2` user (Selma); enrolled in
+// fullCourse and participating in the assessment visibility fixture phase.
+export const FULL_COURSE_STUDENT2 = {
+  id: 'a5000007-0000-4000-8000-000000000007',
+  courseParticipationId: 'ca000008-0000-4000-8000-000000000008',
+  matriculationNumber: '00000007',
+  universityLogin: 'st70two',
 }
 
 // Course-scoped Keycloak roles for fullCourse, assigned in e2e/keycloak/realm.json.

@@ -632,7 +632,10 @@ INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-0000000
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
+-- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
+-- second in-course student.
 INSERT INTO public.course_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'a5000005-0000-4000-8000-000000000005');
+INSERT INTO public.course_participation VALUES ('ca000008-0000-4000-8000-000000000008', 'c0000001-0000-0000-0000-000000000001', 'a5000007-0000-4000-8000-000000000007');
 INSERT INTO public.course_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', '3869f209-9a21-4595-ae0e-bc6d6a3e2d63');
 INSERT INTO public.course_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', '5eb545c2-c2eb-4c77-9c0f-46ccf7c45d07');
 INSERT INTO public.course_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', '2428d311-4ad4-4d91-a46e-e5e2a5a4a3ee');
@@ -668,6 +671,8 @@ INSERT INTO public.course_phase_graph VALUES ('d0000004-0000-0000-0000-000000000
 -- participants table; backend auth checks course-level enrollment).
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000005-0000-4000-8000-000000000005', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000007-0000-4000-8000-000000000007', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000005-0000-4000-8000-000000000005', 'aaaa4444-0000-0000-0000-0000000000a4', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000007-0000-4000-8000-000000000007', 'aaaa4444-0000-0000-0000-0000000000a4', '{}', 'passed', '{}');
 -- Funnel across the iPraktikumFull graph. course_participation a0000001 (the seeded `student` user)
 -- appears in every phase; the roster narrows toward Assessment.
 INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
@@ -693,6 +698,11 @@ INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+-- Standalone assessment fixture phases (see the course_phase inserts below):
+-- Stan + Selma in the visibility phase, Stan in the self-evaluation phase.
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000007-0000-0000-0000-000000000007', '{}', 'not_assessed', '{}');
 
 
 
@@ -732,11 +742,30 @@ INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 
 
 INSERT INTO public.course_phase VALUES ('aaaa2222-0000-0000-0000-0000000000a2', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 'be780b32-a678-4b79-ae1c-80071771d254', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
+-- Standalone (no graph edge) phase owned by the lecturer-overview spec: teams
+-- formed there never collide with the student journey's phase when Playwright
+-- runs the two spec files in parallel workers.
+INSERT INTO public.course_phase VALUES ('aaaa4444-0000-0000-0000-0000000000a4', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation Overview', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', 'Interview', '{}', false, 'b1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Matching', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
 INSERT INTO public.course_phase VALUES ('d0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('d0000005-0000-0000-0000-000000000005', 'c0000001-0000-0000-0000-000000000001', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+
+--
+-- Standalone assessment fixture phases (no graph edges — the graph's UNIQUE
+-- from/to constraints force a chain, and non-graph phases still route by URL,
+-- they are just filtered from the course sidebar). One phase per spec file so
+-- release state and schema locking never cross parallel Playwright files:
+-- d0000006 = student visibility spec (Stan + Selma participate),
+-- d0000007 = self-evaluation spec (Stan participates),
+-- d0000008 = TestCourse negative-auth fixture (no participants; the e2e
+-- students are not enrolled in TestCourse).
+--
+
+INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', 'Assessment Visibility', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 
 
 --
@@ -746,12 +775,19 @@ INSERT INTO public.course_phase VALUES ('d0000005-0000-0000-0000-000000000005', 
 -- Mirrors core's InsertTeamAllocationOutput (skipped at startup because the
 -- phase type above already exists).
 INSERT INTO public.course_phase_type_participation_provided_output_dto VALUES ('d1000001-0000-4000-8000-000000000001', 'a3333333-3333-3333-3333-333333333333', 'teamAllocation', 1, '/allocation', '{"type": "string"}');
+-- Mirrors core's InsertAssessmentScoreOutput / InsertActionItemsOutput /
+-- InsertGradeOutput for the Assessment type.
+INSERT INTO public.course_phase_type_participation_provided_output_dto VALUES ('d1000003-0000-4000-8000-000000000003', 'b4444444-4444-4444-4444-444444444444', 'scoreLevel', 1, '/student-assessment/scoreLevel', '{"type": "string", "enum": ["veryBad", "bad", "ok", "good", "veryGood"]}');
+INSERT INTO public.course_phase_type_participation_provided_output_dto VALUES ('d1000004-0000-4000-8000-000000000004', 'b4444444-4444-4444-4444-444444444444', 'actionItems', 1, '/student-assessment/action-item/action', '{"type": "array", "items": {"type": "string"}}');
+INSERT INTO public.course_phase_type_participation_provided_output_dto VALUES ('d1000005-0000-4000-8000-000000000005', 'b4444444-4444-4444-4444-444444444444', 'grade', 1, '/student-assessment/completed/grade', '{"type": "number"}');
 
 
 --
 -- Data for Name: course_phase_type_participation_required_input_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Mirrors core's InsertTeamAllocationRequiredInput for the Assessment type.
+INSERT INTO public.course_phase_type_participation_required_input_dto VALUES ('d1000006-0000-4000-8000-000000000006', 'b4444444-4444-4444-4444-444444444444', 'teamAllocation', '{"type": "string"}');
 
 
 --
@@ -765,6 +801,9 @@ INSERT INTO public.course_phase_type_phase_provided_output_dto VALUES ('d1000002
 --
 -- Data for Name: course_phase_type_phase_required_input_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
+
+-- Mirrors core's InsertTeamRequiredInput for the Assessment type.
+INSERT INTO public.course_phase_type_phase_required_input_dto VALUES ('d1000007-0000-4000-8000-000000000007', 'b4444444-4444-4444-4444-444444444444', 'teams', '{"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "name": {"type": "string"}}, "required": ["id", "name"]}}');
 
 
 

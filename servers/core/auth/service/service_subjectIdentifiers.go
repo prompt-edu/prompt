@@ -50,7 +50,7 @@ func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID
 
 	cpIDs, err := getCourseParticipations(ctx, *studentID)
 	if err != nil {
-		return identifiers, nil
+		return sdk.SubjectIdentifiers{}, err
 	}
 	identifiers.CourseParticipationIDs = cpIDs
 	return identifiers, nil

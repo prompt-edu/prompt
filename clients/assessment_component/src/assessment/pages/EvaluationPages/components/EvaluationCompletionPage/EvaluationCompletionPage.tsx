@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, Button } from '@tumaet/prompt-ui-components'
-import { Lock, Unlock } from 'lucide-react'
+import { Info, Lock, Unlock } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -80,6 +80,17 @@ export const EvaluationCompletionPage = ({
 
   return (
     <div>
+      {!completed && (
+        <Alert className='mb-4'>
+          <Info className='h-4 w-4' />
+          <AlertDescription>
+            Comments are optional, but a few specific sentences make your feedback far more valuable
+            than scores alone. They help the recipient understand what to keep doing and where to
+            improve.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
         <FeedbackItemPanel
           assessmentType={type}

@@ -617,6 +617,7 @@ CREATE TABLE public.student (
 INSERT INTO public.course VALUES ('d7307be2-d3dc-496e-86f0-643bff6cc1c8', 'iPraktikum', '2024-10-13', '2025-02-14', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'iOS practical course', 'The iPraktikum is a hands-on iOS development course.', false, NULL);
 INSERT INTO public.course VALUES ('e12ffe63-448d-4469-a840-1699e9b328d1', 'iPraktikum-Test', '2024-12-15', '2025-03-15', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-green-100"}', '{"icon": "graduation-cap", "bg-color": "bg-green-100"}', false, 'Test variant', 'A test course.', false, NULL);
 INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestCourse', '2024-12-19', '2025-04-19', 'ios2425', 'seminar', 5, '{"icon": "book", "bg-color": "bg-purple-100"}', '{"icon": "book", "bg-color": "bg-purple-100"}', false, 'Seminar course', 'A seminar.', false, NULL);
+INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPraktikumFull', '2025-04-01', '2025-09-30', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'Full-cycle practical course', 'A practical course spanning application, interview, matching, team allocation, and assessment. Seeded with participations and course-scoped roles for e2e.', false, NULL);
 
 
 --
@@ -629,6 +630,15 @@ INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestC
 -- phase is the negative-auth fixture.
 INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000005-0000-4000-8000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
+-- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
+-- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
+INSERT INTO public.course_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'a5000005-0000-4000-8000-000000000005');
+INSERT INTO public.course_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', '3869f209-9a21-4595-ae0e-bc6d6a3e2d63');
+INSERT INTO public.course_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', '5eb545c2-c2eb-4c77-9c0f-46ccf7c45d07');
+INSERT INTO public.course_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', '2428d311-4ad4-4d91-a46e-e5e2a5a4a3ee');
+INSERT INTO public.course_participation VALUES ('a0000005-0000-0000-0000-000000000005', 'c0000001-0000-0000-0000-000000000001', '23bf3123-4f0d-473c-9ef5-d0333e29fe9a');
+INSERT INTO public.course_participation VALUES ('a0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', '777286f4-a3e7-4bcd-bf57-13d178bf582d');
+
 
 
 --
@@ -642,6 +652,11 @@ INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-0000000
 --
 
 INSERT INTO public.course_phase_graph VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'aaaa2222-0000-0000-0000-0000000000a2');
+INSERT INTO public.course_phase_graph VALUES ('d0000001-0000-0000-0000-000000000001', 'd0000002-0000-0000-0000-000000000002');
+INSERT INTO public.course_phase_graph VALUES ('d0000002-0000-0000-0000-000000000002', 'd0000003-0000-0000-0000-000000000003');
+INSERT INTO public.course_phase_graph VALUES ('d0000003-0000-0000-0000-000000000003', 'd0000004-0000-0000-0000-000000000004');
+INSERT INTO public.course_phase_graph VALUES ('d0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005');
+
 
 
 --
@@ -653,6 +668,32 @@ INSERT INTO public.course_phase_graph VALUES ('aaaa1111-0000-0000-0000-000000000
 -- participants table; backend auth checks course-level enrollment).
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000005-0000-4000-8000-000000000005', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000007-0000-4000-8000-000000000007', 'aaaa2222-0000-0000-0000-0000000000a2', '{}', 'passed', '{}');
+-- Funnel across the iPraktikumFull graph. course_participation a0000001 (the seeded `student` user)
+-- appears in every phase; the roster narrows toward Assessment.
+INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000005-0000-0000-0000-000000000005', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000006-0000-0000-0000-000000000006', 'd0000001-0000-0000-0000-000000000001', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000002-0000-0000-0000-000000000002', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000002-0000-0000-0000-000000000002', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000002-0000-0000-0000-000000000002', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000002-0000-0000-0000-000000000002', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000005-0000-0000-0000-000000000005', 'd0000002-0000-0000-0000-000000000002', '{}', 'passed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000004-0000-0000-0000-000000000004', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000004-0000-0000-0000-000000000004', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000004-0000-0000-0000-000000000004', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000004-0000-0000-0000-000000000004', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+
 
 
 --
@@ -661,10 +702,15 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 
 INSERT INTO public.course_phase_type VALUES ('a1111111-1111-1111-1111-111111111111', 'Application', true, 'core', 'Application collection phase');
 INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'Template', false, 'template', 'Template phase');
--- Fixed UUID so seeded course phases can reference it deterministically; the
--- core server's startup init matches by name and skips creating it (it would
--- otherwise use a random UUID). {CORE_HOST} is replaced by core at read time.
+-- Fixed UUIDs so seeded course phases can reference these types deterministically; the
+-- core server's startup init matches by name and skips creating them (it would
+-- otherwise use random UUIDs). {CORE_HOST} is replaced by core at read time.
+-- The b-series types match servers/core/coursePhaseType/initializeTypes.go by name.
 INSERT INTO public.course_phase_type VALUES ('a3333333-3333-3333-3333-333333333333', 'Self Team Allocation', false, '{CORE_HOST}/self-team-allocation/api', 'Students form teams themselves');
+INSERT INTO public.course_phase_type VALUES ('b1111111-1111-1111-1111-111111111111', 'Interview', false, '{CORE_HOST}/interview/api', 'Interview phase for student assessments and scheduling.');
+INSERT INTO public.course_phase_type VALUES ('b2222222-2222-2222-2222-222222222222', 'Matching', false, 'core', 'A placeholder description for this course phase type. Detailed description will follow.');
+INSERT INTO public.course_phase_type VALUES ('b3333333-3333-3333-3333-333333333333', 'Team Allocation', false, '{CORE_HOST}/team-allocation/api', 'A placeholder description for this course phase type. Detailed description will follow.');
+INSERT INTO public.course_phase_type VALUES ('b4444444-4444-4444-4444-444444444444', 'Assessment', false, '{CORE_HOST}/assessment/api', 'A placeholder description for this course phase type. Detailed description will follow.');
 
 
 --
@@ -678,10 +724,19 @@ INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 
 -- A Self Team Allocation phase on iPraktikum (follows Application in the
 -- graph), plus one on TestCourse with no participants and no graph edge: the
 -- negative-auth fixture (the e2e students are not enrolled in TestCourse).
+-- Plus the full phase graph for iPraktikumFull: Application -> Interview ->
+-- Matching -> Team Allocation -> Assessment. Its Application phase is open
+-- (start in the past, end in the far future) so it also qualifies as an open
+-- application phase.
 --
 
 INSERT INTO public.course_phase VALUES ('aaaa2222-0000-0000-0000-0000000000a2', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 'be780b32-a678-4b79-ae1c-80071771d254', 'Self Team Allocation', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
+INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', 'Interview', '{}', false, 'b1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Matching', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
+INSERT INTO public.course_phase VALUES ('d0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
+INSERT INTO public.course_phase VALUES ('d0000005-0000-0000-0000-000000000005', 'c0000001-0000-0000-0000-000000000001', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 
 
 --
@@ -798,7 +853,9 @@ INSERT INTO public.student VALUES ('2d8c24b4-b91a-4219-9bd8-3f2502774ebc', 'Test
 INSERT INTO public.student VALUES ('1c62c564-491b-43e3-9929-7be39509e32e', 'Niclas', 'Heun', 'test@leeeeeel.de', '00000000', 'hh88hhh', true, 'female', 'DE', 'Computer Science', 'master', 5, '2025-01-07 22:50:17.814704');
 INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Niclas', 'Heuni', 'heuni@heuni.de', '', '', false, 'prefer_not_to_say', 'DE', 'Information Systems', 'bachelor', 5, '2025-01-07 23:05:43.120086');
 -- The two Keycloak e2e student users (matriculation_number/university_login
--- must match the realm user attributes in e2e/keycloak/realm.json).
+-- must match the realm user attributes in e2e/keycloak/realm.json). `student`
+-- (Stan, 00000005/no42tum) is also the iPraktikumFull participant a0000001, so
+-- its full-course participation resolves to a DB-derived Student role.
 INSERT INTO public.student VALUES ('a5000005-0000-4000-8000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 

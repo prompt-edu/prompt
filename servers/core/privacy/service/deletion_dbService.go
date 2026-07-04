@@ -13,6 +13,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, error) {
@@ -187,4 +188,13 @@ func RejectDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (pr
 	}
 
 	return privacyDTO.GetPrivacyDeletionRequestDTOFromDBModel(record), nil
+}
+
+func MarkDeletionRequestFailed(ctx context.Context, requestID uuid.UUID) {
+	if _, err := PrivacyServiceSingleton.queries.SetDeletionRequestStatus(context.WithoutCancel(ctx), db.SetDeletionRequestStatusParams{
+		ID:     requestID,
+		Status: db.PrivacyDeletionRequestStatusFailed,
+	}); err != nil {
+		log.WithError(err).WithField("requestID", requestID).Error("failed to mark deletion request as failed")
+	}
 }

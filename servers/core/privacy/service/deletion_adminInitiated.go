@@ -56,18 +56,9 @@ func RunAdminInitiatedDeletions(ctx context.Context, authHeader string, records 
 		state, err := PrepareDataDeletion(ctx, rec)
 		if err != nil {
 			log.WithError(err).WithField("requestID", rec.ID).Error("admin-initiated deletion: prepare failed")
-			markDeletionRequestFailed(ctx, rec.ID)
+			MarkDeletionRequestFailed(ctx, rec.ID)
 			continue
 		}
 		RunDataDeletion(ctx, authHeader, state)
-	}
-}
-
-func markDeletionRequestFailed(ctx context.Context, requestID uuid.UUID) {
-	if _, err := PrivacyServiceSingleton.queries.SetDeletionRequestStatus(context.WithoutCancel(ctx), db.SetDeletionRequestStatusParams{
-		ID:     requestID,
-		Status: db.PrivacyDeletionRequestStatusFailed,
-	}); err != nil {
-		log.WithError(err).WithField("requestID", requestID).Error("failed to mark deletion request as failed")
 	}
 }

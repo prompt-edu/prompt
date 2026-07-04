@@ -183,6 +183,7 @@ func decideDeletionRequest(c *gin.Context) {
 		state, err := service.PrepareDataDeletion(c, record)
 		if err != nil {
 			log.Error("deletion preparation failed: ", err)
+			service.MarkDeletionRequestFailed(c, requestID)
 			handleError(c, http.StatusInternalServerError, err)
 			return
 		}

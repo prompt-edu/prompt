@@ -23,6 +23,7 @@ import {
 const BATCH_SIZE = 10
 const WAIT_SECONDS = 5
 const POLL_INTERVAL_MS = 3000
+const POLL_TIMEOUT_MS = 35 * 60 * 1000
 
 interface PrivacyDeletionInitiateDialogProps {
   studentIDs: string[]
@@ -100,7 +101,7 @@ export function PrivacyDeletionInitiateDialog({
         const created = await adminInitiateDataDeletions(batches[i])
         const ids = created.map((r) => r.id)
 
-        // eslint-disable-next-line no-constant-condition
+        const deadline = Date.now() + POLL_TIMEOUT_MS
         while (true) {
           if (cancelledRef.current) return
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
@@ -112,6 +113,9 @@ export function PrivacyDeletionInitiateDialog({
           if (terminal.length === ids.length) {
             setResults((prev) => [...prev, ...statuses])
             break
+          }
+          if (Date.now() >= deadline) {
+            throw new Error('Timed out waiting for deletion to complete.')
           }
         }
       }

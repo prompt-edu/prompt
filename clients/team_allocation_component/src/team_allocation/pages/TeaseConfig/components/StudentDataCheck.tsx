@@ -1,26 +1,24 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Users, ArrowRight } from 'lucide-react'
-
-import { getAllTeaseStudents } from '../../../network/queries/getAllTeaseStudents'
-import type { TeaseStudent } from '../../../interfaces/tease/student'
-import type { ValidationResult } from '../../../interfaces/validationResult'
-import DataCompletionSummary from './DataCompletionSummary'
-import { CheckItem } from './CheckItem'
-import { checksConfig } from './ChecksConfig'
-
-import SurveySubmissionOverview from './SurveySubmissionOverview'
 import {
+  Button,
   Card,
   CardContent,
-  Button,
+  ErrorPage,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-  ErrorPage,
 } from '@tumaet/prompt-ui-components'
+import { ArrowRight, Loader2, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { TeaseStudent } from '../../../interfaces/tease/student'
+import type { ValidationResult } from '../../../interfaces/validationResult'
+import { getAllTeaseStudents } from '../../../network/queries/getAllTeaseStudents'
+import { CheckItem } from './CheckItem'
+import { checksConfig } from './ChecksConfig'
+import DataCompletionSummary from './DataCompletionSummary'
+import SurveySubmissionOverview from './SurveySubmissionOverview'
 
 export const StudentDataCheck = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -170,12 +168,19 @@ export const StudentDataCheck = () => {
         </p>
       )}
       <div className='mt-4 w-full'>
-        <Button asChild className='gap-2 w-full'>
-          <a href='/tease'>
-            Go to TEASE
+        {phaseId ? (
+          <Button asChild className='gap-2 w-full'>
+            <a href={`/tease?coursePhaseId=${phaseId}`} target='_blank' rel='noopener noreferrer'>
+              Launch Tease to Matchmake
+              <ArrowRight className='ml-2 h-4 w-4' />
+            </a>
+          </Button>
+        ) : (
+          <Button disabled className='gap-2 w-full'>
+            Launch Tease to Matchmake
             <ArrowRight className='ml-2 h-4 w-4' />
-          </a>
-        </Button>
+          </Button>
+        )}
       </div>
     </div>
   )

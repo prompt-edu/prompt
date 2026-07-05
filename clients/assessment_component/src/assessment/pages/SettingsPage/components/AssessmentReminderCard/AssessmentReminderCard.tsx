@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
 import {
-  getCoursePhase,
   type CoursePhaseWithMetaData,
+  getCoursePhase,
   useGetMailingIsConfigured,
   useModifyCoursePhase,
 } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
-
 import {
   Alert,
   AlertDescription,
@@ -17,6 +13,9 @@ import {
   Card,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import type { AxiosError } from 'axios'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 import type {
   AssessmentReminderMetaData,

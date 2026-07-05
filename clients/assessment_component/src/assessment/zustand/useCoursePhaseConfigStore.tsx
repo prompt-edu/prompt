@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { CoursePhaseConfig } from '../interfaces/coursePhaseConfig'
+import type { CoursePhaseConfig } from '../interfaces/coursePhaseConfig'
 
 export interface CoursePhaseConfigStore {
   coursePhaseConfig: CoursePhaseConfig | undefined

@@ -1,14 +1,13 @@
-import { useParams } from 'react-router-dom'
-
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useEvaluationStore } from '../../zustand/useEvaluationStore'
 import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
 import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'

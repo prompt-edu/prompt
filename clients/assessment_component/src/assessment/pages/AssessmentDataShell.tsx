@@ -1,24 +1,21 @@
-import { useEffect } from 'react'
-
 import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
-
-import { useGetCoursePhaseParticipations } from './hooks/useGetCoursePhaseParticipations'
-import { useGetAllTeams } from './hooks/useGetAllTeams'
+import { useEffect } from 'react'
+import { useCategoryStore } from '../zustand/useCategoryStore'
+import { useCoursePhaseConfigStore } from '../zustand/useCoursePhaseConfigStore'
+import { useParticipationStore } from '../zustand/useParticipationStore'
+import { usePeerEvaluationCategoryStore } from '../zustand/usePeerEvaluationCategoryStore'
+import { useScoreLevelStore } from '../zustand/useScoreLevelStore'
+import { useSelfEvaluationCategoryStore } from '../zustand/useSelfEvaluationCategoryStore'
+import { useTeamStore } from '../zustand/useTeamStore'
+import { useTutorEvaluationCategoryStore } from '../zustand/useTutorEvaluationCategoryStore'
 import { useGetAllCategoriesWithCompetencies } from './hooks/useGetAllCategoriesWithCompetencies'
 import { useGetAllScoreLevels } from './hooks/useGetAllScoreLevels'
+import { useGetAllTeams } from './hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
+import { useGetCoursePhaseParticipations } from './hooks/useGetCoursePhaseParticipations'
 import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
+import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
 import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
-
-import { useParticipationStore } from '../zustand/useParticipationStore'
-import { useTeamStore } from '../zustand/useTeamStore'
-import { useCategoryStore } from '../zustand/useCategoryStore'
-import { useScoreLevelStore } from '../zustand/useScoreLevelStore'
-import { useCoursePhaseConfigStore } from '../zustand/useCoursePhaseConfigStore'
-import { useSelfEvaluationCategoryStore } from '../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../zustand/usePeerEvaluationCategoryStore'
-import { useTutorEvaluationCategoryStore } from '../zustand/useTutorEvaluationCategoryStore'
 
 interface AssessmentDataShellProps {
   children: React.ReactNode
@@ -192,7 +189,5 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
     setTutorEvaluationCategories,
   ])
 
-  return (
-    <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : <>{children}</>}</>
-  )
+  return <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : children}</>
 }

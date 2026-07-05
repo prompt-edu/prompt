@@ -1,14 +1,14 @@
-import {
+import type {
   StudentCourseParticipation,
   StudentNoteTag,
   StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
-import { StudentCoursePreview } from './components/StudentCoursePreview'
-import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
-import { NoteTagColor } from '../../interfaces/InstructorNote'
-import { ColumnDef, Row } from '@tanstack/react-table'
+import type { ColumnDef, Row } from '@tanstack/react-table'
 import { ProfilePicture } from '@tumaet/prompt-ui-components'
 import { format, subYears } from 'date-fns'
+import type { NoteTagColor } from '../../interfaces/InstructorNote'
+import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
+import { StudentCoursePreview } from './components/StudentCoursePreview'
 
 export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {

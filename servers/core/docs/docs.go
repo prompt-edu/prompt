@@ -66,6 +66,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -731,6 +737,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -3186,6 +3198,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/keycloak/status": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "keycloak"
+                ],
+                "summary": "Probe the Keycloak service-account configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/keycloakRealmDTO.KeycloakStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/keycloak/users/search": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "keycloak"
+                ],
+                "summary": "Search Keycloak users by name, email, or username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (\u003e=2 characters)",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max results (default 20, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/keycloakRealmDTO.UserSearchResults"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/keycloak/{courseID}/group": {
             "put": {
                 "description": "Create a new custom group for a course",
@@ -3279,6 +3356,152 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/keycloakRealmDTO.AddStudentsToGroupResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/keycloak/{courseID}/group/staff": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "keycloak"
+                ],
+                "summary": "Get the staff (Lecturers and Editors) of a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "courseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/keycloakRealmDTO.CourseStaff"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/keycloak/{courseID}/group/{groupName}/members/{userID}": {
+            "put": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "keycloak"
+                ],
+                "summary": "Add a Keycloak user to the Lecturer or Editor group of a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "courseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name (Lecturer or Editor)",
+                        "name": "groupName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keycloak user ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "keycloak"
+                ],
+                "summary": "Remove a Keycloak user from the Lecturer or Editor group of a course",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "courseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Group name (Lecturer or Editor)",
+                        "name": "groupName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keycloak user ID",
+                        "name": "userID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -6063,9 +6286,6 @@ const docTemplate = `{
         },
         "keycloakCoreRequests.SubjectIdentifiers": {
             "type": "object",
-            "required": [
-                "userID"
-            ],
             "properties": {
                 "courseParticipationIDs": {
                     "description": "CourseParticipationIDs lists the IDs of all course participations belonging to the student.\nOnly populated for student subjects — empty for platform users.",
@@ -6079,7 +6299,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "userID": {
-                    "description": "UserID is the platform-wide unique identifier of the user account.\nAlways present regardless of subject type.",
+                    "description": "UserID is the platform-wide unique identifier of the user account.\nuuid.Nil indicates a student without a Keycloak account; downstream services\nshould skip user-account-scoped operations in that case.",
                     "type": "string"
                 }
             }
@@ -6112,6 +6332,23 @@ const docTemplate = `{
                 }
             }
         },
+        "keycloakRealmDTO.CourseStaff": {
+            "type": "object",
+            "properties": {
+                "editors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/keycloakRealmDTO.StaffMember"
+                    }
+                },
+                "lecturers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/keycloakRealmDTO.StaffMember"
+                    }
+                }
+            }
+        },
         "keycloakRealmDTO.CreateGroup": {
             "type": "object",
             "properties": {
@@ -6137,6 +6374,20 @@ const docTemplate = `{
                 }
             }
         },
+        "keycloakRealmDTO.KeycloakStatus": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
+                },
+                "healthy": {
+                    "type": "boolean"
+                }
+            }
+        },
         "keycloakRealmDTO.KeycloakUser": {
             "type": "object",
             "properties": {
@@ -6151,6 +6402,40 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "keycloakRealmDTO.StaffMember": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "keycloakUserID": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "keycloakRealmDTO.UserSearchResults": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/keycloakRealmDTO.StaffMember"
+                    }
+                },
+                "truncated": {
+                    "type": "boolean"
                 }
             }
         },

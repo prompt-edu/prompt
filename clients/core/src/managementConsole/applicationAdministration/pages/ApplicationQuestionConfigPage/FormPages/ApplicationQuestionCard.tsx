@@ -1,44 +1,44 @@
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
-import { useForm, UseFormReturn } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown, ChevronUp, GripVertical, Trash2 } from 'lucide-react'
-import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  Button,
-  Form,
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from '@tumaet/prompt-ui-components'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import {
-  QuestionConfigFormData,
-  QuestionConfigFormDataMultiSelect,
-  questionConfigSchema,
-} from '@core/validations/questionConfig'
-import { MultiSelectConfig } from './MultiSelectConfig'
-import { DeleteConfirmation } from '../components/DeleteConfirmation'
-import { questionsEqual } from '../handlers/computeQuestionsModified'
-import { QuestionStatus, QuestionStatusBadge } from '../components/QuestionStatusBadge'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
 import { checkCheckBoxQuestion } from '@core/publicPages/application/pages/ApplicationForm/utils/CheckBoxRequirements'
 import {
-  TitleField,
-  DescriptionField,
-  RequiredField,
-  AllowedLengthField,
-  PlaceholderField,
-  ErrorMessageField,
-  ValidationRegexField,
-  ExportSettingsFields,
+  type QuestionConfigFormData,
+  type QuestionConfigFormDataMultiSelect,
+  questionConfigSchema,
+} from '@core/validations/questionConfig'
+import type { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  Form,
+} from '@tumaet/prompt-ui-components'
+import { ChevronDown, ChevronUp, GripVertical, Trash2 } from 'lucide-react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { type UseFormReturn, useForm } from 'react-hook-form'
+import { DeleteConfirmation } from '../components/DeleteConfirmation'
+import { type QuestionStatus, QuestionStatusBadge } from '../components/QuestionStatusBadge'
+import { questionsEqual } from '../handlers/computeQuestionsModified'
+import {
   AllowedFileTypesField,
+  AllowedLengthField,
+  DescriptionField,
+  ErrorMessageField,
+  ExportSettingsFields,
   MaxFileSizeField,
+  PlaceholderField,
+  RequiredField,
+  TitleField,
+  ValidationRegexField,
 } from './FormFields'
+import { MultiSelectConfig } from './MultiSelectConfig'
 
 // If you plan to expose methods via this ref, define them here:
 export interface ApplicationQuestionCardRef {
@@ -62,6 +62,9 @@ interface ApplicationQuestionCardProps {
   ) => void
   submitAttempted: boolean
   onDelete: (id: string) => void
+  csvExportEnabled: boolean
+  csvExportDisabled: boolean
+  onCsvExportEnabledChange: (questionID: string, checked: boolean) => void
   dragHandleProps?: DraggableProvidedDragHandleProps | null
 }
 
@@ -69,10 +72,21 @@ export const ApplicationQuestionCard = forwardRef<
   ApplicationQuestionCardRef | undefined, // or null if you prefer
   ApplicationQuestionCardProps
 >(function ApplicationQuestionCardInner(
-  { question, index, originalQuestion, onUpdate, submitAttempted, onDelete, dragHandleProps },
+  {
+    question,
+    index,
+    originalQuestion,
+    onUpdate,
+    submitAttempted,
+    onDelete,
+    csvExportEnabled,
+    csvExportDisabled,
+    onCsvExportEnabledChange,
+    dragHandleProps,
+  },
   ref,
 ) {
-  const isNewQuestion = question.title === '' ? true : false
+  const isNewQuestion = question.title === ''
   const [isExpanded, setIsExpanded] = useState(isNewQuestion)
   const isMultiSelectType = 'options' in question
   const isFileUploadType = 'allowedFileTypes' in question
@@ -127,7 +141,7 @@ export const ApplicationQuestionCard = forwardRef<
     setAdvancedSettingsOpen(!shouldCollapseAdvancedOptions(form.getValues()))
     // Cleanup subscription on unmount
     return () => subscription.unsubscribe()
-  }, [form.watch, question, onUpdate, form])
+  }, [form.watch, question, onUpdate, form, shouldCollapseAdvancedOptions])
 
   // allow to call validate from the parent component
   useImperativeHandle(ref, () => ({
@@ -249,7 +263,14 @@ export const ApplicationQuestionCard = forwardRef<
                       />
                     )}
 
-                    <ExportSettingsFields form={form} />
+                    <ExportSettingsFields
+                      form={form}
+                      csvExportEnabled={csvExportEnabled}
+                      csvExportDisabled={csvExportDisabled}
+                      onCsvExportEnabledChange={(checked) =>
+                        onCsvExportEnabledChange(question.id, checked)
+                      }
+                    />
                   </CollapsibleContent>
                 </Collapsible>
               </Form>

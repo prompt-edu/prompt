@@ -1,27 +1,26 @@
-import { useState } from 'react'
+import { searchStudents } from '@core/network/queries/searchStudents'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
-import { Loader2, Search, UserPlus } from 'lucide-react'
+import { type Student, translations } from '@tumaet/prompt-shared-state'
 import {
-  Button,
-  Input,
   Alert,
   AlertDescription,
   AlertTitle,
+  Badge,
+  Button,
+  Input,
+  ScrollArea,
+  Separator,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Separator,
-  ScrollArea,
-  Badge,
 } from '@tumaet/prompt-ui-components'
-import { translations } from '@tumaet/prompt-shared-state'
-import { Student } from '@tumaet/prompt-shared-state'
-import { searchStudents } from '@core/network/queries/searchStudents'
-import { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
+import { Loader2, Search, UserPlus } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationParticipation } from '../../../../../interfaces/applicationParticipation'
 
 interface StudentSearchProps {
   onSelect: (selectedStudent: Student | null) => void

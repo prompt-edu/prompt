@@ -15,10 +15,11 @@ import (
 type SkillLevel string
 
 const (
-	SkillLevelNovice       SkillLevel = "novice"
-	SkillLevelIntermediate SkillLevel = "intermediate"
-	SkillLevelAdvanced     SkillLevel = "advanced"
-	SkillLevelExpert       SkillLevel = "expert"
+	SkillLevelVeryBad  SkillLevel = "very_bad"
+	SkillLevelBad      SkillLevel = "bad"
+	SkillLevelOk       SkillLevel = "ok"
+	SkillLevelGood     SkillLevel = "good"
+	SkillLevelVeryGood SkillLevel = "very_good"
 )
 
 func (e *SkillLevel) Scan(src interface{}) error {
@@ -96,6 +97,17 @@ type Team struct {
 	Name          string           `json:"name"`
 	CoursePhaseID uuid.UUID        `json:"course_phase_id"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
+}
+
+type TeaseWorkspace struct {
+	CoursePhaseID    uuid.UUID          `json:"course_phase_id"`
+	Constraints      []byte             `json:"constraints"`
+	LockedStudents   []byte             `json:"locked_students"`
+	AllocationsDraft []byte             `json:"allocations_draft"`
+	AlgorithmType    pgtype.Text        `json:"algorithm_type"`
+	UpdatedBy        pgtype.UUID        `json:"updated_by"`
+	LastSavedAt      pgtype.Timestamptz `json:"last_saved_at"`
+	LastExportedAt   pgtype.Timestamptz `json:"last_exported_at"`
 }
 
 type Tutor struct {

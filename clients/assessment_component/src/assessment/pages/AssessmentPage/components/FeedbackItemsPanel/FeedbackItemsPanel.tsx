@@ -1,6 +1,5 @@
-import { Loader2 } from 'lucide-react'
-
 import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 
 import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'

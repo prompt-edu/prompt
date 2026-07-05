@@ -1000,342 +1000,6 @@
                 }
             }
         },
-        "/course_phase/{coursePhaseID}/competency-mappings": {
-            "get": {
-                "description": "List all competency mappings.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "List competency mappings",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/competencyMapDTO.CompetencyMapping"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a mapping between competencies.",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "Create competency mapping",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Competency mapping payload",
-                        "name": "mapping",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/competencyMapDTO.CompetencyMapping"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a mapping between competencies.",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "Delete competency mapping",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Competency mapping payload",
-                        "name": "mapping",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/competencyMapDTO.CompetencyMapping"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/course_phase/{coursePhaseID}/competency-mappings/evaluations/{fromCompetencyID}": {
-            "get": {
-                "description": "List evaluations using the mapped competency relationships.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "List evaluations by mapped competency",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Source competency ID",
-                        "name": "fromCompetencyID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": true
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/course_phase/{coursePhaseID}/competency-mappings/from/{fromCompetencyID}": {
-            "get": {
-                "description": "List mappings from the given competency.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "List mappings from a competency",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Source competency ID",
-                        "name": "fromCompetencyID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/competencyMapDTO.CompetencyMapping"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/course_phase/{coursePhaseID}/competency-mappings/to/{toCompetencyID}": {
-            "get": {
-                "description": "List mappings to the given competency.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "competency_mappings"
-                ],
-                "summary": "List mappings to a competency",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Course phase ID",
-                        "name": "coursePhaseID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Target competency ID",
-                        "name": "toCompetencyID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/competencyMapDTO.CompetencyMapping"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/course_phase/{coursePhaseID}/competency/category/{categoryID}": {
             "get": {
                 "description": "List competencies for a category.",
@@ -2919,6 +2583,120 @@
                         "type": "string",
                         "description": "Course phase ID",
                         "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/evaluationDTO.Evaluation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}": {
+            "get": {
+                "description": "List peer evaluations for a course participation in a course phase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "List peer evaluations for participant in phase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/evaluationDTO.Evaluation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID}": {
+            "get": {
+                "description": "List self evaluations for a course participation in a course phase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "List self evaluations for participant in phase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course participation ID",
+                        "name": "courseParticipationID",
                         "in": "path",
                         "required": true
                     }
@@ -4999,7 +4777,7 @@
                 "competencies": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/competencyDTO.CompetencyWithMappedCompetencies"
+                        "$ref": "#/definitions/competencyDTO.Competency"
                     }
                 },
                 "description": {
@@ -5098,51 +4876,6 @@
                 }
             }
         },
-        "competencyDTO.CompetencyWithMappedCompetencies": {
-            "type": "object",
-            "properties": {
-                "categoryID": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "descriptionBad": {
-                    "type": "string"
-                },
-                "descriptionGood": {
-                    "type": "string"
-                },
-                "descriptionOk": {
-                    "type": "string"
-                },
-                "descriptionVeryBad": {
-                    "type": "string"
-                },
-                "descriptionVeryGood": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "mappedFromCompetencies": {
-                    "description": "List of competency IDs that map to this competency",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "shortName": {
-                    "type": "string"
-                },
-                "weight": {
-                    "type": "integer"
-                }
-            }
-        },
         "competencyDTO.CreateCompetencyRequest": {
             "type": "object",
             "properties": {
@@ -5210,17 +4943,6 @@
                 },
                 "weight": {
                     "type": "integer"
-                }
-            }
-        },
-        "competencyMapDTO.CompetencyMapping": {
-            "type": "object",
-            "properties": {
-                "fromCompetencyId": {
-                    "type": "string"
-                },
-                "toCompetencyId": {
-                    "type": "string"
                 }
             }
         },

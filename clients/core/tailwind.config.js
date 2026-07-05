@@ -1,6 +1,7 @@
 // Default values that shall be reused in every component
-import tailwindAnimate from 'tailwindcss-animate'
+
 import typography from '@tailwindcss/typography'
+import tailwindAnimate from 'tailwindcss-animate'
 
 /** @type {import('tailwindcss').Config} */
 export default {

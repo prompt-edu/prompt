@@ -1,42 +1,76 @@
-import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
+import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Card,
   CardContent,
   SaveChangesAlert,
-  Alert,
-  AlertTitle,
-  AlertDescription,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationForm } from '../../interfaces/form/applicationForm'
+import type { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
+import {
+  APPLICATION_CSV_EXPORT_SETTINGS_KEY,
+  type ApplicationCsvExportSettings,
+  getApplicationCsvExportSettings,
+  shouldExportQuestionToCsv,
+} from '../../utils/applicationCsvExportSettings'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { AddQuestionMenu } from './components/AddQuestionMenu'
 import {
   ApplicationQuestionCard,
-  ApplicationQuestionCardRef,
+  type ApplicationQuestionCardRef,
 } from './FormPages/ApplicationQuestionCard'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationForm } from '../../interfaces/form/applicationForm'
-import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
-import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
 import { computeQuestionsModified } from './handlers/computeQuestionsModified'
 import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
-import { AddQuestionMenu } from './components/AddQuestionMenu'
-import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
+import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
+
+type ApplicationQuestion =
+  | ApplicationQuestionText
+  | ApplicationQuestionMultiSelect
+  | ApplicationQuestionFileUpload
+
+const isPersistedQuestionID = (questionID: string): boolean => {
+  return !questionID.startsWith('not-valid-id-question-') && !questionID.startsWith('no-valid-id')
+}
+
+const pruneCsvExportSettings = (
+  settings: ApplicationCsvExportSettings,
+  questions: ApplicationQuestion[],
+  originalQuestions: ApplicationQuestion[],
+): ApplicationCsvExportSettings => {
+  const persistedQuestionIDs = new Set(
+    [...questions, ...originalQuestions]
+      .map((question) => question.id)
+      .filter((questionID) => isPersistedQuestionID(questionID)),
+  )
+
+  return Object.fromEntries(
+    Object.entries(settings).filter(([questionID]) => persistedQuestionIDs.has(questionID)),
+  )
+}
 
 export const ApplicationQuestionConfig = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const [applicationQuestions, setApplicationQuestions] = useState<
-    (ApplicationQuestionText | ApplicationQuestionMultiSelect | ApplicationQuestionFileUpload)[]
-  >([])
+  const [applicationQuestions, setApplicationQuestions] = useState<ApplicationQuestion[]>([])
+  const [csvExportSettings, setCsvExportSettings] = useState<ApplicationCsvExportSettings>({})
+  const hasPendingCsvExportSettingsUpdate = useRef(false)
   const questionRefs = useRef<Array<ApplicationQuestionCardRef | null | undefined>>([])
   // required to highlight questions red if submit is attempted and not valid
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const queryClient = useQueryClient()
+  const { coursePhase } = useApplicationStore()
 
   const {
     data: fetchedForm,
@@ -70,12 +104,10 @@ export const ApplicationQuestionConfig = () => {
     },
   })
 
+  const { mutate: updateCoursePhaseMetaData } = useUpdateCoursePhaseMetaData()
+
   const setQuestionsFromForm = (form: ApplicationForm) => {
-    const combinedQuestions: (
-      | ApplicationQuestionText
-      | ApplicationQuestionMultiSelect
-      | ApplicationQuestionFileUpload
-    )[] = [
+    const combinedQuestions: ApplicationQuestion[] = [
       ...(form.questionsMultiSelect ?? []),
       ...(form.questionsText ?? []),
       ...(form.questionsFileUpload ?? []),
@@ -92,6 +124,42 @@ export const ApplicationQuestionConfig = () => {
       setQuestionsFromForm(fetchedForm)
     }
   }, [fetchedForm])
+
+  useEffect(() => {
+    setCsvExportSettings(getApplicationCsvExportSettings(coursePhase?.restrictedData))
+  }, [coursePhase?.restrictedData])
+
+  useEffect(() => {
+    if (!hasPendingCsvExportSettingsUpdate.current || !phaseId) {
+      return
+    }
+
+    updateCoursePhaseMetaData({
+      id: phaseId,
+      restrictedData: {
+        [APPLICATION_CSV_EXPORT_SETTINGS_KEY]: csvExportSettings,
+      },
+    })
+    hasPendingCsvExportSettingsUpdate.current = false
+  }, [csvExportSettings, phaseId, updateCoursePhaseMetaData])
+
+  const handleCsvExportEnabledChange = (questionID: string, checked: boolean) => {
+    if (!isPersistedQuestionID(questionID)) {
+      return
+    }
+
+    hasPendingCsvExportSettingsUpdate.current = true
+    setCsvExportSettings((prev) => {
+      return pruneCsvExportSettings(
+        {
+          ...prev,
+          [questionID]: checked,
+        },
+        applicationQuestions,
+        originalQuestions,
+      )
+    })
+  }
 
   const handleRevertAllQuestions = () => {
     if (fetchedForm) {
@@ -198,6 +266,12 @@ export const ApplicationQuestionConfig = () => {
                               }}
                               submitAttempted={submitAttempted}
                               onDelete={handleDeleteQuestion}
+                              csvExportEnabled={shouldExportQuestionToCsv(
+                                csvExportSettings,
+                                question.id,
+                              )}
+                              csvExportDisabled={!isPersistedQuestionID(question.id)}
+                              onCsvExportEnabledChange={handleCsvExportEnabledChange}
                             />
                           </div>
                         )}

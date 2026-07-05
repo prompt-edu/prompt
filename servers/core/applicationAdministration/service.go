@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -18,6 +19,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,6 +34,7 @@ var ApplicationServiceSingleton *ApplicationService
 var ErrNotFound = errors.New("application was not found")
 var ErrAlreadyApplied = errors.New("application already exists")
 var ErrStudentDetailsDoNotMatch = errors.New("student details do not match")
+var ErrEmailAlreadyInUse = errors.New("email already in use")
 
 func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
 	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
@@ -463,6 +466,11 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 	return cPhaseParticipation.CourseParticipationID, nil
 }
 
+func SyncStudentDetailsFromToken(ctx context.Context, s studentDTO.Student) error {
+	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent(s))
+	return err
+}
+
 func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (applicationDTO.Application, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -560,6 +568,10 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 	studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, application.Student)
 	if err != nil {
 		log.Error(err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "student_email_key" {
+			return uuid.Nil, ErrEmailAlreadyInUse
+		}
 		return uuid.Nil, errors.New("could not save the student")
 	}
 

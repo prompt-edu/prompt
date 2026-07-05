@@ -1,6 +1,6 @@
-import { AssessmentType } from './assessmentType'
-import { CompetencyScore } from './competencyScore'
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { AssessmentType } from './assessmentType'
+import type { CompetencyScore } from './competencyScore'
 
 export type Evaluation = CompetencyScore & {
   authorCourseParticipationID: string

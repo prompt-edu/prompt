@@ -91,10 +91,10 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 			{
 				"coursePhaseID":         phaseID,
 				"courseParticipationID": "50000000-0000-0000-0000-000000000001",
-				"passStatus":           "not_assessed",
-				"prevData":             gin.H{},
-				"restrictedData":       gin.H{},
-				"studentReadableData":  gin.H{},
+				"passStatus":            "not_assessed",
+				"prevData":              gin.H{},
+				"restrictedData":        gin.H{},
+				"studentReadableData":   gin.H{},
 				"student": gin.H{
 					"id":                   "30000000-0000-0000-0000-000000000001",
 					"firstName":            "John",
@@ -113,10 +113,10 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 			{
 				"coursePhaseID":         phaseID,
 				"courseParticipationID": "50000000-0000-0000-0000-000000000002",
-				"passStatus":           "not_assessed",
-				"prevData":             gin.H{},
-				"restrictedData":       gin.H{},
-				"studentReadableData":  gin.H{},
+				"passStatus":            "not_assessed",
+				"prevData":              gin.H{},
+				"restrictedData":        gin.H{},
+				"studentReadableData":   gin.H{},
 				"student": gin.H{
 					"id":                   "30000000-0000-0000-0000-000000000002",
 					"firstName":            "Jane",
@@ -154,11 +154,11 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 		c.JSON(http.StatusOK, []gin.H{
 			{
 				"courseParticipationID": "50000000-0000-0000-0000-000000000001",
-				"teamAllocation":       "60000000-0000-0000-0000-000000000001",
+				"teamAllocation":        "60000000-0000-0000-0000-000000000001",
 			},
 			{
 				"courseParticipationID": "50000000-0000-0000-0000-000000000002",
-				"teamAllocation":       "60000000-0000-0000-0000-000000000002",
+				"teamAllocation":        "60000000-0000-0000-0000-000000000002",
 			},
 		})
 	})

@@ -1,9 +1,9 @@
-import { useParams } from 'react-router-dom'
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
+import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
 import { getMyEvaluationCompletions } from '../../network/queries/getMyEvaluationCompletions'
 
 export const useGetMyEvaluationCompletions = (options?: { enabled?: boolean }) => {

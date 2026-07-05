@@ -1,8 +1,8 @@
-import { useContext, useEffect, useCallback } from 'react'
-import Keycloak from 'keycloak-js'
-import { KeycloakContext } from './KeycloakProvider'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { jwtDecode } from 'jwt-decode'
+import Keycloak from 'keycloak-js'
+import { useCallback, useContext, useEffect } from 'react'
+import { KeycloakContext } from './KeycloakProvider'
 
 // Helper function to decode JWT safely
 const parseJwt = (token: string) => {
@@ -34,6 +34,33 @@ export const useKeycloak = (): {
 
   const { keycloakUrl, keycloakRealmName, keycloakValue } = context
 
+  // set app state from incoming token
+  const setStateFromToken = useCallback(
+    (keycloak: Keycloak) => {
+      localStorage.setItem('jwt_token', keycloak.token ?? '')
+      localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
+
+      const decodedJwt = keycloak.token ? parseJwt(keycloak.token) : null
+      if (!decodedJwt) {
+        clearUser()
+        clearPermissions()
+        return
+      }
+
+      setUser({
+        firstName: decodedJwt.given_name || '',
+        lastName: decodedJwt.family_name || '',
+        email: decodedJwt.email || '',
+        username: decodedJwt.preferred_username || '',
+        matriculationNumber: decodedJwt.matriculation_number || '',
+        universityLogin: decodedJwt.university_login || '',
+      })
+      const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
+      setPermissions(resourceRoles)
+    },
+    [setUser, clearUser, setPermissions, clearPermissions],
+  )
+
   const initializeKeycloak = useCallback(() => {
     const keycloak = new Keycloak({
       realm: keycloakRealmName,
@@ -44,10 +71,7 @@ export const useKeycloak = (): {
     keycloak.onTokenExpired = () => {
       keycloak
         .updateToken(5)
-        .then(() => {
-          localStorage.setItem('jwt_token', keycloak.token ?? '')
-          localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
-        })
+        .then(() => setStateFromToken(keycloak))
         .catch(() => {
           clearUser()
           clearPermissions()
@@ -59,27 +83,8 @@ export const useKeycloak = (): {
     void keycloak
       .init({ onLoad: 'login-required' })
       .then(() => {
-        localStorage.setItem('jwt_token', keycloak.token ?? '')
-        localStorage.setItem('refreshToken', keycloak.refreshToken ?? '')
         context.keycloakValue = keycloak // Update context dynamically
-
-        if (keycloak.token) {
-          const decodedJwt = parseJwt(keycloak.token)
-          if (decodedJwt) {
-            setUser({
-              firstName: decodedJwt.given_name || '',
-              lastName: decodedJwt.family_name || '',
-              email: decodedJwt.email || '',
-              username: decodedJwt.preferred_username || '',
-              matriculationNumber: decodedJwt.matriculation_number || '',
-              universityLogin: decodedJwt.university_login || '',
-            })
-          } else {
-            clearUser()
-          }
-          const resourceRoles = keycloak.resourceAccess?.['prompt-server']?.roles || []
-          setPermissions(resourceRoles)
-        }
+        setStateFromToken(keycloak)
       })
       .catch((err) => {
         clearUser()
@@ -88,15 +93,7 @@ export const useKeycloak = (): {
       })
 
     return keycloak
-  }, [
-    context,
-    clearUser,
-    clearPermissions,
-    setUser,
-    setPermissions,
-    keycloakRealmName,
-    keycloakUrl,
-  ])
+  }, [context, clearUser, clearPermissions, setStateFromToken, keycloakRealmName, keycloakUrl])
 
   useEffect(() => {
     if (!keycloakValue) {
@@ -124,8 +121,7 @@ export const useKeycloak = (): {
         keycloakValue
           .updateToken(1000000) // Force immediate refresh
           .then(() => {
-            localStorage.setItem('jwt_token', keycloakValue.token ?? '')
-            localStorage.setItem('refreshToken', keycloakValue.refreshToken ?? '')
+            setStateFromToken(keycloakValue)
             resolve() // Resolve the promise on success
           })
           .catch((err) => {

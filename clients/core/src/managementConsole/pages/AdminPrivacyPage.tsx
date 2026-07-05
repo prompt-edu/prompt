@@ -2,6 +2,7 @@ import {
   type AdminPrivacyExport,
   getAllExports,
 } from '@core/network/queries/privacyStudentDataExport'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type AdminPrivacyDeletionRequest,
   DeletionRequestStatus,
@@ -12,23 +13,22 @@ import {
   PromptTable,
   type TableFilter,
   Tabs,
+  TabsContent,
   TabsList,
   TabsTrigger,
-  TabsContent,
 } from '@tumaet/prompt-ui-components'
+import { Download, Trash2 } from 'lucide-react'
+import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
 import {
   adminExportColumns,
   exportStatusLabel,
 } from '../shared/components/PrivacyExport/adminExportColumns'
-import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
 import {
   adminDeletionColumns,
   deletionRequestStatusLabel,
 } from '../shared/components/PrivacyDeletion/adminDeletionColumns'
 import { getAdminDeletionActions } from '../shared/components/PrivacyDeletion/adminDeletionActions'
 import { PrivacyDeletionReviewDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionReviewDialog'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 export function AdminPrivacyPage() {

@@ -1,8 +1,8 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { type CopyCourseFormValues, copyCourseSchema } from '@core/validations/copyCourse'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import type { DialogStep } from '../../managementConsole/courseOverview/interfaces/copyCourseDialogProps'
 
 export const useCourseForm = (courseId: string, setCurrentStep: (step: DialogStep) => void) => {

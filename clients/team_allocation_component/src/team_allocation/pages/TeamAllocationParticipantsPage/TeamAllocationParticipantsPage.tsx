@@ -1,18 +1,19 @@
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useQuery } from '@tanstack/react-query'
+import { type Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
+import {
+  CoursePhaseParticipationsTable,
+  ErrorPage,
+  type ExtraParticipantColumn,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
-import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
-import { Team } from '@tumaet/prompt-shared-state'
-import { getAllTeams } from '../../network/queries/getAllTeams'
-import { useMemo } from 'react'
-import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
-import { Allocation } from '../../interfaces/allocation'
-import { useEffect } from 'react'
+import type { Allocation } from '../../interfaces/allocation'
+import type { StudentName } from '../../interfaces/studentNameUpdateRequest'
 import { addStudentNamesToTeams } from '../../network/mutations/addStudentNamesToTeams'
-import { StudentName } from '../../interfaces/studentNameUpdateRequest'
-import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
+import { getAllTeams } from '../../network/queries/getAllTeams'
+import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
 
 export const TeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -48,36 +49,34 @@ export const TeamAllocationParticipantsPage = () => {
     if (!teams || !teamAllocations) return []
 
     const teamNameById = new Map(teams.map(({ id, name }) => [id, name]))
+    const teamNameByParticipation = new Map<string, string>()
 
-    const getTeamNameForParticipation = (courseParticipationID: string): string => {
-      const allocation = teamAllocations.find(({ students }) =>
-        students.includes(courseParticipationID),
-      )
-
-      if (!allocation) return 'No Team'
-
-      return teamNameById.get(allocation.projectId) ?? 'No Team'
-    }
-
-    const teamNameExtraData: any[] = []
     for (const { projectId, students } of teamAllocations) {
       const teamName = teamNameById.get(projectId) ?? 'No Team'
 
       for (const courseParticipationID of students) {
-        teamNameExtraData.push({
-          courseParticipationID,
-          value: teamName,
-          stringValue: teamName,
-        })
+        teamNameByParticipation.set(courseParticipationID, teamName)
       }
     }
+
+    const teamNameExtraData =
+      coursePhaseParticipations?.participations?.map((participation) => {
+        const teamName =
+          teamNameByParticipation.get(participation.courseParticipationID) ?? 'No Team'
+
+        return {
+          courseParticipationID: participation.courseParticipationID,
+          value: teamName,
+          stringValue: teamName,
+        }
+      }) ?? []
 
     return [
       {
         id: 'allocatedTeam',
         header: 'Allocated Team',
 
-        accessorFn: (row) => getTeamNameForParticipation(row.courseParticipationID),
+        accessorFn: (row) => teamNameByParticipation.get(row.courseParticipationID) ?? 'No Team',
 
         cell: ({ getValue }) => getValue(),
 
@@ -98,7 +97,7 @@ export const TeamAllocationParticipantsPage = () => {
         extraData: teamNameExtraData,
       } satisfies ExtraParticipantColumn<string>,
     ]
-  }, [teams, teamAllocations])
+  }, [coursePhaseParticipations?.participations, teams, teamAllocations])
 
   const refetch = () => {
     refetchCoursePhaseParticipations()

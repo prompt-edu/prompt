@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
+import { Form } from '@tumaet/prompt-ui-components'
 import { AlertCircle } from 'lucide-react'
-
-import { Form, cn } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../../interfaces/assessmentType'
-import { Competency } from '../../../../interfaces/competency'
-import { Evaluation, CreateOrUpdateEvaluationRequest } from '../../../../interfaces/evaluation'
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { Competency } from '../../../../interfaces/competency'
+import type { CreateOrUpdateEvaluationRequest, Evaluation } from '../../../../interfaces/evaluation'
 
 import { CompetencyHeader } from '../../../components/CompetencyHeader'
 import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDialog'
@@ -100,12 +98,7 @@ export const EvaluationForm = ({
 
   return (
     <Form {...form}>
-      <div
-        className={cn(
-          'space-y-4 p-4 border rounded-md relative',
-          completed && 'bg-gray-700 border-gray-700',
-        )}
-      >
+      <div className='space-y-4 p-4 border rounded-md relative'>
         <CompetencyHeader
           competency={competency}
           competencyScore={evaluation}

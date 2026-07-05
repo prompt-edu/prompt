@@ -1,16 +1,13 @@
-import { useState } from 'react'
-import { ChevronRight, ChevronDown } from 'lucide-react'
-
-import { CategoryWithCompetencies } from '../../../interfaces/category'
-import { Assessment } from '../../../interfaces/assessment'
-import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import type { Assessment } from '../../../interfaces/assessment'
+import type { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
 
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
-
-import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
-
 import { AssessmentStatusBadge, StudentScoreBadge } from '../../components/badges'
+import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 import { AssessmentForm } from './AssessmentForm/AssessmentForm'
 import { CategoryComment } from './CategoryComment/CategoryComment'
@@ -23,6 +20,7 @@ interface CategoryAssessmentProps {
   peerEvaluationResults?: AggregatedEvaluationResult[]
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
+  disabled?: boolean
 }
 
 export const CategoryAssessment = ({
@@ -33,6 +31,7 @@ export const CategoryAssessment = ({
   peerEvaluationResults,
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
+  disabled = false,
 }: CategoryAssessmentProps) => {
   const categoryAssessment = useStudentAssessmentStore((state) =>
     state.categoryAssessments.find((ca) => ca.categoryID === category.id),
@@ -46,14 +45,16 @@ export const CategoryAssessment = ({
 
   const categoryScore = getWeightedScoreLevel(assessments, [category])
   const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
+  const remainingCategoryAssessments = category.competencies.length - assessments.length
+  const isCategoryCompleted = remainingCategoryAssessments === 0
 
   return (
-    <div key={category.id} className='mb-6'>
-      <div className='flex grow items-center justify-center mb-4 gap-1'>
+    <div className='mb-6'>
+      <div className='flex items-center justify-center mb-4 gap-1'>
         <div className='flex items-center justify-center w-full'>
           <button
             onClick={toggleExpand}
-            className='p-1 mr-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xs focus:outline-hidden'
+            className='p-1 mr-2 hover:bg-accent rounded-xs focus:outline-hidden'
             aria-expanded={isExpanded}
             aria-controls={`content-${category.id}`}
           >
@@ -72,20 +73,21 @@ export const CategoryAssessment = ({
           )}
           {!completed && (
             <AssessmentStatusBadge
-              remainingAssessments={category.competencies.length - assessments.length}
-              isFinalized={completed}
+              remainingAssessments={remainingCategoryAssessments}
+              isFinalized={isCategoryCompleted}
             />
           )}
         </div>
       </div>
 
       {isExpanded && (
-        <div id={`content-${category.id}`} className='pt-4 pb-2 space-y-5 border-t mt-2'>
+        <div id={`content-${category.id}`} className='space-y-5'>
           <CategoryComment
             categoryID={category.id}
             courseParticipationID={courseParticipationID}
             categoryAssessment={categoryAssessment}
             completed={completed}
+            disabled={disabled}
           />
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
@@ -94,7 +96,9 @@ export const CategoryAssessment = ({
           ) : (
             <div className='grid gap-4'>
               {sortedCompetencies.map((competency) => {
-                const assessment = assessments.find((ass) => ass.competencyID === competency.id)
+                const competencyAssessment = assessments.find(
+                  (assessment) => assessment.competencyID === competency.id,
+                )
                 const peerAverage = peerEvaluationResults?.find(
                   (result) => result.competencyID === competency.id,
                 )
@@ -107,8 +111,9 @@ export const CategoryAssessment = ({
                     <AssessmentForm
                       courseParticipationID={courseParticipationID}
                       competency={competency}
-                      assessment={assessment}
+                      assessment={competencyAssessment}
                       completed={completed}
+                      disabled={disabled}
                       peerEvaluationAverageScore={peerAverage?.averageScoreNumeric}
                       selfEvaluationAverageScore={selfAverage?.averageScoreNumeric}
                       hidePeerEvaluationDetails={hidePeerEvaluationDetails}

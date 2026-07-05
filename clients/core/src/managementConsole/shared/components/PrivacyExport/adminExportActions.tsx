@@ -3,8 +3,8 @@ import {
   deleteExport,
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
-import { RowAction } from '@tumaet/prompt-ui-components'
-import { QueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
+import type { RowAction } from '@tumaet/prompt-ui-components'
 import { Archive } from 'lucide-react'
 
 interface PassedDeps {

@@ -1,7 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react'
-import { Upload } from 'lucide-react'
+import { postAdditionalScore } from '@core/network/mutations/postAdditionalScore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import {
   Button,
   Dialog,
@@ -11,13 +9,15 @@ import {
   DialogTrigger,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { AssessmentScoreUploadPage1, Page1Ref } from './components/AssessmentScoreUploadPage1'
-import { AssessmentScoreUploadPage2, Page2Ref } from './components/AssessmentScoreUploadPage2'
+import { Upload } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { AdditionalScoreUpload } from '../../../../interfaces/additionalScore/additionalScoreUpload'
+import type { IndividualScore } from '../../../../interfaces/additionalScore/individualScore'
+import type { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
+import { AssessmentScoreUploadPage1, type Page1Ref } from './components/AssessmentScoreUploadPage1'
+import { AssessmentScoreUploadPage2, type Page2Ref } from './components/AssessmentScoreUploadPage2'
 import { AssessmentScoreUploadPage3 } from './components/AssessmentScoreUploadPage3'
-import { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
-import { AdditionalScoreUpload } from '../../../../interfaces/additionalScore/additionalScoreUpload'
-import { IndividualScore } from '../../../../interfaces/additionalScore/individualScore'
-import { postAdditionalScore } from '@core/network/mutations/postAdditionalScore'
 import { matchStudents } from './utils/matchStudents'
 
 interface AssessmentScoreUploadProps {

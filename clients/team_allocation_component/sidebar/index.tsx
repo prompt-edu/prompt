@@ -1,6 +1,5 @@
+import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Users2 } from 'lucide-react'
-import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
-import { Role } from '@tumaet/prompt-shared-state'
 
 const sidebarItems: SidebarMenuItemProps = {
   title: 'Team Allocation',
@@ -20,6 +19,11 @@ const sidebarItems: SidebarMenuItemProps = {
     {
       title: 'Allocations',
       goToPath: '/allocations',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
+      title: 'Survey Statistics',
+      goToPath: '/statistics',
       requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
     },
     {

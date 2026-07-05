@@ -1,17 +1,16 @@
-import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useEvaluationStore } from '../../zustand/useEvaluationStore'
 import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
 import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
+import { useTeamStore } from '../../zustand/useTeamStore'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -27,8 +26,7 @@ export const PeerEvaluationPage = () => {
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
   const { myParticipation } = useMyParticipationStore()
   const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { peerEvaluations: evaluations, peerEvaluationCompletions: peerEvaluationCompletions } =
-    useEvaluationStore()
+  const { peerEvaluations: evaluations, peerEvaluationCompletions } = useEvaluationStore()
   const completion = peerEvaluationCompletions.find(
     (c) => c.courseParticipationID === courseParticipationID,
   )

@@ -204,6 +204,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 
 	firstName := c.GetString("firstName")
 	lastName := c.GetString("lastName")
+	userEmail := c.GetString("userEmail")
 
 	applicationForm, err := GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(c, coursePhaseID, matriculationNumber, universityLogin)
 	if err != nil {
@@ -212,9 +213,17 @@ func getApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if applicationForm.Student != nil && firstName != "" && lastName != "" {
-		applicationForm.Student.FirstName = firstName
-		applicationForm.Student.LastName = lastName
+	if applicationForm.Student != nil && userEmail != "" {
+		storedEmail := applicationForm.Student.Email
+		applicationForm.Student.Email = userEmail
+		if firstName != "" && lastName != "" {
+			applicationForm.Student.FirstName = firstName
+			applicationForm.Student.LastName = lastName
+		}
+		if err := SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
+			applicationForm.Student.Email = storedEmail
+			log.Warn("could not sync student details from token: ", err)
+		}
 	}
 
 	c.IndentedJSON(http.StatusOK, applicationForm)
@@ -232,6 +241,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 405 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID} [post]
 func postApplicationManual(c *gin.Context) {
@@ -258,6 +268,9 @@ func postApplicationManual(c *gin.Context) {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
 			handleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
+			return
+		} else if errors.Is(err, ErrEmailAlreadyInUse) {
+			handleError(c, http.StatusConflict, errors.New("email already in use"))
 			return
 		}
 
@@ -346,6 +359,7 @@ func postApplicationExtern(c *gin.Context) {
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 401 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID} [post]
 func postApplicationAuthenticated(c *gin.Context) {
@@ -378,13 +392,13 @@ func postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if application.Student.Email != userEmail ||
-		application.Student.MatriculationNumber != matriculationNumber ||
+	if application.Student.MatriculationNumber != matriculationNumber ||
 		application.Student.UniversityLogin != universityLogin {
 		handleError(c, http.StatusUnauthorized, errors.New("credentials do not match payload"))
 		return
 	}
 
+	application.Student.Email = userEmail
 	if firstName != "" && lastName != "" {
 		application.Student.FirstName = firstName
 		application.Student.LastName = lastName
@@ -393,6 +407,10 @@ func postApplicationAuthenticated(c *gin.Context) {
 	courseParticipationID, err := PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
+		if errors.Is(err, ErrEmailAlreadyInUse) {
+			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			return
+		}
 		handleError(c, http.StatusInternalServerError, errors.New("could not post application"))
 		return
 	}

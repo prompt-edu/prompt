@@ -1,12 +1,11 @@
 import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
+import { AssessmentType } from '../interfaces/assessmentType'
 import { useGetAllCategoriesWithCompetencies } from './hooks/useGetAllCategoriesWithCompetencies'
 import { useGetAllScoreLevels } from './hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from './hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from './hooks/useGetCoursePhaseParticipations'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
+import { useGetEvaluationCategoriesWithCompetencies } from './hooks/useGetEvaluationCategoriesWithCompetencies'
 
 interface AssessmentDataShellProps {
   children: React.ReactNode
@@ -48,7 +47,8 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
     isPending: isSelfEvaluationCategoriesPending,
     isError: isSelfEvaluationCategoriesError,
     refetch: refetchSelfEvaluationCategories,
-  } = useGetSelfEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
 
@@ -56,7 +56,8 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
     isPending: isPeerEvaluationCategoriesPending,
     isError: isPeerEvaluationCategoriesError,
     refetch: refetchPeerEvaluationCategories,
-  } = useGetPeerEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
 
@@ -64,7 +65,8 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
     isPending: isTutorEvaluationCategoriesPending,
     isError: isTutorEvaluationCategoriesError,
     refetch: refetchTutorEvaluationCategories,
-  } = useGetTutorEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 

@@ -5,10 +5,10 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from '../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -22,7 +22,8 @@ export const SelfEvaluationPage = () => {
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
-  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
   const { selfEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })

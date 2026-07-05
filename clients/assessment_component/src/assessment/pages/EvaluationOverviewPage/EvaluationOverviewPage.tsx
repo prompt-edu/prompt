@@ -3,15 +3,14 @@ import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { GraduationCap, User, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
+import { AssessmentType } from '../../interfaces/assessmentType'
 import { TeamBadge } from '../components/badges'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from '../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from '../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from '../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 import { EvaluationInfoCard } from './components/EvaluationInfoCard'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
 import { PeerEvaluationStatusCard } from './components/PeerEvaluationStatusCard'
@@ -30,13 +29,16 @@ export const EvaluationOverviewPage = () => {
   })
   const { selfEvaluationCompletion, peerEvaluationCompletions, tutorEvaluationCompletions } =
     useGetMyEvaluationCompletions({ enabled: isStudent })
-  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
-  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
-  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })

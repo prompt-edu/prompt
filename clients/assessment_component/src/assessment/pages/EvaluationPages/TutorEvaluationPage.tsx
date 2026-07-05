@@ -8,10 +8,10 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from '../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -26,7 +26,8 @@ export const TutorEvaluationPage = () => {
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
-  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
   const { tutorEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })

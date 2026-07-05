@@ -8,10 +8,10 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from '../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -26,7 +26,8 @@ export const PeerEvaluationPage = () => {
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
-  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
   const { peerEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })

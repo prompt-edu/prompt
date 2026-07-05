@@ -2,10 +2,11 @@ import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prom
 import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
+import { AssessmentType } from '../../interfaces/assessmentType'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from '../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
@@ -15,7 +16,8 @@ export const TutorEvaluationResultsPage = () => {
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: teams } = useGetAllTeams()
-  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 

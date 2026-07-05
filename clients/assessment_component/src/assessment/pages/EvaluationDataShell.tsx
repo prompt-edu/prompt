@@ -9,14 +9,13 @@ import {
 import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 
+import { AssessmentType } from '../interfaces/assessmentType'
 import { useGetAllTeams } from './hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from './hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from './hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from './hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from './hooks/useGetMyParticipation'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 
 interface EvaluationDataShellProps {
   children: React.ReactNode
@@ -38,7 +37,8 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
     isPending: isSelfEvaluationCategoriesPending,
     isError: isSelfEvaluationCategoriesError,
     refetch: refetchSelfEvaluationCategories,
-  } = useGetSelfEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
 
@@ -46,7 +46,8 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
     isPending: isPeerEvaluationCategoriesPending,
     isError: isPeerEvaluationCategoriesError,
     refetch: refetchPeerEvaluationCategories,
-  } = useGetPeerEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
 
@@ -54,7 +55,8 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
     isPending: isTutorEvaluationCategoriesPending,
     isError: isTutorEvaluationCategoriesError,
     refetch: refetchTutorEvaluationCategories,
-  } = useGetTutorEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 

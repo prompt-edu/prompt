@@ -12,9 +12,7 @@ import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../interfaces/category'
 import { useGetAllCategoriesWithCompetencies } from '../../../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
+import { useGetEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { schemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
@@ -46,13 +44,16 @@ export const CategoryList = ({
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: assessmentCategories } = useGetAllCategoriesWithCompetencies()
-  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
-  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
-  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 

@@ -11,8 +11,7 @@ import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/g
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from '../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from '../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
 
 interface EvaluationParticipantResultsPageProps {
@@ -29,10 +28,12 @@ export const EvaluationParticipantResultsPage = ({
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
-  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
-  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
 

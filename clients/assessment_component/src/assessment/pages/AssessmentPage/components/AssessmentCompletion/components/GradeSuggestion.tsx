@@ -10,11 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
+import { AssessmentType } from '../../../../../interfaces/assessmentType'
 import { useStudentAssessmentStore } from '../../../../../zustand/useStudentAssessmentStore'
 import { StudentScoreBadge } from '../../../../components/badges'
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from '../../../../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from '../../../../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
+import { useGetEvaluationCategoriesWithCompetencies } from '../../../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getWeightedScoreLevel } from '../../../../utils/getWeightedScoreLevel'
 import { GRADE_SELECT_OPTIONS } from '../../../../utils/gradeConfig'
 
@@ -28,10 +28,12 @@ export const GradeSuggestion = ({
   readOnly = false,
 }: GradeSuggestionProps) => {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
-  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
-  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
   const { studentScore, assessmentCompletion, selfEvaluations, peerEvaluations } =

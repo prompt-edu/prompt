@@ -4,10 +4,10 @@ import {
   type PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, useToast } from '@tumaet/prompt-ui-components'
-import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { formatFileSize } from './formatFileSize'
 import { PrivacyStatusBanner, type PrivacyStatusBannerState } from '../Privacy/PrivacyStatusBanner'
+import { formatFileSize } from './formatFileSize'
 
 interface PrivacyExportBannerProps {
   inProgress: boolean

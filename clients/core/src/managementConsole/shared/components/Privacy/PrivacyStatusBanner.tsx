@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
 import { Ban, CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 export type PrivacyStatusBannerState =
   | 'success'

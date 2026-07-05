@@ -1,13 +1,13 @@
 import {
-  type AdminPrivacyExport,
-  getAllExports,
-} from '@core/network/queries/privacyStudentDataExport'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
   type AdminPrivacyDeletionRequest,
   DeletionRequestStatus,
   getAllDeletionRequests,
 } from '@core/network/queries/privacyStudentDataDeletion'
+import {
+  type AdminPrivacyExport,
+  getAllExports,
+} from '@core/network/queries/privacyStudentDataExport'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ManagementPageHeader,
   PromptTable,
@@ -18,18 +18,18 @@ import {
   TabsTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Download, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { getAdminDeletionActions } from '../shared/components/PrivacyDeletion/adminDeletionActions'
+import {
+  adminDeletionColumns,
+  deletionRequestStatusLabel,
+} from '../shared/components/PrivacyDeletion/adminDeletionColumns'
+import { PrivacyDeletionReviewDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionReviewDialog'
 import { getAdminExportActions } from '../shared/components/PrivacyExport/adminExportActions'
 import {
   adminExportColumns,
   exportStatusLabel,
 } from '../shared/components/PrivacyExport/adminExportColumns'
-import {
-  adminDeletionColumns,
-  deletionRequestStatusLabel,
-} from '../shared/components/PrivacyDeletion/adminDeletionColumns'
-import { getAdminDeletionActions } from '../shared/components/PrivacyDeletion/adminDeletionActions'
-import { PrivacyDeletionReviewDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionReviewDialog'
-import { useState } from 'react'
 
 export function AdminPrivacyPage() {
   const queryClient = useQueryClient()

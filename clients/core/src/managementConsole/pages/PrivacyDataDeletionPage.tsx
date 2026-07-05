@@ -2,13 +2,13 @@ import {
   DeletionRequestStatus,
   getLatestStudentDataDeletion,
   getStudentDataDeletionStatus,
-  requestStudentDataDeletion,
   type LatestDeletionResponse,
+  requestStudentDataDeletion,
 } from '@core/network/queries/privacyStudentDataDeletion'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
-import { PrivacyDeletionConfirmationDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionConfirmDialog'
 import { PrivacyDeletionBanner } from '../shared/components/PrivacyDeletion/PrivacyDeletionBanner'
+import { PrivacyDeletionConfirmationDialog } from '../shared/components/PrivacyDeletion/PrivacyDeletionConfirmDialog'
 import { PrivacyDeletionSubrequestList } from '../shared/components/PrivacyDeletion/PrivacyDeletionSubrequestList'
 import { usePrivacyRequestFlow } from '../shared/hooks/usePrivacyRequestFlow'
 

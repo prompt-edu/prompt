@@ -4,6 +4,7 @@ import {
   getDataDeletionsStatus,
   type PrivacyDeletionRequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@tumaet/prompt-ui-components'
-import { useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle2, Loader2, Users, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {

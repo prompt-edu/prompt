@@ -7,7 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
-import { Clock, ShieldAlert, Trash2, Mail } from 'lucide-react'
+import { Clock, Mail, ShieldAlert, Trash2 } from 'lucide-react'
 
 interface PrivacyDeletionConfirmationDialogProps {
   isOpen: boolean

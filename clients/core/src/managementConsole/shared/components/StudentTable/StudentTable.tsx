@@ -2,17 +2,17 @@ import {
   getStudentsWithCourses,
   type StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
-import { Role } from '@tumaet/prompt-shared-state'
 import type { ColumnDef } from '@tanstack/react-table'
+import { Role } from '@tumaet/prompt-shared-state'
 import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStudentStore } from '../../store/student.store'
+import { PrivacyDeletionInitiateDialog } from '../PrivacyDeletion/PrivacyDeletionInitiateDialog'
+import { useHasRolePermission } from '../ShowForRole'
 import { getStudentTableActions } from './studentTableActions'
 import { studentTableColumns } from './studentTableColumns'
 import { getStudentTableFilters } from './studentTableFilters'
-import { useHasRolePermission } from '../ShowForRole'
-import { PrivacyDeletionInitiateDialog } from '../PrivacyDeletion/PrivacyDeletionInitiateDialog'
 
 export const StudentTable = () => {
   const [studentsWithCourses, setStudentsWithCourses] = useState<Array<StudentWithCourses>>([])

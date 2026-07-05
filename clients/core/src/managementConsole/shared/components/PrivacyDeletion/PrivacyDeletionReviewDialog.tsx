@@ -3,6 +3,7 @@ import {
   type AuditorDecision,
   decideOnDeletionRequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Dialog,
@@ -13,7 +14,6 @@ import {
   ProfilePicture,
   Textarea,
 } from '@tumaet/prompt-ui-components'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'

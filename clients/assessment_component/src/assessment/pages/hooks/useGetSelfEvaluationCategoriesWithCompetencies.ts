@@ -3,13 +3,19 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../interfaces/category'
 import { getAllCategoriesWithCompetencies } from '../../network/queries/getAllCategoriesWithCompetencies'
+import { SHELL_QUERY_STALE_TIME } from './queryConfig'
+
+const EMPTY_CATEGORIES: CategoryWithCompetencies[] = []
 
 export const useGetSelfEvaluationCategoriesWithCompetencies = (enabled: boolean = true) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  return useQuery<CategoryWithCompetencies[]>({
+  const { data, ...queryInfo } = useQuery<CategoryWithCompetencies[]>({
     queryKey: ['selfEvaluationCategories', phaseId],
     queryFn: () => getAllCategoriesWithCompetencies(phaseId ?? '', AssessmentType.SELF),
-    enabled: enabled,
+    enabled,
+    staleTime: SHELL_QUERY_STALE_TIME,
   })
+
+  return { ...queryInfo, data: enabled ? (data ?? EMPTY_CATEGORIES) : EMPTY_CATEGORIES }
 }

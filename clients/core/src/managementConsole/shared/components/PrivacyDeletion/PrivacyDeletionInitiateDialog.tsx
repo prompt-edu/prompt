@@ -14,7 +14,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle2, Loader2, Users, XCircle } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   PrivacyDeletionHowItWorks,
   PrivacyDeletionWhatGetsDeleted,
@@ -82,19 +82,12 @@ export function PrivacyDeletionInitiateDialog({
     return () => clearInterval(interval)
   }, [open])
 
-  const cancelledRef = useRef(false)
-  useEffect(() => {
-    if (!open) cancelledRef.current = true
-    else cancelledRef.current = false
-  }, [open])
-
   const start = async () => {
     setPhase('running')
     setErrorMsg(null)
 
     try {
       for (let i = 0; i < batches.length; i++) {
-        if (cancelledRef.current) return
         setCurrentBatch(i)
         setBatchTerminalCount(0)
 
@@ -103,9 +96,7 @@ export function PrivacyDeletionInitiateDialog({
 
         const deadline = Date.now() + POLL_TIMEOUT_MS
         while (true) {
-          if (cancelledRef.current) return
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
-          if (cancelledRef.current) return
 
           const statuses = await getDataDeletionsStatus(ids)
           const terminal = statuses.filter((r) => isTerminal(r.status))

@@ -25,7 +25,7 @@ const howItWorks: Record<PrivacyDeletionVariant, Bullet[]> = {
     },
     {
       icon: bulletIcon(Mail),
-      text: 'The user is notified of your decision and may submit another deletion request later.',
+      text: 'The user is notified of your decision per mail and may submit another deletion request later.',
     },
   ],
   initiate: [
@@ -34,12 +34,8 @@ const howItWorks: Record<PrivacyDeletionVariant, Bullet[]> = {
       text: 'Starting the deletion runs it immediately across all services. This action cannot be undone.',
     },
     {
-      icon: bulletIcon(Recycle),
-      text: 'Closing the dialog before all batches complete will stop further batches but not roll back ones already submitted.',
-    },
-    {
       icon: bulletIcon(Mail),
-      text: 'Affected users with a Keycloak account are notified that their data was deleted.',
+      text: 'Affected students with an email are notified that their data was deleted.',
     },
   ],
 }

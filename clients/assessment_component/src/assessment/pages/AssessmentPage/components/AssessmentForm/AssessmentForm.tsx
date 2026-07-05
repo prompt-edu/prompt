@@ -9,12 +9,12 @@ import type { JSX } from 'react/jsx-runtime'
 import { useForm } from 'react-hook-form'
 import type { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
 import type { Competency } from '../../../../interfaces/competency'
-import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
-import { useTeamStore } from '../../../../zustand/useTeamStore'
 import { CompetencyHeader } from '../../../components/CompetencyHeader'
 import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDialog'
 import { ScoreLevelSelector } from '../../../components/ScoreLevelSelector'
+import { useGetAllTeams } from '../../../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { EvaluationScoreDescriptionBadge } from './components/EvaluationScoreDescriptionBadge'
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
@@ -100,7 +100,7 @@ export const AssessmentForm = ({
   // Self/peer evaluation scores are only shown when the evaluation uses the same schema as the
   // assessment. In that case the evaluation references the exact same competency IDs, so we match
   // by competency directly. With a different schema configured, the badges are hidden.
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const selfEvaluationSameSchema =
     !!coursePhaseConfig?.assessmentSchemaID &&
     coursePhaseConfig.selfEvaluationSchema === coursePhaseConfig.assessmentSchemaID
@@ -117,7 +117,7 @@ export const AssessmentForm = ({
     assessmentParticipation,
   } = useStudentAssessmentStore()
 
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const teamMembers = teams.find((t) =>
     t.members.map((m) => m.id).includes(courseParticipationID ?? ''),
   )?.members

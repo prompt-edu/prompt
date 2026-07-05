@@ -2,11 +2,10 @@ import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prom
 import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
-
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetTutorEvaluationCategoriesWithCompetencies } from '../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
@@ -14,8 +13,11 @@ import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsF
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()
 
-  const { teams } = useTeamStore()
-  const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: teams } = useGetAllTeams()
+  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+  )
 
   const {
     data: tutorEvaluations = [],

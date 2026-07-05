@@ -5,12 +5,13 @@ import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
-import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
+import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
+import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
+import { useGetPeerEvaluationCategoriesWithCompetencies } from '../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -23,15 +24,18 @@ export const PeerEvaluationPage = () => {
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { myParticipation } = useMyParticipationStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { peerEvaluations: evaluations, peerEvaluationCompletions } = useEvaluationStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
+  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
+  const { peerEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })
+  const { peerEvaluationCompletions } = useGetMyEvaluationCompletions({ enabled: isStudent })
   const completion = peerEvaluationCompletions.find(
     (c) => c.courseParticipationID === courseParticipationID,
   )
 
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const { setStudentName } = useStudentEvaluationStore()
 
   const studentName = teams

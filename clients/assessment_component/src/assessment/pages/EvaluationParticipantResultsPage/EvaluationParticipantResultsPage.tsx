@@ -8,11 +8,11 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
 import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
 import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
-
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { useGetPeerEvaluationCategoriesWithCompetencies } from '../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
+import { useGetSelfEvaluationCategoriesWithCompetencies } from '../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
 
 interface EvaluationParticipantResultsPageProps {
@@ -27,9 +27,14 @@ export const EvaluationParticipantResultsPage = ({
     courseParticipationID: string
   }>()
 
-  const { participations } = useParticipationStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
 
   const {
     data: evaluations = [],

@@ -10,10 +10,11 @@ import { Lock, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../interfaces/category'
-import { useCategoryStore } from '../../../../zustand/useCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { useTutorEvaluationCategoryStore } from '../../../../zustand/useTutorEvaluationCategoryStore'
+import { useGetAllCategoriesWithCompetencies } from '../../../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
+import { useGetPeerEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetPeerEvaluationCategoriesWithCompetencies'
+import { useGetSelfEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetSelfEvaluationCategoriesWithCompetencies'
+import { useGetTutorEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetTutorEvaluationCategoriesWithCompetencies'
 import { schemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
@@ -43,10 +44,17 @@ export const CategoryList = ({
   const [categoryToDelete, setCategoryToDelete] = useState<string | undefined>(undefined)
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
 
-  const { categories: assessmentCategories } = useCategoryStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: assessmentCategories } = useGetAllCategoriesWithCompetencies()
+  const { data: selfEvaluationCategories } = useGetSelfEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { data: peerEvaluationCategories } = useGetPeerEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
+  const { data: tutorEvaluationCategories } = useGetTutorEvaluationCategoriesWithCompetencies(
+    coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+  )
 
   const categories =
     assessmentType === AssessmentType.SELF

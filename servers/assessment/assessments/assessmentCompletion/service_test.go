@@ -148,7 +148,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletio
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New() // Use a new UUID
 
-	// First create a completion to delete
+	// First create a completion to delete (incomplete: marking complete requires all assessments done)
 	completionDTO := assessmentCompletionDTO.AssessmentCompletion{
 		CourseParticipationID: partID,
 		CoursePhaseID:         phaseID,
@@ -156,7 +156,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletio
 		Author:                "Test Author",
 		Comment:               "Test comment",
 		GradeSuggestion:       3.5,
-		Completed:             true,
+		Completed:             false,
 	}
 
 	err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)

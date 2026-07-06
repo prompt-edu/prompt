@@ -115,44 +115,14 @@ func CreateDeletionSubrequest(ctx context.Context, q *db.Queries, deletionReques
 }
 
 func AcceptDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
-	auditorID, err := coreutils.GetUserUUIDFromContext(c)
-	if err != nil {
-		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to resolve auditor identity: %w", err)
-	}
-
-	tx, err := PrivacyServiceSingleton.conn.Begin(c)
-	if err != nil {
-		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback(c) }()
-	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
-
-	if err := txQueries.SetDeletionRequestAuditor(c, db.SetDeletionRequestAuditorParams{
-		ID:           requestID,
-		AuditorID:    pgtype.UUID{Bytes: auditorID, Valid: true},
-		AuditorName:  coreutils.GetUserNameFromContext(c),
-		AuditorEmail: coreutils.GetUserEmailFromContext(c),
-		AuditorNote:  note,
-	}); err != nil {
-		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to set auditor: %w", err)
-	}
-
-	record, err := txQueries.SetDeletionRequestStatus(c, db.SetDeletionRequestStatusParams{
-		ID:     requestID,
-		Status: db.PrivacyDeletionRequestStatusInProgress,
-	})
-	if err != nil {
-		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to set status: %w", err)
-	}
-
-	if err := tx.Commit(c); err != nil {
-		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return privacyDTO.GetPrivacyDeletionRequestDTOFromDBModel(record), nil
+	return setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusInProgress)
 }
 
 func RejectDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
+	return setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusRejected)
+}
+
+func setAuditorDecision(c *gin.Context, requestID uuid.UUID, note string, status db.PrivacyDeletionRequestStatus) (privacyDTO.PrivacyDeletionRequest, error) {
 	auditorID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to resolve auditor identity: %w", err)
@@ -177,7 +147,7 @@ func RejectDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (pr
 
 	record, err := txQueries.SetDeletionRequestStatus(c, db.SetDeletionRequestStatusParams{
 		ID:     requestID,
-		Status: db.PrivacyDeletionRequestStatusRejected,
+		Status: status,
 	})
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to set status: %w", err)

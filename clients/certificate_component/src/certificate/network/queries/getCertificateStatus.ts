@@ -1,4 +1,4 @@
-import { CertificateStatus } from '../../interfaces/participant'
+import type { CertificateStatus } from '../../interfaces/participant'
 import { certificateAxiosInstance } from '../certificateServerConfig'
 
 export const getCertificateStatus = async (coursePhaseId: string): Promise<CertificateStatus> => {

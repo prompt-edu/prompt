@@ -1,30 +1,25 @@
-import { Loader2 } from 'lucide-react'
-import { useState, useMemo } from 'react'
-
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import { useCategoryStore } from '../../zustand/useCategoryStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useScoreLevelStore } from '../../zustand/useScoreLevelStore'
 import { useTeamStore } from '../../zustand/useTeamStore'
-
-import { useGetAllAssessments } from '../hooks/useGetAllAssessments'
-import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
-
-import { useGetParticipationsWithAssessment } from '../components/diagrams/hooks/useGetParticipationsWithAssessment'
-import { useFilteredParticipations } from './hooks/useFilteredParticipations'
-
-import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
-
-import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
-import { GenderDiagram } from '../components/diagrams/GenderDiagram'
 import { AuthorDiagram } from '../components/diagrams/AuthorDiagram'
 import { CategoryDiagram } from '../components/diagrams/CategoryDiagram'
+import { GenderDiagram } from '../components/diagrams/GenderDiagram'
+import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
+import { useGetParticipationsWithAssessment } from '../components/diagrams/hooks/useGetParticipationsWithAssessment'
 import { NationalityDiagram } from '../components/diagrams/NationalityDiagram'
+import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { TeamDiagram } from '../components/diagrams/TeamDiagram'
-
-import { FilterMenu, StatisticsFilter } from './components/FilterMenu'
+import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
+import { useGetAllAssessments } from '../hooks/useGetAllAssessments'
 import { FilterBadges } from './components/FilterBadges'
+
+import { FilterMenu, type StatisticsFilter } from './components/FilterMenu'
+import { useFilteredParticipations } from './hooks/useFilteredParticipations'
 
 export const AssessmentStatisticsPage = () => {
   const [filters, setFilters] = useState<StatisticsFilter>({})

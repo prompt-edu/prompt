@@ -40,7 +40,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
    - **`lerna.json`** > `packages`
    - **`package.json`** > `packages`
-   - **`eslint.config.mjs`** > `workspaceFolders`
+   - **`<your_microfrontend>/biome.json`**: add a config that extends the root, e.g. `{ "root": false, "extends": "//" }`
 
    Make sure your new component folder is listed so it’s recognized by the build and lint processes.
 

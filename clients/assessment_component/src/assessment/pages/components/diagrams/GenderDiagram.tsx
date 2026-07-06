@@ -6,14 +6,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-
-import { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
-
-import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
-
-import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
+import type { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
+import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
+import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 
 interface GenderDiagramProps {
   participationsWithAssessment: ParticipationWithAssessment[]

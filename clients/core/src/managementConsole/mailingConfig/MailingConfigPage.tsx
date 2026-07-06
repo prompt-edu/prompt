@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { type CourseMailingFormValues, courseMailingSchema } from '@core/validations/courseMailing'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, useFieldArray } from 'react-hook-form'
-import type * as z from 'zod'
-import { Mail, Copy, EyeOff, Save, Plus, Trash2, Loader2 } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { type CourseMailingSettings, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   CardContent,
@@ -16,11 +13,14 @@ import {
   FormMessage,
   Input,
   Separator,
+  SettingsCard,
 } from '@tumaet/prompt-ui-components'
-import { useCourseStore, CourseMailingSettings } from '@tumaet/prompt-shared-state'
-import { type CourseMailingFormValues, courseMailingSchema } from '@core/validations/courseMailing'
+import { Copy, EyeOff, Loader2, Mail, Plus, Save, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { useParams } from 'react-router-dom'
+import type * as z from 'zod'
 import { useSaveMailingData } from './hooks/useSaveMailingData'
-import { SettingsCard } from '@tumaet/prompt-ui-components'
 
 export const MailingConfigPage = () => {
   const { courseId } = useParams<{ courseId: string }>()

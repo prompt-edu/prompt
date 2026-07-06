@@ -1,7 +1,7 @@
+import type { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import React from 'react'
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { ExternalRoutes } from './ExternalRoutes'
 import { LoadingError } from '../utils/LoadingError'
+import { ExternalRoutes } from './ExternalRoutes'
 
 /** We use this style with a separate loading file for better performance */
 /** It would be possible to have one loading script and pass the import path as variable */

@@ -1,4 +1,4 @@
-import { AssessmentType } from '../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../interfaces/assessmentType'
 import { useGetAllAssessmentSchemas } from '../../hooks/useGetAllAssessmentSchemas'
 import { useEvaluationSettingsCardState } from '../hooks/useEvaluationSettingsCardState'
 import { SchemaConfigurationCard } from './SchemaConfigurationCard'

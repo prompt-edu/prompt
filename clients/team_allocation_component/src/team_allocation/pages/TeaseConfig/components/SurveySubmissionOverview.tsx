@@ -1,7 +1,3 @@
-import { useState } from 'react'
-import { Check, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
-import type { TeaseStudent } from '../../../interfaces/tease/student'
-import { StudentDetailDialog } from './StudentDetailDialog'
 import {
   Table,
   TableBody,
@@ -14,6 +10,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, X } from 'lucide-react'
+import { useState } from 'react'
+import type { TeaseStudent } from '../../../interfaces/tease/student'
+import { StudentDetailDialog } from './StudentDetailDialog'
 
 interface StudentTableProps {
   students: TeaseStudent[]

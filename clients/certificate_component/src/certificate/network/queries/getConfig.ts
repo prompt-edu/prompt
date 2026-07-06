@@ -1,4 +1,4 @@
-import { CoursePhaseConfig } from '../../interfaces/participant'
+import type { CoursePhaseConfig } from '../../interfaces/participant'
 import { certificateAxiosInstance } from '../certificateServerConfig'
 
 export const getConfig = async (coursePhaseId: string): Promise<CoursePhaseConfig> => {

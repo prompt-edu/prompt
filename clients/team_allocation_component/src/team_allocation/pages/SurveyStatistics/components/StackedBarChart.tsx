@@ -1,15 +1,15 @@
-import { ReactElement, useMemo } from 'react'
 import {
+  type ChartConfig,
   ChartContainer,
-  ChartTooltip,
   ChartLegend,
   ChartLegendContent,
-  ChartConfig,
+  ChartTooltip,
   useIsMobile,
 } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Label, CartesianGrid } from 'recharts'
-import { createRoundedStackShape } from '../utils/roundedStackShape'
+import { type ReactElement, useMemo } from 'react'
+import { Bar, BarChart, CartesianGrid, Label, LabelList, XAxis, YAxis } from 'recharts'
 import { truncate } from '../utils/chartFormatters'
+import { createRoundedStackShape } from '../utils/roundedStackShape'
 
 interface StackedBarChartProps<Row extends object, SeriesKey extends string> {
   data: Row[]

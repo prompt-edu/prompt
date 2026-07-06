@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { Badge, Button } from '@tumaet/prompt-ui-components'
 import { Edit, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
-import { Button, Badge } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../../../../interfaces/assessmentType'
-import { Competency } from '../../../../../../interfaces/competency'
+import type { AssessmentType } from '../../../../../../interfaces/assessmentType'
+import type { Competency } from '../../../../../../interfaces/competency'
 
 import { ScoreLevelSelector } from '../../../../../components/ScoreLevelSelector'
 

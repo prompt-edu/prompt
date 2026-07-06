@@ -1,6 +1,6 @@
+import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import { create } from 'zustand'
-import { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
-import { InterviewSlot } from '../interfaces/InterviewSlots'
+import type { InterviewSlot } from '../interfaces/InterviewSlots'
 
 export interface ParticipationStore {
   participations: CoursePhaseParticipationWithStudent[]

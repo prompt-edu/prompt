@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { useMemo, useState } from 'react'
 import { CourseCards } from '../shared/components/CourseCard/CourseCards'
 import { CourseTable } from '../shared/components/CourseTable/CourseTable'
-import { CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
+import { type CourseViewMode, CourseViewToggle } from '../shared/components/CourseViewToggle'
 
 export const TemplateCoursesPage = () => {
   const { courses } = useCourseStore()
@@ -19,7 +19,7 @@ export const TemplateCoursesPage = () => {
 
       {viewMode === 'cards' ? (
         <>
-          {filteredCourses.length == 0 && <p>No template courses yet</p>}
+          {filteredCourses.length === 0 && <p>No template courses yet</p>}
           <CourseCards courses={filteredCourses} />
         </>
       ) : (

@@ -1,8 +1,8 @@
+import { type Node, useReactFlow } from '@xyflow/react'
 import { useCallback } from 'react'
-import { Node, useReactFlow } from '@xyflow/react'
-import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
-import { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
 import { useParams } from 'react-router-dom'
+import type { CoursePhaseWithPosition } from '../interfaces/coursePhaseWithPosition'
+import { useCourseConfigurationState } from '../zustand/useCourseConfigurationStore'
 
 export const useDrop = (reactFlowWrapper, setNodes, setIsModified) => {
   const { screenToFlowPosition } = useReactFlow()

@@ -1,12 +1,13 @@
 //
 // SkillSettings component uses the generic EntitySettings for skills
+
+import { Star } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import type { Skill } from '../../../interfaces/skill'
 import { createSkills } from '../../../network/mutations/createSkills'
-import { updateSkill } from '../../../network/mutations/updateSkill'
 import { deleteSkill } from '../../../network/mutations/deleteSkill'
-import { useParams } from 'react-router-dom'
+import { updateSkill } from '../../../network/mutations/updateSkill'
 import { EntitySettings } from './EntitySettings'
-import { Star } from 'lucide-react'
 
 interface SkillSettingsProps {
   skills: Skill[]

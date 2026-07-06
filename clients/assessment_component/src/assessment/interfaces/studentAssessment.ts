@@ -1,8 +1,8 @@
-import { Assessment } from './assessment'
-import { AssessmentCompletion } from './assessmentCompletion'
-import { CategoryAssessment } from './categoryAssessment'
-import { StudentScore } from './studentScore'
-import { Evaluation } from './evaluation'
+import type { Assessment } from './assessment'
+import type { AssessmentCompletion } from './assessmentCompletion'
+import type { CategoryAssessment } from './categoryAssessment'
+import type { Evaluation } from './evaluation'
+import type { StudentScore } from './studentScore'
 
 export interface StudentAssessment {
   courseParticipationID: string // UUID

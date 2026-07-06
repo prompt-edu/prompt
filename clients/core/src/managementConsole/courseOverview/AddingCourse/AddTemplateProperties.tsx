@@ -1,26 +1,26 @@
-import type React from 'react'
-import { useEffect } from 'react'
+import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
+import { type TemplateFormValues, templateFormSchema } from '@core/validations/template'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Button,
-  Input,
-  Textarea,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Textarea,
 } from '@tumaet/prompt-ui-components'
-import { templateFormSchema, type TemplateFormValues } from '@core/validations/template'
-import { zodResolver } from '@hookform/resolvers/zod'
+import type React from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
 
 interface AddTemplatePropertiesProps {
   onNext: (data: TemplateFormValues) => void

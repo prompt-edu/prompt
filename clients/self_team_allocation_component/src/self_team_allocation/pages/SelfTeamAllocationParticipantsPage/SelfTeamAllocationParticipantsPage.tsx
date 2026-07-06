@@ -1,16 +1,15 @@
+import { useQuery } from '@tanstack/react-query'
+import { type Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
+import {
+  CoursePhaseParticipationsTable,
+  ErrorPage,
+  type ExtraParticipantColumn,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-
-import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { Team } from '@tumaet/prompt-shared-state'
-
-import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
-
 import { getAllTeams } from '../../network/queries/getAllTeams'
-import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
-import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 
 export const SelfTeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

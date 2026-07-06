@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Printer } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
@@ -13,13 +13,25 @@ export const EvaluationResultsPage = () => {
 
   return (
     <div className='w-full px-4 py-6 text-left'>
-      <div className='mb-4'>
+      <div className='mb-4 flex items-center justify-between gap-2 print:hidden'>
         <Button variant='outline' onClick={() => navigate('..')} className='gap-2'>
           <ArrowLeft className='h-4 w-4' />
           Back to overview
         </Button>
+        {resultsReleased && (
+          <Button
+            variant='outline'
+            onClick={() => setTimeout(() => window.print(), 0)}
+            className='gap-2'
+          >
+            <Printer className='h-4 w-4' />
+            PDF / Print
+          </Button>
+        )}
       </div>
-      <ManagementPageHeader>Assessment Results</ManagementPageHeader>
+      <div className='print:hidden'>
+        <ManagementPageHeader>Assessment Results</ManagementPageHeader>
+      </div>
 
       {resultsReleased ? (
         <AssessmentResultsSection />

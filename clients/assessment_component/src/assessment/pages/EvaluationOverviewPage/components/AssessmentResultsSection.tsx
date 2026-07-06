@@ -10,6 +10,7 @@ import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessment
 import { useTeamStore } from '../../../zustand/useTeamStore'
 import { AssessmentCompletion } from '../../AssessmentPage/components/AssessmentCompletion/AssessmentCompletion'
 import { CategoryAssessment } from '../../AssessmentPage/components/CategoryAssessment'
+import { AssessmentPrintReport } from '../../components/AssessmentPrintReport/AssessmentPrintReport'
 import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
@@ -84,28 +85,38 @@ export const AssessmentResultsSection = () => {
     )
 
   return (
-    <div className='space-y-4'>
-      {gradingSheetVisible &&
-        assessmentCategories.map((category) => (
-          <CategoryAssessment
-            key={category.id}
-            category={category}
-            assessments={results.assessments.filter((assessment) =>
-              category.competencies
-                .map((competency) => competency.id)
-                .includes(assessment.competencyID),
-            )}
-            completed={true}
-            courseParticipationID={results.courseParticipationID}
-            peerEvaluationResults={results.peerEvaluationResults}
-            selfEvaluationResults={results.selfEvaluationResults}
-            hidePeerEvaluationDetails={true}
-          />
-        ))}
+    <>
+      <div className='space-y-4 print:hidden'>
+        {gradingSheetVisible &&
+          assessmentCategories.map((category) => (
+            <CategoryAssessment
+              key={category.id}
+              category={category}
+              assessments={results.assessments.filter((assessment) =>
+                category.competencies
+                  .map((competency) => competency.id)
+                  .includes(assessment.competencyID),
+              )}
+              completed={true}
+              courseParticipationID={results.courseParticipationID}
+              peerEvaluationResults={results.peerEvaluationResults}
+              selfEvaluationResults={results.selfEvaluationResults}
+              hidePeerEvaluationDetails={true}
+            />
+          ))}
 
-      {coursePhaseConfig?.actionItemsVisible || coursePhaseConfig?.gradeSuggestionVisible ? (
-        <AssessmentCompletion readOnly actionItems={results.actionItems} />
-      ) : null}
-    </div>
+        {coursePhaseConfig?.actionItemsVisible || coursePhaseConfig?.gradeSuggestionVisible ? (
+          <AssessmentCompletion readOnly actionItems={results.actionItems} />
+        ) : null}
+      </div>
+
+      <AssessmentPrintReport
+        categories={assessmentCategories}
+        actionItems={results.actionItems}
+        showGradingSheet={gradingSheetVisible}
+        showActionItems={coursePhaseConfig?.actionItemsVisible ?? false}
+        showGradeSuggestion={coursePhaseConfig?.gradeSuggestionVisible ?? false}
+      />
+    </>
   )
 }

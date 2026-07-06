@@ -67,3 +67,17 @@ export const FULL_COURSE_ROLES = {
   lecturer: 'ios2425-iPraktikumFull-Lecturer',
   editor: 'ios2425-iPraktikumFull-Editor',
 }
+
+// Self Team Allocation phase on iPraktikum (follows the Application phase).
+// The Keycloak users `student` / `student2` are enrolled participants.
+export const SELF_TEAM_ALLOCATION_PHASE_ID = 'aaaa2222-0000-0000-0000-0000000000a2'
+
+// Self Team Allocation phase on TestCourse with NO participants: requests by
+// the e2e students must be rejected (negative auth fixture).
+export const SELF_TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'aaaa3333-0000-0000-0000-0000000000a3'
+
+// Students matching the Keycloak users (see e2e/keycloak/realm.json attributes).
+export const SEEDED_PHASE_STUDENTS = {
+  student: { firstName: 'Stan', lastName: 'Stan' },
+  student2: { firstName: 'Selma', lastName: 'Second' },
+}

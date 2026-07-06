@@ -1,9 +1,11 @@
 # PROMPT 2.0 End-to-End Tests
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
-Postgres + SeaweedFS** in Docker and drive them like a real user, with
-[Playwright](https://playwright.dev). They catch full-stack regressions (auth
-flow, routing, API contract, data rendering) that the Go unit tests can't.
+Postgres + SeaweedFS** in Docker — plus the **self team allocation phase
+module** (Go service, own Postgres, Module Federation remote) — and drive them
+like a real user, with [Playwright](https://playwright.dev). They catch
+full-stack regressions (auth flow, routing, API contract, data rendering,
+remote loading) that the Go unit tests can't.
 
 The suite covers two layers with one framework:
 
@@ -72,7 +74,13 @@ docker-compose.e2e.yml
  ├── keycloak(+db) realm imported from keycloak/realm.json (seeded users)
  ├── seaweedfs-*   S3 storage the core server depends on
  ├── server-core   built from ../servers/core (runs migrate up on startup)
- ├── client-core   built from ../clients/core (nginx)
+ ├── client-core   built from ../clients/core (nginx, e2e conf with the
+ │                 phase-module proxy locations — nginx/client-core.conf)
+ ├── self team allocation phase module:
+ │    ├── db-self-team-allocation      own ephemeral Postgres (empty; the
+ │    │                                server migrates it on startup)
+ │    ├── server-self-team-allocation  built from ../servers/self_team_allocation
+ │    └── client-self-team-allocation  the Module Federation remote (nginx)
  └── e2e-runner    Playwright container; waits for health, runs this suite
 ```
 
@@ -90,6 +98,69 @@ Interactive mode (`make test-e2e-ui`) keeps this exact networking - the test
 browser still runs inside the network; only the Playwright **UI** is served out
 to your browser - so auth behaves identically to the canonical run.
 
+## Phase modules in the e2e stack
+
+The self team allocation module is the blueprint for adding a course-phase
+module (Go service + Module Federation remote) to the stack. To add another
+module, copy each of these steps:
+
+**1. Compose services** (`docker-compose.e2e.yml`): a `db-<module>` Postgres
+(ephemeral, `pg_isready` healthcheck), a `server-<module>` (build
+`./servers/<module>`, `dockerfile: ../Dockerfile`, depends on its db +
+keycloak), and a `client-<module>` (build `./clients/<module>_component` with
+the shared `*client-build-args` anchors, wget healthcheck). Phase servers read
+the generic `DB_USER`/`DB_PASSWORD`/`DB_NAME` plus service-specific
+`DB_HOST_<MODULE>`/`DB_PORT_<MODULE>` env vars — map them explicitly from new
+`DB_<MODULE>_*` entries in `.env.e2e`. No host ports; everything is reached
+through the client-core proxy. Add both services to `client-core`'s and
+`e2e-runner`'s `depends_on`.
+
+**2. Routing** (`nginx/client-core.conf`): the core client is a **production**
+build, so remotes are baked as relative URLs (`/<module>/remoteEntry.js`) and
+the phase API is called on the browser origin. In prod Traefik routes these
+prefixes; here client-core's nginx does, with the exact same semantics:
+
+```nginx
+location /<module>/api/ { proxy_pass http://server-<module>:8080; }  # prefix KEPT
+location /<module>/    { proxy_pass http://client-<module>/; }       # prefix STRIPPED
+```
+
+Set the module's host var in `.env.e2e` to **empty** (`<MODULE>_HOST=`) so the
+component's axios baseURL falls back to the browser origin (same-origin, no
+CORS).
+
+**3. Core seed** (`seed/e2e_seed.sql`): pre-insert the module's
+`course_phase_type` row with a **fixed UUID** — core's startup init matches by
+name and would otherwise create it with a random UUID, breaking seeded FK
+references. Also mirror the type's provided/required DTO rows from
+`servers/core/coursePhaseType/initializeTypes.go` (init skips them when the
+type exists). Then add a `course_phase` on the seeded course and a
+`course_phase_graph` edge. Careful: the graph has UNIQUE constraints on both
+`from_` and `to_course_phase_id`, so phases form a **chain** — append your
+phase to the tail (currently the self team allocation phase), don't branch
+from Application. Add `course_phase_participation` rows for `student`/`student2`
+(the student UI 404s into UnauthorizedPage without an own participation;
+backend auth checks course-level enrollment via core's `is_student`).
+
+**4. Phase DB seed:** usually **none** — the phase server migrates its empty
+DB on startup and tests create their own data. If a module does need seeded
+phase data, mount a dump into the db's `/docker-entrypoint-initdb.d/` with
+`schema_migrations` pinned to the module's latest migration (same pattern as
+the core seed below).
+
+**5. Readiness** (`src/global-setup.ts`): phase server images are distroless
+(no healthcheck), so poll `${BASE_URL}/<module>/api/info` with
+`waitForServiceInfo(...)` — it asserts the `/info` JSON (`serviceName`,
+`healthy`), which both gates on the server and proves the proxy wiring (a bare
+status poll would accept the SPA fallback's 200).
+
+**6. Smoke test** (`tests/<module>/mf-smoke.spec.ts`): open the seeded phase at
+`/management/course/<courseId>/<phaseId>` and assert a heading rendered by the
+**remote** — if `remoteEntry.js` fails to load, the shell renders a
+LoadingError instead, so this one assertion covers the whole Module Federation
+path. Journeys and API auth checks build on top (see
+`tests/self-team-allocation/`, `tests/api/self-team-allocation.api.spec.ts`).
+
 ## Authentication
 
 The realm (`keycloak/realm.json`, derived from the repo's `keycloakConfig.json`
@@ -100,9 +171,19 @@ whose username == password:
 | --------------- | ------------------- | ----------------------- |
 | `admin`         | `admin`             | `PROMPT_Admin`          |
 | `lecturer`      | `lecturer`          | `PROMPT_Lecturer`       |
-| `course-lecturer` | `course-lecturer` | `PROMPT_Course_Lecturer`|
+| `course-lecturer` | `course-lecturer` | `PROMPT_Course_Lecturer` + `ios2425-iPraktikum-Lecturer` |
 | `course-editor` | `course-editor`     | `PROMPT_Course_Editor`  |
-| `student`       | `student`           | `PROMPT_Student`        |
+| `student`       | `student`           | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
+| `student2`      | `student2`          | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
+
+The `ios2425-iPraktikum-*` roles are **course-scoped** roles
+(`<semesterTag>-<courseName>-<Role>`) for the seeded iPraktikum course — PROMPT
+authorizes course/phase access against these, not the global `PROMPT_*` roles.
+`student`/`student2` also exist as `student` table rows in the DB seed (matched
+by the `matriculation_number`/`university_login` token claims) with
+`course_participation` rows, so they are real course members end to end.
+`student2` exists for two-user journeys (e.g. one student creates a team, the
+other joins it).
 
 `src/global-setup.ts` logs in each role **once** through the real Keycloak form
 and saves the session to `.auth/<role>.json`. Tests reuse it, so the login flow
@@ -224,7 +305,10 @@ docker rm -f seedgen
 `keycloak/realm.json` is a copy of the repo's `keycloakConfig.json` with the
 `prompt-client` redirect URIs / web origins (and `prompt-server` redirect URIs)
 repointed at the e2e ports (`4000` / `18090`). If users, roles, or clients
-change in `keycloakConfig.json`, regenerate it and re-apply those URL edits.
+change in `keycloakConfig.json`, regenerate it and re-apply those URL edits —
+plus the e2e-only additions: the course-scoped `ios2425-iPraktikum-Student` /
+`ios2425-iPraktikum-Lecturer` client roles (assigned to `student`, `student2`,
+and `course-lecturer`) and the `student2` user.
 
 ## Conventions
 
@@ -258,6 +342,7 @@ playwright.config.ts   projects (api, chromium), globalSetup, reporters
 Dockerfile             Playwright runner image (tag must match @playwright/test)
 .env.e2e               compose env (test-only credentials)
 keycloak/realm.json    dedicated e2e Keycloak realm (seeded users + roles)
+nginx/client-core.conf client-core nginx with the phase-module proxy locations
 seed/e2e_seed.sql      seeded core DB (consistent v24 schema + data)
 src/
   env.ts               URLs / endpoints

@@ -233,6 +233,8 @@ func adminInitiateDeletionRequests(c *gin.Context) {
 		return
 	}
 
+	body.StudentIDs = service.UniqueUUIDs(body.StudentIDs)
+
 	if err := service.ValidateStudentsExist(c, body.StudentIDs); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return

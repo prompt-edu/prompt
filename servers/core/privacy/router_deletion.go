@@ -2,6 +2,7 @@ package privacy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -167,6 +168,10 @@ func decideDeletionRequest(c *gin.Context) {
 	case privacyDTO.AuditorDecisionReject:
 		record, err := service.RejectDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
+			if errors.Is(err, service.ErrDeletionRequestNotPending) {
+				handleError(c, http.StatusConflict, err)
+				return
+			}
 			log.Error("deletion request rejection failed: ", err)
 			handleError(c, http.StatusInternalServerError, err)
 			return
@@ -176,6 +181,10 @@ func decideDeletionRequest(c *gin.Context) {
 	case privacyDTO.AuditorDecisionApprove:
 		record, err := service.AcceptDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
+			if errors.Is(err, service.ErrDeletionRequestNotPending) {
+				handleError(c, http.StatusConflict, err)
+				return
+			}
 			log.Error("deletion request approval failed: ", err)
 			handleError(c, http.StatusInternalServerError, err)
 			return

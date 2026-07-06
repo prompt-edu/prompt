@@ -427,6 +427,39 @@ func (q *Queries) SetDeletionRequestStatus(ctx context.Context, arg SetDeletionR
 	return i, err
 }
 
+const setDeletionRequestStatusIfPending = `-- name: SetDeletionRequestStatusIfPending :one
+UPDATE privacy_deletion_request
+SET status       = $2,
+    completed_at = CASE WHEN $2::privacy_deletion_request_status IN ('rejected', 'succeeded', 'failed') THEN now() ELSE completed_at END
+WHERE id = $1 AND status = 'pending_approval'
+RETURNING id, user_id, student_id, requested_at, status, auditor_id, auditor_name, auditor_email, auditor_responded_at, auditor_note, recipient_email, completed_at
+`
+
+type SetDeletionRequestStatusIfPendingParams struct {
+	ID     uuid.UUID                    `json:"id"`
+	Status PrivacyDeletionRequestStatus `json:"status"`
+}
+
+func (q *Queries) SetDeletionRequestStatusIfPending(ctx context.Context, arg SetDeletionRequestStatusIfPendingParams) (PrivacyDeletionRequest, error) {
+	row := q.db.QueryRow(ctx, setDeletionRequestStatusIfPending, arg.ID, arg.Status)
+	var i PrivacyDeletionRequest
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.StudentID,
+		&i.RequestedAt,
+		&i.Status,
+		&i.AuditorID,
+		&i.AuditorName,
+		&i.AuditorEmail,
+		&i.AuditorRespondedAt,
+		&i.AuditorNote,
+		&i.RecipientEmail,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
 const setDeletionSubrequestStatus = `-- name: SetDeletionSubrequestStatus :one
 UPDATE privacy_deletion_subrequest
 SET status        = $2,

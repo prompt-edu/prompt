@@ -16,6 +16,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var ErrDeletionRequestNotPending = errors.New("deletion request is no longer in pending_approval state")
+
 func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, error) {
 	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
 	if err != nil {
@@ -145,11 +147,14 @@ func setAuditorDecision(c *gin.Context, requestID uuid.UUID, note string, status
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to set auditor: %w", err)
 	}
 
-	record, err := txQueries.SetDeletionRequestStatus(c, db.SetDeletionRequestStatusParams{
+	record, err := txQueries.SetDeletionRequestStatusIfPending(c, db.SetDeletionRequestStatusIfPendingParams{
 		ID:     requestID,
 		Status: status,
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return privacyDTO.PrivacyDeletionRequest{}, ErrDeletionRequestNotPending
+		}
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to set status: %w", err)
 	}
 

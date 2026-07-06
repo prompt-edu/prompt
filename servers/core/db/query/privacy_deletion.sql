@@ -56,6 +56,13 @@ SET status       = $2,
 WHERE id = $1
 RETURNING *;
 
+-- name: SetDeletionRequestStatusIfPending :one
+UPDATE privacy_deletion_request
+SET status       = $2,
+    completed_at = CASE WHEN $2::privacy_deletion_request_status IN ('rejected', 'succeeded', 'failed') THEN now() ELSE completed_at END
+WHERE id = $1 AND status = 'pending_approval'
+RETURNING *;
+
 -- name: GetDeletionRequestsByIDsWithSubrequests :many
 SELECT * FROM privacy_deletion_request_with_subrequests
 WHERE id = ANY($1::uuid[]);

@@ -1,11 +1,18 @@
-import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { Loader2, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { useTeamStore } from '../../zustand/useTeamStore'
 import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
 
+import { TutorEvaluationPrintReport } from '../components/AssessmentPrintReport/TutorEvaluationPrintReport'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
@@ -78,51 +85,73 @@ export const TutorEvaluationResultsPage = () => {
   }
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>
-        Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
-      </ManagementPageHeader>
-
-      {tutorEvaluationCategories.length === 0 ? (
-        <Card>
-          <CardContent className='p-6'>
-            <p className='text-center text-muted-foreground'>
-              No evaluation categories configured yet.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className='space-y-6'>
-          <div className='space-y-4'>
-            {tutorEvaluationCategories.map((category) => {
-              return (
-                <CategoryEvaluation
-                  key={category.id}
-                  category={category}
-                  evaluations={tutorEvaluations.filter((evaluation) =>
-                    category.competencies
-                      .map((competency) => competency.id)
-                      .includes(evaluation.competencyID),
-                  )}
-                />
-              )
-            })}
-          </div>
-
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-            <FeedbackItemDisplayPanel
-              feedbackItems={negativeFeedbackItems}
-              feedbackType='negative'
-              studentName={tutor.firstName}
-            />
-            <FeedbackItemDisplayPanel
-              feedbackItems={positiveFeedbackItems}
-              feedbackType='positive'
-              studentName={tutor.firstName}
-            />
-          </div>
+    <>
+      <div className='space-y-4 print:hidden'>
+        <div className='flex items-start justify-between gap-2'>
+          <ManagementPageHeader>
+            Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+          </ManagementPageHeader>
+          {tutorEvaluationCategories.length > 0 && (
+            <Button
+              variant='outline'
+              onClick={() => setTimeout(() => window.print(), 0)}
+              className='gap-2'
+            >
+              <Printer className='h-4 w-4' />
+              PDF / Print
+            </Button>
+          )}
         </div>
-      )}
-    </div>
+
+        {tutorEvaluationCategories.length === 0 ? (
+          <Card>
+            <CardContent className='p-6'>
+              <p className='text-center text-muted-foreground'>
+                No evaluation categories configured yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className='space-y-6'>
+            <div className='space-y-4'>
+              {tutorEvaluationCategories.map((category) => {
+                return (
+                  <CategoryEvaluation
+                    key={category.id}
+                    category={category}
+                    evaluations={tutorEvaluations.filter((evaluation) =>
+                      category.competencies
+                        .map((competency) => competency.id)
+                        .includes(evaluation.competencyID),
+                    )}
+                  />
+                )
+              })}
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+              <FeedbackItemDisplayPanel
+                feedbackItems={negativeFeedbackItems}
+                feedbackType='negative'
+                studentName={tutor.firstName}
+              />
+              <FeedbackItemDisplayPanel
+                feedbackItems={positiveFeedbackItems}
+                feedbackType='positive'
+                studentName={tutor.firstName}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <TutorEvaluationPrintReport
+        tutorName={`${tutor.firstName} ${tutor.lastName}`}
+        teamName={tutor.teamName}
+        categories={tutorEvaluationCategories}
+        evaluations={tutorEvaluations}
+        feedbackItems={feedbackItems}
+      />
+    </>
   )
 }

@@ -6545,7 +6545,7 @@ __metadata:
     "@docusaurus/types": "npm:3.10.1"
     "@mdx-js/react": "npm:^3.1.1"
     clsx: "npm:^2.1.1"
-    lucide-react: "npm:^1.21.0"
+    lucide-react: "npm:^1.22.0"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^19.2.7"
     react-dom: "npm:^19.2.7"
@@ -8866,12 +8866,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.21.0":
-  version: 1.21.0
-  resolution: "lucide-react@npm:1.21.0"
+"lucide-react@npm:^1.22.0":
+  version: 1.23.0
+  resolution: "lucide-react@npm:1.23.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/55f914e3bc06425064efb4d4d77031c2565294910c362ffd1f5b2eaabd8ee31d682b5749dde5e1d3071ecbf625bbce0d810d1a271a27ecc60b50e908a4f6133d
+  checksum: 10c0/1cb2108d81c9713e20dd1beb7b6ac5bfc17307d5f38388f84921cf6a124efb4b933c73929bede42f00bd08aa2df340b0904acdf4fb90206ccd52971e943e775b
   languageName: node
   linkType: hard
 
@@ -12858,7 +12858,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tar@npm:^7.5.17":
+"tar@npm:^7.5.19":
   version: 7.5.19
   resolution: "tar@npm:7.5.19"
   dependencies:

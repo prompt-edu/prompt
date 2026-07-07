@@ -12,6 +12,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const anonymizeFilesByUploader = `-- name: AnonymizeFilesByUploader :exec
+UPDATE files
+SET uploaded_by_user_id = '',
+    uploaded_by_email   = NULL
+WHERE uploaded_by_user_id = $1
+`
+
+func (q *Queries) AnonymizeFilesByUploader(ctx context.Context, uploadedByUserID string) error {
+	_, err := q.db.Exec(ctx, anonymizeFilesByUploader, uploadedByUserID)
+	return err
+}
+
 const countFilesByUploader = `-- name: CountFilesByUploader :one
 SELECT COUNT(*) FROM files
 WHERE uploaded_by_user_id = $1 AND deleted_at IS NULL

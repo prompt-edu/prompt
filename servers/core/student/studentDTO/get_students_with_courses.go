@@ -2,6 +2,7 @@ package studentDTO
 
 import (
   "encoding/json"
+  "time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -30,6 +31,7 @@ type StudentWithCourseParticipationsDTO struct {
 	HasUniversityAccount bool         `json:"hasUniversityAccount"`
 	CurrentSemester      pgtype.Int4  `json:"currentSemester" swaggertype:"integer"`
 	StudyProgram         string       `json:"studyProgram"`
+	LastModified         time.Time    `json:"lastModified"`
 
 	Courses  []StudentCourseParticipationDTO `json:"courses"`
 	NoteTags []StudentNoteTagDTO             `json:"noteTags"`
@@ -55,6 +57,7 @@ func GetStudentWithCoursesFromDB(row db.GetAllStudentsWithCourseParticipationsRo
 		HasUniversityAccount: row.StudentHasUniversityAccount.Bool,
 		CurrentSemester:      row.CurrentSemester,
 		StudyProgram:         row.StudyProgram.String,
+		LastModified:         row.StudentLastModified.Time,
 		Courses:              courses,
 		NoteTags:             noteTags,
 	}, nil

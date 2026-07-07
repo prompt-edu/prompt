@@ -20,6 +20,7 @@ export interface StudentWithCourses {
   hasUniversityAccount: boolean
   currentSemester?: number
   studyProgram: string
+  lastModified: string
   courses: StudentCourseParticipation[]
   noteTags: StudentNoteTag[]
 }

@@ -67,6 +67,17 @@ export const AssessmentDiagram = ({
     }
   }, [participations, completions, scoreLevels])
 
+  const noun =
+    assessmentType === AssessmentType.SELF
+      ? 'self evaluations'
+      : assessmentType === AssessmentType.PEER
+        ? 'peer evaluations'
+        : 'assessments'
+  const chartTitle = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} status`
+  const chartDescription =
+    `${totalAssessments} ${noun} in total: ${chartData[2].applications} completed, ` +
+    `${chartData[1].applications} in progress, ${chartData[0].applications} not assessed.`
+
   return (
     <Card className='flex flex-col'>
       <CardHeader className='items-center pb-0'>
@@ -98,7 +109,7 @@ export const AssessmentDiagram = ({
       </CardHeader>
       <CardContent className='flex-1 pb-0'>
         <ChartContainer config={chartConfig} className='mx-auto aspect-square max-h-[250px]'>
-          <PieChart>
+          <PieChart title={chartTitle} desc={chartDescription}>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie
               data={chartData}

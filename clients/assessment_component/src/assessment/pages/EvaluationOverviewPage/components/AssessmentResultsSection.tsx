@@ -14,7 +14,11 @@ import { AssessmentPrintReport } from '../../components/AssessmentPrintReport/As
 import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
-export const AssessmentResultsSection = () => {
+interface AssessmentResultsSectionProps {
+  onReadyChange?: (ready: boolean) => void
+}
+
+export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSectionProps) => {
   const { courseId } = useParams<{ courseId: string }>()
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
@@ -53,6 +57,19 @@ export const AssessmentResultsSection = () => {
       evaluations: [],
     })
   }, [results, setStudentAssessment])
+
+  const isReportReady =
+    resultsReleased &&
+    isStudent &&
+    !isError &&
+    !isAssessmentCategoriesError &&
+    !isPending &&
+    !(isAssessmentCategoriesPending && gradingSheetVisible) &&
+    !!results
+
+  useEffect(() => {
+    onReadyChange?.(isReportReady)
+  }, [isReportReady, onReadyChange])
 
   useEffect(() => {
     if (!myParticipation) return

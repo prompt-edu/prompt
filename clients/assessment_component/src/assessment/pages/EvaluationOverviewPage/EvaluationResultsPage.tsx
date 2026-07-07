@@ -1,5 +1,6 @@
 import { Button, Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { ArrowLeft, Printer } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
@@ -10,6 +11,7 @@ export const EvaluationResultsPage = () => {
   const navigate = useNavigate()
   const { coursePhaseConfig } = useCoursePhaseConfigStore()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
+  const [reportReady, setReportReady] = useState(false)
 
   return (
     <div className='w-full px-4 py-6 text-left'>
@@ -18,7 +20,7 @@ export const EvaluationResultsPage = () => {
           <ArrowLeft className='h-4 w-4' />
           Back to overview
         </Button>
-        {resultsReleased && (
+        {resultsReleased && reportReady && (
           <Button
             variant='outline'
             onClick={() => setTimeout(() => window.print(), 0)}
@@ -34,7 +36,7 @@ export const EvaluationResultsPage = () => {
       </div>
 
       {resultsReleased ? (
-        <AssessmentResultsSection />
+        <AssessmentResultsSection onReadyChange={setReportReady} />
       ) : (
         <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
           <CardContent className='p-6'>

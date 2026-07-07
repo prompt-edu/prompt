@@ -110,9 +110,7 @@ export const AssessmentPage = () => {
           />
         ))}
 
-        {(coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled) && (
-          <FeedbackItemsPanel />
-        )}
+        {evaluationEnabled && <FeedbackItemsPanel />}
 
         <AssessmentCompletion />
 

@@ -144,6 +144,10 @@ func createOrUpdateAssessmentCompletion(c *gin.Context) {
 	req.CoursePhaseID = coursePhaseID
 	err = CreateOrUpdateAssessmentCompletion(c, req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidGradeSuggestion) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
 			return

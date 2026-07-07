@@ -1,6 +1,7 @@
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   ScoreLevelSelector as BaseScoreLevelSelector,
+  getLevelConfig,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -59,9 +60,12 @@ export const ScoreLevelSelector = ({
     indicators[selfEvaluationScoreLevel] = [
       ...(indicators[selfEvaluationScoreLevel] ?? []),
       <TooltipProvider key={`self-evaluation-${selfEvaluationScoreLevel}-${competency.id}`}>
+        <span className='sr-only'>
+          {`Self evaluation result: ${getLevelConfig(selfEvaluationScoreLevel).title}`}
+        </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <User size={20} className='text-blue-500 dark:text-blue-300' />
+            <User size={20} className='text-blue-500 dark:text-blue-300' aria-hidden />
           </TooltipTrigger>
           <TooltipContent>
             <div className='font-semibold'>Self Evaluation Results</div>
@@ -85,9 +89,12 @@ export const ScoreLevelSelector = ({
     indicators[peerEvaluationScoreLevel] = [
       ...(indicators[peerEvaluationScoreLevel] ?? []),
       <TooltipProvider key={`peer-evaluation-${peerEvaluationScoreLevel}-${competency.id}`}>
+        <span className='sr-only'>
+          {`Peer evaluation result: ${getLevelConfig(peerEvaluationScoreLevel).title}`}
+        </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Users size={20} className='text-green-500 dark:text-green-300' />
+            <Users size={20} className='text-green-500 dark:text-green-300' aria-hidden />
           </TooltipTrigger>
           <TooltipContent>
             {assessmentType !== AssessmentType.TUTOR ? (

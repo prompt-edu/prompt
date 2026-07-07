@@ -56,22 +56,25 @@ export function AssessmentStatusBadge({
     <Badge className={badgeStyles} style={{ whiteSpace: 'nowrap' }}>
       {isCompleted && isFinalized && (
         <>
-          <CheckCircle className='h-3.5 w-3.5' />
-          {!compact && <span>Completed</span>}
+          <CheckCircle className='h-3.5 w-3.5' aria-hidden />
+          <span className={compact ? 'sr-only' : undefined}>Completed</span>
         </>
       )}
 
       {isCompletedButNotFinalized && (
         <>
-          <CircleCheck className='h-3.5 w-3.5' />
-          {!compact && <span>Ready to finalize</span>}
+          <CircleCheck className='h-3.5 w-3.5' aria-hidden />
+          <span className={compact ? 'sr-only' : undefined}>Ready to finalize</span>
         </>
       )}
 
       {isInProgress && (
         <>
-          <Clock className='h-3.5 w-3.5' />
-          <span>{compact ? remainingAssessments : `${remainingAssessments} ${noun} left`}</span>
+          <Clock className='h-3.5 w-3.5' aria-hidden />
+          {compact && <span aria-hidden>{remainingAssessments}</span>}
+          <span className={compact ? 'sr-only' : undefined}>
+            {`${remainingAssessments} ${noun} left`}
+          </span>
         </>
       )}
     </Badge>

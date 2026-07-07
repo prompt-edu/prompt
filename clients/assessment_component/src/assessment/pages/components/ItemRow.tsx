@@ -94,8 +94,9 @@ export function ItemRow({
           onClick={() => onDelete(item.id)}
           disabled={isPending}
           title={getDeleteTitle()}
+          aria-label={getDeleteTitle()}
         >
-          <Trash2 className='h-4 w-4 text-destructive' />
+          <Trash2 className='h-4 w-4 text-destructive' aria-hidden />
         </Button>
       )}
     </div>

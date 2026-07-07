@@ -329,7 +329,7 @@ func bindUploadJSON(c *gin.Context, body any) bool {
 			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": fmt.Sprintf("request body exceeds maximum size of %d bytes", maxUploadRequestBodyBytes)})
 			return false
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: must be valid JSON no larger than %d bytes", maxUploadRequestBodyBytes)})
 		return false
 	}
 	return true

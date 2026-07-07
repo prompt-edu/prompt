@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -144,7 +143,7 @@ func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO
 	qtx := TeamsServiceSingleton.queries.WithTx(tx)
 
 	for _, tutor := range tutors {
-		normalizedLogin := strings.TrimSpace(strings.ToLower(tutor.UniversityLogin))
+		normalizedLogin := teamDTO.NormalizeUniversityLogin(tutor.UniversityLogin)
 		err := qtx.UpsertTutor(ctx, db.UpsertTutorParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: tutor.CourseParticipationID,

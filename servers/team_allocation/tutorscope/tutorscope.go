@@ -1,31 +1,31 @@
-package teams
+package tutorscope
 
-// ponytail: local copy of tutor scoping logic pending prompt-sdk issue for the reusable version.
-// Interface: ResolveTutorTeam(ctx, coursePhaseID, universityLogin) → (uuid.UUID, error)
+// ponytail: single local copy of tutor scoping; promote to prompt-sdk when a second service needs it.
 
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 )
 
-const tutorTeamIDKey = "tutorTeamID"
+const teamIDKey = "tutorTeamID"
 
-func tutorScopingMiddleware(q db.Queries) gin.HandlerFunc {
+// Middleware resolves the requesting tutor's assigned team and stores it in the gin
+// context for handlers to scope their responses. Non-tutor roles pass through untouched.
+func Middleware(q db.Queries) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 		if !ok || !tokenUser.IsEditor || tokenUser.IsLecturer {
 			c.Next()
 			return
 		}
-		login := strings.TrimSpace(strings.ToLower(tokenUser.UniversityLogin))
+		login := teamDTO.NormalizeUniversityLogin(tokenUser.UniversityLogin)
 		if login == "" {
 			c.Next()
 			return
@@ -37,7 +37,7 @@ func tutorScopingMiddleware(q db.Queries) gin.HandlerFunc {
 		}
 		teamID, err := q.GetTutorTeamByUniversityLogin(c.Request.Context(), db.GetTutorTeamByUniversityLoginParams{
 			CoursePhaseID:   coursePhaseID,
-			UniversityLogin: pgtype.Text{String: login, Valid: true},
+			UniversityLogin: teamDTO.UniversityLoginParam(login),
 		})
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.Next()
@@ -47,13 +47,14 @@ func tutorScopingMiddleware(q db.Queries) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "access check failed"})
 			return
 		}
-		c.Set(tutorTeamIDKey, teamID)
+		c.Set(teamIDKey, teamID)
 		c.Next()
 	}
 }
 
-func getTutorTeamID(c *gin.Context) (uuid.UUID, bool) {
-	if v, exists := c.Get(tutorTeamIDKey); exists {
+// TeamID returns the tutor's scoped team and whether scoping applies to this request.
+func TeamID(c *gin.Context) (uuid.UUID, bool) {
+	if v, exists := c.Get(teamIDKey); exists {
 		if id, ok := v.(uuid.UUID); ok {
 			return id, true
 		}

@@ -3,7 +3,6 @@ package teams
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,12 +11,13 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
+	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
 func setupTeamRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
 	teamRouter := routerGroup.Group("/team")
-	scopingMW := tutorScopingMiddleware(queries)
+	scopingMW := tutorscope.Middleware(queries)
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllTeams)
 	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createTeams)
@@ -58,7 +58,7 @@ func getAllTeams(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := getTutorTeamID(c); scoped {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
 		teams = filterTeamsByID(teams, tutorTeamID)
 	}
 
@@ -102,7 +102,7 @@ func getTeamByID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := getTutorTeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}
@@ -330,7 +330,7 @@ func updateTutorTeam(c *gin.Context) {
 		return
 	}
 
-	universityLogin := strings.TrimSpace(strings.ToLower(c.Param("universityLogin")))
+	universityLogin := teamDTO.NormalizeUniversityLogin(c.Param("universityLogin"))
 	if universityLogin == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "university login is required"})
 		return

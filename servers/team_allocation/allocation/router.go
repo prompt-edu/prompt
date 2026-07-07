@@ -8,13 +8,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
 func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := tutorScopingMiddleware(queries)
+	scopingMW := tutorscope.Middleware(queries)
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllocationByCourseParticipationID)
@@ -44,7 +46,7 @@ func getAllAllocations(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := getTutorTeamID(c); scoped {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
 		allocations = filterAllocationsByTeam(allocations, tutorTeamID)
 	}
 
@@ -87,12 +89,22 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := getTutorTeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}
 
 	c.JSON(http.StatusOK, teamID)
+}
+
+func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipation, teamID uuid.UUID) []allocationDTO.AllocationWithParticipation {
+	result := make([]allocationDTO.AllocationWithParticipation, 0)
+	for _, a := range allocations {
+		if a.TeamAllocation == teamID {
+			result = append(result, a)
+		}
+	}
+	return result
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

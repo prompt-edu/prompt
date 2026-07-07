@@ -144,6 +144,28 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	assert.False(suite.T(), updatedCompletion.Completed)
 }
 
+func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentCompletionRejectsOutOfRangeGrade() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	for _, grade := range []float64{-3.0, 0.0, 0.9, 5.1, 9.9} {
+		partID := uuid.New()
+		err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, assessmentCompletionDTO.AssessmentCompletion{
+			CourseParticipationID: partID,
+			CoursePhaseID:         phaseID,
+			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+			Author:                "Test Author",
+			Comment:               "out of range",
+			GradeSuggestion:       grade,
+			Completed:             true,
+		})
+		assert.ErrorIs(suite.T(), err, ErrInvalidGradeSuggestion, "grade %.1f should be rejected", grade)
+
+		exists, err := CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+		assert.NoError(suite.T(), err)
+		assert.False(suite.T(), exists, "no completion should be stored for out-of-range grade %.1f", grade)
+	}
+}
+
 func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletion() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New() // Use a new UUID
@@ -190,7 +212,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		Author:                "",
 		Comment:               "",
-		GradeSuggestion:       0.0,
+		GradeSuggestion:       4.0,
 		Completed:             false,
 	}
 

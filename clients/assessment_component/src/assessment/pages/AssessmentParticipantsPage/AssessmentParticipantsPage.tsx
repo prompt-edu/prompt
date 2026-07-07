@@ -11,15 +11,14 @@ import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { useScoreLevelStore } from '../../zustand/useScoreLevelStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
-
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
+import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import {
   createGradeSuggestionColumn,
   createPeerEvalStatusColumn,
@@ -34,10 +33,10 @@ export const AssessmentParticipantsPage = () => {
   const navigate = useNavigate()
   const path = useLocation().pathname
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { participations } = useParticipationStore()
-  const { scoreLevels } = useScoreLevelStore()
-  const { teams } = useTeamStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: scoreLevels } = useGetAllScoreLevels()
+  const { data: teams } = useGetAllTeams()
 
   const {
     data: assessmentCompletions,

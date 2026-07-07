@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../../hooks/useSchemaHasAssessmentData'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
 import {
@@ -39,7 +39,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
   const [gradeSuggestionVisible, setGradeSuggestionVisible] = useState<boolean>(true)
   const [actionItemsVisible, setActionItemsVisible] = useState<boolean>(true)
   const [gradingSheetVisible, setGradingSheetVisible] = useState<boolean>(false)
-  const { coursePhaseConfig: originalConfig } = useCoursePhaseConfigStore()
+  const { data: originalConfig } = useGetCoursePhaseConfig()
 
   useEffect(() => {
     if (originalConfig) {

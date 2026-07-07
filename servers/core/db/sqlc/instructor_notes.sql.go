@@ -26,6 +26,19 @@ func (q *Queries) AddTagToNote(ctx context.Context, arg AddTagToNoteParams) erro
 	return err
 }
 
+const anonymizeNotesByAuthor = `-- name: AnonymizeNotesByAuthor :exec
+UPDATE note
+SET author       = '00000000-0000-0000-0000-000000000000'::uuid,
+    author_name  = '',
+    author_email = ''
+WHERE author = $1
+`
+
+func (q *Queries) AnonymizeNotesByAuthor(ctx context.Context, author uuid.UUID) error {
+	_, err := q.db.Exec(ctx, anonymizeNotesByAuthor, author)
+	return err
+}
+
 const createNote = `-- name: CreateNote :one
 INSERT INTO note (id, for_student, author, author_name, author_email, date_created, date_deleted, deleted_by)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)

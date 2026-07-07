@@ -83,7 +83,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentAsCompletedR
 		CoursePhaseID:         phaseID,
 		CourseParticipationID: partID,
 		Author:                "tester",
-		GradeSuggestion:       utils.MapFloat64ToNumeric(0),
+		GradeSuggestion:       utils.MapFloat64ToNumeric(minGradeSuggestion),
 		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
 	})
 	assert.NoError(suite.T(), err)

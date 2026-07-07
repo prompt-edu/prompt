@@ -10,11 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
-import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
-import { usePeerEvaluationCategoryStore } from '../../../../../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../../../../zustand/useSelfEvaluationCategoryStore'
+import { AssessmentType } from '../../../../../interfaces/assessmentType'
 import { useStudentAssessmentStore } from '../../../../../zustand/useStudentAssessmentStore'
 import { StudentScoreBadge } from '../../../../components/badges'
+import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../../../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getWeightedScoreLevel } from '../../../../utils/getWeightedScoreLevel'
 import { GRADE_SELECT_OPTIONS } from '../../../../utils/gradeConfig'
 
@@ -27,9 +27,15 @@ export const GradeSuggestion = ({
   onGradeSuggestionChange,
   readOnly = false,
 }: GradeSuggestionProps) => {
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
   const { studentScore, assessmentCompletion, selfEvaluations, peerEvaluations } =
     useStudentAssessmentStore()
   const showAverages = !readOnly && (coursePhaseConfig?.evaluationResultsVisible ?? false)

@@ -13,11 +13,10 @@ import { Lock, Unlock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { ActionItem } from '../../../../interfaces/actionItem'
-import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
-
 import { AssessmentCompletionDialog } from '../../../components/AssessmentCompletionDialog'
 import { DeadlineBadge } from '../../../components/badges'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { validateGrade } from '../../../utils/gradeConfig'
 import { ActionItemPanel } from './components/ActionItemPanel'
 import { GradeSuggestion } from './components/GradeSuggestion'
@@ -36,7 +35,7 @@ export const AssessmentCompletion = ({
 }: AssessmentCompletionProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const deadline = coursePhaseConfig?.deadline || undefined
 
   const { courseParticipationID, assessmentCompletion } = useStudentAssessmentStore()

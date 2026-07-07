@@ -29,6 +29,13 @@ var ErrAssessmentCompleted = errors.New("assessment already completed")
 var ErrRemainingAssessments = errors.New("cannot mark assessment as completed, remaining assessments exist")
 var ErrNoAssessmentCompletion = errors.New("no assessment completion exists to mark as completed")
 
+const (
+	minGradeSuggestion = 1.0
+	maxGradeSuggestion = 5.0
+)
+
+var ErrInvalidGradeSuggestion = fmt.Errorf("grade suggestion must be between %.1f and %.1f", minGradeSuggestion, maxGradeSuggestion)
+
 func CheckAssessmentCompletionExists(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (bool, error) {
 	exists, err := AssessmentCompletionServiceSingleton.queries.CheckAssessmentCompletionExists(ctx, db.CheckAssessmentCompletionExistsParams{
 		CourseParticipationID: courseParticipationID,
@@ -117,6 +124,10 @@ func GetStudentGrade(ctx context.Context, courseParticipationID, coursePhaseID u
 }
 
 func CreateOrUpdateAssessmentCompletion(ctx context.Context, req assessmentCompletionDTO.AssessmentCompletion) error {
+	if req.GradeSuggestion < minGradeSuggestion || req.GradeSuggestion > maxGradeSuggestion {
+		return ErrInvalidGradeSuggestion
+	}
+
 	err := CheckAssessmentIsEditable(ctx, &AssessmentCompletionServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		return err

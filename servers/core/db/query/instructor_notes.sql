@@ -68,3 +68,10 @@ DELETE FROM note_tag_relation WHERE note_id = $1 AND tag_id = $2;
 -- name: RemoveAllTagsFromNote :exec
 DELETE FROM note_tag_relation WHERE note_id = $1;
 
+-- name: AnonymizeNotesByAuthor :exec
+UPDATE note
+SET author       = '00000000-0000-0000-0000-000000000000'::uuid,
+    author_name  = '',
+    author_email = ''
+WHERE author = $1;
+

@@ -4,25 +4,25 @@ import {
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
+import { Archive, CircleCheck, CircleX, Info, Loader2 } from 'lucide-react'
+import { HoverInfoText } from '../Privacy/HoverInfoText'
+import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
+import { RequesterCell, requesterAccessor } from '../Privacy/RequesterCell'
 
 function CountWithTooltip({ docs, label }: { docs: AdminExportDoc[]; label: string }) {
-  if (docs.length === 0) return <span className='text-muted-foreground'>0 {label}</span>
+  if (docs.length === 0) return <span>0 {label}</span>
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className='cursor-default underline underline-offset-4'>
-          {docs.length} {label}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>
+    <HoverInfoText
+      content={
         <ul className='text-xs space-y-0.5'>
           {docs.map((d) => (
             <li key={d.source_name}>{d.source_name}</li>
           ))}
         </ul>
-      </TooltipContent>
-    </Tooltip>
+      }
+    >
+      {docs.length} {label}
+    </HoverInfoText>
   )
 }
 
@@ -55,30 +55,51 @@ export const exportStatusLabel: Record<ExportStatus, string> = {
   [ExportStatus.archived]: 'Archived',
 }
 
+const exportStatusColor: Record<ExportStatus, string> = {
+  [ExportStatus.pending]: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  [ExportStatus.complete]: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  [ExportStatus.no_data]: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  [ExportStatus.failed]: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  [ExportStatus.archived]: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
+}
+
+function exportStatusIcon(status: ExportStatus) {
+  const className = 'h-3.5 w-3.5'
+  switch (status) {
+    case ExportStatus.pending:
+      return <Loader2 className={`${className} animate-spin`} />
+    case ExportStatus.complete:
+      return <CircleCheck className={className} />
+    case ExportStatus.no_data:
+      return <Info className={className} />
+    case ExportStatus.failed:
+      return <CircleX className={className} />
+    case ExportStatus.archived:
+      return <Archive className={className} />
+  }
+}
+
+function ExportStatusBadge({ status }: { status: ExportStatus }) {
+  return (
+    <PrivacyStatusBadge
+      label={exportStatusLabel[status]}
+      icon={exportStatusIcon(status)}
+      colorClass={exportStatusColor[status]}
+    />
+  )
+}
+
 export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => exportStatusLabel[row.original.status],
+    cell: ({ row }) => <ExportStatusBadge status={row.original.status} />,
   },
   {
     id: 'requester',
     header: 'Requester',
-    cell: ({ row }) => {
-      const { student_first_name, student_last_name, student_email, user_id } = row.original
-      const name = [student_first_name, student_last_name].filter(Boolean).join(' ')
-      if (name) {
-        return (
-          <div className='flex flex-col text-sm'>
-            <span>{name}</span>
-            {student_email && (
-              <span className='text-muted-foreground text-xs'>{student_email}</span>
-            )}
-          </div>
-        )
-      }
-      return <span className='text-muted-foreground text-sm'>user {user_id.slice(0, 8)}</span>
-    },
+    accessorFn: requesterAccessor,
+    cell: ({ row }) => <RequesterCell {...row.original} />,
   },
   {
     accessorKey: 'date_created',

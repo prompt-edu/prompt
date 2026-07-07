@@ -233,6 +233,95 @@ func (ns NullPassStatus) Value() (driver.Value, error) {
 	return string(ns.PassStatus), nil
 }
 
+type PrivacyDeletionRequestStatus string
+
+const (
+	PrivacyDeletionRequestStatusPendingApproval PrivacyDeletionRequestStatus = "pending_approval"
+	PrivacyDeletionRequestStatusRejected        PrivacyDeletionRequestStatus = "rejected"
+	PrivacyDeletionRequestStatusInProgress      PrivacyDeletionRequestStatus = "in_progress"
+	PrivacyDeletionRequestStatusSucceeded       PrivacyDeletionRequestStatus = "succeeded"
+	PrivacyDeletionRequestStatusFailed          PrivacyDeletionRequestStatus = "failed"
+)
+
+func (e *PrivacyDeletionRequestStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PrivacyDeletionRequestStatus(s)
+	case string:
+		*e = PrivacyDeletionRequestStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PrivacyDeletionRequestStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPrivacyDeletionRequestStatus struct {
+	PrivacyDeletionRequestStatus PrivacyDeletionRequestStatus `json:"privacy_deletion_request_status"`
+	Valid                        bool                         `json:"valid"` // Valid is true if PrivacyDeletionRequestStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPrivacyDeletionRequestStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PrivacyDeletionRequestStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PrivacyDeletionRequestStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPrivacyDeletionRequestStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PrivacyDeletionRequestStatus), nil
+}
+
+type PrivacyDeletionSubrequestStatus string
+
+const (
+	PrivacyDeletionSubrequestStatusPending    PrivacyDeletionSubrequestStatus = "pending"
+	PrivacyDeletionSubrequestStatusInProgress PrivacyDeletionSubrequestStatus = "in_progress"
+	PrivacyDeletionSubrequestStatusSucceeded  PrivacyDeletionSubrequestStatus = "succeeded"
+	PrivacyDeletionSubrequestStatusFailed     PrivacyDeletionSubrequestStatus = "failed"
+)
+
+func (e *PrivacyDeletionSubrequestStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PrivacyDeletionSubrequestStatus(s)
+	case string:
+		*e = PrivacyDeletionSubrequestStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PrivacyDeletionSubrequestStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPrivacyDeletionSubrequestStatus struct {
+	PrivacyDeletionSubrequestStatus PrivacyDeletionSubrequestStatus `json:"privacy_deletion_subrequest_status"`
+	Valid                           bool                            `json:"valid"` // Valid is true if PrivacyDeletionSubrequestStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPrivacyDeletionSubrequestStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PrivacyDeletionSubrequestStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PrivacyDeletionSubrequestStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPrivacyDeletionSubrequestStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PrivacyDeletionSubrequestStatus), nil
+}
+
 type StudyDegree string
 
 const (
@@ -509,9 +598,50 @@ type PhaseDataDependencyGraph struct {
 	ToCoursePhaseDtoID   uuid.UUID `json:"to_course_phase_dto_id"`
 }
 
+type PrivacyDeletionRequest struct {
+	ID                 uuid.UUID                    `json:"id"`
+	UserID             pgtype.UUID                  `json:"user_id"`
+	StudentID          pgtype.UUID                  `json:"student_id"`
+	RequestedAt        pgtype.Timestamptz           `json:"requested_at"`
+	Status             PrivacyDeletionRequestStatus `json:"status"`
+	AuditorID          pgtype.UUID                  `json:"auditor_id"`
+	AuditorName        string                       `json:"auditor_name"`
+	AuditorEmail       string                       `json:"auditor_email"`
+	AuditorRespondedAt pgtype.Timestamptz           `json:"auditor_responded_at"`
+	AuditorNote        string                       `json:"auditor_note"`
+	RecipientEmail     string                       `json:"recipient_email"`
+	CompletedAt        pgtype.Timestamptz           `json:"completed_at"`
+}
+
+type PrivacyDeletionRequestWithSubrequest struct {
+	ID                 uuid.UUID                    `json:"id"`
+	UserID             pgtype.UUID                  `json:"user_id"`
+	StudentID          pgtype.UUID                  `json:"student_id"`
+	RequestedAt        pgtype.Timestamptz           `json:"requested_at"`
+	Status             PrivacyDeletionRequestStatus `json:"status"`
+	AuditorID          pgtype.UUID                  `json:"auditor_id"`
+	AuditorName        string                       `json:"auditor_name"`
+	AuditorEmail       string                       `json:"auditor_email"`
+	AuditorRespondedAt pgtype.Timestamptz           `json:"auditor_responded_at"`
+	AuditorNote        string                       `json:"auditor_note"`
+	RecipientEmail     string                       `json:"recipient_email"`
+	CompletedAt        pgtype.Timestamptz           `json:"completed_at"`
+	Subrequests        []byte                       `json:"subrequests"`
+}
+
+type PrivacyDeletionSubrequest struct {
+	ID                uuid.UUID                       `json:"id"`
+	DeletionRequestID uuid.UUID                       `json:"deletion_request_id"`
+	SourceName        string                          `json:"source_name"`
+	Status            PrivacyDeletionSubrequestStatus `json:"status"`
+	CreatedAt         pgtype.Timestamptz              `json:"created_at"`
+	CompletedAt       pgtype.Timestamptz              `json:"completed_at"`
+	ErrorMessage      string                          `json:"error_message"`
+}
+
 type PrivacyExport struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	Status               ExportStatus       `json:"status"`
 	DateCreated          pgtype.Timestamptz `json:"date_created"`
@@ -532,7 +662,7 @@ type PrivacyExportDocument struct {
 
 type PrivacyExportWithDoc struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	Status               ExportStatus       `json:"status"`
 	DateCreated          pgtype.Timestamptz `json:"date_created"`

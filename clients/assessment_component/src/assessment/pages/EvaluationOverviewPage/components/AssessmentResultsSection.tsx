@@ -4,25 +4,25 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
-import { useTeamStore } from '../../../zustand/useTeamStore'
 import { AssessmentCompletion } from '../../AssessmentPage/components/AssessmentCompletion/AssessmentCompletion'
 import { CategoryAssessment } from '../../AssessmentPage/components/CategoryAssessment'
 import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetAllTeams } from '../../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
+import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
 export const AssessmentResultsSection = () => {
   const { courseId } = useParams<{ courseId: string }>()
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
   const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
 
-  const { myParticipation } = useMyParticipationStore()
-  const { teams } = useTeamStore()
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
+  const { data: teams } = useGetAllTeams()
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
 
   const shouldFetch = isStudent && resultsReleased

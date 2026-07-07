@@ -212,7 +212,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
 		Author:                "",
 		Comment:               "",
-		GradeSuggestion:       0.0,
+		GradeSuggestion:       4.0,
 		Completed:             false,
 	}
 

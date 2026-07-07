@@ -18,3 +18,5 @@ See the following pages:
 - [Mailing](mailing.md)
 - [Templates](templates.md)
 - [User Management](user_management.md)
+- Reference
+	- [Glossary](glossary.md)

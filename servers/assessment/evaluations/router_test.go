@@ -148,7 +148,7 @@ func (suite *EvaluationRouterTestSuite) TestGetMyEvaluations() {
 
 func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluation() {
 	requestBody := evaluationDTO.CreateOrUpdateEvaluationRequest{
-		CourseParticipationID:       uuid.MustParse("02234567-1234-1234-1234-123456789012"), // Valid from test data
+		CourseParticipationID:       uuid.MustParse("01234567-1234-1234-1234-123456789012"), // Self evaluation: subject is the author
 		CompetencyID:                uuid.MustParse("c1234567-1234-1234-1234-123456789012"), // Valid from test data
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
 		AuthorCourseParticipationID: uuid.MustParse("01234567-1234-1234-1234-123456789012"), // Must match test middleware

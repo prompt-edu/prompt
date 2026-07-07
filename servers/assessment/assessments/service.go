@@ -36,6 +36,7 @@ type AssessmentService struct {
 var AssessmentServiceSingleton *AssessmentService
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
 var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
+var ErrAssessmentNotInPhase = errors.New("assessment does not belong to this course phase")
 
 const AssessmentExportFormatJSON = "json"
 
@@ -336,7 +337,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	return results, nil
 }
 
-func DeleteAssessment(ctx context.Context, id uuid.UUID) error {
+func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 	tx, err := AssessmentServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -349,6 +350,10 @@ func DeleteAssessment(ctx context.Context, id uuid.UUID) error {
 	if err != nil {
 		log.Info("assessment not found, nothing to delete: ", err)
 		return nil
+	}
+
+	if assessment.CoursePhaseID != coursePhaseID {
+		return ErrAssessmentNotInPhase
 	}
 
 	err = assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, assessment.CourseParticipationID, assessment.CoursePhaseID)

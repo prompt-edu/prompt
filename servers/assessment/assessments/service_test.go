@@ -88,7 +88,8 @@ func (suite *AssessmentServiceTestSuite) TestListAssessmentsByStudentInPhase() {
 
 func (suite *AssessmentServiceTestSuite) TestDeleteAssessmentNonExisting() {
 	id := uuid.New()
-	err := DeleteAssessment(suite.suiteCtx, id)
+	coursePhaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	err := DeleteAssessment(suite.suiteCtx, id, coursePhaseID)
 	assert.NoError(suite.T(), err, "Deleting non-existent assessment should not error")
 }
 
@@ -174,7 +175,6 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentUnsupportedF
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), errors.Is(err, ErrUnsupportedAssessmentExportFormat))
 }
-
 
 func TestAssessmentServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentServiceTestSuite))

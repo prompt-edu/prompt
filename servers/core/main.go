@@ -49,6 +49,9 @@ func getDatabaseURL() string {
 
 func sanitizeDatabaseURL(input string) string {
 	dbPassword := sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
+	if dbPassword == "" {
+		return input
+	}
 	return strings.ReplaceAll(input, dbPassword, "***")
 }
 

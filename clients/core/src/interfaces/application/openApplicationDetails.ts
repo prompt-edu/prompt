@@ -1,4 +1,4 @@
-import { CourseType } from '@tumaet/prompt-shared-state'
+import type { CourseType } from '@tumaet/prompt-shared-state'
 
 export interface OpenApplicationDetails {
   id: string

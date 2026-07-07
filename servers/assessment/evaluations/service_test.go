@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -128,6 +129,7 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Create() {
 		CompetencyID:                suite.testCompetencyID1,
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelVeryGood,
 		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Self,
 	}
 
 	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
@@ -156,6 +158,7 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Update() {
 		CompetencyID:                suite.testCompetencyID3,
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelOk,
 		AuthorCourseParticipationID: suite.testParticipantID2,
+		Type:                        assessmentType.Self,
 	}
 
 	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
@@ -189,6 +192,7 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 		CompetencyID:                suite.testCompetencyID3,
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelBad,
 		AuthorCourseParticipationID: suite.testParticipantID1,
+		Type:                        assessmentType.Self,
 	}
 
 	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
@@ -225,6 +229,7 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluation() {
 		CompetencyID:                suite.testCompetencyID2,
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
 		AuthorCourseParticipationID: suite.testParticipantID3, // Different from participant (peer evaluation)
+		Type:                        assessmentType.Peer,
 	}
 
 	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)

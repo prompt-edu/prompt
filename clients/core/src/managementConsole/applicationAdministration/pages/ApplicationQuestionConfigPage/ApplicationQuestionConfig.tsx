@@ -1,40 +1,40 @@
-import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
+import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
+import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, Loader2 } from 'lucide-react'
-import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd'
+import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Card,
   CardContent,
   SaveChangesAlert,
-  Alert,
-  AlertTitle,
-  AlertDescription,
 } from '@tumaet/prompt-ui-components'
-import {
-  ApplicationQuestionCard,
-  ApplicationQuestionCardRef,
-} from './FormPages/ApplicationQuestionCard'
-import { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { ApplicationForm } from '../../interfaces/form/applicationForm'
-import { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
-import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
-import { computeQuestionsModified } from './handlers/computeQuestionsModified'
-import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
-import { AddQuestionMenu } from './components/AddQuestionMenu'
-import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
-import { useApplicationStore } from '../../zustand/useApplicationStore'
-import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationForm } from '../../interfaces/form/applicationForm'
+import type { UpdateApplicationForm } from '../../interfaces/form/updateApplicationForm'
 import {
   APPLICATION_CSV_EXPORT_SETTINGS_KEY,
-  ApplicationCsvExportSettings,
+  type ApplicationCsvExportSettings,
   getApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../utils/applicationCsvExportSettings'
+import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { AddQuestionMenu } from './components/AddQuestionMenu'
+import {
+  ApplicationQuestionCard,
+  type ApplicationQuestionCardRef,
+} from './FormPages/ApplicationQuestionCard'
+import { computeQuestionsModified } from './handlers/computeQuestionsModified'
+import { handleQuestionUpdate } from './handlers/handleQuestionUpdate'
+import { handleSubmitAllQuestions } from './handlers/handleSubmitAllQuestions'
 
 type ApplicationQuestion =
   | ApplicationQuestionText

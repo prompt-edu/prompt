@@ -1,11 +1,11 @@
 import {
+  Button,
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  Button,
+  DialogHeader,
+  DialogTitle,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 

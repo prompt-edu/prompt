@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import type { ActionItem } from '../../../interfaces/actionItem'
 import { getMyActionItems } from '../../../network/queries/getMyActionItems'
-import { ActionItem } from '../../../interfaces/actionItem'
 
 export const useGetMyActionItems = (options?: { enabled?: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()

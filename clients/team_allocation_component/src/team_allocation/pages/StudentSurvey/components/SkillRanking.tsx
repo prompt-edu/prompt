@@ -9,9 +9,12 @@ import {
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { Star } from 'lucide-react'
-import { Skill } from '../../../interfaces/skill'
-import { SkillLevel } from '../../../interfaces/skillResponse'
-import React from 'react'
+import type { Skill } from '../../../interfaces/skill'
+import {
+  SKILL_LEVEL_LABELS,
+  SKILL_LEVEL_ORDER,
+  type SkillLevel,
+} from '../../../interfaces/skillResponse'
 
 interface SkillRankingProps {
   skills: Skill[]
@@ -20,12 +23,10 @@ interface SkillRankingProps {
   disabled: boolean
 }
 
-const skillLevelOptions = [
-  { label: 'Novice', value: SkillLevel.NOVICE },
-  { label: 'Intermediate', value: SkillLevel.INTERMEDIATE },
-  { label: 'Advanced', value: SkillLevel.ADVANCED },
-  { label: 'Expert', value: SkillLevel.EXPERT },
-]
+const skillLevelOptions = SKILL_LEVEL_ORDER.map((level) => ({
+  label: SKILL_LEVEL_LABELS[level],
+  value: level,
+}))
 
 export const SkillRanking = ({
   skills,

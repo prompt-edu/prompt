@@ -71,6 +71,12 @@ func listAssessmentsByCoursePhase(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func createOrUpdateAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req assessmentDTO.CreateOrUpdateAssessmentRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -84,8 +90,10 @@ func createOrUpdateAssessment(c *gin.Context) {
 	}
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
 	req.AuthorID = tokenUser.ID
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
 
-	err := CreateOrUpdateAssessment(c, req)
+	err = CreateOrUpdateAssessment(c, req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidScoreLevel) {
 			handleError(c, http.StatusBadRequest, err)
@@ -243,12 +251,21 @@ func getMyAssessmentResults(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/{assessmentID} [delete]
 func deleteAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
 	assessmentID, err := uuid.Parse(c.Param("assessmentID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := DeleteAssessment(c, assessmentID); err != nil {
+	if err := DeleteAssessment(c, assessmentID, coursePhaseID); err != nil {
+		if errors.Is(err, ErrAssessmentNotInPhase) {
+			handleError(c, http.StatusNotFound, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}

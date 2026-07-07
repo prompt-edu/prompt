@@ -1,3 +1,4 @@
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
@@ -5,15 +6,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { Team } from '@tumaet/prompt-shared-state'
-
-import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
-import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
-
+import type { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
+import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
+import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 import { getGridSpanClass } from './utils/getGridSpanClass'
-import { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
 
 import { groupBy } from './utils/groupBy'
 
@@ -38,7 +36,7 @@ export const TeamDiagram = ({
     }),
   ).map(([teamName, participations]) => {
     return {
-      shortLabel: teamName.length > 10 ? teamName.substring(0, 8) + '...' : teamName,
+      shortLabel: teamName.length > 10 ? `${teamName.substring(0, 8)}...` : teamName,
       label: teamName,
       participationWithAssessment: participations,
     }

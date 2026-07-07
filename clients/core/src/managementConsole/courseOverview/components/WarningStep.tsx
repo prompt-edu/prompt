@@ -1,15 +1,15 @@
+import type { QueryClient } from '@tanstack/react-query'
 import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  Button,
   Alert,
   AlertDescription,
   AlertTitle,
+  Button,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@tumaet/prompt-ui-components'
 import { AlertTriangle, Info } from 'lucide-react'
-import type { QueryClient } from '@tanstack/react-query'
 import type { CopyabilityData } from '../interfaces/copyCourseDialogProps'
 
 interface WarningStepProps {

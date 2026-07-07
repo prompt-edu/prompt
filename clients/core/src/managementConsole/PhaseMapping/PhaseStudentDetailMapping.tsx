@@ -1,3 +1,4 @@
+import type { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 import { ApplicationStudentDetailComponent } from './ExternalStudentDetailComponents/ApplicationStudentDetailComponent'
 import { AssessmentStudentDetailComponent } from './ExternalStudentDetailComponents/AssessmentStudentDetailComponent'
 import { DevOpsStudentDetailComponent } from './ExternalStudentDetailComponents/DevOpsStudentDetailComponent'
@@ -6,7 +7,6 @@ import { IntroCourseDeveloperStudentDetailComponent } from './ExternalStudentDet
 import { MatchingStudentDetailComponent } from './ExternalStudentDetailComponents/MatchingStudentDetailComponent'
 import { SelfTeamAllocationStudentDetailComponent } from './ExternalStudentDetailComponents/SelfTeamAllocationStudentDetailComponent'
 import { TeamAllocationStudentDetailComponent } from './ExternalStudentDetailComponents/TeamAllocationStudentDetailComponent'
-import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 
 function Fallback() {
   return <></>

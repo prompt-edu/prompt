@@ -1,14 +1,18 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@tumaet/prompt-ui-components'
-import { useQuery } from '@tanstack/react-query'
 import { getTemplateCourses } from '@core/network/queries/getTemplateCourses'
 import { CopyCourseDialog } from '@managementConsole/courseOverview/components/CopyCourseDialog'
-import { DialogLoadingDisplay } from '@tumaet/prompt-ui-components'
-import { DialogErrorDisplay } from '@tumaet/prompt-ui-components'
-import { FileIcon, BookOpen } from 'lucide-react'
-import { Course } from '@tumaet/prompt-shared-state'
+import { useQuery } from '@tanstack/react-query'
+import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
+import {
+  Dialog,
+  DialogContent,
+  DialogErrorDisplay,
+  DialogHeader,
+  DialogLoadingDisplay,
+  DialogTitle,
+} from '@tumaet/prompt-ui-components'
+import { BookOpen, FileIcon } from 'lucide-react'
+import { useState } from 'react'
 import { CourseTemplateIcon } from './CourseTemplateIcon'
-import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 
 interface TemplateSelectionDialogProps {
   open: boolean
@@ -66,7 +70,7 @@ export const TemplateSelectionDialog = ({ open, onOpenChange }: TemplateSelectio
                       }
                     >
                       <CourseTemplateIcon
-                        iconName={template.studentReadableData?.['icon'] || 'graduation-cap'}
+                        iconName={template.studentReadableData?.icon || 'graduation-cap'}
                         bgColor={template.studentReadableData?.['bg-color'] || 'bg-gray-100'}
                       />
                       <div className='flex flex-col flex-1 min-w-0'>

@@ -1,16 +1,16 @@
-import type React from 'react'
-import { Users, UserPlus, LogOut, Trash2, GraduationCap } from 'lucide-react'
 import type { Team } from '@tumaet/prompt-shared-state'
 import {
+  Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  Badge,
-  Button,
 } from '@tumaet/prompt-ui-components'
+import { GraduationCap, LogOut, Trash2, UserPlus, Users } from 'lucide-react'
+import type React from 'react'
 
 export interface TeamCardProps {
   team: Team
@@ -38,6 +38,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
   onDelete,
 }) => (
   <Card
+    data-testid={`team-card-${team.name}`}
     className={`overflow-hidden transition-all duration-200 flex flex-col ${
       isMember ? 'ring-2 ring-primary shadow-md' : ''
     }`}

@@ -1,4 +1,4 @@
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 
 export const checkCheckBoxQuestion = (question: ApplicationQuestionMultiSelect): boolean => {
   return (

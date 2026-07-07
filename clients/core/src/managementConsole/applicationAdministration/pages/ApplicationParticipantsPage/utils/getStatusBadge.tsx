@@ -1,5 +1,5 @@
+import type { PassStatus } from '@tumaet/prompt-shared-state'
 import { Badge } from '@tumaet/prompt-ui-components'
-import { PassStatus } from '@tumaet/prompt-shared-state'
 
 export function getStatusBadge(status: PassStatus) {
   switch (status) {

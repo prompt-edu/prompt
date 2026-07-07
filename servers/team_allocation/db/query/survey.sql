@@ -50,6 +50,55 @@ VALUES ($1, $2, $3);
 INSERT INTO student_skill_response (course_participation_id, skill_id, skill_level)
 VALUES ($1, $2, $3);
 
+-- name: GetTeamPopularityStatistics :many
+SELECT
+    t.id AS team_id,
+    t.name AS team_name,
+    COALESCE(AVG(r.preference), 0)::float8 AS avg_preference,
+    COUNT(r.course_participation_id)::bigint AS response_count
+FROM team t
+LEFT JOIN student_team_preference_response r ON r.team_id = t.id
+WHERE t.course_phase_id = $1
+GROUP BY t.id, t.name
+ORDER BY AVG(r.preference) ASC NULLS LAST;
+
+-- name: GetTeamPreferenceCounts :many
+SELECT
+    t.id AS team_id,
+    r.preference,
+    COUNT(r.course_participation_id)::int AS count
+FROM student_team_preference_response r
+JOIN team t ON t.id = r.team_id
+WHERE t.course_phase_id = $1
+GROUP BY t.id, r.preference
+ORDER BY t.id, r.preference;
+
+-- name: GetSkillDistributionStatistics :many
+SELECT
+    s.id AS skill_id,
+    s.name AS skill_name,
+    r.skill_level,
+    COUNT(r.course_participation_id) AS count
+FROM skill s
+LEFT JOIN student_skill_response r ON r.skill_id = s.id
+WHERE s.course_phase_id = $1
+GROUP BY s.id, s.name, r.skill_level
+ORDER BY s.name, r.skill_level;
+
+-- name: CountSurveyRespondents :one
+SELECT COUNT(DISTINCT course_participation_id)::bigint AS respondent_count
+FROM (
+    SELECT r.course_participation_id
+    FROM student_team_preference_response r
+    JOIN team t ON t.id = r.team_id
+    WHERE t.course_phase_id = $1
+    UNION
+    SELECT r.course_participation_id
+    FROM student_skill_response r
+    JOIN skill s ON s.id = r.skill_id
+    WHERE s.course_phase_id = $1
+) AS respondents;
+
 -- Upsert the survey timeframe for a given course phase.
 -- name: SetSurveyTimeframe :exec
 INSERT INTO survey_timeframe (course_phase_id, survey_start, survey_deadline)

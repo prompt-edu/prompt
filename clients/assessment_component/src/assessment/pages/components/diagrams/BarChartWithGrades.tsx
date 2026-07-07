@@ -1,5 +1,5 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@tumaet/prompt-ui-components'
-import { BarChart, Bar, LabelList, XAxis, YAxis, Cell } from 'recharts'
+import { Bar, BarChart, Cell, LabelList, XAxis, YAxis } from 'recharts'
 
 import { GRADE_CONFIG } from '../../utils/gradeConfig'
 

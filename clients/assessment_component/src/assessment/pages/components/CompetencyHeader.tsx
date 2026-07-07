@@ -1,4 +1,3 @@
-import { ClipboardCheck, RotateCcw } from 'lucide-react'
 import {
   Button,
   Tooltip,
@@ -6,10 +5,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-
-import { Competency } from '../../interfaces/competency'
-import { CompetencyScore } from '../../interfaces/competencyScore'
+import { ClipboardCheck, RotateCcw } from 'lucide-react'
 import { AssessmentType } from '../../interfaces/assessmentType'
+import type { Competency } from '../../interfaces/competency'
+import type { CompetencyScore } from '../../interfaces/competencyScore'
 
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
 

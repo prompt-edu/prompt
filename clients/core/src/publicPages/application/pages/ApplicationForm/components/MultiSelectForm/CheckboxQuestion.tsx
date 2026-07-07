@@ -1,7 +1,7 @@
-import React from 'react'
-import { UseFormReturn } from 'react-hook-form'
+import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import { Checkbox, FormLabel } from '@tumaet/prompt-ui-components'
-import { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type React from 'react'
+import type { UseFormReturn } from 'react-hook-form'
 import { FormDescriptionHTML } from '../FormDescriptionHTML'
 
 interface CheckboxQuestionProps {

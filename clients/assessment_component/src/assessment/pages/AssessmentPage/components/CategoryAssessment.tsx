@@ -1,16 +1,13 @@
-import { useState } from 'react'
-import { ChevronRight, ChevronDown } from 'lucide-react'
-
-import { CategoryWithCompetencies } from '../../../interfaces/category'
-import { Assessment } from '../../../interfaces/assessment'
-import { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
 import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import type { Assessment } from '../../../interfaces/assessment'
+import type { AggregatedEvaluationResult } from '../../../interfaces/assessmentResults'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
 
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
-
-import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
-
 import { AssessmentStatusBadge, StudentScoreBadge } from '../../components/badges'
+import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 import { AssessmentForm } from './AssessmentForm/AssessmentForm'
 import { CategoryComment } from './CategoryComment/CategoryComment'

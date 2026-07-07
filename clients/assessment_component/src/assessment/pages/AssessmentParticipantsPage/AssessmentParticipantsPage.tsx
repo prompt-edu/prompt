@@ -1,34 +1,33 @@
-import { useMemo } from 'react'
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import {
+  CoursePhaseParticipationsTable,
+  ErrorPage,
+  type ExtraParticipantColumn,
+  ManagementPageHeader,
+  type TableFilter,
+} from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-
-import { ManagementPageHeader, ErrorPage, TableFilter } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
-
+import { useMemo } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { AssessmentType } from '../../interfaces/assessmentType'
+import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useScoreLevelStore } from '../../zustand/useScoreLevelStore'
 import { useTeamStore } from '../../zustand/useTeamStore'
 
-import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
-
-import { AssessmentType } from '../../interfaces/assessmentType'
-
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
-import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
-
+import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
 import {
-  createScoreLevelColumn,
   createGradeSuggestionColumn,
-  createTeamColumn,
-  createSelfEvalStatusColumn,
   createPeerEvalStatusColumn,
+  createScoreLevelColumn,
+  createSelfEvalStatusColumn,
+  createTeamColumn,
   createTutorEvalStatusColumn,
 } from './columns'
-import { ExtraParticipantColumn } from '@tumaet/prompt-ui-components'
 
 export const AssessmentParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

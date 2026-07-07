@@ -1,0 +1,114 @@
+# Isolation override for the stress-test stack.
+# Used as: docker compose --env-file api-stress/stress.env \
+#            -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
+#            -p prompt-stress up -d <services>
+#
+# Why this exists: the base compose hard-codes container_name and host ports, and
+# Compose CONCATENATES ports/volumes across files. We use the `!override` tag to
+# REPLACE them so this stack never collides with an already-running PROMPT stack:
+#   - every container renamed `stress-*`
+#   - host ports remapped (+10000 offset); infra DBs not published at all
+#   - postgres/seaweedfs data moved to named volumes (keeps the worktree clean)
+#   - Keycloak KC_HOSTNAME_PORT set to the published port so token `iss` matches
+
+services:
+  # ---- infra: databases (no host ports needed; reached via in-network DNS) ----
+  db:
+    container_name: stress-db
+    ports: !override []
+    volumes: !override ["stress_pg_core:/var/lib/postgresql/data"]
+  db-team-allocation:
+    container_name: stress-db-team-allocation
+    ports: !override []
+    volumes: !override ["stress_pg_team:/var/lib/postgresql/data"]
+  db-self-team-allocation:
+    container_name: stress-db-self-team-allocation
+    ports: !override []
+    volumes: !override ["stress_pg_selfteam:/var/lib/postgresql/data"]
+  db-assessment:
+    container_name: stress-db-assessment
+    ports: !override []
+    volumes: !override ["stress_pg_assessment:/var/lib/postgresql/data"]
+  db-template-server:
+    container_name: stress-db-template
+    ports: !override []
+    volumes: !override ["stress_pg_template:/var/lib/postgresql/data"]
+  db-interview:
+    container_name: stress-db-interview
+    ports: !override []
+    volumes: !override ["stress_pg_interview:/var/lib/postgresql/data"]
+  db-certificate:
+    container_name: stress-db-certificate
+    ports: !override []
+    volumes: !override ["stress_pg_certificate:/var/lib/postgresql/data"]
+  keycloak-db:
+    container_name: stress-keycloak-db
+    ports: !override []
+    volumes: !override ["stress_pg_keycloak:/var/lib/postgresql/data"]
+
+  # ---- keycloak (published on 18081; issuer port must match) ----
+  # NOTE: pinned to 26.4.7 because the repo's pinned 26.6.3 fails to import the
+  # committed keycloakConfig.json on a fresh DB ("Duplicate resource error" /
+  # UK_J3RWUVD56ONTGSUHOGM184WW2). Recorded as a setup finding in the report.
+  keycloak:
+    container_name: stress-keycloak
+    image: quay.io/keycloak/keycloak:26.4.7
+    ports: !override ["18081:8080", "19000:9000"]
+    environment:
+      KC_HOSTNAME_PORT: "18081"
+
+  # ---- seaweedfs (only s3 gateway published, on 18334) ----
+  seaweedfs-master:
+    container_name: stress-seaweedfs-master
+    ports: !override []
+    volumes: !override ["stress_swfs_master:/data"]
+  seaweedfs-volume:
+    container_name: stress-seaweedfs-volume
+    ports: !override []
+    volumes: !override ["stress_swfs_volume:/data"]
+  seaweedfs-filer:
+    container_name: stress-seaweedfs-filer
+    ports: !override []
+    volumes: !override ["stress_swfs_filer:/data"]
+  seaweedfs-s3:
+    container_name: stress-seaweedfs-s3
+    ports: !override ["18334:8333"]
+
+  # ---- servers (remapped host ports, +10000) ----
+  server-core:
+    container_name: stress-server-core
+    # 18089 (not 18080): an unrelated stack already publishes 18080 on this host.
+    ports: !override ["18089:8080"]
+    environment:
+      S3_PUBLIC_ENDPOINT: http://localhost:18334
+  server-team-allocation:
+    container_name: stress-server-team-allocation
+    ports: !override ["18083:8080"]
+  server-self-team-allocation:
+    container_name: stress-server-self-team-allocation
+    ports: !override ["18084:8080"]
+  server-assessment:
+    container_name: stress-server-assessment
+    ports: !override ["18085:8080"]
+  server-template:
+    container_name: stress-server-template
+    ports: !override ["18086:8080"]
+  server-interview:
+    container_name: stress-server-interview
+    ports: !override ["18087:8080"]
+  server-certificate:
+    container_name: stress-server-certificate
+    ports: !override ["18088:8080"]
+
+volumes:
+  stress_pg_core:
+  stress_pg_team:
+  stress_pg_selfteam:
+  stress_pg_assessment:
+  stress_pg_template:
+  stress_pg_interview:
+  stress_pg_certificate:
+  stress_pg_keycloak:
+  stress_swfs_master:
+  stress_swfs_volume:
+  stress_swfs_filer:

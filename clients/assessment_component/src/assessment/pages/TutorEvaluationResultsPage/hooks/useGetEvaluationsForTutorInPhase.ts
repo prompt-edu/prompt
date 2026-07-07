@@ -1,7 +1,7 @@
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 
-import { Evaluation } from '../../../interfaces/evaluation'
+import type { Evaluation } from '../../../interfaces/evaluation'
 
 import { getEvaluationsForTutorInPhase } from '../../../network/queries/getEvaluationsForTutorInPhase'
 

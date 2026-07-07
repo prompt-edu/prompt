@@ -1,7 +1,7 @@
-import { ApplicationQuestionMultiSelect } from '../../interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
-import { ApplicationQuestionText } from '../../interfaces/application/applicationQuestion/applicationQuestionText'
-import { ApplicationQuestionFileUpload } from '../../interfaces/application/applicationQuestion/applicationQuestionFileUpload'
-import { OpenApplicationDetails } from '../../interfaces/application/openApplicationDetails'
+import type { ApplicationQuestionFileUpload } from '../../interfaces/application/applicationQuestion/applicationQuestionFileUpload'
+import type { ApplicationQuestionMultiSelect } from '../../interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
+import type { ApplicationQuestionText } from '../../interfaces/application/applicationQuestion/applicationQuestionText'
+import type { OpenApplicationDetails } from '../../interfaces/application/openApplicationDetails'
 
 export interface ApplicationFormWithDetails {
   applicationPhase: OpenApplicationDetails

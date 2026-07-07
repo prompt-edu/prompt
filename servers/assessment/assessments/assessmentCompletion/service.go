@@ -26,6 +26,8 @@ type AssessmentCompletionService struct {
 var AssessmentCompletionServiceSingleton *AssessmentCompletionService
 
 var ErrAssessmentCompleted = errors.New("assessment already completed")
+var ErrRemainingAssessments = errors.New("cannot mark assessment as completed, remaining assessments exist")
+var ErrNoAssessmentCompletion = errors.New("no assessment completion exists to mark as completed")
 
 const (
 	minGradeSuggestion = 1.0
@@ -131,6 +133,16 @@ func CreateOrUpdateAssessmentCompletion(ctx context.Context, req assessmentCompl
 		return err
 	}
 
+	if req.Completed {
+		remaining, err := CountRemainingAssessmentsForStudent(ctx, req.CourseParticipationID, req.CoursePhaseID)
+		if err != nil {
+			return err
+		}
+		if remaining.RemainingAssessments > 0 {
+			return ErrRemainingAssessments
+		}
+	}
+
 	tx, err := AssessmentCompletionServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -167,6 +179,14 @@ func MarkAssessmentAsCompleted(ctx context.Context, req assessmentCompletionDTO.
 		return err
 	}
 
+	exists, err := CheckAssessmentCompletionExists(ctx, req.CourseParticipationID, req.CoursePhaseID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return ErrNoAssessmentCompletion
+	}
+
 	remaining, err := CountRemainingAssessmentsForStudent(ctx, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		log.Error("could not count remaining assessments: ", err)
@@ -174,7 +194,7 @@ func MarkAssessmentAsCompleted(ctx context.Context, req assessmentCompletionDTO.
 	}
 	if remaining.RemainingAssessments > 0 {
 		log.Error("cannot mark assessment as completed, remaining assessments exist")
-		return errors.New("cannot mark assessment as completed, remaining assessments exist")
+		return ErrRemainingAssessments
 	}
 
 	tx, err := AssessmentCompletionServiceSingleton.conn.Begin(ctx)

@@ -16,6 +16,14 @@
       "description": "No minimum age for security updates",
       "matchCategories": ["security"],
       "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "Hold getsentry/sentry-go at v0.46.x — v0.47.0 removed ClientOptions.EnableLogs, still used by prompt-sdk v1.2.0. Remove once prompt-sdk supports the v0.47.0 API.",
+      "matchPackageNames": [
+        "github.com/getsentry/sentry-go",
+        "github.com/getsentry/sentry-go/**"
+      ],
+      "allowedVersions": "<0.47.0"
     }
   ]
 }

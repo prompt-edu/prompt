@@ -130,15 +130,26 @@ func listAssessmentCompletionsByCoursePhase(c *gin.Context) {
 // @Router /course_phase/{coursePhaseID}/student-assessment/completed [post]
 // @Router /course_phase/{coursePhaseID}/student-assessment/completed [put]
 func createOrUpdateAssessmentCompletion(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	err := CreateOrUpdateAssessmentCompletion(c, req)
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
+	err = CreateOrUpdateAssessmentCompletion(c, req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrRemainingAssessments) {
+			handleError(c, http.StatusBadRequest, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)
@@ -161,15 +172,30 @@ func createOrUpdateAssessmentCompletion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/completed/mark-complete [post]
 func markAssessmentAsCompleted(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	err := MarkAssessmentAsCompleted(c, req)
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
+	err = MarkAssessmentAsCompleted(c, req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrRemainingAssessments) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
+		if errors.Is(err, ErrNoAssessmentCompletion) {
+			handleError(c, http.StatusNotFound, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)

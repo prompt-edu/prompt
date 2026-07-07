@@ -1,12 +1,14 @@
 package evaluations
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
@@ -206,6 +208,10 @@ func createOrUpdateEvaluation(c *gin.Context) {
 
 	err = CreateOrUpdateEvaluation(c, coursePhaseID, request)
 	if err != nil {
+		if errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType) || errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}

@@ -8,6 +8,7 @@ export type Role =
   | 'course-lecturer'
   | 'course-editor'
   | 'student'
+  | 'student2'
 
 export interface RoleAccount {
   username: string
@@ -47,6 +48,14 @@ export const ROLES: Record<Role, RoleAccount> = {
     permission: 'PROMPT_Student',
     email: 'pgdp_enjoyer@example.com',
   },
+  // Second student enrolled in the seeded iPraktikum course, for two-user
+  // journeys (e.g. one student creates a team, the other joins it).
+  student2: {
+    username: 'student2',
+    password: 'student2',
+    permission: 'PROMPT_Student',
+    email: 'second_student@example.com',
+  },
 }
 
 // Roles we pre-authenticate in global-setup (storageState reused by tests).
@@ -56,4 +65,5 @@ export const SEEDED_ROLES: Role[] = [
   'course-lecturer',
   'course-editor',
   'student',
+  'student2',
 ]

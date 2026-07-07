@@ -1,10 +1,8 @@
 import { Card, CardContent } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
-
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
-
 import { AssessmentStatusBadge, DeadlineBadge } from '../../components/badges'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 
 interface TutorEvaluationStatusCardProps {
   completedEvaluations: number
@@ -17,7 +15,7 @@ export const TutorEvaluationStatusCard = ({
   totalEvaluations,
   isCompleted,
 }: TutorEvaluationStatusCardProps) => {
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   return (
     <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>

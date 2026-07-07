@@ -8,12 +8,12 @@ import {
 import { Loader2, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
-
+import { AssessmentType } from '../../interfaces/assessmentType'
 import { TutorEvaluationPrintReport } from '../components/AssessmentPrintReport/TutorEvaluationPrintReport'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
@@ -21,8 +21,12 @@ import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsF
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()
 
-  const { teams } = useTeamStore()
-  const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: teams } = useGetAllTeams()
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
+    coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+  )
 
   const {
     data: tutorEvaluations = [],

@@ -1,9 +1,11 @@
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import type { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
 import type { Evaluation } from '../../../interfaces/evaluation'
-import { useMyParticipationStore } from '../../../zustand/useMyParticipationStore'
+import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
 
 import { EvaluationForm } from './EvaluationForm/EvaluationForm'
 
@@ -22,7 +24,10 @@ export const CategoryEvaluation = ({
   evaluations,
   completed,
 }: CategoryEvaluationProps) => {
-  const { myParticipation } = useMyParticipationStore()
+  const { courseId } = useParams<{ courseId: string }>()
+  const { isStudentOfCourse } = useCourseStore()
+  const isStudent = isStudentOfCourse(courseId ?? '')
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
 
   const [isExpanded, setIsExpanded] = useState(true)
 

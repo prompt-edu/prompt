@@ -5,10 +5,10 @@ import { useState } from 'react'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
 import type { Evaluation } from '../../../interfaces/evaluation'
-import { useTeamStore } from '../../../zustand/useTeamStore'
 import { StudentScoreBadge } from '../../components/badges'
 import { CompetencyHeader } from '../../components/CompetencyHeader'
 import { ScoreLevelSelector } from '../../components/ScoreLevelSelector'
+import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { getAverageScoreLevel } from '../../utils/getAverageScoreLevel'
 import { getTeamMemberName } from '../../utils/getTeamMemberName'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
@@ -24,7 +24,7 @@ export const CategoryEvaluation = ({
   evaluations,
   assessmentType = AssessmentType.TUTOR,
 }: CategoryEvaluationProps) => {
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
 
   const [isExpanded, setIsExpanded] = useState(true)
 

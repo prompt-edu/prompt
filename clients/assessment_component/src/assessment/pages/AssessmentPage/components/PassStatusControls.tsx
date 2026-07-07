@@ -9,7 +9,7 @@ import {
 import { Button } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 
-import { useParticipationStore } from '../../../zustand/useParticipationStore'
+import { useGetCoursePhaseParticipations } from '../../hooks/useGetCoursePhaseParticipations'
 
 interface PassStatusControlsProps {
   courseParticipationID?: string
@@ -23,7 +23,7 @@ export const PassStatusControls = ({
   const { courseId } = useParams<{ courseId: string }>()
   const { permissions } = useAuthStore()
   const { courses } = useCourseStore()
-  const { participations } = useParticipationStore()
+  const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
   )

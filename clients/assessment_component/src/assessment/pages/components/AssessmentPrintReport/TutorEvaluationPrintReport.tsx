@@ -3,7 +3,7 @@ import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
 import type { Evaluation } from '../../../interfaces/evaluation'
 import type { FeedbackItem } from '../../../interfaces/feedbackItem'
-import { useTeamStore } from '../../../zustand/useTeamStore'
+import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { getAverageScoreLevel } from '../../utils/getAverageScoreLevel'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { getTeamMemberName } from '../../utils/getTeamMemberName'
@@ -26,7 +26,7 @@ export const TutorEvaluationPrintReport = ({
   evaluations,
   feedbackItems = [],
 }: TutorEvaluationPrintReportProps) => {
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
 
   const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name))
 

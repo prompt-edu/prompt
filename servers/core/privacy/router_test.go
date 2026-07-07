@@ -51,7 +51,7 @@ var (
 // and intentionally left as zero values since we never assert on them.
 var export4 = privacyDTO.PrivacyExport{
 	ID:        uuid.MustParse("e4444444-4444-4444-4444-444444444444"),
-	UserID:    daveUserID,
+	UserID:    &daveUserID,
 	StudentID: &daveStudentID,
 	Status:    db.ExportStatusComplete,
 }
@@ -59,7 +59,7 @@ var export4 = privacyDTO.PrivacyExport{
 // export1 – all docs successful (complete / no_data), owner: Alice
 var export1 = privacyDTO.PrivacyExport{
 	ID:          uuid.MustParse("e1111111-1111-1111-1111-111111111111"),
-	UserID:      aliceUserID,
+	UserID:      &aliceUserID,
 	StudentID:   &aliceStudentID,
 	Status:      db.ExportStatusComplete,
 	DateCreated: time.Date(2026, 3, 1, 10, 0, 0, 0, time.UTC),
@@ -84,7 +84,7 @@ var export1 = privacyDTO.PrivacyExport{
 // export2 – partially failed (complete + no_data + failed docs), owner: Bob
 var export2 = privacyDTO.PrivacyExport{
 	ID:          uuid.MustParse("e2222222-2222-2222-2222-222222222222"),
-	UserID:      bobUserID,
+	UserID:      &bobUserID,
 	StudentID:   &bobStudentID,
 	Status:      db.ExportStatusFailed,
 	DateCreated: time.Date(2026, 3, 5, 10, 0, 0, 0, time.UTC),
@@ -116,7 +116,7 @@ var export2 = privacyDTO.PrivacyExport{
 // valid_until is in the past — that is what triggers the deletion routine
 var export3 = privacyDTO.PrivacyExport{
 	ID:          uuid.MustParse("e3333333-3333-3333-3333-333333333333"),
-	UserID:      carolUserID,
+	UserID:      &carolUserID,
 	StudentID:   &carolStudentID,
 	Status:      db.ExportStatusArchived,
 	DateCreated: time.Date(2026, 2, 1, 10, 0, 0, 0, time.UTC),

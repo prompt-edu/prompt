@@ -5,11 +5,11 @@ import { useParams } from 'react-router-dom'
 
 import type { ActionItem } from '../../interfaces/actionItem'
 import { getAllActionItemsForStudentInPhase } from '../../network/queries/getAllActionItemsForStudentInPhase'
-import { useCategoryStore } from '../../zustand/useCategoryStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
 import { AssessmentPrintReport } from '../components/AssessmentPrintReport/AssessmentPrintReport'
+import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { AssessmentExportMenu } from './components/AssessmentExportMenu'
 import { AssessmentHeader } from './components/AssessmentHeader'
@@ -26,12 +26,12 @@ export const AssessmentPage = () => {
   }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const { categories } = useCategoryStore()
-  const { participations } = useParticipationStore()
+  const { data: categories } = useGetAllCategoriesWithCompetencies()
+  const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
   )
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const evaluationEnabled =
     coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled

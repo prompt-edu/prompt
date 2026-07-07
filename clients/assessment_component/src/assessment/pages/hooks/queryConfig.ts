@@ -1,0 +1,1 @@
+export const SHELL_QUERY_STALE_TIME = 5_000

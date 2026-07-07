@@ -11,8 +11,8 @@ import { Link, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
 import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
 import { schemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
@@ -80,7 +80,7 @@ const isAssessmentTypeEnabled = (
 
 export const SchemaConfigurationPage = () => {
   const { schemaId } = useParams<{ schemaId: string }>()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const {
     data: schemas,
     isPending: isSchemasPending,

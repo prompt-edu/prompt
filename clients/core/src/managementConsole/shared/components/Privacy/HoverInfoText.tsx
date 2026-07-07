@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 interface HoverInfoTextProps {
   children: ReactNode

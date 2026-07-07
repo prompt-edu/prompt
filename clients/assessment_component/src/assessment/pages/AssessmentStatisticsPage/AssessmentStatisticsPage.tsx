@@ -1,11 +1,6 @@
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-
-import { useCategoryStore } from '../../zustand/useCategoryStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { useScoreLevelStore } from '../../zustand/useScoreLevelStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
 import { AuthorDiagram } from '../components/diagrams/AuthorDiagram'
 import { CategoryDiagram } from '../components/diagrams/CategoryDiagram'
 import { GenderDiagram } from '../components/diagrams/GenderDiagram'
@@ -16,6 +11,10 @@ import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevel
 import { TeamDiagram } from '../components/diagrams/TeamDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
 import { useGetAllAssessments } from '../hooks/useGetAllAssessments'
+import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { FilterBadges } from './components/FilterBadges'
 
 import { FilterMenu, type StatisticsFilter } from './components/FilterMenu'
@@ -24,10 +23,10 @@ import { useFilteredParticipations } from './hooks/useFilteredParticipations'
 export const AssessmentStatisticsPage = () => {
   const [filters, setFilters] = useState<StatisticsFilter>({})
 
-  const { categories } = useCategoryStore()
-  const { participations } = useParticipationStore()
-  const { scoreLevels } = useScoreLevelStore()
-  const { teams } = useTeamStore()
+  const { data: categories } = useGetAllCategoriesWithCompetencies()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: scoreLevels } = useGetAllScoreLevels()
+  const { data: teams } = useGetAllTeams()
 
   const {
     data: assessments,

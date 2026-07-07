@@ -3,14 +3,14 @@ import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { GraduationCap, User, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
-import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
+import { AssessmentType } from '../../interfaces/assessmentType'
 import { TeamBadge } from '../components/badges'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
+import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
+import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
 import { EvaluationInfoCard } from './components/EvaluationInfoCard'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
 import { PeerEvaluationStatusCard } from './components/PeerEvaluationStatusCard'
@@ -23,20 +23,26 @@ export const EvaluationOverviewPage = () => {
   const isStudent = isStudentOfCourse(courseId ?? '')
 
   const path = useLocation().pathname
-  const {
-    selfEvaluations,
-    peerEvaluations,
-    tutorEvaluations,
-    selfEvaluationCompletion,
-    peerEvaluationCompletions,
-    tutorEvaluationCompletions,
-  } = useEvaluationStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
-  const { myParticipation } = useMyParticipationStore()
-  const { teams } = useTeamStore()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { selfEvaluations, peerEvaluations, tutorEvaluations } = useGetMyEvaluations({
+    enabled: isStudent,
+  })
+  const { selfEvaluationCompletion, peerEvaluationCompletions, tutorEvaluationCompletions } =
+    useGetMyEvaluationCompletions({ enabled: isStudent })
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
+    coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+  )
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
+  const { data: teams } = useGetAllTeams()
 
   const team = teams.find((t) =>
     t.members.some((member) => member.id === myParticipation?.courseParticipationID || !isStudent),

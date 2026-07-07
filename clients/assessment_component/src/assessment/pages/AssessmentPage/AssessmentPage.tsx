@@ -2,10 +2,10 @@ import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useCategoryStore } from '../../zustand/useCategoryStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
+import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { AssessmentExportMenu } from './components/AssessmentExportMenu'
 import { AssessmentHeader } from './components/AssessmentHeader'
@@ -18,12 +18,12 @@ export const AssessmentPage = () => {
   const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const { categories } = useCategoryStore()
-  const { participations } = useParticipationStore()
+  const { data: categories } = useGetAllCategoriesWithCompetencies()
+  const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
   )
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const {
     data: studentAssessment,

@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { Competency } from '../../interfaces/competency'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 
 interface ScoreLevelSelectorProps {
   className?: string
@@ -50,7 +50,7 @@ export const ScoreLevelSelector = ({
   peerEvaluationScoreLevel,
   peerEvaluationStudentAnswers,
 }: ScoreLevelSelectorProps) => {
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const descriptionsByLevel = mapCompetencyDescriptionsByLevel(competency)
   const showIndicators = coursePhaseConfig?.evaluationResultsVisible || completed
   const indicators: Partial<Record<ScoreLevel, ReactNode[]>> = {}

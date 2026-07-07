@@ -2,6 +2,7 @@ package applicationAdministration
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,7 @@ import (
 const externalUploaderID = "external"
 
 // maxUploadRequestBodyBytes bounds the JSON metadata body of the file-upload
-// endpoints; anything larger is rejected as a bad request.
+// endpoints; anything larger is rejected with 413 Request Entity Too Large.
 const maxUploadRequestBodyBytes = 1 << 20 // 1 MiB
 
 type applicationPresignUploadRequest struct {
@@ -323,6 +324,11 @@ func getApplicationFileDownloadURL(c *gin.Context) {
 func bindUploadJSON(c *gin.Context, body any) bool {
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadRequestBodyBytes)
 	if err := c.ShouldBindJSON(body); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": fmt.Sprintf("request body exceeds maximum size of %d bytes", maxUploadRequestBodyBytes)})
+			return false
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return false
 	}

@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import { AlertCircle, ArrowRight, Calendar, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 
 interface EvaluationInfoHeaderProps {
   allEvaluationsCompleted: boolean
@@ -15,7 +15,7 @@ export const EvaluationInfoHeader = ({
   resultsLink,
 }: EvaluationInfoHeaderProps) => {
   const navigate = useNavigate()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const now = new Date()
   const selfEvaluationStarted =

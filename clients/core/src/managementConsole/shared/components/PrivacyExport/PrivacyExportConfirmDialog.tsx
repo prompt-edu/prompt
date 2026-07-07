@@ -43,7 +43,7 @@ export function PrivacyExportConfirmationDialog({
                 <span>The export process may take a few minutes.</span>
               </li>
             </ul>
-            <PrivacyServiceAvailability />
+            <PrivacyServiceAvailability forSelf />
           </div>
         </AlertDialogHeader>
         <AlertDialogFooter>

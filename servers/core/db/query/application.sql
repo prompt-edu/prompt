@@ -389,3 +389,8 @@ SELECT aa.*
 FROM application_assessment aa
 WHERE aa.course_participation_id = ANY($1::uuid[]);
 
+-- name: GetApplicationFileIDsByCourseParticipationIDs :many
+SELECT file_id
+FROM application_answer_file_upload
+WHERE course_participation_id = ANY($1::uuid[]);
+

@@ -47,9 +47,9 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
 		return Export{}, err
 	}
 
-	coursePhaseTypes, err := coursePhaseType.GetAllCoursePhaseTypes(c)
+	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudent(c, subjectIdentifiers.StudentID)
 	if err != nil {
-		return Export{}, err
+		return Export{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}
 
 	externalExportDocs := make([]ServiceExportRequest, 0)

@@ -23,7 +23,7 @@ import type {
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
 import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
-import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
 import { ReminderTemplateEditor } from './components/ReminderTemplateEditor'
@@ -44,7 +44,7 @@ export const AssessmentReminderCard = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const courseMailingIsConfigured = useGetMailingIsConfigured()
 
   const [subject, setSubject] = useState('')

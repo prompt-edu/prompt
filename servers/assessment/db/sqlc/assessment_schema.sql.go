@@ -469,7 +469,7 @@ func (q *Queries) UpdateAssessmentCompetencies(ctx context.Context, arg UpdateAs
 	return err
 }
 
-const updateAssessmentSchema = `-- name: UpdateAssessmentSchema :exec
+const updateAssessmentSchema = `-- name: UpdateAssessmentSchema :execrows
 UPDATE assessment_schema
 SET name        = $2,
     description = $3,
@@ -483,9 +483,12 @@ type UpdateAssessmentSchemaParams struct {
 	Description pgtype.Text `json:"description"`
 }
 
-func (q *Queries) UpdateAssessmentSchema(ctx context.Context, arg UpdateAssessmentSchemaParams) error {
-	_, err := q.db.Exec(ctx, updateAssessmentSchema, arg.ID, arg.Name, arg.Description)
-	return err
+func (q *Queries) UpdateAssessmentSchema(ctx context.Context, arg UpdateAssessmentSchemaParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateAssessmentSchema, arg.ID, arg.Name, arg.Description)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateCategoryAssessmentCategories = `-- name: UpdateCategoryAssessmentCategories :exec

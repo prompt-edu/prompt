@@ -154,7 +154,7 @@ func createAssessmentSchema(c *gin.Context) {
 	}
 
 	var request assessmentSchemaDTO.CreateAssessmentSchemaRequest
-	if err := c.BindJSON(&request); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -187,13 +187,17 @@ func updateAssessmentSchema(c *gin.Context) {
 	}
 
 	var request assessmentSchemaDTO.UpdateAssessmentSchemaRequest
-	if err := c.BindJSON(&request); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = UpdateAssessmentSchema(c, schemaID, request)
 	if err != nil {
+		if errors.Is(err, ErrSchemaNotFound) {
+			handleError(c, http.StatusNotFound, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -226,6 +230,10 @@ func deleteAssessmentSchema(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	log.WithError(err).Error("Error in assessment schema handler")
+	if statusCode >= http.StatusInternalServerError {
+		log.WithError(err).Error("Error in assessment schema handler")
+	} else {
+		log.WithError(err).Warn("Client error in assessment schema handler")
+	}
 	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

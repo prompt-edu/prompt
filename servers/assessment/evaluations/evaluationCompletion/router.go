@@ -70,11 +70,19 @@ func listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [post]
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [put]
 func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
 
 	statusCode, err := utils.ValidateStudentOwnership(c, req.AuthorCourseParticipationID)
 	if err != nil {
@@ -108,11 +116,19 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/mark-complete [post]
 func markMyEvaluationAsCompleted(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
 
 	statusCode, err := utils.ValidateStudentOwnership(c, req.AuthorCourseParticipationID)
 	if err != nil {
@@ -145,6 +161,12 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/unmark [put]
 func unmarkMyEvaluationAsCompleted(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req struct {
 		CourseParticipationID       uuid.UUID `json:"courseParticipationID"`
 		CoursePhaseID               uuid.UUID `json:"coursePhaseID"`
@@ -154,6 +176,8 @@ func unmarkMyEvaluationAsCompleted(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	// The authorized phase is the one in the URL; ignore any client-sent phase.
+	req.CoursePhaseID = coursePhaseID
 
 	statusCode, err := utils.ValidateStudentOwnership(c, req.AuthorCourseParticipationID)
 	if err != nil {

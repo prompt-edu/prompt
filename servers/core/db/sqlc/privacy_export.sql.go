@@ -38,7 +38,7 @@ RETURNING id, user_id, student_id, status, date_created, valid_until, next_reque
 
 type CreateNewExportParams struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	Status               ExportStatus       `json:"status"`
 	ValidUntil           pgtype.Timestamptz `json:"valid_until"`
@@ -132,7 +132,7 @@ ORDER BY e.date_created DESC
 
 type GetAllExportsRow struct {
 	ID                   uuid.UUID          `json:"id"`
-	UserID               uuid.UUID          `json:"user_id"`
+	UserID               pgtype.UUID        `json:"user_id"`
 	StudentID            pgtype.UUID        `json:"student_id"`
 	StudentFirstName     pgtype.Text        `json:"student_first_name"`
 	StudentLastName      pgtype.Text        `json:"student_last_name"`
@@ -204,6 +204,30 @@ func (q *Queries) GetExportDocObjectKeysByExportID(ctx context.Context, exportID
 			return nil, err
 		}
 		items = append(items, object_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getExportIDsForUser = `-- name: GetExportIDsForUser :many
+SELECT id FROM privacy_export WHERE user_id = $1 AND status != 'archived'
+`
+
+func (q *Queries) GetExportIDsForUser(ctx context.Context, userID pgtype.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getExportIDsForUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -286,7 +310,7 @@ const getLatestExportForUserForUpdate = `-- name: GetLatestExportForUserForUpdat
 SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at FROM privacy_export WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1 FOR UPDATE
 `
 
-func (q *Queries) GetLatestExportForUserForUpdate(ctx context.Context, userID uuid.UUID) (PrivacyExport, error) {
+func (q *Queries) GetLatestExportForUserForUpdate(ctx context.Context, userID pgtype.UUID) (PrivacyExport, error) {
 	row := q.db.QueryRow(ctx, getLatestExportForUserForUpdate, userID)
 	var i PrivacyExport
 	err := row.Scan(
@@ -305,7 +329,7 @@ const getLatestExportForUserWithDocs = `-- name: GetLatestExportForUserWithDocs 
 SELECT id, user_id, student_id, status, date_created, valid_until, next_request_allowed_at, documents FROM privacy_export_with_docs WHERE user_id = $1 ORDER BY date_created DESC LIMIT 1
 `
 
-func (q *Queries) GetLatestExportForUserWithDocs(ctx context.Context, userID uuid.UUID) (PrivacyExportWithDoc, error) {
+func (q *Queries) GetLatestExportForUserWithDocs(ctx context.Context, userID pgtype.UUID) (PrivacyExportWithDoc, error) {
 	row := q.db.QueryRow(ctx, getLatestExportForUserWithDocs, userID)
 	var i PrivacyExportWithDoc
 	err := row.Scan(

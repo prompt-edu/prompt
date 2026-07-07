@@ -2,6 +2,9 @@
 SELECT * FROM student
 WHERE id = $1 LIMIT 1;
 
+-- name: GetExistingStudentIDs :many
+SELECT id FROM student WHERE id = ANY($1::uuid[]);
+
 -- name: GetStudentByCourseParticipationID :one
 SELECT s.*
 FROM student s
@@ -47,6 +50,9 @@ SELECT * FROM student
 WHERE university_login = $1
 LIMIT 1;
 
+-- name: DeleteStudentByID :exec
+DELETE FROM student WHERE id = $1;
+
 -- name: SearchStudents :many
 SELECT *
 FROM student
@@ -80,6 +86,7 @@ SELECT
   s.has_university_account AS student_has_university_account,
   s.current_semester,
   s.study_program,
+  s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
       jsonb_build_object(

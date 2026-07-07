@@ -88,7 +88,8 @@ CREATE TABLE public.assessment_completion (
     author text NOT NULL,
     comment text DEFAULT '' NOT NULL,
     grade_suggestion numeric(2, 1) DEFAULT 4.0 NOT NULL,
-    completed boolean DEFAULT false NOT NULL
+    completed boolean DEFAULT false NOT NULL,
+    CONSTRAINT assessment_completion_grade_suggestion_check CHECK (grade_suggestion >= 1.0 AND grade_suggestion <= 6.0)
 );
 
 --

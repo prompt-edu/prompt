@@ -89,7 +89,7 @@ export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.
 export const FULL_COURSE_STUDENT = {
-  id: 'a5000005-0000-4000-8000-000000000005',
+  id: 'e0000005-0000-0000-0000-000000000005',
   courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
   matriculationNumber: '00000005',
   universityLogin: 'no42tum',

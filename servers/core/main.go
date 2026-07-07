@@ -164,7 +164,7 @@ func main() {
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
 	isDevEnvironment := environment == "development"
-	coursePhaseType.InitCoursePhaseTypeModule(api, *query, conn, isDevEnvironment)
+	coursePhaseType.InitCoursePhaseTypeModule(api, keycloakTokenVerifier.KeycloakMiddleware, *query, conn, isDevEnvironment)
 
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolution.InitResolutionModule(coreHost)

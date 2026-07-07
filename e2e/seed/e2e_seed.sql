@@ -628,13 +628,13 @@ INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPrak
 -- (matched to the student rows below via matriculation_number/university_login
 -- token claims). Neither is enrolled in TestCourse — its self team allocation
 -- phase is the negative-auth fixture.
-INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000005-0000-4000-8000-000000000005');
+INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
 -- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
 -- second in-course student.
-INSERT INTO public.course_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'a5000005-0000-4000-8000-000000000005');
+INSERT INTO public.course_participation VALUES ('a0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000008-0000-4000-8000-000000000008', 'c0000001-0000-0000-0000-000000000001', 'a5000007-0000-4000-8000-000000000007');
 INSERT INTO public.course_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', '3869f209-9a21-4595-ae0e-bc6d6a3e2d63');
 INSERT INTO public.course_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', '5eb545c2-c2eb-4c77-9c0f-46ccf7c45d07');
@@ -895,7 +895,7 @@ INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Nicl
 -- must match the realm user attributes in e2e/keycloak/realm.json). `student`
 -- (Stan, 00000005/no42tum) is also the iPraktikumFull participant a0000001, so
 -- its full-course participation resolves to a DB-derived Student role.
-INSERT INTO public.student VALUES ('a5000005-0000-4000-8000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+INSERT INTO public.student VALUES ('e0000005-0000-0000-0000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 
 

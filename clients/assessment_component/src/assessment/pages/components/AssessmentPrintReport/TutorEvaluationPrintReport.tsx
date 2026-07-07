@@ -1,12 +1,15 @@
-import { mapNumberToScoreLevel, mapScoreLevelToNumber } from '@tumaet/prompt-shared-state'
+import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
 import type { Evaluation } from '../../../interfaces/evaluation'
 import type { FeedbackItem } from '../../../interfaces/feedbackItem'
 import { useTeamStore } from '../../../zustand/useTeamStore'
+import { getAverageScoreLevel } from '../../utils/getAverageScoreLevel'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
+import { getTeamMemberName } from '../../utils/getTeamMemberName'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 import { ScoreChip } from './AssessmentPrintReport'
+import { FeedbackSection } from './FeedbackSection'
 
 interface TutorEvaluationPrintReportProps {
   tutorName: string
@@ -25,17 +28,7 @@ export const TutorEvaluationPrintReport = ({
 }: TutorEvaluationPrintReportProps) => {
   const { teams } = useTeamStore()
 
-  const resolveAuthorName = (authorCourseParticipationID: string) => {
-    for (const team of teams) {
-      const member = team.members.find((m) => m.id === authorCourseParticipationID)
-      if (member) return `${member.firstName} ${member.lastName}`
-    }
-    return 'Unknown member'
-  }
-
   const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name))
-  const positiveFeedback = feedbackItems.filter((item) => item.feedbackType === 'positive')
-  const negativeFeedback = feedbackItems.filter((item) => item.feedbackType === 'negative')
 
   return (
     <div className='print-report hidden text-black print:block'>
@@ -67,15 +60,7 @@ export const TutorEvaluationPrintReport = ({
                 const competencyEvaluations = evaluations.filter(
                   (evaluation) => evaluation.competencyID === competency.id,
                 )
-                const averageLevel =
-                  competencyEvaluations.length > 0
-                    ? mapNumberToScoreLevel(
-                        competencyEvaluations.reduce(
-                          (sum, evaluation) => sum + mapScoreLevelToNumber(evaluation.scoreLevel),
-                          0,
-                        ) / competencyEvaluations.length,
-                      )
-                    : undefined
+                const averageLevel = getAverageScoreLevel(competencyEvaluations)
 
                 return (
                   <div
@@ -101,7 +86,7 @@ export const TutorEvaluationPrintReport = ({
                           <li key={evaluation.id} className='flex items-center gap-2 text-sm'>
                             <ScoreChip scoreLevel={evaluation.scoreLevel} />
                             <span className='text-gray-700'>
-                              {resolveAuthorName(evaluation.authorCourseParticipationID)}
+                              {getTeamMemberName(teams, evaluation.authorCourseParticipationID)}
                             </span>
                           </li>
                         ))}
@@ -115,31 +100,7 @@ export const TutorEvaluationPrintReport = ({
         )
       })}
 
-      {(positiveFeedback.length > 0 || negativeFeedback.length > 0) && (
-        <section className='break-inside-avoid'>
-          <h2 className='mb-2 border-b border-gray-200 pb-1 text-lg font-semibold'>Feedback</h2>
-          {positiveFeedback.length > 0 && (
-            <div className='mb-3'>
-              <h3 className='text-sm font-medium'>What went well</h3>
-              <ul className='ml-5 list-disc text-sm text-gray-700'>
-                {positiveFeedback.map((item) => (
-                  <li key={item.id}>{item.feedbackText}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {negativeFeedback.length > 0 && (
-            <div>
-              <h3 className='text-sm font-medium'>Where to improve</h3>
-              <ul className='ml-5 list-disc text-sm text-gray-700'>
-                {negativeFeedback.map((item) => (
-                  <li key={item.id}>{item.feedbackText}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
+      <FeedbackSection feedbackItems={feedbackItems} />
     </div>
   )
 }

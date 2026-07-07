@@ -35,7 +35,10 @@ export const AssessmentPage = () => {
 
   const evaluationEnabled =
     coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled
-  const { feedbackItems } = useGetFeedbackItemsForStudent(courseParticipationID ?? '')
+  const { feedbackItems } = useGetFeedbackItemsForStudent(
+    courseParticipationID ?? '',
+    !!evaluationEnabled,
+  )
   const { data: actionItems = [] } = useQuery<ActionItem[]>({
     queryKey: ['actionItems', phaseId, courseParticipationID],
     queryFn: () => getAllActionItemsForStudentInPhase(phaseId ?? '', courseParticipationID ?? ''),
@@ -126,7 +129,7 @@ export const AssessmentPage = () => {
         categories={categories}
         feedbackItems={feedbackItems}
         actionItems={actionItems}
-        showFeedbackItems={!!evaluationEnabled}
+        showFeedbackItems={evaluationEnabled}
       />
     </>
   )

@@ -1,4 +1,4 @@
-import { mapNumberToScoreLevel, mapScoreLevelToNumber } from '@tumaet/prompt-shared-state'
+import { mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 import { getLevelConfig } from '@tumaet/prompt-ui-components'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
@@ -9,6 +9,8 @@ import { useTeamStore } from '../../../zustand/useTeamStore'
 import { StudentScoreBadge } from '../../components/badges'
 import { CompetencyHeader } from '../../components/CompetencyHeader'
 import { ScoreLevelSelector } from '../../components/ScoreLevelSelector'
+import { getAverageScoreLevel } from '../../utils/getAverageScoreLevel'
+import { getTeamMemberName } from '../../utils/getTeamMemberName'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 
 interface CategoryEvaluationProps {
@@ -23,16 +25,6 @@ export const CategoryEvaluation = ({
   assessmentType = AssessmentType.TUTOR,
 }: CategoryEvaluationProps) => {
   const { teams } = useTeamStore()
-
-  const getTeamMemberName = (authorCourseParticipationID: string) => {
-    for (const team of teams) {
-      const member = team.members.find((m) => m.id === authorCourseParticipationID)
-      if (member) {
-        return `${member.firstName} ${member.lastName}`
-      }
-    }
-    return 'Unknown member'
-  }
 
   const [isExpanded, setIsExpanded] = useState(true)
 
@@ -73,15 +65,7 @@ export const CategoryEvaluation = ({
             const competencyEvaluations = evaluations.filter(
               (e) => e.competencyID === competency.id,
             )
-            const avgNumeric =
-              competencyEvaluations.length > 0
-                ? competencyEvaluations.reduce(
-                    (sum, evaluation) => sum + mapScoreLevelToNumber(evaluation.scoreLevel),
-                    0,
-                  ) / competencyEvaluations.length
-                : undefined
-            const evaluationAverageScoreLevel =
-              avgNumeric === undefined ? undefined : mapNumberToScoreLevel(avgNumeric)
+            const evaluationAverageScoreLevel = getAverageScoreLevel(competencyEvaluations)
             const studentNames = [
               () => (
                 <span>
@@ -94,7 +78,9 @@ export const CategoryEvaluation = ({
                       >
                         {getLevelConfig(evaluation.scoreLevel).title}
                       </span>
-                      <span>{getTeamMemberName(evaluation.authorCourseParticipationID)}</span>
+                      <span>
+                        {getTeamMemberName(teams, evaluation.authorCourseParticipationID)}
+                      </span>
                     </div>
                   ))}
                 </span>

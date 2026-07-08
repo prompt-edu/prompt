@@ -38,8 +38,11 @@ export class ApplyPage {
     await this.page.getByLabel(/Current Semester/).fill(applicant.currentSemester)
   }
 
+  // The question form's FormControl wraps a div (not the input itself), so the
+  // label has no control association; locate the field inside the label's item.
   async answerTextQuestion(title: string, answer: string) {
-    await this.page.getByLabel(new RegExp(title)).fill(answer)
+    const formItem = this.page.locator('label', { hasText: title }).locator('..')
+    await formItem.getByRole('textbox').fill(answer)
   }
 
   async submit() {

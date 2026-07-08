@@ -85,6 +85,11 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
 
+// Interview phase on TestCourse with NO participants: requests by the e2e
+// users must be rejected (negative auth fixture). The main interview phase is
+// FULL_COURSE_PHASES.interview (graph phase on fullCourse with participants).
+export const INTERVIEW_FOREIGN_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'
+
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.

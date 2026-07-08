@@ -9,7 +9,6 @@ import { Loader2, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { TutorEvaluationPrintReport } from '../components/AssessmentPrintReport/TutorEvaluationPrintReport'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -90,70 +89,60 @@ export const TutorEvaluationResultsPage = () => {
   }
 
   return (
-    <>
-      <div className='space-y-4 print:hidden'>
-        <ManagementPageHeader>
-          Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
-        </ManagementPageHeader>
+    <div className='space-y-4'>
+      <ManagementPageHeader>
+        Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+      </ManagementPageHeader>
 
-        {tutorEvaluationCategories.length === 0 ? (
-          <Card>
-            <CardContent className='p-6'>
-              <p className='text-center text-muted-foreground'>
-                No evaluation categories configured yet.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className='space-y-6'>
-            <div className='space-y-4'>
-              {tutorEvaluationCategories.map((category) => {
-                return (
-                  <CategoryEvaluation
-                    key={category.id}
-                    category={category}
-                    evaluations={tutorEvaluations.filter((evaluation) =>
-                      category.competencies
-                        .map((competency) => competency.id)
-                        .includes(evaluation.competencyID),
-                    )}
-                  />
-                )
-              })}
-            </div>
-
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-              <FeedbackItemDisplayPanel
-                feedbackItems={negativeFeedbackItems}
-                feedbackType='negative'
-                studentName={tutor.firstName}
-              />
-              <FeedbackItemDisplayPanel
-                feedbackItems={positiveFeedbackItems}
-                feedbackType='positive'
-                studentName={tutor.firstName}
-              />
-            </div>
+      {tutorEvaluationCategories.length === 0 ? (
+        <Card>
+          <CardContent className='p-6'>
+            <p className='text-center text-muted-foreground'>
+              No evaluation categories configured yet.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className='space-y-6'>
+          <div className='space-y-4'>
+            {tutorEvaluationCategories.map((category) => {
+              return (
+                <CategoryEvaluation
+                  key={category.id}
+                  category={category}
+                  evaluations={tutorEvaluations.filter((evaluation) =>
+                    category.competencies
+                      .map((competency) => competency.id)
+                      .includes(evaluation.competencyID),
+                  )}
+                />
+              )
+            })}
           </div>
-        )}
 
-        {tutorEvaluationCategories.length > 0 && (
-          <div className='flex justify-end pt-4'>
-            <Button variant='outline' onClick={printPage} className='gap-2'>
-              <Printer className='h-4 w-4' />
-              PDF / Print
-            </Button>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+            <FeedbackItemDisplayPanel
+              feedbackItems={negativeFeedbackItems}
+              feedbackType='negative'
+              studentName={tutor.firstName}
+            />
+            <FeedbackItemDisplayPanel
+              feedbackItems={positiveFeedbackItems}
+              feedbackType='positive'
+              studentName={tutor.firstName}
+            />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <TutorEvaluationPrintReport
-        tutorName={`${tutor.firstName} ${tutor.lastName}`}
-        teamName={tutor.teamName}
-        categories={tutorEvaluationCategories}
-        evaluations={tutorEvaluations}
-        feedbackItems={feedbackItems}
-      />
-    </>
+      {tutorEvaluationCategories.length > 0 && (
+        <div className='flex justify-end pt-4 print:hidden'>
+          <Button variant='outline' onClick={printPage} className='gap-2'>
+            <Printer className='h-4 w-4' />
+            PDF / Print
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }

@@ -39,6 +39,7 @@ func Middleware(q db.Queries) gin.HandlerFunc {
 			CoursePhaseID:   coursePhaseID,
 			UniversityLogin: teamDTO.UniversityLoginParam(login),
 		})
+		// No tutor row: genuine editors/organizers (and tutors whose university_login isn't recorded) keep full, unscoped access by design.
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.Next()
 			return

@@ -60,7 +60,7 @@ func getAllAllocations(c *gin.Context) {
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Param courseParticipationID path string true "Course Participation UUID"
-// @Success 200 {object} allocationDTO.AllocationWithParticipation
+// @Success 200 {string} string "Assigned team UUID"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string

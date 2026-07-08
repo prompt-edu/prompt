@@ -314,7 +314,7 @@ func importTutors(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
-// @Param universityLogin path string true "Tutor university login (TUM format aa00aaa)"
+// @Param universityLogin path string true "Tutor university login (trimmed and lowercased; used as a lookup key, not format-validated)"
 // @Param request body teamDTO.UpdateTutorTeamRequest true "New team ID"
 // @Success 200
 // @Failure 400 {object} map[string]string

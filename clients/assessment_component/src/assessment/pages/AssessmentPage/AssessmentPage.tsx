@@ -122,7 +122,6 @@ export const AssessmentPage = () => {
         categories={categories}
         feedbackItems={feedbackItems}
         actionItems={actionItems}
-        showFeedbackItems={evaluationEnabled}
       />
     </>
   )

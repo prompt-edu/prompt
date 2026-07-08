@@ -13,20 +13,12 @@ interface AssessmentPrintReportProps {
   categories: CategoryWithCompetencies[]
   feedbackItems?: FeedbackItem[]
   actionItems?: ActionItem[]
-  showGradingSheet?: boolean
-  showGradeSuggestion?: boolean
-  showActionItems?: boolean
-  showFeedbackItems?: boolean
 }
 
 export const AssessmentPrintReport = ({
   categories,
   feedbackItems = [],
   actionItems = [],
-  showGradingSheet = true,
-  showGradeSuggestion = true,
-  showActionItems = true,
-  showFeedbackItems = false,
 }: AssessmentPrintReportProps) => {
   const {
     assessmentParticipation,
@@ -55,14 +47,14 @@ export const AssessmentPrintReport = ({
           <span>
             <strong>Status:</strong> {assessmentCompletion?.completed ? 'Finalized' : 'In progress'}
           </span>
-          {showGradingSheet && studentScore && (
+          {studentScore && (
             <span className='flex items-center gap-2'>
               <strong>Overall score:</strong>
               <ScoreChip scoreLevel={studentScore.scoreLevel} />
               <span className='text-gray-600'>({studentScore.scoreNumeric.toFixed(1)})</span>
             </span>
           )}
-          {showGradeSuggestion && assessmentCompletion?.gradeSuggestion ? (
+          {assessmentCompletion?.gradeSuggestion ? (
             <span>
               <strong>Grade suggestion:</strong> {assessmentCompletion.gradeSuggestion.toFixed(1)}
             </span>
@@ -70,66 +62,65 @@ export const AssessmentPrintReport = ({
         </div>
       </header>
 
-      {showGradingSheet &&
-        sortedCategories.map((category) => {
-          const categoryScores = assessments.filter((assessment) =>
-            category.competencies.some((competency) => competency.id === assessment.competencyID),
-          )
-          const categoryScore = getWeightedScoreLevel(categoryScores, [category])
-          const comment = categoryAssessments.find((ca) => ca.categoryID === category.id)?.comment
-          const sortedCompetencies = [...category.competencies].sort((a, b) =>
-            a.name.localeCompare(b.name),
-          )
+      {sortedCategories.map((category) => {
+        const categoryScores = assessments.filter((assessment) =>
+          category.competencies.some((competency) => competency.id === assessment.competencyID),
+        )
+        const categoryScore = getWeightedScoreLevel(categoryScores, [category])
+        const comment = categoryAssessments.find((ca) => ca.categoryID === category.id)?.comment
+        const sortedCompetencies = [...category.competencies].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        )
 
-          return (
-            <section key={category.id} className='mb-6'>
-              <div className='mb-2 flex items-center justify-between gap-2 border-b border-gray-200 pb-1'>
-                <h2 className='text-lg font-semibold'>{category.name}</h2>
-                {categoryScores.length > 0 && (
-                  <ScoreChip scoreLevel={mapNumberToScoreLevel(categoryScore)} />
-                )}
-              </div>
-
-              {comment && (
-                <p className='mb-3 whitespace-pre-wrap text-sm italic text-gray-700'>{comment}</p>
+        return (
+          <section key={category.id} className='mb-6'>
+            <div className='mb-2 flex items-center justify-between gap-2 border-b border-gray-200 pb-1'>
+              <h2 className='text-lg font-semibold'>{category.name}</h2>
+              {categoryScores.length > 0 && (
+                <ScoreChip scoreLevel={mapNumberToScoreLevel(categoryScore)} />
               )}
+            </div>
 
-              <div className='space-y-3'>
-                {sortedCompetencies.map((competency) => {
-                  const assessment = categoryScores.find(
-                    (item) => item.competencyID === competency.id,
-                  )
-                  return (
-                    <div
-                      key={competency.id}
-                      className='break-inside-avoid rounded-sm border border-gray-200 p-3'
-                    >
-                      <div className='flex items-center justify-between gap-2'>
-                        <h3 className='text-sm font-medium'>{competency.name}</h3>
-                        {assessment ? (
-                          <ScoreChip scoreLevel={assessment.scoreLevel} />
-                        ) : (
-                          <span className='text-xs text-gray-400'>Not assessed</span>
-                        )}
-                      </div>
-                      {assessment && (
-                        <p className='mt-1 text-sm text-gray-700'>
-                          {getScoreLevelDescription(assessment.scoreLevel, competency)}
-                        </p>
+            {comment && (
+              <p className='mb-3 whitespace-pre-wrap text-sm italic text-gray-700'>{comment}</p>
+            )}
+
+            <div className='space-y-3'>
+              {sortedCompetencies.map((competency) => {
+                const assessment = categoryScores.find(
+                  (item) => item.competencyID === competency.id,
+                )
+                return (
+                  <div
+                    key={competency.id}
+                    className='break-inside-avoid rounded-sm border border-gray-200 p-3'
+                  >
+                    <div className='flex items-center justify-between gap-2'>
+                      <h3 className='text-sm font-medium'>{competency.name}</h3>
+                      {assessment ? (
+                        <ScoreChip scoreLevel={assessment.scoreLevel} />
+                      ) : (
+                        <span className='text-xs text-gray-400'>Not assessed</span>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })}
+                    {assessment && (
+                      <p className='mt-1 text-sm text-gray-700'>
+                        {getScoreLevelDescription(assessment.scoreLevel, competency)}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
 
-      {showFeedbackItems && <FeedbackSection feedbackItems={feedbackItems} />}
+      <FeedbackSection feedbackItems={feedbackItems} />
 
       {(assessmentCompletion?.comment ||
-        (showActionItems && actionItems.length > 0) ||
-        (showGradeSuggestion && assessmentCompletion?.gradeSuggestion)) && (
+        actionItems.length > 0 ||
+        assessmentCompletion?.gradeSuggestion) && (
         <section className='break-inside-avoid'>
           <h2 className='mb-2 border-b border-gray-200 pb-1 text-lg font-semibold'>Summary</h2>
           {assessmentCompletion?.comment && (
@@ -140,7 +131,7 @@ export const AssessmentPrintReport = ({
               </p>
             </div>
           )}
-          {showActionItems && actionItems.length > 0 && (
+          {actionItems.length > 0 && (
             <div className='mb-3'>
               <h3 className='text-sm font-medium'>Action items</h3>
               <ul className='ml-5 list-disc text-sm text-gray-700'>
@@ -150,7 +141,7 @@ export const AssessmentPrintReport = ({
               </ul>
             </div>
           )}
-          {showGradeSuggestion && assessmentCompletion?.gradeSuggestion ? (
+          {assessmentCompletion?.gradeSuggestion ? (
             <p className='text-sm'>
               <strong>Grade suggestion:</strong> {assessmentCompletion.gradeSuggestion.toFixed(1)}
             </p>

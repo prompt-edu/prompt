@@ -131,13 +131,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
         ) : null}
       </div>
 
-      <AssessmentPrintReport
-        categories={assessmentCategories}
-        actionItems={results.actionItems}
-        showGradingSheet={gradingSheetVisible}
-        showActionItems={actionItemsVisible}
-        showGradeSuggestion={gradeSuggestionVisible}
-      />
+      <AssessmentPrintReport categories={assessmentCategories} actionItems={results.actionItems} />
     </>
   )
 }

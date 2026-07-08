@@ -55,7 +55,7 @@ export const CreateAssessmentSchemaDialog = ({
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant='outline' size='icon' disabled={disabled}>
+        <Button variant='outline' size='icon' disabled={disabled} aria-label='Create new schema'>
           <Plus className='h-4 w-4' />
         </Button>
       </DialogTrigger>

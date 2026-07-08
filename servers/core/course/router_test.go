@@ -152,6 +152,20 @@ func (suite *CourseRouterTestSuite) TestArchiveCourse() {
 	assert.True(suite.T(), updatedCourse.ArchivedOn.Valid, "ArchivedOn should be set")
 }
 
+func (suite *CourseRouterTestSuite) TestArchiveCourseNotFound() {
+	nonExistentID := uuid.New().String()
+
+	updateRequest := courseDTO.CourseArchiveStatus{Archived: true}
+	body, _ := json.Marshal(updateRequest)
+	req, _ := http.NewRequest("PUT", "/api/courses/"+nonExistentID+"/archive", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+}
+
 func (suite *CourseRouterTestSuite) TestUnarchiveCourse() {
 	courseID := "c1f8060d-7381-4b64-a6ea-5ba8e8ac88dd"
 

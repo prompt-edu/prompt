@@ -77,6 +77,10 @@ services:
         condition: service_started
       client-self-team-allocation:
         condition: service_started
+      server-assessment:
+        condition: service_started
+      client-assessment:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -178,6 +182,78 @@ services:
         [
           "CMD-SHELL",
           "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Assessment phase module (server + MF remote + own DB) ────────────────
+  # Second phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-assessment:
+    build:
+      context: ./servers/assessment
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-assessment
+    depends_on:
+      db-assessment:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_ASSESSMENT_USER}
+      - DB_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - DB_NAME=${DB_ASSESSMENT_NAME}
+      - DB_HOST_ASSESSMENT=${DB_ASSESSMENT_HOST}
+      - DB_PORT_ASSESSMENT=${DB_ASSESSMENT_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /assessment/api/info through the client-core proxy.
+
+  client-assessment:
+    build:
+      context: ./clients/assessment_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-assessment
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /assessment/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-assessment:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-assessment
+    environment:
+      - POSTGRES_USER=${DB_ASSESSMENT_USER}
+      - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - POSTGRES_DB=${DB_ASSESSMENT_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB (they
+    # create the default assessment/evaluation schemas) and the tests create
+    # all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}",
         ]
       interval: 5s
       timeout: 5s
@@ -375,6 +451,11 @@ services:
         condition: service_healthy
       server-self-team-allocation:
         # distroless; global-setup polls /self-team-allocation/api/info.
+        condition: service_started
+      client-assessment:
+        condition: service_healthy
+      server-assessment:
+        # distroless; global-setup polls /assessment/api/info.
         condition: service_started
     environment:
       - CI

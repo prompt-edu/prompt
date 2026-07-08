@@ -4736,9 +4736,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-ui-components@npm:1.1.5":
-  version: 1.1.5
-  resolution: "@tumaet/prompt-ui-components@npm:1.1.5"
+"@tumaet/prompt-ui-components@npm:1.1.6":
+  version: 1.1.6
+  resolution: "@tumaet/prompt-ui-components@npm:1.1.6"
   dependencies:
     "@hookform/resolvers": "npm:^5.4.0"
     "@radix-ui/react-accordion": "npm:^1.2.14"
@@ -4790,12 +4790,12 @@ __metadata:
     js-sha256: "npm:^0.11.1"
     lowlight: "npm:^3.3.0"
     lucide-react: "npm:^1.22.0"
-    postcss: "npm:^8.5.15"
+    postcss: "npm:^8.5.16"
     postcss-preset-env: "npm:^11.3.2"
     react-day-picker: "npm:8.10.2"
     react-hook-form: "npm:^7.80.0"
     react-medium-image-zoom: "npm:^5.4.8"
-    recharts: "npm:^3.9.0"
+    recharts: "npm:^3.9.1"
     sonner: "npm:^2.0.7"
     tailwind-merge: "npm:^3.6.0"
     tsc-alias: "npm:^1.8.17"
@@ -4806,7 +4806,7 @@ __metadata:
     react: ^19.2.7
     react-dom: ^19.2.7
     react-router-dom: ^7.14.2
-  checksum: 10c0/7ff9b3632eac3d33ac3a2d19d64ae75b66d73d209cdabeeeb1a5f4113e74a75fc4de5d16427e29c922d4a10b5047e902612028316b5af58cef5f606cb2c9a93d
+  checksum: 10c0/21ad4c253293aeea1455913593896ef96b4a08c6a72b07510dfa9d383514eda362158e37c74380abdedb2daeae86c4195ab815955c708ca2de047dc002c6d164
   languageName: node
   linkType: hard
 
@@ -7555,9 +7555,9 @@ __metadata:
   linkType: hard
 
 "immer@npm:^11.1.8":
-  version: 11.1.9
-  resolution: "immer@npm:11.1.9"
-  checksum: 10c0/71635a4de5cc00697687d693aaecab1f94f6fc8dc7f854fd36c3dacdc5fddbceefada83fc29115f48002a040368d5e040900e9652c2cda121bd01271a08efbe9
+  version: 11.1.11
+  resolution: "immer@npm:11.1.11"
+  checksum: 10c0/b660b4308966775f8514da8b266d061d90bab83ac90c7be6c400fac66f71054a85a272eb97f87f1c4cad5f9bab92e62ed3d2312bb65308debe4d3318d06ad9e2
   languageName: node
   linkType: hard
 
@@ -10228,7 +10228,7 @@ __metadata:
     "@tiptap/react": "npm:^3.27.1"
     "@tiptap/starter-kit": "npm:^3.27.1"
     "@tumaet/prompt-shared-state": "npm:1.1.1"
-    "@tumaet/prompt-ui-components": "npm:1.1.5"
+    "@tumaet/prompt-ui-components": "npm:1.1.6"
     "@types/node": "npm:^25.9.4"
     "@types/react": "npm:^19.2.17"
     "@types/react-beautiful-dnd": "npm:^13.1.8"
@@ -10819,9 +10819,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"recharts@npm:^3.9.0":
-  version: 3.9.1
-  resolution: "recharts@npm:3.9.1"
+"recharts@npm:^3.9.1":
+  version: 3.9.2
+  resolution: "recharts@npm:3.9.2"
   dependencies:
     "@reduxjs/toolkit": "npm:^1.9.0 || 2.x.x"
     clsx: "npm:^2.1.1"
@@ -10838,7 +10838,7 @@ __metadata:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-is: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/081106d981a250b8163633810db5b54132aba1efcf677216dd238853e78d185e6453c0c5811aec1451df1eb017aa1e9cfbe726d6d74246f8f3cda8799fd44cc9
+  checksum: 10c0/4054833c67b6951d1fa989082c3b9fd14520f1828775deca51fb16b26300fd25de2c03446751046f5c03da65281e4663c92111fd165f8101b4ead5f8a33be7fc
   languageName: node
   linkType: hard
 

@@ -416,12 +416,7 @@ func archiveCourse(c *gin.Context) {
 
 	updatedCourse, err := UpdateCourseArchiveStatus(c, courseID, update.Archived)
 	if err != nil {
-		log.Error(err)
-		handleError(
-			c,
-			http.StatusInternalServerError,
-			errors.New("failed to update course archive status"),
-		)
+		utils.RespondWithDBError(c, err)
 		return
 	}
 

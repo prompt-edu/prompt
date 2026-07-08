@@ -195,4 +195,45 @@ export class AssessmentPage {
     await this.page.getByRole('button', { name: 'Yes, Mark as Final' }).click()
     await expect(this.page.getByRole('button', { name: 'Unmark as Final' })).toBeVisible()
   }
+
+  // ── Print report ─────────────────────────────────────────────────────────
+
+  // The hidden report (`.print-report`, `hidden print:block`) that becomes the
+  // printed page under print media. On-screen it has no box.
+  printReport(): Locator {
+    return this.page.locator('.print-report')
+  }
+
+  // The core shell's sidebar wrapper: shadcn renders a gap/spacer div plus a
+  // fixed sidebar under one `data-side` wrapper, the only direct child of the
+  // SidebarProvider wrapper carrying that attribute. The print fix hides it so
+  // the report is not pushed to the right half of the page.
+  private sidebarWrapper(): Locator {
+    return this.page.locator('.group\\/sidebar-wrapper > [data-side]')
+  }
+
+  // Under print media the sidebar must be gone and the report must fill the
+  // page (regression guard for the "renders only on the right half" bug). Resets
+  // media emulation before returning.
+  async expectPrintReportFillsPage() {
+    await this.page.emulateMedia({ media: 'print' })
+    try {
+      const report = this.printReport()
+      await expect(report).toBeVisible()
+      await expect(this.sidebarWrapper()).toBeHidden()
+
+      const viewport = this.page.viewportSize()
+      const box = await report.boundingBox()
+      expect(viewport, 'viewport size').not.toBeNull()
+      expect(box, 'print report bounding box').not.toBeNull()
+      // The sidebar-hidden assertion above is the real regression guard; this
+      // just confirms the report is not squeezed to the right half. Pre-fix the
+      // reserved sidebar spacer (~271px expanded) pushed x right and shrank the
+      // report; full-width means a near-left start spanning most of the page.
+      expect(box!.x).toBeLessThan(60)
+      expect(box!.width).toBeGreaterThan(viewport!.width * 0.9)
+    } finally {
+      await this.page.emulateMedia({ media: null })
+    }
+  }
 }

@@ -17,7 +17,7 @@ import (
 
 func setupTeamRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
 	teamRouter := routerGroup.Group("/team")
-	scopingMW := tutorscope.Middleware(queries)
+	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(queries))
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllTeams)
 	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createTeams)
@@ -58,7 +58,7 @@ func getAllTeams(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
+	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped {
 		teams = filterTeamsByID(teams, tutorTeamID)
 	}
 
@@ -102,7 +102,7 @@ func getTeamByID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}

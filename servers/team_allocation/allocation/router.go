@@ -16,7 +16,7 @@ import (
 
 func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := tutorscope.Middleware(queries)
+	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(queries))
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllocationByCourseParticipationID)
@@ -46,7 +46,7 @@ func getAllAllocations(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
+	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped {
 		allocations = filterAllocationsByTeam(allocations, tutorTeamID)
 	}
 
@@ -89,7 +89,7 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}

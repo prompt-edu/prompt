@@ -7,7 +7,7 @@
     "dev": "rspack serve --mode development",
     "lint": "biome check src",
     "lint:fix": "biome check src --fix",
-    "test": "../node_modules/.bin/ts-node --compiler-options '{\"module\":\"commonjs\"}' src/assessment/pages/SettingsPage/components/AssessmentReminderCard/utils.test.ts",
+    "test": "../node_modules/.bin/ts-node --compiler-options '{\"module\":\"commonjs\"}' src/assessment/pages/SettingsPage/components/AssessmentReminderCard/utils.test.ts && ../node_modules/.bin/ts-node --compiler-options '{\"module\":\"commonjs\"}' src/assessment/pages/components/diagrams/utils/buildChartDescription.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "build": "rspack --mode=production --env NODE_ENV=production",
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"

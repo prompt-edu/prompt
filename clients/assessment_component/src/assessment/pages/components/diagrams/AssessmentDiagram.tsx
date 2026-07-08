@@ -44,7 +44,14 @@ export const AssessmentDiagram = ({
   completions,
   assessmentType = AssessmentType.ASSESSMENT,
 }: AssessmentDiagramProps) => {
-  const { chartData, totalAssessments } = React.useMemo(() => {
+  const noun =
+    assessmentType === AssessmentType.SELF
+      ? 'self evaluations'
+      : assessmentType === AssessmentType.PEER
+        ? 'peer evaluations'
+        : 'assessments'
+
+  const { chartData, totalAssessments, chartDescription } = React.useMemo(() => {
     const completed = participations.filter((p) =>
       completions?.find((c) => c.courseParticipationID === p.courseParticipationID && c.completed),
     ).length
@@ -64,19 +71,13 @@ export const AssessmentDiagram = ({
         { status: 'completed', applications: completed, fill: chartConfig.completed.color },
       ],
       totalAssessments: participations.length,
+      chartDescription:
+        `${participations.length} ${noun} in total: ${completed} completed, ` +
+        `${inProgress} in progress, ${notAssessed} not assessed.`,
     }
-  }, [participations, completions, scoreLevels])
+  }, [participations, completions, scoreLevels, noun])
 
-  const noun =
-    assessmentType === AssessmentType.SELF
-      ? 'self evaluations'
-      : assessmentType === AssessmentType.PEER
-        ? 'peer evaluations'
-        : 'assessments'
   const chartTitle = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} status`
-  const chartDescription =
-    `${totalAssessments} ${noun} in total: ${chartData[2].applications} completed, ` +
-    `${chartData[1].applications} in progress, ${chartData[0].applications} not assessed.`
 
   return (
     <Card className='flex flex-col'>

@@ -68,6 +68,17 @@ export const FULL_COURSE_ROLES = {
   editor: 'ios2425-iPraktikumFull-Editor',
 }
 
+// CLOSED Application phase on TestCourse (applicationEndDate in the past):
+// the public apply endpoints must reject it (GET 404, POST 400).
+export const CLOSED_APPLICATION_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'
+
+// Required text question on FULL_COURSE_PHASES.application; every application
+// posted to that phase must answer it.
+export const FULL_COURSE_APPLICATION_QUESTION = {
+  id: 'ab000001-0000-0000-0000-000000000001',
+  title: 'Motivation',
+}
+
 // Self Team Allocation phase on iPraktikum (follows the Application phase).
 // The Keycloak users `student` / `student2` are enrolled participants.
 export const SELF_TEAM_ALLOCATION_PHASE_ID = 'aaaa2222-0000-0000-0000-0000000000a2'

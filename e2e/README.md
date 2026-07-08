@@ -254,6 +254,12 @@ not from Keycloak). The `lecturer` and `course-lecturer` users hold the
 `FULL_COURSE_PHASES`, `FULL_COURSE_STUDENT`, and `FULL_COURSE_ROLES` in
 `src/data/constants.ts`.
 
+The `iPraktikumFull` Application phase is open (start 2020, end 2099, external
+students allowed) and carries one required text question (`Motivation`) so the
+application journey exercises the configurable form. `TestCourse` has a
+**closed** Application phase (`CLOSED_APPLICATION_PHASE_ID`, deadline in 2020)
+as the negative fixture for the public apply endpoints.
+
 > The course name (`iPraktikumFull`) and `semester_tag` (`ios2425`) are
 > **hyphen-free on purpose**: the course-list query parses course roles with
 > `split_part(role, '-', N)`, so a hyphen in either would break course

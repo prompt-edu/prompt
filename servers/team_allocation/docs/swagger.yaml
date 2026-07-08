@@ -347,9 +347,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Assigned team UUID
           schema:
-            $ref: '#/definitions/allocationDTO.AllocationWithParticipation'
+            type: string
         "400":
           description: Bad Request
           schema:
@@ -1029,7 +1029,8 @@ paths:
         name: coursePhaseID
         required: true
         type: string
-      - description: Tutor university login (TUM format aa00aaa)
+      - description: Tutor university login (trimmed and lowercased; used as a lookup
+          key, not format-validated)
         in: path
         name: universityLogin
         required: true

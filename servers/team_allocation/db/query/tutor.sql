@@ -3,7 +3,7 @@ INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_na
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (course_phase_id, course_participation_id) DO UPDATE
     SET team_id          = EXCLUDED.team_id,
-        university_login = EXCLUDED.university_login,
+        university_login = COALESCE(EXCLUDED.university_login, tutor.university_login),
         first_name       = EXCLUDED.first_name,
         last_name        = EXCLUDED.last_name;
 

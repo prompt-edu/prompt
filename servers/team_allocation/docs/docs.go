@@ -103,9 +103,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Assigned team UUID",
                         "schema": {
-                            "$ref": "#/definitions/allocationDTO.AllocationWithParticipation"
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -979,7 +979,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Tutor university login (TUM format aa00aaa)",
+                        "description": "Tutor university login (trimmed and lowercased; used as a lookup key, not format-validated)",
                         "name": "universityLogin",
                         "in": "path",
                         "required": true

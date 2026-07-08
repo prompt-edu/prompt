@@ -30,6 +30,6 @@ jobs:
       - name: Type check ${{ matrix.module }}
         run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
       - name: Lint components in ${{ matrix.module }}
-        run: yarn eslint "${{ matrix.module }}" --config "${{ matrix.module }}/eslint.config.mjs"
+        run: yarn biome check "${{ matrix.module }}"
       - name: Build component ${{ matrix.module }}
         run: yarn --cwd "${{ matrix.module }}" build

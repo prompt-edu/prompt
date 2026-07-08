@@ -1,4 +1,4 @@
-import { Assessment } from '../../interfaces/assessment'
+import type { Assessment } from '../../interfaces/assessment'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllAssessmentsInPhase = async (coursePhaseID: string): Promise<Assessment[]> => {

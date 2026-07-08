@@ -1,13 +1,9 @@
-import { ReactNode, useMemo } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { PromptTable } from '@tumaet/prompt-ui-components'
-
-import { useTeamStore } from '../../zustand/useTeamStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-
 import type { ColumnDef } from '@tanstack/react-table'
+import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import { type ReactNode, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 
 interface TutorRow {
   id: string
@@ -20,8 +16,8 @@ export const TutorOverviewPage = (): ReactNode => {
   const navigate = useNavigate()
   const path = useLocation().pathname
 
-  const { teams } = useTeamStore()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: teams } = useGetAllTeams()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const data: TutorRow[] = useMemo(() => {
     return teams.flatMap((team) =>

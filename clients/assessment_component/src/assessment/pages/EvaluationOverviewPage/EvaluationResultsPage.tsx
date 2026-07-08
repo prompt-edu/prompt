@@ -1,14 +1,14 @@
-import { useNavigate } from 'react-router-dom'
+import { Button, Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { ArrowLeft } from 'lucide-react'
-import { ManagementPageHeader, Card, CardContent, Button } from '@tumaet/prompt-ui-components'
+import { useNavigate } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 
 import { AssessmentResultsSection } from './components/AssessmentResultsSection'
 
 export const EvaluationResultsPage = () => {
   const navigate = useNavigate()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
 
   return (

@@ -1,7 +1,7 @@
 export { AssessmentStatusBadge } from './AssessmentStatusBadge'
 export { DeadlineBadge } from './DeadlineBadge'
-export { GradeSuggestionBadgeWithTooltip } from './GradeSuggestionBadgeTooltip'
 export { GradeSuggestionBadge } from './GradeSuggestionBadge'
+export { GradeSuggestionBadgeWithTooltip } from './GradeSuggestionBadgeTooltip'
 export { PeerEvaluationCompletionBadge } from './PeerEvaluationCompletionBadge'
 export { StudentScoreBadge } from './StudentScoreBadge'
 export { TeamBadge } from './TeamBadge'

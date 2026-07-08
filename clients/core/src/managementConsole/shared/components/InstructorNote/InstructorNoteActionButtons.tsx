@@ -1,5 +1,5 @@
 import { Button } from '@tumaet/prompt-ui-components'
-import { Trash2, Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 
 interface NoteActionButtonsProps {
   isVisible: boolean

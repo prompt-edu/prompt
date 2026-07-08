@@ -1,4 +1,4 @@
-import { SurveyStatistics } from '../../interfaces/surveyStatistics'
+import type { SurveyStatistics } from '../../interfaces/surveyStatistics'
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const getSurveyStatistics = async (coursePhaseID: string): Promise<SurveyStatistics> => {

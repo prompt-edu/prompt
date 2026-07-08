@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { CoursePhaseType } from '../interfaces/coursePhaseType'
+import type { CoursePhaseType } from '../interfaces/coursePhaseType'
 import { getCoursePhaseTypes } from '../network/getCoursePhaseTypes'
 
-export function useGetCoursePhaseTypes() {
+export function useGetCoursePhaseTypes(forSelf?: boolean) {
   return useQuery<CoursePhaseType[]>({
-    queryKey: ['coursePhaseType'],
-    queryFn: getCoursePhaseTypes,
+    queryKey: ['coursePhaseType', forSelf ? 'self' : 'all'],
+    queryFn: () => getCoursePhaseTypes(forSelf),
   })
 }

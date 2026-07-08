@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
 import {
-  getCoursePhase,
   type CoursePhaseWithMetaData,
+  getCoursePhase,
   useGetMailingIsConfigured,
   useModifyCoursePhase,
 } from '@tumaet/prompt-shared-state'
-import { useParams } from 'react-router-dom'
-
 import {
   Alert,
   AlertDescription,
@@ -17,6 +13,9 @@ import {
   Card,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import type { AxiosError } from 'axios'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 import type {
   AssessmentReminderMetaData,
@@ -24,7 +23,7 @@ import type {
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
 import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
-import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
 import { ReminderTemplateEditor } from './components/ReminderTemplateEditor'
@@ -45,7 +44,7 @@ export const AssessmentReminderCard = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const courseMailingIsConfigured = useGetMailingIsConfigured()
 
   const [subject, setSubject] = useState('')

@@ -1,6 +1,5 @@
-import { MessageCircle } from 'lucide-react'
-
 import { Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
+import { MessageCircle } from 'lucide-react'
 
 import type { FeedbackItem, FeedbackType } from '../../../interfaces/feedbackItem'
 import { FeedbackItemRow } from './FeedbackItemRow'

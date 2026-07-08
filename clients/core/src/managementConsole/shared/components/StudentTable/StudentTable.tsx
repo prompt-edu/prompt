@@ -1,20 +1,25 @@
 import {
   getStudentsWithCourses,
-  StudentWithCourses,
+  type StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
-import { ColumnDef } from '@tanstack/react-table'
-import { PromptTable, RowAction, TableFilter } from '@tumaet/prompt-ui-components'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Role } from '@tumaet/prompt-shared-state'
+import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useStudentStore } from '../../store/student.store'
+import { PrivacyDeletionInitiateDialog } from '../PrivacyDeletion/PrivacyDeletionInitiateDialog'
+import { useHasRolePermission } from '../ShowForRole'
+import { getStudentTableActions } from './studentTableActions'
 import { studentTableColumns } from './studentTableColumns'
 import { getStudentTableFilters } from './studentTableFilters'
-import { getStudentTableActions } from './studentTableActions'
-import { useStudentStore } from '../../store/student.store'
 
 export const StudentTable = () => {
   const [studentsWithCourses, setStudentsWithCourses] = useState<Array<StudentWithCourses>>([])
+  const [studentsToDelete, setStudentsToDelete] = useState<string[] | null>(null)
 
   const { upsertStudents } = useStudentStore()
+  const isAdmin = useHasRolePermission({ roles: [Role.PROMPT_ADMIN] })
 
   const navigate = useNavigate()
   const openStudent = useCallback(
@@ -22,14 +27,15 @@ export const StudentTable = () => {
     [navigate],
   )
 
-  useEffect(() => {
-    const fetchStudents = async () => {
-      const s = await getStudentsWithCourses()
-      setStudentsWithCourses(s)
-      upsertStudents(s)
-    }
-    fetchStudents()
+  const fetchStudents = useCallback(async () => {
+    const s = await getStudentsWithCourses()
+    setStudentsWithCourses(s)
+    upsertStudents(s)
   }, [upsertStudents])
+
+  useEffect(() => {
+    fetchStudents()
+  }, [fetchStudents])
 
   const columns: ColumnDef<StudentWithCourses>[] = useMemo(() => studentTableColumns, [])
 
@@ -39,8 +45,14 @@ export const StudentTable = () => {
   )
 
   const actions: RowAction<StudentWithCourses>[] = useMemo(
-    () => getStudentTableActions({ openStudent }),
-    [openStudent],
+    () =>
+      getStudentTableActions({
+        openStudent,
+        onInitiateDeletion: isAdmin
+          ? (students) => setStudentsToDelete(students.map((s) => s.id))
+          : undefined,
+      }),
+    [openStudent, isAdmin],
   )
   return (
     <div className='flex flex-col gap-3 w-full'>
@@ -50,6 +62,14 @@ export const StudentTable = () => {
         filters={filters}
         actions={actions}
         onRowClick={openStudent}
+      />
+      <PrivacyDeletionInitiateDialog
+        studentIDs={studentsToDelete ?? []}
+        open={studentsToDelete !== null}
+        onClose={() => {
+          setStudentsToDelete(null)
+          fetchStudents()
+        }}
       />
     </div>
   )

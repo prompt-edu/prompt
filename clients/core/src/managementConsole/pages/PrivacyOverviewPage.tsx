@@ -1,4 +1,4 @@
-import { ManagementPageHeader, Card, CardContent } from '@tumaet/prompt-ui-components'
+import { Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { ChevronRight, Download, Trash2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 

@@ -1,13 +1,13 @@
+import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { useCourseStaff } from '../hooks/useCourseStaff'
-import { useAddCourseStaffMember } from '../hooks/useAddCourseStaffMember'
-import { useRemoveCourseStaffMember } from '../hooks/useRemoveCourseStaffMember'
-import { StaffMemberTable } from '../components/StaffMemberTable'
 import { AddUserDialog } from '../components/AddUserDialog'
-import { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
+import { StaffMemberTable } from '../components/StaffMemberTable'
+import { useAddCourseStaffMember } from '../hooks/useAddCourseStaffMember'
+import { useCourseStaff } from '../hooks/useCourseStaff'
+import { useRemoveCourseStaffMember } from '../hooks/useRemoveCourseStaffMember'
+import type { CourseGroupName, StaffMember } from '../interfaces/StaffMember'
 
 export const CourseUserManagementPage = () => {
   const { courseId } = useParams<{ courseId: string }>()

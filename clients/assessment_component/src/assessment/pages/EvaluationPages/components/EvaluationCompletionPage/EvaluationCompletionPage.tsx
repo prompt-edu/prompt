@@ -1,18 +1,15 @@
+import { Alert, AlertDescription, Button } from '@tumaet/prompt-ui-components'
+import { Info, Lock, Unlock } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Lock, Unlock } from 'lucide-react'
 
-import { Button, Alert, AlertDescription } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../../interfaces/assessmentType'
 
 import { AssessmentCompletionDialog } from '../../../components/AssessmentCompletionDialog'
 import { DeadlineBadge } from '../../../components/badges'
-
+import { FeedbackItemPanel } from './components/FeedbackItemPanel'
 import { useMarkMyEvaluationAsCompleted } from './hooks/useMarkMyEvaluationAsCompleted'
 import { useUnmarkMyEvaluationAsCompleted } from './hooks/useUnmarkMyEvaluationAsCompleted'
-
-import { FeedbackItemPanel } from './components/FeedbackItemPanel'
 
 interface EvaluationCompletionPageProps {
   type: AssessmentType
@@ -83,6 +80,17 @@ export const EvaluationCompletionPage = ({
 
   return (
     <div>
+      {!completed && (
+        <Alert className='mb-4'>
+          <Info className='h-4 w-4' />
+          <AlertDescription>
+            Comments are optional, but a few specific sentences make your feedback far more valuable
+            than scores alone. They help the recipient understand what to keep doing and where to
+            improve.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
         <FeedbackItemPanel
           assessmentType={type}

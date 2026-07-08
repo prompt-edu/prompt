@@ -1,10 +1,10 @@
 import { useQueries } from '@tanstack/react-query'
-import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { KeycloakStatusCard } from './components/KeycloakStatusCard'
-import { ServiceInfo } from './interfaces/serviceCapabilities'
-import { CoursePhaseType } from './interfaces/coursePhaseType'
-import { getServiceInfo } from './network/getServiceCapabilities'
+import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
+import type { CoursePhaseType } from './interfaces/coursePhaseType'
+import type { ServiceInfo } from './interfaces/serviceCapabilities'
+import { getServiceInfo } from './network/getServiceCapabilities'
 
 export const SystemStatusPage = () => {
   const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()
@@ -12,7 +12,7 @@ export const SystemStatusPage = () => {
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {
       return {
-        queryKey: ['serviceInfo-' + service.id],
+        queryKey: [`serviceInfo-${service.id}`],
         queryFn: () => getServiceInfo(service),
         retry: false,
         staleTime: 30_000,

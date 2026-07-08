@@ -1,19 +1,19 @@
 {
   "name": "matching_component",
-  "version": "2.15.1",
+  "version": "2.15.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
     "dev": "rspack serve --mode development",
-    "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "lint": "biome check src",
+    "lint:fix": "biome check src --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "build": "rspack --mode=production --env NODE_ENV=production",
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "@rspack/cli": "^2.0.8",
-    "@rspack/core": "^2.0.8"
+    "@rspack/cli": "^2.1.2",
+    "@rspack/core": "^2.1.2"
   },
   "packageManager": "yarn@4.17.0",
   "dependencies": {

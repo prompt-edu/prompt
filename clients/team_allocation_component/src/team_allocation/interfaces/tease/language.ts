@@ -1,4 +1,4 @@
-import { LanguageProficiency } from './languageProficiency'
+import type { LanguageProficiency } from './languageProficiency'
 
 export interface Language {
   language: string

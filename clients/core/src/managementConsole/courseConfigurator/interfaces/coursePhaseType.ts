@@ -1,5 +1,5 @@
-import { ProvidedOutputDTO } from './providedOutputDto'
-import { RequiredInputDTO } from './requiredInputDto'
+import type { ProvidedOutputDTO } from './providedOutputDto'
+import type { RequiredInputDTO } from './requiredInputDto'
 
 export interface CoursePhaseType {
   id: string

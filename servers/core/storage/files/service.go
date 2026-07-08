@@ -16,9 +16,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -376,10 +376,11 @@ func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID, hardD
 			return fmt.Errorf("failed to delete file record: %w", err)
 		}
 
-		// Delete from storage backend
+		// Delete from storage backend. The record is already gone at this point,
+		// so a failure here leaves an orphaned blob; surface it and let the caller
+		// decide how to handle it rather than silently reporting success.
 		if err := s.storageAdapter.Delete(ctx, fileResp.StorageKey); err != nil {
-			log.WithError(err).WithField("fileId", fileID).Warn("File record deleted but storage deletion failed - orphaned storage object")
-			return nil
+			return fmt.Errorf("file record deleted but storage deletion failed (orphaned blob): %w", err)
 		}
 
 		log.WithField("fileId", fileID).Info("File hard deleted successfully")

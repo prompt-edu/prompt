@@ -1,4 +1,4 @@
-import { CoursePhaseTypeMetaDataItem } from '@tumaet/prompt-shared-state'
+import type { CoursePhaseTypeMetaDataItem } from '@tumaet/prompt-shared-state'
 import { renderTooltipList } from './renderTooltipList'
 
 /** Helper: Renders tooltip content based on meta-data name */

@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Copy, Check, Link } from 'lucide-react'
 import { Button } from '@tumaet/prompt-ui-components'
+import { Check, Copy, Link } from 'lucide-react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 export const SurveyLinkCard = () => {

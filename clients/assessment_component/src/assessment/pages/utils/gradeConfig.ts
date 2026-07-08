@@ -37,7 +37,7 @@ export const validateGrade = (
 
   const gradeValue = parseFloat(gradeString)
 
-  if (isNaN(gradeValue)) {
+  if (Number.isNaN(gradeValue)) {
     return { isValid: false, error: 'Grade must be a valid number' }
   }
 

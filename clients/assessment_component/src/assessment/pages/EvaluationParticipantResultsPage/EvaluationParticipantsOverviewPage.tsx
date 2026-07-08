@@ -1,25 +1,22 @@
-import { ReactNode, useMemo } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-
-import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
-import { Team } from '@tumaet/prompt-shared-state'
-
 import type { ColumnDef } from '@tanstack/react-table'
+import type { Team } from '@tumaet/prompt-shared-state'
+import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { type ReactNode, useMemo } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
+import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
-
-import { PeerEvaluationCompletionBadge } from '../components/badges'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
 } from '../AssessmentParticipantsPage/utils/evaluationUtils'
+import { PeerEvaluationCompletionBadge } from '../components/badges'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 
 interface EvaluationParticipantRow {
   id: string
@@ -66,9 +63,9 @@ export const EvaluationParticipantsOverviewPage = ({
   const navigate = useNavigate()
   const path = useLocation().pathname
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { participations } = useParticipationStore()
-  const { teams } = useTeamStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: teams } = useGetAllTeams()
 
   const {
     data: evaluationCompletions = [],

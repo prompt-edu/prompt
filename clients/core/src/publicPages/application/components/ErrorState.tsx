@@ -1,10 +1,10 @@
 import {
   Button,
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 

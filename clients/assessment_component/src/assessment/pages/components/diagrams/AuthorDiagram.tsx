@@ -5,14 +5,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-
-import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
-import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
-
+import type { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
+import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDistributionBarChart'
+import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 import { getGridSpanClass } from './utils/getGridSpanClass'
-import { ParticipationWithAssessment } from './interfaces/ParticipationWithAssessment'
 
 import { groupBy } from './utils/groupBy'
 

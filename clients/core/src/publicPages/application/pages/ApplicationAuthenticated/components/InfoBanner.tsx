@@ -1,5 +1,5 @@
-import type React from 'react'
 import { AlertCircle, Info } from 'lucide-react'
+import type React from 'react'
 
 interface InfoBannerProps {
   status: 'not_applied' | 'new_user' | 'applied' | string

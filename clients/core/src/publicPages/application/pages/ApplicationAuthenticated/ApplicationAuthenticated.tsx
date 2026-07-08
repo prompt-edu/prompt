@@ -1,24 +1,23 @@
+import type { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
+import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
+import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
+import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
+import type { GetApplication } from '@core/interfaces/application/getApplication'
+import type { PostApplication } from '@core/interfaces/application/postApplication'
+import { postNewApplicationAuthenticated } from '@core/network/mutations/postApplicationAuthenticated'
+import { getApplication } from '@core/network/queries/application'
+import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type Student, useAuthStore } from '@tumaet/prompt-shared-state'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { AuthenticatedPageWrapper } from '../../../shared/components/AuthenticatedPageWrapper'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
-import { LoadingState } from '../../components/LoadingState'
-import { ErrorState } from '../../components/ErrorState'
 import { ApplicationHeader } from '../../components/ApplicationHeader'
-import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
-import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { getApplication } from '@core/network/queries/application'
-import { postNewApplicationAuthenticated } from '@core/network/mutations/postApplicationAuthenticated'
-import { useState } from 'react'
 import { ApplicationSavingDialog } from '../../components/ApplicationSavingDialog'
+import { ErrorState } from '../../components/ErrorState'
+import { LoadingState } from '../../components/LoadingState'
+import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
 import { InfoBanner } from './components/InfoBanner'
-import { Student } from '@tumaet/prompt-shared-state'
-import { GetApplication } from '@core/interfaces/application/getApplication'
-import { PostApplication } from '@core/interfaces/application/postApplication'
-import { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
-import { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
-import { CreateApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/createApplicationAnswerFileUpload'
-import { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 
 export const ApplicationAuthenticated = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -64,13 +63,13 @@ export const ApplicationAuthenticated = () => {
   })
 
   const handleSubmit = (
-    student: Student,
+    applicationStudent: Student,
     answersText: CreateApplicationAnswerText[],
     answersMultiSelect: CreateApplicationAnswerMultiSelect[],
     answersFileUpload: CreateApplicationAnswerFileUpload[],
   ) => {
     const modifiedApplication: PostApplication = {
-      student,
+      student: applicationStudent,
       answersText: answersText,
       answersMultiSelect: answersMultiSelect,
       answersFileUpload: answersFileUpload,

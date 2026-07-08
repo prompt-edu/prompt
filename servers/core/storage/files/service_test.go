@@ -3,6 +3,7 @@ package files
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"testing"
@@ -193,6 +194,56 @@ func (suite *StorageServiceTestSuite) TestDeleteFile_SoftDelete() {
 	assert.NoError(suite.T(), err)
 
 	// Verify file is no longer retrievable
+	file, err := suite.service.GetFileByID(suite.ctx, uploadResult.ID)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), file)
+}
+
+func (suite *StorageServiceTestSuite) TestDeleteFile_HardDelete() {
+	fileContent := []byte("content to hard delete")
+	fileHeader := suite.createMultipartFileHeader("hard-delete.pdf", "application/pdf", fileContent)
+
+	uploadResult, err := suite.service.UploadFile(suite.ctx, FileUploadRequest{
+		File:           fileHeader,
+		UploaderUserID: suite.testUserID,
+		UploaderEmail:  "test.user@tum.de",
+	})
+	assert.NoError(suite.T(), err)
+
+	err = suite.service.DeleteFile(suite.ctx, uploadResult.ID, true)
+	assert.NoError(suite.T(), err)
+
+	file, err := suite.service.GetFileByID(suite.ctx, uploadResult.ID)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), file)
+}
+
+func (suite *StorageServiceTestSuite) TestDeleteFile_HardDelete_StorageFailureReturnsError() {
+	fileContent := []byte("content with failing blob delete")
+	fileHeader := suite.createMultipartFileHeader("orphan-blob.pdf", "application/pdf", fileContent)
+
+	uploadResult, err := suite.service.UploadFile(suite.ctx, FileUploadRequest{
+		File:           fileHeader,
+		UploaderUserID: suite.testUserID,
+		UploaderEmail:  "test.user@tum.de",
+	})
+	assert.NoError(suite.T(), err)
+
+	// Make the storage backend deletion fail; the DB record is removed first, so
+	// this leaves an orphaned blob. DeleteFile must surface that, not swallow it.
+	// The mock adapter is shared across the whole suite (SetupSuite, not
+	// SetupTest), so reset the override afterwards to avoid leaking the failure
+	// into later tests.
+	mock := suite.mockAdapter.(*storage.MockStorageAdapter)
+	mock.DeleteFunc = func(ctx context.Context, storageKey string) error {
+		return fmt.Errorf("simulated storage backend failure")
+	}
+	defer func() { mock.DeleteFunc = nil }()
+
+	err = suite.service.DeleteFile(suite.ctx, uploadResult.ID, true)
+	assert.Error(suite.T(), err)
+
+	// The record is gone even though the blob deletion failed (the orphan case).
 	file, err := suite.service.GetFileByID(suite.ctx, uploadResult.ID)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), file)

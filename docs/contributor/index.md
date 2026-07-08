@@ -24,3 +24,5 @@ See the following pages:
 - [UI Integration Guidelines](ui_guidelines.md)
 - [Reusable UI Components](reusable_components.md)
 - [Templating System (Developer Guide)](templating.md)
+- Reference
+	- [Glossary](glossary.md)

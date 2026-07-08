@@ -1,4 +1,4 @@
-import { IndividualScore } from './individualScore'
+import type { IndividualScore } from './individualScore'
 
 export interface AdditionalScoreUpload {
   name: string

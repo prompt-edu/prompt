@@ -1,14 +1,14 @@
-import { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
+import type { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  TableFilter,
+  type TableFilter,
 } from '@tumaet/prompt-ui-components'
-import { StudentCoursePreview } from './components/StudentCoursePreview'
+import type { NoteTagColor } from '../../interfaces/InstructorNote'
 import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
-import { NoteTagColor } from '../../interfaces/InstructorNote'
+import { StudentCoursePreview } from './components/StudentCoursePreview'
 
 export function getStudentTableFilters(studentsWithCourses: StudentWithCourses[]): TableFilter[] {
   const tagOptions = Array.from(
@@ -71,7 +71,7 @@ export function getStudentTableFilters(studentsWithCourses: StudentWithCourses[]
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Tag</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              {tagOptions.length == 0 && (
+              {tagOptions.length === 0 && (
                 <p className='text-muted-foreground text-sm px-1'>No tags available</p>
               )}
               {tagOptions.map((tag) => (
@@ -88,6 +88,35 @@ export function getStudentTableFilters(studentsWithCourses: StudentWithCourses[]
                   <InstructorNoteTag
                     tag={{ id: tag.id, name: tag.name, color: tag.color as NoteTagColor }}
                   />
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )
+      },
+    },
+    {
+      type: 'custom',
+      id: 'lastModified',
+      label: 'Last Modified',
+      badge: {
+        label: 'Not modified in',
+        displayValue: (filterValue: unknown) =>
+          typeof filterValue === 'number' ? `${filterValue} years` : '',
+      },
+      render: ({ column }) => {
+        const selected = column.getFilterValue() as number | undefined
+        return (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Last Modified</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {[3, 5, 7].map((years) => (
+                <DropdownMenuCheckboxItem
+                  key={years}
+                  checked={selected === years}
+                  onCheckedChange={(checked) => column.setFilterValue(checked ? years : undefined)}
+                >
+                  Not modified in {years} years
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuSubContent>

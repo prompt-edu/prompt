@@ -1,17 +1,17 @@
+import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
-import { useTutorEvaluationCategoryStore } from '../../zustand/useTutorEvaluationCategoryStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
+import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
+import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -24,16 +24,19 @@ export const TutorEvaluationPage = () => {
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { myParticipation } = useMyParticipationStore()
-  const { tutorEvaluationCategories } = useTutorEvaluationCategoryStore()
-  const { tutorEvaluations: evaluations, tutorEvaluationCompletions: tutorEvaluationCompletions } =
-    useEvaluationStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
+  const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
+    coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+  )
+  const { tutorEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })
+  const { tutorEvaluationCompletions } = useGetMyEvaluationCompletions({ enabled: isStudent })
   const completion = tutorEvaluationCompletions.find(
     (c) => c.courseParticipationID === courseParticipationID,
   )
 
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const { setStudentName } = useStudentEvaluationStore()
 
   const tutor = teams.flatMap((team) => team.tutors).find((t) => t.id === courseParticipationID)

@@ -400,8 +400,7 @@ func UpdateCourseArchiveStatus(
 		},
 	)
 	if err != nil {
-		log.Error(err)
-		return courseDTO.Course{}, errors.New("failed to update course archive status")
+		return courseDTO.Course{}, fmt.Errorf("failed to update course archive status: %w", err)
 	}
 
 	course, err := courseDTO.GetCourseDTOFromDBModel(res)

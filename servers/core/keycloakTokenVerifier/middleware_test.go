@@ -38,8 +38,7 @@ func TestLogTokenVerificationFailure(t *testing.T) {
 			entry := hook.LastEntry()
 			if entry == nil {
 				t.Fatal("expected a log entry, got none")
-			}
-			if entry.Level != tt.wantLevel {
+			} else if entry.Level != tt.wantLevel {
 				t.Fatalf("expected level %v, got %v", tt.wantLevel, entry.Level)
 			}
 		})

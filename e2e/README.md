@@ -1,11 +1,12 @@
 # PROMPT 2.0 End-to-End Tests
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
-Postgres + SeaweedFS** in Docker — plus the **self team allocation phase
-module** (Go service, own Postgres, Module Federation remote) — and drive them
-like a real user, with [Playwright](https://playwright.dev). They catch
-full-stack regressions (auth flow, routing, API contract, data rendering,
-remote loading) that the Go unit tests can't.
+Postgres + SeaweedFS** in Docker — plus the **self team allocation** and
+**assessment phase modules** (Go service, own Postgres, Module Federation
+remote each) — and drive them like a real user, with
+[Playwright](https://playwright.dev). They catch full-stack regressions (auth
+flow, routing, API contract, data rendering, remote loading) that the Go unit
+tests can't.
 
 The suite covers two layers with one framework:
 
@@ -81,6 +82,11 @@ docker-compose.e2e.yml
  │    │                                server migrates it on startup)
  │    ├── server-self-team-allocation  built from ../servers/self_team_allocation
  │    └── client-self-team-allocation  the Module Federation remote (nginx)
+ ├── assessment phase module:
+ │    ├── db-assessment      own ephemeral Postgres (empty; the server's
+ │    │                      migrations also create the default schemas)
+ │    ├── server-assessment  built from ../servers/assessment
+ │    └── client-assessment  the Module Federation remote (nginx)
  └── e2e-runner    Playwright container; waits for health, runs this suite
 ```
 
@@ -101,8 +107,9 @@ to your browser - so auth behaves identically to the canonical run.
 ## Phase modules in the e2e stack
 
 The self team allocation module is the blueprint for adding a course-phase
-module (Go service + Module Federation remote) to the stack. To add another
-module, copy each of these steps:
+module (Go service + Module Federation remote) to the stack; the assessment
+module is the second implementation of it (see `tests/assessment/`). To add
+another module, copy each of these steps:
 
 **1. Compose services** (`docker-compose.e2e.yml`): a `db-<module>` Postgres
 (ephemeral, `pg_isready` healthcheck), a `server-<module>` (build
@@ -243,31 +250,51 @@ server's startup `migrate up` is a clean no-op and the data loads as-is.
 
 It contains three read-only courses (`iPraktikum`, `iPraktikum-Test`,
 `TestCourse`) plus **`iPraktikumFull`**, a course with a full linear phase graph
-(Application → Interview → Matching → Team Allocation → Assessment), ~6 course
+(Application → Interview → Matching → Team Allocation → Assessment), ~7 course
 participations, and a funnel of phase participations. The seeded `student` user
 maps to a DB `student` row (matriculation `00000005` / login `no42tum`) that
-participates in every `iPraktikumFull` phase; that is how a student gets course
-access (roles are DB-derived from `matriculation_number` + `university_login`,
-not from Keycloak). The `lecturer` and `course-lecturer` users hold the
-`ios2425-iPraktikumFull-Lecturer` role and `course-editor` holds
+participates in every `iPraktikumFull` phase; `student2` (Selma) is also
+enrolled for the assessment visibility checks. That is how a student gets
+course access (roles are DB-derived from `matriculation_number` +
+`university_login`, not from Keycloak). The `lecturer` and `course-lecturer`
+users hold the `ios2425-iPraktikumFull-Lecturer` role and `course-editor` holds
 `ios2425-iPraktikumFull-Editor` (added to `keycloak/realm.json`). See
-`FULL_COURSE_PHASES`, `FULL_COURSE_STUDENT`, and `FULL_COURSE_ROLES` in
-`src/data/constants.ts`.
+`FULL_COURSE_PHASES`, `FULL_COURSE_STUDENT`, `FULL_COURSE_STUDENT2`, and
+`FULL_COURSE_ROLES` in `src/data/constants.ts`.
+
+Spec files run in **parallel workers** locally, so every spec file that mutates
+phase state owns its own seeded phase. The assessment specs follow this rule
+(release state and schema locking never cross files): the graph-tail Assessment
+phase hosts the lecturer journey + smoke + API checks, and two **standalone**
+Assessment phases (no graph edges — they route by URL but are filtered from the
+course sidebar) host the visibility and self-evaluation journeys. A
+participant-less Assessment phase on `TestCourse` is the negative-auth fixture.
+See `ASSESSMENT_FIXTURE_PHASES` and `ASSESSMENT_FOREIGN_PHASE_ID` in
+`src/data/constants.ts`. For the same reason the self team allocation
+lecturer-overview spec owns a standalone phase
+(`SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID`) — the team it forms would otherwise
+block team creation in the student journey. The assessment server needs **no
+phase-DB seed**: its migrations create the default template schemas, and the
+first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
+are not covered — they need team data from a team-allocation resolution the
+e2e seed does not wire.
 
 > The course name (`iPraktikumFull`) and `semester_tag` (`ios2425`) are
 > **hyphen-free on purpose**: the course-list query parses course roles with
 > `split_part(role, '-', N)`, so a hyphen in either would break course
 > visibility for non-admins.
 
-> The `Interview` / `Matching` / `Team Allocation` / `Assessment` phase types are
-> seeded by their canonical names (matching
+> The `Interview` / `Matching` / `Team Allocation` phase types are seeded by
+> their canonical names (matching
 > `servers/core/coursePhaseType/initializeTypes.go`), so core's startup
 > initializer skips re-creating them. As a result they carry **no provided/
 > required DTO metadata** — fine for phase-graph, participant-list, and
 > role-access tests, but the inter-phase data-dependency graph is not exercised.
-> The phase micro-frontend remotes (Interview/Matching/…) are also not built into
-> the e2e client, so tests should target core-level views (course config, phase
-> graph, participant lists, role-based access), not the phase remotes' own UIs.
+> (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
+> of the module blueprint.) The Interview/Matching/… micro-frontend remotes are
+> also not built into the e2e client, so tests should target core-level views
+> (course config, phase graph, participant lists, role-based access), not those
+> phase remotes' own UIs.
 
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
 > as an e2e seed — it's a hand-maintained Go-test fixture whose schema is

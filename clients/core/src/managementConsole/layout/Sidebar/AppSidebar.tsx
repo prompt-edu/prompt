@@ -1,4 +1,4 @@
-import { cn, Sidebar, useSidebar } from '@tumaet/prompt-ui-components'
+import { Sidebar, useSidebar } from '@tumaet/prompt-ui-components'
 import type * as React from 'react'
 import { CourseSwitchSidebar } from './CourseSwitchSidebar/CourseSwitchSidebar'
 import { InsideSidebar } from './InsideSidebar/InsideSidebar'
@@ -17,11 +17,11 @@ function AppSidebarContent() {
   )
 }
 
-export function AppSidebar({ className, ...props }: AppSidebarProps) {
+export function AppSidebar({ ...props }: AppSidebarProps) {
   return (
     <Sidebar
       collapsible='icon'
-      className={cn('overflow-hidden [&>[data-sidebar=sidebar]]:flex-row print:hidden', className)}
+      className='overflow-hidden [&>[data-sidebar=sidebar]]:flex-row'
       {...props}
     >
       <AppSidebarContent />

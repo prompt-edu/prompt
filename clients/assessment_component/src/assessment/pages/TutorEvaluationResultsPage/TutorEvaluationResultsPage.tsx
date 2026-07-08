@@ -92,17 +92,9 @@ export const TutorEvaluationResultsPage = () => {
   return (
     <>
       <div className='space-y-4 print:hidden'>
-        <div className='flex items-start justify-between gap-2'>
-          <ManagementPageHeader>
-            Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
-          </ManagementPageHeader>
-          {tutorEvaluationCategories.length > 0 && (
-            <Button variant='outline' onClick={printPage} className='gap-2'>
-              <Printer className='h-4 w-4' />
-              PDF / Print
-            </Button>
-          )}
-        </div>
+        <ManagementPageHeader>
+          Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+        </ManagementPageHeader>
 
         {tutorEvaluationCategories.length === 0 ? (
           <Card>
@@ -142,6 +134,15 @@ export const TutorEvaluationResultsPage = () => {
                 studentName={tutor.firstName}
               />
             </div>
+          </div>
+        )}
+
+        {tutorEvaluationCategories.length > 0 && (
+          <div className='flex justify-end pt-4'>
+            <Button variant='outline' onClick={printPage} className='gap-2'>
+              <Printer className='h-4 w-4' />
+              PDF / Print
+            </Button>
           </div>
         )}
       </div>

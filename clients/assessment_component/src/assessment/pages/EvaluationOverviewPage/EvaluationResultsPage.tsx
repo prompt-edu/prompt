@@ -16,17 +16,11 @@ export const EvaluationResultsPage = () => {
 
   return (
     <div className='w-full px-4 py-6 text-left'>
-      <div className='mb-4 flex items-center justify-between gap-2 print:hidden'>
+      <div className='mb-4 print:hidden'>
         <Button variant='outline' onClick={() => navigate('..')} className='gap-2'>
           <ArrowLeft className='h-4 w-4' />
           Back to overview
         </Button>
-        {resultsReleased && reportReady && (
-          <Button variant='outline' onClick={printPage} className='gap-2'>
-            <Printer className='h-4 w-4' />
-            PDF / Print
-          </Button>
-        )}
       </div>
       <div className='print:hidden'>
         <ManagementPageHeader>Assessment Results</ManagementPageHeader>
@@ -42,6 +36,15 @@ export const EvaluationResultsPage = () => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {resultsReleased && reportReady && (
+        <div className='flex justify-end pt-4 print:hidden'>
+          <Button variant='outline' onClick={printPage} className='gap-2'>
+            <Printer className='h-4 w-4' />
+            PDF / Print
+          </Button>
+        </div>
       )}
     </div>
   )

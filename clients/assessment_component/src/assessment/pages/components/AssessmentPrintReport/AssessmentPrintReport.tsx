@@ -1,9 +1,4 @@
-import {
-  getStudyDegreeString,
-  mapNumberToScoreLevel,
-  type ScoreLevel,
-} from '@tumaet/prompt-shared-state'
-import { getLevelConfig } from '@tumaet/prompt-ui-components'
+import { getStudyDegreeString, mapNumberToScoreLevel } from '@tumaet/prompt-shared-state'
 
 import type { ActionItem } from '../../../interfaces/actionItem'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
@@ -12,6 +7,7 @@ import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessment
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
 import { FeedbackSection } from './FeedbackSection'
+import { ScoreChip } from './ScoreChip'
 
 interface AssessmentPrintReportProps {
   categories: CategoryWithCompetencies[]
@@ -21,17 +17,6 @@ interface AssessmentPrintReportProps {
   showGradeSuggestion?: boolean
   showActionItems?: boolean
   showFeedbackItems?: boolean
-}
-
-export const ScoreChip = ({ scoreLevel }: { scoreLevel: ScoreLevel }) => {
-  const config = getLevelConfig(scoreLevel)
-  return (
-    <span
-      className={`inline-block rounded-sm px-2 py-0.5 text-xs font-medium ${config.textColor} ${config.selectedBg}`}
-    >
-      {config.title}
-    </span>
-  )
 }
 
 export const AssessmentPrintReport = ({
@@ -70,7 +55,7 @@ export const AssessmentPrintReport = ({
           <span>
             <strong>Status:</strong> {assessmentCompletion?.completed ? 'Finalized' : 'In progress'}
           </span>
-          {studentScore && (
+          {showGradingSheet && studentScore && (
             <span className='flex items-center gap-2'>
               <strong>Overall score:</strong>
               <ScoreChip scoreLevel={studentScore.scoreLevel} />

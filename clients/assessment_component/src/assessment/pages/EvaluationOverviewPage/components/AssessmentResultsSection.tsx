@@ -25,6 +25,9 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
   const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
+  const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? false
+  const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? false
+  const hasVisibleSection = gradingSheetVisible || actionItemsVisible || gradeSuggestionVisible
 
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
   const { data: teams } = useGetAllTeams()
@@ -61,6 +64,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   const isReportReady =
     resultsReleased &&
     isStudent &&
+    hasVisibleSection &&
     !isError &&
     !isAssessmentCategoriesError &&
     !isPending &&
@@ -122,7 +126,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
             />
           ))}
 
-        {coursePhaseConfig?.actionItemsVisible || coursePhaseConfig?.gradeSuggestionVisible ? (
+        {actionItemsVisible || gradeSuggestionVisible ? (
           <AssessmentCompletion readOnly actionItems={results.actionItems} />
         ) : null}
       </div>
@@ -131,8 +135,8 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
         categories={assessmentCategories}
         actionItems={results.actionItems}
         showGradingSheet={gradingSheetVisible}
-        showActionItems={coursePhaseConfig?.actionItemsVisible ?? false}
-        showGradeSuggestion={coursePhaseConfig?.gradeSuggestionVisible ?? false}
+        showActionItems={actionItemsVisible}
+        showGradeSuggestion={gradeSuggestionVisible}
       />
     </>
   )

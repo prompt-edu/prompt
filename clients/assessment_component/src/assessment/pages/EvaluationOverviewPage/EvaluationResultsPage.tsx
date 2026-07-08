@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { printPage } from '../utils/printPage'
 
 import { AssessmentResultsSection } from './components/AssessmentResultsSection'
 
@@ -21,11 +22,7 @@ export const EvaluationResultsPage = () => {
           Back to overview
         </Button>
         {resultsReleased && reportReady && (
-          <Button
-            variant='outline'
-            onClick={() => setTimeout(() => window.print(), 0)}
-            className='gap-2'
-          >
+          <Button variant='outline' onClick={printPage} className='gap-2'>
             <Printer className='h-4 w-4' />
             PDF / Print
           </Button>

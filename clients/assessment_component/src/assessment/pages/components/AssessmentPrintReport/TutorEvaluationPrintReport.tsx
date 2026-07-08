@@ -8,8 +8,8 @@ import { getAverageScoreLevel } from '../../utils/getAverageScoreLevel'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { getTeamMemberName } from '../../utils/getTeamMemberName'
 import { getWeightedScoreLevel } from '../../utils/getWeightedScoreLevel'
-import { ScoreChip } from './AssessmentPrintReport'
 import { FeedbackSection } from './FeedbackSection'
+import { ScoreChip } from './ScoreChip'
 
 interface TutorEvaluationPrintReportProps {
   tutorName: string

@@ -1,12 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
 import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
-import type { ActionItem } from '../../interfaces/actionItem'
-import { getAllActionItemsForStudentInPhase } from '../../network/queries/getAllActionItemsForStudentInPhase'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
 import { AssessmentPrintReport } from '../components/AssessmentPrintReport/AssessmentPrintReport'
+import { useGetActionItemsForStudent } from '../hooks/useGetActionItemsForStudent'
 import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
@@ -20,8 +18,7 @@ import { PassStatusControls } from './components/PassStatusControls'
 import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
 export const AssessmentPage = () => {
-  const { phaseId, courseParticipationID } = useParams<{
-    phaseId: string
+  const { courseParticipationID } = useParams<{
     courseParticipationID: string
   }>()
 
@@ -39,11 +36,7 @@ export const AssessmentPage = () => {
     courseParticipationID ?? '',
     !!evaluationEnabled,
   )
-  const { data: actionItems = [] } = useQuery<ActionItem[]>({
-    queryKey: ['actionItems', phaseId, courseParticipationID],
-    queryFn: () => getAllActionItemsForStudentInPhase(phaseId ?? '', courseParticipationID ?? ''),
-    enabled: !!phaseId && !!courseParticipationID,
-  })
+  const { actionItems } = useGetActionItemsForStudent()
 
   const {
     data: studentAssessment,

@@ -14,6 +14,7 @@ import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
@@ -96,11 +97,7 @@ export const TutorEvaluationResultsPage = () => {
             Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
           </ManagementPageHeader>
           {tutorEvaluationCategories.length > 0 && (
-            <Button
-              variant='outline'
-              onClick={() => setTimeout(() => window.print(), 0)}
-              className='gap-2'
-            >
+            <Button variant='outline' onClick={printPage} className='gap-2'>
               <Printer className='h-4 w-4' />
               PDF / Print
             </Button>

@@ -51,7 +51,9 @@ func sanitizeDatabaseURL(input string) string {
 	if dbPassword == "" {
 		return input
 	}
-	return strings.ReplaceAll(input, dbPassword, "***")
+	encoded := strings.TrimPrefix(url.UserPassword("", dbPassword).String(), ":")
+	sanitized := strings.ReplaceAll(input, dbPassword, "***")
+	return strings.ReplaceAll(sanitized, encoded, "***")
 }
 
 func runMigrations(databaseURL string) {

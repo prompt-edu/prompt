@@ -6,7 +6,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
 ## 1. Create Your New Component Inside This Repo
 
-### 1.1. Copy the Template Component
+### 1.1. Copy the Example Component
 
 1. **Naming**  
    - The name of your new microfrontend **must** end with `_component`.  
@@ -15,8 +15,8 @@ This guide explains how to add a new microfrontend component (ending with `_comp
      - **Incorrect**: `yourAmazingMicrofrontend`  
    - **Reason**: The TypeScript declarations in `core/src/declaration.d.ts` recognize names ending in `*_component`. Using any other naming convention will cause type errors.
 
-2. **Duplicate the Template**  
-   - Copy the entire `TemplateComponent` folder.  
+2. **Duplicate the Example Component**  
+   - Copy the entire `ExampleComponent` folder.  
    - Rename it to your new component’s name, ensuring you include the `_component` suffix.
 
 3. **Update `webpack.config.mjs`**  
@@ -25,7 +25,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
      - `COMPONENT_DEV_PORT` (assign a unique port for local development, e.g. `3001`. Make sure it does not collide with other components in this repo.)
 
 4. **Adjust the Naming in Other Files**  
-   - **`<yourName_component>/Dockerfile`**: Rename all instances of `template_component` to your new component name.  
+   - **`<yourName_component>/Dockerfile`**: Rename all instances of `example_component` to your new component name.  
    - **`<yourName_component>/package.json`**: Update the `"name"` field to match your component.
 
 5. **Register Your Component in the Monorepo**  
@@ -77,11 +77,11 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 ### 2.2. Set Up External Routes and Sidebars
 IMPORTANT: Make sure to exactly follow and copy the files such that the permission control is correctly applied. 
 1. **Routes**  
-   - Copy `TemplateRoutes.tsx` (located in `core/src/ExternalRoutes`) and rename it for your component.  
+   - Copy `ExampleRoutes.tsx` (located in `core/src/ExternalRoutes`) and rename it for your component.  
    - Update its import paths to point to your new component.
 
 2. **Sidebar**  
-   - Copy `TemplateSidebar.tsx` (located in `core/src/ExternalSidebars`) and rename it for your component.  
+   - Copy `ExampleSidebar.tsx` (located in `core/src/ExternalSidebars`) and rename it for your component.  
    - Update its import paths accordingly.
 
 3. **Why Static Imports? Why Copying the import logic**  
@@ -109,7 +109,7 @@ The course phase types are stored in the DB. We assume here that you already hav
    - If your component references an environment variable (e.g., `COMPONENT_SUBPATH`), add it in GitHub’s settings and pass it as an `ARG` in the Core Dockerfile so it is available at runtime.
 
 2. **GitHub Workflows**  
-   - **`build-and-push-clients.yml`**: Add another output image tag and the building script for for your component. Use the template component as example. 
+   - **`build-and-push-clients.yml`**: Add another output image tag and the building script for for your component. Use the example component as a reference. 
    - **`deploy-docker`**: Include the new image tag in the “SSH to VM and create .env.prod file” step to ensure Docker Compose picks it up.  
    - **`dev.yml`**: Reference the new image tag.
 

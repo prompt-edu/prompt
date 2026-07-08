@@ -731,7 +731,7 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 --
 
 INSERT INTO public.course_phase_type VALUES ('a1111111-1111-1111-1111-111111111111', 'Application', true, 'core', 'Application collection phase');
-INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'Template', false, 'template', 'Template phase');
+INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'Example', false, 'example', 'Example phase');
 -- Fixed UUIDs so seeded course phases can reference these types deterministically; the
 -- core server's startup init matches by name and skips creating them (it would
 -- otherwise use random UUIDs). {CORE_HOST} is replaced by core at read time.

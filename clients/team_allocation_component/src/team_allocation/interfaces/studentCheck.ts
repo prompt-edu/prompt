@@ -1,4 +1,4 @@
-import { TeaseStudent } from '../interfaces/tease/student'
+import type { TeaseStudent } from '../interfaces/tease/student'
 
 export type StudentCheck = {
   label: string

@@ -76,7 +76,7 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 	// replace values in subject
 	finalSubject := replacePlaceholders(mailingInfo.ConfirmationMailSubject, placeholderValues)
 
-	err = SendMail(courseMailingSettings, mailingInfo.Email.String, finalSubject, finalMessage)
+	err = SendCourseMail(courseMailingSettings, mailingInfo.Email.String, finalSubject, finalMessage)
 	if err != nil {
 		log.Error("failed to send confirmation mail: ", err)
 		return false, fmt.Errorf("failed to send confirmation mail to %s: %v", mailingInfo.Email.String, err)
@@ -145,7 +145,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		// replace values in content
 		finalMessage := replacePlaceholders(mailingInfo.MailContent, placeholderMap)
 
-		err = SendMail(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
+		err = SendCourseMail(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
@@ -158,52 +158,80 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	return response, nil
 }
 
-// SendMail sends an email with the specified HTML body, recipient, and subject.
-func SendMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientAddress, subject, htmlBody string) error {
-	log.Debug("Starting mail validation")
-	log.Debug("Sender email address: ", MailingServiceSingleton.senderEmail.Address)
-	log.Debug("Sender username: ", MailingServiceSingleton.smtpUsername)
-	log.Debug("Recipient address: ", recipientAddress)
-	log.Debug("Subject: ", subject)
-	log.Debug("HTML body length: ", len(htmlBody))
-
-	if MailingServiceSingleton.senderEmail.Address == "" {
-		log.Debug("Validation failed: sender email address is empty")
-		return errors.New("mailing is not correctly configured: sender email address is empty")
+// SendMail sends a transactional mail with no Reply-To, CC, or BCC. For mails
+// tied to a course phase, use SendCourseMail.
+func SendMail(recipientAddress, subject, htmlBody string) error {
+	if err := validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
+		return err
 	}
-	if recipientAddress == "" {
-		log.Debug("Validation failed: recipient address is empty")
-		return errors.New("mailing is not correctly configured: recipient address is empty")
-	}
-	if subject == "" {
-		log.Debug("Validation failed: subject is empty")
-		return errors.New("mailing is not correctly configured: subject is empty")
-	}
-	if htmlBody == "" {
-		log.Debug("Validation failed: HTML body is empty")
-		return errors.New("mailing is not correctly configured: HTML body is empty")
-	}
-
-	log.Debug("Mail validation passed successfully")
 
 	to := mail.Address{Address: recipientAddress}
 
 	var message strings.Builder
-	buildMailHeader(&message, courseMailingSettings, to.String(), subject)
+	buildBaseMailHeader(&message, to.String(), subject)
+	message.WriteString("\r\n")
 	message.WriteString(htmlBody)
 
-	// Send the email
+	return dispatchSMTP([]string{recipientAddress}, message.String())
+}
+
+func SendCourseMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientAddress, subject, htmlBody string) error {
+	if err := validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
+		return err
+	}
+
+	to := mail.Address{Address: recipientAddress}
+
+	var message strings.Builder
+	buildBaseMailHeader(&message, to.String(), subject)
+	fmt.Fprintf(&message, "Reply-To: %s\r\n", courseMailingSettings.ReplyTo.String())
+	if len(courseMailingSettings.CC) > 0 {
+		var ccString string
+		for _, cc := range courseMailingSettings.CC {
+			ccString += cc.String() + ","
+		}
+		fmt.Fprintf(&message, "CC: %s\r\n", ccString)
+	}
+	message.WriteString("\r\n")
+	message.WriteString(htmlBody)
+
+	rcpts := []string{recipientAddress}
+	for _, cc := range courseMailingSettings.CC {
+		rcpts = append(rcpts, cc.Address)
+	}
+	for _, bcc := range courseMailingSettings.BCC {
+		rcpts = append(rcpts, bcc.Address)
+	}
+
+	return dispatchSMTP(rcpts, message.String())
+}
+
+func validateMailInputs(recipientAddress, subject, htmlBody string) error {
+	if MailingServiceSingleton.senderEmail.Address == "" {
+		return errors.New("mailing is not correctly configured: sender email address is empty")
+	}
+	if recipientAddress == "" {
+		return errors.New("mailing is not correctly configured: recipient address is empty")
+	}
+	if subject == "" {
+		return errors.New("mailing is not correctly configured: subject is empty")
+	}
+	if htmlBody == "" {
+		return errors.New("mailing is not correctly configured: HTML body is empty")
+	}
+	return nil
+}
+
+func dispatchSMTP(recipients []string, message string) error {
 	addr := net.JoinHostPort(MailingServiceSingleton.smtpHost, MailingServiceSingleton.smtpPort)
 	log.Debug("Connecting to SMTP server: ", addr)
 
-	// Create connection with timeout (30 seconds)
 	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
 		log.Error("failed to connect to SMTP server: ", err.Error())
 		return fmt.Errorf("failed to connect to SMTP server %s: %v", addr, err)
 	}
 
-	// Set deadline for the entire SMTP operation
 	if err := conn.SetDeadline(time.Now().Add(15 * time.Second)); err != nil {
 		_ = conn.Close()
 		log.Error("failed to set connection deadline: ", err)
@@ -218,9 +246,7 @@ func SendMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientA
 	}
 	defer func() { _ = client.Close() }()
 
-	// Enable STARTTLS if the server supports it (required for port 587)
 	if ok, _ := client.Extension("STARTTLS"); ok {
-		log.Debug("STARTTLS is supported, enabling TLS")
 		config := &tls.Config{
 			ServerName: MailingServiceSingleton.smtpHost,
 			MinVersion: tls.VersionTLS12,
@@ -229,73 +255,42 @@ func SendMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientA
 			log.Error("failed to start TLS: ", err)
 			return fmt.Errorf("failed to establish TLS connection with %s: %v", MailingServiceSingleton.smtpHost, err)
 		}
-		log.Debug("TLS connection established")
-	} else {
-		log.Debug("STARTTLS not supported by server")
 	}
 
-	// Use SMTP authentication if username and password are provided
 	if MailingServiceSingleton.smtpUsername != "" && MailingServiceSingleton.smtpPassword != "" {
-		log.Debug("Authenticating with SMTP server")
 		auth := smtp.PlainAuth("", MailingServiceSingleton.smtpUsername, MailingServiceSingleton.smtpPassword, MailingServiceSingleton.smtpHost)
 		if err := client.Auth(auth); err != nil {
 			log.Error("failed to authenticate with SMTP server: ", err)
 			return fmt.Errorf("SMTP authentication failed for user '%s' on server %s: %v", MailingServiceSingleton.smtpUsername, MailingServiceSingleton.smtpHost, err)
 		}
-		log.Debug("SMTP authentication successful")
-	} else {
-		log.Debug("No SMTP authentication configured")
 	}
 
-	// Set the sender and recipient
-	log.Debug("Setting sender and recipients")
 	if err := client.Mail(MailingServiceSingleton.senderEmail.Address); err != nil {
 		log.Error("failed to set sender: ", err)
 		return fmt.Errorf("SMTP server rejected sender address '%s': %v", MailingServiceSingleton.senderEmail.Address, err)
 	}
 
-	if err := client.Rcpt(recipientAddress); err != nil {
-		log.Error("failed to set recipient: ", err)
-		return fmt.Errorf("SMTP server rejected recipient address '%s': %v", recipientAddress, err)
-	}
-
-	// set all cc mails
-	for _, cc := range courseMailingSettings.CC {
-		log.Debug("Adding CC recipient: ", cc.Address)
-		if err := client.Rcpt(cc.Address); err != nil {
-			log.Error("failed to set cc: ", err)
-			return fmt.Errorf("SMTP server rejected CC address '%s': %v", cc.Address, err)
+	for _, rcpt := range recipients {
+		if err := client.Rcpt(rcpt); err != nil {
+			log.Error("failed to set recipient: ", err)
+			return fmt.Errorf("SMTP server rejected recipient address '%s': %v", rcpt, err)
 		}
 	}
 
-	// set all bcc mails
-	for _, bcc := range courseMailingSettings.BCC {
-		log.Debug("Adding BCC recipient: ", bcc.Address)
-		if err := client.Rcpt(bcc.Address); err != nil {
-			log.Error("failed to set bcc: ", err)
-			return fmt.Errorf("SMTP server rejected BCC address '%s': %v", bcc.Address, err)
-		}
-	}
-
-	// Send the data
-	log.Debug("Sending email data")
 	writer, err := client.Data()
 	if err != nil {
 		log.Error("failed to send data: ", err)
 		return fmt.Errorf("SMTP server failed to accept email data: %v", err)
 	}
-	_, err = writer.Write([]byte(message.String()))
-	if err != nil {
+	if _, err = writer.Write([]byte(message)); err != nil {
 		log.Error("failed to write message: ", err)
 		return fmt.Errorf("failed to write email content to SMTP server: %v", err)
 	}
-
 	if err := writer.Close(); err != nil {
 		log.Error("failed to close writer: ", err)
 		return fmt.Errorf("failed to finalize email transmission: %v", err)
 	}
 
-	log.Debug("Email sent successfully")
 	return client.Quit()
 }
 
@@ -338,30 +333,13 @@ func generateMessageID() string {
 	return fmt.Sprintf("<%d.%s@prompt2.local>", timestamp, randomHex)
 }
 
-func buildMailHeader(message *strings.Builder, courseMailingSettings mailingDTO.CourseMailingSettings, recipient, subject string) {
-	// using this instead of map to get a nicely formatted Mailing Header
+// Does not write the trailing blank line; callers append optional headers first.
+func buildBaseMailHeader(message *strings.Builder, recipient, subject string) {
 	fmt.Fprintf(message, "From: %s\r\n", MailingServiceSingleton.senderEmail.String())
 	fmt.Fprintf(message, "To: %s\r\n", recipient)
-	fmt.Fprintf(message, "Reply-To: %s\r\n", courseMailingSettings.ReplyTo.String())
 	fmt.Fprintf(message, "Subject: %s\r\n", subject)
-
-	// Add Date header in RFC 2822 format
 	fmt.Fprintf(message, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
-
-	// Add unique Message-ID header
 	fmt.Fprintf(message, "Message-ID: %s\r\n", generateMessageID())
-
-	message.WriteString("MIME-Version: 1.0\r\n") // Improve Spam Score by setting explicit MIME-Version
+	message.WriteString("MIME-Version: 1.0\r\n")
 	message.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n")
-
-	if len(courseMailingSettings.CC) > 0 {
-		var ccString string
-		for _, cc := range courseMailingSettings.CC {
-			ccString += cc.String() + ","
-		}
-		fmt.Fprintf(message, "CC: %s\r\n", ccString)
-	}
-
-	// BCC are set in the client and not the header
-	message.WriteString("\r\n")
 }

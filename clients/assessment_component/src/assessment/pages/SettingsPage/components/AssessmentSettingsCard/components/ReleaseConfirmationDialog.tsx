@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
 
-import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 
 interface ReleaseConfirmationDialogProps {
   open: boolean
@@ -30,7 +30,7 @@ export function ReleaseConfirmationDialog({
   completedAssessments,
   totalAssessments,
 }: ReleaseConfirmationDialogProps) {
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true
   const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? true

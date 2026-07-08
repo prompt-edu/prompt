@@ -1,8 +1,7 @@
 import { useState } from 'react'
-
-import { useParticipationStore } from '../../../../../zustand/useParticipationStore'
-import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
 import { useGetAllAssessmentCompletions } from '../../../../hooks/useGetAllAssessmentCompletions'
+import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../../../../hooks/useGetCoursePhaseParticipations'
 import { useReleaseResults } from '../../../hooks/useReleaseResults'
 import { useUnreleaseResults } from '../../../hooks/useUnreleaseResults'
 
@@ -29,8 +28,8 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
   const [releaseError, setReleaseError] = useState<string | null>(null)
   const [unreleaseError, setUnreleaseError] = useState<string | null>(null)
 
-  const { participations } = useParticipationStore()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: assessmentCompletions } = useGetAllAssessmentCompletions()
   const { mutate: releaseResults, isPending: isReleasing } = useReleaseResults()
   const { mutate: unreleaseResults, isPending: isUnreleasing } = useUnreleaseResults()

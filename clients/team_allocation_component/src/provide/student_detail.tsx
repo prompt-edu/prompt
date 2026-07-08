@@ -1,18 +1,21 @@
-import React, { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Team, CoursePhaseParticipationsWithResolution, Student } from '@tumaet/prompt-shared-state'
-import { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
-import { Allocation } from '../team_allocation/interfaces/allocation'
+import {
+  type CoursePhaseParticipationsWithResolution,
+  type CoursePhaseStudentIdentifierProps,
+  getCoursePhaseParticipations,
+  type Student,
+  type Team,
+} from '@tumaet/prompt-shared-state'
+import { RenderStudents } from '@tumaet/prompt-ui-components'
+import type React from 'react'
+import { useMemo } from 'react'
+import type { Allocation } from '../team_allocation/interfaces/allocation'
 import { getAllTeams } from '../team_allocation/network/queries/getAllTeams'
 import { getTeamAllocations } from '../team_allocation/network/queries/getTeamAllocations'
-import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
-import { RenderStudents } from '@tumaet/prompt-ui-components'
 
 export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  studentId,
+  studentId: _studentId,
   coursePhaseId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   courseId: _courseId,
   courseParticipationId,
 }) => {

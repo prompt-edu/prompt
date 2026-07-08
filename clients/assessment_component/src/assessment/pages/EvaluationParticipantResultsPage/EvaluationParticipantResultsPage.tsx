@@ -1,19 +1,17 @@
-import { ReactNode, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-
 import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { type ReactNode, useMemo } from 'react'
+import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
 import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
 import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { usePeerEvaluationCategoryStore } from '../../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
-
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
 
 interface EvaluationParticipantResultsPageProps {
@@ -28,9 +26,16 @@ export const EvaluationParticipantResultsPage = ({
     courseParticipationID: string
   }>()
 
-  const { participations } = useParticipationStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { peerEvaluationCategories } = usePeerEvaluationCategoryStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { data: peerEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
+    coursePhaseConfig?.peerEvaluationEnabled ?? false,
+  )
 
   const {
     data: evaluations = [],

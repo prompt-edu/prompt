@@ -3,42 +3,50 @@ import { cn } from '@tumaet/prompt-ui-components'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
 
 import {
-  StudentScoreBadge,
   AssessmentStatusBadge,
   GradeSuggestionBadgeWithTooltip,
+  StudentScoreBadge,
 } from '../../components/badges'
 
 interface StudentAssessmentBadgesProps {
   studentAssessment: StudentAssessment
   remainingAssessments: number
+  variant?: 'full' | 'compact'
   className?: string
 }
 
 export const StudentAssessmentBadges = ({
   studentAssessment,
   remainingAssessments,
+  variant = 'full',
   className,
-}: StudentAssessmentBadgesProps) => (
-  <div className={cn('flex flex-wrap items-center justify-center gap-1', className)}>
-    <AssessmentStatusBadge
-      remainingAssessments={remainingAssessments}
-      isFinalized={studentAssessment.assessmentCompletion.completed}
-      className='h-6'
-    />
-    {studentAssessment.assessmentCompletion && (
-      <GradeSuggestionBadgeWithTooltip
-        gradeSuggestion={studentAssessment.assessmentCompletion.gradeSuggestion}
-        text={true}
+}: StudentAssessmentBadgesProps) => {
+  const compact = variant === 'compact'
+
+  return (
+    <div className={cn('flex flex-wrap items-center justify-center gap-1', className)}>
+      <AssessmentStatusBadge
+        remainingAssessments={remainingAssessments}
+        isFinalized={studentAssessment.assessmentCompletion.completed}
+        compact={compact}
         className='h-6'
       />
-    )}
-    {studentAssessment.assessments.length > 0 && (
-      <StudentScoreBadge
-        scoreLevel={studentAssessment.studentScore.scoreLevel}
-        scoreNumeric={studentAssessment.studentScore.scoreNumeric}
-        showTooltip={true}
-        className='h-6'
-      />
-    )}
-  </div>
-)
+      {studentAssessment.assessmentCompletion && (
+        <GradeSuggestionBadgeWithTooltip
+          gradeSuggestion={studentAssessment.assessmentCompletion.gradeSuggestion}
+          text={!compact}
+          className='h-6'
+        />
+      )}
+      {studentAssessment.assessments.length > 0 && (
+        <StudentScoreBadge
+          scoreLevel={studentAssessment.studentScore.scoreLevel}
+          scoreNumeric={studentAssessment.studentScore.scoreNumeric}
+          showTooltip={true}
+          compact={compact}
+          className='h-6'
+        />
+      )}
+    </div>
+  )
+}

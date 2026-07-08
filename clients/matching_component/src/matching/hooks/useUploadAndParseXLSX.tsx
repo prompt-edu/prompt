@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
+import type { UploadedStudent } from '../interfaces/UploadedStudent'
 import { useMatchingStore } from '../zustand/useMatchingStore'
-import { UploadedStudent } from '../interfaces/UploadedStudent'
 
 /**
  * This hook returns a function that, when called with a File,
@@ -70,7 +70,7 @@ export const useUploadAndParseXLSX = () => {
           const firstNameCell = row[headerIndexMap['First name']]
           const lastNameCell = row[headerIndexMap['Last name']]
           const studentNumberCell = row[headerIndexMap['Student number']] ?? ''
-          const rankCell = row[headerIndexMap['Rank']]
+          const rankCell = row[headerIndexMap.Rank]
 
           if (!firstNameCell || !lastNameCell) {
             throw new Error(

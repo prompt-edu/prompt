@@ -1,13 +1,13 @@
 import {
   ExportStatus,
-  PrivacyExportDocument as PrivacyExportDocumentType,
   getExportDocDownloadURL,
+  type PrivacyExportDocument as PrivacyExportDocumentType,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, Card, CardContent, useToast } from '@tumaet/prompt-ui-components'
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
 import { formatFileSize } from './formatFileSize'
+import { PrivacyExportStatus } from './PrivacyExportStatusBadge'
 
 interface PrivacyExportDocumentProps {
   exportId: string

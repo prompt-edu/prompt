@@ -1,17 +1,15 @@
-import { useParams } from 'react-router-dom'
-
-import { Button } from '@tumaet/prompt-ui-components'
 import {
+  getPermissionString,
   PassStatus,
   Role,
-  getPermissionString,
   useAuthStore,
   useCourseStore,
+  useUpdateCoursePhaseParticipation,
 } from '@tumaet/prompt-shared-state'
+import { Button } from '@tumaet/prompt-ui-components'
+import { useParams } from 'react-router-dom'
 
-import { useUpdateCoursePhaseParticipation } from '@tumaet/prompt-shared-state'
-
-import { useParticipationStore } from '../../../zustand/useParticipationStore'
+import { useGetCoursePhaseParticipations } from '../../hooks/useGetCoursePhaseParticipations'
 
 interface PassStatusControlsProps {
   courseParticipationID?: string
@@ -25,7 +23,7 @@ export const PassStatusControls = ({
   const { courseId } = useParams<{ courseId: string }>()
   const { permissions } = useAuthStore()
   const { courses } = useCourseStore()
-  const { participations } = useParticipationStore()
+  const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
   )

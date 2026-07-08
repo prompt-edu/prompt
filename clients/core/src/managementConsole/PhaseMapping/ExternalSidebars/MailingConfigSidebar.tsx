@@ -1,7 +1,6 @@
-import { Role } from '@tumaet/prompt-shared-state'
+import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Mail } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
-import { SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 
 export const MailingConfigSidebar = ({ rootPath, title }: { rootPath: string; title: string }) => {
   const courseConfiguratorSidebarItems: SidebarMenuItemProps = {

@@ -1,10 +1,9 @@
-import { AlertCircle, CheckCircle2, Calendar } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
-import { Card, CardContent, Button } from '@tumaet/prompt-ui-components'
+import { Button, Card, CardContent } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
+import { AlertCircle, ArrowRight, Calendar, CheckCircle2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 
 interface EvaluationInfoHeaderProps {
   allEvaluationsCompleted: boolean
@@ -16,7 +15,7 @@ export const EvaluationInfoHeader = ({
   resultsLink,
 }: EvaluationInfoHeaderProps) => {
   const navigate = useNavigate()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const now = new Date()
   const selfEvaluationStarted =

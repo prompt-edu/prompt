@@ -1,4 +1,4 @@
-import { SkillProficiency } from './skillProficiency'
+import type { SkillProficiency } from './skillProficiency'
 
 export interface StudentSkill {
   id: string

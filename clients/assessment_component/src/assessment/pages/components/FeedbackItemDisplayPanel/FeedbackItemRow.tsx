@@ -1,22 +1,22 @@
-import { useState } from 'react'
-import { User, Users, Check, Copy } from 'lucide-react'
 import {
+  Button,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  Button,
 } from '@tumaet/prompt-ui-components'
+import { Check, Copy, User, Users } from 'lucide-react'
+import { useState } from 'react'
 
 import type { FeedbackItem } from '../../../interfaces/feedbackItem'
-import { useTeamStore } from '../../../zustand/useTeamStore'
+import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 
 interface FeedbackItemRowProps {
   feedbackItem: FeedbackItem
 }
 
 export const FeedbackItemRow = ({ feedbackItem }: FeedbackItemRowProps) => {
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const [showCopied, setShowCopied] = useState(false)
 
   const isSelfFeedback =

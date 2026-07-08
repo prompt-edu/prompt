@@ -1,4 +1,4 @@
-import { ScoreLevelWithParticipation } from '../../interfaces/scoreLevelWithParticipation'
+import type { ScoreLevelWithParticipation } from '../../interfaces/scoreLevelWithParticipation'
 import { assessmentAxiosInstance } from '../assessmentServerConfig'
 
 export const getAllScoreLevels = async (

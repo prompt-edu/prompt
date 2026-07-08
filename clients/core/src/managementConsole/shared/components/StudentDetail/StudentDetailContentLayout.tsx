@@ -1,7 +1,7 @@
+import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
 import { Card, Tabs, TabsContent, TabsList, TabsTrigger } from '@tumaet/prompt-ui-components'
 import { GalleryVerticalEnd, NotepadText } from 'lucide-react'
-import { ReactNode } from 'react'
-import { useIsLargeScreen } from '@managementConsole/shared/hooks/useIsLargeScreen'
+import type { ReactNode } from 'react'
 
 interface StudentDetailContentProps {
   courseEnrollment: ReactNode

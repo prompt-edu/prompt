@@ -1,5 +1,5 @@
-import { Badge } from '@tumaet/prompt-ui-components'
 import { PassStatus } from '@tumaet/prompt-shared-state'
+import { Badge } from '@tumaet/prompt-ui-components'
 
 interface ApplicationStatusDisplayConfig {
   label: string

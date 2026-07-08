@@ -1,4 +1,4 @@
-import { ParticipantWithDownloadStatus } from '../../interfaces/participant'
+import type { ParticipantWithDownloadStatus } from '../../interfaces/participant'
 import { certificateAxiosInstance } from '../certificateServerConfig'
 
 export const getParticipants = async (

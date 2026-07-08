@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { useCoursePhaseConfigStore } from '../../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../../hooks/useSchemaHasAssessmentData'
 import type { SchemaConfigurationCardProps } from '../components/SchemaConfigurationCard'
 import {
   buildEvaluationPatch,
   buildRequestFromConfig,
   createDetailButtonLabel,
-  EvaluationAssessmentType,
+  type EvaluationAssessmentType,
   getEvaluationOriginalSnapshot,
   hasEvaluationCardChanges,
   isEvaluationDetailReady,
@@ -29,7 +29,7 @@ export const useEvaluationSettingsCardState = (
   const [schema, setSchema] = useState<string>('')
   const [start, setStart] = useState<Date | undefined>(undefined)
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
-  const { coursePhaseConfig: originalConfig } = useCoursePhaseConfigStore()
+  const { data: originalConfig } = useGetCoursePhaseConfig()
 
   const originalSnapshot = useMemo(
     () => getEvaluationOriginalSnapshot(originalConfig, assessmentType),

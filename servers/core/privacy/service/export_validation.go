@@ -73,7 +73,7 @@ func ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error 
 		return errGetID
 	}
 
-	if expDTO.UserID != requesterUserID {
+	if expDTO.UserID == nil || *expDTO.UserID != requesterUserID {
 		return errors.New("export does not belong to the requester")
 	}
 

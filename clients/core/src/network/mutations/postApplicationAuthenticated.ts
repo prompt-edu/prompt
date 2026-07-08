@@ -1,6 +1,6 @@
+import type { PostApplicationResponse } from '@core/publicPages/application/interfaces/postApplicationConfirmation'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
-import { PostApplication } from '../../interfaces/application/postApplication'
-import { PostApplicationResponse } from '@core/publicPages/application/interfaces/postApplicationConfirmation'
+import type { PostApplication } from '../../interfaces/application/postApplication'
 
 export const postNewApplicationAuthenticated = async (
   phaseId: string,

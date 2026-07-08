@@ -1,4 +1,3 @@
-import { Link, useParams } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -8,11 +7,12 @@ import {
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
 import { ArrowLeft, Lock } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
 import { schemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
@@ -73,7 +73,6 @@ const isAssessmentTypeEnabled = (
       return config.peerEvaluationEnabled
     case AssessmentType.TUTOR:
       return config.tutorEvaluationEnabled
-    case AssessmentType.ASSESSMENT:
     default:
       return true
   }
@@ -81,7 +80,7 @@ const isAssessmentTypeEnabled = (
 
 export const SchemaConfigurationPage = () => {
   const { schemaId } = useParams<{ schemaId: string }>()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const {
     data: schemas,
     isPending: isSchemasPending,

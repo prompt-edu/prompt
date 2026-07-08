@@ -1,10 +1,10 @@
-import { Popover, PopoverContent, PopoverTrigger, Button } from '@tumaet/prompt-ui-components'
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { useQueries, useQuery } from '@tanstack/react-query'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
+import { Button, Popover, PopoverContent, PopoverTrigger } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { getServiceInfo } from '../../../pages/SystemStatusPage/network/getServiceCapabilities'
+import type { ReactNode } from 'react'
 import { useGetCoursePhaseTypes } from '../../../pages/SystemStatusPage/hooks/useGetCoursePhaseTypes'
-import { ReactNode } from 'react'
+import { getServiceInfo } from '../../../pages/SystemStatusPage/network/getServiceCapabilities'
 
 enum PSAStatus {
   Loading = 'loading',
@@ -52,8 +52,23 @@ function PrivacyServiceAvailabilityIndicator({
   )
 }
 
-export function PrivacyServiceAvailability() {
-  const { data: coursePhaseTypes = [], isPending: typesPending } = useGetCoursePhaseTypes()
+interface PrivacyServiceAvailabilityProps {
+  forSelf?: boolean
+}
+
+function hasOwnMicroservice(baseUrl: string): boolean {
+  try {
+    const parsed = new URL(baseUrl)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabilityProps = {}) {
+  const { data: allCoursePhaseTypes = [], isPending: typesPending } =
+    useGetCoursePhaseTypes(forSelf)
+  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => hasOwnMicroservice(cpt.baseUrl))
 
   const coreQuery = useQuery({
     queryKey: ['serviceInfo-core'],
@@ -64,7 +79,7 @@ export function PrivacyServiceAvailability() {
 
   const cpmResults = useQueries({
     queries: coursePhaseTypes.map((service) => ({
-      queryKey: ['serviceInfo-' + service.id],
+      queryKey: [`serviceInfo-${service.id}`],
       queryFn: () => getServiceInfo(service),
       retry: false,
       staleTime: 30_000,

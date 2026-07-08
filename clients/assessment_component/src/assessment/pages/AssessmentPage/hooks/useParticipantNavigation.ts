@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
-import { useTeamStore } from '../../../zustand/useTeamStore'
-import { useParticipationStore } from '../../../zustand/useParticipationStore'
+import { useGetAllTeams } from '../../hooks/useGetAllTeams'
+import { useGetCoursePhaseParticipations } from '../../hooks/useGetCoursePhaseParticipations'
 
 interface NavigationMember {
   id: string
@@ -23,9 +22,9 @@ interface ParticipantNavigation {
 export const useParticipantNavigation = (): ParticipantNavigation => {
   const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
 
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const team = teams.find((t) => t.members.some((member) => member.id === courseParticipationID))
-  const { participations } = useParticipationStore()
+  const { data: participations } = useGetCoursePhaseParticipations()
 
   const members = useMemo<NavigationMember[]>(() => {
     const teamMembers = team?.members

@@ -1,4 +1,6 @@
-import React, { useMemo } from 'react'
+import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
+import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,10 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@tumaet/prompt-ui-components'
+import React, { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
-import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 
 interface BreadcrumbProps {
   title: string
@@ -20,6 +20,12 @@ interface BreadcrumbProps {
 const capitalizeFirstLetter = (string: string) => {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
+
+const SEGMENT_LABELS: Record<string, string> = {
+  'tease-config': 'TEASE Configuration',
+}
+
+const segmentLabel = (segment: string) => SEGMENT_LABELS[segment] ?? capitalizeFirstLetter(segment)
 
 export const Breadcrumbs: React.FC = () => {
   const location = useLocation()
@@ -58,11 +64,11 @@ export const Breadcrumbs: React.FC = () => {
           if (studentsById[pathSegments[2]]) {
             const s = studentsById[pathSegments[2]]
             breadcrumbs.push({
-              title: s.firstName + ' ' + s.lastName,
-              path: '/management/students/' + pathSegments[2],
+              title: `${s.firstName} ${s.lastName}`,
+              path: `/management/students/${pathSegments[2]}`,
             })
           } else {
-            breadcrumbs.push({ title: 'Student', path: '/management/students/' + pathSegments[2] })
+            breadcrumbs.push({ title: 'Student', path: `/management/students/${pathSegments[2]}` })
           }
         }
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {
@@ -89,7 +95,7 @@ export const Breadcrumbs: React.FC = () => {
               // we assume that longer items are courseParticipationIDs
               if (segment.length < 20) {
                 breadcrumbs.push({
-                  title: capitalizeFirstLetter(segment),
+                  title: segmentLabel(segment),
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               } else {

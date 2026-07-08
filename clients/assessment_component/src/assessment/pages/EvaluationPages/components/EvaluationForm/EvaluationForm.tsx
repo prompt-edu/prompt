@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { AlertCircle } from 'lucide-react'
-
+import type { ScoreLevel } from '@tumaet/prompt-shared-state'
 import { Form } from '@tumaet/prompt-ui-components'
-
-import { AssessmentType } from '../../../../interfaces/assessmentType'
-import { Competency } from '../../../../interfaces/competency'
-import { Evaluation, CreateOrUpdateEvaluationRequest } from '../../../../interfaces/evaluation'
-import { ScoreLevel } from '@tumaet/prompt-shared-state'
+import { AlertCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { AssessmentType } from '../../../../interfaces/assessmentType'
+import type { Competency } from '../../../../interfaces/competency'
+import type { CreateOrUpdateEvaluationRequest, Evaluation } from '../../../../interfaces/evaluation'
 
 import { CompetencyHeader } from '../../../components/CompetencyHeader'
 import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDialog'

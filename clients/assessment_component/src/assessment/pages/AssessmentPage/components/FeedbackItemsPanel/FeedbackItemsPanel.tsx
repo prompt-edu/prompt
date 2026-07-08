@@ -1,11 +1,9 @@
+import { ErrorPage } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 
-import { ErrorPage } from '@tumaet/prompt-ui-components'
-
-import { useCoursePhaseConfigStore } from '../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
-
 import { FeedbackItemDisplayPanel } from '../../../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 
 import { useGetFeedbackItemsForStudent } from './hooks/useGetFeedbackItemsForStudent'
 
@@ -15,7 +13,7 @@ export const FeedbackItemsPanel = () => {
 
   const { positiveFeedbackItems, negativeFeedbackItems, isLoading, isError, refetch } =
     useGetFeedbackItemsForStudent(courseParticipationID)
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
   const studentName = assessmentParticipation?.student?.firstName || 'this student'
 

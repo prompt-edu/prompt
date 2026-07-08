@@ -1,30 +1,23 @@
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-
-import { Form, FormMessage } from '@tumaet/prompt-ui-components'
-
-import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
-import { useTeamStore } from '../../../../zustand/useTeamStore'
-import { useSelfEvaluationCategoryStore } from '../../../../zustand/useSelfEvaluationCategoryStore'
-import { usePeerEvaluationCategoryStore } from '../../../../zustand/usePeerEvaluationCategoryStore'
-
-import { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
-import { Competency } from '../../../../interfaces/competency'
 import {
-  ScoreLevel,
   mapNumberToScoreLevel,
   mapScoreLevelToNumber,
+  type ScoreLevel,
 } from '@tumaet/prompt-shared-state'
-
+import { Form, FormMessage } from '@tumaet/prompt-ui-components'
+import { useEffect, useState } from 'react'
+import type { JSX } from 'react/jsx-runtime'
+import { useForm } from 'react-hook-form'
+import type { Assessment, CreateOrUpdateAssessmentRequest } from '../../../../interfaces/assessment'
+import type { Competency } from '../../../../interfaces/competency'
+import { useStudentAssessmentStore } from '../../../../zustand/useStudentAssessmentStore'
 import { CompetencyHeader } from '../../../components/CompetencyHeader'
 import { DeleteAssessmentDialog } from '../../../components/DeleteAssessmentDialog'
 import { ScoreLevelSelector } from '../../../components/ScoreLevelSelector'
-
+import { useGetAllTeams } from '../../../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { EvaluationScoreDescriptionBadge } from './components/EvaluationScoreDescriptionBadge'
-
 import { useCreateOrUpdateAssessment } from './hooks/useCreateOrUpdateAssessment'
 import { useDeleteAssessment } from './hooks/useDeleteAssessment'
-import { JSX } from 'react/jsx-runtime'
 
 interface AssessmentFormProps {
   courseParticipationID: string
@@ -104,14 +97,19 @@ export const AssessmentForm = ({
     }
   }
 
-  const selfEvaluationCompetency =
-    useSelfEvaluationCategoryStore().allSelfEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
-  const peerEvaluationCompetency =
-    usePeerEvaluationCategoryStore().allPeerEvaluationCompetencies.find((c) =>
-      competency.mappedFromCompetencies.includes(c.id),
-    )
+  // Self/peer evaluation scores are only shown when the evaluation uses the same schema as the
+  // assessment. In that case the evaluation references the exact same competency IDs, so we match
+  // by competency directly. With a different schema configured, the badges are hidden.
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const selfEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.selfEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+  const peerEvaluationSameSchema =
+    !!coursePhaseConfig?.assessmentSchemaID &&
+    coursePhaseConfig.peerEvaluationSchema === coursePhaseConfig.assessmentSchemaID
+
+  const selfEvaluationCompetency = selfEvaluationSameSchema ? competency : undefined
+  const peerEvaluationCompetency = peerEvaluationSameSchema ? competency : undefined
 
   const {
     selfEvaluations: allSelfEvaluationsForThisStudent,
@@ -119,7 +117,7 @@ export const AssessmentForm = ({
     assessmentParticipation,
   } = useStudentAssessmentStore()
 
-  const { teams } = useTeamStore()
+  const { data: teams } = useGetAllTeams()
   const teamMembers = teams.find((t) =>
     t.members.map((m) => m.id).includes(courseParticipationID ?? ''),
   )?.members
@@ -197,7 +195,7 @@ export const AssessmentForm = ({
           selfEvaluationScoreLevel={selfEvaluationScoreLevel}
           selfEvaluationStudentAnswers={selfEvaluationStudentAnswers}
           peerEvaluationCompetency={
-            peerEvaluationCompetency && peerEvaluationCompetency.id
+            peerEvaluationCompetency?.id
               ? {
                   ...peerEvaluationCompetency,
                   name:

@@ -1,19 +1,22 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  CoursePhaseParticipationsTable,
+  ErrorPage,
+  type ExtraParticipantColumn,
+  ManagementPageHeader,
+  type ParticipantRow,
+  type RowAction,
+} from '@tumaet/prompt-ui-components'
+import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 
-import { ManagementPageHeader, ErrorPage } from '@tumaet/prompt-ui-components'
-import { CoursePhaseParticipationsTable } from '@tumaet/prompt-ui-components'
-import { ExtraParticipantColumn, ParticipantRow } from '@tumaet/prompt-ui-components'
-import { RowAction } from '@tumaet/prompt-ui-components'
-
-import { ParticipantWithDownloadStatus } from '../interfaces/participant'
-import { getParticipants } from '../network/queries/getParticipants'
+import type { ParticipantWithDownloadStatus } from '../interfaces/participant'
 import {
   downloadStudentCertificate,
   triggerBlobDownload,
 } from '../network/queries/downloadCertificate'
+import { getParticipants } from '../network/queries/getParticipants'
 
 export const ParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()

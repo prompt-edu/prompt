@@ -1,9 +1,9 @@
-import { StudentCoursePhaseEnrollment } from './StudentCoursePhaseEnrollment'
+import type { CourseEnrollment } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
 import { PassStatus } from '@tumaet/prompt-shared-state'
-import { useState } from 'react'
 import { Button } from '@tumaet/prompt-ui-components'
+import { useState } from 'react'
 import { CourseDetail } from './CourseDetail'
-import { CourseEnrollment } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
+import { StudentCoursePhaseEnrollment } from './StudentCoursePhaseEnrollment'
 
 export function StudentCourseEnrollment({
   courseEnrollment,

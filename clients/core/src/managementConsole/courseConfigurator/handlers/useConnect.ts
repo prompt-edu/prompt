@@ -1,4 +1,4 @@
-import { addEdge, Connection, Edge } from '@xyflow/react'
+import { addEdge, type Connection, type Edge } from '@xyflow/react'
 import { useCallback } from 'react'
 import { ParticipantEdgeProps } from '../graphComponents/edges/ParticipantEdgeProps'
 import { ParticipationDataEdgeProps } from '../graphComponents/edges/ParticipationDataEdgeProps'

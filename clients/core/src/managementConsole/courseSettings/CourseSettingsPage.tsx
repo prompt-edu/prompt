@@ -1,7 +1,7 @@
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { MailingConfigPage } from '../mailingConfig/MailingConfigPage'
-import { CourseGeneralSettings } from './components/CourseGeneralSettings'
 import CourseDangerZone from './components/CourseDangerZone'
+import { CourseGeneralSettings } from './components/CourseGeneralSettings'
 
 export const CourseSettingsPage = () => {
   return (

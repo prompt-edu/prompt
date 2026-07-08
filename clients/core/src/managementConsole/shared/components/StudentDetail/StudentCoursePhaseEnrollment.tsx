@@ -1,16 +1,16 @@
 import { PhaseStudentDetailMapping } from '@core/managementConsole/PhaseMapping/PhaseStudentDetailMapping'
-import { Suspense } from 'react'
-import { ProgressIndicator } from './PhaseProgressIndicator'
-import { LinkHeading } from './LinkHeading'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
-import { PassStatus } from '@tumaet/prompt-shared-state'
-import {
+import type {
   CourseEnrollment,
   CoursePhaseEnrollment,
 } from '@core/managementConsole/shared/interfaces/StudentEnrollment'
+import { PassStatus } from '@tumaet/prompt-shared-state'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
+import { Suspense } from 'react'
+import { LinkHeading } from './LinkHeading'
+import { ProgressIndicator } from './PhaseProgressIndicator'
 
 export function parsePostgresTimestamp(ts: string): Date {
-  return new Date(ts.replace(' ', 'T') + 'Z')
+  return new Date(`${ts.replace(' ', 'T')}Z`)
 }
 
 export function formatDateTime(ts: string | null): string {

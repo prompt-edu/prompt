@@ -40,13 +40,22 @@ func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
 
+func sanitizeDatabaseURL(input string) string {
+	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
+	if dbPassword == "" {
+		return input
+	}
+	return strings.ReplaceAll(input, dbPassword, "***")
+}
+
 func runMigrations(databaseURL string) {
 	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	output, err := cmd.CombinedOutput()
+	sanitized := sanitizeDatabaseURL(string(output))
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
 	}
+	fmt.Print(sanitized)
 }
 func initKeycloak(queries db.Queries) {
 	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")

@@ -596,6 +596,7 @@ CREATE TABLE public.student (
 -- Data for Name: application_question_file_upload; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+INSERT INTO public.application_question_file_upload VALUES ('bbbb0001-0000-0000-0000-0000000000b1', 'aaaa1111-0000-0000-0000-0000000000a1', 'Upload your CV', 'Attach your CV.', false, '.txt,.pdf', 50, 0, false, NULL);
 
 
 --
@@ -608,6 +609,9 @@ CREATE TABLE public.student (
 -- Data for Name: application_question_text; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Required text question on the iPraktikumFull Application phase, so the
+-- application journey exercises the configurable form (answersText round-trip).
+INSERT INTO public.application_question_text VALUES ('ab000001-0000-0000-0000-000000000001', 'd0000001-0000-0000-0000-000000000001', 'Motivation', 'Why do you want to join this course?', 'Your motivation', '', '', true, 500, 1, false, '');
 
 
 --
@@ -660,7 +664,7 @@ INSERT INTO public.course_phase_graph VALUES ('d0000002-0000-0000-0000-000000000
 INSERT INTO public.course_phase_graph VALUES ('d0000003-0000-0000-0000-000000000003', 'd0000004-0000-0000-0000-000000000004');
 INSERT INTO public.course_phase_graph VALUES ('d0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005');
 -- Certificate appended to the tail of the iPraktikumFull chain (after Assessment).
-INSERT INTO public.course_phase_graph VALUES ('d0000005-0000-0000-0000-000000000005', 'd0000009-0000-0000-0000-000000000009');
+INSERT INTO public.course_phase_graph VALUES ('d0000005-0000-0000-0000-000000000005', 'd000000d-0000-0000-0000-00000000000d');
 
 
 
@@ -701,14 +705,16 @@ INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 -- Standalone assessment fixture phases (see the course_phase inserts below):
--- Stan + Selma in the visibility phase, Stan in the self-evaluation phase.
+-- Stan + Selma in the visibility phase, Stan in the self-evaluation phase,
+-- Stan in the print phase.
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000007-0000-0000-0000-000000000007', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000009-0000-0000-0000-000000000009', '{}', 'not_assessed', '{}');
 -- Certificate phases (see the course_phase inserts below): Stan participates in
 -- the graph-tail phase (smoke + API reads) and both standalone journey phases
 -- (lecturer participants table + staff download, student self-download).
-INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000009-0000-0000-0000-000000000009', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000d-0000-0000-0000-00000000000d', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000a-0000-0000-0000-00000000000a', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000b-0000-0000-0000-00000000000b', '{}', 'passed', '{}');
 
@@ -735,9 +741,11 @@ INSERT INTO public.course_phase_type VALUES ('c5555555-5555-5555-5555-5555555555
 --
 -- An open Application phase on iPraktikum, so the file-upload endpoints accept
 -- uploads (applicationEndDate in the future → CheckIfCoursePhaseIsOpenApplicationPhase passes).
+-- applicationStartDate + explicit externalStudentsAllowed are required by the stricter
+-- GetOpenApplicationPhase query that backs the public /apply form (start<NOW; non-null bool casts).
 --
 
-INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationEndDate": "2099-12-31T23:59:59", "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 
 --
 -- A Self Team Allocation phase on iPraktikum (follows Application in the
@@ -769,15 +777,25 @@ INSERT INTO public.course_phase VALUES ('d0000005-0000-0000-0000-000000000005', 
 -- d0000006 = student visibility spec (Stan + Selma participate),
 -- d0000007 = self-evaluation spec (Stan participates),
 -- d0000008 = TestCourse negative-auth fixture (no participants; the e2e
--- students are not enrolled in TestCourse).
+-- students are not enrolled in TestCourse),
+-- d0000009 = print spec (Stan participates).
 --
 
 INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', 'Assessment Visibility', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Assessment Print', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 
 --
--- Certificate phases. d0000009 is the graph-tail phase on iPraktikumFull
+-- A CLOSED Application phase on TestCourse (applicationEndDate in the past):
+-- the negative fixture for the public apply endpoints (GET 404, POST 400).
+-- TestCourse has no other initial phase, so unique_initial_phase_per_course holds.
+--
+
+INSERT INTO public.course_phase VALUES ('aaaa5555-0000-0000-0000-0000000000a5', 'be780b32-a678-4b79-ae1c-80071771d254', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2020-06-30T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+
+--
+-- Certificate phases. d000000d is the graph-tail phase on iPraktikumFull
 -- (smoke + API-auth reads, left unconfigured). d000000a / d000000b are
 -- standalone fixtures (no graph edge, route by URL) so the lecturer journey's
 -- template/release state and the student journey's downloads never cross when
@@ -785,7 +803,7 @@ INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 
 -- negative-auth fixture (no participants; the e2e students are not enrolled).
 --
 
-INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
+INSERT INTO public.course_phase VALUES ('d000000d-0000-0000-0000-00000000000d', 'c0000001-0000-0000-0000-000000000001', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000a-0000-0000-0000-00000000000a', 'c0000001-0000-0000-0000-000000000001', 'Certificate Lecturer', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');

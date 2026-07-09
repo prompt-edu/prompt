@@ -15,6 +15,7 @@ import {
   exportStudentAssessment,
   triggerTextDownload,
 } from '../../../network/queries/exportStudentAssessment'
+import { printPage } from '../../utils/printPage'
 
 interface ExportType {
   label: string
@@ -78,6 +79,7 @@ export const AssessmentExportMenu = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
+          <DropdownMenuItem onSelect={printPage}>PDF / Print</DropdownMenuItem>
           {exportTypes.map((exportType) => (
             <DropdownMenuItem key={exportType.format} onClick={() => handleExport(exportType)}>
               {exportType.label}

@@ -279,6 +279,12 @@ first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
 are not covered — they need team data from a team-allocation resolution the
 e2e seed does not wire.
 
+The `iPraktikumFull` Application phase is open (start 2020, end 2099, external
+students allowed) and carries one required text question (`Motivation`) so the
+application journey exercises the configurable form. `TestCourse` has a
+**closed** Application phase (`CLOSED_APPLICATION_PHASE_ID`, deadline in 2020)
+as the negative fixture for the public apply endpoints.
+
 > The course name (`iPraktikumFull`) and `semester_tag` (`ios2425`) are
 > **hyphen-free on purpose**: the course-list query parses course roles with
 > `split_part(role, '-', N)`, so a hyphen in either would break course

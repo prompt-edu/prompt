@@ -15,7 +15,7 @@ export interface StudentAssessmentResults {
   assessmentCompletion: AssessmentCompletion
   assessments: Assessment[]
   categoryAssessments: CategoryAssessment[]
-  studentScore: StudentScore
+  studentScore?: StudentScore
   peerEvaluationResults: AggregatedEvaluationResult[]
   selfEvaluationResults: AggregatedEvaluationResult[]
   actionItems?: ActionItem[]

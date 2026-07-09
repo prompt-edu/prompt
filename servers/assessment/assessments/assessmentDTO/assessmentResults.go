@@ -21,7 +21,7 @@ type StudentAssessmentResults struct {
 	AssessmentCompletion  assessmentCompletionDTO.AssessmentCompletion `json:"assessmentCompletion"`
 	Assessments           []Assessment                                 `json:"assessments"`
 	CategoryAssessments   []categoryAssessmentDTO.CategoryAssessment   `json:"categoryAssessments"`
-	StudentScore          scoreLevelDTO.StudentScore                   `json:"studentScore"`
+	StudentScore          *scoreLevelDTO.StudentScore                  `json:"studentScore,omitempty"`
 	PeerEvaluationResults []AggregatedEvaluationResult                 `json:"peerEvaluationResults"`
 	SelfEvaluationResults []AggregatedEvaluationResult                 `json:"selfEvaluationResults"`
 	ActionItems           []actionItemDTO.ActionItem                   `json:"actionItems,omitempty"`

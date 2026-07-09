@@ -6,7 +6,7 @@ export const Footer = () => {
   const navigate = useNavigate()
 
   return (
-    <footer className='w-full mt-8 py-2 px-4 sm:px-6 lg:px-8 border-t border-gray-200 dark:border-gray-700'>
+    <footer className='w-full mt-8 py-2 px-4 sm:px-6 lg:px-8 border-t border-gray-200 dark:border-gray-700 print:hidden'>
       <div className='max-w-[1400px] mx-auto text-center text-sm text-gray-500'>
         <nav className='space-x-4'>
           <a

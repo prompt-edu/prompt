@@ -609,6 +609,9 @@ INSERT INTO public.application_question_file_upload VALUES ('bbbb0001-0000-0000-
 -- Data for Name: application_question_text; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+-- Required text question on the iPraktikumFull Application phase, so the
+-- application journey exercises the configurable form (answersText round-trip).
+INSERT INTO public.application_question_text VALUES ('ab000001-0000-0000-0000-000000000001', 'd0000001-0000-0000-0000-000000000001', 'Motivation', 'Why do you want to join this course?', 'Your motivation', '', '', true, 500, 1, false, '');
 
 
 --
@@ -773,6 +776,14 @@ INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 
 INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Assessment Print', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+
+--
+-- A CLOSED Application phase on TestCourse (applicationEndDate in the past):
+-- the negative fixture for the public apply endpoints (GET 404, POST 400).
+-- TestCourse has no other initial phase, so unique_initial_phase_per_course holds.
+--
+
+INSERT INTO public.course_phase VALUES ('aaaa5555-0000-0000-0000-0000000000a5', 'be780b32-a678-4b79-ae1c-80071771d254', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2020-06-30T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 
 
 --

@@ -112,3 +112,14 @@ export const FULL_COURSE_ROLES = {
   lecturer: 'ios2425-iPraktikumFull-Lecturer',
   editor: 'ios2425-iPraktikumFull-Editor',
 }
+
+// CLOSED Application phase on TestCourse (applicationEndDate in the past):
+// the public apply endpoints must reject it (GET 404, POST 400).
+export const CLOSED_APPLICATION_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'
+
+// Required text question on FULL_COURSE_PHASES.application; every application
+// posted to that phase must answer it.
+export const FULL_COURSE_APPLICATION_QUESTION = {
+  id: 'ab000001-0000-0000-0000-000000000001',
+  title: 'Motivation',
+}

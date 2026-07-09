@@ -1,5 +1,11 @@
-import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { Loader2, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -7,6 +13,7 @@ import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
@@ -125,6 +132,15 @@ export const TutorEvaluationResultsPage = () => {
               studentName={tutor.firstName}
             />
           </div>
+        </div>
+      )}
+
+      {tutorEvaluationCategories.length > 0 && (
+        <div className='flex justify-end pt-4 print:hidden'>
+          <Button variant='outline' onClick={printPage} className='gap-2'>
+            <Printer className='h-4 w-4' />
+            PDF / Print
+          </Button>
         </div>
       )}
     </div>

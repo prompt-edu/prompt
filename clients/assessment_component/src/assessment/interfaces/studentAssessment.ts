@@ -9,6 +9,6 @@ export interface StudentAssessment {
   assessments: Assessment[]
   categoryAssessments: CategoryAssessment[]
   assessmentCompletion: AssessmentCompletion
-  studentScore: StudentScore
+  studentScore?: StudentScore
   evaluations: Evaluation[]
 }

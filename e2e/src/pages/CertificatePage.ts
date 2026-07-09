@@ -61,8 +61,8 @@ export class CertificatePage {
   // response asserts the template actually compiled server-side (200); a broken
   // template would return 422 and fail here.
   async testCertificate() {
-    const responsePromise = this.page.waitForResponse((res) =>
-      res.url().includes('/certificate/preview'),
+    const responsePromise = this.page.waitForResponse(
+      (res) => res.url().includes('/certificate/preview') && res.request().method() === 'GET',
     )
     await this.page.getByRole('button', { name: 'Test Certificate' }).click()
     const response = await responsePromise
@@ -72,8 +72,8 @@ export class CertificatePage {
   // Awaits the release-date response so the release is confirmed persisted
   // before the caller navigates away (which would otherwise abort the request).
   async releaseNow() {
-    const responsePromise = this.page.waitForResponse((res) =>
-      res.url().includes('/config/release-date'),
+    const responsePromise = this.page.waitForResponse(
+      (res) => res.url().includes('/config/release-date') && res.request().method() === 'PUT',
     )
     await this.page.getByRole('button', { name: 'Release Now' }).click()
     const response = await responsePromise

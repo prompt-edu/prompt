@@ -85,6 +85,27 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
 
+// Certificate phase appended to the tail of the iPraktikumFull graph (after
+// Assessment). Left unconfigured, so it hosts the module-federation smoke test
+// and the side-effect-free API-auth reads without colliding with the journeys.
+export const CERTIFICATE_PHASES = {
+  graphTail: 'd0000009-0000-0000-0000-000000000009',
+}
+
+// Standalone Certificate phases on fullCourse (no graph edges, navigate by
+// URL). One phase per mutating spec file so template/release-date state and
+// download recording never leak between parallel Playwright files:
+// `lecturer` hosts the lecturer journey (template + release + participants),
+// `student` the student self-download journey (Stan participates in both).
+export const CERTIFICATE_FIXTURE_PHASES = {
+  lecturer: 'd000000a-0000-0000-0000-00000000000a',
+  student: 'd000000b-0000-0000-0000-00000000000b',
+}
+
+// Certificate phase on TestCourse with NO participants: requests by the e2e
+// students must be rejected (negative auth fixture).
+export const CERTIFICATE_FOREIGN_PHASE_ID = 'd000000c-0000-0000-0000-00000000000c'
+
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.

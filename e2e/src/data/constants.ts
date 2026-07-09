@@ -87,6 +87,13 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
 
+// Standalone Matching phase on fullCourse (no graph edge, navigate by URL),
+// owned by the matching lecturer re-import spec. Stan + Selma participate, each
+// carrying a `score` in restricted_data; the re-import flips their pass_status
+// to passed, so this phase is isolated from the graph Matching phase
+// (FULL_COURSE_PHASES.matching) used by the smoke / student / API specs.
+export const MATCHING_JOURNEY_PHASE_ID = 'd000000a-0000-0000-0000-00000000000a'
+
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.

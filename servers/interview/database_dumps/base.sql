@@ -25,6 +25,8 @@ SET
 SET
     row_security = off;
 
+DROP TABLE IF EXISTS public.interview_review CASCADE;
+
 DROP TABLE IF EXISTS public.interview_assignment CASCADE;
 
 DROP TABLE IF EXISTS public.interview_slot CASCADE;
@@ -60,11 +62,29 @@ CREATE TABLE
             UNIQUE (course_participation_id, interview_slot_id)
     );
 
+CREATE TABLE
+    public.interview_review (
+        course_phase_id uuid NOT NULL,
+        course_participation_id uuid NOT NULL,
+        score integer,
+        interviewer varchar(255),
+        interview_answers jsonb NOT NULL DEFAULT '[]'::jsonb,
+        created_at timestamp
+        with
+            time zone DEFAULT now (),
+            updated_at timestamp
+        with
+            time zone DEFAULT now (),
+            PRIMARY KEY (course_phase_id, course_participation_id)
+    );
+
 CREATE INDEX idx_interview_slot_course_phase ON interview_slot (course_phase_id);
 
 CREATE INDEX idx_interview_assignment_slot ON interview_assignment (interview_slot_id);
 
 CREATE INDEX idx_interview_assignment_participation ON interview_assignment (course_participation_id);
+
+CREATE INDEX idx_interview_review_course_phase ON interview_review (course_phase_id);
 
 -- Seed data for testing
 -- Active course phase with interview slots

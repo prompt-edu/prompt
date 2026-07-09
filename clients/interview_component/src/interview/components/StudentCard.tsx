@@ -16,6 +16,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
 import { BookOpen, Calendar, Clock, FileUserIcon, GraduationCap, MapPin, Mic } from 'lucide-react'
+import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewSlotData {
   id: string
@@ -30,8 +31,9 @@ interface StudentCardProps {
 }
 
 export function StudentCard({ participation, interviewSlot }: StudentCardProps) {
+  const { interviewReviews } = useParticipationStore()
   const assessmentScore = participation.prevData?.score ?? 'N/A'
-  const interviewScore = participation.restrictedData?.score ?? 'N/A'
+  const interviewScore = interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'
 
   return (
     <Card className='h-full relative overflow-hidden'>

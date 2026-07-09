@@ -9,8 +9,10 @@ import { ErrorPage } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import type { InterviewReview } from '../interfaces/InterviewReview'
 import type { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../network/interviewServerConfig'
+import { getInterviewReviews } from '../network/queries/getInterviewReviews'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
@@ -20,7 +22,7 @@ interface InterviewDataShellProps {
 
 export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const { setParticipations, setInterviewSlots } = useParticipationStore()
+  const { setParticipations, setInterviewSlots, setInterviewReviews } = useParticipationStore()
   const { setCoursePhase } = useCoursePhaseStore()
   const {
     data: coursePhaseParticipations,
@@ -59,13 +61,30 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     enabled: !!phaseId,
   })
 
-  const isError = isParticipationsError || isCoursePhaseError || isInterviewSlotsError
+  // Fetch interview reviews (score, interviewer, answers) from the interview server
+  const {
+    data: interviewReviews,
+    isPending: isInterviewReviewsPending,
+    isError: isInterviewReviewsError,
+    refetch: refetchInterviewReviews,
+  } = useQuery<InterviewReview[]>({
+    queryKey: ['interviewReviews', phaseId],
+    queryFn: () => getInterviewReviews(phaseId ?? ''),
+    enabled: !!phaseId,
+  })
+
+  const isError =
+    isParticipationsError || isCoursePhaseError || isInterviewSlotsError || isInterviewReviewsError
   const isPending =
-    isCoursePhaseParticipationsPending || isCoursePhasePending || isInterviewSlotsPending
+    isCoursePhaseParticipationsPending ||
+    isCoursePhasePending ||
+    isInterviewSlotsPending ||
+    isInterviewReviewsPending
   const refetch = () => {
     refetchCoursePhaseParticipations()
     refetchCoursePhase()
     refetchInterviewSlots()
+    refetchInterviewReviews()
   }
 
   useEffect(() => {
@@ -100,6 +119,12 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
       setInterviewSlots(flattenedSlots)
     }
   }, [interviewSlotsWithAssignments, setInterviewSlots])
+
+  useEffect(() => {
+    if (interviewReviews) {
+      setInterviewReviews(interviewReviews)
+    }
+  }, [interviewReviews, setInterviewReviews])
 
   return (
     <>

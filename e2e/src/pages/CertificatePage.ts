@@ -57,18 +57,27 @@ export class CertificatePage {
     await expect(this.page.getByText(/Configured/)).toBeVisible({ timeout: 15_000 })
   }
 
-  // Generates a preview PDF from the saved template. A valid template opens the
-  // PDF in a new tab; an invalid one surfaces the compilation-error alert, so a
-  // successful preview is the absence of that alert.
+  // Generates a preview PDF from the saved template. Awaiting the preview
+  // response asserts the template actually compiled server-side (200); a broken
+  // template would return 422 and fail here.
   async testCertificate() {
+    const responsePromise = this.page.waitForResponse((res) =>
+      res.url().includes('/certificate/preview'),
+    )
     await this.page.getByRole('button', { name: 'Test Certificate' }).click()
-    await expect(this.page.getByText('Template Compilation Error')).toBeHidden()
+    const response = await responsePromise
+    expect(response.ok()).toBeTruthy()
   }
 
+  // Awaits the release-date response so the release is confirmed persisted
+  // before the caller navigates away (which would otherwise abort the request).
   async releaseNow() {
+    const responsePromise = this.page.waitForResponse((res) =>
+      res.url().includes('/config/release-date'),
+    )
     await this.page.getByRole('button', { name: 'Release Now' }).click()
-    // The Clear button only renders once a release date is set.
-    await expect(this.page.getByRole('button', { name: 'Clear' })).toBeVisible({ timeout: 15_000 })
+    const response = await responsePromise
+    expect(response.ok()).toBeTruthy()
   }
 
   // ── Participants ─────────────────────────────────────────────────────────

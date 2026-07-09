@@ -93,13 +93,12 @@ export const EvaluationOverviewPage = () => {
 
   const isPeerEvaluationCompleted = completedPeerEvaluations === teamMembers.length
 
-  const completedTutorEvaluations =
-    team?.tutors.filter(
-      (tutor) =>
-        tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)?.completed,
-    ).length ?? 0
+  const completedTutorEvaluations = teamTutors.filter(
+    (tutor) =>
+      tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)?.completed,
+  ).length
 
-  const isTutorEvaluationCompleted = completedTutorEvaluations === (team?.tutors.length ?? 0)
+  const isTutorEvaluationCompleted = completedTutorEvaluations === teamTutors.length
 
   const allEvaluationsCompleted =
     isSelfEvaluationCompleted && isPeerEvaluationCompleted && isTutorEvaluationCompleted
@@ -141,17 +140,20 @@ export const EvaluationOverviewPage = () => {
             deadline={coursePhaseConfig?.peerEvaluationDeadline}
             teamName={team.name}
             competencyCount={peerEvaluationCompetencyCount}
-            targets={teamMembers.map((member) => ({
-              id: member.id ?? `${member.firstName}-${member.lastName}`,
-              name: `${member.firstName} ${member.lastName}`,
-              navigationPath: `${path}/peer-evaluation/${member.id}`,
-              completed:
-                peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)
-                  ?.completed ?? false,
-              evaluationCount: peerEvaluations.filter(
-                (evaluation) => evaluation.courseParticipationID === member.id,
-              ).length,
-            }))}
+            targets={teamMembers.map((member) => {
+              const memberId = member.id ?? `${member.firstName}-${member.lastName}`
+              return {
+                id: memberId,
+                name: `${member.firstName} ${member.lastName}`,
+                navigationPath: `${path}/peer-evaluation/${memberId}`,
+                completed:
+                  peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)
+                    ?.completed ?? false,
+                evaluationCount: peerEvaluations.filter(
+                  (evaluation) => evaluation.courseParticipationID === member.id,
+                ).length,
+              }
+            })}
           />
         )}
 
@@ -163,17 +165,20 @@ export const EvaluationOverviewPage = () => {
             deadline={coursePhaseConfig?.tutorEvaluationDeadline}
             teamName={team.name}
             competencyCount={tutorEvaluationCompetencyCount}
-            targets={teamTutors.map((tutor) => ({
-              id: tutor.id ?? `${tutor.firstName}-${tutor.lastName}`,
-              name: `${tutor.firstName} ${tutor.lastName}`,
-              navigationPath: `${path}/tutor-evaluation/${tutor.id}`,
-              completed:
-                tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)
-                  ?.completed ?? false,
-              evaluationCount: tutorEvaluations.filter(
-                (evaluation) => evaluation.courseParticipationID === tutor.id,
-              ).length,
-            }))}
+            targets={teamTutors.map((tutor) => {
+              const tutorId = tutor.id ?? `${tutor.firstName}-${tutor.lastName}`
+              return {
+                id: tutorId,
+                name: `${tutor.firstName} ${tutor.lastName}`,
+                navigationPath: `${path}/tutor-evaluation/${tutorId}`,
+                completed:
+                  tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)
+                    ?.completed ?? false,
+                evaluationCount: tutorEvaluations.filter(
+                  (evaluation) => evaluation.courseParticipationID === tutor.id,
+                ).length,
+              }
+            })}
           />
         )}
       </div>

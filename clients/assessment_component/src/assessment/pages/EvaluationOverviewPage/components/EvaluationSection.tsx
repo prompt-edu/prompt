@@ -76,7 +76,7 @@ export const EvaluationSection = ({
               <span className='text-sm font-medium'>{target.name}</span>
               <span className='flex items-center gap-2'>
                 <AssessmentStatusBadge
-                  remainingAssessments={competencyCount - target.evaluationCount}
+                  remainingAssessments={Math.max(0, competencyCount - target.evaluationCount)}
                   isFinalized={target.completed}
                   assessmentType={assessmentType}
                 />

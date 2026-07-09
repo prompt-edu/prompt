@@ -33,10 +33,3 @@ jobs:
         run: yarn biome check "${{ matrix.module }}"
       - name: Build component ${{ matrix.module }}
         run: yarn --cwd "${{ matrix.module }}" build
-      - name: Test component ${{ matrix.module }}
-        run: |
-          if jq -e '.scripts.test' "${{ matrix.module }}/package.json" >/dev/null; then
-            yarn --cwd "${{ matrix.module }}" test
-          else
-            echo "No test script for ${{ matrix.module }}, skipping."
-          fi

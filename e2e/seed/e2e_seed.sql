@@ -596,6 +596,7 @@ CREATE TABLE public.student (
 -- Data for Name: application_question_file_upload; Type: TABLE DATA; Schema: public; Owner: -
 --
 
+INSERT INTO public.application_question_file_upload VALUES ('bbbb0001-0000-0000-0000-0000000000b1', 'aaaa1111-0000-0000-0000-0000000000a1', 'Upload your CV', 'Attach your CV.', false, '.txt,.pdf', 50, 0, false, NULL);
 
 
 --
@@ -728,9 +729,11 @@ INSERT INTO public.course_phase_type VALUES ('b4444444-4444-4444-4444-4444444444
 --
 -- An open Application phase on iPraktikum, so the file-upload endpoints accept
 -- uploads (applicationEndDate in the future → CheckIfCoursePhaseIsOpenApplicationPhase passes).
+-- applicationStartDate + explicit externalStudentsAllowed are required by the stricter
+-- GetOpenApplicationPhase query that backs the public /apply form (start<NOW; non-null bool casts).
 --
 
-INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationEndDate": "2099-12-31T23:59:59", "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('aaaa1111-0000-0000-0000-0000000000a1', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 
 --
 -- A Self Team Allocation phase on iPraktikum (follows Application in the

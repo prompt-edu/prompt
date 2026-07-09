@@ -62,7 +62,12 @@ export function ScoreDistributionBarChart({ data }: ScoreDistributionBarChartPro
         >
           <Label value='Score Level' angle={-90} position='insideLeft' fill='#a3a3a3' />
         </YAxis>
-        <ChartTooltip cursor={false} content={<ScoreDistributionTooltipContent />} />
+        <ChartTooltip
+          cursor={false}
+          allowEscapeViewBox={{ x: false, y: true }}
+          wrapperStyle={{ zIndex: 50 }}
+          content={<ScoreDistributionTooltipContent />}
+        />
         <Bar dataKey='value' shape={<ScoreDistributionBar />}>
           <LabelList dataKey='average' content={<ScoreDistributionLabel />} />
         </Bar>

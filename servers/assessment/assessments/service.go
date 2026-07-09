@@ -280,16 +280,14 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 		}
 	}
 
-	studentScore := scoreLevelDTO.StudentScore{
-		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
-		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
-	}
-	if len(assessments) > 0 {
-		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+	var studentScore *scoreLevelDTO.StudentScore
+	if config.GradingSheetVisible && len(assessments) > 0 {
+		score, err := scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get score level: ", err)
 			return results, errors.New("could not get score level")
 		}
+		studentScore = &score
 	}
 
 	var evals []evaluationDTO.Evaluation

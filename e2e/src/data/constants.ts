@@ -74,11 +74,13 @@ export const FULL_COURSE_PHASES = {
 // in the course sidebar — navigate by URL). One phase per spec file, so release
 // state and schema locking never leak between parallel Playwright files:
 // the graph-tail assessment phase above is used by the lecturer journey + smoke,
-// `visibility` by the student-visibility spec (Stan + Selma participate), and
-// `selfEvaluation` by the self-evaluation spec (Stan participates).
+// `visibility` by the student-visibility spec (Stan + Selma participate),
+// `selfEvaluation` by the self-evaluation spec (Stan participates), and
+// `print` by the print spec (Stan participates).
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
+  print: 'd0000009-0000-0000-0000-000000000009',
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e
@@ -109,4 +111,15 @@ export const FULL_COURSE_STUDENT2 = {
 export const FULL_COURSE_ROLES = {
   lecturer: 'ios2425-iPraktikumFull-Lecturer',
   editor: 'ios2425-iPraktikumFull-Editor',
+}
+
+// CLOSED Application phase on TestCourse (applicationEndDate in the past):
+// the public apply endpoints must reject it (GET 404, POST 400).
+export const CLOSED_APPLICATION_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'
+
+// Required text question on FULL_COURSE_PHASES.application; every application
+// posted to that phase must answer it.
+export const FULL_COURSE_APPLICATION_QUESTION = {
+  id: 'ab000001-0000-0000-0000-000000000001',
+  title: 'Motivation',
 }

@@ -81,6 +81,8 @@ services:
         condition: service_started
       client-assessment:
         condition: service_started
+      client-matching:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -258,6 +260,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # ── Matching module (MF remote only; backend is core-hosted) ─────────────
+  # No server/DB: matching's routes live in server-core, so this is the reduced
+  # blueprint from e2e/README.md — just the remote, proxied at /matching/.
+  client-matching:
+    build:
+      context: ./clients/matching_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-matching
+    depends_on:
+      - clients-base
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   clients-base:
     build:
@@ -457,6 +478,8 @@ services:
       server-assessment:
         # distroless; global-setup polls /assessment/api/info.
         condition: service_started
+      client-matching:
+        condition: service_healthy
     environment:
       - CI
       # Service-name URLs on the compose network. Chromium hard-codes

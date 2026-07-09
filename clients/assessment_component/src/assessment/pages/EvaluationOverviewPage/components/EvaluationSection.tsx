@@ -53,7 +53,8 @@ export const EvaluationSection = ({
         <div className='flex items-center gap-3'>
           {targets.length > 1 && (
             <span className='text-sm text-muted-foreground'>
-              {completedCount}/{targets.length} completed
+              {completedCount}/{targets.length}
+              <span className='hidden sm:inline'> completed</span>
             </span>
           )}
           {allCompleted ? (

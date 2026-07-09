@@ -1,21 +1,17 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { GraduationCap, User, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { TeamBadge } from '../components/badges'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
-import { EvaluationInfoCard } from './components/EvaluationInfoCard'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
-import { PeerEvaluationStatusCard } from './components/PeerEvaluationStatusCard'
-import { SelfEvaluationStatusCard } from './components/SelfEvaluationStatusCard'
-import { TutorEvaluationStatusCard } from './components/TutorEvaluationStatusCard'
+import { EvaluationSection } from './components/EvaluationSection'
 
 export const EvaluationOverviewPage = () => {
   const { isStudentOfCourse } = useCourseStore()
@@ -85,19 +81,17 @@ export const EvaluationOverviewPage = () => {
 
   const isSelfEvaluationCompleted = selfEvaluationCompletion?.completed ?? false
 
-  const completedPeerEvaluations =
-    team?.members
-      .filter((member) => member.id !== myParticipation?.courseParticipationID)
-      .filter(
-        (member) =>
-          peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)?.completed,
-      ).length ?? 0
+  const teamMembers =
+    team?.members.filter((member) => member.id !== myParticipation?.courseParticipationID) ?? []
+  const teamTutors =
+    team?.tutors.filter((tutor) => tutor.id !== myParticipation?.courseParticipationID) ?? []
 
-  const totalPeerEvaluations =
-    team?.members.filter((member) => member.id !== myParticipation?.courseParticipationID).length ??
-    0
+  const completedPeerEvaluations = teamMembers.filter(
+    (member) =>
+      peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)?.completed,
+  ).length
 
-  const isPeerEvaluationCompleted = completedPeerEvaluations === totalPeerEvaluations
+  const isPeerEvaluationCompleted = completedPeerEvaluations === teamMembers.length
 
   const completedTutorEvaluations =
     team?.tutors.filter(
@@ -105,144 +99,83 @@ export const EvaluationOverviewPage = () => {
         tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)?.completed,
     ).length ?? 0
 
-  const totalTutorEvaluations = team?.tutors.length ?? 0
-
-  const isTutorEvaluationCompleted = completedTutorEvaluations === totalTutorEvaluations
+  const isTutorEvaluationCompleted = completedTutorEvaluations === (team?.tutors.length ?? 0)
 
   const allEvaluationsCompleted =
     isSelfEvaluationCompleted && isPeerEvaluationCompleted && isTutorEvaluationCompleted
 
   return (
-    <div className=''>
-      <div className='mx-auto px-4 py-6'>
-        <ManagementPageHeader>Assessment Results & Evaluation</ManagementPageHeader>
+    <div className='px-4 py-6'>
+      <ManagementPageHeader>Assessment Results & Evaluation</ManagementPageHeader>
 
+      <div className='space-y-4'>
         <EvaluationInfoHeader
           allEvaluationsCompleted={allEvaluationsCompleted}
           resultsLink={`${path}/results`}
         />
 
-        <div>
-          <div className='grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8'>
-            {selfEvaluationStarted && (
-              <SelfEvaluationStatusCard isCompleted={isSelfEvaluationCompleted} />
-            )}
+        {selfEvaluationStarted && (
+          <EvaluationSection
+            title='Self Evaluation'
+            icon={<User className='h-5 w-5 text-blue-600 dark:text-blue-400' />}
+            assessmentType={AssessmentType.SELF}
+            deadline={coursePhaseConfig?.selfEvaluationDeadline}
+            competencyCount={selfEvaluationCompetencyCount}
+            targets={[
+              {
+                id: 'self',
+                name: 'Evaluate yourself',
+                navigationPath: `${path}/self-evaluation`,
+                completed: isSelfEvaluationCompleted,
+                evaluationCount: selfEvaluations.length,
+              },
+            ]}
+          />
+        )}
 
-            {peerEvaluationStarted && team && (
-              <PeerEvaluationStatusCard
-                completedEvaluations={completedPeerEvaluations}
-                totalEvaluations={totalPeerEvaluations}
-                isCompleted={isPeerEvaluationCompleted}
-              />
-            )}
+        {peerEvaluationStarted && team && (
+          <EvaluationSection
+            title='Peer Evaluation'
+            icon={<Users className='h-5 w-5 text-green-600 dark:text-green-400' />}
+            assessmentType={AssessmentType.PEER}
+            deadline={coursePhaseConfig?.peerEvaluationDeadline}
+            teamName={team.name}
+            competencyCount={peerEvaluationCompetencyCount}
+            targets={teamMembers.map((member) => ({
+              id: member.id ?? `${member.firstName}-${member.lastName}`,
+              name: `${member.firstName} ${member.lastName}`,
+              navigationPath: `${path}/peer-evaluation/${member.id}`,
+              completed:
+                peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)
+                  ?.completed ?? false,
+              evaluationCount: peerEvaluations.filter(
+                (evaluation) => evaluation.courseParticipationID === member.id,
+              ).length,
+            }))}
+          />
+        )}
 
-            {tutorEvaluationStarted && team && (
-              <TutorEvaluationStatusCard
-                completedEvaluations={completedTutorEvaluations}
-                totalEvaluations={totalTutorEvaluations}
-                isCompleted={isTutorEvaluationCompleted}
-              />
-            )}
-          </div>
-
-          {selfEvaluationStarted && (
-            <div className='mb-8'>
-              <div className='flex items-center gap-3 mb-6'>
-                <div className='flex items-center gap-2'>
-                  <User className='h-6 w-6 text-blue-600 dark:text-blue-400' />
-                  <h1 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                    Self Evaluation
-                  </h1>
-                </div>
-              </div>
-              <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
-                <EvaluationInfoCard
-                  name='Self Evaluation'
-                  navigationPath={`${path}/self-evaluation`}
-                  competencyCount={selfEvaluationCompetencyCount}
-                  completed={isSelfEvaluationCompleted}
-                  evaluations={selfEvaluations}
-                />
-              </Card>
-            </div>
-          )}
-
-          {peerEvaluationStarted && team && (
-            <div className='mb-8'>
-              <div className='flex items-center gap-3 mb-6'>
-                <div className='flex items-center gap-2'>
-                  <Users className='h-6 w-6 text-green-600 dark:text-green-400' />
-                  <h1 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                    Peer Evaluation
-                  </h1>
-                </div>
-                <TeamBadge teamName={team.name} />
-              </div>
-              <div className='space-y-4'>
-                {team.members
-                  .filter((member) => member.id !== myParticipation?.courseParticipationID)
-                  .map((member) => (
-                    <Card
-                      key={member.id}
-                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
-                    >
-                      <EvaluationInfoCard
-                        name={`${member.firstName} ${member.lastName}`}
-                        navigationPath={`${path}/peer-evaluation/${member?.id}`}
-                        competencyCount={peerEvaluationCompetencyCount}
-                        completed={
-                          peerEvaluationCompletions.find(
-                            (c) => c.courseParticipationID === member.id,
-                          )?.completed ?? false
-                        }
-                        evaluations={peerEvaluations.filter(
-                          (evaluation) => evaluation.courseParticipationID === member.id,
-                        )}
-                      />
-                    </Card>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {tutorEvaluationStarted && team && (
-            <div className='mb-8'>
-              <div className='flex items-center gap-3 mb-6'>
-                <div className='flex items-center gap-2'>
-                  <GraduationCap className='h-6 w-6 text-purple-600 dark:text-purple-400' />
-                  <h1 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-                    Tutor Evaluation
-                  </h1>
-                </div>
-                <TeamBadge teamName={team.name} />
-              </div>
-              <div className='space-y-4'>
-                {team.tutors
-                  .filter((tutor) => tutor.id !== myParticipation?.courseParticipationID)
-                  .map((tutor) => (
-                    <Card
-                      key={tutor.id}
-                      className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'
-                    >
-                      <EvaluationInfoCard
-                        name={`${tutor.firstName} ${tutor.lastName}`}
-                        navigationPath={`${path}/tutor-evaluation/${tutor?.id}`}
-                        competencyCount={tutorEvaluationCompetencyCount}
-                        completed={
-                          tutorEvaluationCompletions.find(
-                            (c) => c.courseParticipationID === tutor.id,
-                          )?.completed ?? false
-                        }
-                        evaluations={tutorEvaluations.filter(
-                          (evaluation) => evaluation.courseParticipationID === tutor.id,
-                        )}
-                      />
-                    </Card>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {tutorEvaluationStarted && team && (
+          <EvaluationSection
+            title='Tutor Evaluation'
+            icon={<GraduationCap className='h-5 w-5 text-purple-600 dark:text-purple-400' />}
+            assessmentType={AssessmentType.TUTOR}
+            deadline={coursePhaseConfig?.tutorEvaluationDeadline}
+            teamName={team.name}
+            competencyCount={tutorEvaluationCompetencyCount}
+            targets={teamTutors.map((tutor) => ({
+              id: tutor.id ?? `${tutor.firstName}-${tutor.lastName}`,
+              name: `${tutor.firstName} ${tutor.lastName}`,
+              navigationPath: `${path}/tutor-evaluation/${tutor.id}`,
+              completed:
+                tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)
+                  ?.completed ?? false,
+              evaluationCount: tutorEvaluations.filter(
+                (evaluation) => evaluation.courseParticipationID === tutor.id,
+              ).length,
+            }))}
+          />
+        )}
       </div>
     </div>
   )

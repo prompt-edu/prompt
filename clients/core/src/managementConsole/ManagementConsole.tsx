@@ -151,7 +151,7 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
         <AppSidebar />
         <SidebarInset>
           {courseId && !courseExists && <CourseNotFound courseId={courseId || ''} />}
-          <header className='sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4'>
+          <header className='sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4 print:hidden'>
             <div className='flex min-w-0 items-center gap-2'>
               <SidebarTrigger className='-ml-1' />
               <Separator orientation='vertical' className='mr-2 h-4' />
@@ -161,7 +161,7 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
           </header>
           <div
             id='management-children'
-            className='flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6'
+            className='flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 print:min-h-0 print:overflow-visible print:p-0'
           >
             {hasChildren ? children : <EmptyPage />}
           </div>

@@ -296,6 +296,37 @@ func (suite *StorageServiceTestSuite) TestGetFilesByCoursePhaseID() {
 	assert.GreaterOrEqual(suite.T(), len(files), 2)
 }
 
+func (suite *StorageServiceTestSuite) TestPresignUpload_MissingFilename_MapsToInvalidInput() {
+	_, err := suite.service.PresignUpload(suite.ctx, PresignUploadRequest{
+		ContentType: "application/pdf",
+	})
+	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
+}
+
+func (suite *StorageServiceTestSuite) TestCreateFileFromStorageKey_MissingKey_MapsToInvalidInput() {
+	_, err := suite.service.CreateFileFromStorageKey(suite.ctx, CreateFileFromStorageKeyRequest{}, suite.testUserID, "")
+	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
+}
+
+func (suite *StorageServiceTestSuite) TestCreateFileFromStorageKey_ObjectNotFound_MapsToNotFound() {
+	mock := suite.mockAdapter.(*storage.MockStorageAdapter)
+	old := mock.GetMetadataFunc
+	mock.GetMetadataFunc = func(ctx context.Context, storageKey string) (*storage.FileMetadata, error) {
+		return nil, storage.ErrObjectNotFound
+	}
+	defer func() { mock.GetMetadataFunc = old }()
+
+	coursePhaseID := uuid.New()
+	storageKey := "course-phase/" + coursePhaseID.String() + "/" + uuid.New().String() + "-never-uploaded.pdf"
+
+	_, err := suite.service.CreateFileFromStorageKey(suite.ctx, CreateFileFromStorageKeyRequest{
+		StorageKey:    storageKey,
+		CoursePhaseID: &coursePhaseID,
+		ContentType:   "application/pdf",
+	}, suite.testUserID, "")
+	assert.ErrorIs(suite.T(), err, ErrNotFound)
+}
+
 // Helper method to create a multipart file header for testing
 func (suite *StorageServiceTestSuite) createMultipartFileHeader(filename, contentType string, content []byte) *multipart.FileHeader {
 	// Create a buffer to write multipart data

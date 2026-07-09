@@ -357,22 +357,6 @@
           "attributes": {}
         },
         {
-          "name": "ios2425-iPraktikumFull-Lecturer",
-          "description": "Course-scoped lecturer role for the seeded iPraktikumFull course.",
-          "composite": false,
-          "clientRole": true,
-          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
-          "attributes": {}
-        },
-        {
-          "name": "ios2425-iPraktikumFull-Editor",
-          "description": "Course-scoped editor role for the seeded iPraktikumFull course.",
-          "composite": false,
-          "clientRole": true,
-          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
-          "attributes": {}
-        },
-        {
           "id": "c1a11111-1111-1111-1111-111111111111",
           "name": "ios2425-iPraktikum-Student",
           "description": "Course-scoped student role for the seeded iPraktikum course",
@@ -385,6 +369,22 @@
           "id": "c1a22222-2222-2222-2222-222222222222",
           "name": "ios2425-iPraktikum-Lecturer",
           "description": "Course-scoped lecturer role for the seeded iPraktikum course",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
+        },
+        {
+          "name": "ios2425-iPraktikumFull-Lecturer",
+          "description": "Course-scoped lecturer role for the seeded iPraktikumFull course.",
+          "composite": false,
+          "clientRole": true,
+          "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+          "attributes": {}
+        },
+        {
+          "name": "ios2425-iPraktikumFull-Editor",
+          "description": "Course-scoped editor role for the seeded iPraktikumFull course.",
           "composite": false,
           "clientRole": true,
           "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
@@ -669,8 +669,8 @@
       "clientRoles": {
         "prompt-server": [
           "PROMPT_Course_Lecturer",
-          "ios2425-iPraktikumFull-Lecturer",
-          "ios2425-iPraktikum-Lecturer"
+          "ios2425-iPraktikum-Lecturer",
+          "ios2425-iPraktikumFull-Lecturer"
         ]
       }
     },

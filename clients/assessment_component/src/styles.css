@@ -11,4 +11,9 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+
+  [role='tooltip'],
+  [data-radix-popper-content-wrapper] {
+    display: none;
+  }
 }

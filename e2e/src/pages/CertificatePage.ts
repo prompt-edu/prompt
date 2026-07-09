@@ -53,9 +53,8 @@ export class CertificatePage {
 
   async saveTemplate() {
     await this.page.getByRole('button', { name: 'Save Template' }).click()
-    await expect(this.page.getByText('Configured', { exact: true })).toBeVisible({
-      timeout: 15_000,
-    })
+    // The "Configured" badge appends "· <date> by <user>", so match a substring.
+    await expect(this.page.getByText(/Configured/)).toBeVisible({ timeout: 15_000 })
   }
 
   // Generates a preview PDF from the saved template. A valid template opens the

@@ -81,6 +81,10 @@ services:
         condition: service_started
       client-assessment:
         condition: service_started
+      server-interview:
+        condition: service_started
+      client-interview:
+        condition: service_started
       server-certificate:
         condition: service_started
       client-certificate:
@@ -263,8 +267,79 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Certificate phase module (server + MF remote + own DB) ───────────────
+  # ── Interview phase module (server + MF remote + own DB) ─────────────────
   # Third phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-interview:
+    build:
+      context: ./servers/interview
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-interview
+    depends_on:
+      db-interview:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_INTERVIEW_USER}
+      - DB_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - DB_NAME=${DB_INTERVIEW_NAME}
+      - DB_HOST_INTERVIEW=${DB_INTERVIEW_HOST}
+      - DB_PORT_INTERVIEW=${DB_INTERVIEW_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /interview/api/info through the client-core proxy.
+
+  client-interview:
+    build:
+      context: ./clients/interview_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-interview
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /interview/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-interview:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-interview
+    environment:
+      - POSTGRES_USER=${DB_INTERVIEW_USER}
+      - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - POSTGRES_DB=${DB_INTERVIEW_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and
+    # the tests create all slots/assignments themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTERVIEW_NAME} -U ${DB_INTERVIEW_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Certificate phase module (server + MF remote + own DB) ───────────────
+  # Fourth phase module in the e2e stack, following the blueprint in
   # e2e/README.md ("Phase modules in the e2e stack").
   server-certificate:
     build:
@@ -533,6 +608,11 @@ services:
         condition: service_healthy
       server-assessment:
         # distroless; global-setup polls /assessment/api/info.
+        condition: service_started
+      client-interview:
+        condition: service_healthy
+      server-interview:
+        # distroless; global-setup polls /interview/api/info.
         condition: service_started
       client-certificate:
         condition: service_healthy

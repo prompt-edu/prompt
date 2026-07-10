@@ -808,6 +808,14 @@ INSERT INTO public.course_phase VALUES ('d000000a-0000-0000-0000-00000000000a', 
 INSERT INTO public.course_phase VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 
+--
+-- Standalone interview fixture phase (no graph edge, see above):
+-- aaaa6666 = TestCourse negative-auth fixture for the interview API (no
+-- participants; the e2e users hold no TestCourse roles).
+--
+
+INSERT INTO public.course_phase VALUES ('aaaa6666-0000-0000-0000-0000000000a6', 'be780b32-a678-4b79-ae1c-80071771d254', 'Interview', '{}', false, 'b1111111-1111-1111-1111-111111111111', '{}');
+
 
 --
 -- Data for Name: course_phase_type_participation_provided_output_dto; Type: TABLE DATA; Schema: public; Owner: -

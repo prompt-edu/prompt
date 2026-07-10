@@ -37,19 +37,19 @@ definitions:
       updatedAt:
         type: string
     type: object
-  phaseconfig.Response:
+  phaseconfigDTO.Response:
     properties:
       coursePhaseId:
         type: string
       semesterTag:
         type: string
     type: object
-  phaseconfig.UpsertRequest:
+  phaseconfigDTO.UpsertRequest:
     properties:
       semesterTag:
         type: string
     type: object
-  providerconfig.AuthField:
+  providerconfigDTO.AuthField:
     properties:
       description:
         type: string
@@ -63,14 +63,14 @@ definitions:
         description: '"text" or "password"'
         type: string
     type: object
-  providerconfig.ProviderConfigResponse:
+  providerconfigDTO.ProviderConfigResponse:
     properties:
       id:
         type: string
       providerType:
         type: string
     type: object
-  providerconfig.UpsertRequest:
+  providerconfigDTO.UpsertRequest:
     properties:
       credentials:
         additionalProperties: true
@@ -81,7 +81,7 @@ definitions:
     - credentials
     - providerType
     type: object
-  resourceconfig.CreateRequest:
+  resourceconfigDTO.CreateRequest:
     properties:
       nameTemplate:
         type: string
@@ -107,7 +107,7 @@ definitions:
     - resourceType
     - scope
     type: object
-  resourceconfig.ResourceConfigResponse:
+  resourceconfigDTO.ResourceConfigResponse:
     properties:
       coursePhaseId:
         type: string
@@ -132,7 +132,7 @@ definitions:
       scope:
         type: string
     type: object
-  resourceconfig.UpdateRequest:
+  resourceconfigDTO.UpdateRequest:
     properties:
       nameTemplate:
         type: string
@@ -332,7 +332,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/providerconfig.ProviderConfigResponse'
+              $ref: '#/definitions/providerconfigDTO.ProviderConfigResponse'
             type: array
         "400":
           description: Bad Request
@@ -366,14 +366,14 @@ paths:
         name: providerConfig
         required: true
         schema:
-          $ref: '#/definitions/providerconfig.UpsertRequest'
+          $ref: '#/definitions/providerconfigDTO.UpsertRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/providerconfig.ProviderConfigResponse'
+            $ref: '#/definitions/providerconfigDTO.ProviderConfigResponse'
         "400":
           description: Bad Request
           schema:
@@ -462,7 +462,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/providerconfig.AuthField'
+              $ref: '#/definitions/providerconfigDTO.AuthField'
             type: array
         "400":
           description: Bad Request
@@ -533,7 +533,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+              $ref: '#/definitions/resourceconfigDTO.ResourceConfigResponse'
             type: array
         "400":
           description: Bad Request
@@ -568,14 +568,14 @@ paths:
         name: resourceConfig
         required: true
         schema:
-          $ref: '#/definitions/resourceconfig.CreateRequest'
+          $ref: '#/definitions/resourceconfigDTO.CreateRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+            $ref: '#/definitions/resourceconfigDTO.ResourceConfigResponse'
         "400":
           description: Bad Request
           schema:
@@ -648,7 +648,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+            $ref: '#/definitions/resourceconfigDTO.ResourceConfigResponse'
         "400":
           description: Bad Request
           schema:
@@ -686,14 +686,14 @@ paths:
         name: resourceConfig
         required: true
         schema:
-          $ref: '#/definitions/resourceconfig.UpdateRequest'
+          $ref: '#/definitions/resourceconfigDTO.UpdateRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/resourceconfig.ResourceConfigResponse'
+            $ref: '#/definitions/resourceconfigDTO.ResourceConfigResponse'
         "400":
           description: Bad Request
           schema:
@@ -728,7 +728,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/phaseconfig.Response'
+            $ref: '#/definitions/phaseconfigDTO.Response'
         "400":
           description: Bad Request
           schema:
@@ -762,14 +762,14 @@ paths:
         name: config
         required: true
         schema:
-          $ref: '#/definitions/phaseconfig.UpsertRequest'
+          $ref: '#/definitions/phaseconfigDTO.UpsertRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/phaseconfig.Response'
+            $ref: '#/definitions/phaseconfigDTO.Response'
         "400":
           description: Bad Request
           schema:

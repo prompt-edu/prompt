@@ -273,7 +273,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/providerconfig.ProviderConfigResponse"
+                                "$ref": "#/definitions/providerconfigDTO.ProviderConfigResponse"
                             }
                         }
                     },
@@ -328,7 +328,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/providerconfig.UpsertRequest"
+                            "$ref": "#/definitions/providerconfigDTO.UpsertRequest"
                         }
                     }
                 ],
@@ -336,7 +336,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/providerconfig.ProviderConfigResponse"
+                            "$ref": "#/definitions/providerconfigDTO.ProviderConfigResponse"
                         }
                     },
                     "400": {
@@ -467,7 +467,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/providerconfig.AuthField"
+                                "$ref": "#/definitions/providerconfigDTO.AuthField"
                             }
                         }
                     },
@@ -573,7 +573,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/resourceconfig.ResourceConfigResponse"
+                                "$ref": "#/definitions/resourceconfigDTO.ResourceConfigResponse"
                             }
                         }
                     },
@@ -628,7 +628,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/resourceconfig.CreateRequest"
+                            "$ref": "#/definitions/resourceconfigDTO.CreateRequest"
                         }
                     }
                 ],
@@ -636,7 +636,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/resourceconfig.ResourceConfigResponse"
+                            "$ref": "#/definitions/resourceconfigDTO.ResourceConfigResponse"
                         }
                     },
                     "400": {
@@ -695,7 +695,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/resourceconfig.ResourceConfigResponse"
+                            "$ref": "#/definitions/resourceconfigDTO.ResourceConfigResponse"
                         }
                     },
                     "400": {
@@ -756,7 +756,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/resourceconfig.UpdateRequest"
+                            "$ref": "#/definitions/resourceconfigDTO.UpdateRequest"
                         }
                     }
                 ],
@@ -764,7 +764,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/resourceconfig.ResourceConfigResponse"
+                            "$ref": "#/definitions/resourceconfigDTO.ResourceConfigResponse"
                         }
                     },
                     "400": {
@@ -870,7 +870,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/phaseconfig.Response"
+                            "$ref": "#/definitions/phaseconfigDTO.Response"
                         }
                     },
                     "400": {
@@ -924,7 +924,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/phaseconfig.UpsertRequest"
+                            "$ref": "#/definitions/phaseconfigDTO.UpsertRequest"
                         }
                     }
                 ],
@@ -932,7 +932,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/phaseconfig.Response"
+                            "$ref": "#/definitions/phaseconfigDTO.Response"
                         }
                     },
                     "400": {
@@ -1011,7 +1011,7 @@ const docTemplate = `{
                 }
             }
         },
-        "phaseconfig.Response": {
+        "phaseconfigDTO.Response": {
             "type": "object",
             "properties": {
                 "coursePhaseId": {
@@ -1022,7 +1022,7 @@ const docTemplate = `{
                 }
             }
         },
-        "phaseconfig.UpsertRequest": {
+        "phaseconfigDTO.UpsertRequest": {
             "type": "object",
             "properties": {
                 "semesterTag": {
@@ -1030,7 +1030,7 @@ const docTemplate = `{
                 }
             }
         },
-        "providerconfig.AuthField": {
+        "providerconfigDTO.AuthField": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1051,7 +1051,7 @@ const docTemplate = `{
                 }
             }
         },
-        "providerconfig.ProviderConfigResponse": {
+        "providerconfigDTO.ProviderConfigResponse": {
             "type": "object",
             "properties": {
                 "id": {
@@ -1062,7 +1062,7 @@ const docTemplate = `{
                 }
             }
         },
-        "providerconfig.UpsertRequest": {
+        "providerconfigDTO.UpsertRequest": {
             "type": "object",
             "required": [
                 "credentials",
@@ -1078,7 +1078,7 @@ const docTemplate = `{
                 }
             }
         },
-        "resourceconfig.CreateRequest": {
+        "resourceconfigDTO.CreateRequest": {
             "type": "object",
             "required": [
                 "nameTemplate",
@@ -1115,7 +1115,7 @@ const docTemplate = `{
                 }
             }
         },
-        "resourceconfig.ResourceConfigResponse": {
+        "resourceconfigDTO.ResourceConfigResponse": {
             "type": "object",
             "properties": {
                 "coursePhaseId": {
@@ -1153,7 +1153,7 @@ const docTemplate = `{
                 }
             }
         },
-        "resourceconfig.UpdateRequest": {
+        "resourceconfigDTO.UpdateRequest": {
             "type": "object",
             "required": [
                 "nameTemplate",

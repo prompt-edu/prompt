@@ -1,4 +1,4 @@
-import { SetupConfig } from '../../interfaces/setupConfig'
+import type { SetupConfig } from '../../interfaces/setupConfig'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const getSetupConfig = async (coursePhaseID: string): Promise<SetupConfig> => {

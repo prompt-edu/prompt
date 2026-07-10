@@ -1,14 +1,13 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import { Button } from '@tumaet/prompt-ui-components'
 import { PlusCircle, Settings } from 'lucide-react'
-
-import { getProviderConfigs } from '../network/queries/getProviderConfigs'
-import { getResourceConfigs } from '../network/queries/getResourceConfigs'
-import { ResourceConfig } from '../interfaces/resourceConfig'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { ResourceConfigCard } from '../components/ResourceConfigCard'
 import { ResourceConfigUpsertDialog } from '../dialogs/ResourceConfigUpsertDialog'
+import type { ResourceConfig } from '../interfaces/resourceConfig'
+import { getProviderConfigs } from '../network/queries/getProviderConfigs'
+import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 
 export const ResourceConfigPage = () => {
   const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()

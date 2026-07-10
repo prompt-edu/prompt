@@ -1,4 +1,4 @@
-import { AuthField, ProviderType } from '../../interfaces/providerConfig'
+import type { AuthField, ProviderType } from '../../interfaces/providerConfig'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const getProviderAuthFields = async (

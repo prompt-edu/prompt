@@ -1,6 +1,6 @@
 import { Badge } from '@tumaet/prompt-ui-components'
 
-import { ResourceStatus } from '../interfaces/resourceInstance'
+import type { ResourceStatus } from '../interfaces/resourceInstance'
 
 const statusToVariant: Record<ResourceStatus, 'default' | 'secondary' | 'outline' | 'destructive'> =
   {

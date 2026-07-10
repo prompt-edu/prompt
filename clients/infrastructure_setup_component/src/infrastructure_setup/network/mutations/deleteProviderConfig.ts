@@ -1,4 +1,4 @@
-import { ProviderType } from '../../interfaces/providerConfig'
+import type { ProviderType } from '../../interfaces/providerConfig'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const deleteProviderConfig = async (

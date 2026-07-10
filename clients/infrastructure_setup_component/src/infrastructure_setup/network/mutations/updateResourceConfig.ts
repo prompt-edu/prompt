@@ -1,4 +1,4 @@
-import { ResourceConfig, UpdateResourceConfigRequest } from '../../interfaces/resourceConfig'
+import type { ResourceConfig, UpdateResourceConfigRequest } from '../../interfaces/resourceConfig'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const updateResourceConfig = async (

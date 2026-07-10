@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -21,9 +20,10 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { ProviderType } from '../interfaces/providerConfig'
-import {
+import type { ProviderType } from '../interfaces/providerConfig'
+import type {
   CreateResourceConfigRequest,
   ResourceConfig,
   Scope,

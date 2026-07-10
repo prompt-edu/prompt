@@ -1,7 +1,7 @@
+import type { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
 import React from 'react'
-import { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
-import { ExternalRoutes } from './ExternalRoutes'
 import { LoadingError } from '../utils/LoadingError'
+import { ExternalRoutes } from './ExternalRoutes'
 
 export const InfrastructureSetupRoutes = React.lazy(() =>
   import('infrastructure_setup_component/routes')

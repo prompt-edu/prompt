@@ -1,4 +1,4 @@
-import { ResourceInstance } from '../../interfaces/resourceInstance'
+import type { ResourceInstance } from '../../interfaces/resourceInstance'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const getInstances = async (coursePhaseID: string): Promise<ResourceInstance[]> => {

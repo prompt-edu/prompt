@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -8,10 +7,11 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { ChevronDown, ChevronRight, ExternalLink, RotateCcw, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
-import { ResourceInstance } from '../interfaces/resourceInstance'
-import { retryInstance } from '../network/mutations/retryInstance'
+import type { ResourceInstance } from '../interfaces/resourceInstance'
 import { deleteInstance } from '../network/mutations/deleteInstance'
+import { retryInstance } from '../network/mutations/retryInstance'
 import { StatusBadge } from './StatusBadge'
 
 interface Props {

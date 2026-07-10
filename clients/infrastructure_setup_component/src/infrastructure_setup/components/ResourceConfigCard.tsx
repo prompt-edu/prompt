@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Badge,
@@ -9,8 +8,9 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
-import { ResourceConfig } from '../interfaces/resourceConfig'
+import type { ResourceConfig } from '../interfaces/resourceConfig'
 import { deleteResourceConfig } from '../network/mutations/deleteResourceConfig'
 
 interface Props {

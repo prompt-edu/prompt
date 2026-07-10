@@ -1,4 +1,4 @@
-import { SetupConfig, UpsertSetupConfigRequest } from '../../interfaces/setupConfig'
+import type { SetupConfig, UpsertSetupConfigRequest } from '../../interfaces/setupConfig'
 import { infrastructureSetupAxiosInstance } from '../infrastructureSetupServerConfig'
 
 export const updateSetupConfig = async (

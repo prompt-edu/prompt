@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@tumaet/prompt-ui-components'
-import { Link, useResolvedPath } from 'react-router-dom'
 import { Play, Server, Settings, ShieldCheck } from 'lucide-react'
+import { Link, useResolvedPath } from 'react-router-dom'
 
 const sections = [
   {

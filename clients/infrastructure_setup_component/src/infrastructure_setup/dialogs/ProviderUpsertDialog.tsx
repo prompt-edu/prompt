@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -17,15 +16,16 @@ import {
   SelectValue,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
-  AuthField,
-  ProviderConfig,
-  ProviderType,
+  type AuthField,
+  type ProviderConfig,
+  type ProviderType,
   providerTypes,
 } from '../interfaces/providerConfig'
-import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
 import { upsertProviderConfig } from '../network/mutations/upsertProviderConfig'
+import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
 
 interface Props {
   coursePhaseID: string

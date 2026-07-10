@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -12,10 +11,10 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Info, Save, Settings } from 'lucide-react'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
-
-import { getSetupConfig } from '../network/queries/getSetupConfig'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { updateSetupConfig } from '../network/mutations/updateSetupConfig'
+import { getSetupConfig } from '../network/queries/getSetupConfig'
 
 export const SetupConfigPage = () => {
   const { courseId, phaseId: coursePhaseID } = useParams<{

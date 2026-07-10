@@ -1,13 +1,12 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import { Button, ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { PlusCircle, Server } from 'lucide-react'
-
-import { ProviderConfig } from '../interfaces/providerConfig'
-import { getProviderConfigs } from '../network/queries/getProviderConfigs'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { ProviderCard } from '../components/ProviderCard'
 import { ProviderUpsertDialog } from '../dialogs/ProviderUpsertDialog'
+import type { ProviderConfig } from '../interfaces/providerConfig'
+import { getProviderConfigs } from '../network/queries/getProviderConfigs'
 
 export const ProvidersPage = () => {
   const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()

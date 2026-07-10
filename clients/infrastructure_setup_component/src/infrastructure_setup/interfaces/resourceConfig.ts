@@ -1,4 +1,4 @@
-import { ProviderType } from './providerConfig'
+import type { ProviderType } from './providerConfig'
 
 export type Scope = 'per_team' | 'per_student'
 

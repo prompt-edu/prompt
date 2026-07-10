@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Badge,
@@ -8,12 +7,13 @@ import {
   DeleteConfirmation,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import axios from 'axios'
+import { CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
-import { ProviderConfig } from '../interfaces/providerConfig'
-import { validateProviderConfig } from '../network/mutations/validateProviderConfig'
+import type { ProviderConfig } from '../interfaces/providerConfig'
 import { deleteProviderConfig } from '../network/mutations/deleteProviderConfig'
+import { validateProviderConfig } from '../network/mutations/validateProviderConfig'
 
 interface Props {
   coursePhaseID: string

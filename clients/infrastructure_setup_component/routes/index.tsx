@@ -1,9 +1,9 @@
-import { OverviewPage } from '../src/OverviewPage'
+import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { ExecutionPage } from '../src/infrastructure_setup/pages/ExecutionPage'
 import { ProvidersPage } from '../src/infrastructure_setup/pages/ProvidersPage'
 import { ResourceConfigPage } from '../src/infrastructure_setup/pages/ResourceConfigPage'
-import { ExecutionPage } from '../src/infrastructure_setup/pages/ExecutionPage'
 import { SetupConfigPage } from '../src/infrastructure_setup/pages/SetupConfigPage'
-import { ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { OverviewPage } from '../src/OverviewPage'
 
 const routes: ExtendedRouteObject[] = [
   {

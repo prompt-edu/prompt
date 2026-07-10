@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
 import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
 import { Play, RefreshCw } from 'lucide-react'
-
-import { getInstances } from '../network/queries/getInstances'
-import { triggerExecution } from '../network/mutations/triggerExecution'
+import { useParams } from 'react-router-dom'
 import { InstanceRow } from '../components/InstanceRow'
+import { triggerExecution } from '../network/mutations/triggerExecution'
+import { getInstances } from '../network/queries/getInstances'
 
 const isPollingStatus = (status: string) => status === 'pending' || status === 'in_progress'
 

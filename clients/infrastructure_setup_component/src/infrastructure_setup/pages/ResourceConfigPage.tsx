@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button } from '@tumaet/prompt-ui-components'
+import { Button, ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { PlusCircle, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -18,6 +18,7 @@ export const ResourceConfigPage = () => {
     data: resourceConfigs,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ['resource-configs', coursePhaseID],
     queryFn: () => getResourceConfigs(coursePhaseID!),
@@ -31,10 +32,12 @@ export const ResourceConfigPage = () => {
   })
 
   if (isLoading) {
-    return <div className='p-4 text-muted-foreground'>Loading resource configurations…</div>
+    return <LoadingPage />
   }
   if (isError) {
-    return <div className='p-4 text-red-600'>Failed to load resource configurations.</div>
+    return (
+      <ErrorPage description='Failed to load resource configurations.' onRetry={() => refetch()} />
+    )
   }
 
   const openCreate = () => {

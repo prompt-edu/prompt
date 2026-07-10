@@ -16,7 +16,6 @@ import (
 // CopyService handles phase-level data duplication.
 type CopyService struct {
 	queries *db.Queries
-	conn    *pgxpool.Pool
 }
 
 var CopyServiceSingleton *CopyService
@@ -61,9 +60,9 @@ type ConfigHandler struct{}
 
 func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	empty := map[string]bool{
-		"semesterTag":      false,
-		"providerConfig":   false,
-		"resourceConfig":   false,
+		"semesterTag":    false,
+		"providerConfig": false,
+		"resourceConfig": false,
 	}
 	if CopyServiceSingleton == nil {
 		return empty, nil
@@ -103,6 +102,5 @@ func InitCopyModule(routerGroup *gin.RouterGroup, conn *pgxpool.Pool) {
 	promptTypes.RegisterConfigEndpoint(routerGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), &ConfigHandler{})
 	CopyServiceSingleton = &CopyService{
 		queries: db.New(conn),
-		conn:    conn,
 	}
 }

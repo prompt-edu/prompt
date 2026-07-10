@@ -149,24 +149,10 @@ func (p *Provider) DeleteResource(ctx context.Context, externalID string) error 
 
 // findOrCreateGroup returns the group ID for a given name, creating it if needed.
 func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (string, error) {
-	path := fmt.Sprintf("/admin/realms/%s/groups?search=%s", p.cfg.Realm, url.QueryEscape(name))
-	body, err := p.get(ctx, token, path)
-	if err != nil {
+	if id, err := p.searchGroupByName(ctx, token, name); err != nil {
 		return "", err
-	}
-
-	var groups []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	if err := json.Unmarshal(body, &groups); err != nil {
-		return "", err
-	}
-
-	for _, g := range groups {
-		if g.Name == name {
-			return g.ID, nil
-		}
+	} else if id != "" {
+		return id, nil
 	}
 
 	// Create the group.
@@ -199,7 +185,14 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (s
 	location := resp.Header.Get("Location")
 	if location == "" {
 		// Fallback: search for the just-created group.
-		return p.findGroupByExactName(ctx, token, name)
+		id, err := p.searchGroupByName(ctx, token, name)
+		if err != nil {
+			return "", err
+		}
+		if id == "" {
+			return "", fmt.Errorf("keycloak group %q not found after creation", name)
+		}
+		return id, nil
 	}
 
 	// Extract ID from the Location URL path.
@@ -207,8 +200,8 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (s
 	return parts[len(parts)-1], nil
 }
 
-// findGroupByExactName searches for a group by exact name match.
-func (p *Provider) findGroupByExactName(ctx context.Context, token, name string) (string, error) {
+// searchGroupByName returns the ID of the group with an exact name match, or "" if none matches.
+func (p *Provider) searchGroupByName(ctx context.Context, token, name string) (string, error) {
 	path := fmt.Sprintf("/admin/realms/%s/groups?search=%s", p.cfg.Realm, url.QueryEscape(name))
 	body, err := p.get(ctx, token, path)
 	if err != nil {
@@ -227,7 +220,7 @@ func (p *Provider) findGroupByExactName(ctx context.Context, token, name string)
 			return g.ID, nil
 		}
 	}
-	return "", fmt.Errorf("keycloak group %q not found after creation", name)
+	return "", nil
 }
 
 // addMemberToGroup adds a user to a Keycloak group.

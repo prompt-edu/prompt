@@ -10,16 +10,9 @@ const statusToVariant: Record<ResourceStatus, 'default' | 'secondary' | 'outline
     failed: 'destructive',
   }
 
-const statusToLabel: Record<ResourceStatus, string> = {
-  pending: 'pending',
-  in_progress: 'in progress',
-  created: 'created',
-  failed: 'failed',
-}
-
 export const StatusBadge = ({ status }: { status: ResourceStatus }) => (
   <Badge variant={statusToVariant[status]} className='capitalize'>
-    {statusToLabel[status]}
+    {status.replace('_', ' ')}
   </Badge>
 )
 

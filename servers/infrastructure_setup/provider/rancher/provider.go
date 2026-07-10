@@ -176,29 +176,16 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 		return "", err
 	}
 
-	var listResp struct {
+	var resp struct {
 		Data []struct {
-			ID    string `json:"id"`
-			Email string `json:"principalIds"`
+			ID string `json:"id"`
 		} `json:"data"`
 	}
-	// Use a simpler struct since the Rancher user object varies.
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return "", err
-	}
-
-	var dataList []struct {
-		ID    string `json:"id"`
-		Email string `json:"username"`
-	}
-	if err := json.Unmarshal(raw["data"], &dataList); err != nil {
+	if err := json.Unmarshal(body, &resp); err != nil {
 		return "", fmt.Errorf("rancher users parse error: %w", err)
 	}
-
-	_ = listResp // used above to avoid unused import warning
-	for _, u := range dataList {
-		return u.ID, nil
+	if len(resp.Data) > 0 {
+		return resp.Data[0].ID, nil
 	}
 	return "", fmt.Errorf("rancher user not found for email: %s", email)
 }

@@ -91,11 +91,6 @@ func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([
 	return s.queries.ListResourceInstances(ctx, coursePhaseID)
 }
 
-// RetryFailedInstance resets a failed instance back to pending and triggers execution.
-func (s *Service) RetryFailedInstance(ctx context.Context, coursePhaseID, instanceID uuid.UUID) error {
-	return s.RetryFailedInstanceWithAuth(ctx, "", coursePhaseID, instanceID)
-}
-
 // RetryFailedInstanceWithAuth resets a failed instance back to pending and triggers execution.
 func (s *Service) RetryFailedInstanceWithAuth(ctx context.Context, authHeader string, coursePhaseID, instanceID uuid.UUID) error {
 	if err := s.queries.ResetFailedInstanceToPending(ctx, db.ResetFailedInstanceToPendingParams{

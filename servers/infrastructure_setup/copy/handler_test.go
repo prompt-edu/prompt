@@ -23,7 +23,7 @@ func setupCopyTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
 	if err != nil {
 		t.Fatalf("setup test db: %v", err)
 	}
-	CopyServiceSingleton = &CopyService{queries: testDB.Queries, conn: testDB.Conn}
+	CopyServiceSingleton = &CopyService{queries: testDB.Queries}
 	return testDB, func() {
 		CopyServiceSingleton = nil
 		cleanup()

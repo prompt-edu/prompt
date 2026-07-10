@@ -85,6 +85,10 @@ services:
         condition: service_started
       client-interview:
         condition: service_started
+      server-certificate:
+        condition: service_started
+      client-certificate:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -334,6 +338,79 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Certificate phase module (server + MF remote + own DB) ───────────────
+  # Fourth phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-certificate:
+    build:
+      context: ./servers/certificate
+      # Certificate ships its own Dockerfile (bundles the Typst compiler +
+      # golang-migrate), unlike the phase servers that share ../Dockerfile.
+      dockerfile: Dockerfile
+    container_name: prompt-e2e-server-certificate
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_CERTIFICATE_USER}
+      - DB_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - DB_NAME=${DB_CERTIFICATE_NAME}
+      - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
+      - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /certificate/api/info through the client-core proxy.
+
+  client-certificate:
+    build:
+      context: ./clients/certificate_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-certificate
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /certificate/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-certificate:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_CERTIFICATE_USER}
+      - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - POSTGRES_DB=${DB_CERTIFICATE_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and the
+    # tests create all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_CERTIFICATE_NAME} -U ${DB_CERTIFICATE_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   clients-base:
     build:
       context: ./clients
@@ -536,6 +613,11 @@ services:
         condition: service_healthy
       server-interview:
         # distroless; global-setup polls /interview/api/info.
+        condition: service_started
+      client-certificate:
+        condition: service_healthy
+      server-certificate:
+        # distroless; global-setup polls /certificate/api/info.
         condition: service_started
     environment:
       - CI

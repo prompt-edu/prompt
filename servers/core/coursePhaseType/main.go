@@ -7,9 +7,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func InitCoursePhaseTypeModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool, isDevEnvironment bool) {
+func InitCoursePhaseTypeModule(routerGroup *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, queries db.Queries, conn *pgxpool.Pool, isDevEnvironment bool) {
 
-	setupCoursePhaseTypeRouter(routerGroup)
+	setupCoursePhaseTypeRouter(routerGroup, authMiddleware)
 	CoursePhaseTypeServiceSingleton = &CoursePhaseTypeService{
 		queries:          queries,
 		conn:             conn,

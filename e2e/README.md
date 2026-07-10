@@ -1,9 +1,12 @@
 # PROMPT 2.0 End-to-End Tests
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
-Postgres + SeaweedFS** in Docker and drive them like a real user, with
+Postgres + SeaweedFS** in Docker — plus the **self team allocation** and
+**assessment phase modules** (Go service, own Postgres, Module Federation
+remote each) — and drive them like a real user, with
 [Playwright](https://playwright.dev). They catch full-stack regressions (auth
-flow, routing, API contract, data rendering) that the Go unit tests can't.
+flow, routing, API contract, data rendering, remote loading) that the Go unit
+tests can't.
 
 The suite covers two layers with one framework:
 
@@ -72,7 +75,18 @@ docker-compose.e2e.yml
  ├── keycloak(+db) realm imported from keycloak/realm.json (seeded users)
  ├── seaweedfs-*   S3 storage the core server depends on
  ├── server-core   built from ../servers/core (runs migrate up on startup)
- ├── client-core   built from ../clients/core (nginx)
+ ├── client-core   built from ../clients/core (nginx, e2e conf with the
+ │                 phase-module proxy locations — nginx/client-core.conf)
+ ├── self team allocation phase module:
+ │    ├── db-self-team-allocation      own ephemeral Postgres (empty; the
+ │    │                                server migrates it on startup)
+ │    ├── server-self-team-allocation  built from ../servers/self_team_allocation
+ │    └── client-self-team-allocation  the Module Federation remote (nginx)
+ ├── assessment phase module:
+ │    ├── db-assessment      own ephemeral Postgres (empty; the server's
+ │    │                      migrations also create the default schemas)
+ │    ├── server-assessment  built from ../servers/assessment
+ │    └── client-assessment  the Module Federation remote (nginx)
  └── e2e-runner    Playwright container; waits for health, runs this suite
 ```
 
@@ -90,6 +104,70 @@ Interactive mode (`make test-e2e-ui`) keeps this exact networking - the test
 browser still runs inside the network; only the Playwright **UI** is served out
 to your browser - so auth behaves identically to the canonical run.
 
+## Phase modules in the e2e stack
+
+The self team allocation module is the blueprint for adding a course-phase
+module (Go service + Module Federation remote) to the stack; the assessment
+module is the second implementation of it (see `tests/assessment/`). To add
+another module, copy each of these steps:
+
+**1. Compose services** (`docker-compose.e2e.yml`): a `db-<module>` Postgres
+(ephemeral, `pg_isready` healthcheck), a `server-<module>` (build
+`./servers/<module>`, `dockerfile: ../Dockerfile`, depends on its db +
+keycloak), and a `client-<module>` (build `./clients/<module>_component` with
+the shared `*client-build-args` anchors, wget healthcheck). Phase servers read
+the generic `DB_USER`/`DB_PASSWORD`/`DB_NAME` plus service-specific
+`DB_HOST_<MODULE>`/`DB_PORT_<MODULE>` env vars — map them explicitly from new
+`DB_<MODULE>_*` entries in `.env.e2e`. No host ports; everything is reached
+through the client-core proxy. Add both services to `client-core`'s and
+`e2e-runner`'s `depends_on`.
+
+**2. Routing** (`nginx/client-core.conf`): the core client is a **production**
+build, so remotes are baked as relative URLs (`/<module>/remoteEntry.js`) and
+the phase API is called on the browser origin. In prod Traefik routes these
+prefixes; here client-core's nginx does, with the exact same semantics:
+
+```nginx
+location /<module>/api/ { proxy_pass http://server-<module>:8080; }  # prefix KEPT
+location /<module>/    { proxy_pass http://client-<module>/; }       # prefix STRIPPED
+```
+
+Set the module's host var in `.env.e2e` to **empty** (`<MODULE>_HOST=`) so the
+component's axios baseURL falls back to the browser origin (same-origin, no
+CORS).
+
+**3. Core seed** (`seed/e2e_seed.sql`): pre-insert the module's
+`course_phase_type` row with a **fixed UUID** — core's startup init matches by
+name and would otherwise create it with a random UUID, breaking seeded FK
+references. Also mirror the type's provided/required DTO rows from
+`servers/core/coursePhaseType/initializeTypes.go` (init skips them when the
+type exists). Then add a `course_phase` on the seeded course and a
+`course_phase_graph` edge. Careful: the graph has UNIQUE constraints on both
+`from_` and `to_course_phase_id`, so phases form a **chain** — append your
+phase to the tail (currently the self team allocation phase), don't branch
+from Application. Add `course_phase_participation` rows for `student`/`student2`
+(the student UI 404s into UnauthorizedPage without an own participation;
+backend auth checks course-level enrollment via core's `is_student`).
+
+**4. Phase DB seed:** usually **none** — the phase server migrates its empty
+DB on startup and tests create their own data. If a module does need seeded
+phase data, mount a dump into the db's `/docker-entrypoint-initdb.d/` with
+`schema_migrations` pinned to the module's latest migration (same pattern as
+the core seed below).
+
+**5. Readiness** (`src/global-setup.ts`): phase server images are distroless
+(no healthcheck), so poll `${BASE_URL}/<module>/api/info` with
+`waitForServiceInfo(...)` — it asserts the `/info` JSON (`serviceName`,
+`healthy`), which both gates on the server and proves the proxy wiring (a bare
+status poll would accept the SPA fallback's 200).
+
+**6. Smoke test** (`tests/<module>/mf-smoke.spec.ts`): open the seeded phase at
+`/management/course/<courseId>/<phaseId>` and assert a heading rendered by the
+**remote** — if `remoteEntry.js` fails to load, the shell renders a
+LoadingError instead, so this one assertion covers the whole Module Federation
+path. Journeys and API auth checks build on top (see
+`tests/self-team-allocation/`, `tests/api/self-team-allocation.api.spec.ts`).
+
 ## Authentication
 
 The realm (`keycloak/realm.json`, derived from the repo's `keycloakConfig.json`
@@ -100,9 +178,19 @@ whose username == password:
 | --------------- | ------------------- | ----------------------- |
 | `admin`         | `admin`             | `PROMPT_Admin`          |
 | `lecturer`      | `lecturer`          | `PROMPT_Lecturer`       |
-| `course-lecturer` | `course-lecturer` | `PROMPT_Course_Lecturer`|
+| `course-lecturer` | `course-lecturer` | `PROMPT_Course_Lecturer` + `ios2425-iPraktikum-Lecturer` |
 | `course-editor` | `course-editor`     | `PROMPT_Course_Editor`  |
-| `student`       | `student`           | `PROMPT_Student`        |
+| `student`       | `student`           | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
+| `student2`      | `student2`          | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
+
+The `ios2425-iPraktikum-*` roles are **course-scoped** roles
+(`<semesterTag>-<courseName>-<Role>`) for the seeded iPraktikum course — PROMPT
+authorizes course/phase access against these, not the global `PROMPT_*` roles.
+`student`/`student2` also exist as `student` table rows in the DB seed (matched
+by the `matriculation_number`/`university_login` token claims) with
+`course_participation` rows, so they are real course members end to end.
+`student2` exists for two-user journeys (e.g. one student creates a team, the
+other joins it).
 
 `src/global-setup.ts` logs in each role **once** through the real Keycloak form
 and saves the session to `.auth/<role>.json`. Tests reuse it, so the login flow
@@ -160,12 +248,71 @@ The seed is a **consistent dump of the current (v24) schema** with a small
 deterministic data set. It records `schema_migrations = 24`, so the core
 server's startup `migrate up` is a clean no-op and the data loads as-is.
 
+It contains three read-only courses (`iPraktikum`, `iPraktikum-Test`,
+`TestCourse`) plus **`iPraktikumFull`**, a course with a full linear phase graph
+(Application → Interview → Matching → Team Allocation → Assessment), ~7 course
+participations, and a funnel of phase participations. The seeded `student` user
+maps to a DB `student` row (matriculation `00000005` / login `no42tum`) that
+participates in every `iPraktikumFull` phase; `student2` (Selma) is also
+enrolled for the assessment visibility checks. That is how a student gets
+course access (roles are DB-derived from `matriculation_number` +
+`university_login`, not from Keycloak). The `lecturer` and `course-lecturer`
+users hold the `ios2425-iPraktikumFull-Lecturer` role and `course-editor` holds
+`ios2425-iPraktikumFull-Editor` (added to `keycloak/realm.json`). See
+`FULL_COURSE_PHASES`, `FULL_COURSE_STUDENT`, `FULL_COURSE_STUDENT2`, and
+`FULL_COURSE_ROLES` in `src/data/constants.ts`.
+
+Spec files run in **parallel workers** locally, so every spec file that mutates
+phase state owns its own seeded phase. The assessment specs follow this rule
+(release state and schema locking never cross files): the graph-tail Assessment
+phase hosts the lecturer journey + smoke + API checks, and two **standalone**
+Assessment phases (no graph edges — they route by URL but are filtered from the
+course sidebar) host the visibility and self-evaluation journeys. A
+participant-less Assessment phase on `TestCourse` is the negative-auth fixture.
+See `ASSESSMENT_FIXTURE_PHASES` and `ASSESSMENT_FOREIGN_PHASE_ID` in
+`src/data/constants.ts`. For the same reason the self team allocation
+lecturer-overview spec owns a standalone phase
+(`SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID`) — the team it forms would otherwise
+block team creation in the student journey. The assessment server needs **no
+phase-DB seed**: its migrations create the default template schemas, and the
+first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
+are not covered — they need team data from a team-allocation resolution the
+e2e seed does not wire.
+
+The `iPraktikumFull` Application phase is open (start 2020, end 2099, external
+students allowed) and carries one required text question (`Motivation`) so the
+application journey exercises the configurable form. `TestCourse` has a
+**closed** Application phase (`CLOSED_APPLICATION_PHASE_ID`, deadline in 2020)
+as the negative fixture for the public apply endpoints.
+
+> The course name (`iPraktikumFull`) and `semester_tag` (`ios2425`) are
+> **hyphen-free on purpose**: the course-list query parses course roles with
+> `split_part(role, '-', N)`, so a hyphen in either would break course
+> visibility for non-admins.
+
+> The `Interview` / `Matching` / `Team Allocation` phase types are seeded by
+> their canonical names (matching
+> `servers/core/coursePhaseType/initializeTypes.go`), so core's startup
+> initializer skips re-creating them. As a result they carry **no provided/
+> required DTO metadata** — fine for phase-graph, participant-list, and
+> role-access tests, but the inter-phase data-dependency graph is not exercised.
+> (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
+> of the module blueprint.) The Interview/Matching/… micro-frontend remotes are
+> also not built into the e2e client, so tests should target core-level views
+> (course config, phase graph, participant lists, role-based access), not those
+> phase remotes' own UIs.
+
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
 > as an e2e seed — it's a hand-maintained Go-test fixture whose schema is
 > internally inconsistent (some tables migrated, others not; `schema_migrations`
 > stuck at 9), so `migrate up` cannot run against it.
 
-To regenerate after a schema change, apply the migrations to a throwaway
+**Data-only changes** (adding courses, phases, participations, students, roles
+without a schema migration) are made by editing the `INSERT` blocks in
+`seed/e2e_seed.sql` directly and keeping `schema_migrations = 24`. Full
+regeneration is only needed when a core migration changes the schema.
+
+To regenerate after a **schema** change, apply the migrations to a throwaway
 Postgres, insert the data, and dump it:
 
 ```bash
@@ -191,7 +338,10 @@ docker rm -f seedgen
 `keycloak/realm.json` is a copy of the repo's `keycloakConfig.json` with the
 `prompt-client` redirect URIs / web origins (and `prompt-server` redirect URIs)
 repointed at the e2e ports (`4000` / `18090`). If users, roles, or clients
-change in `keycloakConfig.json`, regenerate it and re-apply those URL edits.
+change in `keycloakConfig.json`, regenerate it and re-apply those URL edits —
+plus the e2e-only additions: the course-scoped `ios2425-iPraktikum-Student` /
+`ios2425-iPraktikum-Lecturer` client roles (assigned to `student`, `student2`,
+and `course-lecturer`) and the `student2` user.
 
 ## Conventions
 
@@ -225,6 +375,7 @@ playwright.config.ts   projects (api, chromium), globalSetup, reporters
 Dockerfile             Playwright runner image (tag must match @playwright/test)
 .env.e2e               compose env (test-only credentials)
 keycloak/realm.json    dedicated e2e Keycloak realm (seeded users + roles)
+nginx/client-core.conf client-core nginx with the phase-module proxy locations
 seed/e2e_seed.sql      seeded core DB (consistent v24 schema + data)
 src/
   env.ts               URLs / endpoints

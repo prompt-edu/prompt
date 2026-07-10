@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var sendMailFn = SendMail
+var sendMailFn = SendCourseMail
 var nowFn = func() time.Time {
 	return time.Now().UTC()
 }

@@ -38,7 +38,7 @@ export const StudentAssessmentBadges = ({
           className='h-6'
         />
       )}
-      {studentAssessment.assessments.length > 0 && (
+      {studentAssessment.assessments.length > 0 && studentAssessment.studentScore && (
         <StudentScoreBadge
           scoreLevel={studentAssessment.studentScore.scoreLevel}
           scoreNumeric={studentAssessment.studentScore.scoreNumeric}

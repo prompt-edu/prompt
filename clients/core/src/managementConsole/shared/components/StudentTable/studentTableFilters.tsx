@@ -95,5 +95,34 @@ export function getStudentTableFilters(studentsWithCourses: StudentWithCourses[]
         )
       },
     },
+    {
+      type: 'custom',
+      id: 'lastModified',
+      label: 'Last Modified',
+      badge: {
+        label: 'Not modified in',
+        displayValue: (filterValue: unknown) =>
+          typeof filterValue === 'number' ? `${filterValue} years` : '',
+      },
+      render: ({ column }) => {
+        const selected = column.getFilterValue() as number | undefined
+        return (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Last Modified</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {[3, 5, 7].map((years) => (
+                <DropdownMenuCheckboxItem
+                  key={years}
+                  checked={selected === years}
+                  onCheckedChange={(checked) => column.setFilterValue(checked ? years : undefined)}
+                >
+                  Not modified in {years} years
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )
+      },
+    },
   ]
 }

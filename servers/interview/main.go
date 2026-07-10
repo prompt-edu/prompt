@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -47,13 +46,24 @@ func getDatabaseURL() string {
 	return u.String()
 }
 
+func sanitizeDatabaseURL(input string) string {
+	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
+	if dbPassword == "" {
+		return input
+	}
+	encoded := strings.TrimPrefix(url.UserPassword("", dbPassword).String(), ":")
+	sanitized := strings.ReplaceAll(input, dbPassword, "***")
+	return strings.ReplaceAll(sanitized, encoded, "***")
+}
+
 func runMigrations(databaseURL string) {
 	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	output, err := cmd.CombinedOutput()
+	sanitized := sanitizeDatabaseURL(string(output))
+	if err != nil {
+		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
 	}
+	fmt.Print(sanitized)
 }
 
 // @title           PROMPT Interview API

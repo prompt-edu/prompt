@@ -1,6 +1,14 @@
 -- name: GetAllCoursePhaseTypes :many
 SELECT * FROM course_phase_type;
 
+-- name: GetCoursePhaseTypesForStudent :many
+SELECT DISTINCT cpt.*
+FROM course_phase_type cpt
+JOIN course_phase cp ON cp.course_phase_type_id = cpt.id
+JOIN course_phase_participation cpp ON cpp.course_phase_id = cp.id
+JOIN course_participation part ON part.id = cpp.course_participation_id
+WHERE part.student_id = $1;
+
 -- name: GetCoursePhaseTypeByID :one
 SELECT * FROM course_phase_type WHERE id = $1;
 

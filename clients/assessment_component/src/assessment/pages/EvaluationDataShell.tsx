@@ -1,9 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import {
-  type CoursePhaseParticipationWithStudent,
-  getOwnCoursePhaseParticipation,
-  useCourseStore,
-} from '@tumaet/prompt-shared-state'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -12,23 +7,15 @@ import {
   LoadingPage,
 } from '@tumaet/prompt-ui-components'
 import { TriangleAlert } from 'lucide-react'
-import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../zustand/useCoursePhaseConfigStore'
-import { useEvaluationStore } from '../zustand/useEvaluationStore'
-import { useMyParticipationStore } from '../zustand/useMyParticipationStore'
-import { usePeerEvaluationCategoryStore } from '../zustand/usePeerEvaluationCategoryStore'
-import { useSelfEvaluationCategoryStore } from '../zustand/useSelfEvaluationCategoryStore'
-import { useTeamStore } from '../zustand/useTeamStore'
-import { useTutorEvaluationCategoryStore } from '../zustand/useTutorEvaluationCategoryStore'
+import { AssessmentType } from '../interfaces/assessmentType'
 import { useGetAllTeams } from './hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from './hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from './hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from './hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from './hooks/useGetMyEvaluations'
-import { useGetPeerEvaluationCategoriesWithCompetencies } from './hooks/useGetPeerEvaluationCategoriesWithCompetencies'
-import { useGetSelfEvaluationCategoriesWithCompetencies } from './hooks/useGetSelfEvaluationCategoriesWithCompetencies'
-import { useGetTutorEvaluationCategoriesWithCompetencies } from './hooks/useGetTutorEvaluationCategoriesWithCompetencies'
+import { useGetMyParticipation } from './hooks/useGetMyParticipation'
 
 interface EvaluationDataShellProps {
   children: React.ReactNode
@@ -36,23 +23,8 @@ interface EvaluationDataShellProps {
 
 export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
   const { isStudentOfCourse } = useCourseStore()
-  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
+  const { courseId } = useParams<{ courseId: string; phaseId: string }>()
   const isStudent = isStudentOfCourse(courseId ?? '')
-
-  const { setCoursePhaseConfig } = useCoursePhaseConfigStore()
-  const { setSelfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { setPeerEvaluationCategories } = usePeerEvaluationCategoryStore()
-  const { setTutorEvaluationCategories } = useTutorEvaluationCategoryStore()
-  const { setTeams } = useTeamStore()
-  const { setMyParticipation } = useMyParticipationStore()
-  const {
-    setSelfEvaluationCompletion,
-    setPeerEvaluationCompletions,
-    setTutorEvaluationCompletions,
-    setSelfEvaluations,
-    setPeerEvaluations,
-    setTutorEvaluations,
-  } = useEvaluationStore()
 
   const {
     data: coursePhaseConfig,
@@ -62,63 +34,51 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
   } = useGetCoursePhaseConfig()
 
   const {
-    data: selfEvaluationCategories,
     isPending: isSelfEvaluationCategoriesPending,
     isError: isSelfEvaluationCategoriesError,
     refetch: refetchSelfEvaluationCategories,
-  } = useGetSelfEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
 
   const {
-    data: peerEvaluationCategories,
     isPending: isPeerEvaluationCategoriesPending,
     isError: isPeerEvaluationCategoriesError,
     refetch: refetchPeerEvaluationCategories,
-  } = useGetPeerEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
 
   const {
-    data: tutorEvaluationCategories,
     isPending: isTutorEvaluationCategoriesPending,
     isError: isTutorEvaluationCategoriesError,
     refetch: refetchTutorEvaluationCategories,
-  } = useGetTutorEvaluationCategoriesWithCompetencies(
+  } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 
   const {
-    data: teams,
     isPending: isTeamsPending,
     isError: isTeamsError,
     refetch: refetchTeams,
   } = useGetAllTeams()
 
   const {
-    data: participation,
     isPending: isParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationWithStudent>({
-    queryKey: ['course_phase_participation', phaseId],
-    queryFn: () => getOwnCoursePhaseParticipation(phaseId ?? ''),
-    enabled: isStudent,
-  })
+  } = useGetMyParticipation({ enabled: isStudent })
 
   const {
-    selfEvaluationCompletion,
-    peerEvaluationCompletions,
-    tutorEvaluationCompletions,
     isPending: isCompletionPending,
     isError: isCompletionError,
     refetch: refetchCompletion,
   } = useGetMyEvaluationCompletions({ enabled: isStudent })
 
   const {
-    selfEvaluations,
-    peerEvaluations,
-    tutorEvaluations,
     isPending: isMyEvaluationsPending,
     isError: isMyEvaluationsError,
     refetch: refetchMyEvaluations,
@@ -160,90 +120,6 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
       refetchMyEvaluations()
     }
   }
-
-  useEffect(() => {
-    if (coursePhaseConfig) {
-      setCoursePhaseConfig(coursePhaseConfig)
-    }
-  }, [coursePhaseConfig, setCoursePhaseConfig])
-
-  useEffect(() => {
-    if (teams) {
-      setTeams(teams)
-    }
-  }, [teams, setTeams])
-
-  useEffect(() => {
-    if (participation && isStudent) {
-      setMyParticipation(participation)
-    }
-  }, [participation, setMyParticipation, isStudent])
-
-  useEffect(() => {
-    if (coursePhaseConfig?.selfEvaluationEnabled && selfEvaluationCategories) {
-      setSelfEvaluationCategories(selfEvaluationCategories)
-    }
-  }, [
-    coursePhaseConfig?.selfEvaluationEnabled,
-    selfEvaluationCategories,
-    setSelfEvaluationCategories,
-  ])
-
-  useEffect(() => {
-    if (coursePhaseConfig?.peerEvaluationEnabled && peerEvaluationCategories) {
-      setPeerEvaluationCategories(peerEvaluationCategories)
-    }
-  }, [
-    coursePhaseConfig?.peerEvaluationEnabled,
-    peerEvaluationCategories,
-    setPeerEvaluationCategories,
-  ])
-
-  useEffect(() => {
-    if (coursePhaseConfig?.tutorEvaluationEnabled && tutorEvaluationCategories) {
-      setTutorEvaluationCategories(tutorEvaluationCategories)
-    }
-  }, [
-    coursePhaseConfig?.tutorEvaluationEnabled,
-    tutorEvaluationCategories,
-    setTutorEvaluationCategories,
-  ])
-
-  useEffect(() => {
-    if (selfEvaluationCompletion && isStudent) {
-      setSelfEvaluationCompletion(selfEvaluationCompletion)
-    }
-  }, [selfEvaluationCompletion, setSelfEvaluationCompletion, isStudent])
-
-  useEffect(() => {
-    if (peerEvaluationCompletions && isStudent) {
-      setPeerEvaluationCompletions(peerEvaluationCompletions)
-    }
-  }, [peerEvaluationCompletions, setPeerEvaluationCompletions, isStudent])
-
-  useEffect(() => {
-    if (tutorEvaluationCompletions && isStudent) {
-      setTutorEvaluationCompletions(tutorEvaluationCompletions)
-    }
-  }, [tutorEvaluationCompletions, setTutorEvaluationCompletions, isStudent])
-
-  useEffect(() => {
-    if (selfEvaluations && isStudent) {
-      setSelfEvaluations(selfEvaluations)
-    }
-  }, [selfEvaluations, setSelfEvaluations, isStudent])
-
-  useEffect(() => {
-    if (peerEvaluations && isStudent) {
-      setPeerEvaluations(peerEvaluations)
-    }
-  }, [peerEvaluations, setPeerEvaluations, isStudent])
-
-  useEffect(() => {
-    if (tutorEvaluations && isStudent) {
-      setTutorEvaluations(tutorEvaluations)
-    }
-  }, [tutorEvaluations, setTutorEvaluations, isStudent])
 
   if (isError)
     return (

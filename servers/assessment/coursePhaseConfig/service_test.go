@@ -116,6 +116,22 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfig() {
 	assert.NotNil(suite.T(), config, "Config should not be nil")
 }
 
+func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfigCreatesDefaultsOnFirstGet() {
+	testID := uuid.New()
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err, "Should lazily create and return the default config")
+	assert.Equal(suite.T(), testID, config.CoursePhaseID)
+	assert.NotEqual(suite.T(), uuid.Nil, config.AssessmentSchemaID, "Default assessment schema should be set")
+	assert.NotEqual(suite.T(), uuid.Nil, config.SelfEvaluationSchema, "Default self evaluation schema should be set")
+	assert.NotEqual(suite.T(), uuid.Nil, config.PeerEvaluationSchema, "Default peer evaluation schema should be set")
+	assert.NotEqual(suite.T(), uuid.Nil, config.TutorEvaluationSchema, "Default tutor evaluation schema should be set")
+	assert.False(suite.T(), config.Start.IsZero(), "Start should carry the DB default timestamp")
+	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
+	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
+	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+}
+
 func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_DefaultVisibilitySettings() {
 	// Test that when GradeSuggestionVisible and ActionItemsVisible are nil (not provided),
 	// they default to TRUE as per database defaults

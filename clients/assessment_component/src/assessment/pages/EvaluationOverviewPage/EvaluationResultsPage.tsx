@@ -1,28 +1,33 @@
 import { Button, Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Printer } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { printPage } from '../utils/printPage'
 
 import { AssessmentResultsSection } from './components/AssessmentResultsSection'
 
 export const EvaluationResultsPage = () => {
   const navigate = useNavigate()
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
+  const [reportReady, setReportReady] = useState(false)
 
   return (
     <div className='w-full px-4 py-6 text-left'>
-      <div className='mb-4'>
+      <div className='mb-4 print:hidden'>
         <Button variant='outline' onClick={() => navigate('..')} className='gap-2'>
           <ArrowLeft className='h-4 w-4' />
           Back to overview
         </Button>
       </div>
-      <ManagementPageHeader>Assessment Results</ManagementPageHeader>
+      <div className='print:hidden'>
+        <ManagementPageHeader>Assessment Results</ManagementPageHeader>
+      </div>
 
       {resultsReleased ? (
-        <AssessmentResultsSection />
+        <AssessmentResultsSection onReadyChange={setReportReady} />
       ) : (
         <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
           <CardContent className='p-6'>
@@ -31,6 +36,15 @@ export const EvaluationResultsPage = () => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {resultsReleased && reportReady && (
+        <div className='flex justify-end pt-4 print:hidden'>
+          <Button variant='outline' onClick={printPage} className='gap-2'>
+            <Printer className='h-4 w-4' />
+            PDF / Print
+          </Button>
+        </div>
       )}
     </div>
   )

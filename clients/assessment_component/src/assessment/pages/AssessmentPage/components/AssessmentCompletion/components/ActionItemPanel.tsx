@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -13,11 +12,10 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import type { ActionItem, UpdateActionItemRequest } from '../../../../../interfaces/actionItem'
-import { getAllActionItemsForStudentInPhase } from '../../../../../network/queries/getAllActionItemsForStudentInPhase'
-
-import { useCoursePhaseConfigStore } from '../../../../../zustand/useCoursePhaseConfigStore'
 import { useStudentAssessmentStore } from '../../../../../zustand/useStudentAssessmentStore'
 import { ItemRow } from '../../../../components/ItemRow'
+import { useGetActionItemsForStudent } from '../../../../hooks/useGetActionItemsForStudent'
+import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 import { useCreateActionItem } from '../hooks/useCreateActionItem'
 import { useDeleteActionItem } from '../hooks/useDeleteActionItem'
 import { useUpdateActionItem } from '../hooks/useUpdateActionItem'
@@ -39,21 +37,17 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<string | undefined>(undefined)
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { assessmentCompletion } = useStudentAssessmentStore()
 
   const completed = readOnly || assessmentCompletion?.completed
 
   const {
-    data: fetchedActionItems = [],
+    actionItems: fetchedActionItems,
     isPending: isGetActionItemsPending,
     isError,
     refetch,
-  } = useQuery<ActionItem[]>({
-    queryKey: ['actionItems', phaseId, courseParticipationID],
-    queryFn: () => getAllActionItemsForStudentInPhase(phaseId ?? '', courseParticipationID ?? ''),
-    enabled: !readOnly,
-  })
+  } = useGetActionItemsForStudent(!readOnly)
 
   const { mutate: createActionItem, isPending: isCreatePending } = useCreateActionItem(setError)
   const { mutate: updateActionItem, isPending: isUpdatePending } = useUpdateActionItem(setError)

@@ -1,6 +1,8 @@
 package applicationAdministration
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,6 +14,10 @@ import (
 )
 
 const externalUploaderID = "external"
+
+// maxUploadRequestBodyBytes bounds the JSON metadata body of the file-upload
+// endpoints; anything larger is rejected with 413 Request Entity Too Large.
+const maxUploadRequestBodyBytes = 1 << 20 // 1 MiB
 
 type applicationPresignUploadRequest struct {
 	Filename    string `json:"filename"`
@@ -50,8 +56,7 @@ func presignApplicationUploadExternal(c *gin.Context) {
 	}
 
 	var body applicationPresignUploadRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if !bindUploadJSON(c, &body) {
 		return
 	}
 
@@ -63,8 +68,7 @@ func presignApplicationUploadExternal(c *gin.Context) {
 		Tags:          parseTags(body.Tags),
 	})
 	if err != nil {
-		log.WithError(err).Error("Failed to presign external upload")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate upload URL"})
+		respondUploadError(c, err)
 		return
 	}
 
@@ -93,8 +97,7 @@ func completeApplicationUploadExternal(c *gin.Context) {
 	}
 
 	var body applicationCompleteUploadRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if !bindUploadJSON(c, &body) {
 		return
 	}
 
@@ -107,8 +110,7 @@ func completeApplicationUploadExternal(c *gin.Context) {
 		Tags:             parseTags(body.Tags),
 	}, externalUploaderID, "")
 	if err != nil {
-		log.WithError(err).Error("Failed to complete external upload")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to complete upload"})
+		respondUploadError(c, err)
 		return
 	}
 
@@ -145,8 +147,7 @@ func presignApplicationUploadAuthenticated(c *gin.Context) {
 	}
 
 	var body applicationPresignUploadRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if !bindUploadJSON(c, &body) {
 		return
 	}
 
@@ -158,8 +159,7 @@ func presignApplicationUploadAuthenticated(c *gin.Context) {
 		Tags:          parseTags(body.Tags),
 	})
 	if err != nil {
-		log.WithError(err).Error("Failed to presign authenticated upload")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondUploadError(c, err)
 		return
 	}
 
@@ -197,8 +197,7 @@ func completeApplicationUploadAuthenticated(c *gin.Context) {
 	}
 
 	var body applicationCompleteUploadRequest
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	if !bindUploadJSON(c, &body) {
 		return
 	}
 
@@ -218,8 +217,7 @@ func completeApplicationUploadAuthenticated(c *gin.Context) {
 		Tags:             parseTags(body.Tags),
 	}, userID, email)
 	if err != nil {
-		log.WithError(err).Error("Failed to complete authenticated upload")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondUploadError(c, err)
 		return
 	}
 
@@ -321,6 +319,32 @@ func getApplicationFileDownloadURL(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"downloadUrl": fileResponse.DownloadURL})
+}
+
+func bindUploadJSON(c *gin.Context, body any) bool {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxUploadRequestBodyBytes)
+	if err := c.ShouldBindJSON(body); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": fmt.Sprintf("request body exceeds maximum size of %d bytes", maxUploadRequestBodyBytes)})
+			return false
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid request body: must be valid JSON no larger than %d bytes", maxUploadRequestBodyBytes)})
+		return false
+	}
+	return true
+}
+
+func respondUploadError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, files.ErrInvalidInput):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, files.ErrNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	default:
+		log.WithError(err).Error("File upload operation failed")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
 }
 
 func parseCoursePhaseID(c *gin.Context) (uuid.UUID, bool) {

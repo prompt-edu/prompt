@@ -4,10 +4,11 @@ import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useEvaluationStore } from '../../zustand/useEvaluationStore'
-import { useMyParticipationStore } from '../../zustand/useMyParticipationStore'
-import { useSelfEvaluationCategoryStore } from '../../zustand/useSelfEvaluationCategoryStore'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
+import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
+import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
 
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { EvaluationCompletionPage } from './components/EvaluationCompletionPage/EvaluationCompletionPage'
@@ -19,11 +20,16 @@ export const SelfEvaluationPage = () => {
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { myParticipation } = useMyParticipationStore()
-  const { selfEvaluationCategories } = useSelfEvaluationCategoryStore()
-  const { selfEvaluations: evaluations, selfEvaluationCompletion: completion } =
-    useEvaluationStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
+  const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
+    AssessmentType.SELF,
+    coursePhaseConfig?.selfEvaluationEnabled ?? false,
+  )
+  const { selfEvaluations: evaluations } = useGetMyEvaluations({ enabled: isStudent })
+  const { selfEvaluationCompletion: completion } = useGetMyEvaluationCompletions({
+    enabled: isStudent,
+  })
 
   return (
     <div className='flex flex-col gap-4'>

@@ -32,14 +32,16 @@ CREATE TABLE public.assessment_schema (
 --
 
 CREATE TABLE public.course_phase_config (
-    assessment_schema_id uuid NOT NULL,
+    -- Schema columns carry the same DB defaults the migrations set in prod
+    -- (0013/0016/0019), so the lazy default-config creation path is testable.
+    assessment_schema_id uuid NOT NULL DEFAULT '550e8400-e29b-41d4-a716-446655440000',
     course_phase_id uuid PRIMARY KEY NOT NULL,
     deadline timestamp with time zone DEFAULT NULL,
     self_evaluation_enabled boolean NOT NULL DEFAULT false,
-    self_evaluation_schema uuid,
+    self_evaluation_schema uuid NOT NULL DEFAULT '550e8400-e29b-41d4-a716-446655440001',
     self_evaluation_deadline timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     peer_evaluation_enabled boolean NOT NULL DEFAULT false,
-    peer_evaluation_schema uuid,
+    peer_evaluation_schema uuid NOT NULL DEFAULT '550e8400-e29b-41d4-a716-446655440002',
     peer_evaluation_deadline timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     start timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
     self_evaluation_start timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -47,7 +49,7 @@ CREATE TABLE public.course_phase_config (
     tutor_evaluation_enabled boolean NOT NULL DEFAULT false,
     tutor_evaluation_start timestamp with time zone,
     tutor_evaluation_deadline timestamp with time zone,
-    tutor_evaluation_schema uuid,
+    tutor_evaluation_schema uuid NOT NULL DEFAULT '550e8400-e29b-41d4-a716-446655440003',
     evaluation_results_visible boolean NOT NULL DEFAULT true,
     grade_suggestion_visible boolean NOT NULL DEFAULT true,
     action_items_visible boolean NOT NULL DEFAULT true,

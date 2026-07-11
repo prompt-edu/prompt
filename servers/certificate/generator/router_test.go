@@ -207,7 +207,7 @@ func (s *GeneratorRouterTestSuite) TestPreviewCertificate_NoTemplate() {
 	resp := httptest.NewRecorder()
 	s.router.ServeHTTP(resp, req)
 
-	assert.Equal(s.T(), http.StatusInternalServerError, resp.Code)
+	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
 	assertJSONError(s.T(), resp.Body.Bytes())
 }
 
@@ -219,7 +219,34 @@ func (s *GeneratorRouterTestSuite) TestPreviewCertificate_NonExistentPhase() {
 	resp := httptest.NewRecorder()
 	s.router.ServeHTTP(resp, req)
 
-	assert.Equal(s.T(), http.StatusInternalServerError, resp.Code)
+	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
+}
+
+func (s *GeneratorRouterTestSuite) TestDownloadOwnCertificate_NoTemplate() {
+	// Phase 2 has NULL template
+	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
+	url := fmt.Sprintf("/api/course_phase/%s/certificate/download", coursePhaseID)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	s.router.ServeHTTP(resp, req)
+
+	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
+	assertJSONError(s.T(), resp.Body.Bytes())
+}
+
+func (s *GeneratorRouterTestSuite) TestDownloadStudentCertificate_NoTemplate() {
+	// Phase 2 has NULL template
+	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
+	studentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
+	url := fmt.Sprintf("/api/course_phase/%s/certificate/download/%s", coursePhaseID, studentID)
+
+	req, _ := http.NewRequest("GET", url, nil)
+	resp := httptest.NewRecorder()
+	s.router.ServeHTTP(resp, req)
+
+	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
+	assertJSONError(s.T(), resp.Body.Bytes())
 }
 
 func (s *GeneratorRouterTestSuite) TestPreviewCertificate_Success() {

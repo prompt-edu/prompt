@@ -40,6 +40,12 @@ func downloadOwnCertificate(c *gin.Context) {
 		return
 	}
 
+	if _, err := getTemplateStatus(c, coursePhaseID); err != nil {
+		log.WithError(err).Info("Certificate template not configured")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Certificate template not configured"})
+		return
+	}
+
 	// Get user info from JWT token for role-based checks
 	user, exists := keycloakTokenVerifier.GetTokenUser(c)
 	if !exists {
@@ -106,6 +112,12 @@ func downloadStudentCertificate(c *gin.Context) {
 	if err != nil {
 		log.WithError(err).Error("Failed to parse student ID")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid student ID"})
+		return
+	}
+
+	if _, err := getTemplateStatus(c, coursePhaseID); err != nil {
+		log.WithError(err).Info("Certificate template not configured")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Certificate template not configured"})
 		return
 	}
 
@@ -229,6 +241,12 @@ func previewCertificate(c *gin.Context) {
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	if _, err := getTemplateStatus(c, coursePhaseID); err != nil {
+		log.WithError(err).Info("Certificate template not configured")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Certificate template not configured"})
 		return
 	}
 

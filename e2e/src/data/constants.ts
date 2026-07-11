@@ -87,6 +87,11 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
 
+// Interview phase on TestCourse with NO participants: requests by the e2e
+// users must be rejected (negative auth fixture). The main interview phase is
+// FULL_COURSE_PHASES.interview (graph phase on fullCourse with participants).
+export const INTERVIEW_FOREIGN_PHASE_ID = 'aaaa6666-0000-0000-0000-0000000000a6'
+
 // Certificate phase appended to the tail of the iPraktikumFull graph (after
 // Assessment). Left unconfigured, so it hosts the module-federation smoke test
 // and the side-effect-free API-auth reads without colliding with the journeys.

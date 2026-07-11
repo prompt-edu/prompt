@@ -6545,7 +6545,7 @@ __metadata:
     "@docusaurus/types": "npm:3.10.1"
     "@mdx-js/react": "npm:^3.1.1"
     clsx: "npm:^2.1.1"
-    lucide-react: "npm:^1.22.0"
+    lucide-react: "npm:^1.23.0"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^19.2.7"
     react-dom: "npm:^19.2.7"
@@ -8866,7 +8866,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.22.0":
+"lucide-react@npm:^1.23.0":
   version: 1.23.0
   resolution: "lucide-react@npm:1.23.0"
   peerDependencies:
@@ -11495,7 +11495,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.15.2":
+"qs@npm:^6.15.3":
   version: 6.15.3
   resolution: "qs@npm:6.15.3"
   dependencies:
@@ -12259,7 +12259,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"serialize-javascript@npm:^7.0.5":
+"serialize-javascript@npm:^7.0.7":
   version: 7.0.7
   resolution: "serialize-javascript@npm:7.0.7"
   checksum: 10c0/b8fb3de1484682e3bd7649e12e81ef119c9873537c07bf7ed8c8836fb30be6587679d7c18e445eb80e97c23c9df6390e4da65bef093f2d89fb6dfc10da991b6a

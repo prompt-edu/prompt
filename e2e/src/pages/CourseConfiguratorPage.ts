@@ -86,10 +86,10 @@ export class CourseConfiguratorPage {
   }
 
   // Connects two phases via their participants handles (pre-save temp ids).
-  // ReactFlow's connectOnClick is enabled, so clicking the source handle then
-  // the target handle completes the connection through the same onConnect path
-  // as a drag (Playwright's synthetic pointer drag does not drive xyflow
-  // connections reliably).
+  // ReactFlow's connectOnClick wires a React onClick on the handle whose handler
+  // reads the handle's own nodeId/handleId (not event coordinates), so we
+  // dispatch the click straight on the handle element. A .click() hit-tests the
+  // handle's screen point, which a neighboring node's card body overlaps.
   async connect(sourceNodeId: string, targetNodeId: string) {
     await this.collapsePanelHover()
     const source = this.page.locator(
@@ -98,8 +98,8 @@ export class CourseConfiguratorPage {
     const target = this.page.locator(
       `.react-flow__handle[data-handleid="participants-in-${targetNodeId}"]`,
     )
-    await source.click()
-    await target.click()
+    await source.dispatchEvent('click')
+    await target.dispatchEvent('click')
     await expect(this.page.locator('.react-flow__edge')).toHaveCount(1)
   }
 

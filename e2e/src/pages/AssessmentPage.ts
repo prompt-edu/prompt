@@ -179,12 +179,9 @@ export class AssessmentPage {
   // ── Student self evaluation ──────────────────────────────────────────────
 
   async openSelfEvaluation() {
-    // The overview renders the self evaluation as a clickable card (the page
-    // also has a "Self Evaluation" section heading, so pick the card).
-    await this.page
-      .getByText('Self Evaluation', { exact: true })
-      .last()
-      .click()
+    // The overview groups the self evaluation under a "Self Evaluation" section
+    // heading; the clickable target row inside it is labeled "Evaluate yourself".
+    await this.page.getByText('Evaluate yourself', { exact: true }).click()
     await expect(
       this.page.getByText('Please fill out the self-evaluation below', { exact: false }),
     ).toBeVisible()

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +24,7 @@ func SetupAssessmentSchemaRouter(routerGroup *gin.RouterGroup, authMiddleware fu
 	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAssessmentSchema)
 	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), checkSchemaHasAssessmentData)
 	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createAssessmentSchema)
-	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin), updateAssessmentSchema)
+	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateAssessmentSchema)
 	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), deleteAssessmentSchema)
 }
 
@@ -177,9 +178,17 @@ func createAssessmentSchema(c *gin.Context) {
 // @Param schema body assessmentSchemaDTO.UpdateAssessmentSchemaRequest true "Assessment schema payload"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID} [put]
 func updateAssessmentSchema(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -192,8 +201,19 @@ func updateAssessmentSchema(c *gin.Context) {
 		return
 	}
 
-	err = UpdateAssessmentSchema(c, schemaID, request)
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+	isAdmin := tokenUser.Roles[keycloakTokenVerifier.PromptAdmin]
+
+	err = UpdateAssessmentSchema(c, coursePhaseID, schemaID, request, isAdmin)
 	if err != nil {
+		if errors.Is(err, ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		if errors.Is(err, ErrSchemaNotFound) {
 			handleError(c, http.StatusNotFound, err)
 			return

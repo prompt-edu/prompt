@@ -5,6 +5,7 @@ import {
   ErrorPage,
   LoadingPage,
   ManagementPageHeader,
+  useToast,
 } from '@tumaet/prompt-ui-components'
 import { ArrowLeft, Lock } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
@@ -16,6 +17,7 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
 import { schemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
+import { RenameSchemaDialog } from './components/RenameSchemaDialog'
 
 const BackToSettingsButton = () => (
   <Button asChild variant='outline'>
@@ -80,6 +82,7 @@ const isAssessmentTypeEnabled = (
 
 export const SchemaConfigurationPage = () => {
   const { schemaId } = useParams<{ schemaId: string }>()
+  const { toast } = useToast()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const {
     data: schemas,
@@ -171,6 +174,20 @@ export const SchemaConfigurationPage = () => {
             <h2 className='text-xl font-semibold text-foreground'>
               {schema?.name ?? 'Configured schema'}
             </h2>
+            {schema && schema.isOwnedByCurrentPhase && (
+              <RenameSchemaDialog
+                schema={schema}
+                onError={(error) => {
+                  if (error) {
+                    toast({
+                      title: 'Failed to rename schema',
+                      description: error,
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+              />
+            )}
             {schemaData.hasAssessmentData && (
               <span className={LOCK_BADGE_CLASS}>
                 <Lock className='h-3.5 w-3.5' />

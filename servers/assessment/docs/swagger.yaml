@@ -177,6 +177,10 @@ definitions:
         type: string
       id:
         type: string
+      isOwnedByCurrentPhase:
+        description: IsOwnedByCurrentPhase is only populated by phase-scoped listings;
+          nil elsewhere.
+        type: boolean
       name:
         type: string
       updatedAt:
@@ -1119,6 +1123,18 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string

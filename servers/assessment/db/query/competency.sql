@@ -34,6 +34,24 @@ WHERE comp.id = $1;
 SELECT *
 FROM competency;
 
+-- name: ListCompetenciesForCoursePhase :many
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = sqlc.arg(course_phase_id)
+)
+SELECT comp.*
+FROM competency comp
+INNER JOIN category cat ON comp.category_id = cat.id
+INNER JOIN assessment_schema s ON cat.assessment_schema_id = s.id
+LEFT JOIN phase_config pc ON TRUE
+WHERE s.source_phase_id IS NULL
+   OR s.source_phase_id = sqlc.arg(course_phase_id)
+   OR s.id = pc.assessment_schema_id
+   OR s.id = pc.self_evaluation_schema
+   OR s.id = pc.peer_evaluation_schema
+   OR s.id = pc.tutor_evaluation_schema;
+
 -- name: ListCompetenciesByCategory :many
 SELECT *
 FROM competency

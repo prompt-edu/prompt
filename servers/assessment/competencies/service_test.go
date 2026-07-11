@@ -78,6 +78,27 @@ func (suite *CompetencyServiceTestSuite) TestListCompetencies() {
 	}
 }
 
+func (suite *CompetencyServiceTestSuite) TestListCompetenciesForCoursePhase() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02") // Dev Application phase from test data
+
+	competencies, err := ListCompetenciesForCoursePhase(suite.ctx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Greater(suite.T(), len(competencies), 0, "Expected at least one accessible competency")
+
+	all, err := ListCompetencies(suite.ctx)
+	assert.NoError(suite.T(), err)
+	assert.LessOrEqual(suite.T(), len(competencies), len(all), "Phase competencies should be a subset of all competencies")
+
+	for _, competency := range competencies {
+		schemaID, err := suite.competencyService.queries.GetAssessmentSchemaIDByCompetency(suite.ctx, competency.ID)
+		assert.NoError(suite.T(), err)
+
+		isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(suite.ctx, coursePhaseID, schemaID)
+		assert.NoError(suite.T(), err)
+		assert.True(suite.T(), isAccessible, "Every returned competency must belong to an accessible schema")
+	}
+}
+
 func (suite *CompetencyServiceTestSuite) TestGetCompetency() {
 	// Test with a known competency ID from the test data
 	competencyID := uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3")

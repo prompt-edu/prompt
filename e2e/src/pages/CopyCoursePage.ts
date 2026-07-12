@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test'
-import { waitForCourseId } from './CourseCreationPage'
+import { pickDateRange, waitForCourseId } from './CourseCreationPage'
 
 export interface CopyCourseInput {
   templateName: string
@@ -27,14 +27,7 @@ export class CopyCoursePage {
     await form.getByPlaceholder('Enter semester tag').fill(input.semesterTag)
 
     // Copy form requires a date range with to > from.
-    await this.page.locator('#date').click()
-    const day = (n: number) =>
-      this.page.locator('.rdp button[name="day"]:not(.day-outside)', {
-        hasText: new RegExp(`^${n}$`),
-      })
-    await day(10).click()
-    await day(20).click()
-    await this.page.keyboard.press('Escape')
+    await pickDateRange(this.page)
 
     await form.getByRole('button', { name: 'Continue' }).click()
 

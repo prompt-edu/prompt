@@ -98,9 +98,11 @@ export class CourseConfiguratorPage {
     const target = this.page.locator(
       `.react-flow__handle[data-handleid="participants-in-${targetNodeId}"]`,
     )
+    const edges = this.page.locator('.react-flow__edge')
+    const before = await edges.count()
     await source.dispatchEvent('click')
     await target.dispatchEvent('click')
-    await expect(this.page.locator('.react-flow__edge')).toHaveCount(1)
+    await expect(edges).toHaveCount(before + 1)
   }
 
   // Selects a node and deletes it (Backspace is ReactFlow's default delete key),

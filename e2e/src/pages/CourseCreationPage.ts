@@ -28,20 +28,6 @@ export class CourseCreationPage {
     return dialog
   }
 
-  // Drives the shared DatePickerWithRange (trigger #date opens a react-day-picker
-  // range calendar on the current month). Days 10 and 20 are always in-month
-  // (never .day-outside), and 20 > 10 satisfies the copy form's to > from rule.
-  private async pickDateRange() {
-    await this.page.locator('#date').click()
-    const day = (n: number) =>
-      this.page.locator('.rdp button[name="day"]:not(.day-outside)', {
-        hasText: new RegExp(`^${n}$`),
-      })
-    await day(10).click()
-    await day(20).click()
-    await this.page.keyboard.press('Escape')
-  }
-
   async create(input: CreateCourseInput): Promise<string> {
     const dialog = await this.openCreateDialog()
     await dialog.getByPlaceholder('Enter a course name').fill(input.name)
@@ -50,7 +36,7 @@ export class CourseCreationPage {
     await dialog.getByRole('combobox').click()
     await this.page.getByRole('option', { name: input.courseType ?? 'Lecture' }).click()
 
-    await this.pickDateRange()
+    await pickDateRange(this.page)
 
     const ects = dialog.getByPlaceholder('Enter ECTS')
     if (await ects.isEnabled()) {
@@ -72,6 +58,20 @@ export class CourseCreationPage {
 
     return await waitForCourseId(this.page)
   }
+}
+
+// Drives the shared DatePickerWithRange (trigger #date opens a react-day-picker
+// range calendar on the current month). Days 10 and 20 are always in-month
+// (never .day-outside), and 20 > 10 satisfies the copy form's to > from rule.
+export async function pickDateRange(page: Page): Promise<void> {
+  await page.locator('#date').click()
+  const day = (n: number) =>
+    page.locator('.rdp button[name="day"]:not(.day-outside)', {
+      hasText: new RegExp(`^${n}$`),
+    })
+  await day(10).click()
+  await day(20).click()
+  await page.keyboard.press('Escape')
 }
 
 // After a successful create/copy the app navigates to the new course overview.

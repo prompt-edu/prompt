@@ -6,8 +6,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
+import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 
 interface TutorRow {
   id: string
@@ -23,6 +26,7 @@ export const TutorOverviewPage = (): ReactNode => {
 
   const { data: teams } = useGetAllTeams()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: evaluations } = useGetAllEvaluations()
 
   const { data: evaluationCompletions = [] } = useQuery({
     queryKey: ['evaluationCompletions', phaseId],
@@ -50,6 +54,11 @@ export const TutorOverviewPage = (): ReactNode => {
   const tutorEvaluationCompletions = useMemo(
     () => evaluationCompletions.filter((completion) => completion.type === AssessmentType.TUTOR),
     [evaluationCompletions],
+  )
+
+  const tutorScoreLevels = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, AssessmentType.TUTOR),
+    [evaluations],
   )
 
   const columns: ColumnDef<TutorRow>[] = useMemo(
@@ -83,9 +92,15 @@ export const TutorOverviewPage = (): ReactNode => {
       <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
         <AssessmentDiagram
           participations={tutorParticipations}
-          scoreLevels={[]}
+          scoreLevels={tutorScoreLevels}
           completions={tutorEvaluationCompletions}
           assessmentType={AssessmentType.TUTOR}
+        />
+        <ScoreLevelDistributionDiagram
+          participations={tutorParticipations}
+          scoreLevels={tutorScoreLevels}
+          title='Tutor Evaluation Distribution'
+          description='Number of tutors per score level'
         />
       </div>
 

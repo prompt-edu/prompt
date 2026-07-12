@@ -131,14 +131,14 @@ func main() {
 
 	config.InitConfigModule(coursePhaseApi, *query, conn)
 
-	privacy.InitPrivacyModule(api, *query)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   true,
-			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
 		},

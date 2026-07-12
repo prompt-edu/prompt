@@ -2,7 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   type CoursePhaseParticipationWithStudent,
   getOwnCoursePhaseParticipation,
+  getPermissionString,
+  Role,
   type Team,
+  useAuthStore,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import {
@@ -20,9 +23,14 @@ import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamSelection } from './components/TeamSelection'
 
 export const SelfTeamAllocationPage = () => {
-  const { isStudentOfCourse } = useCourseStore()
+  const { courses, isStudentOfCourse } = useCourseStore()
+  const { permissions } = useAuthStore()
   const { courseId = '', phaseId = '' } = useParams<{ courseId: string; phaseId: string }>()
-  const isStudent = isStudentOfCourse(courseId)
+  const course = courses.find((c) => c.id === courseId)
+  const isManager = [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR].some((role) =>
+    permissions.includes(getPermissionString(role, course?.name, course?.semesterTag)),
+  )
+  const isStudent = isStudentOfCourse(courseId) && !isManager
 
   const {
     data: participation,

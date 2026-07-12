@@ -50,7 +50,8 @@ WHERE s.source_phase_id IS NULL
    OR s.id = pc.assessment_schema_id
    OR s.id = pc.self_evaluation_schema
    OR s.id = pc.peer_evaluation_schema
-   OR s.id = pc.tutor_evaluation_schema;
+   OR s.id = pc.tutor_evaluation_schema
+ORDER BY comp.name;
 
 -- name: ListCompetenciesByCategory :many
 SELECT *

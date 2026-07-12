@@ -87,16 +87,25 @@ func (suite *CompetencyServiceTestSuite) TestListCompetenciesForCoursePhase() {
 
 	all, err := ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
-	assert.LessOrEqual(suite.T(), len(competencies), len(all), "Phase competencies should be a subset of all competencies")
 
-	for _, competency := range competencies {
+	expected := make(map[uuid.UUID]bool)
+	for _, competency := range all {
 		schemaID, err := suite.competencyService.queries.GetAssessmentSchemaIDByCompetency(suite.ctx, competency.ID)
 		assert.NoError(suite.T(), err)
 
 		isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(suite.ctx, coursePhaseID, schemaID)
 		assert.NoError(suite.T(), err)
-		assert.True(suite.T(), isAccessible, "Every returned competency must belong to an accessible schema")
+		if isAccessible {
+			expected[competency.ID] = true
+		}
 	}
+
+	actual := make(map[uuid.UUID]bool)
+	for _, competency := range competencies {
+		actual[competency.ID] = true
+	}
+
+	assert.Equal(suite.T(), expected, actual, "Single-query result must exactly match the per-item accessible filter")
 }
 
 func (suite *CompetencyServiceTestSuite) TestGetCompetency() {

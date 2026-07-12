@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts'
 import { GRADE_CONFIG } from '../../../utils/gradeConfig'
+import { describeGroupAverages } from '../utils/buildChartDescription'
 import { GradeDistributionBar } from './components/GradeDistributionBar'
 import { GradeDistributionLabel } from './components/GradeDistributionLabel'
 import { GradeDistributionTooltipContent } from './components/GradeDistributionTooltipContent'
@@ -17,9 +18,13 @@ import type { GradeDistributionDataPoint } from './interfaces/GradeDistributionD
 
 export interface GradeDistributionBarChartProps {
   data: GradeDistributionDataPoint[]
+  chartTitle?: string
 }
 
-export function GradeDistributionBarChart({ data }: GradeDistributionBarChartProps) {
+export function GradeDistributionBarChart({
+  data,
+  chartTitle = 'Grade distribution',
+}: GradeDistributionBarChartProps) {
   if (!data || data.length === 0) {
     return (
       <ChartContainer config={GRADE_CONFIG} className='w-full h-[280px]'>
@@ -43,7 +48,12 @@ export function GradeDistributionBarChart({ data }: GradeDistributionBarChartPro
 
   return (
     <ChartContainer config={GRADE_CONFIG} className='w-full h-[280px]'>
-      <BarChart data={chartData} margin={{ top: 30, right: 10, bottom: 10, left: 10 }}>
+      <BarChart
+        data={chartData}
+        title={chartTitle}
+        desc={describeGroupAverages(data)}
+        margin={{ top: 30, right: 10, bottom: 10, left: 10 }}
+      >
         <CartesianGrid
           horizontal={true}
           vertical={false}

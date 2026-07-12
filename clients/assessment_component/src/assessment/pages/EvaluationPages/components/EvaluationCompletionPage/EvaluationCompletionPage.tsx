@@ -13,12 +13,15 @@ import { useUnmarkMyEvaluationAsCompleted } from './hooks/useUnmarkMyEvaluationA
 
 interface EvaluationCompletionPageProps {
   type: AssessmentType
-  deadline: Date
+  deadline?: Date
   courseParticipationID: string
   authorCourseParticipationID: string
   completed?: boolean
   completedAt?: Date
 }
+
+const hasDeadline = (deadline?: Date): deadline is Date =>
+  deadline !== undefined && new Date(deadline).getFullYear() > 1
 
 export const EvaluationCompletionPage = ({
   type,
@@ -45,7 +48,8 @@ export const EvaluationCompletionPage = ({
 
   const isPending = isMarkPending || isUnmarkPending
 
-  const isDeadlinePassed = deadline ? new Date() > new Date(deadline) : false
+  const deadlineSet = hasDeadline(deadline)
+  const isDeadlinePassed = deadlineSet && new Date() > new Date(deadline)
 
   const handleConfirm = () => {
     const handleCompletion = async () => {
@@ -116,7 +120,7 @@ export const EvaluationCompletionPage = ({
 
       <div className='flex justify-between items-center mt-8'>
         <div className='flex flex-col'>
-          {deadline && (
+          {deadlineSet && (
             <div className='text-muted-foreground'>
               <DeadlineBadge deadline={deadline} type={type} />
             </div>

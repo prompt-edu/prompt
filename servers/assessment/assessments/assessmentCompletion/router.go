@@ -356,6 +356,7 @@ func getMyGradeSuggestion(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, completion.GradeSuggestion)
+		return
 	}
 	c.Status(http.StatusNoContent)
 }

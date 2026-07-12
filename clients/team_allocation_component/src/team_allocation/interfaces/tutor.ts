@@ -4,4 +4,5 @@ export type Tutor = {
   FirstName: string
   LastName: string
   TeamID: string
+  UniversityLogin?: string
 }

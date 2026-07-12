@@ -51,6 +51,7 @@ export const TeamDiagram = ({
       <CardContent className='flex-1'>
         {showGrade ? (
           <GradeDistributionBarChart
+            chartTitle='Grade distribution by team'
             data={data.map((d) =>
               createGradeDistributionDataPoint(
                 d.shortLabel,
@@ -63,6 +64,7 @@ export const TeamDiagram = ({
           />
         ) : (
           <ScoreDistributionBarChart
+            chartTitle='Score distribution by team'
             data={data.map((d) =>
               createScoreDistributionDataPoint(
                 d.shortLabel,

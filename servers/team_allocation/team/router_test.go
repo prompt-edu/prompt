@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
@@ -17,6 +19,34 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
+
+const (
+	scopedTutorLogin = "ab12cde"
+	teamAlphaID      = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+	teamBetaID       = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+)
+
+// tutorAuthMiddleware mocks an authenticated CourseEditor (non-lecturer) so the tutor-scoping
+// middleware actually resolves a team instead of taking the lecturer/admin pass-through branch.
+func tutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				IsEditor:        true,
+				IsLecturer:      false,
+				UniversityLogin: login,
+			})
+			c.Next()
+		}
+	}
+}
+
+func (suite *TeamRouterTestSuite) routerAs(login string) *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	setupTeamRouter(api, tutorAuthMiddleware(login), suite.teamService.queries)
+	return router
+}
 
 type TeamRouterTestSuite struct {
 	suite.Suite
@@ -43,7 +73,7 @@ func (suite *TeamRouterTestSuite) SetupSuite() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
-	setupTeamRouter(api, testMiddleware)
+	setupTeamRouter(api, testMiddleware, *testDB.Queries)
 }
 
 func (suite *TeamRouterTestSuite) TearDownSuite() {
@@ -186,6 +216,91 @@ func (suite *TeamRouterTestSuite) TestDeleteTeamInvalidID() {
 	suite.router.ServeHTTP(resp, req)
 
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
+func (suite *TeamRouterTestSuite) TestTutorSeesOnlyOwnTeam() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	router := suite.routerAs(scopedTutorLogin)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var response struct {
+		Teams []promptTypes.Team `json:"teams"`
+	}
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
+	assert.Len(suite.T(), response.Teams, 1, "Tutor should only see their assigned team")
+	assert.Equal(suite.T(), teamAlphaID, response.Teams[0].ID.String())
+}
+
+func (suite *TeamRouterTestSuite) TestTutorAllowedOnOwnTeam() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	router := suite.routerAs(scopedTutorLogin)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team/"+teamAlphaID, nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *TeamRouterTestSuite) TestTutorForbiddenOnOtherTeam() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	router := suite.routerAs(scopedTutorLogin)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team/"+teamBetaID, nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+}
+
+func (suite *TeamRouterTestSuite) TestNonTutorEditorSeesAllTeams() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	router := suite.routerAs("zz99zzz")
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var response struct {
+		Teams []promptTypes.Team `json:"teams"`
+	}
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
+	assert.Greater(suite.T(), len(response.Teams), 1, "An editor with no tutor row should see all teams")
+}
+
+func (suite *TeamRouterTestSuite) TestImportTutorsDuplicateLogin() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	tutors := []teamDTO.Tutor{
+		{
+			CourseParticipationID: uuid.MustParse("99999999-9999-9999-9999-999999999995"),
+			FirstName:             "Dup",
+			LastName:              "One",
+			TeamID:                uuid.MustParse(teamAlphaID),
+			UniversityLogin:       "dp01lic",
+		},
+		{
+			CourseParticipationID: uuid.MustParse("99999999-9999-9999-9999-999999999996"),
+			FirstName:             "Dup",
+			LastName:              "Two",
+			TeamID:                uuid.MustParse(teamAlphaID),
+			UniversityLogin:       "dp01lic",
+		},
+	}
+	body, _ := json.Marshal(tutors)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+coursePhaseID+"/team/tutors", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
 }
 
 func TestTeamRouterTestSuite(t *testing.T) {

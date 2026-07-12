@@ -8,7 +8,7 @@ export const TeamBadge = ({ teamName }: { teamName: string }) => {
         'dark:bg-gray-100 dark:text-gray-800 dark:border-gray-200 dark:hover:bg-gray-200',
       )}
     >
-      Team {teamName}
+      {teamName}
     </Badge>
   )
 }

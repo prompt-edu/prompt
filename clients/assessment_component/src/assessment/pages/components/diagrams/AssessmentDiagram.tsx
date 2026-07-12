@@ -44,7 +44,14 @@ export const AssessmentDiagram = ({
   completions,
   assessmentType = AssessmentType.ASSESSMENT,
 }: AssessmentDiagramProps) => {
-  const { chartData, totalAssessments } = React.useMemo(() => {
+  const noun =
+    assessmentType === AssessmentType.SELF
+      ? 'self evaluations'
+      : assessmentType === AssessmentType.PEER
+        ? 'peer evaluations'
+        : 'assessments'
+
+  const { chartData, totalAssessments, chartDescription } = React.useMemo(() => {
     const completed = participations.filter((p) =>
       completions?.find((c) => c.courseParticipationID === p.courseParticipationID && c.completed),
     ).length
@@ -64,8 +71,13 @@ export const AssessmentDiagram = ({
         { status: 'completed', applications: completed, fill: chartConfig.completed.color },
       ],
       totalAssessments: participations.length,
+      chartDescription:
+        `${participations.length} ${noun} in total: ${completed} completed, ` +
+        `${inProgress} in progress, ${notAssessed} not assessed.`,
     }
-  }, [participations, completions, scoreLevels])
+  }, [participations, completions, scoreLevels, noun])
+
+  const chartTitle = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} status`
 
   return (
     <Card className='flex flex-col'>
@@ -98,7 +110,7 @@ export const AssessmentDiagram = ({
       </CardHeader>
       <CardContent className='flex-1 pb-0'>
         <ChartContainer config={chartConfig} className='mx-auto aspect-square max-h-[250px]'>
-          <PieChart>
+          <PieChart title={chartTitle} desc={chartDescription}>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie
               data={chartData}

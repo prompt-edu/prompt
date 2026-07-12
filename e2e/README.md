@@ -2,11 +2,11 @@
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
 Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
-**assessment**, and **interview phase modules** (Go service, own Postgres,
-Module Federation remote each) — and drive them like a real user, with
-[Playwright](https://playwright.dev). They catch full-stack regressions (auth
-flow, routing, API contract, data rendering, remote loading) that the Go unit
-tests can't.
+**assessment**, **interview**, and **team allocation phase modules** (Go
+service, own Postgres, Module Federation remote each) — and drive them like a
+real user, with [Playwright](https://playwright.dev). They catch full-stack
+regressions (auth flow, routing, API contract, data rendering, remote loading)
+that the Go unit tests can't.
 
 The suite covers two layers with one framework:
 
@@ -92,6 +92,11 @@ docker-compose.e2e.yml
  │    │                     own migrations on startup)
  │    ├── server-interview  built from ../servers/interview
  │    └── client-interview  the Module Federation remote (nginx)
+ ├── team allocation phase module:
+ │    ├── db-team-allocation      own ephemeral Postgres (empty; the server runs
+ │    │                           its own migrations on startup)
+ │    ├── server-team-allocation  built from ../servers/team_allocation
+ │    └── client-team-allocation  the Module Federation remote (nginx)
  └── e2e-runner    Playwright container; waits for health, runs this suite
 ```
 
@@ -278,9 +283,14 @@ See `ASSESSMENT_FIXTURE_PHASES` and `ASSESSMENT_FOREIGN_PHASE_ID` in
 `src/data/constants.ts`. For the same reason the self team allocation
 lecturer-overview spec owns a standalone phase
 (`SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID`) — the team it forms would otherwise
-block team creation in the student journey. The assessment server needs **no
-phase-DB seed**: its migrations create the default template schemas, and the
-first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
+block team creation in the student journey. The team allocation journeys follow
+the same rule: the lecturer and student specs each own a standalone phase
+(`TEAM_ALLOCATION_JOURNEY_PHASE_ID`, `TEAM_ALLOCATION_STUDENT_PHASE_ID`) so their
+published allocations never clobber each other or the graph Team Allocation
+phase (used by the smoke + API specs), plus a participant-less phase on
+`TestCourse` (`TEAM_ALLOCATION_FOREIGN_PHASE_ID`) as the negative-auth fixture.
+The assessment server needs **no phase-DB seed**: its migrations create the
+default template schemas, and the first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
 are not covered — they need team data from a team-allocation resolution the
 e2e seed does not wire.
 
@@ -302,10 +312,15 @@ as the negative fixture for the public apply endpoints.
 > required DTO metadata** — fine for phase-graph, participant-list, and
 > role-access tests, but the inter-phase data-dependency graph is not exercised.
 > (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
-> of the module blueprint.) The `Interview` remote **is** now built into the e2e
-> client and exercised through its own UI (see `tests/interview/`); the
-> `Matching` / `Team Allocation` / … remotes are not, so tests for those should
-> target core-level views (course config, phase graph, participant lists,
+> of the module blueprint.) The `Interview` and `Team Allocation` remotes **are**
+> now built into the e2e client and exercised through their own UIs (see
+> `tests/interview/` and `tests/team-allocation/`). Team allocation's algorithm
+> runs in the external TEASE tool, so its lecturer journey publishes the computed
+> assignment through the phase server's TEASE save endpoint (the tool's callback)
+> rather than clicking a matchmaking button, and — since the module has no
+> student-facing team view — the student reads their allocated team through the
+> allocation API. The `Matching` / … remotes are not built in, so tests for those
+> should target core-level views (course config, phase graph, participant lists,
 > role-based access), not the phase remotes' own UIs.
 
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable

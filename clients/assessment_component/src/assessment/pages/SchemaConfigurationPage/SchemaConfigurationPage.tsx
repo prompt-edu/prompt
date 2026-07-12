@@ -193,6 +193,8 @@ export const SchemaConfigurationPage = () => {
         assessmentSchemaID={schemaId}
         assessmentType={assessmentType}
         hasAssessmentData={schemaData.hasAssessmentData}
+        schemaName={schema?.name}
+        schemaDescription={schema?.description}
       />
     </div>
   )

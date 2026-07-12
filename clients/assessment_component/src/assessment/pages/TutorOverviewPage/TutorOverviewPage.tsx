@@ -1,7 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { AssessmentType } from '../../interfaces/assessmentType'
+import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
+import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 
@@ -13,11 +17,17 @@ interface TutorRow {
 }
 
 export const TutorOverviewPage = (): ReactNode => {
+  const { phaseId } = useParams<{ phaseId: string }>()
   const navigate = useNavigate()
   const path = useLocation().pathname
 
   const { data: teams } = useGetAllTeams()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+
+  const { data: evaluationCompletions = [] } = useQuery({
+    queryKey: ['evaluationCompletions', phaseId],
+    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
+  })
 
   const data: TutorRow[] = useMemo(() => {
     return teams.flatMap((team) =>
@@ -31,6 +41,16 @@ export const TutorOverviewPage = (): ReactNode => {
         })),
     )
   }, [teams])
+
+  const tutorParticipations = useMemo(
+    () => data.map((tutor) => ({ courseParticipationID: tutor.id })),
+    [data],
+  )
+
+  const tutorEvaluationCompletions = useMemo(
+    () => evaluationCompletions.filter((completion) => completion.type === AssessmentType.TUTOR),
+    [evaluationCompletions],
+  )
 
   const columns: ColumnDef<TutorRow>[] = useMemo(
     () => [
@@ -59,6 +79,15 @@ export const TutorOverviewPage = (): ReactNode => {
           Click on a tutor to view their evaluation results from students.
         </p>
       )}
+
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+        <AssessmentDiagram
+          participations={tutorParticipations}
+          scoreLevels={[]}
+          completions={tutorEvaluationCompletions}
+          assessmentType={AssessmentType.TUTOR}
+        />
+      </div>
 
       <PromptTable<TutorRow>
         data={data}

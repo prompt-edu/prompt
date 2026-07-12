@@ -14,6 +14,7 @@ import {
   getEvaluationCounts,
 } from '../AssessmentParticipantsPage/utils/evaluationUtils'
 import { PeerEvaluationCompletionBadge } from '../components/badges'
+import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
@@ -170,6 +171,15 @@ export const EvaluationParticipantsOverviewPage = ({
           Click on a participant to view their evaluation results.
         </p>
       )}
+
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+        <AssessmentDiagram
+          participations={participations}
+          scoreLevels={[]}
+          completions={typedCompletions}
+          assessmentType={assessmentType}
+        />
+      </div>
 
       <PromptTable<EvaluationParticipantRow>
         data={data}

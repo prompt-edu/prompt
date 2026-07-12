@@ -53,7 +53,7 @@ Keep all headings, helper text, and checklist items, and tick the boxes that app
 ## Before you open the PR
 
 - `make lint` and `make test` pass.
-- Backend: protected routes sit under `/api/course_phase/:coursePhaseID` with the correct roles,
+- Server: protected routes sit under `/api/course_phase/:coursePhaseID` with the correct roles,
   and `db/sqlc/` is regenerated and committed alongside any migration or query change.
-- Frontend: no `any`, and shared libraries are reused over custom code.
+- Client: no `any`, and shared libraries are reused over custom code.
 - Tests are added or updated for the behavior you changed.

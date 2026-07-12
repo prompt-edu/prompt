@@ -54,6 +54,7 @@ func getAllAllocations(c *gin.Context) {
 // @Param courseParticipationID path string true "Course Participation UUID"
 // @Success 200 {object} allocationDTO.AllocationWithParticipation
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]
@@ -84,6 +85,10 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
+	if statusCode < http.StatusInternalServerError {
+		log.Debug(err)
+	} else {
+		log.Error(err)
+	}
 	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

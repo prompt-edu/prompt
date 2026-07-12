@@ -5,9 +5,9 @@ import {
   ErrorPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { Loader2, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Printer } from 'lucide-react'
 import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -17,9 +17,12 @@ import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
+import { useTutorNavigation } from './hooks/useTutorNavigation'
 
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()
+  const navigate = useNavigate()
+  const { prevTutor, nextTutor } = useTutorNavigation()
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: teams } = useGetAllTeams()
@@ -90,9 +93,41 @@ export const TutorEvaluationResultsPage = () => {
 
   return (
     <div className='space-y-4'>
-      <ManagementPageHeader>
-        Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
-      </ManagementPageHeader>
+      <div className='flex items-center gap-2 [&_h1]:mb-0'>
+        {prevTutor && (
+          <Button
+            variant='outline'
+            className='h-10 shrink-0'
+            aria-label={`Navigate to previous tutor: ${prevTutor.firstName} ${prevTutor.lastName}`}
+            onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
+          >
+            <ChevronLeft className='h-4 w-4' />
+            <span className='hidden md:inline'>
+              {prevTutor.firstName} {prevTutor.lastName}
+            </span>
+          </Button>
+        )}
+
+        <div className='min-w-0 flex-1'>
+          <ManagementPageHeader>
+            Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+          </ManagementPageHeader>
+        </div>
+
+        {nextTutor && (
+          <Button
+            variant='outline'
+            className='h-10 shrink-0'
+            aria-label={`Navigate to next tutor: ${nextTutor.firstName} ${nextTutor.lastName}`}
+            onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
+          >
+            <span className='hidden md:inline'>
+              {nextTutor.firstName} {nextTutor.lastName}
+            </span>
+            <ChevronRight className='h-4 w-4' />
+          </Button>
+        )}
+      </div>
 
       {tutorEvaluationCategories.length === 0 ? (
         <Card>

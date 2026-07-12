@@ -1,10 +1,11 @@
 # PROMPT 2.0 End-to-End Tests
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
-Postgres + SeaweedFS** in Docker — plus the **self team allocation** and
-**assessment phase modules** (Go service, own Postgres, Module Federation
-remote each) and the **matching module** (Module Federation remote only; its
-backend is core-hosted) — and drive them like a real user, with
+Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
+**assessment**, **interview**, and **certificate phase modules** (Go service,
+own Postgres, Module Federation remote each) and the **matching module** (Module
+Federation remote only; its backend is core-hosted) — and drive them like a real
+user, with
 [Playwright](https://playwright.dev). They catch full-stack regressions (auth
 flow, routing, API contract, data rendering, remote loading) that the Go unit
 tests can't.
@@ -91,6 +92,16 @@ docker-compose.e2e.yml
  ├── matching module:
  │    └── client-matching    the Module Federation remote (nginx); no server or
  │                           DB — its backend is core-hosted (server-core)
+ ├── interview phase module:
+ │    ├── db-interview      own ephemeral Postgres (empty; the server runs its
+ │    │                     own migrations on startup)
+ │    ├── server-interview  built from ../servers/interview
+ │    └── client-interview  the Module Federation remote (nginx)
+ ├── certificate phase module:
+ │    ├── db-certificate    own ephemeral Postgres (empty; the server runs its
+ │    │                     own migrations on startup)
+ │    ├── server-certificate built from ../servers/certificate
+ │    └── client-certificate the Module Federation remote (nginx)
  └── e2e-runner    Playwright container; waits for health, runs this suite
 ```
 
@@ -112,8 +123,8 @@ to your browser - so auth behaves identically to the canonical run.
 
 The self team allocation module is the blueprint for adding a course-phase
 module (Go service + Module Federation remote) to the stack; the assessment
-module is the second implementation of it (see `tests/assessment/`). To add
-another module, copy each of these steps:
+(see `tests/assessment/`) and interview (see `tests/interview/`) modules are
+further implementations of it. To add another module, copy each of these steps:
 
 **1. Compose services** (`docker-compose.e2e.yml`): a `db-<module>` Postgres
 (ephemeral, `pg_isready` healthcheck), a `server-<module>` (build
@@ -314,12 +325,14 @@ as the negative fixture for the public apply endpoints.
 > required DTO metadata** — fine for phase-graph, participant-list, and
 > role-access tests, but the inter-phase data-dependency graph is not exercised.
 > (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
-> of the module blueprint.) The **`Matching`** remote IS served in the e2e stack
-> (via `client-matching`; its backend is core-hosted — see `tests/matching/` and
-> the reduced blueprint above). The `Interview` / `Team Allocation` micro-frontend
-> remotes are still not built into the e2e client, so tests for those should
-> target core-level views (course config, phase graph, participant lists,
-> role-based access), not those phase remotes' own UIs.
+> of the module blueprint.) The **`Matching`**, **`Interview`**, and
+> **`Certificate`** remotes ARE served in the e2e stack and exercised through
+> their own UIs (see `tests/matching/`, `tests/interview/`, and
+> `tests/certificate/`; matching's backend is core-hosted — see the reduced
+> blueprint above). The `Team Allocation` micro-frontend remote is still not
+> built into the e2e client, so tests for it should target core-level views
+> (course config, phase graph, participant lists, role-based access), not that
+> phase remote's own UI.
 
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
 > as an e2e seed — it's a hand-maintained Go-test fixture whose schema is

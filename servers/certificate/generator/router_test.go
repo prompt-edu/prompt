@@ -93,28 +93,29 @@ func (s *GeneratorRouterTestSuite) TestGetCertificateStatus_InvalidCoursePhaseID
 	assert.Equal(s.T(), http.StatusBadRequest, resp.Code)
 }
 
-func (s *GeneratorRouterTestSuite) TestGetTemplateStatus_WithTemplate() {
+func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	hasTemplate, err := getTemplateStatus(s.newGinContext(), coursePhaseID)
+	config, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
 	assert.NoError(s.T(), err)
-	assert.True(s.T(), hasTemplate)
+	assert.True(s.T(), config.TemplateContent.Valid)
+	assert.NotEmpty(s.T(), config.TemplateContent.String)
 }
 
-func (s *GeneratorRouterTestSuite) TestGetTemplateStatus_WithoutTemplate() {
+func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithoutTemplate() {
 	// Phase 2 exists but has NULL template
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
 
-	_, err := getTemplateStatus(s.newGinContext(), coursePhaseID)
-	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "no template configured")
+	_, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
+	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
-func (s *GeneratorRouterTestSuite) TestGetTemplateStatus_NonExistent() {
+func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_NonExistent() {
+	// A missing config row is "not configured", not a genuine query error
 	nonExistentID := uuid.New()
 
-	_, err := getTemplateStatus(s.newGinContext(), nonExistentID)
-	assert.Error(s.T(), err)
+	_, err := getTemplateConfig(s.newGinContext(), nonExistentID)
+	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
 func (s *GeneratorRouterTestSuite) TestRecordCertificateDownload_Upsert() {

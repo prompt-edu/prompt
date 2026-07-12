@@ -270,7 +270,8 @@ export const AssessmentReminderCard = () => {
                 Available placeholders:{' '}
                 <span className='font-mono text-foreground'>{'{{firstName}}'}</span>,{' '}
                 <span className='font-mono text-foreground'>{'{{evaluationType}}'}</span>,{' '}
-                <span className='font-mono text-foreground'>{'{{evaluationDeadline}}'}</span>
+                <span className='font-mono text-foreground'>{'{{evaluationDeadline}}'}</span>,{' '}
+                <span className='font-mono text-foreground'>{'{{coursePhaseLink}}'}</span>
               </p>
             </div>
           </div>

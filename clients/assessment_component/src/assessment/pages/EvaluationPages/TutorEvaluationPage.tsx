@@ -73,7 +73,7 @@ export const TutorEvaluationPage = () => {
 
       <EvaluationCompletionPage
         type={AssessmentType.TUTOR}
-        deadline={coursePhaseConfig?.tutorEvaluationDeadline ?? new Date()}
+        deadline={coursePhaseConfig?.tutorEvaluationDeadline}
         courseParticipationID={courseParticipationID ?? ''}
         authorCourseParticipationID={myParticipation?.courseParticipationID ?? ''}
         completed={(completion?.completed ?? false) || !isStudent}

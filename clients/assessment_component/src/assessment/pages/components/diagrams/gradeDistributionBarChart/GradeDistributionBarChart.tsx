@@ -62,7 +62,12 @@ export function GradeDistributionBarChart({ data }: GradeDistributionBarChartPro
         >
           <Label value='Grade' angle={-90} position='insideLeft' fill='#a3a3a3' />
         </YAxis>
-        <ChartTooltip cursor={false} content={<GradeDistributionTooltipContent />} />
+        <ChartTooltip
+          cursor={false}
+          allowEscapeViewBox={{ x: false, y: true }}
+          wrapperStyle={{ zIndex: 50 }}
+          content={<GradeDistributionTooltipContent />}
+        />
         <Bar dataKey='value' shape={<GradeDistributionBar />}>
           <LabelList dataKey='average' content={<GradeDistributionLabel />} />
         </Bar>

@@ -36,9 +36,14 @@ CREATE TABLE
     first_name              text NOT NULL,
     last_name               text NOT NULL,
     team_id                 uuid NOT NULL,
+    university_login        text,
     PRIMARY KEY (course_phase_id, course_participation_id),
     FOREIGN KEY (team_id, course_phase_id) REFERENCES team (id, course_phase_id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX idx_tutor_phase_login
+    ON tutor (course_phase_id, university_login)
+    WHERE university_login IS NOT NULL;
 
 ALTER TABLE allocations
     DROP COLUMN student_full_name,
@@ -85,16 +90,19 @@ INSERT INTO tutor (course_phase_id,
                    course_participation_id,
                    first_name,
                    last_name,
-                   team_id)
+                   team_id,
+                   university_login)
 VALUES ('4179d58a-d00d-4fa7-94a5-397bc69fab02',
         '99999999-9999-9999-9999-999999999993',
         'Alice',
         'Johnson',
-        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'ab12cde'),
        ('4179d58a-d00d-4fa7-94a5-397bc69fab02',
         '99999999-9999-9999-9999-999999999994',
         'Bob',
         'Williams',
-        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        NULL);
 
 COMMIT;

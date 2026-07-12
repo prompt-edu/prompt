@@ -178,8 +178,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 h1:o4JXh1EVt9k/+g42oCprj/FisM4qX9L3sZB3upGN2ZU=
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
-github.com/prompt-edu/prompt-sdk v1.2.0 h1:WVT430CmHHYG6ZwSvK4gR4la5NT4WxDWeiWahjXqCsg=
-github.com/prompt-edu/prompt-sdk v1.2.0/go.mod h1:qsZoDRWaT2GoUyoCj7vFBBUIKDik8T2plojuWjwag1k=
+github.com/prompt-edu/prompt-sdk v1.2.1 h1:Wql31s0XIX9MW0HwvdypG9sTxryQK4Zc5hO9/1X1728=
+github.com/prompt-edu/prompt-sdk v1.2.1/go.mod h1:qsZoDRWaT2GoUyoCj7vFBBUIKDik8T2plojuWjwag1k=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/quic-go/quic-go v0.59.1 h1:0Gmua0HW1Tv7ANR7hUYwRyD0MG5OJfgvYSZasGZzBic=

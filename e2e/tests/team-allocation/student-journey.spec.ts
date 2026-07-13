@@ -6,7 +6,14 @@ import {
   SEEDED_COURSES,
   TEAM_ALLOCATION_STUDENT_PHASE_ID,
 } from '../../src/data/constants'
-import { clearAllocations, createTeam, deleteTeamByName, getAllocationForParticipation, publishAllocation } from './helpers'
+import {
+  clearAllocations,
+  createTeam,
+  deleteTeamByName,
+  getAllocatedTeamId,
+  openSurvey,
+  publishAllocation,
+} from './helpers'
 
 const PHASE_ID = TEAM_ALLOCATION_STUDENT_PHASE_ID
 const TEAM_NAME = 'E2E Team Allocation Student'
@@ -26,6 +33,7 @@ test.use({ role: 'student' })
 test.describe('team allocation: student journey', () => {
   test.beforeAll(async () => {
     await reset()
+    await openSurvey(PHASE_ID)
     const admin = await apiContextFor('admin')
     try {
       const team = await createTeam(admin, PHASE_ID, TEAM_NAME)
@@ -47,12 +55,12 @@ test.describe('team allocation: student journey', () => {
 
     const api = await apiContextFor('student')
     try {
-      const allocation = await getAllocationForParticipation(
+      const teamId = await getAllocatedTeamId(
         api,
         PHASE_ID,
         FULL_COURSE_STUDENT.courseParticipationId,
       )
-      expect(allocation?.teamAllocation).toBe(allocatedTeamId)
+      expect(teamId).toBe(allocatedTeamId)
     } finally {
       await api.dispose()
     }

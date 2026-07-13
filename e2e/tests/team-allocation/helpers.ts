@@ -37,6 +37,32 @@ function teaseSaveUrl(phaseId: string): string {
   return `${BASE_URL}${TEAM_ALLOCATION_API}/tease/course_phase/${phaseId}/save`
 }
 
+function timeframeUrl(phaseId: string): string {
+  return `${coursePhaseBase(phaseId)}/survey/timeframe`
+}
+
+// Opens the survey (start in the past, deadline in the future) so the student
+// survey remote renders its form instead of the "not configured" error page.
+// Runs as admin (the endpoint is staff-only).
+export async function openSurvey(phaseId: string): Promise<void> {
+  const admin = await apiContextFor('admin')
+  try {
+    const now = Date.now()
+    const res = await admin.put(timeframeUrl(phaseId), {
+      data: {
+        timeframeSet: true,
+        surveyStart: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+        surveyDeadline: new Date(now + 24 * 60 * 60 * 1000).toISOString(),
+      },
+    })
+    if (!res.ok()) {
+      throw new Error(`set survey timeframe failed: ${res.status()} ${await res.text()}`)
+    }
+  } finally {
+    await admin.dispose()
+  }
+}
+
 export async function getTeams(api: APIRequestContext, phaseId: string): Promise<Team[]> {
   const res = await api.get(teamsUrl(phaseId))
   if (!res.ok()) {
@@ -95,17 +121,19 @@ export async function getAllocations(
   return (await res.json()) as ParticipationAllocation[]
 }
 
-export async function getAllocationForParticipation(
+// GET /allocation/:courseParticipationID returns the allocated team's UUID as a
+// bare JSON string (not an object), or 404 when the student has no allocation.
+export async function getAllocatedTeamId(
   api: APIRequestContext,
   phaseId: string,
   courseParticipationId: string,
-): Promise<ParticipationAllocation | null> {
+): Promise<string | null> {
   const res = await api.get(allocationUrl(phaseId, courseParticipationId))
   if (res.status() === 404) return null
   if (!res.ok()) {
     throw new Error(`GET allocation failed: ${res.status()} ${await res.text()}`)
   }
-  return (await res.json()) as ParticipationAllocation
+  return (await res.json()) as string
 }
 
 // Removes a test-created team (clearing its allocations first so the delete

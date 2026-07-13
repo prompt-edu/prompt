@@ -1,11 +1,6 @@
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useUpdateCoursePhaseMetaData } from '@tumaet/prompt-shared-state'
-import {
-  Button,
-  DeleteConfirmation,
-  Input,
-  ManagementPageHeader,
-} from '@tumaet/prompt-ui-components'
+import { Button, DeleteConfirmation, Input } from '@tumaet/prompt-ui-components'
 import { GripVertical, Loader2, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
@@ -99,10 +94,9 @@ export const QuestionConfiguration = () => {
 
   return (
     <div className='flex flex-col'>
-      {/* Sticky header */}
-      <div className='sticky top-0 bg-background p-4 z-10 border-b'>
+      <div className='pb-4'>
         <header className='mb-4'>
-          <ManagementPageHeader>Interview Question Configuration</ManagementPageHeader>
+          <h2 className='text-2xl font-bold'>Interview Questions</h2>
           <p className='text-muted-foreground'>
             These questions will be used as a template during interviews. Deleting a question will
             make any associated notes or responses inaccessible.
@@ -131,7 +125,7 @@ export const QuestionConfiguration = () => {
       </div>
 
       {/* Scrollable content */}
-      <div className='grow overflow-auto h-[calc(100vh-300px)] p-4'>
+      <div className='grow overflow-auto max-h-[60vh]'>
         {/* Saving indicator */}
         {isPending && (
           <div className='mb-2 text-xs text-muted-foreground flex items-center gap-1'>

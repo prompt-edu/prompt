@@ -2,7 +2,6 @@ import { type UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/promp
 import {
   Button,
   EmailTemplateEditor,
-  ManagementPageHeader,
   MissingConfig,
   type MissingConfigItem,
   Tabs,
@@ -110,7 +109,7 @@ export const ApplicationMailingSettings = () => {
 
   return (
     <div className='space-y-6'>
-      <ManagementPageHeader>Application Mailing Settings</ManagementPageHeader>
+      <h2 className='text-2xl font-bold'>Mailing</h2>
       <MissingConfig elements={missingConfigs} />
       <SettingsCard
         applicationMailingMetaData={applicationMailingMetaData}

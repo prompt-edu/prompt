@@ -3,10 +3,12 @@
 Black-box e2e tests that boot the **core server + core client + Keycloak +
 Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
 **assessment**, **interview**, **certificate**, and **team allocation phase
-modules** (Go service, own Postgres, Module Federation remote each) — and drive
-them like a real user, with [Playwright](https://playwright.dev). They catch full-stack
-regressions (auth flow, routing, API contract, data rendering, remote loading)
-that the Go unit tests can't.
+modules** (Go service, own Postgres, Module Federation remote each) and the
+**matching module** (Module Federation remote only; its backend is core-hosted)
+— and drive them like a real user, with
+[Playwright](https://playwright.dev). They catch full-stack regressions (auth
+flow, routing, API contract, data rendering, remote loading) that the Go unit
+tests can't.
 
 The suite covers two layers with one framework:
 
@@ -87,16 +89,19 @@ docker-compose.e2e.yml
  │    │                      migrations also create the default schemas)
  │    ├── server-assessment  built from ../servers/assessment
  │    └── client-assessment  the Module Federation remote (nginx)
+ ├── matching module:
+ │    └── client-matching    the Module Federation remote (nginx); no server or
+ │                           DB — its backend is core-hosted (server-core)
  ├── interview phase module:
  │    ├── db-interview      own ephemeral Postgres (empty; the server runs its
  │    │                     own migrations on startup)
  │    ├── server-interview  built from ../servers/interview
  │    └── client-interview  the Module Federation remote (nginx)
  ├── certificate phase module:
- │    ├── db-certificate      own ephemeral Postgres (empty; the server runs its
- │    │                       own migrations on startup)
- │    ├── server-certificate  built from ../servers/certificate
- │    └── client-certificate  the Module Federation remote (nginx)
+ │    ├── db-certificate    own ephemeral Postgres (empty; the server runs its
+ │    │                     own migrations on startup)
+ │    ├── server-certificate built from ../servers/certificate
+ │    └── client-certificate the Module Federation remote (nginx)
  ├── team allocation phase module:
  │    ├── db-team-allocation      own ephemeral Postgres (empty; the server runs
  │    │                           its own migrations on startup)
@@ -183,6 +188,16 @@ status poll would accept the SPA fallback's 200).
 LoadingError instead, so this one assertion covers the whole Module Federation
 path. Journeys and API auth checks build on top (see
 `tests/self-team-allocation/`, `tests/api/self-team-allocation.api.spec.ts`).
+
+**Core-backed modules (reduced blueprint).** A module whose backend lives in
+`server-core` rather than its own Go service — currently **matching** (see
+`tests/matching/`) — needs only a subset: just the `client-<module>` remote
+(step 1) and its prefix-stripped `/<module>/` nginx location (step 2). Skip the
+`server-<module>` / `db-<module>` services, the `/<module>/api/` proxy, the
+`DB_<MODULE>_*` env, and the `/info` readiness poll (step 5) — the client's
+wget healthcheck is the readiness gate. Its tests hit the **core** API (e.g.
+`/api/course_phases/:uuid/participations`) via the `apiAs` fixture, not a
+phase-server proxy.
 
 ## Authentication
 
@@ -289,14 +304,18 @@ See `ASSESSMENT_FIXTURE_PHASES` and `ASSESSMENT_FOREIGN_PHASE_ID` in
 `src/data/constants.ts`. For the same reason the self team allocation
 lecturer-overview spec owns a standalone phase
 (`SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID`) — the team it forms would otherwise
-block team creation in the student journey. The team allocation journeys follow
-the same rule: the lecturer and student specs each own a standalone phase
+block team creation in the student journey. Likewise the matching lecturer
+re-import spec owns a standalone Matching phase (`MATCHING_JOURNEY_PHASE_ID`) so
+its `pass_status` mutation never collides with the graph Matching phase used by
+the matching smoke / student-access / API specs. The team allocation journeys
+follow the same rule: the lecturer and student specs each own a standalone phase
 (`TEAM_ALLOCATION_JOURNEY_PHASE_ID`, `TEAM_ALLOCATION_STUDENT_PHASE_ID`) so their
 published allocations never clobber each other or the graph Team Allocation
 phase (used by the smoke + API specs), plus a participant-less phase on
 `TestCourse` (`TEAM_ALLOCATION_FOREIGN_PHASE_ID`) as the negative-auth fixture.
 The assessment server needs **no phase-DB seed**: its migrations create the
-default template schemas, and the first `GET /config` on a phase binds it to them. Peer/tutor evaluation journeys
+default template schemas, and the first `GET /config` on a phase binds it to
+them. Peer/tutor evaluation journeys
 are not covered — they need team data from a team-allocation resolution the
 e2e seed does not wire.
 
@@ -318,16 +337,16 @@ as the negative fixture for the public apply endpoints.
 > required DTO metadata** — fine for phase-graph, participant-list, and
 > role-access tests, but the inter-phase data-dependency graph is not exercised.
 > (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
-> of the module blueprint.) The `Interview` and `Team Allocation` remotes **are**
-> now built into the e2e client and exercised through their own UIs (see
-> `tests/interview/` and `tests/team-allocation/`). Team allocation's algorithm
-> runs in the external TEASE tool, so its lecturer journey publishes the computed
-> assignment through the phase server's TEASE save endpoint (the tool's callback)
-> rather than clicking a matchmaking button, and — since the module has no
-> student-facing team view — the student reads their allocated team through the
-> allocation API. The `Matching` / … remotes are not built in, so tests for those
-> should target core-level views (course config, phase graph, participant lists,
-> role-based access), not the phase remotes' own UIs.
+> of the module blueprint.) The **`Matching`**, **`Interview`**,
+> **`Certificate`**, and **`Team Allocation`** remotes ARE served in the e2e
+> stack and exercised through their own UIs (see `tests/matching/`,
+> `tests/interview/`, `tests/certificate/`, and `tests/team-allocation/`;
+> matching's backend is core-hosted — see the reduced blueprint above). Team
+> allocation's algorithm runs in the external TEASE tool, so its lecturer journey
+> publishes the computed assignment through the phase server's TEASE save
+> endpoint (the tool's callback) rather than clicking a matchmaking button, and —
+> since the module has no student-facing team view — the student reads their
+> allocated team through the allocation API.
 
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
 > as an e2e seed — it's a hand-maintained Go-test fixture whose schema is

@@ -711,6 +711,12 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000007-0000-0000-0000-000000000007', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000009-0000-0000-0000-000000000009', '{}', 'not_assessed', '{}');
+-- Standalone matching re-import phase (see the course_phase insert below):
+-- Stan + Selma participate, each carrying a matching score in restricted_data.
+-- pass_status starts 'not_assessed' so the lecturer re-import journey can flip
+-- it to 'passed' without depending on other specs.
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000e-0000-0000-0000-00000000000e', '{"score": 90}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd000000e-0000-0000-0000-00000000000e', '{"score": 85}', 'not_assessed', '{}');
 -- Certificate phases (see the course_phase inserts below): Stan participates in
 -- the graph-tail phase (smoke + API reads) and both standalone journey phases
 -- (lecturer participants table + staff download, student self-download).
@@ -808,6 +814,14 @@ INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 
 INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Assessment Print', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+
+--
+-- Standalone Matching phase (no graph edge) owned by the matching lecturer
+-- re-import spec, so its pass_status mutation never collides with the graph
+-- Matching phase (d0000003) used by the smoke / student / API specs.
+--
+
+INSERT INTO public.course_phase VALUES ('d000000e-0000-0000-0000-00000000000e', 'c0000001-0000-0000-0000-000000000001', 'Matching Re-Import', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
 
 --
 -- A CLOSED Application phase on TestCourse (applicationEndDate in the past):

@@ -60,7 +60,7 @@
     "dayjs": "^1.11.21",
     "dompurify": "^3.4.11",
     "file-saver": "^2.0.5",
-    "framer-motion": "^12.42.2",
+    "motion": "^12.42.2",
     "highlight.js": "^11.11.1",
     "jwt-decode": "^4.0.0",
     "keycloak-js": "25.0.6",

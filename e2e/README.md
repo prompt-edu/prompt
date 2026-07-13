@@ -2,9 +2,9 @@
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
 Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
-**assessment**, **interview**, and **team allocation phase modules** (Go
-service, own Postgres, Module Federation remote each) — and drive them like a
-real user, with [Playwright](https://playwright.dev). They catch full-stack
+**assessment**, **interview**, **certificate**, and **team allocation phase
+modules** (Go service, own Postgres, Module Federation remote each) — and drive
+them like a real user, with [Playwright](https://playwright.dev). They catch full-stack
 regressions (auth flow, routing, API contract, data rendering, remote loading)
 that the Go unit tests can't.
 
@@ -92,6 +92,11 @@ docker-compose.e2e.yml
  │    │                     own migrations on startup)
  │    ├── server-interview  built from ../servers/interview
  │    └── client-interview  the Module Federation remote (nginx)
+ ├── certificate phase module:
+ │    ├── db-certificate      own ephemeral Postgres (empty; the server runs its
+ │    │                       own migrations on startup)
+ │    ├── server-certificate  built from ../servers/certificate
+ │    └── client-certificate  the Module Federation remote (nginx)
  ├── team allocation phase module:
  │    ├── db-team-allocation      own ephemeral Postgres (empty; the server runs
  │    │                           its own migrations on startup)
@@ -118,8 +123,9 @@ to your browser - so auth behaves identically to the canonical run.
 
 The self team allocation module is the blueprint for adding a course-phase
 module (Go service + Module Federation remote) to the stack; the assessment
-(see `tests/assessment/`) and interview (see `tests/interview/`) modules are
-further implementations of it. To add another module, copy each of these steps:
+(see `tests/assessment/`), interview (see `tests/interview/`), certificate, and
+team allocation (see `tests/team-allocation/`) modules are further
+implementations of it. To add another module, copy each of these steps:
 
 **1. Compose services** (`docker-compose.e2e.yml`): a `db-<module>` Postgres
 (ephemeral, `pg_isready` healthcheck), a `server-<module>` (build

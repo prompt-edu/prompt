@@ -24,11 +24,11 @@ export interface ParticipationAllocation {
 const coursePhaseBase = (phaseId: string) =>
   `${BASE_URL}${TEAM_ALLOCATION_API}/course_phase/${phaseId}`
 
-export function teamsUrl(phaseId: string): string {
+function teamsUrl(phaseId: string): string {
   return `${coursePhaseBase(phaseId)}/team`
 }
 
-export function allocationUrl(phaseId: string, courseParticipationId?: string): string {
+function allocationUrl(phaseId: string, courseParticipationId?: string): string {
   const base = `${coursePhaseBase(phaseId)}/allocation`
   return courseParticipationId ? `${base}/${courseParticipationId}` : base
 }
@@ -136,9 +136,10 @@ export async function getAllocatedTeamId(
   return (await res.json()) as string
 }
 
-// Removes a test-created team (clearing its allocations first so the delete
-// isn't blocked by the allocation FK), so specs stay independent and UI-watch
-// re-runs start clean. Admin passes the staff-only delete.
+// Removes a test-created team so specs stay independent and UI-watch re-runs
+// start clean. Callers clear the phase's allocations first (see reset in the
+// journey specs), so the allocation FK does not block the delete. Admin passes
+// the staff-only delete.
 export async function deleteTeamByName(name: string, phaseId: string): Promise<void> {
   const admin = await apiContextFor('admin')
   try {

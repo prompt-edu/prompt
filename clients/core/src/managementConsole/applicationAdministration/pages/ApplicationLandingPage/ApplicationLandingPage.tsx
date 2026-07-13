@@ -1,4 +1,5 @@
-import { ManagementPageHeader, MissingConfig } from '@tumaet/prompt-ui-components'
+import { Button, ManagementPageHeader, MissingConfig } from '@tumaet/prompt-ui-components'
+import { ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
@@ -31,7 +32,17 @@ export const ApplicationLandingPage = () => {
 
   return (
     <div>
-      <ManagementPageHeader>Application Administration</ManagementPageHeader>
+      <div className='flex items-center justify-between gap-4'>
+        <ManagementPageHeader>Application Administration</ManagementPageHeader>
+        {coursePhase?.id && (
+          <Button asChild variant='outline'>
+            <a href={`/apply/${coursePhase.id}`} target='_blank' rel='noopener noreferrer'>
+              <ExternalLink className='h-4 w-4' />
+              Open Application Form
+            </a>
+          </Button>
+        )}
+      </div>
       <MissingConfig elements={missingConfigs} />
       <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6'>
         <ApplicationStatusCard

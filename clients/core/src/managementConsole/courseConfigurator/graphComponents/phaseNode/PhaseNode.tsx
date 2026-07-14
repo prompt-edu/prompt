@@ -26,6 +26,7 @@ export function PhaseNode({ id, selected }: { id: string; selected?: boolean }) 
 
   return (
     <Card
+      data-testid={`phase-node-${id}`}
       className={`w-80 shadow-lg hover:shadow-xl transition-shadow duration-300 relative ${
         selected ? 'ring-2 ring-blue-500' : ''
       }`}

@@ -414,6 +414,40 @@ func (q *Queries) GetCoursePhaseTypesForStudent(ctx context.Context, studentID u
 	return items, nil
 }
 
+const getCoursePhaseTypesForStudentCourses = `-- name: GetCoursePhaseTypesForStudentCourses :many
+SELECT DISTINCT cpt.id, cpt.name, cpt.initial_phase, cpt.base_url, cpt.description
+FROM course_phase_type cpt
+JOIN course_phase cp ON cp.course_phase_type_id = cpt.id
+JOIN course_participation part ON part.course_id = cp.course_id
+WHERE part.student_id = $1
+`
+
+func (q *Queries) GetCoursePhaseTypesForStudentCourses(ctx context.Context, studentID uuid.UUID) ([]CoursePhaseType, error) {
+	rows, err := q.db.Query(ctx, getCoursePhaseTypesForStudentCourses, studentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CoursePhaseType
+	for rows.Next() {
+		var i CoursePhaseType
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.InitialPhase,
+			&i.BaseUrl,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertActionItemsOutput = `-- name: InsertActionItemsOutput :exec
 INSERT INTO course_phase_type_participation_provided_output_dto (id, course_phase_type_id, dto_name, version_number,
                                                                  endpoint_path, specification)

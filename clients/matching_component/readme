@@ -16,7 +16,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
    - **Reason**: The TypeScript declarations in `core/src/declaration.d.ts` recognize names ending in `*_component`. Using any other naming convention will cause type errors.
 
 2. **Duplicate the Example Component**  
-   - Copy the entire `ExampleComponent` folder.  
+   - Copy the entire `example_component` folder.
    - Rename it to your new component’s name, ensuring you include the `_component` suffix.
 
 3. **Update `webpack.config.mjs`**  
@@ -77,11 +77,11 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 ### 2.2. Set Up External Routes and Sidebars
 IMPORTANT: Make sure to exactly follow and copy the files such that the permission control is correctly applied. 
 1. **Routes**  
-   - Copy `ExampleRoutes.tsx` (located in `core/src/ExternalRoutes`) and rename it for your component.  
+   - Copy `ExampleRoutes.tsx` (located in `clients/core/src/managementConsole/PhaseMapping/ExternalRoutes`) and rename it for your component.
    - Update its import paths to point to your new component.
 
 2. **Sidebar**  
-   - Copy `ExampleSidebar.tsx` (located in `core/src/ExternalSidebars`) and rename it for your component.  
+   - Copy `ExampleSidebar.tsx` (located in `clients/core/src/managementConsole/PhaseMapping/ExternalSidebars`) and rename it for your component.
    - Update its import paths accordingly.
 
 3. **Why Static Imports? Why Copying the import logic**  

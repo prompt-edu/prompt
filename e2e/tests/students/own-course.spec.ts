@@ -10,6 +10,7 @@ test.describe('students: own course view', () => {
 
     await overview.goto(SEEDED_COURSES.fullCourse.id)
     await overview.expectLoaded(SEEDED_COURSES.fullCourse.name)
-    await overview.expectPhaseListed(FULL_COURSE_PHASES.application.type)
+    await overview.expectPhaseListed(FULL_COURSE_PHASES.interview.type)
+    await overview.expectPhaseListed(FULL_COURSE_PHASES.assessment.type)
   })
 })

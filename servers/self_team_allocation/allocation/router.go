@@ -1,10 +1,12 @@
 package allocation
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	log "github.com/sirupsen/logrus"
 )
@@ -52,6 +54,7 @@ func getAllAllocations(c *gin.Context) {
 // @Param courseParticipationID path string true "Course Participation UUID"
 // @Success 200 {object} allocationDTO.AllocationWithParticipation
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]
@@ -70,7 +73,11 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 
 	allocation, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			handleError(c, http.StatusNotFound, err)
+		} else {
+			handleError(c, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -78,6 +85,10 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
+	if statusCode < http.StatusInternalServerError {
+		log.Debug(err)
+	} else {
+		log.Error(err)
+	}
 	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

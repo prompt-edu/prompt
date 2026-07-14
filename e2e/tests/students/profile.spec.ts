@@ -31,22 +31,25 @@ test.describe('students: profile view and edit', () => {
   test('a student views their prefilled profile and edits it', async ({ page }) => {
     const profile = new AuthenticatedApplicationPage(page)
 
+    // View: identity is immutable (asserting the mutable semester here would
+    // make the test non-retry-safe, since the edit below and the afterAll
+    // restore run at different times).
     await profile.goto(PHASE_ID)
     await profile.expectLoaded()
-    await profile.expectProfilePrefilled(
+    await profile.expectIdentity(
       FULL_COURSE_STUDENT.firstName,
       FULL_COURSE_STUDENT.matriculationNumber,
-      ORIGINAL_SEMESTER,
     )
 
+    // Edit: change the editable semester and confirm it round-trips.
     await profile.saveProfile(EDITED_SEMESTER, FULL_COURSE_APPLICATION_QUESTION.title, MOTIVATION_ANSWER)
 
     await profile.goto(PHASE_ID)
     await profile.expectLoaded()
-    await profile.expectProfilePrefilled(
+    await profile.expectIdentity(
       FULL_COURSE_STUDENT.firstName,
       FULL_COURSE_STUDENT.matriculationNumber,
-      EDITED_SEMESTER,
     )
+    await profile.expectCurrentSemester(EDITED_SEMESTER)
   })
 })

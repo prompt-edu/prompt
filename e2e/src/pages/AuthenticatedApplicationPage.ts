@@ -30,9 +30,14 @@ export class AuthenticatedApplicationPage {
     return this.page.getByLabel(/Current Semester/)
   }
 
-  async expectProfilePrefilled(firstName: string, matriculationNumber: string, semester: string) {
+  // Identity is immutable (name/matriculation are read-only here), so this is
+  // safe to assert on the initial view regardless of prior edits or retries.
+  async expectIdentity(firstName: string, matriculationNumber: string) {
     await expect(this.firstName()).toHaveValue(firstName)
     await expect(this.matriculationNumber()).toHaveValue(matriculationNumber)
+  }
+
+  async expectCurrentSemester(semester: string) {
     await expect(this.currentSemester()).toHaveValue(semester)
   }
 

@@ -1,7 +1,7 @@
 import { Button, ManagementPageHeader, MissingConfig } from '@tumaet/prompt-ui-components'
 import { ExternalLink } from 'lucide-react'
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
 import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
@@ -36,10 +36,10 @@ export const ApplicationLandingPage = () => {
         <ManagementPageHeader>Application Administration</ManagementPageHeader>
         {coursePhase?.id && (
           <Button asChild variant='outline'>
-            <a href={`/apply/${coursePhase.id}`} target='_blank' rel='noopener noreferrer'>
+            <Link to={`/apply/${coursePhase.id}`} target='_blank' rel='noopener noreferrer'>
               <ExternalLink className='h-4 w-4' />
               Open Application Form
-            </a>
+            </Link>
           </Button>
         )}
       </div>

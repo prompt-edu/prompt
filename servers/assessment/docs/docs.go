@@ -486,7 +486,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/categoryDTO.Category"
                         }
                     },
                     "400": {
@@ -4783,6 +4783,29 @@ const docTemplate = `{
                 },
                 "coursePhaseID": {
                     "type": "string"
+                }
+            }
+        },
+        "categoryDTO.Category": {
+            "type": "object",
+            "properties": {
+                "assessmentSchemaID": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "shortName": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "integer"
                 }
             }
         },

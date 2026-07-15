@@ -240,6 +240,21 @@ definitions:
       coursePhaseID:
         type: string
     type: object
+  categoryDTO.Category:
+    properties:
+      assessmentSchemaID:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
+    type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
       competencies:
@@ -1223,7 +1238,7 @@ paths:
         "201":
           description: Created
           schema:
-            type: string
+            $ref: '#/definitions/categoryDTO.Category'
         "400":
           description: Bad Request
           schema:

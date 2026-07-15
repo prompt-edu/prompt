@@ -52,7 +52,6 @@ export const RenameSchemaDialog = ({ schema, onError }: RenameSchemaDialogProps)
         setIsDialogOpen(false)
         onError(undefined)
       },
-      onError: (err) => onError(err.message),
     })
   }
 
@@ -88,13 +87,10 @@ export const RenameSchemaDialog = ({ schema, onError }: RenameSchemaDialogProps)
             <Label htmlFor='description'>Description</Label>
             <Textarea
               id='description'
-              {...register('description', { required: 'Description is required' })}
+              {...register('description')}
               placeholder='Schema description'
               rows={3}
             />
-            {errors.description && (
-              <p className='text-sm text-destructive'>{errors.description.message}</p>
-            )}
           </div>
 
           <div className='flex justify-end gap-2'>

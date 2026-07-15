@@ -206,7 +206,7 @@ func updateAssessmentSchema(c *gin.Context) {
 		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
-	isAdmin := tokenUser.Roles[keycloakTokenVerifier.PromptAdmin]
+	isAdmin := tokenUser.Roles[promptSDK.PromptAdmin]
 
 	err = UpdateAssessmentSchema(c, coursePhaseID, schemaID, request, isAdmin)
 	if err != nil {

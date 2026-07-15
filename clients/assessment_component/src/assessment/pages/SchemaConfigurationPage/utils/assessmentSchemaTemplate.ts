@@ -1,4 +1,4 @@
-import type { CategoryWithCompetencies } from '../../interfaces/category'
+import type { CategoryWithCompetencies } from '../../../interfaces/category'
 
 export const ASSESSMENT_SCHEMA_TEMPLATE_VERSION = 1
 

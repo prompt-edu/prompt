@@ -96,8 +96,9 @@ func (suite *CategoryServiceTestSuite) TestCreateCategory() {
 		Weight:             5,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	err := CreateCategory(suite.suiteCtx, coursePhaseID, req)
+	created, err := CreateCategory(suite.suiteCtx, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Creating category should not produce an error")
+	assert.NotEqual(suite.T(), uuid.Nil, created.ID, "Created category should return its ID")
 
 	cats, err := ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
@@ -170,7 +171,7 @@ func (suite *CategoryServiceTestSuite) TestDeleteCategory() {
 		Weight:             1,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	err := CreateCategory(suite.suiteCtx, coursePhaseID, reqCreate)
+	_, err := CreateCategory(suite.suiteCtx, coursePhaseID, reqCreate)
 	assert.NoError(suite.T(), err)
 
 	cats, err := ListCategories(suite.suiteCtx)

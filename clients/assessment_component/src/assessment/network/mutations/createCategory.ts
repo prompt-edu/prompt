@@ -4,17 +4,19 @@ import { assessmentAxiosInstance } from '../assessmentServerConfig'
 export const createCategory = async (
   coursePhaseID: string,
   category: CreateCategoryRequest,
-): Promise<void> => {
+): Promise<Category> => {
   try {
-    await assessmentAxiosInstance.post<Category>(
-      `assessment/api/course_phase/${coursePhaseID}/category`,
-      category,
-      {
-        headers: {
-          'Content-Type': 'application/json',
+    return (
+      await assessmentAxiosInstance.post<Category>(
+        `assessment/api/course_phase/${coursePhaseID}/category`,
+        category,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
         },
-      },
-    )
+      )
+    ).data
   } catch (err) {
     console.error(err)
     throw err

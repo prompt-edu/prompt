@@ -9,7 +9,7 @@ import {
   type AssessmentSchemaTemplate,
   buildAssessmentSchemaTemplate,
   parseAssessmentSchemaTemplate,
-} from '../../../assessmentSchemaTemplate'
+} from '../../../utils/assessmentSchemaTemplate'
 import { useImportAssessmentSchema } from '../hooks/useImportAssessmentSchema'
 
 interface SchemaTemplateButtonsProps {
@@ -90,9 +90,12 @@ export const SchemaTemplateButtons = ({
     importSchema(template, {
       onSuccess: (result) => {
         if (result.errors.length > 0) {
+          const preview = result.errors.slice(0, 3).join(' ')
+          const remaining = result.errors.length - 3
+          const suffix = remaining > 0 ? ` (+${remaining} more)` : ''
           toast({
             title: 'Import completed with errors',
-            description: `Imported ${result.importedCategories} categories and ${result.importedCompetencies} competencies. ${result.errors.length} item(s) failed: ${result.errors.join(' ')}`,
+            description: `Imported ${result.importedCategories} categories and ${result.importedCompetencies} competencies. ${result.errors.length} item(s) failed: ${preview}${suffix}`,
             variant: 'destructive',
           })
           return

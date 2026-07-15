@@ -5,7 +5,7 @@ import type { AssessmentType } from '../../../../../interfaces/assessmentType'
 import { createCategory } from '../../../../../network/mutations/createCategory'
 import { createCompetency } from '../../../../../network/mutations/createCompetency'
 import { getAllCategoriesWithCompetencies } from '../../../../../network/queries/getAllCategoriesWithCompetencies'
-import type { AssessmentSchemaTemplate } from '../../../assessmentSchemaTemplate'
+import type { AssessmentSchemaTemplate } from '../../../utils/assessmentSchemaTemplate'
 
 export interface ImportSchemaResult {
   importedCategories: number
@@ -27,41 +27,40 @@ export const useImportAssessmentSchema = (
       let importedCategories = 0
       let importedCompetencies = 0
 
-      for (const category of template.categories) {
-        try {
-          const before = await getAllCategoriesWithCompetencies(coursePhaseID, assessmentType)
-          const knownIDs = new Set(before.map((existing) => existing.id))
+      const existing = await getAllCategoriesWithCompetencies(coursePhaseID, assessmentType)
+      const existingNames = new Set(existing.map((category) => category.name))
 
-          await createCategory(coursePhaseID, {
+      for (const category of template.categories) {
+        if (existingNames.has(category.name)) {
+          errors.push(`Category "${category.name}" already exists and was skipped.`)
+          continue
+        }
+
+        let created: Awaited<ReturnType<typeof createCategory>>
+        try {
+          created = await createCategory(coursePhaseID, {
             name: category.name,
             shortName: category.shortName,
             description: category.description,
             weight: category.weight,
             assessmentSchemaID,
           })
-
-          const after = await getAllCategoriesWithCompetencies(coursePhaseID, assessmentType)
-          const created = after.find((existing) => !knownIDs.has(existing.id))
-          if (!created) {
-            errors.push(
-              `Category "${category.name}" was created but could not be matched to add its competencies.`,
-            )
-            continue
-          }
-          importedCategories += 1
-
-          for (const competency of category.competencies) {
-            try {
-              await createCompetency(coursePhaseID, { ...competency, categoryID: created.id })
-              importedCompetencies += 1
-            } catch {
-              errors.push(
-                `Competency "${competency.name}" in category "${category.name}" could not be imported.`,
-              )
-            }
-          }
         } catch {
           errors.push(`Category "${category.name}" could not be imported.`)
+          continue
+        }
+        existingNames.add(category.name)
+        importedCategories += 1
+
+        for (const competency of category.competencies) {
+          try {
+            await createCompetency(coursePhaseID, { ...competency, categoryID: created.id })
+            importedCompetencies += 1
+          } catch {
+            errors.push(
+              `Competency "${competency.name}" in category "${category.name}" could not be imported.`,
+            )
+          }
         }
       }
 

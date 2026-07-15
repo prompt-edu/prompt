@@ -42,12 +42,16 @@ func (suite *CourseServiceTestSuite) SetupSuite() {
 		// No-op or add assertions for test
 		return nil
 	}
+	mockDeleteGroupsAndRoles := func(ctx context.Context, courseID uuid.UUID) error {
+		return nil
+	}
 
 	suite.cleanup = cleanup
 	suite.courseService = CourseService{
 		queries:                    *testDB.Queries,
 		conn:                       testDB.Conn,
 		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
+		deleteCourseGroupsAndRoles: mockDeleteGroupsAndRoles,
 	}
 
 	CourseServiceSingleton = &suite.courseService

@@ -1,5 +1,6 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@tumaet/prompt-ui-components'
 import { Bar, BarChart, Cell, LabelList, XAxis, YAxis } from 'recharts'
+import { describeBucketCounts } from './utils/buildChartDescription'
 import { chartConfig } from './utils/chartConfig'
 
 interface ScoreLevelDataPoint {
@@ -10,6 +11,7 @@ interface ScoreLevelDataPoint {
 
 interface BarChartWithScoreLevelProps {
   data: ScoreLevelDataPoint[]
+  chartTitle?: string
 }
 
 // Score level color mapping
@@ -32,10 +34,18 @@ const getColorForScoreLevel = (scoreLevel: string): string => {
   }
 }
 
-export const BarChartWithScoreLevel = ({ data }: BarChartWithScoreLevelProps) => {
+export const BarChartWithScoreLevel = ({
+  data,
+  chartTitle = 'Score level distribution',
+}: BarChartWithScoreLevelProps) => {
   return (
     <ChartContainer config={chartConfig} className='mx-auto w-full h-[280px]'>
-      <BarChart data={data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+      <BarChart
+        data={data}
+        title={chartTitle}
+        desc={describeBucketCounts(data)}
+        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+      >
         <XAxis
           dataKey='dataKey'
           axisLine={false}

@@ -15,7 +15,7 @@ const config = (env = {}) => {
   const IS_PERF = env.BUNDLE_SIZE === 'true'
   const deps = packageJson.dependencies
 
-  const templateURL = IS_DEV ? `http://localhost:3001` : `/template`
+  const exampleURL = IS_DEV ? `http://localhost:3001` : `/example`
   const interviewURL = IS_DEV ? `http://localhost:3002` : `/interview`
   const matchingURL = IS_DEV ? `http://localhost:3003` : `/matching`
   const introCourseDeveloperURL = IS_DEV ? `http://localhost:3005` : `/intro-course-developer`
@@ -86,7 +86,7 @@ const config = (env = {}) => {
       new ModuleFederationPlugin({
         name: 'core',
         remotes: {
-          template_component: `template_component@${templateURL}/remoteEntry.js?${Date.now()}`,
+          example_component: `example_component@${exampleURL}/remoteEntry.js?${Date.now()}`,
           interview_component: `interview_component@${interviewURL}/remoteEntry.js?${Date.now()}`,
           matching_component: `matching_component@${matchingURL}/remoteEntry.js?${Date.now()}`,
           intro_course_developer_component: `intro_course_developer_component@${introCourseDeveloperURL}/remoteEntry.js?${Date.now()}`,

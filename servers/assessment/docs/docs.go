@@ -285,6 +285,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -4691,6 +4709,10 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "isOwnedByCurrentPhase": {
+                    "description": "IsOwnedByCurrentPhase is only populated by phase-scoped listings; nil elsewhere.",
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"

@@ -36,6 +36,12 @@ export const TutorSearchStudents = ({
 
   const trimmedQuery = debouncedQuery.trim()
 
+  const handleQueryChange = (value: string) => {
+    setQuery(value)
+    setSelectedStudents([])
+    setTeamAssignments({})
+  }
+
   const {
     data: students,
     isFetching,
@@ -89,7 +95,7 @@ export const TutorSearchStudents = ({
             id='student-search'
             autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             placeholder='Search by name, email, or login...'
             className='w-full pl-10'
           />

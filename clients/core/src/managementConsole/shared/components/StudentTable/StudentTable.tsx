@@ -2,8 +2,8 @@ import {
   getStudentsWithCourses,
   type StudentWithCourses,
 } from "@core/network/queries/getStudentsWithCourses";
-import { ColumnVisibility, type ColumnDef } from "@tanstack/react-table";
-import { Role, StudyDegree } from "@tumaet/prompt-shared-state";
+import { type ColumnDef } from "@tanstack/react-table";
+import { Role } from "@tumaet/prompt-shared-state";
 import {
   PromptTable,
   type RowAction,

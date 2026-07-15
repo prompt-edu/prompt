@@ -169,14 +169,14 @@ services:
       - SENTRY_DSN_CERTIFICATE
       - SENTRY_ENABLED
 
-  # Template server (example service)
-  server-template:
+  # Example server (example service)
+  server-example:
     build:
-      context: ./servers/template_server
+      context: ./servers/example_server
       dockerfile: ../Dockerfile
-    container_name: prompt-server-template
+    container_name: prompt-server-example
     depends_on:
-      db-template-server:
+      db-example-server:
         condition: service_healthy
       keycloak:
         condition: service_healthy
@@ -188,15 +188,15 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
-      - DB_HOST_TEMPLATE_SERVER
-      - DB_PORT_TEMPLATE_SERVER
-      - DB_NAME=${DB_TEMPLATE_NAME}
-      - DB_USER=${DB_TEMPLATE_USER}
-      - DB_PASSWORD=${DB_TEMPLATE_PASSWORD}
+      - DB_HOST_EXAMPLE_SERVER
+      - DB_PORT_EXAMPLE_SERVER
+      - DB_NAME=${DB_EXAMPLE_NAME}
+      - DB_USER=${DB_EXAMPLE_USER}
+      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD}
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      - SENTRY_DSN_TEMPLATE_SERVER
+      - SENTRY_DSN_EXAMPLE_SERVER
       - SENTRY_ENABLED
 
   server-interview:
@@ -243,7 +243,7 @@ services:
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
       - ASSESSMENT_HOST
-      - TEMPLATE_HOST
+      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - KEYCLOAK_HOST
@@ -259,13 +259,13 @@ services:
     depends_on:
       - clients-base
 
-  client-template-component:
+  client-example-component:
     build:
-      context: ./clients/template_component
+      context: ./clients/example_component
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-template-component
+    container_name: prompt-client-example-component
     ports:
       - "3001:80"
     depends_on:
@@ -409,22 +409,22 @@ services:
     ports:
       - "5435:5432"
 
-  # Database for the template server
-  db-template-server:
+  # Database for the example server
+  db-example-server:
     image: "postgres:15.18-alpine"
-    container_name: prompt-db-template-server
+    container_name: prompt-db-example-server
     environment:
-      - POSTGRES_USER=${DB_TEMPLATE_USER:-prompt-postgres}
-      - POSTGRES_PASSWORD=${DB_TEMPLATE_PASSWORD:-prompt-postgres}
-      - POSTGRES_DB=${DB_TEMPLATE_NAME:-prompt}
+      - POSTGRES_USER=${DB_EXAMPLE_USER:-prompt-postgres}
+      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}
+      - POSTGRES_DB=${DB_EXAMPLE_NAME:-prompt}
       - TZ=Europe/Berlin
     volumes:
-      - ./postgres_template_server_data:/var/lib/postgresql/data
+      - ./postgres_example_server_data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -d ${DB_TEMPLATE_NAME:-prompt} -U ${DB_TEMPLATE_USER:-prompt-postgres}",
+          "pg_isready -d ${DB_EXAMPLE_NAME:-prompt} -U ${DB_EXAMPLE_USER:-prompt-postgres}",
         ]
       timeout: 5s
       retries: 5

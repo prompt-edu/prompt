@@ -10,7 +10,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
 ## 1. Create Your New Microfrontend Inside This Repo
 
-### 1.1. Copy the Template Microfrontend
+### 1.1. Copy the Example Microfrontend
 
 1. **Naming**
 
@@ -20,9 +20,9 @@ This guide explains how to add a new microfrontend component (ending with `_comp
      - **Incorrect**: `yourAmazingMicrofrontend`
    - **Reason**: The TypeScript declarations in `core/src/declaration.d.ts` recognize names ending in `*_component`. Using any other naming convention will cause type errors.
 
-2. **Duplicate the Template**
+2. **Duplicate the Example Component**
 
-   - Copy the entire `template_component` folder.
+   - Copy the entire `example_component` folder.
    - Rename it to your new component’s name, ensuring you include the `_component` suffix.
 
 3. **Update `webpack.config.mjs`**
@@ -33,7 +33,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
 4. **Adjust the Naming in Other Files**
 
-   - **`<yourName_component>/Dockerfile`**: Rename all instances of `template_component` to your new component name.
+   - **`<yourName_component>/Dockerfile`**: Rename all instances of `example_component` to your new component name.
    - **`<yourName_component>/package.json`**: Update the `"name"` field to match your component.
 
 5. **Register Your Microfrontend in the Monorepo**
@@ -81,12 +81,12 @@ IMPORTANT: Make sure to exactly follow and copy the files such that the permissi
 
 1. **Routes**
 
-   - Copy `TemplateRoutes.tsx` (located in `core/src/managementConsole/PhaseMapping/ExternalRoutes`) and rename it for your component.
+   - Copy `ExampleRoutes.tsx` (located in `core/src/managementConsole/PhaseMapping/ExternalRoutes`) and rename it for your component.
    - Update its import paths to point to your new component.
 
 2. **Sidebar**
 
-   - Copy `TemplateSidebar.tsx` (located in `core/src/managementConsole/PhaseMapping/ExternalSidebars`) and rename it for your component.
+   - Copy `ExampleSidebar.tsx` (located in `core/src/managementConsole/PhaseMapping/ExternalSidebars`) and rename it for your component.
    - Update its import paths accordingly.
 
 3. **Why Static Imports? Why Copying the import logic**
@@ -118,7 +118,7 @@ The course phase types are stored in the DB. We assume here that you already hav
 
 2. **GitHub Workflows**
 
-   - **`build-and-push-clients.yml`**: Add another output image tag and the building script for for your component. Use the template component as example.
+   - **`build-and-push-clients.yml`**: Add another output image tag and the building script for for your component. Use the example component as a reference.
    - **`deploy-docker`**: Include the new image tag (and path env variable) in the “SSH to VM and create .env.prod file” step to ensure Docker Compose picks it up.
    - **`dev.yml`**: Reference the new image tag.
    - **`prod.yml`**: Reference the new image tag.

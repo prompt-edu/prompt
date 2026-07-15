@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
@@ -40,6 +41,11 @@ func downloadOwnCertificate(c *gin.Context) {
 		return
 	}
 
+	config, ok := ensureTemplateConfigured(c, coursePhaseID)
+	if !ok {
+		return
+	}
+
 	// Get user info from JWT token for role-based checks
 	user, exists := keycloakTokenVerifier.GetTokenUser(c)
 	if !exists {
@@ -49,8 +55,7 @@ func downloadOwnCertificate(c *gin.Context) {
 
 	// Check release date — students can only download after the release date
 	if !user.Roles[promptSDK.PromptAdmin] && !user.Roles[promptSDK.CourseLecturer] && !user.Roles[promptSDK.CourseEditor] {
-		config, err := GeneratorServiceSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
-		if err == nil && config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
+		if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Certificate is not yet available for download"})
 			return
 		}
@@ -109,6 +114,10 @@ func downloadStudentCertificate(c *gin.Context) {
 		return
 	}
 
+	if _, ok := ensureTemplateConfigured(c, coursePhaseID); !ok {
+		return
+	}
+
 	authHeader := c.GetHeader("Authorization")
 
 	// Instructor fetching certificate for a specific student — look up student info from core
@@ -149,13 +158,18 @@ func getCertificateStatus(c *gin.Context) {
 	}
 
 	// Check if template is configured
-	_, err = getTemplateStatus(c, coursePhaseID)
+	config, err := getTemplateConfig(c, coursePhaseID)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"available":     false,
-			"hasDownloaded": false,
-			"message":       "Certificate template not configured",
-		})
+		if errors.Is(err, errTemplateNotConfigured) {
+			c.JSON(http.StatusOK, gin.H{
+				"available":     false,
+				"hasDownloaded": false,
+				"message":       "Certificate template not configured",
+			})
+			return
+		}
+		log.WithError(err).Error("Failed to check certificate template configuration")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check certificate configuration"})
 		return
 	}
 
@@ -177,8 +191,7 @@ func getCertificateStatus(c *gin.Context) {
 	}
 
 	// Check release date for students
-	config, configErr := GeneratorServiceSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
-	if configErr == nil && config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
+	if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
 		c.JSON(http.StatusOK, gin.H{
 			"available":     false,
 			"hasDownloaded": false,
@@ -232,6 +245,10 @@ func previewCertificate(c *gin.Context) {
 		return
 	}
 
+	if _, ok := ensureTemplateConfigured(c, coursePhaseID); !ok {
+		return
+	}
+
 	pdfData, err := GeneratorServiceSingleton.GeneratePreviewCertificate(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to generate preview certificate")
@@ -257,13 +274,39 @@ func sanitizeFilename(name string) string {
 	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(name)
 }
 
-func getTemplateStatus(c *gin.Context, coursePhaseID uuid.UUID) (bool, error) {
+// errTemplateNotConfigured signals that the phase has no certificate template — a normal,
+// expected outcome (404) as opposed to a genuine query failure (500).
+var errTemplateNotConfigured = errors.New("no template configured")
+
+// getTemplateConfig fetches the phase config and distinguishes "not configured" (missing config
+// row or empty template) from genuine query errors, so callers can map each to the right status.
+func getTemplateConfig(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, error) {
 	config, err := GeneratorServiceSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return db.CoursePhaseConfig{}, errTemplateNotConfigured
+	}
 	if err != nil {
-		return false, err
+		return db.CoursePhaseConfig{}, err
 	}
 	if !config.TemplateContent.Valid || config.TemplateContent.String == "" {
-		return false, fmt.Errorf("no template configured")
+		return config, errTemplateNotConfigured
 	}
-	return true, nil
+	return config, nil
+}
+
+// ensureTemplateConfigured writes the response and returns ok=false when the template is missing
+// (404) or the config lookup fails (500). The fetched config is returned for reuse on success.
+func ensureTemplateConfigured(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, bool) {
+	config, err := getTemplateConfig(c, coursePhaseID)
+	if err != nil {
+		if errors.Is(err, errTemplateNotConfigured) {
+			log.WithError(err).Info("Certificate template not configured")
+			c.JSON(http.StatusNotFound, gin.H{"error": "Certificate template not configured"})
+		} else {
+			log.WithError(err).Error("Failed to check certificate template configuration")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check certificate configuration"})
+		}
+		return db.CoursePhaseConfig{}, false
+	}
+	return config, true
 }

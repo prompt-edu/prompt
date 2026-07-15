@@ -28,11 +28,11 @@ cp api-stress/stress.env.example api-stress/stress.env   # run.sh also does this
 docker compose --env-file api-stress/stress.env \
   -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
   -p prompt-stress up -d \
-  db db-team-allocation db-self-team-allocation db-assessment db-template-server \
+  db db-team-allocation db-self-team-allocation db-assessment db-example-server \
   db-interview db-certificate keycloak-db keycloak \
   seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3 \
   server-core server-team-allocation server-self-team-allocation server-assessment \
-  server-template server-interview server-certificate
+  server-example server-interview server-certificate
 ```
 
 Then run the suite:
@@ -49,7 +49,7 @@ Output lands in `api-stress/reports/<timestamp>/` (`report.md` first).
 ### Isolated stack details
 
 Host ports are offset by +10000 to avoid collisions: core `18089`, team-alloc
-`18083`, self-team `18084`, assessment `18085`, template `18086`, interview
+`18083`, self-team `18084`, assessment `18085`, example `18086`, interview
 `18087`, certificate `18088`, Keycloak `18081`, S3 `18334`. Keycloak is pinned to
 `26.4.7` (the repo's pinned `26.6.3` fails to import the committed realm on a fresh
 DB - see report finding). Sentry is disabled. Teardown:

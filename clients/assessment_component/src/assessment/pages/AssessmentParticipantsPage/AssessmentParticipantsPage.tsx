@@ -7,7 +7,7 @@ import {
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
@@ -32,6 +32,17 @@ export const AssessmentParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const navigate = useNavigate()
   const path = useLocation().pathname
+  // shared table's onClickRowAction doesn't forward the event, so capture the modifier here
+  const openInNewTabRef = useRef(false)
+
+  const openAssessment = (courseParticipationID: string) => {
+    const target = `${path}/${courseParticipationID}`
+    if (openInNewTabRef.current) {
+      window.open(`${window.location.origin}${target}`, '_blank', 'noopener,noreferrer')
+      return
+    }
+    navigate(target)
+  }
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
@@ -146,7 +157,8 @@ export const AssessmentParticipantsPage = () => {
     <div id='table-view' className='relative flex flex-col'>
       <ManagementPageHeader>Assessment Participants</ManagementPageHeader>
       <p className='text-sm text-muted-foreground mb-4'>
-        Click on a participant to view/edit their assessment.
+        Click on a participant to view/edit their assessment. Cmd/Ctrl-click to open it in a new
+        tab.
       </p>
       <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
         <AssessmentDiagram
@@ -157,13 +169,18 @@ export const AssessmentParticipantsPage = () => {
         <GradeDistributionDiagram participations={participations} grades={completedGrades} />
         <ScoreLevelDistributionDiagram participations={participations} scoreLevels={scoreLevels} />
       </div>
-      <div className='w-full'>
+      <div
+        className='w-full'
+        onClickCapture={(e) => {
+          openInNewTabRef.current = e.metaKey || e.ctrlKey
+        }}
+      >
         <CoursePhaseParticipationsTable
           phaseId={phaseId!}
           participants={participations ?? []}
           extraColumns={extraColumns}
           extraFilters={extraFilters}
-          onClickRowAction={(row) => navigate(`${path}/${row.courseParticipationID}`)}
+          onClickRowAction={(row) => openAssessment(row.courseParticipationID)}
         />
       </div>
     </div>

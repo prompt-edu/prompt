@@ -18,6 +18,8 @@ postgres_certificate_data/
 postgres_team_allocation_data/
 postgres_assessment_data/
 postgres_self_team_allocation_data/
+postgres_example_server_data/
+# kept for checkouts that still have the pre-rename data dir
 postgres_template_server_data/
 postgres_interview_data/
 postgres_certificate_data/

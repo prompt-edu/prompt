@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -37,6 +38,7 @@ var AssessmentServiceSingleton *AssessmentService
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
 var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
 var ErrAssessmentNotInPhase = errors.New("assessment does not belong to this course phase")
+var ErrAssessmentNotFound = errors.New("assessment not found")
 
 const AssessmentExportFormatJSON = "json"
 
@@ -346,8 +348,11 @@ func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 
 	assessment, err := qtx.GetAssessment(ctx, id)
 	if err != nil {
-		log.Info("assessment not found, nothing to delete: ", err)
-		return nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrAssessmentNotFound
+		}
+		log.Error("could not get assessment for deletion: ", err)
+		return fmt.Errorf("could not get assessment: %w", err)
 	}
 
 	if assessment.CoursePhaseID != coursePhaseID {

@@ -62,6 +62,7 @@ Next to the general golden rules and best practices, the following defines stric
 
 - [Client Guidelines](./client.md)
 - [Server Guidelines](./server.md)
+- [Pull Request Structure](./pull_requests.md)
 
 
 ---

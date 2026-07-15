@@ -91,7 +91,6 @@ export const ApplicationQuestionCard = forwardRef<
   const isMultiSelectType = 'options' in question
   const isFileUploadType = 'allowedFileTypes' in question
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false)
 
   const status: QuestionStatus = originalQuestion
     ? questionsEqual(question, originalQuestion)
@@ -134,14 +133,17 @@ export const ApplicationQuestionCard = forwardRef<
     return !hasAnyAdvanced
   }
 
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(
+    () => !shouldCollapseAdvancedOptions(form.getValues()),
+  )
+
   useEffect(() => {
     const subscription = form.watch((value) => {
       onUpdate({ ...question, ...value })
     })
-    setAdvancedSettingsOpen(!shouldCollapseAdvancedOptions(form.getValues()))
     // Cleanup subscription on unmount
     return () => subscription.unsubscribe()
-  }, [form.watch, question, onUpdate, form, shouldCollapseAdvancedOptions])
+  }, [form, question, onUpdate])
 
   // allow to call validate from the parent component
   useImperativeHandle(ref, () => ({

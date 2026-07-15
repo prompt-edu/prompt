@@ -42,8 +42,7 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {
     id: "fullname",
     header: "Full Name",
-    accessorFn: (row: StudentWithCourses) =>
-      `${row.firstName} ${row.lastName} ${row.firstName}`,
+    accessorFn: (row: StudentWithCourses) => `${row.firstName} ${row.lastName}`,
   },
   {
     accessorKey: "email",

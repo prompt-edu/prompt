@@ -105,8 +105,9 @@ export const SURFACES: Surface[] = [
   {
     name: 'mailing',
     browser: {
-      path: (courseId) => `/management/course/${courseId}/${MAILING_PHASE_ID}/mailing`,
-      heading: 'Application Mailing Settings',
+      // Mailing config moved into the Application settings page.
+      path: (courseId) => `/management/course/${courseId}/${MAILING_PHASE_ID}/settings`,
+      heading: 'Application Settings',
       allowed: ['admin', 'lecturer', 'course-lecturer'],
     },
     api: {

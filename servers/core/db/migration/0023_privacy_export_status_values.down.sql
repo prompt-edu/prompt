@@ -1,0 +1,7 @@
+-- Intentional no-op.
+--
+-- 0023 added the enum values 'no_data' and 'archived' to export_status with
+-- ADD VALUE IF NOT EXISTS. PostgreSQL cannot remove a value from an enum type without
+-- recreating the type and rewriting every dependent column and view, which is unsafe.
+-- On a full rollback the export_status type is dropped entirely by 0022.down, so leaving
+-- the extra values in place here is harmless.

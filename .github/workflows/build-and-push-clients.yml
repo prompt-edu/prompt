@@ -14,9 +14,9 @@ on:
       core_image_tag:
         description: "The tag of the core image that was built"
         value: ${{ jobs.core.outputs.image_tag }}
-      template_image_tag:
-        description: "The tag of the template component image that was built"
-        value: ${{ jobs.template.outputs.image_tag }}
+      example_image_tag:
+        description: "The tag of the example component image that was built"
+        value: ${{ jobs.example.outputs.image_tag }}
       interview_image_tag:
         description: "The tag of the interview component image that was built"
         value: ${{ jobs.interview.outputs.image_tag }}
@@ -72,13 +72,13 @@ jobs:
         "KEYCLOAK_REALM_NAME=${{ vars.KEYCLOAK_REALM_NAME }}"
     secrets: inherit
 
-  template:
+  example:
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
-      image-name: ghcr.io/prompt-edu/prompt/prompt-clients-template-component
-      docker-file: clients/template_component/Dockerfile # Defaults to Dockerfile
-      docker-context: ./clients/template_component
+      image-name: ghcr.io/prompt-edu/prompt/prompt-clients-example-component
+      docker-file: clients/example_component/Dockerfile # Defaults to Dockerfile
+      docker-context: ./clients/example_component
       tags: ${{ inputs.release_tag }}
       build-args: |
         "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"

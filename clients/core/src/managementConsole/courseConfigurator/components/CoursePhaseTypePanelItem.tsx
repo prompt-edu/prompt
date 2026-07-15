@@ -22,6 +22,7 @@ export const CoursePhaseTypePanelItem = ({
   return (
     <div
       key={phase.id}
+      data-testid={`phase-type-item-${phase.id}`}
       draggable={isDraggable}
       onDragStart={(event) => isDraggable && handleDragStart(event, phase.id)}
       className={`relative group flex items-center justify-between rounded-md border bg-card p-2 ${

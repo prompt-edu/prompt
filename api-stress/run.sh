@@ -53,7 +53,7 @@ for url in \
   "http://localhost:18083/team-allocation/api/info" \
   "http://localhost:18084/self-team-allocation/api/info" \
   "http://localhost:18085/assessment/api/info" \
-  "http://localhost:18086/template-service/api/info" \
+  "http://localhost:18086/example-service/api/info" \
   "http://localhost:18087/interview/api/info" \
   "http://localhost:18088/certificate/api/info" \
   "$KC_URL/realms/prompt/.well-known/openid-configuration"; do

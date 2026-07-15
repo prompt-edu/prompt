@@ -63,6 +63,7 @@ func getAllAllocations(c *gin.Context) {
 // @Success 200 {string} string "Assigned team UUID"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]

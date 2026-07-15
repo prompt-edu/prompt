@@ -3,7 +3,7 @@ import React from 'react'
 import { DisabledSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/DisabledSidebarMenuItem'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
-interface TemplateSidebarProps {
+interface ExampleSidebarProps {
   rootPath: string
   title?: string
   coursePhaseID: string
@@ -11,7 +11,7 @@ interface TemplateSidebarProps {
 
 export const AssessmentSidebar = React.lazy(() =>
   import('assessment_component/sidebar')
-    .then((module): { default: React.FC<TemplateSidebarProps> } => ({
+    .then((module): { default: React.FC<ExampleSidebarProps> } => ({
       default: ({ title, rootPath, coursePhaseID }) => {
         const sidebarElement: SidebarMenuItemProps = module.default || {}
         return (

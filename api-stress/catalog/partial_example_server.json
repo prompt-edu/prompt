@@ -1,0 +1,57 @@
+[
+  {
+    "id": "example_server.get.hello",
+    "service": "example_server",
+    "method": "GET",
+    "path": "/example-service/api/course_phase/{coursePhaseID}/hello",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "helloExampleServer",
+    "bodyType": null
+  },
+  {
+    "id": "example_server.post.copy",
+    "service": "example_server",
+    "method": "POST",
+    "path": "/example-service/api/copy",
+    "pathParams": [],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "write",
+    "handler": "RegisterCopyEndpoint.func1",
+    "bodyType": "promptTypes.PhaseCopyRequest"
+  },
+  {
+    "id": "example_server.get.info",
+    "service": "example_server",
+    "method": "GET",
+    "path": "/example-service/api/info",
+    "pathParams": [],
+    "roles": ["public"],
+    "category": "public",
+    "handler": "RegisterInfoEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "example_server.get.config",
+    "service": "example_server",
+    "method": "GET",
+    "path": "/example-service/api/course_phase/{coursePhaseID}/config",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "RegisterConfigEndpoint.func1",
+    "bodyType": null
+  },
+  {
+    "id": "example_server.get.info-phase",
+    "service": "example_server",
+    "method": "GET",
+    "path": "/example-service/api/course_phase/{coursePhaseID}/info",
+    "pathParams": ["coursePhaseID"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
+    "category": "read",
+    "handler": "getExampleInfo",
+    "bodyType": null
+  }
+]

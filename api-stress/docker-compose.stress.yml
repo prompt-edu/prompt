@@ -29,10 +29,10 @@ services:
     container_name: stress-db-assessment
     ports: !override []
     volumes: !override ["stress_pg_assessment:/var/lib/postgresql/data"]
-  db-template-server:
-    container_name: stress-db-template
+  db-example-server:
+    container_name: stress-db-example
     ports: !override []
-    volumes: !override ["stress_pg_template:/var/lib/postgresql/data"]
+    volumes: !override ["stress_pg_example:/var/lib/postgresql/data"]
   db-interview:
     container_name: stress-db-interview
     ports: !override []
@@ -90,8 +90,8 @@ services:
   server-assessment:
     container_name: stress-server-assessment
     ports: !override ["18085:8080"]
-  server-template:
-    container_name: stress-server-template
+  server-example:
+    container_name: stress-server-example
     ports: !override ["18086:8080"]
   server-interview:
     container_name: stress-server-interview
@@ -105,7 +105,7 @@ volumes:
   stress_pg_team:
   stress_pg_selfteam:
   stress_pg_assessment:
-  stress_pg_template:
+  stress_pg_example:
   stress_pg_interview:
   stress_pg_certificate:
   stress_pg_keycloak:

@@ -55,7 +55,7 @@ TYPE_TO_SERVICE = {
     "team allocation": "team_allocation",
     "self team allocation": "self_team_allocation",
     "assessment": "assessment",
-    "template": "template_server",
+    "example": "example_server",
     "matching": "core",
 }
 

@@ -500,19 +500,19 @@ services:
     networks:
       - prompt-network
 
-  client-template-component:
-    image: "ghcr.io/prompt-edu/prompt/prompt-clients-template-component:${TEMPLATE_IMAGE_TAG}"
-    container_name: prompt-client-template-component
+  client-example-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-example-component:${EXAMPLE_IMAGE_TAG}"
+    container_name: prompt-client-example-component
     environment:
       - TZ=Europe/Berlin
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.template.rule=Host(`${CORE_HOST}`) && PathPrefix(`/template`)"
-      - "traefik.http.routers.template.entrypoints=websecure"
-      - "traefik.http.routers.template.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.template-strip-prefix.stripPrefix.prefixes=/template"
-      - "traefik.http.routers.template.middlewares=template-strip-prefix,template-compress"
-      - "traefik.http.middlewares.template-compress.compress=true"
+      - "traefik.http.routers.example.rule=Host(`${CORE_HOST}`) && PathPrefix(`/example`)"
+      - "traefik.http.routers.example.entrypoints=websecure"
+      - "traefik.http.routers.example.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.example-strip-prefix.stripPrefix.prefixes=/example"
+      - "traefik.http.routers.example.middlewares=example-strip-prefix,example-compress"
+      - "traefik.http.middlewares.example-compress.compress=true"
     expose:
       - "80"
     depends_on:
@@ -560,7 +560,7 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
-      - TEMPLATE_HOST
+      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
     labels:

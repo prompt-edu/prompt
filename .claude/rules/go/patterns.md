@@ -13,6 +13,6 @@ paths:
 - Use `DeferDBRollback(tx, ctx)` for safe transaction rollback.
 - Phase services expose config + copy endpoints via the SDK:
   `RegisterConfigEndpoint(...)`, `RegisterCopyEndpoint(...)` with `PhaseConfigHandler` /
-  `PhaseCopyHandler` implementations (see the `config/` and `copy/` packages in `template_server`).
+  `PhaseCopyHandler` implementations (see the `config/` and `copy/` packages in `example_server`).
 - Custom validators are registered via the SDK `utils` subpackage (`RegisterValidation`,
   `ValidateStruct`); built-ins include `matriculationNumber` and `universityLogin`.

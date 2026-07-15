@@ -1,9 +1,8 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
-
+import { EvaluationHeader } from '../components/EvaluationHeader'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
@@ -33,7 +32,7 @@ export const SelfEvaluationPage = () => {
 
   return (
     <div className='flex flex-col gap-4'>
-      <ManagementPageHeader>Self Evaluation</ManagementPageHeader>
+      <EvaluationHeader>Self Evaluation</EvaluationHeader>
 
       <p className='text-sm text-gray-600 dark:text-gray-400'>
         Please fill out the self-evaluation below to reflect on your performance and contributions.

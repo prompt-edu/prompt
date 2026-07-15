@@ -37,7 +37,19 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
-import { Calendar, Clock, MapPin, Pencil, Plus, Trash2, UserPlus, Users, X } from 'lucide-react'
+import {
+  Calendar,
+  CalendarPlus,
+  Clock,
+  Copy,
+  MapPin,
+  Pencil,
+  Plus,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
@@ -48,6 +60,48 @@ interface SlotFormData {
   endTime: string
   location: string
   capacity: number
+}
+
+interface SeriesFormData {
+  date: string
+  startTime: string
+  endTime: string
+  durationMinutes: number
+  breakMinutes: number
+  location: string
+  capacity: number
+}
+
+const MAX_SERIES_SLOTS = 100
+
+// endTime is a time-of-day (HH:mm) on the same day as the start; interviews never span days.
+const buildSlotTimes = (startDateTime: string, endTimeOfDay: string) => ({
+  start: new Date(startDateTime),
+  end: new Date(`${startDateTime.slice(0, 10)}T${endTimeOfDay}`),
+})
+
+const slotRequestBody = (data: SlotFormData) => {
+  const { start, end } = buildSlotTimes(data.startTime, data.endTime)
+  return {
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+    location: data.location || null,
+    capacity: data.capacity,
+  }
+}
+
+const generateSeriesSlots = (data: SeriesFormData): { start: Date; end: Date }[] => {
+  const slots: { start: Date; end: Date }[] = []
+  if (!data.date || !data.startTime || !data.endTime || data.durationMinutes <= 0) return slots
+  const rangeEnd = new Date(`${data.date}T${data.endTime}`).getTime()
+  const durationMs = data.durationMinutes * 60_000
+  const stepMs = durationMs + Math.max(0, data.breakMinutes) * 60_000
+  let cursor = new Date(`${data.date}T${data.startTime}`).getTime()
+  while (cursor + durationMs <= rangeEnd && slots.length < MAX_SERIES_SLOTS) {
+    slots.push({ start: new Date(cursor), end: new Date(cursor + durationMs) })
+    cursor += stepMs
+  }
+  return slots
 }
 
 export const InterviewScheduleManagement = () => {
@@ -68,6 +122,16 @@ export const InterviewScheduleManagement = () => {
   const [formData, setFormData] = useState<SlotFormData>({
     startTime: '',
     endTime: '',
+    location: '',
+    capacity: 1,
+  })
+  const [isSeriesDialogOpen, setIsSeriesDialogOpen] = useState(false)
+  const [seriesData, setSeriesData] = useState<SeriesFormData>({
+    date: '',
+    startTime: '',
+    endTime: '',
+    durationMinutes: 30,
+    breakMinutes: 0,
     location: '',
     capacity: 1,
   })
@@ -100,12 +164,7 @@ export const InterviewScheduleManagement = () => {
     mutationFn: async (data: SlotFormData) => {
       const response = await interviewAxiosInstance.post(
         `interview/api/course_phase/${phaseId}/interview-slots`,
-        {
-          startTime: new Date(data.startTime).toISOString(),
-          endTime: new Date(data.endTime).toISOString(),
-          location: data.location || null,
-          capacity: data.capacity,
-        },
+        slotRequestBody(data),
       )
       return response.data
     },
@@ -132,12 +191,7 @@ export const InterviewScheduleManagement = () => {
     mutationFn: async ({ id, data }: { id: string; data: SlotFormData }) => {
       const response = await interviewAxiosInstance.put(
         `interview/api/course_phase/${phaseId}/interview-slots/${id}`,
-        {
-          startTime: new Date(data.startTime).toISOString(),
-          endTime: new Date(data.endTime).toISOString(),
-          location: data.location || null,
-          capacity: data.capacity,
-        },
+        slotRequestBody(data),
       )
       return response.data
     },
@@ -155,6 +209,45 @@ export const InterviewScheduleManagement = () => {
       toast({
         title: 'Update failed',
         description: error?.response?.data?.error || 'Failed to update interview slot.',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Create series mutation - generates all slots client-side and posts them
+  const createSeriesMutation = useMutation({
+    mutationFn: async (data: SeriesFormData) => {
+      const generated = generateSeriesSlots(data)
+      const results = await Promise.allSettled(
+        generated.map((slot) =>
+          interviewAxiosInstance.post(`interview/api/course_phase/${phaseId}/interview-slots`, {
+            startTime: slot.start.toISOString(),
+            endTime: slot.end.toISOString(),
+            location: data.location || null,
+            capacity: data.capacity,
+          }),
+        ),
+      )
+      const created = results.filter((r) => r.status === 'fulfilled').length
+      return { created, failed: generated.length - created }
+    },
+    onSuccess: ({ created, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      setIsSeriesDialogOpen(false)
+      resetSeriesForm()
+      toast({
+        title: failed > 0 ? 'Series partially created' : 'Series created',
+        description:
+          failed > 0
+            ? `${created} slot${created !== 1 ? 's' : ''} created, ${failed} failed.`
+            : `${created} interview slot${created !== 1 ? 's' : ''} created successfully.`,
+        variant: failed > 0 ? 'destructive' : undefined,
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Series creation failed',
+        description: error?.response?.data?.error || 'Failed to create interview slot series.',
         variant: 'destructive',
       })
     },
@@ -254,10 +347,25 @@ export const InterviewScheduleManagement = () => {
     })
   }
 
-  const isTimeRangeValid =
-    !!formData.startTime &&
-    !!formData.endTime &&
-    new Date(formData.startTime) < new Date(formData.endTime)
+  const resetSeriesForm = () => {
+    setSeriesData({
+      date: '',
+      startTime: '',
+      endTime: '',
+      durationMinutes: 30,
+      breakMinutes: 0,
+      location: '',
+      capacity: 1,
+    })
+  }
+
+  const slotTimes =
+    formData.startTime && formData.endTime
+      ? buildSlotTimes(formData.startTime, formData.endTime)
+      : null
+  const isTimeRangeValid = !!slotTimes && slotTimes.start < slotTimes.end
+
+  const seriesPreview = generateSeriesSlots(seriesData)
 
   const handleCreateSlot = () => {
     if (!isTimeRangeValid) return
@@ -271,15 +379,30 @@ export const InterviewScheduleManagement = () => {
     }
   }
 
+  const handleCreateSeries = () => {
+    if (seriesPreview.length === 0) return
+    createSeriesMutation.mutate(seriesData)
+  }
+
   const handleEditClick = (slot: InterviewSlotWithAssignments) => {
     setEditingSlot(slot)
     setFormData({
       startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(new Date(slot.endTime), "yyyy-MM-dd'T'HH:mm"),
+      endTime: format(new Date(slot.endTime), 'HH:mm'),
       location: slot.location || '',
       capacity: slot.capacity ?? 1,
     })
     setIsEditDialogOpen(true)
+  }
+
+  const handleCloneClick = (slot: InterviewSlotWithAssignments) => {
+    setFormData({
+      startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
+      endTime: format(new Date(slot.endTime), 'HH:mm'),
+      location: slot.location || '',
+      capacity: slot.capacity ?? 1,
+    })
+    setIsCreateDialogOpen(true)
   }
 
   const handleDeleteClick = (slotId: string) => {
@@ -356,76 +479,199 @@ export const InterviewScheduleManagement = () => {
 
       <div className='flex justify-between items-center mb-6'>
         <p className='text-muted-foreground'>Create and manage interview time slots for students</p>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className='mr-2 h-4 w-4' />
-              Create Slot
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Interview Slot</DialogTitle>
-              <DialogDescription>Add a new time slot for student interviews</DialogDescription>
-            </DialogHeader>
-            <div className='space-y-4 py-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='startTime'>Start Time</Label>
-                <Input
-                  id='startTime'
-                  type='datetime-local'
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='endTime'>End Time</Label>
-                <Input
-                  id='endTime'
-                  type='datetime-local'
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                />
-                {formData.startTime && formData.endTime && !isTimeRangeValid && (
-                  <p className='text-sm text-destructive'>End time must be after start time.</p>
-                )}
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='location'>Location (Optional)</Label>
-                <Input
-                  id='location'
-                  placeholder='e.g., Room 101, Building A'
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label htmlFor='capacity'>Capacity</Label>
-                <Input
-                  id='capacity'
-                  type='number'
-                  min='1'
-                  value={formData.capacity}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value, 10)
-                    setFormData({ ...formData, capacity: value > 0 ? value : 1 })
-                  }}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
+        <div className='flex gap-2'>
+          <Dialog open={isSeriesDialogOpen} onOpenChange={setIsSeriesDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant='outline' onClick={resetSeriesForm}>
+                <CalendarPlus className='mr-2 h-4 w-4' />
+                Create Series
               </Button>
-              <Button
-                onClick={handleCreateSlot}
-                disabled={!isTimeRangeValid || createSlotMutation.isPending}
-              >
-                {createSlotMutation.isPending ? 'Creating...' : 'Create'}
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Interview Slot Series</DialogTitle>
+                <DialogDescription>
+                  Generate back-to-back slots of a fixed duration across a time range on one day.
+                </DialogDescription>
+              </DialogHeader>
+              <div className='space-y-4 py-4'>
+                <div className='space-y-2'>
+                  <Label htmlFor='series_date'>Date</Label>
+                  <Input
+                    id='series_date'
+                    type='date'
+                    value={seriesData.date}
+                    onChange={(e) => setSeriesData({ ...seriesData, date: e.target.value })}
+                  />
+                </div>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='series_startTime'>Start Time</Label>
+                    <Input
+                      id='series_startTime'
+                      type='time'
+                      value={seriesData.startTime}
+                      onChange={(e) => setSeriesData({ ...seriesData, startTime: e.target.value })}
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label htmlFor='series_endTime'>End Time</Label>
+                    <Input
+                      id='series_endTime'
+                      type='time'
+                      value={seriesData.endTime}
+                      onChange={(e) => setSeriesData({ ...seriesData, endTime: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className='grid grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='series_duration'>Slot Duration (min)</Label>
+                    <Input
+                      id='series_duration'
+                      type='number'
+                      min='1'
+                      value={seriesData.durationMinutes}
+                      onChange={(e) =>
+                        setSeriesData({
+                          ...seriesData,
+                          durationMinutes: parseInt(e.target.value, 10) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label htmlFor='series_break'>Break Between (min)</Label>
+                    <Input
+                      id='series_break'
+                      type='number'
+                      min='0'
+                      value={seriesData.breakMinutes}
+                      onChange={(e) =>
+                        setSeriesData({
+                          ...seriesData,
+                          breakMinutes: Math.max(0, parseInt(e.target.value, 10) || 0),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='series_location'>Location (Optional)</Label>
+                  <Input
+                    id='series_location'
+                    placeholder='e.g., Room 101, Building A'
+                    value={seriesData.location}
+                    onChange={(e) => setSeriesData({ ...seriesData, location: e.target.value })}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='series_capacity'>Capacity per Slot</Label>
+                  <Input
+                    id='series_capacity'
+                    type='number'
+                    min='1'
+                    value={seriesData.capacity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10)
+                      setSeriesData({ ...seriesData, capacity: value > 0 ? value : 1 })
+                    }}
+                  />
+                </div>
+                <p className='text-sm text-muted-foreground'>
+                  {seriesPreview.length > 0
+                    ? `This will create ${seriesPreview.length} slot${
+                        seriesPreview.length !== 1 ? 's' : ''
+                      }.`
+                    : 'Fill in the fields above to preview how many slots will be created.'}
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant='outline' onClick={() => setIsSeriesDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateSeries}
+                  disabled={seriesPreview.length === 0 || createSeriesMutation.isPending}
+                >
+                  {createSeriesMutation.isPending
+                    ? 'Creating...'
+                    : `Create ${seriesPreview.length || ''} Slots`.trim()}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className='mr-2 h-4 w-4' />
+                Create Slot
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Interview Slot</DialogTitle>
+                <DialogDescription>Add a new time slot for student interviews</DialogDescription>
+              </DialogHeader>
+              <div className='space-y-4 py-4'>
+                <div className='space-y-2'>
+                  <Label htmlFor='startTime'>Start Time</Label>
+                  <Input
+                    id='startTime'
+                    type='datetime-local'
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='endTime'>End Time</Label>
+                  <Input
+                    id='endTime'
+                    type='time'
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  />
+                  {formData.startTime && formData.endTime && !isTimeRangeValid && (
+                    <p className='text-sm text-destructive'>End time must be after start time.</p>
+                  )}
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='location'>Location (Optional)</Label>
+                  <Input
+                    id='location'
+                    placeholder='e.g., Room 101, Building A'
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='capacity'>Capacity</Label>
+                  <Input
+                    id='capacity'
+                    type='number'
+                    min='1'
+                    value={formData.capacity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10)
+                      setFormData({ ...formData, capacity: value > 0 ? value : 1 })
+                    }}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateSlot}
+                  disabled={!isTimeRangeValid || createSlotMutation.isPending}
+                >
+                  {createSlotMutation.isPending ? 'Creating...' : 'Create'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Edit Dialog */}
@@ -449,7 +695,7 @@ export const InterviewScheduleManagement = () => {
               <Label htmlFor='edit_endTime'>End Time</Label>
               <Input
                 id='edit_endTime'
-                type='datetime-local'
+                type='time'
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
               />
@@ -613,6 +859,15 @@ export const InterviewScheduleManagement = () => {
                             title='Assign student to slot'
                           >
                             <UserPlus className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => handleCloneClick(slot)}
+                            aria-label='Clone slot'
+                            title='Clone slot'
+                          >
+                            <Copy className='h-4 w-4' />
                           </Button>
                           <Button
                             variant='ghost'

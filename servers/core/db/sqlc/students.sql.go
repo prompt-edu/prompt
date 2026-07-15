@@ -121,8 +121,11 @@ SELECT
   s.last_name AS student_last_name,
   s.email AS student_email,
   s.has_university_account AS student_has_university_account,
-  s.current_semester,
-  s.study_program,
+  s.current_semester AS student_current_semester,
+  s.study_program AS student_study_program,
+  s.gender AS student_gender,
+  s.nationality AS student_nationality,
+  s.study_degree AS student_study_degree,
   s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
@@ -158,7 +161,12 @@ GROUP BY
   s.first_name,
   s.last_name,
   s.email,
-  s.has_university_account
+  s.has_university_account,
+  s.current_semester,
+  s.study_program,
+  s.gender,
+  s.nationality,
+  s.study_degree
 `
 
 type GetAllStudentsWithCourseParticipationsRow struct {
@@ -167,8 +175,11 @@ type GetAllStudentsWithCourseParticipationsRow struct {
 	StudentLastName             pgtype.Text      `json:"student_last_name"`
 	StudentEmail                pgtype.Text      `json:"student_email"`
 	StudentHasUniversityAccount pgtype.Bool      `json:"student_has_university_account"`
-	CurrentSemester             pgtype.Int4      `json:"current_semester"`
-	StudyProgram                pgtype.Text      `json:"study_program"`
+	StudentCurrentSemester      pgtype.Int4      `json:"student_current_semester"`
+	StudentStudyProgram         pgtype.Text      `json:"student_study_program"`
+	StudentGender               Gender           `json:"student_gender"`
+	StudentNationality          pgtype.Text      `json:"student_nationality"`
+	StudentStudyDegree          StudyDegree      `json:"student_study_degree"`
 	StudentLastModified         pgtype.Timestamp `json:"student_last_modified"`
 	Courses                     []byte           `json:"courses"`
 	NoteTags                    []byte           `json:"note_tags"`
@@ -189,8 +200,11 @@ func (q *Queries) GetAllStudentsWithCourseParticipations(ctx context.Context) ([
 			&i.StudentLastName,
 			&i.StudentEmail,
 			&i.StudentHasUniversityAccount,
-			&i.CurrentSemester,
-			&i.StudyProgram,
+			&i.StudentCurrentSemester,
+			&i.StudentStudyProgram,
+			&i.StudentGender,
+			&i.StudentNationality,
+			&i.StudentStudyDegree,
 			&i.StudentLastModified,
 			&i.Courses,
 			&i.NoteTags,

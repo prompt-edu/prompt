@@ -128,6 +128,23 @@ export const FULL_COURSE_STUDENT = {
   courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
   matriculationNumber: '00000005',
   universityLogin: 'no42tum',
+  firstName: 'Stan',
+  lastName: 'Stan',
+  email: 'pgdp_enjoyer@example.com',
+  currentSemester: 3,
+}
+
+// Two stable identities among the seeded course_phase_participations on
+// FULL_COURSE_PHASES.application (six in total). The participants list asserts
+// these by identity — never by row count — so parallel specs and reruns never
+// collide.
+export const FULL_COURSE_APPLICATION_PARTICIPANTS = {
+  stan: { firstName: 'Stan', lastName: 'Stan', email: 'pgdp_enjoyer@example.com' },
+  maxMustermann: {
+    firstName: 'Max',
+    lastName: 'Mustermann',
+    email: 'max.mustermann@tum.de',
+  },
 }
 
 // The student mapping to the Keycloak `student2` user (Selma); enrolled in

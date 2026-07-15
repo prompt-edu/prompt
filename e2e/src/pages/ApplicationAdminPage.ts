@@ -31,6 +31,23 @@ export class ApplicationAdminPage {
     await expect(this.page.getByText(answer)).toBeVisible()
   }
 
+  async openFilterMenu() {
+    await this.page.getByRole('button', { name: 'Filter' }).click()
+    await expect(this.page.getByRole('menu')).toBeVisible()
+  }
+
+  studyProgramOption(name: string): Locator {
+    return this.page.getByRole('menuitemcheckbox', { name })
+  }
+
+  // The checkbox item calls preventDefault, so the menu stays open on select;
+  // close it explicitly so the filtered table is not covered by the overlay.
+  async filterByStudyProgram(name: string) {
+    await this.studyProgramOption(name).click()
+    await this.page.keyboard.press('Escape')
+    await expect(this.page.getByRole('menu')).toBeHidden()
+  }
+
   // Accept flips the phase participation's pass status to 'passed'; the button
   // disables once the updated status is reflected back into the page.
   async accept() {

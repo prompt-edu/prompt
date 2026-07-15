@@ -1,0 +1,24 @@
+import type { ExtendedRouteObject } from '@tumaet/prompt-shared-state'
+import React from 'react'
+import { LoadingError } from '../utils/LoadingError'
+import { ExternalRoutes } from './ExternalRoutes'
+
+/** We use this style with a separate loading file for better performance */
+/** It would be possible to have one loading script and pass the import path as variable */
+/** but this requires a dictionary for static compilation + leads to re-renders every time */
+/** Hence this way allows for better UI expierence */
+export const ExampleRoutes = React.lazy(() =>
+  import('example_component/routes')
+    .then((module): { default: React.FC } => ({
+      default: () => {
+        const routes: ExtendedRouteObject[] = module.default || []
+        return <ExternalRoutes routes={routes} />
+      },
+    }))
+    .catch((): { default: React.FC } => ({
+      default: () => {
+        console.warn('Failed to load example routes')
+        return <LoadingError phaseTitle={'Example'} />
+      },
+    })),
+)

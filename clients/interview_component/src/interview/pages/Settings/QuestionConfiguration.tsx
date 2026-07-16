@@ -124,8 +124,7 @@ export const QuestionConfiguration = () => {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className='grow overflow-auto max-h-[60vh]'>
+      <div className='grow'>
         {/* Saving indicator */}
         {isPending && (
           <div className='mb-2 text-xs text-muted-foreground flex items-center gap-1'>

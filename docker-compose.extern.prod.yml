@@ -199,7 +199,7 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
-      - TEMPLATE_HOST
+      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
     labels:

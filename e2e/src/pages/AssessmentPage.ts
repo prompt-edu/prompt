@@ -45,7 +45,7 @@ export class AssessmentPage {
   }
 
   async createSchema(name: string, description: string) {
-    await this.page.getByRole('button', { name: 'Create new schema' }).click()
+    await this.page.getByRole('button', { name: 'Create new assessment schema' }).click()
     const dialog = this.page.getByRole('dialog', { name: 'Create New Assessment Schema' })
     await dialog.getByLabel('Name').fill(name)
     await dialog.getByLabel('Description').fill(description)

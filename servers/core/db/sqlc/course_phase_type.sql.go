@@ -297,7 +297,7 @@ func (q *Queries) GetCoursePhaseProvidedPhaseOutputs(ctx context.Context, course
 }
 
 const getCoursePhaseRequiredParticipationInputs = `-- name: GetCoursePhaseRequiredParticipationInputs :many
-SELECT id, course_phase_type_id, dto_name, specification
+SELECT id, course_phase_type_id, dto_name, specification, optional
 FROM
     course_phase_type_participation_required_input_dto
 WHERE
@@ -318,6 +318,7 @@ func (q *Queries) GetCoursePhaseRequiredParticipationInputs(ctx context.Context,
 			&i.CoursePhaseTypeID,
 			&i.DtoName,
 			&i.Specification,
+			&i.Optional,
 		); err != nil {
 			return nil, err
 		}
@@ -330,7 +331,7 @@ func (q *Queries) GetCoursePhaseRequiredParticipationInputs(ctx context.Context,
 }
 
 const getCoursePhaseRequiredPhaseInputs = `-- name: GetCoursePhaseRequiredPhaseInputs :many
-SELECT id, course_phase_type_id, dto_name, specification
+SELECT id, course_phase_type_id, dto_name, specification, optional
 FROM
     course_phase_type_phase_required_input_dto
 WHERE
@@ -351,6 +352,7 @@ func (q *Queries) GetCoursePhaseRequiredPhaseInputs(ctx context.Context, courseP
 			&i.CoursePhaseTypeID,
 			&i.DtoName,
 			&i.Specification,
+			&i.Optional,
 		); err != nil {
 			return nil, err
 		}
@@ -368,6 +370,23 @@ SELECT id, name, initial_phase, base_url, description FROM course_phase_type WHE
 
 func (q *Queries) GetCoursePhaseTypeByID(ctx context.Context, id uuid.UUID) (CoursePhaseType, error) {
 	row := q.db.QueryRow(ctx, getCoursePhaseTypeByID, id)
+	var i CoursePhaseType
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.InitialPhase,
+		&i.BaseUrl,
+		&i.Description,
+	)
+	return i, err
+}
+
+const getCoursePhaseTypeByName = `-- name: GetCoursePhaseTypeByName :one
+SELECT id, name, initial_phase, base_url, description FROM course_phase_type WHERE name = $1
+`
+
+func (q *Queries) GetCoursePhaseTypeByName(ctx context.Context, name string) (CoursePhaseType, error) {
+	row := q.db.QueryRow(ctx, getCoursePhaseTypeByName, name)
 	var i CoursePhaseType
 	err := row.Scan(
 		&i.ID,
@@ -657,17 +676,34 @@ func (q *Queries) InsertTeamAllocationOutput(ctx context.Context, coursePhaseTyp
 }
 
 const insertTeamAllocationRequiredInput = `-- name: InsertTeamAllocationRequiredInput :exec
-INSERT INTO course_phase_type_participation_required_input_dto(id, course_phase_type_id, dto_name, specification)
-VALUES (gen_random_uuid(),
-        $1,
-        'teamAllocation',
-        '{
+WITH updated AS (
+    UPDATE course_phase_type_participation_required_input_dto
+    SET specification = '{
           "type": "string"
-        }'::jsonb)
+        }'::jsonb,
+        optional = $2
+    WHERE course_phase_type_id = $1
+      AND dto_name = 'teamAllocation'
+    RETURNING id
+)
+INSERT INTO course_phase_type_participation_required_input_dto(id, course_phase_type_id, dto_name, specification, optional)
+SELECT gen_random_uuid(),
+       $1,
+       'teamAllocation',
+       '{
+         "type": "string"
+       }'::jsonb,
+       $2
+WHERE NOT EXISTS (SELECT 1 FROM updated)
 `
 
-func (q *Queries) InsertTeamAllocationRequiredInput(ctx context.Context, coursePhaseTypeID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, insertTeamAllocationRequiredInput, coursePhaseTypeID)
+type InsertTeamAllocationRequiredInputParams struct {
+	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
+	Optional          bool      `json:"optional"`
+}
+
+func (q *Queries) InsertTeamAllocationRequiredInput(ctx context.Context, arg InsertTeamAllocationRequiredInputParams) error {
+	_, err := q.db.Exec(ctx, insertTeamAllocationRequiredInput, arg.CoursePhaseTypeID, arg.Optional)
 	return err
 }
 
@@ -705,11 +741,9 @@ func (q *Queries) InsertTeamOutput(ctx context.Context, coursePhaseTypeID uuid.U
 }
 
 const insertTeamRequiredInput = `-- name: InsertTeamRequiredInput :exec
-INSERT INTO course_phase_type_phase_required_input_dto (id, course_phase_type_id, dto_name, specification)
-VALUES (gen_random_uuid(),
-        $1,
-        'teams',
-        '{
+WITH updated AS (
+    UPDATE course_phase_type_phase_required_input_dto
+    SET specification = '{
           "type": "array",
           "items": {
             "type": "object",
@@ -726,11 +760,45 @@ VALUES (gen_random_uuid(),
               "name"
             ]
           }
-        }'::jsonb)
+        }'::jsonb,
+        optional = $2
+    WHERE course_phase_type_id = $1
+      AND dto_name = 'teams'
+    RETURNING id
+)
+INSERT INTO course_phase_type_phase_required_input_dto (id, course_phase_type_id, dto_name, specification, optional)
+SELECT gen_random_uuid(),
+       $1,
+       'teams',
+       '{
+         "type": "array",
+         "items": {
+           "type": "object",
+           "properties": {
+             "id": {
+               "type": "string"
+             },
+             "name": {
+               "type": "string"
+             }
+           },
+           "required": [
+             "id",
+             "name"
+           ]
+         }
+       }'::jsonb,
+       $2
+WHERE NOT EXISTS (SELECT 1 FROM updated)
 `
 
-func (q *Queries) InsertTeamRequiredInput(ctx context.Context, coursePhaseTypeID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, insertTeamRequiredInput, coursePhaseTypeID)
+type InsertTeamRequiredInputParams struct {
+	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
+	Optional          bool      `json:"optional"`
+}
+
+func (q *Queries) InsertTeamRequiredInput(ctx context.Context, arg InsertTeamRequiredInputParams) error {
+	_, err := q.db.Exec(ctx, insertTeamRequiredInput, arg.CoursePhaseTypeID, arg.Optional)
 	return err
 }
 
@@ -835,6 +903,22 @@ SELECT EXISTS (
 
 func (q *Queries) TestMatchingPhaseTypeExists(ctx context.Context) (bool, error) {
 	row := q.db.QueryRow(ctx, testMatchingPhaseTypeExists)
+	var does_exist bool
+	err := row.Scan(&does_exist)
+	return does_exist, err
+}
+
+const testPresentationPhaseTypeExists = `-- name: TestPresentationPhaseTypeExists :one
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Presentation'
+    ) AS does_exist
+`
+
+func (q *Queries) TestPresentationPhaseTypeExists(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, testPresentationPhaseTypeExists)
 	var does_exist bool
 	err := row.Scan(&does_exist)
 	return does_exist, err

@@ -42,6 +42,19 @@ func GetOwnCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID
 		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, err
 	}
 
+	resolutions, err := CoursePhaseParticipationServiceSingleton.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, err
+	}
+
+	resolutionDTOs := resolutionDTO.GetParticipationResolutionsDTOFromDBModels(resolutions)
+	resolutionDTOs, err = resolution.ReplaceResolutionURLs(ctx, resolutionDTOs)
+	if err != nil {
+		log.Error(err)
+		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, errors.New("failed to replace resolution URLs")
+	}
+	participationDTO.Resolutions = resolutionDTOs
+
 	return participationDTO, nil
 }
 

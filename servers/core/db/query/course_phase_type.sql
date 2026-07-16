@@ -12,6 +12,9 @@ WHERE part.student_id = $1;
 -- name: GetCoursePhaseTypeByID :one
 SELECT * FROM course_phase_type WHERE id = $1;
 
+-- name: GetCoursePhaseTypeByName :one
+SELECT * FROM course_phase_type WHERE name = $1;
+
 -- name: GetCoursePhaseRequiredParticipationInputs :many
 SELECT *
 FROM
@@ -104,6 +107,14 @@ SELECT EXISTS (
         FROM course_phase_type
         WHERE
             name = 'Certificate'
+    ) AS does_exist;
+
+-- name: TestPresentationPhaseTypeExists :one
+SELECT EXISTS (
+        SELECT 1
+        FROM course_phase_type
+        WHERE
+            name = 'Presentation'
     ) AS does_exist;
 
 -- name: CreateCoursePhaseType :exec
@@ -351,13 +362,25 @@ VALUES (gen_random_uuid(),
         }'::jsonb);
 
 -- name: InsertTeamAllocationRequiredInput :exec
-INSERT INTO course_phase_type_participation_required_input_dto(id, course_phase_type_id, dto_name, specification)
-VALUES (gen_random_uuid(),
-        $1,
-        'teamAllocation',
-        '{
+WITH updated AS (
+    UPDATE course_phase_type_participation_required_input_dto
+    SET specification = '{
           "type": "string"
-        }'::jsonb);
+        }'::jsonb,
+        optional = $2
+    WHERE course_phase_type_id = $1
+      AND dto_name = 'teamAllocation'
+    RETURNING id
+)
+INSERT INTO course_phase_type_participation_required_input_dto(id, course_phase_type_id, dto_name, specification, optional)
+SELECT gen_random_uuid(),
+       $1,
+       'teamAllocation',
+       '{
+         "type": "string"
+       }'::jsonb,
+       $2
+WHERE NOT EXISTS (SELECT 1 FROM updated);
 
 -- name: InsertTeamOutput :exec
 INSERT INTO course_phase_type_phase_provided_output_dto (id, course_phase_type_id, dto_name, version_number,
@@ -387,11 +410,9 @@ VALUES (gen_random_uuid(),
         }'::jsonb);
 
 -- name: InsertTeamRequiredInput :exec
-INSERT INTO course_phase_type_phase_required_input_dto (id, course_phase_type_id, dto_name, specification)
-VALUES (gen_random_uuid(),
-        $1,
-        'teams',
-        '{
+WITH updated AS (
+    UPDATE course_phase_type_phase_required_input_dto
+    SET specification = '{
           "type": "array",
           "items": {
             "type": "object",
@@ -408,7 +429,36 @@ VALUES (gen_random_uuid(),
               "name"
             ]
           }
-        }'::jsonb);
+        }'::jsonb,
+        optional = $2
+    WHERE course_phase_type_id = $1
+      AND dto_name = 'teams'
+    RETURNING id
+)
+INSERT INTO course_phase_type_phase_required_input_dto (id, course_phase_type_id, dto_name, specification, optional)
+SELECT gen_random_uuid(),
+       $1,
+       'teams',
+       '{
+         "type": "array",
+         "items": {
+           "type": "object",
+           "properties": {
+             "id": {
+               "type": "string"
+             },
+             "name": {
+               "type": "string"
+             }
+           },
+           "required": [
+             "id",
+             "name"
+           ]
+         }
+       }'::jsonb,
+       $2
+WHERE NOT EXISTS (SELECT 1 FROM updated);
 
 -- name: InsertAssessmentScoreOutput :exec
 INSERT INTO course_phase_type_participation_provided_output_dto (id, course_phase_type_id, dto_name, version_number,

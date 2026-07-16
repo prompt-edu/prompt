@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
 import { Handle, Position, useHandleConnections } from '@xyflow/react'
-import { CircleCheckBig, OctagonX, TriangleAlert } from 'lucide-react'
+import { CircleCheckBig, CircleDashed, OctagonX, TriangleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { EDGE_COLOR_GREEN, EDGE_COLOR_PURPLE } from '../../edges/edgeColors'
 import { camelToTitle } from './utils/camelToTitle'
@@ -65,7 +65,13 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
     }
   }, [dto.specification, incomingDTOs])
 
-  const status = matches ? 'success' : incomingDTOs.length === 1 ? 'warning' : 'error'
+  const status = matches
+    ? 'success'
+    : incomingDTOs.length === 1
+      ? 'warning'
+      : dto.optional
+        ? 'optional'
+        : 'error'
 
   const statusConfig = {
     success: {
@@ -89,6 +95,12 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
       textColor: 'text-red-700',
       icon: <OctagonX className='w-5 h-5 text-red-500' />,
       tooltipText: 'No Incoming Data Object',
+    },
+    optional: {
+      bgColor: 'bg-muted',
+      textColor: 'text-muted-foreground',
+      icon: <CircleDashed className='w-5 h-5 text-muted-foreground' />,
+      tooltipText: 'Optional input not connected',
     },
   }
 
@@ -114,7 +126,10 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
             />
             <div className='flex items-center space-x-2'>
               {icon}
-              <span className='text-sm font-medium'>{camelToTitle(dto.dtoName)}</span>
+              <span className='text-sm font-medium'>
+                {camelToTitle(dto.dtoName)}
+                {dto.optional ? ' (optional)' : ''}
+              </span>
             </div>
           </div>
         </TooltipTrigger>

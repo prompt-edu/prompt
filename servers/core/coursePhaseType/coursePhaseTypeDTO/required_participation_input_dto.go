@@ -11,6 +11,7 @@ type ParticipationInputDTO struct {
 	CoursePhaseTypeID uuid.UUID     `json:"coursePhaseTypeID"`
 	DtoName           string        `json:"dtoName"`
 	Specification     meta.MetaData `json:"specification"` // the specification follows the same structure as the meta.MetaData
+	Optional          bool          `json:"optional"`
 }
 
 func GetParticipationInputDTOsFromDBModel(dbModel []db.CoursePhaseTypeParticipationRequiredInputDto) ([]ParticipationInputDTO, error) {
@@ -38,5 +39,6 @@ func GetParticipationInputDTOFromDBModel(dbModel db.CoursePhaseTypeParticipation
 		CoursePhaseTypeID: dbModel.CoursePhaseTypeID,
 		DtoName:           dbModel.DtoName,
 		Specification:     specification,
+		Optional:          dbModel.Optional,
 	}, nil
 }

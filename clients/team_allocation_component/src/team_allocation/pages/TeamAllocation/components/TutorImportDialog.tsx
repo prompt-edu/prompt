@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Team } from '@tumaet/prompt-shared-state'
+import { Role, type Team, useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Dialog,
@@ -13,6 +13,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -25,6 +26,10 @@ import { TutorSearchStudents } from './TutorSearchStudents'
 export function TutorImportDialog() {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
+  const { permissions } = useAuthStore()
+  const canSearchStudents = permissions.some(
+    (p) => p === Role.PROMPT_ADMIN || p === Role.PROMPT_LECTURER,
+  )
 
   const [open, setOpen] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -54,8 +59,10 @@ export function TutorImportDialog() {
     onError: (error: unknown) => {
       console.error('Error importing tutors:', error)
       setIsImporting(false)
+      const backendError = isAxiosError(error) ? error.response?.data?.error : undefined
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to import tutors. Please try again.'
+        backendError ??
+        (error instanceof Error ? error.message : 'Failed to import tutors. Please try again.')
       setImportError(`Import failed: ${errorMessage}`)
     },
   })
@@ -93,9 +100,9 @@ export function TutorImportDialog() {
         </DialogHeader>
 
         <Tabs defaultValue='course' onValueChange={() => setImportError(null)}>
-          <TabsList className='grid w-full grid-cols-2'>
+          <TabsList className={`grid w-full ${canSearchStudents ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value='course'>From Course</TabsTrigger>
-            <TabsTrigger value='search'>Search Students</TabsTrigger>
+            {canSearchStudents && <TabsTrigger value='search'>Search Students</TabsTrigger>}
           </TabsList>
 
           <TabsContent value='course'>
@@ -107,14 +114,16 @@ export function TutorImportDialog() {
             />
           </TabsContent>
 
-          <TabsContent value='search'>
-            <TutorSearchStudents
-              phaseId={phaseId ?? ''}
-              teamOptions={teamOptions}
-              isImporting={isImporting}
-              onImport={handleImport}
-            />
-          </TabsContent>
+          {canSearchStudents && (
+            <TabsContent value='search'>
+              <TutorSearchStudents
+                phaseId={phaseId ?? ''}
+                teamOptions={teamOptions}
+                isImporting={isImporting}
+                onImport={handleImport}
+              />
+            </TabsContent>
+          )}
         </Tabs>
 
         {importError && <div className='text-red-500 text-sm'>{importError}</div>}

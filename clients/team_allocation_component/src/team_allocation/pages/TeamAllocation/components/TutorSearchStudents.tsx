@@ -59,10 +59,14 @@ export const TutorSearchStudents = ({
   }
 
   const handleSelectAll = (allStudents: Student[]) => {
-    if (selectedStudents.length === allStudents.length) {
+    const selectableIds = allStudents
+      .filter((s) => s.universityLogin)
+      .map((s) => s.id)
+      .filter((id): id is string => !!id)
+    if (selectedStudents.length === selectableIds.length) {
       setSelectedStudents([])
     } else {
-      setSelectedStudents(allStudents.map((s) => s.id).filter((id): id is string => !!id))
+      setSelectedStudents(selectableIds)
     }
   }
 
@@ -76,6 +80,8 @@ export const TutorSearchStudents = ({
     )
     const studentsAsTutors: Tutor[] = selectedStudentData.map((s) => ({
       CoursePhaseID: phaseId,
+      // From search, s.id is the student's own ID (not a course participation ID); team scoping is
+      // login-based, so any join of tutor.course_participation_id against participations will skip these.
       CourseParticipationID: s.id!,
       FirstName: s.firstName,
       LastName: s.lastName,

@@ -56,10 +56,14 @@ export const TutorImportFromCourse = ({
   }
 
   const handleSelectAll = (allStudents: Student[]) => {
-    if (selectedStudents.length === allStudents.length) {
+    const selectableIds = allStudents
+      .filter((s) => s.universityLogin)
+      .map((s) => s.id)
+      .filter((id): id is string => !!id)
+    if (selectedStudents.length === selectableIds.length) {
       setSelectedStudents([])
     } else {
-      setSelectedStudents(allStudents.map((s) => s.id).filter((id): id is string => !!id))
+      setSelectedStudents(selectableIds)
     }
   }
 

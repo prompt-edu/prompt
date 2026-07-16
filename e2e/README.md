@@ -329,7 +329,10 @@ as the negative fixture for the public apply endpoints.
 > **`Certificate`** remotes ARE served in the e2e stack and exercised through
 > their own UIs (see `tests/matching/`, `tests/interview/`, and
 > `tests/certificate/`; matching's backend is core-hosted — see the reduced
-> blueprint above). The `Team Allocation` micro-frontend remote is still not
+> blueprint above). The **`Presentation`** client and server are also included;
+> global setup verifies its remote container and `/presentation/api/info` proxy
+> path while its full lifecycle is covered by service and component tests. The
+> `Team Allocation` micro-frontend remote is still not
 > built into the e2e client, so tests for it should target core-level views
 > (course config, phase graph, participant lists, role-based access), not that
 > phase remote's own UI.

@@ -5738,6 +5738,12 @@ const docTemplate = `{
                 "coursePhaseID": {
                     "type": "string"
                 },
+                "resolutions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/resolutionDTO.Resolution"
+                    }
+                },
                 "student": {
                     "$ref": "#/definitions/studentDTO.Student"
                 },
@@ -5920,6 +5926,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "optional": {
+                    "type": "boolean"
+                },
                 "specification": {
                     "description": "the specification follows the same structure as the meta.MetaData",
                     "allOf": [
@@ -5969,6 +5978,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "optional": {
+                    "type": "boolean"
                 },
                 "specification": {
                     "description": "the specification follows the same structure as the meta.MetaData",

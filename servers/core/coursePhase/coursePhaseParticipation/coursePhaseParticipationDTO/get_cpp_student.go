@@ -2,6 +2,7 @@ package coursePhaseParticipationDTO
 
 import (
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
@@ -11,10 +12,11 @@ import (
 // this version does not contain any restricted data
 // and student should also not see the pass status
 type CoursePhaseParticipationStudent struct {
-	CoursePhaseID         uuid.UUID          `json:"coursePhaseID"`
-	CourseParticipationID uuid.UUID          `json:"courseParticipationID"`
-	StudentReadableData   meta.MetaData      `json:"studentReadableData"`
-	Student               studentDTO.Student `json:"student"`
+	CoursePhaseID         uuid.UUID                  `json:"coursePhaseID"`
+	CourseParticipationID uuid.UUID                  `json:"courseParticipationID"`
+	StudentReadableData   meta.MetaData              `json:"studentReadableData"`
+	Student               studentDTO.Student         `json:"student"`
+	Resolutions           []resolutionDTO.Resolution `json:"resolutions"`
 }
 
 func GetCoursePhaseParticipationStudent(model db.GetCoursePhaseParticipationByUniversityLoginAndCoursePhaseRow) (CoursePhaseParticipationStudent, error) {

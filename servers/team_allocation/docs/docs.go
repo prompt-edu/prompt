@@ -103,9 +103,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Assigned team UUID",
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/allocationDTO.Allocation"
                         }
                     },
                     "400": {
@@ -1441,6 +1441,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "allocationDTO.Allocation": {
+            "type": "object",
+            "properties": {
+                "teamAllocation": {
+                    "type": "string"
+                }
+            }
+        },
         "allocationDTO.AllocationWithParticipation": {
             "type": "object",
             "properties": {

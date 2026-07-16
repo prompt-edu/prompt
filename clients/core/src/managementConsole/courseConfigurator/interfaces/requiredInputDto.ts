@@ -4,4 +4,5 @@ export interface RequiredInputDTO {
   coursePhaseTypeID: string
   dtoName: string
   specification: { [key: string]: string }
+  optional: boolean
 }

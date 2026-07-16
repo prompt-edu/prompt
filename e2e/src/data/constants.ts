@@ -120,6 +120,10 @@ export const CERTIFICATE_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const CERTIFICATE_FOREIGN_PHASE_ID = 'd000000c-0000-0000-0000-00000000000c'
 
+// Standalone Presentation phase on fullCourse used to verify that the
+// presentation remote and same-origin API proxy load together.
+export const PRESENTATION_PHASE_ID = 'd000000f-0000-0000-0000-00000000000f'
+
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
 // login), not a Keycloak role. Same student row as SEEDED_PHASE_STUDENTS.student.

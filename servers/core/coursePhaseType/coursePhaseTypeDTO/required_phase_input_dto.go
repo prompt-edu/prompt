@@ -11,6 +11,7 @@ type PhaseInputDTO struct {
 	CoursePhaseTypeID uuid.UUID     `json:"coursePhaseTypeID"`
 	DtoName           string        `json:"dtoName"`
 	Specification     meta.MetaData `json:"specification"` // the specification follows the same structure as the meta.MetaData
+	Optional          bool          `json:"optional"`
 }
 
 func GetPhaseInputDTOsFromDBModel(dbModel []db.CoursePhaseTypePhaseRequiredInputDto) ([]PhaseInputDTO, error) {
@@ -38,5 +39,6 @@ func GetPhaseInputDTOFromDBModel(dbModel db.CoursePhaseTypePhaseRequiredInputDto
 		CoursePhaseTypeID: dbModel.CoursePhaseTypeID,
 		DtoName:           dbModel.DtoName,
 		Specification:     specification,
+		Optional:          dbModel.Optional,
 	}, nil
 }

@@ -9,6 +9,7 @@ import { ExampleRoutes } from './ExternalRoutes/ExampleRoutes'
 import { InterviewRoutes } from './ExternalRoutes/InterviewRoutes'
 import { IntroCourseDeveloperRoutes } from './ExternalRoutes/IntroCourseDeveloperRoutes'
 import { MatchingRoutes } from './ExternalRoutes/MatchingRoutes'
+import { PresentationRoutes } from './ExternalRoutes/PresentationRoutes'
 import { SelfTeamAllocationRoutes } from './ExternalRoutes/SelfTeamAllocationRoutes'
 import { TeamAllocationRoutes } from './ExternalRoutes/TeamAllocationRoutes'
 
@@ -23,6 +24,7 @@ const PhaseRouter: { [key: string]: React.FC } = {
   'Team Allocation': TeamAllocationRoutes,
   'Self Team Allocation': SelfTeamAllocationRoutes,
   Certificate: CertificateRoutes,
+  Presentation: PresentationRoutes,
 }
 
 export const PhaseRouterMapping = () => {

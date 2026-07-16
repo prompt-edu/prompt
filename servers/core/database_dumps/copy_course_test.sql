@@ -322,7 +322,8 @@ CREATE TABLE course_phase_type_participation_required_input_dto (
     id uuid NOT NULL,
     course_phase_type_id uuid NOT NULL,
     dto_name text NOT NULL,
-    specification jsonb NOT NULL
+    specification jsonb NOT NULL,
+    optional boolean DEFAULT false NOT NULL
 );
 
 
@@ -348,7 +349,8 @@ CREATE TABLE course_phase_type_phase_required_input_dto (
     id uuid NOT NULL,
     course_phase_type_id uuid NOT NULL,
     dto_name text NOT NULL,
-    specification jsonb NOT NULL
+    specification jsonb NOT NULL,
+    optional boolean DEFAULT false NOT NULL
 );
 
 
@@ -544,12 +546,12 @@ INSERT INTO course_phase_type_participation_provided_output_dto VALUES ('2ce4197
 -- Data for Name: course_phase_type_participation_required_input_dto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('67a66cf6-5505-41f2-a72e-2f247b386b83', '0542034b-87eb-4f91-ac90-b2e1536450de', 'score', '{"type": "integer"}');
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('7ee14e46-4dd0-4281-a3da-26e00859a62e', '0542034b-87eb-4f91-ac90-b2e1536450de', 'applicationAnswers', '{"type": "array", "items": {"oneOf": [{"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["text"], "type": "string"}, "answer": {"type": "string"}, "order_num": {"type": "integer"}}}, {"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["multiselect"], "type": "string"}, "answer": {"type": "array", "items": {"type": "string"}}, "order_num": {"type": "integer"}}}]}}');
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('0dfdb01d-fffd-4ebc-b191-3201aa2d0fc3', 'c313bd84-bc7b-4a5a-aca3-77a526e02f57', 'score', '{"type": "integer"}');
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('faad5951-3af7-4189-adf3-298a545082af', '88ca3586-7748-4152-8c89-5fbb6e113587', 'applicationAnswers', '{"type": "array", "items": {"oneOf": [{"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["text"], "type": "string"}, "answer": {"type": "string"}, "order_num": {"type": "integer"}}}, {"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["multiselect"], "type": "string"}, "answer": {"type": "array", "items": {"type": "string"}}, "order_num": {"type": "integer"}}}]}}');
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('afae0c00-a7ae-40f9-b707-af19393a58b7', '88ca3586-7748-4152-8c89-5fbb6e113587', 'devices', '{"type": "array", "items": {"enum": ["IPhone", "IPad", "MacBook", "AppleWatch"], "type": "string"}}');
-INSERT INTO course_phase_type_participation_required_input_dto VALUES ('2f17451e-d905-4484-aebc-a8c5191a4557', '88ca3586-7748-4152-8c89-5fbb6e113587', 'scoreLevel', '{"enum": ["novice", "intermediate", "advanced", "expert"], "type": "string"}');
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('67a66cf6-5505-41f2-a72e-2f247b386b83', '0542034b-87eb-4f91-ac90-b2e1536450de', 'score', '{"type": "integer"}', false);
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('7ee14e46-4dd0-4281-a3da-26e00859a62e', '0542034b-87eb-4f91-ac90-b2e1536450de', 'applicationAnswers', '{"type": "array", "items": {"oneOf": [{"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["text"], "type": "string"}, "answer": {"type": "string"}, "order_num": {"type": "integer"}}}, {"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["multiselect"], "type": "string"}, "answer": {"type": "array", "items": {"type": "string"}}, "order_num": {"type": "integer"}}}]}}', false);
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('0dfdb01d-fffd-4ebc-b191-3201aa2d0fc3', 'c313bd84-bc7b-4a5a-aca3-77a526e02f57', 'score', '{"type": "integer"}', false);
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('faad5951-3af7-4189-adf3-298a545082af', '88ca3586-7748-4152-8c89-5fbb6e113587', 'applicationAnswers', '{"type": "array", "items": {"oneOf": [{"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["text"], "type": "string"}, "answer": {"type": "string"}, "order_num": {"type": "integer"}}}, {"type": "object", "required": ["answer", "key", "order_num", "type"], "properties": {"key": {"type": "string"}, "type": {"enum": ["multiselect"], "type": "string"}, "answer": {"type": "array", "items": {"type": "string"}}, "order_num": {"type": "integer"}}}]}}', false);
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('afae0c00-a7ae-40f9-b707-af19393a58b7', '88ca3586-7748-4152-8c89-5fbb6e113587', 'devices', '{"type": "array", "items": {"enum": ["IPhone", "IPad", "MacBook", "AppleWatch"], "type": "string"}}', false);
+INSERT INTO course_phase_type_participation_required_input_dto VALUES ('2f17451e-d905-4484-aebc-a8c5191a4557', '88ca3586-7748-4152-8c89-5fbb6e113587', 'scoreLevel', '{"enum": ["novice", "intermediate", "advanced", "expert"], "type": "string"}', false);
 
 
 --

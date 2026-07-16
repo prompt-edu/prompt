@@ -108,3 +108,5 @@ jobs:
       server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag }}
       server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag }}
       certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag }}
+      presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag }}
+      server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag }}

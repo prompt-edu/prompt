@@ -1,5 +1,10 @@
 basePath: /team-allocation/api
 definitions:
+  allocationDTO.Allocation:
+    properties:
+      teamAllocation:
+        type: string
+    type: object
   allocationDTO.AllocationWithParticipation:
     properties:
       courseParticipationID:
@@ -347,9 +352,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: Assigned team UUID
+          description: OK
           schema:
-            type: string
+            $ref: '#/definitions/allocationDTO.Allocation'
         "400":
           description: Bad Request
           schema:

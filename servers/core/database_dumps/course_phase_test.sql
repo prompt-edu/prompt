@@ -174,6 +174,7 @@ CREATE TABLE
     course_phase_type_id uuid NOT NULL,
     dto_name text NOT NULL,
     specification jsonb NOT NULL,
+    optional boolean DEFAULT false NOT NULL,
     CONSTRAINT fk_course_phase_type_phase_required FOREIGN KEY (course_phase_type_id) REFERENCES course_phase_type (id) -- adjust if needed
     ON DELETE CASCADE
   );

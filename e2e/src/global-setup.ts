@@ -10,6 +10,7 @@ import {
   CERTIFICATE_API,
   CORE_API_URL,
   INTERVIEW_API,
+  PRESENTATION_API,
   SELF_TEAM_ALLOCATION_API,
 } from './env'
 
@@ -91,6 +92,7 @@ export default async function globalSetup(_config: FullConfig) {
   await waitForServiceInfo(`${BASE_URL}${ASSESSMENT_API}/info`, 'assessment')
   await waitForServiceInfo(`${BASE_URL}${INTERVIEW_API}/info`, 'interview')
   await waitForServiceInfo(`${BASE_URL}${CERTIFICATE_API}/info`, 'certificate')
+  await waitForServiceInfo(`${BASE_URL}${PRESENTATION_API}/info`, 'presentation')
 
   const browser = await chromium.launch()
   try {

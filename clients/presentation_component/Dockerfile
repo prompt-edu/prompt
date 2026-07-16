@@ -1,12 +1,14 @@
-FROM node:24.14.0-alpine AS builder
-WORKDIR /app
-COPY package.json yarn.lock .yarnrc.yml ./
-COPY presentation_component/package.json ./presentation_component/package.json
-RUN corepack enable && yarn workspaces focus presentation_component
-COPY presentation_component ./presentation_component
-COPY tailwind-base.css ./tailwind-base.css
-RUN yarn workspace presentation_component build
+ARG IMAGE_TAG=latest
+FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 
-FROM nginx:1.29.6-alpine
-COPY --from=builder /app/presentation_component/build /usr/share/nginx/html
+WORKDIR /app/presentation_component
+COPY . ./
+
+RUN yarn build
+
+FROM nginx:stable-alpine
+
+COPY --from=core-base /app/presentation_component/build /usr/share/nginx/html
+COPY --from=core-base /app/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

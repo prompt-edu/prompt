@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/storage"
 	log "github.com/sirupsen/logrus"
@@ -142,7 +143,7 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 	if err != nil {
 		return SettingsResponse{}, fmt.Errorf("begin config update: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 	if request.ResetExistingData {
 		if err := qtx.DeletePresentationsByPhase(ctx, coursePhaseID); err != nil {
@@ -288,7 +289,7 @@ func (s *Service) withCategoryMutation(
 	if err != nil {
 		return fmt.Errorf("begin category reset: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 	if err := qtx.DeleteFeedbackFormsByPhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("delete phase feedback forms: %w", err)
@@ -1370,7 +1371,7 @@ func (s *Service) ResetFeedback(ctx context.Context, coursePhaseID, presentation
 	if err != nil {
 		return fmt.Errorf("begin feedback reset: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 	if err := qtx.ResetPresentationFeedback(ctx, presentationID); err != nil {
 		return fmt.Errorf("reset presentation feedback: %w", err)

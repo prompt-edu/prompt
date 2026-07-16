@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -33,7 +34,7 @@ func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseC
 	if err != nil {
 		return fmt.Errorf("begin presentation copy: %w", err)
 	}
-	defer tx.Rollback(c)
+	defer promptSDK.DeferDBRollback(tx, c)
 	qtx := h.Service.queries.WithTx(tx)
 	if err := qtx.DeletePresentationsByPhase(c, request.TargetCoursePhaseID); err != nil {
 		return fmt.Errorf("clear target presentations: %w", err)

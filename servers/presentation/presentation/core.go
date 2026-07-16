@@ -21,13 +21,6 @@ type teamTarget struct {
 	Name string    `json:"name"`
 }
 
-func authorizationHeader(value string) string {
-	if strings.TrimSpace(value) == "" {
-		return ""
-	}
-	return value
-}
-
 func (s *Service) fetchIndividualTargets(authHeader string, coursePhaseID uuid.UUID) ([]TargetResponse, error) {
 	participations, err := promptSDK.FetchAndMergeParticipationsWithResolutions(s.coreURL, authHeader, coursePhaseID)
 	if err != nil {

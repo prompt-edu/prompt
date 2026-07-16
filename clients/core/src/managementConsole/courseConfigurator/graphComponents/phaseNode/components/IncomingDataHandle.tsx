@@ -1,3 +1,4 @@
+import type { ProvidedOutputDTO } from '@core/managementConsole/courseConfigurator/interfaces/providedOutputDto'
 import type { RequiredInputDTO } from '@core/managementConsole/courseConfigurator/interfaces/requiredInputDto'
 import { useCourseConfigurationState } from '@core/managementConsole/courseConfigurator/zustand/useCourseConfigurationStore'
 import {
@@ -51,7 +52,7 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
         .filter((reqDTO) => reqDTO !== null)
         .find((reqDTO) => reqDTO.id === dtoID),
     )
-    .filter((reqDTO) => reqDTO !== null && reqDTO !== undefined) as RequiredInputDTO[]
+    .filter((outputDTO): outputDTO is ProvidedOutputDTO => outputDTO !== undefined)
 
   useEffect(() => {
     if (incomingDTOs.length > 1) {

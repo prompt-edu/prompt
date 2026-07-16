@@ -1,16 +1,16 @@
-.PHONY: help server servers client-core client-certificate client-assessment \
+.PHONY: help server servers client-core client-certificate client-presentation client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate \
+	server-certificate server-presentation \
 	lint lint-clients lint-servers \
 	test test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate \
+	test-certificate test-presentation \
 	test-e2e test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate \
+	sqlc-certificate sqlc-presentation \
 	swagger install-clients install-hooks setup-skills
 
 # Load .env file if it exists (base configuration)
@@ -41,6 +41,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-self-team-allocation &
 	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
+	@$(MAKE) server-presentation &
 	@wait
 	@echo "All servers started."
 
@@ -65,6 +66,9 @@ server-example: ## Start example server (port 8086)
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
 
+server-presentation: ## Start presentation server (port 8089)
+	cd servers/presentation && go run main.go
+
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
 
@@ -73,6 +77,9 @@ client-core: ## Start only the core client
 
 client-certificate: ## Start only the certificate client
 	cd clients/certificate_component && yarn dev
+
+client-presentation: ## Start only the presentation client
+	cd clients/presentation_component && yarn dev
 
 client-assessment: ## Start only the assessment client
 	cd clients/assessment_component && yarn dev
@@ -104,10 +111,11 @@ lint-servers: ## Run go vet on all servers
 	cd servers/self_team_allocation && go vet ./...
 	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
+	cd servers/presentation && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate ## Run all server tests
+test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation ## Run all server tests
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...
@@ -129,6 +137,9 @@ test-example: ## Run example server tests
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
+
+test-presentation: ## Run presentation server tests
+	cd servers/presentation && go test ./...
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
@@ -163,7 +174,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -185,6 +196,9 @@ sqlc-example: ## Generate sqlc code for example server
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate
+
+sqlc-presentation: ## Generate sqlc code for presentation server
+	cd servers/presentation && sqlc generate
 
 swagger: ## Generate swagger docs for core server
 	cd servers/core && swag init

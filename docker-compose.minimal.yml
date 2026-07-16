@@ -81,6 +81,7 @@ services:
       - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
+      - PRESENTATION_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - CHAIR_NAME_SHORT
@@ -345,6 +346,83 @@ services:
       retries: 5
     ports:
       - "5438:5432"
+
+  # ── Presentation ───────────────────────────────────────────────────
+  server-presentation:
+    build:
+      context: ./servers/presentation
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-presentation
+    depends_on:
+      db-presentation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
+    ports:
+      - "8089:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_PRESENTATION
+      - DB_PORT_PRESENTATION
+      - DB_NAME=${DB_PRESENTATION_NAME}
+      - DB_USER=${DB_PRESENTATION_USER}
+      - DB_PASSWORD=${DB_PRESENTATION_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_PRESENTATION
+      - SENTRY_ENABLED
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_PUBLIC_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - S3_PRESIGN_UPLOAD_TTL_SECONDS
+      - S3_PRESIGN_DOWNLOAD_TTL_SECONDS
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - ALLOWED_FILE_TYPES
+
+  client-presentation-component:
+    build:
+      context: ./clients/presentation_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-presentation-component
+    ports:
+      - "3011:80"
+    depends_on:
+      - clients-base
+
+  db-presentation:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-db-presentation
+    environment:
+      - POSTGRES_USER=${DB_PRESENTATION_USER}
+      - POSTGRES_PASSWORD=${DB_PRESENTATION_PASSWORD}
+      - POSTGRES_DB=${DB_PRESENTATION_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_presentation_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_PRESENTATION_NAME} -U ${DB_PRESENTATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5440:5432"
 
   # ── Infrastructure ─────────────────────────────────────────────────
   db:

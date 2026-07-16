@@ -159,3 +159,10 @@ Generates and distributes course completion certificates.
 
 - Certificate Template, Release Date, Download Status
 - Code: client `clients/certificate_component/`, server `servers/certificate/`
+
+### Presentation
+
+Schedules individual or team presentations, stores slot-scoped materials, and collects categorized multi-instructor feedback in independent or shared editing mode.
+
+- Presentation Slot, Presenter Assignment, Material, Feedback Category, Feedback Session, Feedback Release
+- Code: client `clients/presentation_component/`, server `servers/presentation/`

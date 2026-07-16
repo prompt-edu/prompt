@@ -8539,7 +8539,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.23.0":
+"lucide-react@npm:^1.24.0":
   version: 1.24.0
   resolution: "lucide-react@npm:1.24.0"
   peerDependencies:
@@ -10412,7 +10412,7 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^9.0.7"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.23.0"
+    lucide-react: "npm:^1.24.0"
     motion: "npm:^12.42.2"
     postcss: "npm:^8.5.16"
     postcss-loader: "npm:8.2.1"

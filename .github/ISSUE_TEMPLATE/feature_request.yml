@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest an improvement or new capability for PROMPT
+type: Feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Describe the need, limitation, or opportunity this request addresses.
+      placeholder: Explain who is affected and why this matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Desired outcome
+      description: Describe what should become possible and what a successful result looks like.
+      placeholder: Tell us what you would like PROMPT to support.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Share an implementation or user-experience idea, if you have one.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or alternative approaches you considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add examples, screenshots, mockups, or other supporting information.
+    validations:
+      required: false

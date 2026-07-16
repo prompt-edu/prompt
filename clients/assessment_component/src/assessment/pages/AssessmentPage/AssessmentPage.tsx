@@ -2,28 +2,41 @@ import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { useCategoryStore } from '../../zustand/useCategoryStore'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
+import { AssessmentPrintReport } from '../components/AssessmentPrintReport/AssessmentPrintReport'
+import { useGetActionItemsForStudent } from '../hooks/useGetActionItemsForStudent'
+import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { AssessmentCompletion } from './components/AssessmentCompletion/AssessmentCompletion'
 import { AssessmentExportMenu } from './components/AssessmentExportMenu'
 import { AssessmentHeader } from './components/AssessmentHeader'
 import { CategoryAssessment } from './components/CategoryAssessment'
 import { FeedbackItemsPanel } from './components/FeedbackItemsPanel/FeedbackItemsPanel'
+import { useGetFeedbackItemsForStudent } from './components/FeedbackItemsPanel/hooks/useGetFeedbackItemsForStudent'
 import { PassStatusControls } from './components/PassStatusControls'
 import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
 export const AssessmentPage = () => {
-  const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
+  const { courseParticipationID } = useParams<{
+    courseParticipationID: string
+  }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const { categories } = useCategoryStore()
-  const { participations } = useParticipationStore()
+  const { data: categories } = useGetAllCategoriesWithCompetencies()
+  const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
     (participation) => participation.courseParticipationID === courseParticipationID,
   )
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+
+  const evaluationEnabled =
+    coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled
+  const { feedbackItems } = useGetFeedbackItemsForStudent(
+    courseParticipationID ?? '',
+    !!evaluationEnabled,
+  )
+  const { actionItems } = useGetActionItemsForStudent()
 
   const {
     data: studentAssessment,
@@ -68,42 +81,48 @@ export const AssessmentPage = () => {
   }
 
   return (
-    <div className='space-y-4' aria-busy={isSwitchingParticipant}>
-      {participant && (
-        <AssessmentHeader
-          participant={participant}
-          studentAssessment={studentAssessment}
-          remainingAssessments={remainingAssessments}
-        />
-      )}
+    <>
+      <div className='space-y-4 print:hidden' aria-busy={isSwitchingParticipant}>
+        {participant && (
+          <AssessmentHeader
+            participant={participant}
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+          />
+        )}
 
-      {categories.map((category) => (
-        <CategoryAssessment
-          key={category.id}
-          category={category}
-          assessments={studentAssessment.assessments.filter((assessment) =>
-            category.competencies
-              .map((competency) => competency.id)
-              .includes(assessment.competencyID),
-          )}
-          completed={studentAssessment.assessmentCompletion.completed}
+        {categories.map((category) => (
+          <CategoryAssessment
+            key={category.id}
+            category={category}
+            assessments={studentAssessment.assessments.filter((assessment) =>
+              category.competencies
+                .map((competency) => competency.id)
+                .includes(assessment.competencyID),
+            )}
+            completed={studentAssessment.assessmentCompletion.completed}
+            disabled={isSwitchingParticipant}
+            courseParticipationID={courseParticipationID ?? ''}
+          />
+        ))}
+
+        {evaluationEnabled && <FeedbackItemsPanel />}
+
+        <AssessmentCompletion />
+
+        <PassStatusControls
+          courseParticipationID={courseParticipationID}
           disabled={isSwitchingParticipant}
-          courseParticipationID={courseParticipationID ?? ''}
         />
-      ))}
 
-      {(coursePhaseConfig?.selfEvaluationEnabled || coursePhaseConfig?.peerEvaluationEnabled) && (
-        <FeedbackItemsPanel />
-      )}
+        <AssessmentExportMenu />
+      </div>
 
-      <AssessmentCompletion />
-
-      <PassStatusControls
-        courseParticipationID={courseParticipationID}
-        disabled={isSwitchingParticipant}
+      <AssessmentPrintReport
+        categories={categories}
+        feedbackItems={feedbackItems}
+        actionItems={actionItems}
       />
-
-      <AssessmentExportMenu />
-    </div>
+    </>
   )
 }

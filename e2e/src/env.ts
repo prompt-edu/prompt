@@ -15,6 +15,9 @@ export const KEYCLOAK_CLIENT_ID = 'prompt-client'
 // Phase-module API prefix on the browser origin (BASE_URL); proxied to the
 // phase server by e2e/nginx/client-core.conf, mirroring prod Traefik routing.
 export const SELF_TEAM_ALLOCATION_API = '/self-team-allocation/api'
+export const ASSESSMENT_API = '/assessment/api'
+export const INTERVIEW_API = '/interview/api'
+export const CERTIFICATE_API = '/certificate/api'
 
 export const tokenEndpoint = () =>
   `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`

@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var sendMailFn = SendMail
+var sendMailFn = SendCourseMail
 var nowFn = func() time.Time {
 	return time.Now().UTC()
 }
@@ -57,6 +57,8 @@ func SendManualMailToParticipants(
 		return report, fmt.Errorf("failed to load course mailing context: %w", err)
 	}
 
+	coursePhaseLink := buildCoursePhaseLink(ctx, coursePhaseID)
+
 	for _, participant := range participants {
 		if !participant.Email.Valid || participant.Email.String == "" {
 			failedIdentifier := participant.UniversityLogin.String
@@ -79,6 +81,9 @@ func SendManualMailToParticipants(
 			passedMailingInfo.CourseEndDate,
 			db.GetParticipantMailingInformationRow(participant),
 		)
+		if coursePhaseLink != "" {
+			placeholderMap["coursePhaseLink"] = coursePhaseLink
+		}
 		for key, value := range request.AdditionalPlaceholders {
 			placeholderMap[key] = value
 		}
@@ -97,6 +102,16 @@ func SendManualMailToParticipants(
 
 	report.SentAt = nowFn()
 	return report, nil
+}
+
+func buildCoursePhaseLink(ctx context.Context, coursePhaseID uuid.UUID) string {
+	courseID, err := MailingServiceSingleton.queries.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
+	if err != nil {
+		log.WithError(err).WithField("coursePhaseID", coursePhaseID).
+			Warn("Failed to resolve course for manual mail course phase link")
+		return ""
+	}
+	return fmt.Sprintf("%s/management/course/%s/%s", MailingServiceSingleton.clientURL, courseID, coursePhaseID)
 }
 
 func deduplicateUUIDList(values []uuid.UUID) []uuid.UUID {

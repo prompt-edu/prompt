@@ -4,8 +4,9 @@ import {
   type PrivacyExport,
 } from '@core/network/queries/privacyStudentDataExport'
 import { Button, useToast } from '@tumaet/prompt-ui-components'
-import { AlertTriangle, Download, Loader2, ShieldCheck } from 'lucide-react'
+import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { PrivacyStatusBanner, type PrivacyStatusBannerState } from '../Privacy/PrivacyStatusBanner'
 import { formatFileSize } from './formatFileSize'
 
 interface PrivacyExportBannerProps {
@@ -64,54 +65,46 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
   const isDownloading = downloading !== -1
   const isFailed = !inProgress && privacyExport.status === ExportStatus.failed
 
-  return (
-    <div className='rounded-lg border border-border bg-muted p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-      <div className='flex items-center gap-3'>
-        <div className='lg:mx-2'>
-          {inProgress ? (
-            <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-          ) : isFailed ? (
-            <AlertTriangle className='h-5 w-5 text-muted-foreground' />
-          ) : (
-            <ShieldCheck className='h-5 w-5 text-muted-foreground' />
-          )}
-        </div>
-        <div>
-          <p className='font-semibold text-foreground'>
-            {inProgress
-              ? 'Collecting your data…'
-              : isFailed
-                ? 'Export finished with problems'
-                : 'Export ready'}
-          </p>
-          <p className='text-xs text-muted-foreground mt-0.5'>
-            Requested on {new Date(privacyExport.date_created).toLocaleString()}
-          </p>
-          {!inProgress && (
-            <p className='text-xs text-muted-foreground mt-0.5'>
-              Files available until {new Date(privacyExport.valid_until).toLocaleString()}
-            </p>
-          )}
-        </div>
-      </div>
-      {!inProgress && completeDocs.length > 0 && (
-        <Button onClick={handleDownloadAll} disabled={isDownloading} className='w-full sm:w-auto'>
-          {isDownloading ? (
-            <>
-              <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
-              Downloading {downloading}/{completeDocs.length}
-            </>
-          ) : (
-            <>
-              <Download className='h-4 w-4' />
-              <div className='flex gap-1'>
-                <span>Download All</span>
-                {completeSize != null && <span>({formatFileSize(completeSize)})</span>}
-              </div>
-            </>
-          )}
-        </Button>
+  let state: PrivacyStatusBannerState
+  if (inProgress) {
+    state = 'in_progress'
+  } else if (isFailed && completeDocs.length > 0) {
+    state = 'partial'
+  } else if (isFailed) {
+    state = 'failure'
+  } else {
+    state = 'success'
+  }
+
+  const action = !inProgress && completeDocs.length > 0 && (
+    <Button onClick={handleDownloadAll} disabled={isDownloading} className='w-full sm:w-auto'>
+      {isDownloading ? (
+        <>
+          <Loader2 className='animate-spin h-5 w-5 text-muted-foreground' />
+          Downloading {downloading}/{completeDocs.length}
+        </>
+      ) : (
+        <>
+          <Download className='h-4 w-4' />
+          <div className='flex gap-1'>
+            <span>Download All</span>
+            {completeSize != null && <span>({formatFileSize(completeSize)})</span>}
+          </div>
+        </>
       )}
-    </div>
+    </Button>
+  )
+
+  return (
+    <PrivacyStatusBanner
+      subject='Export'
+      state={state}
+      meta={[
+        `Requested on ${new Date(privacyExport.date_created).toLocaleString()}`,
+        !inProgress &&
+          `Files available until ${new Date(privacyExport.valid_until).toLocaleString()}`,
+      ]}
+      action={action}
+    />
   )
 }

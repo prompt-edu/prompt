@@ -9,7 +9,7 @@ import { CourseOverview } from './managementConsole/courseOverview/CourseOvervie
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ManagementRoot } from './managementConsole/ManagementConsole'
-import { TemplateRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/TemplateRoutes'
+import { ExampleRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/ExampleRoutes'
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
 import { AdminPrivacyPage } from './managementConsole/pages/AdminPrivacyPage'
@@ -212,11 +212,11 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course/:courseId/template_component/*'
+              path='/management/course/:courseId/example_component/*'
               element={
                 <ManagementRoot>
                   <Suspense fallback={<div>Fallback</div>}>
-                    <TemplateRoutes />
+                    <ExampleRoutes />
                   </Suspense>
                 </ManagementRoot>
               }

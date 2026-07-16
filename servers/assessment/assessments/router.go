@@ -248,6 +248,7 @@ func getMyAssessmentResults(c *gin.Context) {
 // @Param assessmentID path string true "Assessment ID"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/{assessmentID} [delete]
 func deleteAssessment(c *gin.Context) {
@@ -262,7 +263,7 @@ func deleteAssessment(c *gin.Context) {
 		return
 	}
 	if err := DeleteAssessment(c, assessmentID, coursePhaseID); err != nil {
-		if errors.Is(err, ErrAssessmentNotInPhase) {
+		if errors.Is(err, ErrAssessmentNotInPhase) || errors.Is(err, ErrAssessmentNotFound) {
 			handleError(c, http.StatusNotFound, err)
 			return
 		}

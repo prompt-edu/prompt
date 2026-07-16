@@ -1,6 +1,7 @@
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   ScoreLevelSelector as BaseScoreLevelSelector,
+  getLevelConfig,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -11,7 +12,7 @@ import type { ReactNode } from 'react'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { Competency } from '../../interfaces/competency'
 
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 
 interface ScoreLevelSelectorProps {
   className?: string
@@ -50,7 +51,7 @@ export const ScoreLevelSelector = ({
   peerEvaluationScoreLevel,
   peerEvaluationStudentAnswers,
 }: ScoreLevelSelectorProps) => {
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const descriptionsByLevel = mapCompetencyDescriptionsByLevel(competency)
   const showIndicators = coursePhaseConfig?.evaluationResultsVisible || completed
   const indicators: Partial<Record<ScoreLevel, ReactNode[]>> = {}
@@ -61,7 +62,12 @@ export const ScoreLevelSelector = ({
       <TooltipProvider key={`self-evaluation-${selfEvaluationScoreLevel}-${competency.id}`}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <User size={20} className='text-blue-500 dark:text-blue-300' />
+            <button
+              type='button'
+              aria-label={`Self evaluation result: ${getLevelConfig(selfEvaluationScoreLevel).title}`}
+            >
+              <User size={20} className='text-blue-500 dark:text-blue-300' aria-hidden />
+            </button>
           </TooltipTrigger>
           <TooltipContent>
             <div className='font-semibold'>Self Evaluation Results</div>
@@ -87,7 +93,12 @@ export const ScoreLevelSelector = ({
       <TooltipProvider key={`peer-evaluation-${peerEvaluationScoreLevel}-${competency.id}`}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Users size={20} className='text-green-500 dark:text-green-300' />
+            <button
+              type='button'
+              aria-label={`Peer evaluation result: ${getLevelConfig(peerEvaluationScoreLevel).title}`}
+            >
+              <Users size={20} className='text-green-500 dark:text-green-300' aria-hidden />
+            </button>
           </TooltipTrigger>
           <TooltipContent>
             {assessmentType !== AssessmentType.TUTOR ? (

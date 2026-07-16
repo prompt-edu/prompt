@@ -9,14 +9,18 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
-import { useCoursePhaseConfigStore } from '../../zustand/useCoursePhaseConfigStore'
-import { useParticipationStore } from '../../zustand/useParticipationStore'
-import { useTeamStore } from '../../zustand/useTeamStore'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
 } from '../AssessmentParticipantsPage/utils/evaluationUtils'
 import { PeerEvaluationCompletionBadge } from '../components/badges'
+import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
+import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 
 interface EvaluationParticipantRow {
   id: string
@@ -63,9 +67,10 @@ export const EvaluationParticipantsOverviewPage = ({
   const navigate = useNavigate()
   const path = useLocation().pathname
 
-  const { coursePhaseConfig } = useCoursePhaseConfigStore()
-  const { participations } = useParticipationStore()
-  const { teams } = useTeamStore()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: teams } = useGetAllTeams()
+  const { data: evaluations } = useGetAllEvaluations()
 
   const {
     data: evaluationCompletions = [],
@@ -81,6 +86,13 @@ export const EvaluationParticipantsOverviewPage = ({
     () => evaluationCompletions.filter((completion) => completion.type === assessmentType),
     [assessmentType, evaluationCompletions],
   )
+
+  const typedScoreLevels = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, assessmentType),
+    [assessmentType, evaluations],
+  )
+
+  const distributionLabel = assessmentType === AssessmentType.SELF ? 'Self' : 'Peer'
 
   const isEnabled =
     assessmentType === AssessmentType.SELF
@@ -170,6 +182,21 @@ export const EvaluationParticipantsOverviewPage = ({
           Click on a participant to view their evaluation results.
         </p>
       )}
+
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+        <AssessmentDiagram
+          participations={participations}
+          scoreLevels={typedScoreLevels}
+          completions={typedCompletions}
+          assessmentType={assessmentType}
+        />
+        <ScoreLevelDistributionDiagram
+          participations={participations}
+          scoreLevels={typedScoreLevels}
+          title={`${distributionLabel} Evaluation Distribution`}
+          description='Number of participants per score level'
+        />
+      </div>
 
       <PromptTable<EvaluationParticipantRow>
         data={data}

@@ -49,7 +49,7 @@ stack you already have running:
 
 - Every container is renamed `stress-*` and every host port is offset by **+10000**
   (core `18089`, team-allocation `18083`, self-team `18084`, assessment `18085`,
-  template `18086`, interview `18087`, certificate `18088`, Keycloak `18081`, S3 `18334`).
+  example `18086`, interview `18087`, certificate `18088`, Keycloak `18081`, S3 `18334`).
 - Postgres/SeaweedFS data live in named volumes (the worktree stays clean).
 - Compose **concatenates** `ports`/`volumes` across files, so the override uses the
   `!override` YAML tag to *replace* them.
@@ -69,11 +69,11 @@ cp api-stress/stress.env.example api-stress/stress.env
 docker compose --env-file api-stress/stress.env \
   -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
   -p prompt-stress up -d \
-  db db-team-allocation db-self-team-allocation db-assessment db-template-server \
+  db db-team-allocation db-self-team-allocation db-assessment db-example-server \
   db-interview db-certificate keycloak-db keycloak \
   seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3 \
   server-core server-team-allocation server-self-team-allocation server-assessment \
-  server-template server-interview server-certificate
+  server-example server-interview server-certificate
 
 # 3. run the suite
 api-stress/run.sh                    # full run, medium intensity

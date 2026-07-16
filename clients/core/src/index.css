@@ -2,3 +2,9 @@
 
 @config '../tailwind.config.js';
 @import '../../tailwind-base.css';
+
+@media print {
+  .group\/sidebar-wrapper > [data-side] {
+    display: none;
+  }
+}

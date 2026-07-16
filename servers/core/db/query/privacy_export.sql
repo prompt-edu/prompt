@@ -79,3 +79,6 @@ UPDATE privacy_export_document SET status = 'archived' WHERE export_id = $1 AND 
 -- name: ArchiveExportRecord :exec
 UPDATE privacy_export SET status = 'archived', valid_until = LEAST(valid_until, now()) WHERE id = $1;
 
+-- name: GetExportIDsForUser :many
+SELECT id FROM privacy_export WHERE user_id = $1 AND status != 'archived';
+

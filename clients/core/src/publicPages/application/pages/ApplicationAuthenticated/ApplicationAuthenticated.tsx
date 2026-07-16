@@ -43,9 +43,9 @@ export const ApplicationAuthenticated = () => {
     isError: isApplicationError,
     error: applicationError,
   } = useQuery<GetApplication>({
-    queryKey: ['application', phaseId, user?.email],
+    queryKey: ['application', phaseId],
     queryFn: () => getApplication(phaseId ?? ''),
-    enabled: !!phaseId && !!user?.email && !!localStorage.getItem('jwt_token'),
+    enabled: !!phaseId && !!localStorage.getItem('jwt_token'),
   })
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({
@@ -53,7 +53,7 @@ export const ApplicationAuthenticated = () => {
       return postNewApplicationAuthenticated(phaseId ?? 'undefined', modifiedApplication)
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['application', phaseId, user?.email] })
+      queryClient.invalidateQueries({ queryKey: ['application', phaseId] })
       setConfirmationMailSent(data.confirmationMailSent)
       setShowDialog('success')
     },

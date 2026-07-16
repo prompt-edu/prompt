@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -37,6 +38,7 @@ var AssessmentServiceSingleton *AssessmentService
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
 var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
 var ErrAssessmentNotInPhase = errors.New("assessment does not belong to this course phase")
+var ErrAssessmentNotFound = errors.New("assessment not found")
 
 const AssessmentExportFormatJSON = "json"
 
@@ -280,16 +282,14 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 		}
 	}
 
-	studentScore := scoreLevelDTO.StudentScore{
-		ScoreLevel:   scoreLevelDTO.ScoreLevelVeryBad,
-		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
-	}
-	if len(assessments) > 0 {
-		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+	var studentScore *scoreLevelDTO.StudentScore
+	if config.GradingSheetVisible && len(assessments) > 0 {
+		score, err := scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get score level: ", err)
 			return results, errors.New("could not get score level")
 		}
+		studentScore = &score
 	}
 
 	var evals []evaluationDTO.Evaluation
@@ -348,8 +348,11 @@ func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 
 	assessment, err := qtx.GetAssessment(ctx, id)
 	if err != nil {
-		log.Info("assessment not found, nothing to delete: ", err)
-		return nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrAssessmentNotFound
+		}
+		log.Error("could not get assessment for deletion: ", err)
+		return fmt.Errorf("could not get assessment: %w", err)
 	}
 
 	if assessment.CoursePhaseID != coursePhaseID {

@@ -77,6 +77,20 @@ services:
         condition: service_started
       client-self-team-allocation:
         condition: service_started
+      server-assessment:
+        condition: service_started
+      client-assessment:
+        condition: service_started
+      client-matching:
+        condition: service_started
+      server-interview:
+        condition: service_started
+      client-interview:
+        condition: service_started
+      server-certificate:
+        condition: service_started
+      client-certificate:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -93,7 +107,7 @@ services:
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
       - ASSESSMENT_HOST
-      - TEMPLATE_HOST
+      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - KEYCLOAK_HOST
@@ -178,6 +192,243 @@ services:
         [
           "CMD-SHELL",
           "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Assessment phase module (server + MF remote + own DB) ────────────────
+  # Second phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-assessment:
+    build:
+      context: ./servers/assessment
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-assessment
+    depends_on:
+      db-assessment:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_ASSESSMENT_USER}
+      - DB_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - DB_NAME=${DB_ASSESSMENT_NAME}
+      - DB_HOST_ASSESSMENT=${DB_ASSESSMENT_HOST}
+      - DB_PORT_ASSESSMENT=${DB_ASSESSMENT_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /assessment/api/info through the client-core proxy.
+
+  client-assessment:
+    build:
+      context: ./clients/assessment_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-assessment
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /assessment/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-assessment:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-assessment
+    environment:
+      - POSTGRES_USER=${DB_ASSESSMENT_USER}
+      - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - POSTGRES_DB=${DB_ASSESSMENT_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB (they
+    # create the default assessment/evaluation schemas) and the tests create
+    # all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_ASSESSMENT_NAME} -U ${DB_ASSESSMENT_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Matching module (MF remote only; backend is core-hosted) ─────────────
+  # No server/DB: matching's routes live in server-core, so this is the reduced
+  # blueprint from e2e/README.md — just the remote, proxied at /matching/.
+  client-matching:
+    build:
+      context: ./clients/matching_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-matching
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /matching/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ── Interview phase module (server + MF remote + own DB) ─────────────────
+  # Third phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-interview:
+    build:
+      context: ./servers/interview
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-interview
+    depends_on:
+      db-interview:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_INTERVIEW_USER}
+      - DB_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - DB_NAME=${DB_INTERVIEW_NAME}
+      - DB_HOST_INTERVIEW=${DB_INTERVIEW_HOST}
+      - DB_PORT_INTERVIEW=${DB_INTERVIEW_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /interview/api/info through the client-core proxy.
+
+  client-interview:
+    build:
+      context: ./clients/interview_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-interview
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /interview/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-interview:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-interview
+    environment:
+      - POSTGRES_USER=${DB_INTERVIEW_USER}
+      - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - POSTGRES_DB=${DB_INTERVIEW_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and
+    # the tests create all slots/assignments themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INTERVIEW_NAME} -U ${DB_INTERVIEW_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Certificate phase module (server + MF remote + own DB) ───────────────
+  # Fourth phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-certificate:
+    build:
+      context: ./servers/certificate
+      # Certificate ships its own Dockerfile (bundles the Typst compiler +
+      # golang-migrate), unlike the phase servers that share ../Dockerfile.
+      dockerfile: Dockerfile
+    container_name: prompt-e2e-server-certificate
+    depends_on:
+      db-certificate:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_CERTIFICATE_USER}
+      - DB_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - DB_NAME=${DB_CERTIFICATE_NAME}
+      - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
+      - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /certificate/api/info through the client-core proxy.
+
+  client-certificate:
+    build:
+      context: ./clients/certificate_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-certificate
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /certificate/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-certificate:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-certificate
+    environment:
+      - POSTGRES_USER=${DB_CERTIFICATE_USER}
+      - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - POSTGRES_DB=${DB_CERTIFICATE_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and the
+    # tests create all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_CERTIFICATE_NAME} -U ${DB_CERTIFICATE_USER}",
         ]
       interval: 5s
       timeout: 5s
@@ -269,7 +520,7 @@ services:
       start_period: 30s
 
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-e2e-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     restart: unless-stopped
@@ -280,7 +531,7 @@ services:
       retries: 3
 
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-e2e-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     depends_on:
@@ -294,7 +545,7 @@ services:
       retries: 3
 
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-e2e-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     depends_on:
@@ -308,7 +559,7 @@ services:
       retries: 3
 
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-e2e-seaweedfs-s3
     entrypoint:
       - /bin/sh
@@ -375,6 +626,23 @@ services:
         condition: service_healthy
       server-self-team-allocation:
         # distroless; global-setup polls /self-team-allocation/api/info.
+        condition: service_started
+      client-assessment:
+        condition: service_healthy
+      server-assessment:
+        # distroless; global-setup polls /assessment/api/info.
+        condition: service_started
+      client-matching:
+        condition: service_healthy
+      client-interview:
+        condition: service_healthy
+      server-interview:
+        # distroless; global-setup polls /interview/api/info.
+        condition: service_started
+      client-certificate:
+        condition: service_healthy
+      server-certificate:
+        # distroless; global-setup polls /certificate/api/info.
         condition: service_started
     environment:
       - CI

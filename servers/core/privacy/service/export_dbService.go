@@ -44,7 +44,7 @@ func CreateExportRecord(c context.Context, subjectIdentifiers sdk.SubjectIdentif
 	now := time.Now()
 	exp, err := PrivacyServiceSingleton.queries.CreateNewExport(c, db.CreateNewExportParams{
 		ID:                   uuid.New(),
-		UserID:               subjectIdentifiers.UserID,
+		UserID:               pgtype.UUID{Bytes: subjectIdentifiers.UserID, Valid: subjectIdentifiers.UserID != uuid.Nil},
 		StudentID:            pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
 		Status:               db.ExportStatusPending,
 		ValidUntil:           pgtype.Timestamptz{Time: now.Add(exportExpiry()), Valid: true},
@@ -119,7 +119,7 @@ func GetExportWithDocs(c context.Context, exportID uuid.UUID) (privacyDTO.Privac
 }
 
 func GetLatestExportWithDocs(c context.Context, userID uuid.UUID) (*privacyDTO.PrivacyExport, error) {
-	dbExp, err := PrivacyServiceSingleton.queries.GetLatestExportForUserWithDocs(c, userID)
+	dbExp, err := PrivacyServiceSingleton.queries.GetLatestExportForUserWithDocs(c, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

@@ -7,6 +7,12 @@ on:
     paths:
       - "docs/**"
       - ".github/workflows/build-docs.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/build-docs.yml"
   workflow_dispatch:
 
 concurrency:
@@ -15,8 +21,6 @@ concurrency:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -51,6 +55,10 @@ jobs:
           path: docs/build
 
   deploy:
+    if: github.event_name != 'pull_request'
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

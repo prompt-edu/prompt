@@ -195,6 +195,7 @@ export const StudentInterviewPage = () => {
             return (
               <Card
                 key={slot.id}
+                data-testid={`interview-slot-${slot.id}`}
                 className={cn(
                   'transition-all',
                   isBooked && 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950/20',

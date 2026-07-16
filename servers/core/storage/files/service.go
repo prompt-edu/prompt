@@ -16,9 +16,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,6 +32,13 @@ type StorageService struct {
 }
 
 var StorageServiceSingleton *StorageService
+
+// ErrInvalidInput marks a client-supplied request as invalid (maps to HTTP 400).
+// ErrNotFound marks a referenced resource as missing (maps to HTTP 404).
+var (
+	ErrInvalidInput = errors.New("invalid input")
+	ErrNotFound     = errors.New("not found")
+)
 
 // FileUploadRequest represents a file upload request
 type FileUploadRequest struct {
@@ -190,15 +197,15 @@ func (s *StorageService) UploadFile(ctx context.Context, req FileUploadRequest) 
 // PresignUpload creates a presigned upload URL for a file
 func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadRequest) (*PresignUploadResponse, error) {
 	if req.Filename == "" {
-		return nil, fmt.Errorf("filename is required")
+		return nil, fmt.Errorf("filename is required: %w", ErrInvalidInput)
 	}
 
 	if req.ContentType == "" {
-		return nil, fmt.Errorf("content type is required")
+		return nil, fmt.Errorf("content type is required: %w", ErrInvalidInput)
 	}
 
 	if len(s.allowedTypes) > 0 && !s.isAllowedType(req.ContentType) {
-		return nil, fmt.Errorf("file type %s is not allowed", req.ContentType)
+		return nil, fmt.Errorf("file type %s is not allowed: %w", req.ContentType, ErrInvalidInput)
 	}
 
 	safeOriginal := sanitizeFilename(req.Filename)
@@ -223,7 +230,7 @@ func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadReq
 // CreateFileFromStorageKey stores file metadata after a presigned upload completes.
 func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req CreateFileFromStorageKeyRequest, uploaderUserID, uploaderEmail string) (*FileResponse, error) {
 	if req.StorageKey == "" {
-		return nil, fmt.Errorf("storage key is required")
+		return nil, fmt.Errorf("storage key is required: %w", ErrInvalidInput)
 	}
 
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
@@ -232,11 +239,11 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 	existing, err := s.queries.GetFileByStorageKey(ctxWithTimeout, req.StorageKey)
 	if err == nil {
 		if existing.UploadedByUserID != uploaderUserID {
-			return nil, fmt.Errorf("storage key already used by another user")
+			return nil, fmt.Errorf("storage key already used by another user: %w", ErrInvalidInput)
 		}
 		if req.CoursePhaseID != nil {
 			if !existing.CoursePhaseID.Valid || existing.CoursePhaseID.Bytes != *req.CoursePhaseID {
-				return nil, fmt.Errorf("storage key already used for a different course phase")
+				return nil, fmt.Errorf("storage key already used for a different course phase: %w", ErrInvalidInput)
 			}
 		}
 		return s.convertToFileResponse(ctx, existing), nil
@@ -247,17 +254,20 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 
 	if req.CoursePhaseID == nil {
 		if strings.HasPrefix(req.StorageKey, "course-phase/") {
-			return nil, fmt.Errorf("course phase id is required for course-phase storage keys")
+			return nil, fmt.Errorf("course phase id is required for course-phase storage keys: %w", ErrInvalidInput)
 		}
 	} else {
 		expectedPrefix := fmt.Sprintf("course-phase/%s/", req.CoursePhaseID.String())
 		if !strings.HasPrefix(req.StorageKey, expectedPrefix) {
-			return nil, fmt.Errorf("storage key does not match course phase")
+			return nil, fmt.Errorf("storage key does not match course phase: %w", ErrInvalidInput)
 		}
 	}
 
 	metadata, err := s.storageAdapter.GetMetadata(ctx, req.StorageKey)
 	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, fmt.Errorf("no upload found for storage key: %w", ErrNotFound)
+		}
 		return nil, fmt.Errorf("failed to get metadata for storage key: %w", err)
 	}
 
@@ -267,15 +277,15 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 	}
 
 	if contentType == "" {
-		return nil, fmt.Errorf("content type is required")
+		return nil, fmt.Errorf("content type is required: %w", ErrInvalidInput)
 	}
 
 	if metadata.Size > s.maxFileSize {
-		return nil, fmt.Errorf("file size %d bytes exceeds maximum allowed size %d bytes", metadata.Size, s.maxFileSize)
+		return nil, fmt.Errorf("file size %d bytes exceeds maximum allowed size %d bytes: %w", metadata.Size, s.maxFileSize, ErrInvalidInput)
 	}
 
 	if len(s.allowedTypes) > 0 && !s.isAllowedType(contentType) {
-		return nil, fmt.Errorf("file type %s is not allowed", contentType)
+		return nil, fmt.Errorf("file type %s is not allowed: %w", contentType, ErrInvalidInput)
 	}
 
 	uniqueFilename := filepath.Base(req.StorageKey)
@@ -366,10 +376,11 @@ func (s *StorageService) DeleteFile(ctx context.Context, fileID uuid.UUID, hardD
 			return fmt.Errorf("failed to delete file record: %w", err)
 		}
 
-		// Delete from storage backend
+		// Delete from storage backend. The record is already gone at this point,
+		// so a failure here leaves an orphaned blob; surface it and let the caller
+		// decide how to handle it rather than silently reporting success.
 		if err := s.storageAdapter.Delete(ctx, fileResp.StorageKey); err != nil {
-			log.WithError(err).WithField("fileId", fileID).Warn("File record deleted but storage deletion failed - orphaned storage object")
-			return nil
+			return fmt.Errorf("file record deleted but storage deletion failed (orphaned blob): %w", err)
 		}
 
 		log.WithField("fileId", fileID).Info("File hard deleted successfully")

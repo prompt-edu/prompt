@@ -65,7 +65,7 @@ func getAllCategories(c *gin.Context) {
 // @Accept json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param category body categoryDTO.CreateCategoryRequest true "Category payload"
-// @Success 201 {string} string "Created"
+// @Success 201 {object} categoryDTO.Category
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category [post]
@@ -81,7 +81,7 @@ func createCategory(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	err = CreateCategory(c, coursePhaseID, request)
+	category, err := CreateCategory(c, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -90,7 +90,7 @@ func createCategory(c *gin.Context) {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.Status(http.StatusCreated)
+	c.JSON(http.StatusCreated, category)
 }
 
 // updateCategory godoc

@@ -62,6 +62,14 @@ export const StudentTable = () => {
         filters={filters}
         actions={actions}
         onRowClick={openStudent}
+        initialState={{
+          columnVisibility: {
+            gender: false,
+            studyDegree: false,
+            nationality: false,
+            fullname: false,
+          },
+        }}
       />
       <PrivacyDeletionInitiateDialog
         studentIDs={studentsToDelete ?? []}

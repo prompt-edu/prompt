@@ -91,6 +91,10 @@ services:
         condition: service_started
       client-certificate:
         condition: service_started
+      server-team-allocation:
+        condition: service_started
+      client-team-allocation:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -434,6 +438,77 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Team allocation phase module (server + MF remote + own DB) ───────────
+  # Fifth phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-team-allocation:
+    build:
+      context: ./servers/team_allocation
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-team-allocation
+    depends_on:
+      db-team-allocation:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_TEAM_ALLOCATION_USER}
+      - DB_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
+      - DB_HOST_TEAM_ALLOCATION=${DB_TEAM_ALLOCATION_HOST}
+      - DB_PORT_TEAM_ALLOCATION=${DB_TEAM_ALLOCATION_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /team-allocation/api/info through the client-core proxy.
+
+  client-team-allocation:
+    build:
+      context: ./clients/team_allocation_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-team-allocation
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /team-allocation/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-team-allocation:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-team-allocation
+    environment:
+      - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
+      - POSTGRES_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - POSTGRES_DB=${DB_TEAM_ALLOCATION_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and
+    # the tests create all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_TEAM_ALLOCATION_NAME} -U ${DB_TEAM_ALLOCATION_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   clients-base:
     build:
       context: ./clients
@@ -643,6 +718,11 @@ services:
         condition: service_healthy
       server-certificate:
         # distroless; global-setup polls /certificate/api/info.
+        condition: service_started
+      client-team-allocation:
+        condition: service_healthy
+      server-team-allocation:
+        # distroless; global-setup polls /team-allocation/api/info.
         condition: service_started
     environment:
       - CI

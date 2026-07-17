@@ -106,7 +106,7 @@ func (suite *AllocationRouterTestSuite) TestGetAllocationByCourseParticipationID
 
 	suite.router.ServeHTTP(resp, req)
 
-	require.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+	require.Equal(suite.T(), http.StatusNotFound, resp.Code)
 }
 
 func TestAllocationRouterTestSuite(t *testing.T) {

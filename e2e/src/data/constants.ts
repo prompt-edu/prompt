@@ -87,6 +87,13 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 // students must be rejected (negative auth fixture).
 export const ASSESSMENT_FOREIGN_PHASE_ID = 'd0000008-0000-0000-0000-000000000008'
 
+// Standalone Matching phase on fullCourse (no graph edge, navigate by URL),
+// owned by the matching lecturer re-import spec. Stan + Selma participate, each
+// carrying a `score` in restricted_data; the re-import flips their pass_status
+// to passed, so this phase is isolated from the graph Matching phase
+// (FULL_COURSE_PHASES.matching) used by the smoke / student / API specs.
+export const MATCHING_JOURNEY_PHASE_ID = 'd000000e-0000-0000-0000-00000000000e'
+
 // Interview phase on TestCourse with NO participants: requests by the e2e
 // users must be rejected (negative auth fixture). The main interview phase is
 // FULL_COURSE_PHASES.interview (graph phase on fullCourse with participants).
@@ -121,6 +128,23 @@ export const FULL_COURSE_STUDENT = {
   courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
   matriculationNumber: '00000005',
   universityLogin: 'no42tum',
+  firstName: 'Stan',
+  lastName: 'Stan',
+  email: 'pgdp_enjoyer@example.com',
+  currentSemester: 3,
+}
+
+// Two stable identities among the seeded course_phase_participations on
+// FULL_COURSE_PHASES.application (six in total). The participants list asserts
+// these by identity — never by row count — so parallel specs and reruns never
+// collide.
+export const FULL_COURSE_APPLICATION_PARTICIPANTS = {
+  stan: { firstName: 'Stan', lastName: 'Stan', email: 'pgdp_enjoyer@example.com' },
+  maxMustermann: {
+    firstName: 'Max',
+    lastName: 'Mustermann',
+    email: 'max.mustermann@tum.de',
+  },
 }
 
 // The student mapping to the Keycloak `student2` user (Selma); enrolled in

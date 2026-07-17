@@ -1,15 +1,15 @@
 .PHONY: help server servers client-core client-certificate client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
-	server-team-allocation server-self-team-allocation server-template \
+	server-team-allocation server-self-team-allocation server-example \
 	server-certificate server-infrastructure-setup \
 	lint lint-clients lint-servers \
 	test test-core test-assessment test-interview \
-	test-team-allocation test-self-team-allocation test-template \
+	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-infrastructure-setup \
 	test-e2e test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
-	sqlc-team-allocation sqlc-self-team-allocation sqlc-template \
+	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-infrastructure-setup \
 	swagger install-clients install-hooks setup-skills seaweed seaweed-down deps deps-down
 
@@ -39,7 +39,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-interview &
 	@$(MAKE) server-team-allocation &
 	@$(MAKE) server-self-team-allocation &
-	@$(MAKE) server-template &
+	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-infrastructure-setup &
 	@wait
@@ -60,8 +60,8 @@ server-team-allocation: ## Start team allocation server (port 8083)
 server-self-team-allocation: ## Start self team allocation server (port 8084)
 	cd servers/self_team_allocation && go run main.go
 
-server-template: ## Start template server (port 8086)
-	cd servers/template_server && go run main.go
+server-example: ## Start example server (port 8086)
+	cd servers/example_server && go run main.go
 
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
@@ -118,13 +118,13 @@ lint-servers: ## Run go vet on all servers
 	cd servers/interview && go vet ./...
 	cd servers/team_allocation && go vet ./...
 	cd servers/self_team_allocation && go vet ./...
-	cd servers/template_server && go vet ./...
+	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-template test-certificate test-infrastructure-setup ## Run all server tests
+test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-infrastructure-setup ## Run all server tests
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...
@@ -141,8 +141,8 @@ test-team-allocation: ## Run team allocation server tests
 test-self-team-allocation: ## Run self team allocation server tests
 	cd servers/self_team_allocation && go test ./...
 
-test-template: ## Run template server tests
-	cd servers/template_server && go test ./...
+test-example: ## Run example server tests
+	cd servers/example_server && go test ./...
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
@@ -183,7 +183,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-template sqlc-certificate sqlc-infrastructure-setup ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-infrastructure-setup ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -200,8 +200,8 @@ sqlc-team-allocation: ## Generate sqlc code for team allocation server
 sqlc-self-team-allocation: ## Generate sqlc code for self team allocation server
 	cd servers/self_team_allocation && sqlc generate
 
-sqlc-template: ## Generate sqlc code for template server
-	cd servers/template_server && sqlc generate
+sqlc-example: ## Generate sqlc code for example server
+	cd servers/example_server && sqlc generate
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate

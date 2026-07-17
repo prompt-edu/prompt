@@ -278,7 +278,7 @@ We generate and commit swagger specs for the Go servers. To avoid forgetting thi
 ./scripts/install-githooks.sh
 ```
 
-When you commit changes under `servers/core/` or `servers/template_server/`, the pre-commit hook regenerates and stages the swagger docs. Ensure `swag` is available on your PATH:
+When you commit changes under `servers/core/` or `servers/example_server/`, the pre-commit hook regenerates and stages the swagger docs. Ensure `swag` is available on your PATH:
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@latest

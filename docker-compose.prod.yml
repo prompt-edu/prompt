@@ -553,19 +553,19 @@ services:
     networks:
       - prompt-network
 
-  client-template-component:
-    image: "ghcr.io/prompt-edu/prompt/prompt-clients-template-component:${TEMPLATE_IMAGE_TAG}"
-    container_name: prompt-client-template-component
+  client-example-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-example-component:${EXAMPLE_IMAGE_TAG}"
+    container_name: prompt-client-example-component
     environment:
       - TZ=Europe/Berlin
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.template.rule=Host(`${CORE_HOST}`) && PathPrefix(`/template`)"
-      - "traefik.http.routers.template.entrypoints=websecure"
-      - "traefik.http.routers.template.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.template-strip-prefix.stripPrefix.prefixes=/template"
-      - "traefik.http.routers.template.middlewares=template-strip-prefix,template-compress"
-      - "traefik.http.middlewares.template-compress.compress=true"
+      - "traefik.http.routers.example.rule=Host(`${CORE_HOST}`) && PathPrefix(`/example`)"
+      - "traefik.http.routers.example.entrypoints=websecure"
+      - "traefik.http.routers.example.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.example-strip-prefix.stripPrefix.prefixes=/example"
+      - "traefik.http.routers.example.middlewares=example-strip-prefix,example-compress"
+      - "traefik.http.middlewares.example-compress.compress=true"
     expose:
       - "80"
     depends_on:
@@ -634,7 +634,7 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
-      - TEMPLATE_HOST
+      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - INFRASTRUCTURE_SETUP_HOST
@@ -653,7 +653,7 @@ services:
 
   # SeaweedFS Master Server
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     volumes:
@@ -674,7 +674,7 @@ services:
 
   # SeaweedFS Volume Server
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     volumes:
@@ -697,7 +697,7 @@ services:
 
   # SeaweedFS Filer (required for S3)
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     volumes:
@@ -717,7 +717,7 @@ services:
 
   # SeaweedFS S3 Gateway (public access via presigned URLs only)
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.37
+    image: chrislusf/seaweedfs:4.38
     container_name: prompt-seaweedfs-s3
     entrypoint:
       - /bin/sh

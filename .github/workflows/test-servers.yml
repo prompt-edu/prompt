@@ -19,7 +19,7 @@ jobs:
           - interview
           - self_team_allocation
           - team_allocation
-          - template_server
+          - example_server
     steps:
       - uses: actions/checkout@v7
       - name: Setup Go

@@ -58,22 +58,22 @@ export const EvaluationInfoHeader = ({
   }
 
   return (
-    <Card className='mb-8 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
-      <CardContent className='p-6'>
-        <div className='flex items-start gap-4'>
+    <Card>
+      <CardContent className='p-4'>
+        <div className='flex items-start gap-3'>
           <div className='shrink-0'>
             {resultsReleased ? (
-              <CheckCircle2 className='h-8 w-8 text-blue-500 dark:text-blue-400' />
+              <CheckCircle2 className='h-5 w-5 text-blue-500 dark:text-blue-400' />
             ) : allEvaluationsCompleted ? (
-              <CheckCircle2 className='h-8 w-8 text-green-500 dark:text-green-400' />
+              <CheckCircle2 className='h-5 w-5 text-green-500 dark:text-green-400' />
             ) : evaluationsNotStarted ? (
-              <Calendar className='h-8 w-8 text-orange-500 dark:text-orange-400' />
+              <Calendar className='h-5 w-5 text-orange-500 dark:text-orange-400' />
             ) : (
-              <AlertCircle className='h-8 w-8 text-blue-500 dark:text-blue-400' />
+              <AlertCircle className='h-5 w-5 text-blue-500 dark:text-blue-400' />
             )}
           </div>
           <div className='flex-1'>
-            <h2 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
+            <h2 className='text-base font-semibold mb-1'>
               {resultsReleased
                 ? 'Assessment Results Released'
                 : allEvaluationsCompleted
@@ -84,9 +84,7 @@ export const EvaluationInfoHeader = ({
             </h2>
             {resultsReleased ? (
               <>
-                <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
-                  {getResultsAvailableText()}
-                </p>
+                <p className='text-sm text-muted-foreground'>{getResultsAvailableText()}</p>
                 {resultsLink && (
                   <div className='mt-3'>
                     <Button
@@ -101,7 +99,7 @@ export const EvaluationInfoHeader = ({
                 )}
               </>
             ) : allEvaluationsCompleted ? (
-              <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
+              <p className='text-sm text-muted-foreground'>
                 Congratulations! You have successfully completed all required evaluations. Your
                 self-evaluation
                 {coursePhaseConfig?.peerEvaluationEnabled && ' and peer evaluations'} have been
@@ -109,14 +107,14 @@ export const EvaluationInfoHeader = ({
               </p>
             ) : evaluationsNotStarted ? (
               <div className='space-y-3'>
-                <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
+                <p className='text-sm text-muted-foreground'>
                   {!selfEvaluationStarted && !peerEvaluationStarted
                     ? 'Self and peer evaluations will be available soon. Please check back after the start date.'
                     : !selfEvaluationStarted
                       ? 'Self evaluation will be available soon. Please check back after the start date.'
                       : 'Peer evaluation will be available soon. Please check back after the start date.'}
                 </p>
-                <div className='flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400'>
+                <div className='flex flex-wrap gap-4 text-sm text-muted-foreground'>
                   {!selfEvaluationStarted && coursePhaseConfig?.selfEvaluationStart && (
                     <div className='flex items-center gap-2'>
                       <Calendar className='h-4 w-4' />
@@ -139,7 +137,7 @@ export const EvaluationInfoHeader = ({
               </div>
             ) : (
               <div className='space-y-3'>
-                <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
+                <p className='text-sm text-muted-foreground'>
                   Please complete your assigned evaluations before the specified deadlines.
                 </p>
               </div>

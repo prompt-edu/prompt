@@ -7,7 +7,7 @@ window.env = {
   SELF_TEAM_ALLOCATION_HOST: 'http://localhost:8084',
   ASSESSMENT_HOST: 'http://localhost:8085',
   DEVOPS_CHALLENGE_HOST: 'http://localhost:9010',
-  TEMPLATE_HOST: 'http://localhost:8086',
+  EXAMPLE_HOST: 'http://localhost:8086',
   INTERVIEW_HOST: 'http://localhost:8087',
   CERTIFICATE_HOST: 'http://localhost:8088',
   INFRASTRUCTURE_SETUP_HOST: 'http://localhost:8091',

@@ -107,3 +107,8 @@ FROM certificate_download
 WHERE
     student_id = $1
 ORDER BY first_download ASC;
+
+-- name: DeleteCertificateDownloadsByStudentID :exec
+DELETE FROM certificate_download
+WHERE
+    student_id = $1;

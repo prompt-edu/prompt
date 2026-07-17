@@ -520,7 +520,7 @@ services:
       start_period: 30s
 
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.38
+    image: chrislusf/seaweedfs:4.39
     container_name: prompt-e2e-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     restart: unless-stopped
@@ -531,7 +531,7 @@ services:
       retries: 3
 
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.38
+    image: chrislusf/seaweedfs:4.39
     container_name: prompt-e2e-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     depends_on:
@@ -545,7 +545,7 @@ services:
       retries: 3
 
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.38
+    image: chrislusf/seaweedfs:4.39
     container_name: prompt-e2e-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     depends_on:
@@ -559,7 +559,7 @@ services:
       retries: 3
 
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.38
+    image: chrislusf/seaweedfs:4.39
     container_name: prompt-e2e-seaweedfs-s3
     entrypoint:
       - /bin/sh

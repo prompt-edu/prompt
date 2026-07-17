@@ -1,52 +1,46 @@
-import {
-  axiosInstance,
-  Gender,
-  StudyDegree,
-} from "@tumaet/prompt-shared-state";
+import { axiosInstance, type Gender, type StudyDegree } from '@tumaet/prompt-shared-state'
 
 export interface StudentCourseParticipation {
-  courseId: string;
-  courseName: string;
-  studentReadableData: object;
+  courseId: string
+  courseName: string
+  studentReadableData: object
 }
 
 export interface StudentNoteTag {
-  id: string;
-  name: string;
-  color: string;
+  id: string
+  name: string
+  color: string
 }
 
 export interface StudentWithCourses {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  hasUniversityAccount: boolean;
-  currentSemester?: number;
-  gender: Gender;
-  nationality: string;
-  studyDegree: StudyDegree;
-  studyProgram: string;
-  lastModified: string;
-  courses: StudentCourseParticipation[];
-  noteTags: StudentNoteTag[];
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  hasUniversityAccount: boolean
+  currentSemester?: number
+  gender: Gender
+  nationality: string
+  studyDegree: StudyDegree
+  studyProgram: string
+  lastModified: string
+  courses: StudentCourseParticipation[]
+  noteTags: StudentNoteTag[]
 }
 
-export const getStudentsWithCourses = async (): Promise<
-  StudentWithCourses[]
-> => {
+export const getStudentsWithCourses = async (): Promise<StudentWithCourses[]> => {
   try {
     const data = (
-      await axiosInstance.get("/api/students/with-courses", {
+      await axiosInstance.get('/api/students/with-courses', {
         headers: {
-          "Content-Type": "application/json-path+json",
+          'Content-Type': 'application/json-path+json',
         },
       })
-    ).data;
-    console.log(data);
-    return data;
+    ).data
+    console.log(data)
+    return data
   } catch (err) {
-    console.error(err);
-    throw err;
+    console.error(err)
+    throw err
   }
-};
+}

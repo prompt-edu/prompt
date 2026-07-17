@@ -2,119 +2,108 @@ import type {
   StudentCourseParticipation,
   StudentNoteTag,
   StudentWithCourses,
-} from "@core/network/queries/getStudentsWithCourses";
-import type { ColumnDef, Row } from "@tanstack/react-table";
-import { ProfilePicture } from "@tumaet/prompt-ui-components";
-import { format, subYears } from "date-fns";
-import type { NoteTagColor } from "../../interfaces/InstructorNote";
-import { InstructorNoteTag } from "../InstructorNote/InstructorNoteTag";
-import { StudentCoursePreview } from "./components/StudentCoursePreview";
+} from '@core/network/queries/getStudentsWithCourses'
+import type { ColumnDef, Row } from '@tanstack/react-table'
 import {
-  Gender,
+  type Gender,
   getGenderString,
   getStudyDegreeString,
-  StudyDegree,
-} from "@tumaet/prompt-shared-state";
+  type StudyDegree,
+} from '@tumaet/prompt-shared-state'
+import { ProfilePicture } from '@tumaet/prompt-ui-components'
+import { format, subYears } from 'date-fns'
+import type { NoteTagColor } from '../../interfaces/InstructorNote'
+import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
+import { StudentCoursePreview } from './components/StudentCoursePreview'
 
 export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {
-    id: "profilepicture",
-    header: "",
+    id: 'profilepicture',
+    header: '',
     cell: ({ row }) => (
       <ProfilePicture
         email={row.original.email}
         firstName={row.original.firstName}
         lastName={row.original.lastName}
-        size="sm"
+        size='sm'
       />
     ),
   },
   {
-    accessorKey: "firstName",
-    header: "First Name",
+    accessorKey: 'firstName',
+    header: 'First Name',
     cell: (info) => info.getValue(),
   },
   {
-    accessorKey: "lastName",
-    header: "Last Name",
+    accessorKey: 'lastName',
+    header: 'Last Name',
     cell: (info) => info.getValue(),
   },
   {
-    id: "fullname",
-    header: "Full Name",
+    id: 'fullname',
+    header: 'Full Name',
     accessorFn: (row: StudentWithCourses) => `${row.firstName} ${row.lastName}`,
   },
   {
-    accessorKey: "email",
-    header: "Email",
+    accessorKey: 'email',
+    header: 'Email',
     cell: (info) => info.getValue(),
   },
   {
-    accessorKey: "currentSemester",
-    header: "Semester",
+    accessorKey: 'currentSemester',
+    header: 'Semester',
     cell: (info) => info.getValue(),
   },
   {
-    accessorKey: "studyProgram",
-    header: "Program",
+    accessorKey: 'studyProgram',
+    header: 'Program',
     cell: (info) => info.getValue(),
   },
   {
-    accessorKey: "studyDegree",
-    header: "Study Degree",
+    accessorKey: 'studyDegree',
+    header: 'Study Degree',
     cell: (info) => getStudyDegreeString(info.getValue() as StudyDegree),
   },
   {
-    accessorKey: "gender",
-    header: "Gender",
+    accessorKey: 'gender',
+    header: 'Gender',
     cell: (info) => getGenderString(info.getValue() as Gender),
   },
   {
-    accessorKey: "nationality",
-    header: "Nationality",
+    accessorKey: 'nationality',
+    header: 'Nationality',
     cell: (info) => info.getValue(),
   },
   {
-    id: "courses",
-    header: "Courses",
+    id: 'courses',
+    header: 'Courses',
     enableSorting: false,
 
-    accessorFn: (row: StudentWithCourses) =>
-      row.courses.map((c) => c.courseName).join(" "),
+    accessorFn: (row: StudentWithCourses) => row.courses.map((c) => c.courseName).join(' '),
 
     cell: ({ row }) => (
-      <div className="flex flex-col gap-2">
+      <div className='flex flex-col gap-2'>
         {row.original.courses.map((scp: StudentCourseParticipation) => (
-          <StudentCoursePreview
-            studentCourseParticipation={scp}
-            key={scp.courseId + row.id}
-          />
+          <StudentCoursePreview studentCourseParticipation={scp} key={scp.courseId + row.id} />
         ))}
       </div>
     ),
 
-    filterFn: (
-      row: Row<StudentWithCourses>,
-      _columnId,
-      filterValue: string[],
-    ) => {
-      if (!filterValue?.length) return true;
+    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: string[]) => {
+      if (!filterValue?.length) return true
 
-      return row.original.courses.some((course) =>
-        filterValue.includes(course.courseName),
-      );
+      return row.original.courses.some((course) => filterValue.includes(course.courseName))
     },
   },
   {
-    id: "noteTags",
-    header: "Tags",
+    id: 'noteTags',
+    header: 'Tags',
     enableSorting: false,
 
-    accessorFn: (row: StudentWithCourses) =>
-      row.noteTags.map((t) => t.name).join(" "),
+    accessorFn: (row: StudentWithCourses) => row.noteTags.map((t) => t.name).join(' '),
 
     cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
+      <div className='flex flex-wrap gap-1'>
         {row.original.noteTags.map((tag: StudentNoteTag) => (
           <InstructorNoteTag
             key={tag.id}
@@ -128,33 +117,21 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
       </div>
     ),
 
-    filterFn: (
-      row: Row<StudentWithCourses>,
-      _columnId,
-      filterValue: string[],
-    ) => {
-      if (!filterValue?.length) return true;
+    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: string[]) => {
+      if (!filterValue?.length) return true
 
-      return row.original.noteTags.some((tag) => filterValue.includes(tag.id));
+      return row.original.noteTags.some((tag) => filterValue.includes(tag.id))
     },
   },
   {
-    id: "lastModified",
-    header: "Last Modified",
-    accessorFn: (row: StudentWithCourses) =>
-      new Date(row.lastModified).getTime(),
-    cell: ({ row }) =>
-      format(new Date(row.original.lastModified), "yyyy-MM-dd"),
-    sortingFn: "basic",
-    filterFn: (
-      row: Row<StudentWithCourses>,
-      _columnId,
-      filterValue: number | undefined,
-    ) => {
-      if (!filterValue) return true;
-      return (
-        new Date(row.original.lastModified) < subYears(new Date(), filterValue)
-      );
+    id: 'lastModified',
+    header: 'Last Modified',
+    accessorFn: (row: StudentWithCourses) => new Date(row.lastModified).getTime(),
+    cell: ({ row }) => format(new Date(row.original.lastModified), 'yyyy-MM-dd'),
+    sortingFn: 'basic',
+    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: number | undefined) => {
+      if (!filterValue) return true
+      return new Date(row.original.lastModified) < subYears(new Date(), filterValue)
     },
   },
-];
+]

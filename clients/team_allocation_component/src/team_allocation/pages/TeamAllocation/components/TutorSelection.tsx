@@ -35,7 +35,9 @@ export const TutorSelection = ({
       <div className='flex items-center justify-between'>
         <Label>Select Tutors</Label>
         <Button variant='outline' size='sm' onClick={onSelectAll} disabled={selectableCount === 0}>
-          {selectedTutors.length === selectableCount ? 'Deselect All' : 'Select All'}
+          {selectableCount > 0 && selectedTutors.length === selectableCount
+            ? 'Deselect All'
+            : 'Select All'}
         </Button>
       </div>
       <div className='overflow-y-auto border rounded-md p-2 max-h-[300px]'>

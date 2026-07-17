@@ -15,8 +15,8 @@ export const TextAnswer = ({ answer }: { answer: string }) => (
 export const MultiSelectAnswer = ({ answer }: { answer: string[] }) => (
   <AnswerBlock isEmpty={answer.length === 0}>
     <div className='flex flex-wrap gap-1.5'>
-      {answer.map((item) => (
-        <Badge key={item}>{item}</Badge>
+      {answer.map((item, index) => (
+        <Badge key={`${item}-${index}`}>{item}</Badge>
       ))}
     </div>
   </AnswerBlock>

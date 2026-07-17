@@ -167,9 +167,18 @@ export const ApplicationDetailsPage = () => {
               <ApplicationAnswers
                 coursePhaseId={phaseId ?? ''}
                 questions={[
-                  ...fetchedApplicationForm.questionsMultiSelect,
-                  ...fetchedApplicationForm.questionsText,
-                  ...fetchedApplicationForm.questionsFileUpload,
+                  ...fetchedApplicationForm.questionsMultiSelect.map((q) => ({
+                    ...q,
+                    kind: 'multiSelect' as const,
+                  })),
+                  ...fetchedApplicationForm.questionsText.map((q) => ({
+                    ...q,
+                    kind: 'text' as const,
+                  })),
+                  ...fetchedApplicationForm.questionsFileUpload.map((q) => ({
+                    ...q,
+                    kind: 'fileUpload' as const,
+                  })),
                 ]}
                 answersMultiSelect={fetchedApplication.answersMultiSelect}
                 answersText={fetchedApplication.answersText}

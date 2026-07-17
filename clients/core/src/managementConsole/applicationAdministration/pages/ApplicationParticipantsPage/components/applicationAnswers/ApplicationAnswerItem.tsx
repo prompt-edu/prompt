@@ -36,13 +36,22 @@ export const ApplicationAnswerItem = ({
         <div className='space-y-1'>
           <div className='flex items-center gap-2'>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Icon className='h-4 w-4 shrink-0 text-muted-foreground' aria-label={label} />
+              <TooltipTrigger
+                type='button'
+                aria-label={`${label} question`}
+                className='inline-flex shrink-0 items-center border-0 bg-transparent p-0 text-muted-foreground'
+              >
+                <Icon className='h-4 w-4' aria-hidden='true' />
               </TooltipTrigger>
               <TooltipContent>{label}</TooltipContent>
             </Tooltip>
             <span className='font-semibold'>{question.title}</span>
-            {question.isRequired && <span className='text-destructive'>*</span>}
+            {question.isRequired && (
+              <span className='text-destructive'>
+                <span aria-hidden='true'>*</span>
+                <span className='sr-only'>required</span>
+              </span>
+            )}
           </div>
 
           {question.description && <FormDescriptionHTML htmlCode={question.description} />}

@@ -11,6 +11,7 @@ import {
   CORE_API_URL,
   INTERVIEW_API,
   SELF_TEAM_ALLOCATION_API,
+  TEAM_ALLOCATION_API,
 } from './env'
 
 // Poll a URL until it responds (any HTTP status), or time out. The core server
@@ -91,6 +92,7 @@ export default async function globalSetup(_config: FullConfig) {
   await waitForServiceInfo(`${BASE_URL}${ASSESSMENT_API}/info`, 'assessment')
   await waitForServiceInfo(`${BASE_URL}${INTERVIEW_API}/info`, 'interview')
   await waitForServiceInfo(`${BASE_URL}${CERTIFICATE_API}/info`, 'certificate')
+  await waitForServiceInfo(`${BASE_URL}${TEAM_ALLOCATION_API}/info`, 'team-allocation')
 
   const browser = await chromium.launch()
   try {

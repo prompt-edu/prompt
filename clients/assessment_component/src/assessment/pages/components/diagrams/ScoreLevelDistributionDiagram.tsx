@@ -8,19 +8,22 @@ import {
   CardTitle,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
-import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
 
 import { BarChartWithScoreLevel } from './BarChartWithScoreLevel'
 
 interface ScoreLevelDistributionDiagramProps {
-  participations: AssessmentParticipationWithStudent[]
+  participations: Array<{ courseParticipationID: string }>
   scoreLevels: ScoreLevelWithParticipation[]
+  title?: string
+  description?: string
 }
 
 export const ScoreLevelDistributionDiagram = ({
   participations,
   scoreLevels,
+  title = 'Assessment Distribution',
+  description = 'Number of students per score level',
 }: ScoreLevelDistributionDiagramProps) => {
   const chartData = useMemo(() => {
     const scoreLevelCounts = [
@@ -57,8 +60,8 @@ export const ScoreLevelDistributionDiagram = ({
   return (
     <Card className='flex flex-col w-full h-full'>
       <CardHeader className='items-center'>
-        <CardTitle>Assessment Distribution</CardTitle>
-        <CardDescription>Number of students per score level</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className='flex-1 flex flex-col justify-end pb-0'>
         <BarChartWithScoreLevel data={chartData} />

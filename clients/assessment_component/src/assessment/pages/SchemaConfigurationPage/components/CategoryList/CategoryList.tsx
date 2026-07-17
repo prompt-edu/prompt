@@ -19,11 +19,14 @@ import { CategoryItem } from './components/CategoryItem'
 import { CreateCategoryForm } from './components/CreateCategoryForm'
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog'
 import { EditCategoryDialog } from './components/EditCategoryDialog'
+import { SchemaTemplateButtons } from './components/SchemaTemplateButtons'
 
 interface CategoryListProps {
   assessmentSchemaID: string
   assessmentType: AssessmentType
   hasAssessmentData?: boolean
+  schemaName?: string
+  schemaDescription?: string
 }
 
 const LOCK_BADGE_CLASS = [
@@ -35,6 +38,8 @@ export const CategoryList = ({
   assessmentSchemaID,
   assessmentType,
   hasAssessmentData = false,
+  schemaName,
+  schemaDescription,
 }: CategoryListProps) => {
   const [categoryToEdit, setCategoryToEdit] = useState<CategoryWithCompetencies | undefined>(
     undefined,
@@ -72,28 +77,39 @@ export const CategoryList = ({
     <Card className='overflow-hidden border-border p-6 shadow-xs'>
       <div className='space-y-6'>
         <div className='space-y-2'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <h2 className='text-xl font-semibold tracking-tight text-foreground'>
-              Categories and competencies
-            </h2>
-            {hasAssessmentData && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className={LOCK_BADGE_CLASS}>
-                      <Lock className='h-3.5 w-3.5' />
-                      Locked by submitted data
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className='max-w-xs'>
-                      Schema changes are disabled because submitted assessment data already exists
-                      for this phase.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <h2 className='text-xl font-semibold tracking-tight text-foreground'>
+                Categories and competencies
+              </h2>
+              {hasAssessmentData && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={LOCK_BADGE_CLASS}>
+                        <Lock className='h-3.5 w-3.5' />
+                        Locked by submitted data
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className='max-w-xs'>
+                        Schema changes are disabled because submitted assessment data already exists
+                        for this phase.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+
+            <SchemaTemplateButtons
+              categories={categories}
+              assessmentSchemaID={assessmentSchemaID}
+              assessmentType={assessmentType}
+              schemaName={schemaName}
+              schemaDescription={schemaDescription}
+              disabled={hasAssessmentData}
+            />
           </div>
 
           <p className='text-sm leading-6 text-muted-foreground'>

@@ -723,6 +723,15 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000d-0000-0000-0000-00000000000d', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000a-0000-0000-0000-00000000000a', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000b-0000-0000-0000-00000000000b', '{}', 'passed', '{}');
+-- Standalone Team Allocation journey phase (see the course_phase inserts below):
+-- Stan + Selma participate so the lecturer participants table lists them and the
+-- published allocation can target Stan's participation.
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'b3000001-0000-0000-0000-000000000001', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'b3000001-0000-0000-0000-000000000001', '{}', 'not_assessed', '{}');
+-- Standalone Team Allocation student-journey phase (see the course_phase inserts
+-- below): Stan participates so he can open the survey remote and read his own
+-- published allocation via the API.
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'b3000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '{}');
 
 
 
@@ -774,6 +783,20 @@ INSERT INTO public.course_phase VALUES ('d0000002-0000-0000-0000-000000000002', 
 INSERT INTO public.course_phase VALUES ('d0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Matching', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
 INSERT INTO public.course_phase VALUES ('d0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('d0000005-0000-0000-0000-000000000005', 'c0000001-0000-0000-0000-000000000001', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+
+--
+-- Team Allocation fixtures (no graph edge, route by URL): b3000001 is the
+-- standalone lecturer-journey phase on iPraktikumFull (Stan + Selma participate)
+-- so its team creation + published allocation never collide with the graph
+-- Team Allocation phase (d0000004) used by the smoke / API specs. b3000003 is
+-- the student-journey phase (Stan participates) so its own published allocation
+-- stays isolated too. b3000002 is the TestCourse negative-auth fixture (no
+-- participants; the e2e students are not enrolled in TestCourse).
+--
+
+INSERT INTO public.course_phase VALUES ('b3000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation Journey', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
+INSERT INTO public.course_phase VALUES ('b3000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation Student', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
+INSERT INTO public.course_phase VALUES ('b3000002-0000-0000-0000-000000000002', 'be780b32-a678-4b79-ae1c-80071771d254', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
 
 --
 -- Standalone assessment fixture phases (no graph edges — the graph's UNIQUE

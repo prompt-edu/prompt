@@ -65,6 +65,17 @@ func (q *Queries) DeleteCertificateDownload(ctx context.Context, arg DeleteCerti
 	return err
 }
 
+const deleteCertificateDownloadsByStudentID = `-- name: DeleteCertificateDownloadsByStudentID :exec
+DELETE FROM certificate_download
+WHERE
+    student_id = $1
+`
+
+func (q *Queries) DeleteCertificateDownloadsByStudentID(ctx context.Context, studentID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCertificateDownloadsByStudentID, studentID)
+	return err
+}
+
 const getCertificateDownload = `-- name: GetCertificateDownload :one
 SELECT id, student_id, course_phase_id, first_download, last_download, download_count
 FROM certificate_download

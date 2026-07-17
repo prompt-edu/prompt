@@ -1,0 +1,59 @@
+name: Bug report
+description: Report unexpected behavior in PROMPT
+type: Bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the unexpected behavior and how it affects you.
+      placeholder: Tell us what happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest set of steps that consistently reproduces the problem.
+      placeholder: |
+        1. Go to ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen instead.
+      placeholder: Tell us what the correct behavior should be.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Add relevant details such as the PROMPT deployment or version, browser, operating system, or device.
+      placeholder: PROMPT deployment/version, browser, operating system, device, and date observed.
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, screenshots, or recordings
+      description: Attach anything that helps demonstrate or diagnose the problem.
+      placeholder: Drag and drop files here, or paste relevant logs in a code block.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any other information that may help us understand the report.
+    validations:
+      required: false

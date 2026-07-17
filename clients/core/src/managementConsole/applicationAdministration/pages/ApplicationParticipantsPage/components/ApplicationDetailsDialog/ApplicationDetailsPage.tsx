@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
-import { ApplicationAnswersTable } from '../table/ApplicationAnswersTable'
+import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
 import { getApplicationNavigationButtonColorClass } from '../table/getApplicationStatusBadge'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
@@ -164,7 +164,7 @@ export const ApplicationDetailsPage = () => {
               />
             )}
             {fetchedApplication && fetchedApplicationForm && (
-              <ApplicationAnswersTable
+              <ApplicationAnswers
                 coursePhaseId={phaseId ?? ''}
                 questions={[
                   ...fetchedApplicationForm.questionsMultiSelect,

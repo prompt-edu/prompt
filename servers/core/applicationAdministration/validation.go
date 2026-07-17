@@ -275,6 +275,76 @@ func validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, 
 	return validateAnswers(ctx, coursePhaseID, application)
 }
 
+func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) error {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	if !isApplicationPhase {
+		return errors.New("course phase is not an application phase")
+	}
+
+	importMode, err := IsImportModePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	if !importMode {
+		return errors.New("course phase is not in import mode")
+	}
+
+	if req.PassStatus != db.PassStatusPassed && req.PassStatus != db.PassStatusNotAssessed {
+		return errors.New("invalid pass status for import")
+	}
+
+	// Validate the imported question columns.
+	questionColumns := make(map[string]bool, len(req.NewQuestions))
+	for _, q := range req.NewQuestions {
+		if q.ColumnKey == "" {
+			return errors.New("question column key cannot be empty")
+		}
+		if q.Title == "" {
+			return errors.New("question title cannot be empty")
+		}
+		if questionColumns[q.ColumnKey] {
+			return fmt.Errorf("duplicate question column key: %s", q.ColumnKey)
+		}
+		questionColumns[q.ColumnKey] = true
+	}
+
+	// Validate the rows.
+	seenLogins := make(map[string]bool, len(req.Rows))
+	for _, row := range req.Rows {
+		login := strings.ToLower(strings.TrimSpace(row.Student.UniversityLogin))
+		if login == "" {
+			return errors.New("university login is required for all rows")
+		}
+		if seenLogins[login] {
+			return fmt.Errorf("duplicate university login in file: %s", login)
+		}
+		seenLogins[login] = true
+
+		studentInput := row.Student
+		studentInput.HasUniversityAccount = true
+		studentInput.UniversityLogin = login
+		if err := student.ValidateImport(studentInput); err != nil {
+			return fmt.Errorf("invalid student %s: %w", login, err)
+		}
+
+		for _, ans := range row.Answers {
+			if !questionColumns[ans.ColumnKey] {
+				return fmt.Errorf("answer column %s does not map to an import question", ans.ColumnKey)
+			}
+		}
+	}
+
+	return nil
+}
+
 func validateApplication(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication, authenticatedRoute bool) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()

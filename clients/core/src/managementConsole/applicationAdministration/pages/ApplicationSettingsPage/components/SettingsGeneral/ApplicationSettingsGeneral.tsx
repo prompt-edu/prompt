@@ -39,6 +39,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
   const [universityLoginAvailable, setUniversityLoginAvailable] = useState(false)
   const [autoAccept, setAutoAccept] = useState(false)
   const [useCustomScores, setUseCustomScores] = useState(false)
+  const [importMode, setImportMode] = useState(false)
   const [dateError, setDateError] = useState<string | null>(null)
 
   const timeZone = 'Europe/Berlin'
@@ -65,6 +66,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
     setExternalStudentsAllowed(initialData?.externalStudentsAllowed ?? false)
     setUniversityLoginAvailable(initialData?.universityLoginAvailable ?? false)
     setUseCustomScores(initialData?.useCustomScores ?? false)
+    setImportMode(initialData?.applicationMode === 'import')
     setDateError(null)
   }, [initialData])
 
@@ -122,6 +124,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
         universityLoginAvailable,
         autoAccept,
         useCustomScores,
+        applicationMode: importMode ? 'import' : 'apply',
       },
     }
 
@@ -166,6 +169,20 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
 
             <form onSubmit={handleSubmit}>
               <div className='grid gap-4 py-4'>
+                {/* Import Mode */}
+                <div className='grid grid-cols-4 items-center gap-4'>
+                  <Label htmlFor='importMode' className='text-right'>
+                    CSV Import Mode
+                  </Label>
+                  <div className='col-span-3 flex items-center gap-4'>
+                    <Switch id='importMode' checked={importMode} onCheckedChange={setImportMode} />
+                    <p className='text-sm text-muted-foreground'>
+                      When enabled, students are imported from a CSV file instead of applying
+                      themselves. The public application form is closed for this phase.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Start Date/Time */}
                 <div className='grid grid-cols-4 items-center gap-4'>
                   <Label htmlFor='startDate' className='text-right'>

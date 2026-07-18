@@ -58,7 +58,7 @@
     "css-loader": "^7.1.4",
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.21",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.12",
     "file-saver": "^2.0.5",
     "motion": "^12.42.2",
     "highlight.js": "^11.11.1",

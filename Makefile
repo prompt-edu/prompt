@@ -2,16 +2,16 @@
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate \
+	server-certificate server-infrastructure-setup \
 	lint lint-clients lint-servers \
 	test test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate \
+	test-certificate test-infrastructure-setup \
 	test-e2e test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate \
-	swagger install-clients install-hooks setup-skills
+	sqlc-certificate sqlc-infrastructure-setup \
+	swagger install-clients install-hooks setup-skills seaweed seaweed-down deps deps-down
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -41,6 +41,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-self-team-allocation &
 	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
+	@$(MAKE) server-infrastructure-setup &
 	@wait
 	@echo "All servers started."
 
@@ -65,6 +66,9 @@ server-example: ## Start example server (port 8086)
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
 
+server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
+	cd servers/infrastructure_setup && go run main.go
+
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
 
@@ -86,8 +90,20 @@ client-matching: ## Start only the matching client
 db: ## Start database and Keycloak
 	docker compose up -d db keycloak
 
+deps: ## Start all local dependencies (db, Keycloak, SeaweedFS)
+	docker compose up -d db keycloak seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+
+deps-down: ## Stop all local dependencies
+	docker compose stop db keycloak seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+
+seaweed: ## Start SeaweedFS services
+	docker compose up -d seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+
 db-down: ## Stop database and Keycloak
 	docker compose stop db keycloak
+
+seaweed-down: ## Stop SeaweedFS services
+	docker compose stop seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 
@@ -104,10 +120,11 @@ lint-servers: ## Run go vet on all servers
 	cd servers/self_team_allocation && go vet ./...
 	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
+	cd servers/infrastructure_setup && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate ## Run all server tests
+test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-infrastructure-setup ## Run all server tests
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...
@@ -129,6 +146,9 @@ test-example: ## Run example server tests
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
+
+test-infrastructure-setup: ## Run infrastructure setup server tests
+	cd servers/infrastructure_setup && go test ./...
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
@@ -163,7 +183,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-infrastructure-setup ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -185,6 +205,9 @@ sqlc-example: ## Generate sqlc code for example server
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate
+
+sqlc-infrastructure-setup: ## Generate sqlc code for infrastructure setup server
+	cd servers/infrastructure_setup && sqlc generate
 
 swagger: ## Generate swagger docs for core server
 	cd servers/core && swag init

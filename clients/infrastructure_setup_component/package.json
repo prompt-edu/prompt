@@ -1,0 +1,19 @@
+{
+  "name": "infrastructure_setup_component",
+  "version": "2.13.1",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "scripts": {
+    "dev": "rspack serve --mode development",
+    "lint": "biome check src",
+    "lint:fix": "biome check src --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "build": "rspack --mode=production --env NODE_ENV=production",
+    "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
+  },
+  "devDependencies": {
+    "@rspack/cli": "^1.7.11",
+    "@rspack/core": "^1.7.11"
+  },
+  "packageManager": "yarn@4.16.0"
+}

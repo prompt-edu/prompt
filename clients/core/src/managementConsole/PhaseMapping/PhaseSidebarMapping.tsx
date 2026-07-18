@@ -3,6 +3,7 @@ import { AssessmentSidebar } from './ExternalSidebars/AssessmentSidebar'
 import { CertificateSidebar } from './ExternalSidebars/CertificateSidebar'
 import { DevOpsChallengeSidebar } from './ExternalSidebars/DevOpsChallengeSidebar'
 import { ExampleSidebar } from './ExternalSidebars/ExampleSidebar'
+import { InfrastructureSetupSidebar } from './ExternalSidebars/InfrastructureSetupSidebar'
 import { InterviewSidebar } from './ExternalSidebars/InterviewSidebar'
 import { IntroCourseDeveloperSidebar } from './ExternalSidebars/IntroCourseDeveloperSidebar'
 import { MatchingSidebar } from './ExternalSidebars/MatchingSidebar'
@@ -22,4 +23,5 @@ export const PhaseSidebarMapping: {
   'Team Allocation': TeamAllocationSidebar,
   'Self Team Allocation': SelfTeamAllocationSidebar,
   Certificate: CertificateSidebar,
+  'Infrastructure Setup': InfrastructureSetupSidebar,
 }

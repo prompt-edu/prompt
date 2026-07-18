@@ -163,7 +163,29 @@ func ValidateTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (bool, erro
 		return true, nil
 	}
 
-	if time.Now().Before(timeframeDTO.StartTime) || time.Now().After(timeframeDTO.EndTime) {
+	startTime := time.Date(
+		timeframeDTO.StartTime.Year(),
+		timeframeDTO.StartTime.Month(),
+		timeframeDTO.StartTime.Day(),
+		timeframeDTO.StartTime.Hour(),
+		timeframeDTO.StartTime.Minute(),
+		timeframeDTO.StartTime.Second(),
+		timeframeDTO.StartTime.Nanosecond(),
+		time.Local,
+	)
+	endTime := time.Date(
+		timeframeDTO.EndTime.Year(),
+		timeframeDTO.EndTime.Month(),
+		timeframeDTO.EndTime.Day(),
+		timeframeDTO.EndTime.Hour(),
+		timeframeDTO.EndTime.Minute(),
+		timeframeDTO.EndTime.Second(),
+		timeframeDTO.EndTime.Nanosecond(),
+		time.Local,
+	)
+
+	now := time.Now()
+	if now.Before(startTime) || now.After(endTime) {
 		return false, errors.New("request is outside the allowed timeframe")
 	}
 	return true, nil

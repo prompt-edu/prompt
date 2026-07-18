@@ -23,6 +23,7 @@ postgres_example_server_data/
 postgres_template_server_data/
 postgres_interview_data/
 postgres_certificate_data/
+postgres_infrastructure_setup_data/
 keycloak_postgres_data/
 postfix_config/
 seaweedfs_master_data/

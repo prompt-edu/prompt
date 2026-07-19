@@ -45,7 +45,7 @@
   },
   "packageManager": "yarn@4.17.1",
   "resolutions": {
-    "tar": "^7.5.19",
+    "tar": "^7.5.20",
     "qs": "^6.15.3",
     "serialize-javascript": "^7.0.7",
     "uuid": "^14.0.1"

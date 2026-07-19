@@ -180,6 +180,16 @@ export const FULL_COURSE_ROLES = {
   editor: 'ios2425-iPraktikumFull-Editor',
 }
 
+// Standalone Example phase on fullCourse (no graph edge, navigate by URL). The
+// example phase is a minimal placeholder module: it hosts the module-federation
+// smoke test and the lecturer-only info API-auth read.
+export const EXAMPLE_PHASE_ID = 'd000000f-0000-0000-0000-00000000000f'
+
+// Example phase on TestCourse: the e2e course-lecturer holds a role scoped to
+// iPraktikumFull only, so its info endpoint must reject them (negative auth
+// fixture).
+export const EXAMPLE_FOREIGN_PHASE_ID = 'd0000010-0000-0000-0000-000000000010'
+
 // CLOSED Application phase on TestCourse (applicationEndDate in the past):
 // the public apply endpoints must reject it (GET 404, POST 400).
 export const CLOSED_APPLICATION_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'

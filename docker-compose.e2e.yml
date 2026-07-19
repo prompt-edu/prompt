@@ -81,6 +81,10 @@ services:
         condition: service_started
       client-assessment:
         condition: service_started
+      server-example:
+        condition: service_started
+      client-example:
+        condition: service_started
       client-matching:
         condition: service_started
       server-interview:
@@ -197,6 +201,74 @@ services:
           "CMD-SHELL",
           "pg_isready -d ${DB_SELF_TEAM_ALLOCATION_NAME} -U ${DB_SELF_TEAM_ALLOCATION_USER}",
         ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Example phase module (server + MF remote + own DB) ───────────────────
+  # Minimal placeholder phase; wired in as the canonical "new phase" example.
+  # Follows the blueprint in e2e/README.md ("Phase modules in the e2e stack").
+  server-example:
+    build:
+      context: ./servers/example_server
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-example
+    depends_on:
+      db-example:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
+      # service-specific host/port vars.
+      - DB_USER=${DB_EXAMPLE_USER}
+      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD}
+      - DB_NAME=${DB_EXAMPLE_NAME}
+      - DB_HOST_EXAMPLE_SERVER=${DB_EXAMPLE_HOST}
+      - DB_PORT_EXAMPLE_SERVER=${DB_EXAMPLE_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+    # Distroless image (no shell/wget), so no container healthcheck.
+    # Readiness is polled by the runner's global-setup via
+    # /example-service/api/info through the client-core proxy.
+
+  client-example:
+    build:
+      context: ./clients/example_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-example
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /example/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-example:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-example
+    environment:
+      - POSTGRES_USER=${DB_EXAMPLE_USER}
+      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD}
+      - POSTGRES_DB=${DB_EXAMPLE_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and
+    # the tests create all phase data themselves.
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -d ${DB_EXAMPLE_NAME} -U ${DB_EXAMPLE_USER}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -706,6 +778,11 @@ services:
         condition: service_healthy
       server-assessment:
         # distroless; global-setup polls /assessment/api/info.
+        condition: service_started
+      client-example:
+        condition: service_healthy
+      server-example:
+        # distroless; global-setup polls /example-service/api/info.
         condition: service_started
       client-matching:
         condition: service_healthy

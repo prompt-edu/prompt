@@ -1,0 +1,11 @@
+import { axiosInstance, type Student } from '@tumaet/prompt-shared-state'
+
+export const searchStudents = async (searchString: string): Promise<Student[]> => {
+  try {
+    return (await axiosInstance.get(`/api/students/search/${encodeURIComponent(searchString)}`))
+      .data
+  } catch (err) {
+    console.error(err)
+    throw err
+  }
+}

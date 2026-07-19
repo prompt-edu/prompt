@@ -18,6 +18,11 @@ future AIs to read, run, and extend.
 
 ## Running
 
+**Prerequisites:** [`uv`](https://docs.astral.sh/uv/) (Python env + deps) and
+[`k6`](https://k6.io/) on your `PATH` (`brew install uv k6`). `run.sh` calls
+`uv sync` on every run to provision the Python environment from `pyproject.toml`
+/ `uv.lock`, so there is no manual `pip install` step.
+
 The suite targets an **isolated** Docker stack (project `prompt-stress`) so it never
 collides with another running PROMPT stack. First create the local env file (it is
 gitignored), then bring the stack up:
@@ -61,7 +66,7 @@ docker compose -p prompt-stress down -v
 ## Extending
 
 - Add/fix a route: edit the relevant `api-stress/catalog/partial_<service>.json`, then
-  `python3 api-stress/catalog/merge_catalog.py`.
+  `uv run --project api-stress api-stress/catalog/merge_catalog.py`.
 - Tune intensity: `INTENSITY` presets live in `k6/scenario.js` / `k6/exhaustion.js`.
 - Add a fuzz axis: add a method to `fuzz/fuzz.py` and call it in `run()`.
 

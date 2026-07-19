@@ -15,8 +15,11 @@
 set -uo pipefail
 
 STRESS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+command -v uv >/dev/null 2>&1 || { echo "uv not found on PATH (install: brew install uv, or see https://docs.astral.sh/uv/)"; exit 1; }
+# Create/refresh the project venv from pyproject.toml + uv.lock. Fast and
+# idempotent, so it is safe to run on every invocation.
+( cd "$STRESS_DIR" && uv sync --quiet ) || { echo "uv sync failed"; exit 1; }
 PY="$STRESS_DIR/.venv/bin/python"
-[[ -x "$PY" ]] || { echo "python venv not found at $PY (run: python3 -m venv $STRESS_DIR/.venv && $STRESS_DIR/.venv/bin/pip install -r $STRESS_DIR/requirements.txt)"; exit 1; }
 K6="$(command -v k6)" || { echo "k6 not found on PATH (install: brew install k6)"; exit 1; }
 CORE_URL="http://localhost:18089"
 KC_URL="http://localhost:18081"

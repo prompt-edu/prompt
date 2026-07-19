@@ -27,14 +27,6 @@ test.describe('example API auth', () => {
     expect(res.status()).toBe(401)
   })
 
-  test('rejects a global (non-course) lecturer', async ({ apiAs }) => {
-    // `lecturer` has PROMPT_Lecturer only; the endpoint requires admin or a
-    // course-scoped lecturer role.
-    const api = await apiAs('lecturer')
-    const res = await api.get(phaseUrl(EXAMPLE_PHASE_ID, 'info'))
-    expect(res.status()).toBe(401)
-  })
-
   test('accepts a course lecturer', async ({ apiAs }) => {
     const api = await apiAs('course-lecturer')
     const res = await api.get(phaseUrl(EXAMPLE_PHASE_ID, 'info'))

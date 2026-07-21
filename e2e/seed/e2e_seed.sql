@@ -740,7 +740,10 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 --
 
 INSERT INTO public.course_phase_type VALUES ('a1111111-1111-1111-1111-111111111111', 'Application', true, 'core', 'Application collection phase');
-INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'Example', false, 'example', 'Example phase');
+-- Name matches the core client's PhaseRouter key (example_component) so the
+-- Module Federation remote renders; base URL matches the e2e nginx proxy
+-- (/example-service/api → server-example) so core can resolve its info/copy/config.
+INSERT INTO public.course_phase_type VALUES ('a2222222-2222-2222-2222-222222222222', 'example_component', false, '{CORE_HOST}/example-service/api', 'Example phase');
 -- Fixed UUIDs so seeded course phases can reference these types deterministically; the
 -- core server's startup init matches by name and skips creating them (it would
 -- otherwise use random UUIDs). {CORE_HOST} is replaced by core at read time.
@@ -814,6 +817,16 @@ INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 
 INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Assessment Print', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+
+--
+-- Standalone Example phases (no graph edges, route by URL). The example phase is
+-- a minimal placeholder module, so it needs no participants or config:
+-- d000000f = MF smoke + lecturer-info API auth on iPraktikumFull,
+-- d0000010 = TestCourse negative-auth fixture (course-lecturer of iPraktikumFull
+-- is not a lecturer of TestCourse, so its info endpoint must reject them).
+--
+INSERT INTO public.course_phase VALUES ('d000000f-0000-0000-0000-00000000000f', 'c0000001-0000-0000-0000-000000000001', 'Example', '{}', false, 'a2222222-2222-2222-2222-222222222222', '{}');
+INSERT INTO public.course_phase VALUES ('d0000010-0000-0000-0000-000000000010', 'be780b32-a678-4b79-ae1c-80071771d254', 'Example', '{}', false, 'a2222222-2222-2222-2222-222222222222', '{}');
 
 --
 -- Standalone Matching phase (no graph edge) owned by the matching lecturer

@@ -2,8 +2,9 @@
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
 Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
-**assessment**, **interview**, **certificate**, and **team allocation phase
-modules** (Go service, own Postgres, Module Federation remote each) and the
+**assessment**, **example**, **interview**, **certificate**, and **team
+allocation phase modules** (Go service, own Postgres, Module Federation remote
+each) and the
 **matching module** (Module Federation remote only; its backend is core-hosted)
 — and drive them like a real user, with
 [Playwright](https://playwright.dev). They catch full-stack regressions (auth
@@ -89,6 +90,11 @@ docker-compose.e2e.yml
  │    │                      migrations also create the default schemas)
  │    ├── server-assessment  built from ../servers/assessment
  │    └── client-assessment  the Module Federation remote (nginx)
+ ├── example phase module:
+ │    ├── db-example      own ephemeral Postgres (empty; the server runs its
+ │    │                   own migrations on startup)
+ │    ├── server-example  built from ../servers/example_server
+ │    └── client-example  the Module Federation remote (nginx)
  ├── matching module:
  │    └── client-matching    the Module Federation remote (nginx); no server or
  │                           DB — its backend is core-hosted (server-core)

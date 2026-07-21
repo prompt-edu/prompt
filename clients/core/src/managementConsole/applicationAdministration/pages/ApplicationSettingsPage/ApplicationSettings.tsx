@@ -4,6 +4,7 @@ import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { getApplicationStatus } from '../../utils/getApplicationStatus'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
+import { ApplicationMailingSettings } from '../Mailing/ApplicationMailingSettings'
 import ApplicationOverview from './components/Overview/ApplicationSettingsOverview'
 import { ApplicationSettingsCustomScores } from './components/SettingsCustomScores/ApplicationSettingsCustomScores'
 import { ApplicationGeneralSettings } from './components/SettingsGeneral/ApplicationSettingsGeneral'
@@ -29,6 +30,7 @@ export const ApplicationConfiguration = () => {
 
       {applicationMetaData && <ApplicationGeneralSettings initialData={applicationMetaData} />}
       {applicationMetaData && <ApplicationSettingsCustomScores initialData={applicationMetaData} />}
+      <ApplicationMailingSettings />
     </div>
   )
 }

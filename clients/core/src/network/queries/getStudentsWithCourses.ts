@@ -1,4 +1,4 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
+import { axiosInstance, type Gender, type StudyDegree } from '@tumaet/prompt-shared-state'
 
 export interface StudentCourseParticipation {
   courseId: string
@@ -19,6 +19,9 @@ export interface StudentWithCourses {
   email: string
   hasUniversityAccount: boolean
   currentSemester?: number
+  gender: Gender
+  nationality: string
+  studyDegree: StudyDegree
   studyProgram: string
   lastModified: string
   courses: StudentCourseParticipation[]
@@ -27,13 +30,15 @@ export interface StudentWithCourses {
 
 export const getStudentsWithCourses = async (): Promise<StudentWithCourses[]> => {
   try {
-    return (
+    const data = (
       await axiosInstance.get('/api/students/with-courses', {
         headers: {
           'Content-Type': 'application/json-path+json',
         },
       })
     ).data
+    console.log(data)
+    return data
   } catch (err) {
     console.error(err)
     throw err

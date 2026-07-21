@@ -47,14 +47,16 @@ export class ApplicationAdminPage {
     await expect(dialog.getByRole('heading', { name: 'Personal Information' })).toBeVisible()
   }
 
+  // Mailing configuration moved into the Application settings page.
   async gotoMailing(courseId: string, phaseId: string) {
-    await this.page.goto(`/management/course/${courseId}/${phaseId}/mailing`)
+    await this.page.goto(`/management/course/${courseId}/${phaseId}/settings`)
+    await expect(
+      this.page.getByRole('heading', { name: 'Application Settings' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
   async expectMailingLoaded() {
-    await expect(
-      this.page.getByRole('heading', { name: 'Application Mailing Settings' }),
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(this.page.getByText('E-Mail Settings').first()).toBeVisible({ timeout: 15_000 })
     await expect(this.page.getByRole('heading', { name: 'Mailing Templates' })).toBeVisible()
   }
 

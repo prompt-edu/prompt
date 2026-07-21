@@ -1,8 +1,9 @@
 import { type UpdateCoursePhase, useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
   Button,
+  Card,
+  CardContent,
   EmailTemplateEditor,
-  ManagementPageHeader,
   MissingConfig,
   type MissingConfigItem,
   Tabs,
@@ -109,72 +110,74 @@ export const ApplicationMailingSettings = () => {
   }, [courseId, courseMailingIsConfigured])
 
   return (
-    <div className='space-y-6'>
-      <ManagementPageHeader>Application Mailing Settings</ManagementPageHeader>
-      <MissingConfig elements={missingConfigs} />
-      <SettingsCard
-        applicationMailingMetaData={applicationMailingMetaData}
-        handleSwitchChange={handleSwitchChange}
-        isModified={isModified}
-      />
-      <h2 className='text-2xl font-bold'>Mailing Templates </h2>
+    <Card className='w-full'>
+      <CardContent className='space-y-6 pt-6'>
+        <h3 className='text-lg font-semibold'>Mailing</h3>
+        <MissingConfig elements={missingConfigs} />
+        <SettingsCard
+          applicationMailingMetaData={applicationMailingMetaData}
+          handleSwitchChange={handleSwitchChange}
+          isModified={isModified}
+        />
+        <h3 className='text-lg font-semibold'>Mailing Templates</h3>
 
-      <CustomApplicationPlaceHolder />
-      {/* ensures that tiptap editor is only loaded after receiving meta data */}
-      {initialMetaData && (
-        <Tabs defaultValue='confirmation' className='w-full'>
-          <TabsList className='grid w-full grid-cols-3'>
-            <TabsTrigger value='confirmation'>1. Confirmation</TabsTrigger>
-            <TabsTrigger value='acceptance'>2. Acceptance</TabsTrigger>
-            <TabsTrigger value='rejection'>3. Rejection</TabsTrigger>
-          </TabsList>
-          <TabsContent value='confirmation'>
-            <EmailTemplateEditor
-              subject={applicationMailingMetaData.confirmationMailSubject}
-              content={applicationMailingMetaData.confirmationMailContent}
-              onInputChange={handleInputChange}
-              label='Confirmation'
-              subjectHTMLLabel='confirmationMailSubject'
-              contentHTMLLabel='confirmationMailContent'
-              placeholders={applicationMailingPlaceholders.map(
-                (placeholder) => placeholder.placeholder,
-              )}
-            />
-          </TabsContent>
-          <TabsContent value='acceptance'>
-            <EmailTemplateEditor
-              subject={applicationMailingMetaData.passedMailSubject}
-              content={applicationMailingMetaData.passedMailContent}
-              onInputChange={handleInputChange}
-              label='Acceptance'
-              subjectHTMLLabel='passedMailSubject'
-              contentHTMLLabel='passedMailContent'
-              placeholders={applicationMailingPlaceholders.map(
-                (placeholder) => placeholder.placeholder,
-              )}
-            />
-          </TabsContent>
-          <TabsContent value='rejection'>
-            <EmailTemplateEditor
-              subject={applicationMailingMetaData.failedMailSubject}
-              content={applicationMailingMetaData.failedMailContent}
-              onInputChange={handleInputChange}
-              label='Rejection'
-              subjectHTMLLabel='failedMailSubject'
-              contentHTMLLabel='failedMailContent'
-              placeholders={applicationMailingPlaceholders.map(
-                (placeholder) => placeholder.placeholder,
-              )}
-            />
-          </TabsContent>
-        </Tabs>
-      )}
+        <CustomApplicationPlaceHolder />
+        {/* ensures that tiptap editor is only loaded after receiving meta data */}
+        {initialMetaData && (
+          <Tabs defaultValue='confirmation' className='w-full'>
+            <TabsList className='grid w-full grid-cols-3'>
+              <TabsTrigger value='confirmation'>1. Confirmation</TabsTrigger>
+              <TabsTrigger value='acceptance'>2. Acceptance</TabsTrigger>
+              <TabsTrigger value='rejection'>3. Rejection</TabsTrigger>
+            </TabsList>
+            <TabsContent value='confirmation'>
+              <EmailTemplateEditor
+                subject={applicationMailingMetaData.confirmationMailSubject}
+                content={applicationMailingMetaData.confirmationMailContent}
+                onInputChange={handleInputChange}
+                label='Confirmation'
+                subjectHTMLLabel='confirmationMailSubject'
+                contentHTMLLabel='confirmationMailContent'
+                placeholders={applicationMailingPlaceholders.map(
+                  (placeholder) => placeholder.placeholder,
+                )}
+              />
+            </TabsContent>
+            <TabsContent value='acceptance'>
+              <EmailTemplateEditor
+                subject={applicationMailingMetaData.passedMailSubject}
+                content={applicationMailingMetaData.passedMailContent}
+                onInputChange={handleInputChange}
+                label='Acceptance'
+                subjectHTMLLabel='passedMailSubject'
+                contentHTMLLabel='passedMailContent'
+                placeholders={applicationMailingPlaceholders.map(
+                  (placeholder) => placeholder.placeholder,
+                )}
+              />
+            </TabsContent>
+            <TabsContent value='rejection'>
+              <EmailTemplateEditor
+                subject={applicationMailingMetaData.failedMailSubject}
+                content={applicationMailingMetaData.failedMailContent}
+                onInputChange={handleInputChange}
+                label='Rejection'
+                subjectHTMLLabel='failedMailSubject'
+                contentHTMLLabel='failedMailContent'
+                placeholders={applicationMailingPlaceholders.map(
+                  (placeholder) => placeholder.placeholder,
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
 
-      <div className='justify-end flex'>
-        <Button onClick={handleSubmit} type='submit' className='ml-auto' disabled={!isModified}>
-          Save Changes
-        </Button>
-      </div>
-    </div>
+        <div className='justify-end flex'>
+          <Button onClick={handleSubmit} type='submit' className='ml-auto' disabled={!isModified}>
+            Save Changes
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

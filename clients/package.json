@@ -1,6 +1,6 @@
 {
   "name": "prompt-module-federation",
-  "version": "2.15.4",
+  "version": "2.15.5",
   "private": true,
   "workspaces": {
     "packages": [
@@ -58,7 +58,7 @@
     "css-loader": "^7.1.4",
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.21",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.12",
     "file-saver": "^2.0.5",
     "motion": "^12.42.2",
     "highlight.js": "^11.11.1",
@@ -66,7 +66,7 @@
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.24.0",
-    "postcss": "^8.5.16",
+    "postcss": "^8.5.18",
     "postcss-loader": "8.2.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -88,7 +88,7 @@
     "diff": "^9.0.0",
     "lodash": "^4.18.1",
     "tmp": "^0.2.7",
-    "tar": "^7.5.19",
+    "tar": "^7.5.20",
     "form-data": "^4.0.6",
     "js-yaml": "^5.2.1"
   },

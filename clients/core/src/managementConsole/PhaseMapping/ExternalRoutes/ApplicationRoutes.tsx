@@ -5,7 +5,6 @@ import { ApplicationLandingPage } from '../../applicationAdministration/pages/Ap
 import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
 import { ApplicationQuestionConfig } from '../../applicationAdministration/pages/ApplicationQuestionConfigPage/ApplicationQuestionConfig'
 import { ApplicationConfiguration } from '../../applicationAdministration/pages/ApplicationSettingsPage/ApplicationSettings'
-import { ApplicationMailingSettings } from '../../applicationAdministration/pages/Mailing/ApplicationMailingSettings'
 import { ExternalRoutes } from './ExternalRoutes'
 
 const applicationRoutesObjects: ExtendedRouteObject[] = [
@@ -50,15 +49,6 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
     element: (
       <ApplicationDataWrapper>
         <ApplicationDetailsPage />
-      </ApplicationDataWrapper>
-    ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
-  },
-  {
-    path: '/mailing',
-    element: (
-      <ApplicationDataWrapper>
-        <ApplicationMailingSettings />
       </ApplicationDataWrapper>
     ),
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

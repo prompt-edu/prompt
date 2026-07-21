@@ -18,6 +18,7 @@ export const SELF_TEAM_ALLOCATION_API = '/self-team-allocation/api'
 export const ASSESSMENT_API = '/assessment/api'
 export const INTERVIEW_API = '/interview/api'
 export const CERTIFICATE_API = '/certificate/api'
+export const TEAM_ALLOCATION_API = '/team-allocation/api'
 
 export const tokenEndpoint = () =>
   `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`

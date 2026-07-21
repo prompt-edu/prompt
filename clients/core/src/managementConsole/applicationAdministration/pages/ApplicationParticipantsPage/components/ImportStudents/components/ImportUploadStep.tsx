@@ -33,7 +33,7 @@ export const ImportUploadStep = ({
   const previewRows = rows.slice(0, PREVIEW_ROW_COUNT)
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-4 min-w-0'>
       <div className='flex items-center justify-between'>
         <p className='text-sm text-muted-foreground'>
           Upload a CSV file with your students. First Name, Last Name, University ID and Email are
@@ -69,11 +69,11 @@ export const ImportUploadStep = ({
       {error && <p className='text-sm text-destructive'>{error}</p>}
 
       {headers.length > 0 && (
-        <div>
+        <div className='min-w-0'>
           <p className='text-sm font-medium mb-2'>
             Preview ({rows.length} row{rows.length === 1 ? '' : 's'})
           </p>
-          <div className='max-h-[300px] overflow-auto rounded-md border'>
+          <div className='w-full max-h-[300px] overflow-auto rounded-md border'>
             <Table>
               <TableHeader>
                 <TableRow>

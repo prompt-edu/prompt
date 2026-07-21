@@ -1,5 +1,5 @@
 import { Badge } from '@tumaet/prompt-ui-components'
-import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock, Upload, XCircle } from 'lucide-react'
 import { ApplicationStatus } from '../interfaces/applicationStatus'
 
 interface ApplicationConfigurationHeaderProps {
@@ -21,6 +21,8 @@ export const ApplicationStatusBadge = ({
         return <CheckCircle2 className='h-5 w-5 text-green-500' />
       case ApplicationStatus.Passed:
         return <XCircle className='h-5 w-5 text-gray-500' />
+      case ApplicationStatus.Import:
+        return <Upload className='h-5 w-5 text-indigo-500' />
       default:
         return null
     }
@@ -36,7 +38,9 @@ export const ApplicationStatusBadge = ({
             ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 hover:text-blue-800'
             : applicationStatus === ApplicationStatus.Passed
               ? 'bg-gray-100 text-gray-800 hover:bg-gray-200 hover:text-gray-800'
-              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:text-yellow-800'
+              : applicationStatus === ApplicationStatus.Import
+                ? 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 hover:text-indigo-800'
+                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:text-yellow-800'
       }`}
     >
       {getStatusIcon(applicationStatus)}

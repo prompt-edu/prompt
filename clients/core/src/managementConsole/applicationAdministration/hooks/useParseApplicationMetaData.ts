@@ -14,6 +14,7 @@ export const useParseApplicationMetaData = (
       const universityLoginAvailable = coursePhase?.restrictedData?.universityLoginAvailable
       const autoAccept = coursePhase?.restrictedData?.autoAccept
       const customScores = coursePhase?.restrictedData?.useCustomScores
+      const applicationMode = coursePhase?.restrictedData?.applicationMode
 
       const parsedMetaData: ApplicationMetaData = {
         applicationStartDate: applicationStartDate ? new Date(applicationStartDate) : undefined,
@@ -22,6 +23,7 @@ export const useParseApplicationMetaData = (
         universityLoginAvailable: universityLoginAvailable ? universityLoginAvailable : false,
         autoAccept: autoAccept ? autoAccept : false,
         useCustomScores: customScores ? customScores : false,
+        applicationMode: applicationMode === 'import' ? 'import' : 'apply',
       }
       setApplicationMetaData(parsedMetaData)
     }

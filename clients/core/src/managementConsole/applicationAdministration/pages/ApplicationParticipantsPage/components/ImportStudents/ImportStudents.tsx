@@ -168,7 +168,7 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
           <DialogTitle>Import Students</DialogTitle>
         </DialogHeader>
 
-        <div className='mt-4'>
+        <div className='mt-4 min-w-0'>
           {page === UPLOAD_PAGE && (
             <ImportUploadStep
               fileName={fileName}

@@ -41,19 +41,19 @@ You can also configure the following options:
 | **Enforce Student Login**   | Requires students with a university login and matriculation number to log in via Keycloak. Recommended in most cases. Disable only for self-hosted, non-university setups. |
 | **Allow External Students** | Allows students without university credentials (e.g., exchange students) to submit applications.                                                                           |
 | **Auto Accept**             | Automatically accepts every application. Use this only when the application serves as a simple registration form.                                                          |
-| **CSV Import Mode**         | Closes the public application form and lets you import students from a CSV file instead. See [Importing Students from a CSV](#csv-import).                                  |
+| **Intake Mode**             | Switches between the public application form and importing students from a CSV. See the _Importing Students from a CSV_ section below.                                      |
 
 ---
 
-## 📥 Importing Students from a CSV {#csv-import}
+## 📥 Importing Students from a CSV
 
 Instead of having students apply themselves, you can **import a list of students from a CSV file**. This is useful when the participants are already decided elsewhere (for example a central matching process or a spreadsheet).
 
-Import is an **either/or** choice per application phase: when **CSV Import Mode** is enabled, the public application form is closed and students can no longer apply on their own. Everything else about the phase (questions, participants, mailing) keeps working as usual.
+Import is an **either/or** choice per application phase: when the intake mode is set to **CSV Import**, the public application form is closed and students can no longer apply on their own. Everything else about the phase (questions, participants, mailing) keeps working as usual.
 
 ### Enabling Import Mode
 
-Open the **Settings** page, turn on **CSV Import Mode** under General Settings, and save. The **Participants** page then shows an **Import Students** button in place of the manual add dialog.
+Open the **Settings** page, set **Intake Mode** to **CSV Import** under General Settings, and save. The **Participants** page then shows an **Import Students** button in place of the manual add dialog.
 
 > Switching modes never deletes existing applicants — it only opens or closes the public form.
 

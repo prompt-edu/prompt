@@ -32,7 +32,6 @@ repos:
         language: script
         entry: scripts/pre-commit-swagger.sh
         files: '^servers/(core|example_server|self_team_allocation|assessment|team_allocation|interview)/.*\.go$'
-        pass_filenames: false
 
       # gofmt check (fails if a staged .go file is not formatted).
       - id: gofmt
@@ -47,4 +46,3 @@ repos:
         language: script
         entry: scripts/pre-commit-biome.sh
         files: '^clients/.*\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$'
-        pass_filenames: false

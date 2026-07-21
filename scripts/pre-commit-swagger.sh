@@ -7,10 +7,12 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
-staged_files="$(git diff --cached --name-only)"
-if ! echo "${staged_files}" | grep -Eq '^servers/(core|example_server|self_team_allocation|assessment|team_allocation|interview)/'; then
+# The pre-commit framework forwards the filtered file set (repo-relative paths);
+# using it instead of the git index keeps `pre-commit run --all-files` working.
+if [[ $# -eq 0 ]]; then
   exit 0
 fi
+changed_files="$(printf '%s\n' "$@")"
 
 swag_bin=""
 if command -v swag >/dev/null 2>&1; then
@@ -38,7 +40,7 @@ fi
 
 regenerate() {
   local service="$1"
-  if echo "${staged_files}" | grep -Eq "^servers/${service}/"; then
+  if echo "${changed_files}" | grep -Eq "^servers/${service}/"; then
     SWAG_BIN="${swag_bin}" ./scripts/generate-api-spec.sh "${service}"
     git add "servers/${service}/docs"
   fi

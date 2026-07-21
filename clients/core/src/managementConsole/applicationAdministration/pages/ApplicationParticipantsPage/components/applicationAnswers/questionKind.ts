@@ -14,8 +14,6 @@ export type ApplicationQuestion =
   | (ApplicationQuestionMultiSelect & { kind: 'multiSelect' })
   | (ApplicationQuestionFileUpload & { kind: 'fileUpload' })
 
-export const getQuestionKind = (question: ApplicationQuestion): QuestionKind => question.kind
-
 export const QUESTION_KIND_META: Record<QuestionKind, { label: string; icon: LucideIcon }> = {
   text: { label: 'Text', icon: AlignLeft },
   multiSelect: { label: 'Multi-select', icon: CheckSquare },

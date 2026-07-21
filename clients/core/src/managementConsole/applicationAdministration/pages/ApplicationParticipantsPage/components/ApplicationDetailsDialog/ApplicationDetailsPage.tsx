@@ -166,14 +166,16 @@ export const ApplicationDetailsPage = () => {
             {fetchedApplication && fetchedApplicationForm && (
               <ApplicationAnswers
                 coursePhaseId={phaseId ?? ''}
+                // Merge order matches the public application form (ApplicationFormView)
+                // so a shared orderNum tie resolves to the same order the applicant saw.
                 questions={[
-                  ...fetchedApplicationForm.questionsMultiSelect.map((q) => ({
-                    ...q,
-                    kind: 'multiSelect' as const,
-                  })),
                   ...fetchedApplicationForm.questionsText.map((q) => ({
                     ...q,
                     kind: 'text' as const,
+                  })),
+                  ...fetchedApplicationForm.questionsMultiSelect.map((q) => ({
+                    ...q,
+                    kind: 'multiSelect' as const,
                   })),
                   ...fetchedApplicationForm.questionsFileUpload.map((q) => ({
                     ...q,

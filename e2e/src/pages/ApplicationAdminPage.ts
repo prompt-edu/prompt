@@ -68,7 +68,9 @@ export class ApplicationAdminPage {
   }
 
   async expectQuestionVisible(title: string) {
-    await expect(this.page.getByText(title, { exact: true })).toBeVisible()
+    await expect(
+      this.page.getByTestId('application-answers').getByText(title, { exact: true }),
+    ).toBeVisible()
   }
 
   async openFilterMenu() {

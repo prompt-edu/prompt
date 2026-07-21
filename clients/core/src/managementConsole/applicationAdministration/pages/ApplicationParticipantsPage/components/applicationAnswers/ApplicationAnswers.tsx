@@ -46,7 +46,7 @@ export const ApplicationAnswers = ({
   )
 
   return (
-    <Card className='w-full'>
+    <Card className='w-full' data-testid='application-answers'>
       <CardHeader>
         <CardTitle>Application Answers</CardTitle>
         <CardDescription>

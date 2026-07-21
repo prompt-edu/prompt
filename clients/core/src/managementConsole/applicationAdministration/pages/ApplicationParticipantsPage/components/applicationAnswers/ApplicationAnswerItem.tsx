@@ -2,7 +2,7 @@ import type { ApplicationAnswerFileUpload } from '@core/interfaces/application/a
 import { FormDescriptionHTML } from '@core/publicPages/application/pages/ApplicationForm/components/FormDescriptionHTML'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tumaet/prompt-ui-components'
 import { FileUploadAnswer, MultiSelectAnswer, TextAnswer } from './answerRenderers'
-import { type ApplicationQuestion, getQuestionKind, QUESTION_KIND_META } from './questionKind'
+import { type ApplicationQuestion, QUESTION_KIND_META } from './questionKind'
 
 interface ApplicationAnswerItemProps {
   coursePhaseId: string
@@ -23,7 +23,7 @@ export const ApplicationAnswerItem = ({
   multiSelectAnswer,
   fileAnswer,
 }: ApplicationAnswerItemProps) => {
-  const kind = getQuestionKind(question)
+  const kind = question.kind
   const { label, icon: Icon } = QUESTION_KIND_META[kind]
 
   return (

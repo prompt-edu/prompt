@@ -2,7 +2,9 @@
 FROM node:22-alpine AS build
 
 WORKDIR /app
-COPY package.json yarn.lock .yarnrc.yml ./
+# .yarnrc.yml is optional (Corepack reads the Yarn version from package.json);
+# the [l] glob copies it when present but does not fail the build if absent.
+COPY package.json yarn.lock .yarnrc.ym[l] ./
 RUN corepack enable && yarn install --immutable
 
 COPY . ./

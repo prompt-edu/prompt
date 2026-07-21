@@ -25,7 +25,6 @@ export const AssessmentHeader = ({
   const navigate = useNavigate()
   const { prevMember, nextMember } = useParticipantNavigation()
 
-  const hasNavigation = Boolean(prevMember && nextMember)
   const studentName = `${participant.student.firstName} ${participant.student.lastName}`
 
   return (
@@ -40,16 +39,16 @@ export const AssessmentHeader = ({
     >
       {(docked) => (
         <div className='flex items-center gap-2'>
-          {hasNavigation && (
+          {prevMember && (
             <Button
               variant='outline'
               className='h-10 shrink-0'
-              aria-label={`Navigate to previous participant: ${prevMember?.firstName} ${prevMember?.lastName}`}
-              onClick={() => navigate(`../${prevMember?.id}`, { relative: 'path' })}
+              aria-label={`Navigate to previous participant: ${prevMember.firstName} ${prevMember.lastName}`}
+              onClick={() => navigate(`../${prevMember.id}`, { relative: 'path' })}
             >
               <ChevronLeft className='h-4 w-4' />
               <span className='hidden md:inline'>
-                {prevMember?.firstName} {prevMember?.lastName}
+                {prevMember.firstName} {prevMember.lastName}
               </span>
             </Button>
           )}
@@ -76,15 +75,15 @@ export const AssessmentHeader = ({
             />
           </div>
 
-          {hasNavigation && (
+          {nextMember && (
             <Button
               variant='outline'
               className='h-10 shrink-0'
-              aria-label={`Navigate to next participant: ${nextMember?.firstName} ${nextMember?.lastName}`}
-              onClick={() => navigate(`../${nextMember?.id}`, { relative: 'path' })}
+              aria-label={`Navigate to next participant: ${nextMember.firstName} ${nextMember.lastName}`}
+              onClick={() => navigate(`../${nextMember.id}`, { relative: 'path' })}
             >
               <span className='hidden md:inline'>
-                {nextMember?.firstName} {nextMember?.lastName}
+                {nextMember.firstName} {nextMember.lastName}
               </span>
               <ChevronRight className='h-4 w-4' />
             </Button>

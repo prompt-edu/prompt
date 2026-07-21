@@ -32,8 +32,8 @@ export const EvaluationHeader = ({
           {previousAction}
           <h1
             className={cn(
-              'min-w-0 flex-1 truncate font-bold transition-all duration-300',
-              docked ? 'text-base text-center' : 'text-4xl',
+              'min-w-0 flex-1 font-bold transition-all duration-300',
+              docked ? 'truncate text-base text-center' : 'text-4xl',
               !docked && !hasActions && 'mb-6',
             )}
           >

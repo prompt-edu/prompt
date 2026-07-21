@@ -13,7 +13,7 @@ export const ImportResultSummary = ({ result }: ImportResultSummaryProps): React
         <CheckCircle2 className='h-5 w-5' />
         <span className='font-medium'>Import complete</span>
       </div>
-      <div className='grid grid-cols-3 gap-4'>
+      <div className='grid grid-cols-2 gap-4'>
         <div className='rounded-md border p-4 text-center'>
           <p className='text-2xl font-semibold'>{result.created}</p>
           <p className='text-sm text-muted-foreground'>Created</p>
@@ -21,10 +21,6 @@ export const ImportResultSummary = ({ result }: ImportResultSummaryProps): React
         <div className='rounded-md border p-4 text-center'>
           <p className='text-2xl font-semibold'>{result.updated}</p>
           <p className='text-sm text-muted-foreground'>Updated</p>
-        </div>
-        <div className='rounded-md border p-4 text-center'>
-          <p className='text-2xl font-semibold'>{result.failed}</p>
-          <p className='text-sm text-muted-foreground'>Failed</p>
         </div>
       </div>
     </div>

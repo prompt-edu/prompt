@@ -301,8 +301,11 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		return errors.New("invalid pass status for import")
 	}
 
-	// Validate the imported question columns.
+	// Validate the imported question columns. Titles must be unique too: the import service
+	// resolves questions by title, so two columns sharing a title would collapse onto one
+	// question and silently overwrite each other's answers.
 	questionColumns := make(map[string]bool, len(req.NewQuestions))
+	questionTitles := make(map[string]bool, len(req.NewQuestions))
 	for _, q := range req.NewQuestions {
 		if q.ColumnKey == "" {
 			return errors.New("question column key cannot be empty")
@@ -310,10 +313,17 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		if q.Title == "" {
 			return errors.New("question title cannot be empty")
 		}
+		if q.AllowedLength < 1 {
+			return fmt.Errorf("allowed length for question %q must be at least 1", q.Title)
+		}
 		if questionColumns[q.ColumnKey] {
 			return fmt.Errorf("duplicate question column key: %s", q.ColumnKey)
 		}
+		if questionTitles[q.Title] {
+			return fmt.Errorf("duplicate question title: %s", q.Title)
+		}
 		questionColumns[q.ColumnKey] = true
+		questionTitles[q.Title] = true
 	}
 
 	// Validate the rows.

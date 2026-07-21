@@ -324,3 +324,43 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_UnknownAnswerCol
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "does not map to an import question")
 }
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_DuplicateQuestionTitleRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	// Two columns with distinct keys but the same title would collapse onto one question.
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "team1", Title: "Team", AllowedLength: 50},
+			{ColumnKey: "team2", Title: "Team", AllowedLength: 50},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{FirstName: "Dup", LastName: "Title", Email: "dup.title@example.com", UniversityLogin: "dt01abc"}},
+		},
+	}
+
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "duplicate question title")
+}
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidAllowedLengthRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "note", Title: "Note", AllowedLength: 0},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{FirstName: "Bad", LastName: "Length", Email: "bad.length@example.com", UniversityLogin: "bl01abc"}},
+		},
+	}
+
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "allowed length")
+}

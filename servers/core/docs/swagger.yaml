@@ -283,8 +283,6 @@ definitions:
     properties:
       created:
         type: integer
-      failed:
-        type: integer
       rows:
         items:
           $ref: '#/definitions/applicationDTO.ImportRowResult'
@@ -308,9 +306,7 @@ definitions:
       index:
         type: integer
       outcome:
-        description: '"created", "updated" or "failed"'
-        type: string
-      reason:
+        description: '"created" or "updated"'
         type: string
       universityLogin:
         type: string

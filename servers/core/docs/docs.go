@@ -5112,9 +5112,6 @@ const docTemplate = `{
                 "created": {
                     "type": "integer"
                 },
-                "failed": {
-                    "type": "integer"
-                },
                 "rows": {
                     "type": "array",
                     "items": {
@@ -5150,10 +5147,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "outcome": {
-                    "description": "\"created\", \"updated\" or \"failed\"",
-                    "type": "string"
-                },
-                "reason": {
+                    "description": "\"created\" or \"updated\"",
                     "type": "string"
                 },
                 "universityLogin": {

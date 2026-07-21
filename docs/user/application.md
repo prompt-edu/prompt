@@ -89,7 +89,7 @@ Re-running an import with the same University IDs **updates** those students ins
 
 ### Extra Columns as Questions
 
-Any column mapped to **Import as Question** becomes a **text application question** on the phase, and each student's value in that column becomes their answer. This lets you carry additional CSV data (for example a preferred team or a note) into PROMPT alongside the students. Afterwards these behave like any other question: they appear on the **Questions** page and their answers can be made available to later phases via **Export Settings**.
+Any column mapped to **Import as Question** becomes a **text application question** on the phase, and each student's value in that column becomes their answer. This lets you carry additional CSV data (for example a preferred team or a note) into PROMPT alongside the students. Afterward these behave like any other question: they appear on the **Questions** page and their answers can be made available to later phases via **Export Settings**.
 
 ### Logging In After an Import
 

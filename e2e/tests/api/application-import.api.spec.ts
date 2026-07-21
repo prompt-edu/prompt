@@ -137,10 +137,9 @@ test.describe.serial('core API: CSV student import', () => {
         data: importBody('passed', { im01abc: 'Team Rocket', im02abc: '' }),
       })
       expect(res.status(), await res.text()).toBe(201)
-      const result = (await res.json()) as { created: number; updated: number; failed: number }
+      const result = (await res.json()) as { created: number; updated: number }
       expect(result.created).toBe(2)
       expect(result.updated).toBe(0)
-      expect(result.failed).toBe(0)
 
       // Both students now participate with the chosen pass status.
       const byEmail = await participationsByEmail(lecturer, IMPORT_APPLICATION_PHASE_ID)

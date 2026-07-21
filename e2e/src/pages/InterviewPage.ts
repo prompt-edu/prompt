@@ -2,7 +2,7 @@ import { Page, Locator, expect } from '@playwright/test'
 
 export interface SlotFormValues {
   startTime: string // datetime-local format: YYYY-MM-DDTHH:mm
-  endTime: string
+  endTime: string // time-of-day format: HH:mm (interviews never span days)
   location: string
   capacity: number
 }

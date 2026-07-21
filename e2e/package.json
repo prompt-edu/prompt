@@ -8,7 +8,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "typecheck": "tsc --noEmit",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "merge-reports": "playwright merge-reports --reporter html ./all-blob-reports"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",

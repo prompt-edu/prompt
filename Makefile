@@ -7,7 +7,7 @@
 	test test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate \
-	test-e2e test-e2e-ui test-e2e-down \
+	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate \
@@ -143,6 +143,14 @@ test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runn
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
 		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
+		$(E2E_COMPOSE) down -v; \
+		exit $$status
+
+test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard PATHS="tests/interview tests/api/interview.api.spec.ts"
+	@mkdir -p e2e/playwright-report e2e/test-results
+	unset $(E2E_ENV_KEYS); \
+		$(E2E_COMPOSE) build; \
+		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $(PATHS); status=$$?; \
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 

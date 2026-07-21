@@ -1,5 +1,7 @@
 node_modules/
 .auth/
 playwright-report/
+blob-report/
+all-blob-reports/
 test-results/
 .cache/

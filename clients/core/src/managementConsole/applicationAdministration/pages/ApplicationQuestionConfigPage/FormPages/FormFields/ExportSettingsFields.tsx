@@ -18,6 +18,14 @@ interface ExportSettingsFieldsProps {
   onCsvExportEnabledChange: (checked: boolean) => void
 }
 
+const suggestAccessKey = (title: string): string =>
+  title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 50)
+
 export const ExportSettingsFields = ({
   form,
   csvExportEnabled,
@@ -63,7 +71,18 @@ export const ExportSettingsFields = ({
                 checked={!!field.value}
                 onCheckedChange={(checked) => {
                   field.onChange(checked)
-                  if (!checked) {
+                  if (checked) {
+                    const currentKey = form.getValues('accessKey')
+                    if (!currentKey || currentKey.trim() === '') {
+                      const suggestion = suggestAccessKey(form.getValues('title') ?? '')
+                      if (suggestion) {
+                        form.setValue('accessKey', suggestion, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        })
+                      }
+                    }
+                  } else {
                     form.setValue('accessKey', '')
                   }
                 }}

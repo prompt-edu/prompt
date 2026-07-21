@@ -49,16 +49,16 @@ export const CourseCard = ({ courseDetails }: CourseCardProps) => {
           <div className='p-3 space-y-4'>
             <div className='flex items-center space-x-2'>
               <Calendar className='h-4 w-4 shrink-0' />
-              <div className='flex gap-4 flex-1 text-sm font-medium text-gray-600'>
+              <div className='flex gap-4 flex-1 text-sm font-medium text-muted-foreground'>
                 <div className='flex-1'>
-                  <span className='font-semibold text-slate-600'>Course Start</span>
-                  <div className='text-slate-900'>
+                  <span className='font-semibold text-muted-foreground'>Course Start</span>
+                  <div className='text-foreground'>
                     {format(courseDetails.startDate, 'MMM d, yyyy')}
                   </div>
                 </div>
                 <div className='flex-1'>
-                  <span className='font-semibold text-slate-600'>Course End</span>
-                  <div className='text-slate-900'>
+                  <span className='font-semibold text-muted-foreground'>Course End</span>
+                  <div className='text-foreground'>
                     {format(courseDetails.endDate, 'MMM d, yyyy')}
                   </div>
                 </div>

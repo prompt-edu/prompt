@@ -51,7 +51,7 @@ export const DeadlineInfo = ({ deadline }: { deadline: Date | string }) => {
   }
 
   return (
-    <div className={`space-y-1 ${isDeadlineClose ? 'text-red-600' : 'text-gray-600'}`}>
+    <div className={`space-y-1 ${isDeadlineClose ? 'text-red-600' : 'text-muted-foreground'}`}>
       <div className='flex items-center space-x-2'>
         <Clock className='h-4 w-4 shrink-0' />
         <p className='text-sm font-medium'>Apply by {formattedDeadline}</p>

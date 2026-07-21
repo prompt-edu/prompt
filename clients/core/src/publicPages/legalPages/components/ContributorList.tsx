@@ -72,7 +72,7 @@ export const ContributorList = () => {
                 >
                   {contributor.name}
                 </a>
-                <p className='text-sm text-gray-600 mt-1'>{contributor.contribution}</p>
+                <p className='text-sm text-muted-foreground mt-1'>{contributor.contribution}</p>
               </div>
             </CardContent>
           </Card>

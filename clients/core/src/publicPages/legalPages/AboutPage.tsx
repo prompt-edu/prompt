@@ -82,7 +82,7 @@ export default function AboutPage() {
           <Button
             variant='ghost'
             size='icon'
-            className='absolute left-4 top-4 hover:bg-gray-100 transition-colors'
+            className='absolute left-4 top-4 hover:bg-muted transition-colors'
             onClick={() => navigate(user ? '/management' : '/')}
             aria-label='Go back'
           >
@@ -96,14 +96,14 @@ export default function AboutPage() {
         <CardContent className='space-y-12'>
           <section>
             <h2 className='text-2xl font-semibold mb-4'>What is PROMPT?</h2>
-            <p className='text-gray-700 leading-relaxed'>
+            <p className='text-muted-foreground leading-relaxed'>
               PROMPT (Project-Oriented Modular Platform for Teaching) is a course management tool
               specifically designed for project-based university courses. By supporting a wide range
               of organizational processes, it reduces the administrative burden typically associated
               with such courses and aims to streamline the daily activities of both students and
               instructors, enhancing the overall learning experience.
             </p>
-            <p className='text-gray-700 leading-relaxed'>
+            <p className='text-muted-foreground leading-relaxed'>
               Originally developed for the iPraktikum at the Technical University of Munich, PROMPT
               has been reimagined with a flexible, modular architecture. Each course is built from
               independent, reusable components that can be easily extended, giving instructors the
@@ -135,12 +135,12 @@ export default function AboutPage() {
                 <a
                   key={index}
                   href={item.link}
-                  className='flex items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors'
+                  className='flex items-center p-3 rounded-lg bg-muted hover:bg-muted transition-colors'
                   target='_blank'
                   rel='noopener noreferrer'
                 >
                   <item.icon className='h-5 w-5 mr-3 text-blue-600' />
-                  <span className='text-gray-700 hover:text-gray-900'>{item.text}</span>
+                  <span className='text-muted-foreground hover:text-foreground'>{item.text}</span>
                 </a>
               ))}
             </div>
@@ -150,7 +150,7 @@ export default function AboutPage() {
 
           <section>
             <h2 className='text-2xl font-semibold mb-3'>Main Features</h2>
-            <p className='text-gray-700 leading-relaxed'>
+            <p className='text-muted-foreground leading-relaxed'>
               The core features are built-in functionalities essential for course management, while
               dynamically loaded phases are additional, customizable components that can be added as
               needed.
@@ -171,7 +171,7 @@ export default function AboutPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className='text-gray-700 text-sm'>{feature.description}</p>
+                    <p className='text-muted-foreground text-sm'>{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -193,7 +193,7 @@ export default function AboutPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className='text-gray-700 text-sm'>{phase.description}</p>
+                    <p className='text-muted-foreground text-sm'>{phase.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -205,7 +205,7 @@ export default function AboutPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className='text-gray-700 text-sm'>
+                  <p className='text-muted-foreground text-sm'>
                     Easily extend PROMPT with custom phases tailored to your course needs.
                   </p>
                   <div className='flex justify-end mt-3'>
@@ -231,7 +231,7 @@ export default function AboutPage() {
 
           <section>
             <h2 className='text-2xl font-semibold mb-6'>Release Info</h2>
-            <ul className='list-disc list-inside text-gray-700'>
+            <ul className='list-disc list-inside text-muted-foreground'>
               <li>
                 <span className='font-semibold'>Github SHA:</span> {env.GITHUB_SHA}
               </li>

@@ -479,6 +479,114 @@ func (suite *ApplicationAdminServiceTestSuite) TestDeleteApplication_Success() {
 	assert.NoError(suite.T(), err)
 }
 
+func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers_Success() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+
+	participations, err := GetAllApplicationParticipations(suite.ctx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), participations, "seed phase must have at least one participation")
+	courseParticipationID := participations[0].CourseParticipationID
+
+	qTextExported := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	qTextNonExported := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	qTextDup1 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	qTextDup2 := uuid.MustParse("44444444-4444-4444-4444-444444444444")
+	qTextEmptyKey := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	qMultiExported := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+
+	conn := suite.applicationAdminService.conn
+	insertText := func(id uuid.UUID, title string, orderNum int, accessible bool, accessKey interface{}) {
+		_, err := conn.Exec(suite.ctx,
+			`INSERT INTO application_question_text (id, course_phase_id, title, description, placeholder, validation_regex, error_message, is_required, allowed_length, order_num, accessible_for_other_phases, access_key)
+			 VALUES ($1, $2, $3, '', '', '', '', false, 500, $4, $5, $6)`,
+			id, coursePhaseID, title, orderNum, accessible, accessKey)
+		assert.NoError(suite.T(), err)
+	}
+	insertText(qTextExported, "Exported Motivation", 10, true, "motivation_key")
+	insertText(qTextNonExported, "Not Exported", 6, false, nil)
+	insertText(qTextDup1, "Duplicate One", 7, true, "dup_key")
+	insertText(qTextDup2, "Duplicate Two", 8, true, "dup_key")
+	insertText(qTextEmptyKey, "Whitespace Key", 9, true, "   ")
+
+	_, err = conn.Exec(suite.ctx,
+		`INSERT INTO application_question_multi_select (id, course_phase_id, title, description, placeholder, error_message, is_required, min_select, max_select, options, order_num, accessible_for_other_phases, access_key)
+		 VALUES ($1, $2, 'Exported Devices', '', '', '', false, 0, 4, $3, 5, true, 'devices_key')`,
+		qMultiExported, coursePhaseID, []string{"iPhone", "iPad", "MacBook", "Vision"})
+	assert.NoError(suite.T(), err)
+
+	insertAnswerText := func(questionID uuid.UUID, answer string) {
+		_, err := conn.Exec(suite.ctx,
+			`INSERT INTO application_answer_text (id, application_question_id, course_participation_id, answer) VALUES ($1, $2, $3, $4)`,
+			uuid.New(), questionID, courseParticipationID, answer)
+		assert.NoError(suite.T(), err)
+	}
+	insertAnswerText(qTextExported, "My motivation text")
+	insertAnswerText(qTextNonExported, "should not appear")
+	insertAnswerText(qTextDup1, "dup answer 1")
+	// qTextDup2 and qTextEmptyKey intentionally left unanswered
+
+	_, err = conn.Exec(suite.ctx,
+		`INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer) VALUES ($1, $2, $3, $4)`,
+		uuid.New(), qMultiExported, courseParticipationID, []string{"iPhone", "iPad"})
+	assert.NoError(suite.T(), err)
+
+	allQuestionIDs := []uuid.UUID{qTextExported, qTextNonExported, qTextDup1, qTextDup2, qTextEmptyKey, qMultiExported}
+	defer func() {
+		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_answer_text WHERE application_question_id = ANY($1)`, allQuestionIDs)
+		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_answer_multi_select WHERE application_question_id = ANY($1)`, allQuestionIDs)
+		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_question_text WHERE id = ANY($1)`, allQuestionIDs)
+		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_question_multi_select WHERE id = ANY($1)`, allQuestionIDs)
+	}()
+
+	response, err := GetExportedApplicationAnswers(suite.ctx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+
+	// Columns: only exported questions with a non-empty access_key, one per questionID
+	// (duplicate access_key stays two columns), sorted by order_num.
+	assert.Equal(suite.T(), 4, len(response.Columns))
+	expectedOrder := []uuid.UUID{qMultiExported, qTextDup1, qTextDup2, qTextExported}
+	for i, col := range response.Columns {
+		assert.Equal(suite.T(), expectedOrder[i], col.QuestionID)
+	}
+
+	columnsByID := make(map[uuid.UUID]applicationDTO.ExportedAnswerColumn)
+	for _, col := range response.Columns {
+		columnsByID[col.QuestionID] = col
+	}
+	assert.Equal(suite.T(), "multiselect", columnsByID[qMultiExported].Type)
+	assert.Equal(suite.T(), "devices_key", columnsByID[qMultiExported].Key)
+	assert.Equal(suite.T(), "Exported Devices", columnsByID[qMultiExported].Title)
+	assert.Equal(suite.T(), "text", columnsByID[qTextExported].Type)
+	assert.Equal(suite.T(), "motivation_key", columnsByID[qTextExported].Key)
+	// Non-exported and empty/whitespace access_key excluded
+	_, hasNonExported := columnsByID[qTextNonExported]
+	assert.False(suite.T(), hasNonExported)
+	_, hasEmptyKey := columnsByID[qTextEmptyKey]
+	assert.False(suite.T(), hasEmptyKey)
+
+	// Answers for the participant we seeded
+	var target *applicationDTO.ParticipationExportedAnswers
+	for i := range response.Answers {
+		if response.Answers[i].CourseParticipationID == courseParticipationID {
+			target = &response.Answers[i]
+			break
+		}
+	}
+	assert.NotNil(suite.T(), target)
+	answersByQuestion := make(map[uuid.UUID]string)
+	for _, a := range target.Answers {
+		answersByQuestion[a.QuestionID] = a.Answer
+	}
+	assert.Equal(suite.T(), "My motivation text", answersByQuestion[qTextExported])
+	assert.Equal(suite.T(), "iPhone, iPad", answersByQuestion[qMultiExported]) // multiselect joined
+	assert.Equal(suite.T(), "dup answer 1", answersByQuestion[qTextDup1])
+	// Missing answers are absent (not "-"); non-exported answers excluded
+	_, hasDup2 := answersByQuestion[qTextDup2]
+	assert.False(suite.T(), hasDup2)
+	_, hasNonExportedAnswer := answersByQuestion[qTextNonExported]
+	assert.False(suite.T(), hasNonExportedAnswer)
+}
+
 func TestApplicationAdminServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ApplicationAdminServiceTestSuite))
 }

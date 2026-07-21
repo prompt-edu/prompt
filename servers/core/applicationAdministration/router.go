@@ -38,6 +38,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationAssessment)
 
 	application.GET("/:coursePhaseID/participations", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getAllApplicationParticipations)
+	application.GET("/:coursePhaseID/exported-answers", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getExportedApplicationAnswers)
 
 	// Apply Endpoints - No Authentication needed
 	apply := router.Group("/apply")
@@ -490,6 +491,33 @@ func getAllApplicationParticipations(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, applications)
+}
+
+// getExportedApplicationAnswers godoc
+// @Summary Get exported application answers
+// @Description Get the answers to exported application questions (accessible for other phases) for all participants of a course phase
+// @Tags applications
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} applicationDTO.ExportedApplicationAnswersResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /applications/{coursePhaseID}/exported-answers [get]
+func getExportedApplicationAnswers(c *gin.Context) {
+	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	exportedAnswers, err := GetExportedApplicationAnswers(c, coursePhaseId)
+	if err != nil {
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("could not get exported application answers"))
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, exportedAnswers)
 }
 
 // updateApplicationAssessment godoc

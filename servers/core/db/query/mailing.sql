@@ -59,6 +59,7 @@ WHERE
 
 -- name: GetParticipantMailingInformation :many
 SELECT
+    cpp.course_participation_id,
     s.first_name,
     s.last_name,
     s.email,
@@ -77,8 +78,23 @@ JOIN
     student s ON cp.student_id = s.id
 WHERE
     p.id = $1
-AND 
-    cpp.pass_status = $2;
+AND
+    cpp.pass_status = $2
+AND
+    (cpp.restricted_data -> 'statusMailSentAt' ->> $2::text) IS NULL;
+
+-- name: MarkStatusMailSent :exec
+UPDATE course_phase_participation
+SET restricted_data = COALESCE(restricted_data, '{}'::jsonb) || jsonb_build_object(
+    'statusMailSentAt',
+    (CASE
+        WHEN jsonb_typeof(restricted_data -> 'statusMailSentAt') = 'object'
+        THEN restricted_data -> 'statusMailSentAt'
+        ELSE '{}'::jsonb
+    END) || jsonb_build_object(sqlc.arg(status)::text, to_jsonb(now()))
+)
+WHERE course_phase_id = sqlc.arg(course_phase_id)
+  AND course_participation_id = sqlc.arg(course_participation_id);
 
 -- name: GetCourseMailingSettingsForCoursePhaseID :one
 SELECT
@@ -95,6 +111,7 @@ WHERE
 
 -- name: GetParticipantMailingInformationByIDs :many
 SELECT
+    cpp.course_participation_id,
     s.first_name,
     s.last_name,
     s.email,

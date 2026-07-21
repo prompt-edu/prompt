@@ -136,7 +136,10 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		return mailingDTO.MailingReport{}, fmt.Errorf("failed to retrieve participant information for course phase %s with status %s: %v", coursePhaseID, status, err)
 	}
 
-	// 4.) Send mail to all participants
+	// 4.) Send mail to all participants that have not already received this status mail.
+	// Recipients already mailed for this status are filtered out by GetParticipantMailingInformation,
+	// and each successful send is recorded per participation so a later re-send does not duplicate.
+	// Note: dedup is recorded after each send, so two simultaneous triggers for the same phase+status could still double-send.
 	for _, participant := range participants {
 		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, participant)
 		// replace values in subject
@@ -149,9 +152,21 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
-		} else {
-			log.Debug("Successfully sent status mail to: ", participant.Email.String)
-			response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
+			continue
+		}
+
+		log.Debug("Successfully sent status mail to: ", participant.Email.String)
+		response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
+
+		if markErr := MailingServiceSingleton.queries.MarkStatusMailSent(ctx, db.MarkStatusMailSentParams{
+			CoursePhaseID:         coursePhaseID,
+			CourseParticipationID: participant.CourseParticipationID,
+			Status:                string(status),
+		}); markErr != nil {
+			// The mail was delivered but the dedup marker could not be persisted, so a future send
+			// could duplicate it. Surface this instead of swallowing it silently.
+			log.Error("failed to mark status mail as sent for participant: ", markErr)
+			response.MarkFailures = append(response.MarkFailures, participant.Email.String)
 		}
 	}
 

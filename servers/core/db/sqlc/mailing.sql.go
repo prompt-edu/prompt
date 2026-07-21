@@ -161,6 +161,7 @@ func (q *Queries) GetFailedMailingInformation(ctx context.Context, id uuid.UUID)
 
 const getParticipantMailingInformation = `-- name: GetParticipantMailingInformation :many
 SELECT
+    cpp.course_participation_id,
     s.first_name,
     s.last_name,
     s.email,
@@ -179,8 +180,10 @@ JOIN
     student s ON cp.student_id = s.id
 WHERE
     p.id = $1
-AND 
+AND
     cpp.pass_status = $2
+AND
+    (cpp.restricted_data -> 'statusMailSentAt' ->> $2::text) IS NULL
 `
 
 type GetParticipantMailingInformationParams struct {
@@ -189,14 +192,15 @@ type GetParticipantMailingInformationParams struct {
 }
 
 type GetParticipantMailingInformationRow struct {
-	FirstName           pgtype.Text `json:"first_name"`
-	LastName            pgtype.Text `json:"last_name"`
-	Email               pgtype.Text `json:"email"`
-	MatriculationNumber pgtype.Text `json:"matriculation_number"`
-	UniversityLogin     pgtype.Text `json:"university_login"`
-	StudyDegree         StudyDegree `json:"study_degree"`
-	CurrentSemester     pgtype.Int4 `json:"current_semester"`
-	StudyProgram        pgtype.Text `json:"study_program"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FirstName             pgtype.Text `json:"first_name"`
+	LastName              pgtype.Text `json:"last_name"`
+	Email                 pgtype.Text `json:"email"`
+	MatriculationNumber   pgtype.Text `json:"matriculation_number"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+	StudyDegree           StudyDegree `json:"study_degree"`
+	CurrentSemester       pgtype.Int4 `json:"current_semester"`
+	StudyProgram          pgtype.Text `json:"study_program"`
 }
 
 func (q *Queries) GetParticipantMailingInformation(ctx context.Context, arg GetParticipantMailingInformationParams) ([]GetParticipantMailingInformationRow, error) {
@@ -209,6 +213,7 @@ func (q *Queries) GetParticipantMailingInformation(ctx context.Context, arg GetP
 	for rows.Next() {
 		var i GetParticipantMailingInformationRow
 		if err := rows.Scan(
+			&i.CourseParticipationID,
 			&i.FirstName,
 			&i.LastName,
 			&i.Email,
@@ -230,6 +235,7 @@ func (q *Queries) GetParticipantMailingInformation(ctx context.Context, arg GetP
 
 const getParticipantMailingInformationByIDs = `-- name: GetParticipantMailingInformationByIDs :many
 SELECT
+    cpp.course_participation_id,
     s.first_name,
     s.last_name,
     s.email,
@@ -258,14 +264,15 @@ type GetParticipantMailingInformationByIDsParams struct {
 }
 
 type GetParticipantMailingInformationByIDsRow struct {
-	FirstName           pgtype.Text `json:"first_name"`
-	LastName            pgtype.Text `json:"last_name"`
-	Email               pgtype.Text `json:"email"`
-	MatriculationNumber pgtype.Text `json:"matriculation_number"`
-	UniversityLogin     pgtype.Text `json:"university_login"`
-	StudyDegree         StudyDegree `json:"study_degree"`
-	CurrentSemester     pgtype.Int4 `json:"current_semester"`
-	StudyProgram        pgtype.Text `json:"study_program"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FirstName             pgtype.Text `json:"first_name"`
+	LastName              pgtype.Text `json:"last_name"`
+	Email                 pgtype.Text `json:"email"`
+	MatriculationNumber   pgtype.Text `json:"matriculation_number"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+	StudyDegree           StudyDegree `json:"study_degree"`
+	CurrentSemester       pgtype.Int4 `json:"current_semester"`
+	StudyProgram          pgtype.Text `json:"study_program"`
 }
 
 func (q *Queries) GetParticipantMailingInformationByIDs(ctx context.Context, arg GetParticipantMailingInformationByIDsParams) ([]GetParticipantMailingInformationByIDsRow, error) {
@@ -278,6 +285,7 @@ func (q *Queries) GetParticipantMailingInformationByIDs(ctx context.Context, arg
 	for rows.Next() {
 		var i GetParticipantMailingInformationByIDsRow
 		if err := rows.Scan(
+			&i.CourseParticipationID,
 			&i.FirstName,
 			&i.LastName,
 			&i.Email,
@@ -331,6 +339,31 @@ func (q *Queries) GetPassedMailingInformation(ctx context.Context, id uuid.UUID)
 		&i.MailContent,
 	)
 	return i, err
+}
+
+const markStatusMailSent = `-- name: MarkStatusMailSent :exec
+UPDATE course_phase_participation
+SET restricted_data = COALESCE(restricted_data, '{}'::jsonb) || jsonb_build_object(
+    'statusMailSentAt',
+    (CASE
+        WHEN jsonb_typeof(restricted_data -> 'statusMailSentAt') = 'object'
+        THEN restricted_data -> 'statusMailSentAt'
+        ELSE '{}'::jsonb
+    END) || jsonb_build_object($1::text, to_jsonb(now()))
+)
+WHERE course_phase_id = $2
+  AND course_participation_id = $3
+`
+
+type MarkStatusMailSentParams struct {
+	Status                string    `json:"status"`
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+}
+
+func (q *Queries) MarkStatusMailSent(ctx context.Context, arg MarkStatusMailSentParams) error {
+	_, err := q.db.Exec(ctx, markStatusMailSent, arg.Status, arg.CoursePhaseID, arg.CourseParticipationID)
+	return err
 }
 
 const updateAssessmentReminderLastSentAt = `-- name: UpdateAssessmentReminderLastSentAt :exec

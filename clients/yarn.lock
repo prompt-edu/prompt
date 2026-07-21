@@ -3995,12 +3995,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:^3.27.3, @tiptap/core@npm:^3.27.4":
+"@tiptap/core@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/core@npm:3.27.4"
   peerDependencies:
     "@tiptap/pm": 3.27.4
   checksum: 10c0/7143aaf120ee99b263d3f60bd926da2f85136abcf3815563ddd3e30daf8c8919363c5e155eb21a65a1008252edf591f5c07a7ea5b61f59cc1f26950b42feeda4
+  languageName: node
+  linkType: hard
+
+"@tiptap/core@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/core@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/a7a6f09ad01491bab03d442fb10b6b30a04eaa42be3bad5a1d12d2b2d2bfefe4dba172b9b62324eb102dd50d997ee0d104e563eb4a7c6b4753b95bf70ffc6b68
   languageName: node
   linkType: hard
 
@@ -4013,13 +4022,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-blockquote@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-blockquote@npm:3.27.4"
+"@tiptap/extension-blockquote@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-blockquote@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/c3d8b3b8bd4826d55c5b1c52fee7fd70fef68e342118a98109fb601f7574101bd043925a3bbc0a747d5453aad0549ccef5210ff372b01df53cf2514b6d915922
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/fa11a2ddf9cb5a9dcc5839bfa38e9e8a68a58857b67337f45eef5bb2d958e65152e41940d786830e26fdb2244bd9b5abf740461a7921777f64090fd3c11b625b
   languageName: node
   linkType: hard
 
@@ -4032,12 +4041,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bold@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-bold@npm:3.27.4"
+"@tiptap/extension-bold@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-bold@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/e9b5689fedd9e450119c8079b5851854e5f26bf9be5435aa4a9ea8ecbaf820931bc30979602d32a3a3871146a9a5bf72b4e9c1aa6e060b22391cdfe18b8f0570
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/48ec3828099ee9a36a6daef276809772bfc005e088fd2f793f5754d9009b533f3bf769a9c4c52bc312c554f3add8e0f282b873f14a9f86dd826f09e5e6978236
   languageName: node
   linkType: hard
 
@@ -4065,15 +4074,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bubble-menu@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-bubble-menu@npm:3.27.4"
+"@tiptap/extension-bubble-menu@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-bubble-menu@npm:3.28.0"
   dependencies:
     "@floating-ui/dom": "npm:^1.0.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/9ae6a69504951341fa59476c0f98219a2c455d7ba03ac6baf7c3b279c45d15203b2b3b0997004971dbbbfdaf5c3feb215c7bc19573a9467ad7da11f2a5710a1d
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/ffc5152e0026785ddee586b738e75acb90883a13019e685c8f7c88a58683967a06005ef8e803caf7b83f904a4b8ad21a23b85e5a8e1f8b331ef89cb8d111060a
   languageName: node
   linkType: hard
 
@@ -4086,12 +4095,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-bullet-list@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-bullet-list@npm:3.27.4"
+"@tiptap/extension-bullet-list@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-bullet-list@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extension-list": 3.27.4
-  checksum: 10c0/3518f624dc0183c70e708cf40e38a0961ff08e974429de99c8aac71cad28b3559f6f087bd3063a230141112046660c2055a9ca6046dc134b00f75b67cf9cb828
+    "@tiptap/extension-list": 3.28.0
+  checksum: 10c0/c79d2a163fdb901974830f919a568893a9f5c6cd7d91952e141d929d072928e88e177721dce197a4a7251f8362f9cda27f046172f2f1b9e8b4f84edc214e6a06
   languageName: node
   linkType: hard
 
@@ -4108,16 +4117,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block-lowlight@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-code-block-lowlight@npm:3.27.4"
+"@tiptap/extension-code-block-lowlight@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-code-block-lowlight@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/extension-code-block": 3.27.4
-    "@tiptap/pm": 3.27.4
+    "@tiptap/core": 3.28.0
+    "@tiptap/extension-code-block": 3.28.0
+    "@tiptap/pm": 3.28.0
     highlight.js: ^11
     lowlight: ^2 || ^3
-  checksum: 10c0/ca68c3bd4bca4a9b6f5b4b8d5e463944a9f5c81571d9b66a57ace163b97bb3a406416d62f7ae5a710b49e76fd8cda1fbffb3e67db190d8b21cf6f26e6aff8797
+  checksum: 10c0/b07cd02c73e97d0f0c434ab46bfe74d943591ed6e075ebc187bd1d4d6725dab2b8a20aaf9068caddc5b40cfb2ec5c428eb1b2d00a77aef9606846fbb44814422
   languageName: node
   linkType: hard
 
@@ -4141,13 +4150,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block@npm:^3.27.3, @tiptap/extension-code-block@npm:^3.27.4":
+"@tiptap/extension-code-block@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extension-code-block@npm:3.27.4"
   peerDependencies:
     "@tiptap/core": 3.27.4
     "@tiptap/pm": 3.27.4
   checksum: 10c0/d8dbdfb57414e0d3116073cfe57a9c6252255c58efebce333427e8cf2444256a42d265ad8965094a602d5b13ecaa17ab7659a35625ec0aff8ab1a72ab314ae09
+  languageName: node
+  linkType: hard
+
+"@tiptap/extension-code-block@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-code-block@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/43da443674b91fb3768afbfb18a27cc5d93c0c0eb70ae61a8a98564b4d27faa32dd680f6607ea4a6d73f10e89824b649a319dd3017f186b7d7a771f69b8b7532
   languageName: node
   linkType: hard
 
@@ -4160,12 +4179,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-code@npm:3.27.4"
+"@tiptap/extension-code@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-code@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/d8194eb7305dc592005636e29f828e15fa95c928cbb29973592e9e5525f38a3cfe2dcbeb4a7940749a924199daa6f3205441551a1447faf14d89c0a8ee98afbc
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/deda757b77e060f3bc8039b14103f7767c920789ae90b3ce94d27fd9f6939b95577ed805ffbbc8dcd18184382c15c361bcc577eabe363f9870118f54f6d88f9e
   languageName: node
   linkType: hard
 
@@ -4178,12 +4197,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-color@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-color@npm:3.27.4"
+"@tiptap/extension-color@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-color@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extension-text-style": 3.27.4
-  checksum: 10c0/23a115b8081a0fa58ab61fcd54498bdc72d1bfc9480287003deeef121f2b7a510388c57f5155aded0404d69070096f356ad454f52b30b7f6f1e4be2b1d60ef73
+    "@tiptap/extension-text-style": 3.28.0
+  checksum: 10c0/0523067f313b79d2ad04529db5b3cb3e6b436d1262ede141ca7fbd05d3448666758ec3d539d129337db96d820247439c03af32e7a5894f8778d882066da92584
   languageName: node
   linkType: hard
 
@@ -4196,12 +4215,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-document@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-document@npm:3.27.4"
+"@tiptap/extension-document@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-document@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/f1df39fc09c38b15dcea55694dee1d2db00dbe1802a608f2d68dc846a4dbf2d34d995ebac3aa3cbf4de3a2766bd7af74f65e18b9c6cdf60a07ed8bdec2f8a00c
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/e7b712711de27984773884d59431c888e36803c8a981870cc2aaf846a60382a21385f205da730e605b1752743cae6bae2057af3460ff40415e8789a8c3d4e873
   languageName: node
   linkType: hard
 
@@ -4214,12 +4233,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-dropcursor@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-dropcursor@npm:3.27.4"
+"@tiptap/extension-dropcursor@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-dropcursor@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extensions": 3.27.4
-  checksum: 10c0/cc7e5881bce22fb440a9aace1e5787331d03d2dbc17a8f0a1ef29b51645913d1986730bcda98fc9af6cc738831f7c53d211bef72d43bfa95e92558e72bb54d5d
+    "@tiptap/extensions": 3.28.0
+  checksum: 10c0/547af0ee9371c99b1540e32ca1526296a363de0b6bbd9163ca2b851112e8f277bf200fd583d3eecb9116fc3ed4e7bd72dc31c7a87a93b7456484e9f8677a3a73
   languageName: node
   linkType: hard
 
@@ -4234,14 +4253,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-floating-menu@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-floating-menu@npm:3.27.4"
+"@tiptap/extension-floating-menu@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-floating-menu@npm:3.28.0"
   peerDependencies:
     "@floating-ui/dom": ^1.0.0
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/956498b69b67a68746d1b016d2578d36c39e377a153f757e0f46d2dd1dd740cd6dc87165850c0142ecad172f87450722ec7b704ca43d1aa737490b0d77651c1e
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/a5a895761841d55c668ba89ef19d7fafd0cb1e4137d4c78e3ffb9cb560f4ef385069688f4ef8d17610201b4e3cee9baf1180a389c60ad25a707a1562bfcd82bc
   languageName: node
   linkType: hard
 
@@ -4254,12 +4273,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-gapcursor@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-gapcursor@npm:3.27.4"
+"@tiptap/extension-gapcursor@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-gapcursor@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extensions": 3.27.4
-  checksum: 10c0/3d073bd5bc4c60293a0275f4a4fec981f4117ca0ec59bf00e1c3f1077cce7edf2173fdbb2fde2a47f2f4525ae83f673b205f5963e84cbe23b43f997051ccb499
+    "@tiptap/extensions": 3.28.0
+  checksum: 10c0/6c53091aed12579abc5b48f8ad60a66199d3231ca5c4c99d02e14d8fe7e6fa4fc1294ae9cca1d2968d028479a9edf4fa72063e7e67f7b4dc32f20626a98e308e
   languageName: node
   linkType: hard
 
@@ -4272,12 +4291,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-hard-break@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-hard-break@npm:3.27.4"
+"@tiptap/extension-hard-break@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-hard-break@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/58870674e2deb83b306cf44b4c8723f28c94224cfecc58b456f331472a3a70cb7fa3bd5dbb123fde084668a66c560a2674cfec702dfdabf84d8ef98855a08bab
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/081de40034e3b6058bd3ce118360d862220a202be0c5af2c72ac2b98109228ba9ccebae9c599cfb42b0f2c857b56fe956158450d02b67e9322e334dd978d5ad8
   languageName: node
   linkType: hard
 
@@ -4299,12 +4318,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-heading@npm:^3.27.3, @tiptap/extension-heading@npm:^3.27.4":
+"@tiptap/extension-heading@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extension-heading@npm:3.27.4"
   peerDependencies:
     "@tiptap/core": 3.27.4
   checksum: 10c0/f9f070784818be57ffc622c7e78e6e48889deedfece84029e3011b50ce1840e2fa7c3dfad7ff6633a58b9fbaef03a61741a6073a5d933e11cfe5480ed243ea2b
+  languageName: node
+  linkType: hard
+
+"@tiptap/extension-heading@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-heading@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/ca8c20cdec4bfc7b25070eb4fcf1e1c3143c714c2f0f3b9d20df6bf57de3d6e1109529f93d77954394e6615ed898d109a918e4baa56ec0e16699c29aa799a8c2
   languageName: node
   linkType: hard
 
@@ -4328,13 +4356,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-horizontal-rule@npm:^3.27.3, @tiptap/extension-horizontal-rule@npm:^3.27.4":
+"@tiptap/extension-horizontal-rule@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extension-horizontal-rule@npm:3.27.4"
   peerDependencies:
     "@tiptap/core": 3.27.4
     "@tiptap/pm": 3.27.4
   checksum: 10c0/d85ebfb2ac32e3b116d13fd2c599948665e947c596bd84661177753a00c7227224592f7ec5164afdbdedb140185c8bfadbef681b3aca218768e439be13bd0da8
+  languageName: node
+  linkType: hard
+
+"@tiptap/extension-horizontal-rule@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-horizontal-rule@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/eae05eadce7910f988dff419c2cdda6178ad27428e3a218fe242e15917c87a5171cad019a088e57cf0278a6453a30b01f8836550b76c789757fc63e67a0253e4
   languageName: node
   linkType: hard
 
@@ -4347,12 +4385,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-image@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-image@npm:3.27.4"
+"@tiptap/extension-image@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-image@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/87ba57bfdce3e1b4d834e48f4b87897a48999b790aaddaf86a751655759877e77c7de5ea052155b91046529d7aada86e84e3b51200ff2764da06c8fc34e18397
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/7f9211c91ce88fbc98db820f12f5803031153cad2ee07f0bb9e308985e04407710df653b2159382c275df4201983ea5e054b38e347bdbf151ff1ceb1c96392cb
   languageName: node
   linkType: hard
 
@@ -4365,12 +4403,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-italic@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-italic@npm:3.27.4"
+"@tiptap/extension-italic@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-italic@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/d19b921a70a408801a111690009223019db1b53d27616fb2ea78c7dab48fda5426b1c88be43e97f8f8cd07f8702840ff6cbba4245d8cb9166b56a1a238f3123c
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/0cd63e8443e415da3e7e7d4327569c96c561b1618a6455f3f7e29fd70eeec49542d16a6e8da4faa4a2acf51f1d2a5141910f0849ba3a4f1dbf5934458d8aad5e
   languageName: node
   linkType: hard
 
@@ -4398,7 +4436,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-link@npm:^3.27.3, @tiptap/extension-link@npm:^3.27.4":
+"@tiptap/extension-link@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extension-link@npm:3.27.4"
   dependencies:
@@ -4407,6 +4445,18 @@ __metadata:
     "@tiptap/core": 3.27.4
     "@tiptap/pm": 3.27.4
   checksum: 10c0/712a7d4b1e59b64c0d0dd5bf8809f0296ea875aa46cfcb414aefe7bf707778cacdcc01e4224314aac413c78b3952426e3d295fbcfcb76af79c0d402cce93dec5
+  languageName: node
+  linkType: hard
+
+"@tiptap/extension-link@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-link@npm:3.28.0"
+  dependencies:
+    linkifyjs: "npm:^4.3.3"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/9679f42194ddd48a5ef3e1b9a5b472216ffd6e7de506d294ad92993fad96364e0a49b594f3728abbcef5958a4c17acd9d0384d8007cba866be24d6c1a410e7d3
   languageName: node
   linkType: hard
 
@@ -4419,12 +4469,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-list-item@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-list-item@npm:3.27.4"
+"@tiptap/extension-list-item@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-list-item@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extension-list": 3.27.4
-  checksum: 10c0/5b9456430ab213a29ef10249665f7c129a8b0956c3e3d84beab22f30ebc8737ac2d86b9550e0613b5db0c79a4c84187747eb04e9015b4861a671fb1b92369b48
+    "@tiptap/extension-list": 3.28.0
+  checksum: 10c0/316069ba85275afede42d0fc8c4e78d9660853e94cfd0e2e53009d3cc61d94101583ebfe2a7d902c544a1fb36cabea4ff3b9e9f094da5695f3ea22dd949e2cce
   languageName: node
   linkType: hard
 
@@ -4437,12 +4487,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-list-keymap@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-list-keymap@npm:3.27.4"
+"@tiptap/extension-list-keymap@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-list-keymap@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extension-list": 3.27.4
-  checksum: 10c0/e968aa0621ef8eda594caaf3848fe8b5518d9c106dd07bfe66a4ece582474a5ba40ec0807800a0c91ff79557576cc2edd692846e2bc131dde013de41747b079b
+    "@tiptap/extension-list": 3.28.0
+  checksum: 10c0/86a20fec54e1a9e460fb4f4bbf8325bda388ea69d3eac4febfcdc5db09aa780391b08cfeb3fec3b589dfdbe88cc3cb2fcb1560cd3cd2edbd7d997b9b61158631
   languageName: node
   linkType: hard
 
@@ -4456,13 +4506,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-list@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-list@npm:3.27.4"
+"@tiptap/extension-list@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-list@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/57b420519332de7f33a0a34b52a591695405ea5e4c04818102bd0533bd2fe9eb77da512363b7589bb4fc80dbb260ce4186ca5b7d9d6ed92b2803cec25455859c
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/45aa6157e0d6dbe84178c09cf877902aa57afa78aba9636a101d4fe47a4da3007b6dbd9af8018e6b80d2322828e95924380427fdf54707a2287cf284738028de
   languageName: node
   linkType: hard
 
@@ -4475,12 +4525,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-ordered-list@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-ordered-list@npm:3.27.4"
+"@tiptap/extension-ordered-list@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-ordered-list@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extension-list": 3.27.4
-  checksum: 10c0/9d0f22852b9983741222dfe3beff83433a8765b2fb5336e4aa487a708dc075c6b09bc5b2ad96f10d1f42045c6c91c9bafea4ea47ec3058a759f6e7c295f96229
+    "@tiptap/extension-list": 3.28.0
+  checksum: 10c0/29b8b4000beca8dd88ef9ff6ac7291fa80c591f9964c732bcf1de0d59f116b5a6d495bb8a88418131d936ed2bcb1c2796d22841e45cac1237ba395b8db7fada4
   languageName: node
   linkType: hard
 
@@ -4493,12 +4543,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-paragraph@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-paragraph@npm:3.27.4"
+"@tiptap/extension-paragraph@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-paragraph@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/6e525ef3e2b97b5eec2820ba6c06545425b2bbcddb5ed7cd2212c60b9a8b16cbc27d97e608182bc0f229022ddeedf59ad0b970f98bb33ffed876cdd54d50ae2c
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/a56f3dad58f2b2510dc951ccfbb6dfb9355470e866d849c3fc18a18bb3735a828876ba79ff525e68dd1b1a7c637217494db2586008bbaa658b4fd29f42c36c7b
   languageName: node
   linkType: hard
 
@@ -4511,12 +4561,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-placeholder@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-placeholder@npm:3.27.4"
+"@tiptap/extension-placeholder@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-placeholder@npm:3.28.0"
   peerDependencies:
-    "@tiptap/extensions": 3.27.4
-  checksum: 10c0/11b6a72d6cba1385aafdbf644fcbcf0f5afa438c942c7f92257913b1ae607c7e4366ddfd456d541b182f5a07bbcbcccbd750a85d35f84fd503deca5de22cb83f
+    "@tiptap/extensions": 3.28.0
+  checksum: 10c0/566494da61e423f04002eefa7b3f1a55cecb0d54dcc69cbaedf1194893ce1ff334909d330c03102997f59b194a2203b4c4ce84e3821c9e57de12123e1f426947
   languageName: node
   linkType: hard
 
@@ -4529,12 +4579,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-strike@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-strike@npm:3.27.4"
+"@tiptap/extension-strike@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-strike@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/f59533afe7771ae102e713cf8263a2671b6cbf50bd89f075bdc50149a49a56f4f90163fc0da18680ca8d3264ce603bc05ce98bc742b58a5cbb36e4fdacbf0b2d
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/91c13710b3f09143aeab7e8e1c19632fd1802ed6c1152f198831e66a49c3445c19e797c0c0ccd5e14a7e49b1e19ab563fe15fefd32b8701324b49beab114663d
   languageName: node
   linkType: hard
 
@@ -4547,12 +4597,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-text-style@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-text-style@npm:3.27.4"
+"@tiptap/extension-text-style@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-text-style@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/a26616f2932f6b31323ef799566f39369d0759f14954267d5ea4048f4652c40ba479f5ba9c97a04dfa5a7f8c467dd37d0c26216deb4028f4d10d8a86eb6fb280
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/74be027ab45918de257562f22a071774b6a1236f1346abf7253969325d672a4cd307ed03121195caf7e13e5b26ddec0221c52d0c77e136d56c1b5498b9e6001f
   languageName: node
   linkType: hard
 
@@ -4565,12 +4615,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-text@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-text@npm:3.27.4"
+"@tiptap/extension-text@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-text@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/87e6c514b8280a670c03bf21a4fccecf8f6b3f491ca44086435ca4a14cd83c8f5b4ea7e8245855c7bc7b6ca18d87c2ab4e0c663f726232de3b7c0091f5e6c7ae
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/28997a7d8ceca886eda1dad6b6bdf1e71e7f5b8ee121103c5a13b573a56df792669e326991dd19fb6e756a23368afd102b5c8aa6d8d1708527d4fa40478cb7bd
   languageName: node
   linkType: hard
 
@@ -4583,12 +4633,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-typography@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/extension-typography@npm:3.27.4"
+"@tiptap/extension-typography@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/extension-typography@npm:3.28.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/684fb89ceb3917aafcb9d44bb43687c14411cf1e53d036ec0608f8e47514a219d2a1a08bbc72dac16d28202357a56ce777b8f81eabd1aef2152ce445ae345fe6
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/05f7024eed62f33ca797041a5e2127cba3843f7e292b9005deaaa3ee29eb115f35e79ad54e97dce8d376a7c6c7b5a5205bfca8056dd9324e842e4fce97c64cc8
   languageName: node
   linkType: hard
 
@@ -4610,12 +4660,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-underline@npm:^3.27.3, @tiptap/extension-underline@npm:^3.27.4":
+"@tiptap/extension-underline@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extension-underline@npm:3.27.4"
   peerDependencies:
     "@tiptap/core": 3.27.4
   checksum: 10c0/590400cdecccde29d4647cd3dd8ff79f344fbc916b4abf572d23f11e23b4ec5c1fb340bbf654f77dd7b4e4a294bf112848d04c34dc48abefac323a4793362a98
+  languageName: node
+  linkType: hard
+
+"@tiptap/extension-underline@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extension-underline@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+  checksum: 10c0/c7bdd7d8063f25c2f31e2747d2d7a6bf4b5c259495b7ce8dcda669bc2b976b17c503f3d7ff467722005f2e9467c7dd5d234b6e93d2beea63f8957e88b03e1962
   languageName: node
   linkType: hard
 
@@ -4639,13 +4698,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extensions@npm:^3.27.3, @tiptap/extensions@npm:^3.27.4":
+"@tiptap/extensions@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/extensions@npm:3.27.4"
   peerDependencies:
     "@tiptap/core": 3.27.4
     "@tiptap/pm": 3.27.4
   checksum: 10c0/0cbb2fc7a77bc5a5dbcb619063478b75b3679a983761d65c4a038a7ef7f3b9758f46ab3de68d497421b733548de93c5e093e6f93c101c0c599f723a56982c2da
+  languageName: node
+  linkType: hard
+
+"@tiptap/extensions@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/extensions@npm:3.28.0"
+  peerDependencies:
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
+  checksum: 10c0/24127dd95dcf4e035d4a6b0cde9d68184bce245f0ee7a43cceb484b45ec891d5a96ed89f46ec8e6df33c5fdb1e081a9598a71b4a63f2fab910635e18d32231ca
   languageName: node
   linkType: hard
 
@@ -4690,7 +4759,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/pm@npm:^3.27.3, @tiptap/pm@npm:^3.27.4":
+"@tiptap/pm@npm:^3.27.4":
   version: 3.27.4
   resolution: "@tiptap/pm@npm:3.27.4"
   dependencies:
@@ -4708,6 +4777,27 @@ __metadata:
     prosemirror-transform: "npm:^1.12.0"
     prosemirror-view: "npm:^1.41.9"
   checksum: 10c0/6ebe131aa0f8b03ea7fe07ff1f98220ba7c535aa684eb39772bd8446033ff2ce2d86547a304837c70f390af61d56d24c5e4eef5cc2ae0fb2a9d26f46640d0bc4
+  languageName: node
+  linkType: hard
+
+"@tiptap/pm@npm:^3.28.0":
+  version: 3.28.0
+  resolution: "@tiptap/pm@npm:3.28.0"
+  dependencies:
+    prosemirror-changeset: "npm:^2.4.1"
+    prosemirror-commands: "npm:^1.7.1"
+    prosemirror-dropcursor: "npm:^1.8.2"
+    prosemirror-gapcursor: "npm:^1.4.1"
+    prosemirror-history: "npm:^1.5.0"
+    prosemirror-inputrules: "npm:^1.5.1"
+    prosemirror-keymap: "npm:^1.2.3"
+    prosemirror-model: "npm:^1.25.9"
+    prosemirror-schema-list: "npm:^1.5.1"
+    prosemirror-state: "npm:^1.4.4"
+    prosemirror-tables: "npm:^1.8.5"
+    prosemirror-transform: "npm:^1.12.0"
+    prosemirror-view: "npm:^1.41.9"
+  checksum: 10c0/36458bb98ea54a602d4fc851c8e5bc1db1f2e01c2c61affeea300c11a0bff68636ed5826ab0b34ca7e94bfddb333475be741b0e366ee3b6280e0d6b88197145b
   languageName: node
   linkType: hard
 
@@ -4736,18 +4826,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/react@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/react@npm:3.27.4"
+"@tiptap/react@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/react@npm:3.28.0"
   dependencies:
-    "@tiptap/extension-bubble-menu": "npm:^3.27.4"
-    "@tiptap/extension-floating-menu": "npm:^3.27.4"
+    "@tiptap/extension-bubble-menu": "npm:^3.28.0"
+    "@tiptap/extension-floating-menu": "npm:^3.28.0"
     "@types/use-sync-external-store": "npm:^0.0.6"
     fast-equals: "npm:^5.3.3"
     use-sync-external-store: "npm:^1.4.0"
   peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
+    "@tiptap/core": 3.28.0
+    "@tiptap/pm": 3.28.0
     "@types/react": ^17.0.0 || ^18.0.0 || ^19.0.0
     "@types/react-dom": ^17.0.0 || ^18.0.0 || ^19.0.0
     react: ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -4757,7 +4847,7 @@ __metadata:
       optional: true
     "@tiptap/extension-floating-menu":
       optional: true
-  checksum: 10c0/6d9ba46a92d3229cc7e697212aeffe97f830fd04f3c6a1166e6c39736a27ae8b712a95f3600cc1d060f6d61f555b57d9e52cf0fe135e2d2860361bbbe41208d6
+  checksum: 10c0/6089ec60dfd743c66b4de6f1e0ab9b4df5d880c8959bc3653fe05f85acdbbc43a3ff7e4798eaf95814306eb25be82c6fc0e1d1c1125ef29c7c4834f885f9a1fb
   languageName: node
   linkType: hard
 
@@ -4793,35 +4883,35 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/starter-kit@npm:^3.27.3":
-  version: 3.27.4
-  resolution: "@tiptap/starter-kit@npm:3.27.4"
+"@tiptap/starter-kit@npm:^3.27.4":
+  version: 3.28.0
+  resolution: "@tiptap/starter-kit@npm:3.28.0"
   dependencies:
-    "@tiptap/core": "npm:^3.27.4"
-    "@tiptap/extension-blockquote": "npm:^3.27.4"
-    "@tiptap/extension-bold": "npm:^3.27.4"
-    "@tiptap/extension-bullet-list": "npm:^3.27.4"
-    "@tiptap/extension-code": "npm:^3.27.4"
-    "@tiptap/extension-code-block": "npm:^3.27.4"
-    "@tiptap/extension-document": "npm:^3.27.4"
-    "@tiptap/extension-dropcursor": "npm:^3.27.4"
-    "@tiptap/extension-gapcursor": "npm:^3.27.4"
-    "@tiptap/extension-hard-break": "npm:^3.27.4"
-    "@tiptap/extension-heading": "npm:^3.27.4"
-    "@tiptap/extension-horizontal-rule": "npm:^3.27.4"
-    "@tiptap/extension-italic": "npm:^3.27.4"
-    "@tiptap/extension-link": "npm:^3.27.4"
-    "@tiptap/extension-list": "npm:^3.27.4"
-    "@tiptap/extension-list-item": "npm:^3.27.4"
-    "@tiptap/extension-list-keymap": "npm:^3.27.4"
-    "@tiptap/extension-ordered-list": "npm:^3.27.4"
-    "@tiptap/extension-paragraph": "npm:^3.27.4"
-    "@tiptap/extension-strike": "npm:^3.27.4"
-    "@tiptap/extension-text": "npm:^3.27.4"
-    "@tiptap/extension-underline": "npm:^3.27.4"
-    "@tiptap/extensions": "npm:^3.27.4"
-    "@tiptap/pm": "npm:^3.27.4"
-  checksum: 10c0/ec32cbc500128fb65a64db2a5e6f66172cef4d72487d0548ab082184f2b8c4acadd7047210124bbfcb7e99d050554933c2ffb83a2e5d1b9f212a3e09068415da
+    "@tiptap/core": "npm:^3.28.0"
+    "@tiptap/extension-blockquote": "npm:^3.28.0"
+    "@tiptap/extension-bold": "npm:^3.28.0"
+    "@tiptap/extension-bullet-list": "npm:^3.28.0"
+    "@tiptap/extension-code": "npm:^3.28.0"
+    "@tiptap/extension-code-block": "npm:^3.28.0"
+    "@tiptap/extension-document": "npm:^3.28.0"
+    "@tiptap/extension-dropcursor": "npm:^3.28.0"
+    "@tiptap/extension-gapcursor": "npm:^3.28.0"
+    "@tiptap/extension-hard-break": "npm:^3.28.0"
+    "@tiptap/extension-heading": "npm:^3.28.0"
+    "@tiptap/extension-horizontal-rule": "npm:^3.28.0"
+    "@tiptap/extension-italic": "npm:^3.28.0"
+    "@tiptap/extension-link": "npm:^3.28.0"
+    "@tiptap/extension-list": "npm:^3.28.0"
+    "@tiptap/extension-list-item": "npm:^3.28.0"
+    "@tiptap/extension-list-keymap": "npm:^3.28.0"
+    "@tiptap/extension-ordered-list": "npm:^3.28.0"
+    "@tiptap/extension-paragraph": "npm:^3.28.0"
+    "@tiptap/extension-strike": "npm:^3.28.0"
+    "@tiptap/extension-text": "npm:^3.28.0"
+    "@tiptap/extension-underline": "npm:^3.28.0"
+    "@tiptap/extensions": "npm:^3.28.0"
+    "@tiptap/pm": "npm:^3.28.0"
+  checksum: 10c0/498ad6e5fc52b289c1517342025755550dd09870a86271ca85255c152e17f49b77f309f2dbb6c318ebba6caabbbccfd26aad1f400295971968411e5cfaabb953
   languageName: node
   linkType: hard
 
@@ -5949,7 +6039,7 @@ __metadata:
     react-beautiful-dnd: "npm:^13.1.1"
     sha256: "npm:^0.2.0"
     typescript: "npm:^6.0.3"
-    webpack-bundle-analyzer: "npm:^5.3.0"
+    webpack-bundle-analyzer: "npm:^5.3.1"
   languageName: unknown
   linkType: soft
 
@@ -10306,14 +10396,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.5.18":
-  version: 8.5.20
-  resolution: "postcss@npm:8.5.20"
+"postcss@npm:^8.5.19":
+  version: 8.5.21
+  resolution: "postcss@npm:8.5.21"
   dependencies:
     nanoid: "npm:^3.3.16"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
-  checksum: 10c0/9c7a0e32c77ac54c5613f974e6ccc97d4a70fdb3bf242617f3fb4d652e5c62a37c86c589e6e7a2d1e7120f80bc169cdf673482b88bd75020d2a44899fa569c13
+  checksum: 10c0/89bf8860bba456eafcbc6c8addc3f5d3010529069ec67adb1a26b79b098d1b2afa49cc1abf80c5b01867980db6eae0c02fd0350e17a84c5f12d07aaec704aa50
   languageName: node
   linkType: hard
 
@@ -10397,22 +10487,22 @@ __metadata:
     "@tailwindcss/typography": "npm:^0.5.20"
     "@tanstack/react-query": "npm:^5.101.2"
     "@tanstack/react-table": "npm:^8.21.3"
-    "@tiptap/core": "npm:^3.27.3"
-    "@tiptap/extension-code-block": "npm:^3.27.3"
-    "@tiptap/extension-code-block-lowlight": "npm:^3.27.3"
-    "@tiptap/extension-color": "npm:^3.27.3"
-    "@tiptap/extension-heading": "npm:^3.27.3"
-    "@tiptap/extension-horizontal-rule": "npm:^3.27.3"
-    "@tiptap/extension-image": "npm:^3.27.3"
-    "@tiptap/extension-link": "npm:^3.27.3"
-    "@tiptap/extension-placeholder": "npm:^3.27.3"
-    "@tiptap/extension-text-style": "npm:^3.27.3"
-    "@tiptap/extension-typography": "npm:^3.27.3"
-    "@tiptap/extension-underline": "npm:^3.27.3"
-    "@tiptap/extensions": "npm:^3.27.3"
-    "@tiptap/pm": "npm:^3.27.3"
-    "@tiptap/react": "npm:^3.27.3"
-    "@tiptap/starter-kit": "npm:^3.27.3"
+    "@tiptap/core": "npm:^3.27.4"
+    "@tiptap/extension-code-block": "npm:^3.27.4"
+    "@tiptap/extension-code-block-lowlight": "npm:^3.27.4"
+    "@tiptap/extension-color": "npm:^3.27.4"
+    "@tiptap/extension-heading": "npm:^3.27.4"
+    "@tiptap/extension-horizontal-rule": "npm:^3.27.4"
+    "@tiptap/extension-image": "npm:^3.27.4"
+    "@tiptap/extension-link": "npm:^3.27.4"
+    "@tiptap/extension-placeholder": "npm:^3.27.4"
+    "@tiptap/extension-text-style": "npm:^3.27.4"
+    "@tiptap/extension-typography": "npm:^3.27.4"
+    "@tiptap/extension-underline": "npm:^3.27.4"
+    "@tiptap/extensions": "npm:^3.27.4"
+    "@tiptap/pm": "npm:^3.27.4"
+    "@tiptap/react": "npm:^3.27.4"
+    "@tiptap/starter-kit": "npm:^3.27.4"
     "@tumaet/prompt-shared-state": "npm:1.1.1"
     "@tumaet/prompt-ui-components": "npm:1.1.6"
     "@types/node": "npm:^25.9.5"
@@ -10434,7 +10524,7 @@ __metadata:
     lowlight: "npm:^3.3.0"
     lucide-react: "npm:^1.24.0"
     motion: "npm:^12.42.2"
-    postcss: "npm:^8.5.18"
+    postcss: "npm:^8.5.19"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.2.7"
     react-dom: "npm:^19.2.7"
@@ -10451,7 +10541,7 @@ __metadata:
     ts-node-register: "npm:^1.0.0"
     typescript: "npm:^6.0.3"
     use-debounce: "npm:^10.1.1"
-    webpack-bundle-analyzer: "npm:^5.3.0"
+    webpack-bundle-analyzer: "npm:^5.3.1"
     zod: "npm:^4.4.3"
     zustand: "npm:^5.0.14"
   languageName: unknown
@@ -12207,9 +12297,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack-bundle-analyzer@npm:^5.3.0":
-  version: 5.3.0
-  resolution: "webpack-bundle-analyzer@npm:5.3.0"
+"webpack-bundle-analyzer@npm:^5.3.1":
+  version: 5.3.1
+  resolution: "webpack-bundle-analyzer@npm:5.3.1"
   dependencies:
     "@discoveryjs/json-ext": "npm:^0.6.3"
     acorn: "npm:^8.0.4"
@@ -12223,7 +12313,7 @@ __metadata:
     ws: "npm:^8.19.0"
   bin:
     webpack-bundle-analyzer: lib/bin/analyzer.js
-  checksum: 10c0/e4650e33dee1a07d77e8c88e98d8a38a6b6efb42eb9b1d917259fc23f06ee58da31f09511fa675369ddad90f498ebeba3876e006828d69dfa80fbeabf1c333cf
+  checksum: 10c0/7697c462ca83f345761c59104708f22c53efcfeacd41561880efc51096af3887f8eb4b9bd8b538cabee8ba2536a14d4551fe0cbcc34ffc2443eaf3018aca096c
   languageName: node
   linkType: hard
 

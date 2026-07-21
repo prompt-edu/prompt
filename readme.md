@@ -279,16 +279,19 @@ On every commit the hooks run against the staged files:
 
 - **hygiene** — trailing whitespace, end-of-file newline, YAML/JSON validity,
   merge-conflict markers, large files;
-- **gofmt** — fails if a staged Go file is not formatted;
+- **gofmt** — fails if a staged Go file is not formatted (needs Go on `PATH`);
 - **biome** — lints/format-checks staged client files (same as `make lint`);
 - **swagger docs** — when Go service sources are staged, regenerates and
-  re-stages the committed swagger specs (needs `swag` on PATH;
-  `make install-hooks` installs it when Go is available). Because this hook
+  re-stages the committed swagger specs. Requires `swag` on `PATH`
+  (`go install github.com/swaggo/swag/cmd/swag@latest`). Because this hook
   regenerates files, a commit with stale docs is aborted once with the docs
   updated and staged — re-run `git commit` to include them.
 
 Check the whole repo at any time with `pre-commit run --all-files`. To bypass the
 hooks for a single commit, use `git commit --no-verify`.
+
+> If you previously installed the old bash hook via `core.hooksPath`, clear the
+> override once with `git config --local --unset core.hooksPath`.
 
 ### Ports Reference
 

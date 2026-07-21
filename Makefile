@@ -195,7 +195,7 @@ install-clients: ## Install client dependencies
 	cd clients && yarn install
 
 install-hooks: ## Install git hooks (via the pre-commit framework)
-	./scripts/install-hooks.sh
+	pre-commit install
 
 setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
 	./scripts/setup-skills.sh

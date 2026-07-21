@@ -139,7 +139,7 @@ E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
 
 test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
-	@mkdir -p e2e/playwright-report e2e/test-results
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
 		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
@@ -147,7 +147,7 @@ test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runn
 		exit $$status
 
 test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard PATHS="tests/interview tests/api/interview.api.spec.ts"
-	@mkdir -p e2e/playwright-report e2e/test-results
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
 		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $(PATHS); status=$$?; \

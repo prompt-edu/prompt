@@ -45,6 +45,9 @@ export default defineConfig({
               fileName: `report-${process.env.PW_SHARD_NAME ?? 'shard'}.zip`,
             },
           ] as const,
+          // Keep terminal feedback visible in CI logs alongside the blob report.
+          ['list'] as const,
+          ...(isCI ? [['github'] as const] : []),
         ]
       : [
           ['list'] as const,

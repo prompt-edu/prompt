@@ -38,8 +38,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # Runtime budget: a shard exceeding this fails the job (Playwright's
-    # globalTimeout, set below, fails first with a cleaner message).
-    timeout-minutes: 20
+    # globalTimeout, set below, fails first with a cleaner message). The job
+    # timeout sits above the 20-min Playwright globalTimeout so Playwright times
+    # out first with a clean message and still uploads its blob report.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

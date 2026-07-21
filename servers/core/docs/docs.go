@@ -7080,6 +7080,9 @@ const docTemplate = `{
                 "firstName": {
                     "type": "string"
                 },
+                "gender": {
+                    "$ref": "#/definitions/db.Gender"
+                },
                 "hasUniversityAccount": {
                     "type": "boolean"
                 },
@@ -7092,11 +7095,17 @@ const docTemplate = `{
                 "lastName": {
                     "type": "string"
                 },
+                "nationality": {
+                    "type": "string"
+                },
                 "noteTags": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/studentDTO.StudentNoteTagDTO"
                     }
+                },
+                "studyDegree": {
+                    "$ref": "#/definitions/db.StudyDegree"
                 },
                 "studyProgram": {
                     "type": "string"

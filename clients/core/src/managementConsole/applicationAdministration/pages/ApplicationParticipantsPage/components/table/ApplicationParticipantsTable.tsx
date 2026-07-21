@@ -68,9 +68,17 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [additionalScores],
   )
 
+  const studyPrograms = useMemo(
+    () =>
+      Array.from(new Set(data.map((row) => row.studyProgram).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [data],
+  )
+
   const filters: TableFilter[] = useMemo(
-    () => getApplicationFilters(additionalScores),
-    [additionalScores],
+    () => getApplicationFilters(additionalScores, studyPrograms),
+    [additionalScores, studyPrograms],
   )
 
   const getVisibleApplicationIds = useCallback(() => {

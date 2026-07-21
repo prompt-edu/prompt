@@ -30,7 +30,7 @@ export const useMissingConfigs = (
         description: `This application phase has no mailing settings configured.
           If you do not want to send mails, you can hide this warning.`,
         icon: MailWarningIcon,
-        link: `${path}/mailing`,
+        link: `${path}/settings`,
         hide: hideMailingWarning,
       })
     }

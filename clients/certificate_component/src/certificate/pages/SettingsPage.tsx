@@ -142,6 +142,8 @@ export const SettingsPage = () => {
 
     setIsPreviewing(true)
     setCompilerError(null)
+    // Open the tab synchronously within the click gesture so Safari/mobile don't block it.
+    const previewWindow = window.open('', '_blank')
     try {
       // Save first if there are unsaved changes
       if (hasChanges) {
@@ -154,6 +156,7 @@ export const SettingsPage = () => {
             description: 'Template saved before generating preview',
           })
         } catch {
+          previewWindow?.close()
           toast({
             title: 'Save failed',
             description: 'Failed to save template before preview.',
@@ -165,9 +168,18 @@ export const SettingsPage = () => {
 
       const blob = await previewCertificate(phaseId)
       const url = window.URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      if (previewWindow) {
+        previewWindow.location.href = url
+      } else {
+        const link = document.createElement('a')
+        link.href = url
+        link.target = '_blank'
+        link.rel = 'noopener'
+        link.click()
+      }
       setTimeout(() => window.URL.revokeObjectURL(url), 10000)
     } catch (error: unknown) {
+      previewWindow?.close()
       console.error('Failed to generate preview:', error)
       const previewError = error as PreviewError
       if (previewError?.compilerOutput) {

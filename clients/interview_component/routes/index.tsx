@@ -1,11 +1,10 @@
 import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { InterviewDataShell } from '../src/interview/pages/InterviewDataShell'
 import { InterviewParticipantsPage } from '../src/interview/pages/InterviewParticipantsPage/InterviewParticipantsPage'
-import { MailingPage } from '../src/interview/pages/Mailing/MailingPage'
 import OverviewPage from '../src/interview/pages/Overview/OverviewPage'
 import { ProfileDetailPage } from '../src/interview/pages/ProfileDetail/ProfileDetailPage'
 import { InterviewScheduleManagement } from '../src/interview/pages/ScheduleManagement/InterviewScheduleManagement'
-import { QuestionConfiguration } from '../src/interview/pages/Settings/QuestionConfiguration'
+import { SettingsPage } from '../src/interview/pages/Settings/SettingsPage'
 import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
 
 const interviewRoutes: ExtendedRouteObject[] = [
@@ -43,15 +42,6 @@ const interviewRoutes: ExtendedRouteObject[] = [
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
   },
   {
-    path: '/mailing',
-    element: (
-      <InterviewDataShell>
-        <MailingPage />
-      </InterviewDataShell>
-    ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
-  },
-  {
     path: '/schedule',
     element: <InterviewScheduleManagement />,
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
@@ -60,7 +50,7 @@ const interviewRoutes: ExtendedRouteObject[] = [
     path: '/settings',
     element: (
       <InterviewDataShell>
-        <QuestionConfiguration />
+        <SettingsPage />
       </InterviewDataShell>
     ),
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],

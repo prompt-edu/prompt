@@ -19,9 +19,9 @@ future AIs to read, run, and extend.
 ## Running
 
 **Prerequisites:** [`uv`](https://docs.astral.sh/uv/) (Python env + deps) and
-[`k6`](https://k6.io/) on your `PATH` (`brew install uv k6`). `run.sh` calls
-`uv sync` on every run to provision the Python environment from `pyproject.toml`
-/ `uv.lock`, so there is no manual `pip install` step.
+[`k6`](https://k6.io/) on your `PATH` (`brew install uv k6`). `uv run` provisions
+the Python environment from `pyproject.toml` / `uv.lock` on demand, so there is no
+manual `pip install` step.
 
 The suite targets an **isolated** Docker stack (project `prompt-stress`) so it never
 collides with another running PROMPT stack. First create the local env file (it is
@@ -40,13 +40,18 @@ docker compose --env-file api-stress/stress.env \
   server-example server-interview server-certificate
 ```
 
-Then run the suite:
+Then run the suite. The orchestrator lives in `stress/cli.py` and is exposed as
+the `api-stress-test` entry point; `run.sh` is a thin shim over it, so these two
+forms are equivalent (`uv run --help` lists all flags):
 
 ```bash
-api-stress/run.sh                       # full run, medium intensity
-api-stress/run.sh --smoke-only          # quick reachability + latency baseline
-api-stress/run.sh --intensity brutal    # all-out
-api-stress/run.sh --no-exhaustion       # skip the destructive lane
+uv run --project api-stress api-stress-test                    # full run, medium intensity
+uv run --project api-stress api-stress-test --smoke-only       # quick reachability + latency baseline
+uv run --project api-stress api-stress-test --intensity brutal # all-out
+uv run --project api-stress api-stress-test --no-exhaustion    # skip the destructive lane
+
+# equivalent shim (also creates stress.env, syncs the env, then dispatches):
+api-stress/run.sh --smoke-only
 ```
 
 Output lands in `api-stress/reports/<timestamp>/` (`report.md` first).

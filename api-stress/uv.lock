@@ -115,7 +115,7 @@ wheels = [
 [[package]]
 name = "prompt-api-stress"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "httpx" },
 ]

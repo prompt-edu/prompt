@@ -3,10 +3,8 @@ package keycloakTokenVerifier
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	log "github.com/sirupsen/logrus"
 )
 
 // Global verifier, initialized at application start-up
@@ -27,16 +25,6 @@ func InitKeycloakVerifier() error {
 	// Configure the verifier with the expected client ID (audience)
 	config := &oidc.Config{
 		SkipClientIDCheck: true, // otherwise students cannot apply to courses
-	}
-
-	// Local-development escape hatch: when the browser reaches Keycloak on a
-	// different host/port than the containerized server (e.g. http://127.0.0.1
-	// vs the internal service name), the token issuer will not match the
-	// server's provider URL. Signatures are still verified against the realm's
-	// JWKS. NEVER enable this in production.
-	if os.Getenv("KEYCLOAK_INSECURE_SKIP_ISSUER_CHECK") == "true" {
-		config.SkipIssuerCheck = true
-		log.Warn("KEYCLOAK_INSECURE_SKIP_ISSUER_CHECK is enabled - token issuer validation is disabled. Do not use this in production.")
 	}
 
 	verifier = provider.Verifier(config)

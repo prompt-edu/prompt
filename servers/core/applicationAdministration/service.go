@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -1029,18 +1030,22 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 		return applicationDTO.ImportResult{}, errors.New("could not load existing questions")
 	}
 	existingIDByTitle := make(map[string]uuid.UUID, len(existingQuestions))
+	existingLengthByTitle := make(map[string]int, len(existingQuestions))
 	nextOrder := 1
 	for _, q := range existingQuestions {
 		existingIDByTitle[q.Title.String] = q.ID
+		existingLengthByTitle[q.Title.String] = int(q.AllowedLength.Int32)
 		if int(q.OrderNum.Int32) >= nextOrder {
 			nextOrder = int(q.OrderNum.Int32) + 1
 		}
 	}
 
 	questionIDByColumn := make(map[string]uuid.UUID, len(req.NewQuestions))
+	allowedLengthByColumn := make(map[string]int, len(req.NewQuestions))
 	for _, nq := range req.NewQuestions {
 		if existingID, ok := existingIDByTitle[nq.Title]; ok {
 			questionIDByColumn[nq.ColumnKey] = existingID
+			allowedLengthByColumn[nq.ColumnKey] = existingLengthByTitle[nq.Title]
 			continue
 		}
 		questionDBModel := applicationDTO.CreateQuestionText{
@@ -1056,7 +1061,9 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			return applicationDTO.ImportResult{}, errors.New("could not create import question")
 		}
 		questionIDByColumn[nq.ColumnKey] = questionDBModel.ID
+		allowedLengthByColumn[nq.ColumnKey] = nq.AllowedLength
 		existingIDByTitle[nq.Title] = questionDBModel.ID
+		existingLengthByTitle[nq.Title] = nq.AllowedLength
 		nextOrder++
 	}
 
@@ -1108,6 +1115,11 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			questionID, ok := questionIDByColumn[ans.ColumnKey]
 			if !ok || strings.TrimSpace(ans.Answer) == "" {
 				continue
+			}
+			// Enforce the question's allowed length, mirroring the public-form answer validation
+			// so an oversized CSV cell cannot bypass the question configuration.
+			if maxLen := allowedLengthByColumn[ans.ColumnKey]; maxLen > 0 && utf8.RuneCountInString(ans.Answer) > maxLen {
+				return applicationDTO.ImportResult{}, fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d", studentInput.UniversityLogin, ans.ColumnKey, maxLen)
 			}
 			answerDBModel := applicationDTO.CreateAnswerText{
 				ApplicationQuestionID: questionID,

@@ -83,7 +83,7 @@ Click **Import Students** on the Participants page and follow the wizard:
 3. **Review** — See how many students are new versus existing (matched by **University ID**) and how many new questions will be created, then choose the status the imported students should receive:
    * **Accepted (passed)** — the students count as accepted immediately and move on to the next phase.
    * **Not assessed** — the students are registered but still reviewed like normal applicants.
-4. **Result** — A summary reports how many students were created, updated, and failed.
+4. **Result** — A summary reports how many students were created and updated.
 
 Re-running an import with the same University IDs **updates** those students instead of creating duplicates, so you can safely re-import an updated file.
 

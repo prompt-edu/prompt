@@ -364,3 +364,25 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidAllowedLe
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "allowed length")
 }
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_AnswerExceedingAllowedLengthRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "short", Title: "Short Answer", AllowedLength: 5},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{
+				Student: studentDTO.CreateStudent{FirstName: "Long", LastName: "Answer", Email: "long.answer@example.com", UniversityLogin: "la01abc"},
+				Answers: []applicationDTO.ImportAnswer{{ColumnKey: "short", Answer: "way too long for five"}},
+			},
+		},
+	}
+
+	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
+}

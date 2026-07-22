@@ -64,3 +64,45 @@ func (q *Queries) GetInterviewAssignmentsByParticipationIDs(ctx context.Context,
 	}
 	return items, nil
 }
+
+const getInterviewReviewsByParticipationIDs = `-- name: GetInterviewReviewsByParticipationIDs :many
+SELECT
+    course_phase_id,
+    course_participation_id,
+    score,
+    interviewer,
+    interview_answers,
+    created_at,
+    updated_at
+FROM interview_review
+WHERE course_participation_id = ANY($1::uuid[])
+ORDER BY course_phase_id ASC
+`
+
+func (q *Queries) GetInterviewReviewsByParticipationIDs(ctx context.Context, courseParticipationIds []uuid.UUID) ([]InterviewReview, error) {
+	rows, err := q.db.Query(ctx, getInterviewReviewsByParticipationIDs, courseParticipationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []InterviewReview
+	for rows.Next() {
+		var i InterviewReview
+		if err := rows.Scan(
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.Score,
+			&i.Interviewer,
+			&i.InterviewAnswers,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

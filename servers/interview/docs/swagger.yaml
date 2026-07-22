@@ -49,6 +49,67 @@ definitions:
       slot_details:
         $ref: '#/definitions/interviewSlotDTO.InterviewSlotResponse'
     type: object
+  interviewReviewDTO.InterviewAnswer:
+    properties:
+      answer:
+        type: string
+      questionID:
+        type: integer
+    type: object
+  interviewReviewDTO.InterviewReview:
+    properties:
+      courseParticipationID:
+        type: string
+      interviewAnswers:
+        items:
+          $ref: '#/definitions/interviewReviewDTO.InterviewAnswer'
+        type: array
+      interviewer:
+        type: string
+      score:
+        type: integer
+      scoreLevel:
+        $ref: '#/definitions/interviewReviewDTO.ScoreLevel'
+    type: object
+  interviewReviewDTO.ScoreLevel:
+    enum:
+    - veryBad
+    - bad
+    - ok
+    - good
+    - veryGood
+    type: string
+    x-enum-varnames:
+    - ScoreLevelVeryBad
+    - ScoreLevelBad
+    - ScoreLevelOk
+    - ScoreLevelGood
+    - ScoreLevelVeryGood
+  interviewReviewDTO.ScoreLevelWithParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/interviewReviewDTO.ScoreLevel'
+    type: object
+  interviewReviewDTO.ScoreWithParticipation:
+    properties:
+      courseParticipationID:
+        type: string
+      score:
+        type: integer
+    type: object
+  interviewReviewDTO.UpdateInterviewReviewRequest:
+    properties:
+      interviewAnswers:
+        items:
+          $ref: '#/definitions/interviewReviewDTO.InterviewAnswer'
+        type: array
+      interviewer:
+        type: string
+      score:
+        type: integer
+    type: object
   interviewSlotDTO.AssignmentInfo:
     properties:
       assignedAt:
@@ -356,6 +417,159 @@ paths:
       summary: Get current user's interview assignment
       tags:
       - interview-assignments
+  /course_phase/{coursePhaseID}/interview-review:
+    get:
+      description: List all interview reviews for the course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/interviewReviewDTO.InterviewReview'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List interview reviews
+      tags:
+      - interview-review
+  /course_phase/{coursePhaseID}/interview-review/{courseParticipationID}:
+    put:
+      consumes:
+      - application/json
+      description: Store the score, interviewer and answers for a course participation
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course Participation UUID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      - description: Interview review
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/interviewReviewDTO.UpdateInterviewReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/interviewReviewDTO.InterviewReview'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create or update an interview review
+      tags:
+      - interview-review
+  /course_phase/{coursePhaseID}/interview-review/score:
+    get:
+      description: List interview scores keyed by course participation for downstream
+        phases
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/interviewReviewDTO.ScoreWithParticipation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Interview score data-graph output
+      tags:
+      - interview-review
+  /course_phase/{coursePhaseID}/interview-review/scoreLevel:
+    get:
+      description: List interview score levels keyed by course participation for downstream
+        phases
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/interviewReviewDTO.ScoreLevelWithParticipation'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Interview score level data-graph output
+      tags:
+      - interview-review
   /course_phase/{coursePhaseID}/interview-slots:
     get:
       description: Retrieves all interview slots with assignment details

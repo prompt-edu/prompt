@@ -312,6 +312,242 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/interview-review": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List all interview reviews for the course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "interview-review"
+                ],
+                "summary": "List interview reviews",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/interviewReviewDTO.InterviewReview"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/interview-review/score": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List interview scores keyed by course participation for downstream phases",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "interview-review"
+                ],
+                "summary": "Interview score data-graph output",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/interviewReviewDTO.ScoreWithParticipation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/interview-review/scoreLevel": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List interview score levels keyed by course participation for downstream phases",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "interview-review"
+                ],
+                "summary": "Interview score level data-graph output",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/interviewReviewDTO.ScoreLevelWithParticipation"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/interview-review/{courseParticipationID}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Store the score, interviewer and answers for a course participation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "interview-review"
+                ],
+                "summary": "Create or update an interview review",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Course Participation UUID",
+                        "name": "courseParticipationID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Interview review",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/interviewReviewDTO.UpdateInterviewReviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/interviewReviewDTO.InterviewReview"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/interview-slots": {
             "get": {
                 "security": [
@@ -691,6 +927,96 @@ const docTemplate = `{
                 },
                 "slot_details": {
                     "$ref": "#/definitions/interviewSlotDTO.InterviewSlotResponse"
+                }
+            }
+        },
+        "interviewReviewDTO.InterviewAnswer": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "questionID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "interviewReviewDTO.InterviewReview": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "interviewAnswers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/interviewReviewDTO.InterviewAnswer"
+                    }
+                },
+                "interviewer": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "scoreLevel": {
+                    "$ref": "#/definitions/interviewReviewDTO.ScoreLevel"
+                }
+            }
+        },
+        "interviewReviewDTO.ScoreLevel": {
+            "type": "string",
+            "enum": [
+                "veryBad",
+                "bad",
+                "ok",
+                "good",
+                "veryGood"
+            ],
+            "x-enum-varnames": [
+                "ScoreLevelVeryBad",
+                "ScoreLevelBad",
+                "ScoreLevelOk",
+                "ScoreLevelGood",
+                "ScoreLevelVeryGood"
+            ]
+        },
+        "interviewReviewDTO.ScoreLevelWithParticipation": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "scoreLevel": {
+                    "$ref": "#/definitions/interviewReviewDTO.ScoreLevel"
+                }
+            }
+        },
+        "interviewReviewDTO.ScoreWithParticipation": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                }
+            }
+        },
+        "interviewReviewDTO.UpdateInterviewReviewRequest": {
+            "type": "object",
+            "properties": {
+                "interviewAnswers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/interviewReviewDTO.InterviewAnswer"
+                    }
+                },
+                "interviewer": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
                 }
             }
         },

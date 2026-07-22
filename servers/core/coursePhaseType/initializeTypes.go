@@ -93,7 +93,7 @@ func initInterview() error {
 			DtoName:           "score",
 			Specification:     scoreSpecificationBytes,
 			VersionNumber:     1,
-			EndpointPath:      "core",
+			EndpointPath:      "/interview-review/score",
 		}
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
 		if err != nil {
@@ -107,7 +107,7 @@ func initInterview() error {
 			DtoName:           "scoreLevel",
 			Specification:     scoreLevelSpecificationBytes,
 			VersionNumber:     1,
-			EndpointPath:      "core",
+			EndpointPath:      "/interview-review/scoreLevel",
 		}
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
 		if err != nil {

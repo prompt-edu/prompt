@@ -17,5 +17,8 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	exp.AddJSON("Interview Assignments", "interview_assignments.json", func() (any, error) {
 		return PrivacyServiceSingleton.Queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
 	})
+	exp.AddJSON("Interview Reviews", "interview_reviews.json", func() (any, error) {
+		return PrivacyServiceSingleton.Queries.GetInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
+	})
 	return nil
 }

@@ -93,7 +93,7 @@
     "js-yaml": "^5.2.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.3",
+    "@biomejs/biome": "2.5.4",
     "@module-federation/runtime-tools": "^2.7.0",
     "@rspack/cli": "^2.1.4",
     "@rspack/dev-server": "^2.1.0",

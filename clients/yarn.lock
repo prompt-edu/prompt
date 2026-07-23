@@ -1330,7 +1330,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@module-federation/runtime-tools@npm:^2.7.0":
+"@module-federation/runtime-tools@npm:^2.8.0":
   version: 2.8.0
   resolution: "@module-federation/runtime-tools@npm:2.8.0"
   dependencies:
@@ -3746,87 +3746,87 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tailwindcss/node@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/node@npm:4.3.2"
+"@tailwindcss/node@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/node@npm:4.3.3"
   dependencies:
     "@jridgewell/remapping": "npm:^2.3.5"
-    enhanced-resolve: "npm:5.21.6"
+    enhanced-resolve: "npm:^5.24.1"
     jiti: "npm:^2.7.0"
     lightningcss: "npm:1.32.0"
     magic-string: "npm:^0.30.21"
     source-map-js: "npm:^1.2.1"
-    tailwindcss: "npm:4.3.2"
-  checksum: 10c0/3b83caeb3a913b1a537640bbe4df3ac68dcfba1c95b5c2dedc3788bf6437b6ebb06512ec31ae1fb3aaf570eee0a2672e35ef872969a441e07861c2d248a9da3e
+    tailwindcss: "npm:4.3.3"
+  checksum: 10c0/0123669be5b3e78d42b0e10cb34d547fb8574c8e7dc7a97a141c8a4ab4215852b5b1b99b97763e898e1da1493ee8424cb72e28225cc4876828c95156f94d7f0e
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-android-arm64@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-android-arm64@npm:4.3.2"
+"@tailwindcss/oxide-android-arm64@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-android-arm64@npm:4.3.3"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-darwin-arm64@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-darwin-arm64@npm:4.3.2"
+"@tailwindcss/oxide-darwin-arm64@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-darwin-arm64@npm:4.3.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-darwin-x64@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-darwin-x64@npm:4.3.2"
+"@tailwindcss/oxide-darwin-x64@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-darwin-x64@npm:4.3.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-freebsd-x64@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-freebsd-x64@npm:4.3.2"
+"@tailwindcss/oxide-freebsd-x64@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-freebsd-x64@npm:4.3.3"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-linux-arm-gnueabihf@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-linux-arm-gnueabihf@npm:4.3.2"
+"@tailwindcss/oxide-linux-arm-gnueabihf@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-linux-arm-gnueabihf@npm:4.3.3"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-linux-arm64-gnu@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-linux-arm64-gnu@npm:4.3.2"
+"@tailwindcss/oxide-linux-arm64-gnu@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-linux-arm64-gnu@npm:4.3.3"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-linux-arm64-musl@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-linux-arm64-musl@npm:4.3.2"
+"@tailwindcss/oxide-linux-arm64-musl@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-linux-arm64-musl@npm:4.3.3"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-linux-x64-gnu@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-linux-x64-gnu@npm:4.3.2"
+"@tailwindcss/oxide-linux-x64-gnu@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-linux-x64-gnu@npm:4.3.3"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-linux-x64-musl@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-linux-x64-musl@npm:4.3.2"
+"@tailwindcss/oxide-linux-x64-musl@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-linux-x64-musl@npm:4.3.3"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-wasm32-wasi@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-wasm32-wasi@npm:4.3.2"
+"@tailwindcss/oxide-wasm32-wasi@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-wasm32-wasi@npm:4.3.3"
   dependencies:
     "@emnapi/core": "npm:^1.11.1"
     "@emnapi/runtime": "npm:^1.11.1"
@@ -3838,36 +3838,36 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-win32-arm64-msvc@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-win32-arm64-msvc@npm:4.3.2"
+"@tailwindcss/oxide-win32-arm64-msvc@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-win32-arm64-msvc@npm:4.3.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide-win32-x64-msvc@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide-win32-x64-msvc@npm:4.3.2"
+"@tailwindcss/oxide-win32-x64-msvc@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide-win32-x64-msvc@npm:4.3.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@tailwindcss/oxide@npm:4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/oxide@npm:4.3.2"
+"@tailwindcss/oxide@npm:4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/oxide@npm:4.3.3"
   dependencies:
-    "@tailwindcss/oxide-android-arm64": "npm:4.3.2"
-    "@tailwindcss/oxide-darwin-arm64": "npm:4.3.2"
-    "@tailwindcss/oxide-darwin-x64": "npm:4.3.2"
-    "@tailwindcss/oxide-freebsd-x64": "npm:4.3.2"
-    "@tailwindcss/oxide-linux-arm-gnueabihf": "npm:4.3.2"
-    "@tailwindcss/oxide-linux-arm64-gnu": "npm:4.3.2"
-    "@tailwindcss/oxide-linux-arm64-musl": "npm:4.3.2"
-    "@tailwindcss/oxide-linux-x64-gnu": "npm:4.3.2"
-    "@tailwindcss/oxide-linux-x64-musl": "npm:4.3.2"
-    "@tailwindcss/oxide-wasm32-wasi": "npm:4.3.2"
-    "@tailwindcss/oxide-win32-arm64-msvc": "npm:4.3.2"
-    "@tailwindcss/oxide-win32-x64-msvc": "npm:4.3.2"
+    "@tailwindcss/oxide-android-arm64": "npm:4.3.3"
+    "@tailwindcss/oxide-darwin-arm64": "npm:4.3.3"
+    "@tailwindcss/oxide-darwin-x64": "npm:4.3.3"
+    "@tailwindcss/oxide-freebsd-x64": "npm:4.3.3"
+    "@tailwindcss/oxide-linux-arm-gnueabihf": "npm:4.3.3"
+    "@tailwindcss/oxide-linux-arm64-gnu": "npm:4.3.3"
+    "@tailwindcss/oxide-linux-arm64-musl": "npm:4.3.3"
+    "@tailwindcss/oxide-linux-x64-gnu": "npm:4.3.3"
+    "@tailwindcss/oxide-linux-x64-musl": "npm:4.3.3"
+    "@tailwindcss/oxide-wasm32-wasi": "npm:4.3.3"
+    "@tailwindcss/oxide-win32-arm64-msvc": "npm:4.3.3"
+    "@tailwindcss/oxide-win32-x64-msvc": "npm:4.3.3"
   dependenciesMeta:
     "@tailwindcss/oxide-android-arm64":
       optional: true
@@ -3893,20 +3893,20 @@ __metadata:
       optional: true
     "@tailwindcss/oxide-win32-x64-msvc":
       optional: true
-  checksum: 10c0/9c82a1eb1e6cd7a29118a4f9cfae5fbf83950757cfbb5e51fb212b1e17c9195632ce245f873aee6ad3133921dbb617d050d7f12530905ab1f2683d41909b1de4
+  checksum: 10c0/6c38b25226dad252347451ed8953a998432b51f1e068b25e021215b886ccf8bcf3af58faf5f4ab50368091e657ca2fa341df1deca6101651eddb567122f2acb5
   languageName: node
   linkType: hard
 
-"@tailwindcss/postcss@npm:^4.3.2":
-  version: 4.3.2
-  resolution: "@tailwindcss/postcss@npm:4.3.2"
+"@tailwindcss/postcss@npm:^4.3.3":
+  version: 4.3.3
+  resolution: "@tailwindcss/postcss@npm:4.3.3"
   dependencies:
     "@alloc/quick-lru": "npm:^5.2.0"
-    "@tailwindcss/node": "npm:4.3.2"
-    "@tailwindcss/oxide": "npm:4.3.2"
-    postcss: "npm:^8.5.15"
-    tailwindcss: "npm:4.3.2"
-  checksum: 10c0/577998b219b5e209b1fdc33812f6024ff18b4fd43a0e5be9bba02c02ea593e10bcc776a6f5671780782f9ac29732b88cb185d0b944be009e19c1724c8d8b1970
+    "@tailwindcss/node": "npm:4.3.3"
+    "@tailwindcss/oxide": "npm:4.3.3"
+    postcss: "npm:^8.5.16"
+    tailwindcss: "npm:4.3.3"
+  checksum: 10c0/50b33643a4ba50c0d2ea0fd769d16072b0b3d2f31180df667fe5ad4ef60464b5f00931cfd5f2de2116a91219edb7a2dbd4c073b5c2f23393eab6ef1163db8dbf
   languageName: node
   linkType: hard
 
@@ -3973,15 +3973,6 @@ __metadata:
   peerDependencies:
     "@tiptap/pm": 3.26.1
   checksum: 10c0/0504b5206ca452c8709f7dfc914da3ddd657ed720308dd3a72d6d8411795b0f87213994d9d845b4edf96295fc77eb46a3dec43043a5e4df0af26b6aa35713c8d
-  languageName: node
-  linkType: hard
-
-"@tiptap/core@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/core@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/7143aaf120ee99b263d3f60bd926da2f85136abcf3815563ddd3e30daf8c8919363c5e155eb21a65a1008252edf591f5c07a7ea5b61f59cc1f26950b42feeda4
   languageName: node
   linkType: hard
 
@@ -4098,7 +4089,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block-lowlight@npm:^3.27.4":
+"@tiptap/extension-code-block-lowlight@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-code-block-lowlight@npm:3.28.0"
   peerDependencies:
@@ -4128,16 +4119,6 @@ __metadata:
     "@tiptap/core": 3.26.1
     "@tiptap/pm": 3.26.1
   checksum: 10c0/1b2c86b8746aa6a592ef82b1632e16acb059adc9bf14dad4a2f0fa3946ea08832bd929bd66c4cadacf1d82b1e44f6725dc596081f2bc61690fc2a10e943c9403
-  languageName: node
-  linkType: hard
-
-"@tiptap/extension-code-block@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-code-block@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/d8dbdfb57414e0d3116073cfe57a9c6252255c58efebce333427e8cf2444256a42d265ad8965094a602d5b13ecaa17ab7659a35625ec0aff8ab1a72ab314ae09
   languageName: node
   linkType: hard
 
@@ -4178,7 +4159,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-color@npm:^3.27.4":
+"@tiptap/extension-color@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-color@npm:3.28.0"
   peerDependencies:
@@ -4299,15 +4280,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-heading@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-heading@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/f9f070784818be57ffc622c7e78e6e48889deedfece84029e3011b50ce1840e2fa7c3dfad7ff6633a58b9fbaef03a61741a6073a5d933e11cfe5480ed243ea2b
-  languageName: node
-  linkType: hard
-
 "@tiptap/extension-heading@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-heading@npm:3.28.0"
@@ -4337,16 +4309,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-horizontal-rule@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-horizontal-rule@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/d85ebfb2ac32e3b116d13fd2c599948665e947c596bd84661177753a00c7227224592f7ec5164afdbdedb140185c8bfadbef681b3aca218768e439be13bd0da8
-  languageName: node
-  linkType: hard
-
 "@tiptap/extension-horizontal-rule@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-horizontal-rule@npm:3.28.0"
@@ -4366,7 +4328,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-image@npm:^3.27.4":
+"@tiptap/extension-image@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-image@npm:3.28.0"
   peerDependencies:
@@ -4414,18 +4376,6 @@ __metadata:
     "@tiptap/core": 3.26.1
     "@tiptap/pm": 3.26.1
   checksum: 10c0/54d70e40aae57388df135c7d6106ad1f93c601425bde248870a7ccdd714b197e15cc58e39702b5b95903bd9caf02d4b5895a5fd6ecea2c5558c632267a83427d
-  languageName: node
-  linkType: hard
-
-"@tiptap/extension-link@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-link@npm:3.27.4"
-  dependencies:
-    linkifyjs: "npm:^4.3.3"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/712a7d4b1e59b64c0d0dd5bf8809f0296ea875aa46cfcb414aefe7bf707778cacdcc01e4224314aac413c78b3952426e3d295fbcfcb76af79c0d402cce93dec5
   languageName: node
   linkType: hard
 
@@ -4542,7 +4492,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-placeholder@npm:^3.27.4":
+"@tiptap/extension-placeholder@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-placeholder@npm:3.28.0"
   peerDependencies:
@@ -4578,7 +4528,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-text-style@npm:^3.27.4":
+"@tiptap/extension-text-style@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-text-style@npm:3.28.0"
   peerDependencies:
@@ -4614,7 +4564,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-typography@npm:^3.27.4":
+"@tiptap/extension-typography@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/extension-typography@npm:3.28.0"
   peerDependencies:
@@ -4638,15 +4588,6 @@ __metadata:
   peerDependencies:
     "@tiptap/core": 3.26.1
   checksum: 10c0/c8a6faec281671b82219bf419fe832283f187e1d8717ce4b9c2a50a5c2600142e5d41afc8f94a50bd2c23ea9ec0e796314d31e3a899f8a764434f845ad717407
-  languageName: node
-  linkType: hard
-
-"@tiptap/extension-underline@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extension-underline@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-  checksum: 10c0/590400cdecccde29d4647cd3dd8ff79f344fbc916b4abf572d23f11e23b4ec5c1fb340bbf654f77dd7b4e4a294bf112848d04c34dc48abefac323a4793362a98
   languageName: node
   linkType: hard
 
@@ -4676,16 +4617,6 @@ __metadata:
     "@tiptap/core": 3.26.1
     "@tiptap/pm": 3.26.1
   checksum: 10c0/3f46bd079dd657ca76a5911779e45d2162e9d49caaee025d839f3f587aa37ca0324d3e3c9a48aef8741ba32d999ac833cfa1aee50a903fcd88bf3e067e119aa2
-  languageName: node
-  linkType: hard
-
-"@tiptap/extensions@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/extensions@npm:3.27.4"
-  peerDependencies:
-    "@tiptap/core": 3.27.4
-    "@tiptap/pm": 3.27.4
-  checksum: 10c0/0cbb2fc7a77bc5a5dbcb619063478b75b3679a983761d65c4a038a7ef7f3b9758f46ab3de68d497421b733548de93c5e093e6f93c101c0c599f723a56982c2da
   languageName: node
   linkType: hard
 
@@ -4740,27 +4671,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/pm@npm:^3.27.4":
-  version: 3.27.4
-  resolution: "@tiptap/pm@npm:3.27.4"
-  dependencies:
-    prosemirror-changeset: "npm:^2.4.1"
-    prosemirror-commands: "npm:^1.7.1"
-    prosemirror-dropcursor: "npm:^1.8.2"
-    prosemirror-gapcursor: "npm:^1.4.1"
-    prosemirror-history: "npm:^1.5.0"
-    prosemirror-inputrules: "npm:^1.5.1"
-    prosemirror-keymap: "npm:^1.2.3"
-    prosemirror-model: "npm:^1.25.9"
-    prosemirror-schema-list: "npm:^1.5.1"
-    prosemirror-state: "npm:^1.4.4"
-    prosemirror-tables: "npm:^1.8.5"
-    prosemirror-transform: "npm:^1.12.0"
-    prosemirror-view: "npm:^1.41.9"
-  checksum: 10c0/6ebe131aa0f8b03ea7fe07ff1f98220ba7c535aa684eb39772bd8446033ff2ce2d86547a304837c70f390af61d56d24c5e4eef5cc2ae0fb2a9d26f46640d0bc4
-  languageName: node
-  linkType: hard
-
 "@tiptap/pm@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/pm@npm:3.28.0"
@@ -4807,7 +4717,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/react@npm:^3.27.4":
+"@tiptap/react@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/react@npm:3.28.0"
   dependencies:
@@ -4864,7 +4774,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/starter-kit@npm:^3.27.4":
+"@tiptap/starter-kit@npm:^3.28.0":
   version: 3.28.0
   resolution: "@tiptap/starter-kit@npm:3.28.0"
   dependencies:
@@ -6863,13 +6773,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"enhanced-resolve@npm:5.21.6":
-  version: 5.21.6
-  resolution: "enhanced-resolve@npm:5.21.6"
+"enhanced-resolve@npm:^5.24.1":
+  version: 5.24.3
+  resolution: "enhanced-resolve@npm:5.24.3"
   dependencies:
     graceful-fs: "npm:^4.2.4"
     tapable: "npm:^2.3.3"
-  checksum: 10c0/4991b0ee020ce534c824e8f191a2cf068b9206dc6c9aef5797d41db5c45036c868145c2f0badee6084de2cc3703c7ca76426b254c6b2eac0e0e670ab4a33e528
+  checksum: 10c0/907a1c4b35901539613e080c77274e354f668da3124f7e0f595e6efed46e730c732049f500b771d2657a1f16a4a220b9852e475884b1951b6e4f1389f0d58bb1
   languageName: node
   linkType: hard
 
@@ -10315,7 +10225,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.4.40, postcss@npm:^8.5.15":
+"postcss@npm:^8.4.40":
   version: 8.5.15
   resolution: "postcss@npm:8.5.15"
   dependencies:
@@ -10418,32 +10328,32 @@ __metadata:
     "@biomejs/biome": "npm:2.5.4"
     "@hello-pangea/dnd": "npm:^18.0.1"
     "@hookform/resolvers": "npm:^5.4.0"
-    "@module-federation/runtime-tools": "npm:^2.7.0"
+    "@module-federation/runtime-tools": "npm:^2.8.0"
     "@radix-ui/react-icons": "npm:^1.3.2"
     "@radix-ui/react-toolbar": "npm:^1.1.15"
     "@rspack/cli": "npm:^2.1.4"
     "@rspack/core": "npm:^2.1.4"
     "@rspack/dev-server": "npm:^2.1.0"
-    "@tailwindcss/postcss": "npm:^4.3.2"
+    "@tailwindcss/postcss": "npm:^4.3.3"
     "@tailwindcss/typography": "npm:^0.5.20"
     "@tanstack/react-query": "npm:^5.101.2"
     "@tanstack/react-table": "npm:^8.21.3"
-    "@tiptap/core": "npm:^3.27.4"
-    "@tiptap/extension-code-block": "npm:^3.27.4"
-    "@tiptap/extension-code-block-lowlight": "npm:^3.27.4"
-    "@tiptap/extension-color": "npm:^3.27.4"
-    "@tiptap/extension-heading": "npm:^3.27.4"
-    "@tiptap/extension-horizontal-rule": "npm:^3.27.4"
-    "@tiptap/extension-image": "npm:^3.27.4"
-    "@tiptap/extension-link": "npm:^3.27.4"
-    "@tiptap/extension-placeholder": "npm:^3.27.4"
-    "@tiptap/extension-text-style": "npm:^3.27.4"
-    "@tiptap/extension-typography": "npm:^3.27.4"
-    "@tiptap/extension-underline": "npm:^3.27.4"
-    "@tiptap/extensions": "npm:^3.27.4"
-    "@tiptap/pm": "npm:^3.27.4"
-    "@tiptap/react": "npm:^3.27.4"
-    "@tiptap/starter-kit": "npm:^3.27.4"
+    "@tiptap/core": "npm:^3.28.0"
+    "@tiptap/extension-code-block": "npm:^3.28.0"
+    "@tiptap/extension-code-block-lowlight": "npm:^3.28.0"
+    "@tiptap/extension-color": "npm:^3.28.0"
+    "@tiptap/extension-heading": "npm:^3.28.0"
+    "@tiptap/extension-horizontal-rule": "npm:^3.28.0"
+    "@tiptap/extension-image": "npm:^3.28.0"
+    "@tiptap/extension-link": "npm:^3.28.0"
+    "@tiptap/extension-placeholder": "npm:^3.28.0"
+    "@tiptap/extension-text-style": "npm:^3.28.0"
+    "@tiptap/extension-typography": "npm:^3.28.0"
+    "@tiptap/extension-underline": "npm:^3.28.0"
+    "@tiptap/extensions": "npm:^3.28.0"
+    "@tiptap/pm": "npm:^3.28.0"
+    "@tiptap/react": "npm:^3.28.0"
+    "@tiptap/starter-kit": "npm:^3.28.0"
     "@tumaet/prompt-shared-state": "npm:1.1.1"
     "@tumaet/prompt-ui-components": "npm:1.1.6"
     "@types/node": "npm:^25.9.5"
@@ -10476,7 +10386,7 @@ __metadata:
     sonner: "npm:^2.0.7"
     style-loader: "npm:^4.0.0"
     tailwind-merge: "npm:^3.6.0"
-    tailwindcss: "npm:^4.3.2"
+    tailwindcss: "npm:^4.3.3"
     tailwindcss-animate: "npm:^1.0.7"
     ts-node: "npm:^10.9.2"
     ts-node-register: "npm:^1.0.0"
@@ -11723,10 +11633,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:4.3.2, tailwindcss@npm:^4.3.2":
-  version: 4.3.2
-  resolution: "tailwindcss@npm:4.3.2"
-  checksum: 10c0/5a377846f77590812df234446175c4c2a45111a9626fd135e46f4552a33faee0d10c4e51aa5bbec955583265d48b380fb66c96f5da2775c961d4c26157617d19
+"tailwindcss@npm:4.3.3, tailwindcss@npm:^4.3.3":
+  version: 4.3.3
+  resolution: "tailwindcss@npm:4.3.3"
+  checksum: 10c0/7e9cd7553cd890ffa5350efb0ca8971ba5435257d0f98bf0714994ac8f1fee5c7cdf9a9da47fe83e8ac995d728410837ac49d3ef5ea66b5afe1db312086ffae2
   languageName: node
   linkType: hard
 

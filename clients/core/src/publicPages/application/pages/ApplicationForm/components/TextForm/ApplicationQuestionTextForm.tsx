@@ -94,7 +94,7 @@ export const ApplicationQuestionTextForm = forwardRef(function ApplicationQuesti
                       disabled={isInstructorView}
                     />
                   )}
-                  <div className='absolute right-2 bottom-2 text-sm text-gray-500'>
+                  <div className='absolute right-2 bottom-2 text-sm text-muted-foreground'>
                     {charCount}/{question.allowedLength || 255}
                   </div>
                 </div>

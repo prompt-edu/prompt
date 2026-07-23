@@ -40,33 +40,35 @@ export const AuthenticatedPageWrapper = ({
     )
   }
   return (
-    <div className='min-h-screen flex flex-col'>
-      <main className='grow w-full px-4 sm:px-6 lg:px-8 py-12'>
-        <div className='max-w-[1400px] mx-auto'>
-          <Header withLoginButton={withLoginButton} onLogout={openLogoutDialog} />
-          {children}
-        </div>
-      </main>
-      <Footer />
-      {/** Dialog to confirm logout */}
-      <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Logout</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to log out? You progress will NOT be saved.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant='outline' onClick={closeLogoutDialog}>
-              Cancel
-            </Button>
-            <Button variant='destructive' onClick={() => logout()}>
-              Logout
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <DarkModeProvider>
+      <div className='min-h-screen bg-background text-foreground flex flex-col'>
+        <main className='grow w-full px-4 sm:px-6 lg:px-8 py-12'>
+          <div className='max-w-[1400px] mx-auto'>
+            <Header withLoginButton={withLoginButton} onLogout={openLogoutDialog} />
+            {children}
+          </div>
+        </main>
+        <Footer />
+        {/** Dialog to confirm logout */}
+        <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Logout</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to log out? You progress will NOT be saved.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant='outline' onClick={closeLogoutDialog}>
+                Cancel
+              </Button>
+              <Button variant='destructive' onClick={() => logout()}>
+                Logout
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </DarkModeProvider>
   )
 }

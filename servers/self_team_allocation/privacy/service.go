@@ -2,6 +2,8 @@ package privacy
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
@@ -9,6 +11,7 @@ import (
 
 type PrivacyService struct {
 	Queries db.Queries
+	Conn    *pgxpool.Pool
 }
 
 var PrivacyServiceSingleton *PrivacyService
@@ -21,4 +24,22 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 		return PrivacyServiceSingleton.Queries.GetTutorsByCourseParticipationIDs(c, subject.CourseParticipationIDs)
 	})
 	return nil
+}
+
+func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+	tx, err := PrivacyServiceSingleton.Conn.Begin(c)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, c)
+	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
+
+	if err := qtx.DeleteAssignmentsByCourseParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
+		return err
+	}
+	if err := qtx.DeleteTutorsByCourseParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
+		return err
+	}
+
+	return tx.Commit(c)
 }

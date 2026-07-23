@@ -3,6 +3,7 @@ package privacy
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -41,4 +42,39 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	})
 
 	return nil
+}
+
+func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+	ids := subject.CourseParticipationIDs
+
+	tx, err := PrivacyServiceSingleton.Conn.Begin(c)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, c)
+	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
+
+	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteAssessmentCompletionsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteCategoryAssessmentsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteEvaluationsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteEvaluationCompletionsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteActionItemsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+	if err := qtx.DeleteFeedbackItemsByCourseParticipationIDs(c, ids); err != nil {
+		return err
+	}
+
+	return tx.Commit(c)
 }

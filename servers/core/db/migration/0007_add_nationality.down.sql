@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE student DROP COLUMN IF EXISTS nationality;
+
+COMMIT;

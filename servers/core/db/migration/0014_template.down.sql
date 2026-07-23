@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE course DROP COLUMN IF EXISTS template;
+
+COMMIT;

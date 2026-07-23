@@ -1,5 +1,5 @@
 import type { RowAction } from '@tumaet/prompt-ui-components'
-import { CheckCircle, Download, FileUser, Trash2, XCircle } from 'lucide-react'
+import { CheckCircle, Download, FileUser, MailCheck, MailX, Trash2, XCircle } from 'lucide-react'
 import type { ApplicationRow } from './applicationRow'
 
 export function getApplicationActions(
@@ -8,6 +8,8 @@ export function getApplicationActions(
   actions: {
     setPassed: (rows: ApplicationRow[]) => void
     setFailed: (rows: ApplicationRow[]) => void
+    sendAcceptanceMail: (rows: ApplicationRow[]) => void
+    sendRejectionMail: (rows: ApplicationRow[]) => void
     exportCsv: (rows: ApplicationRow[]) => void | Promise<void>
   },
 ): RowAction<ApplicationRow>[] {
@@ -37,6 +39,29 @@ export function getApplicationActions(
         variant: 'destructive',
       },
       onAction: actions.setFailed,
+    },
+    {
+      label: 'Send Acceptance Mail',
+      icon: <MailCheck className='h-4 w-4' />,
+      confirm: {
+        title: 'Send acceptance mail',
+        description: (c) =>
+          `Send the acceptance mail to ${c} selected applicant${c > 1 ? 's' : ''}?`,
+        confirmLabel: 'Send',
+      },
+      onAction: actions.sendAcceptanceMail,
+    },
+    {
+      label: 'Send Rejection Mail',
+      icon: <MailX className='h-4 w-4' />,
+      confirm: {
+        title: 'Send rejection mail',
+        description: (c) =>
+          `Send the rejection mail to ${c} selected applicant${c > 1 ? 's' : ''}?`,
+        confirmLabel: 'Send',
+        variant: 'destructive',
+      },
+      onAction: actions.sendRejectionMail,
     },
     {
       label: 'View Application',

@@ -113,7 +113,11 @@ VALUES
           "subject": "Reminder {{evaluationType}}",
           "content": "Hi {{firstName}}, finish {{evaluationType}} for {{coursePhaseName}} before {{evaluationDeadline}}.",
           "lastSentAtByType": {}
-        }
+        },
+        "passedMailSubject": "Accepted",
+        "passedMailContent": "Hi {{firstName}}, you have been accepted.",
+        "failedMailSubject": "Rejected",
+        "failedMailContent": "Hi {{firstName}}, you have not been accepted."
       }
     }'::jsonb,
     false,

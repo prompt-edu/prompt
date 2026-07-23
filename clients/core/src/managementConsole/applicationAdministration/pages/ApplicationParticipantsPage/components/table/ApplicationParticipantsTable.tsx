@@ -9,6 +9,7 @@ import { PromptTableURL, type TableFilter, useToast } from '@tumaet/prompt-ui-co
 import { type ReactNode, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
+import { useSendStatusMail } from '../../hooks/useSendStatusMail'
 import { downloadApplications } from '../../utils/downloadApplications'
 import { getApplicationActions } from './applicationActions'
 import { getApplicationColumns } from './applicationColumns'
@@ -110,6 +111,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
 
   const queryClient = useQueryClient()
   const { mutate: updateBatch } = useUpdateCoursePhaseParticipationBatch()
+  const { mutate: sendStatusMail } = useSendStatusMail()
 
   const exportApplications = useCallback(
     async (rows: ApplicationRow[]) => {
@@ -190,12 +192,27 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         },
       )
     }
+    const sendMail = (status: PassStatus, rows: ApplicationRow[]) =>
+      sendStatusMail({
+        status,
+        recipientCourseParticipationIDs: rows.map((r) => r.courseParticipationID),
+      })
     return getApplicationActions(deleteApplications, viewApplication, {
       setPassed: (r) => setStatus(PassStatus.PASSED, r),
       setFailed: (r) => setStatus(PassStatus.FAILED, r),
+      sendAcceptanceMail: (r) => sendMail(PassStatus.PASSED, r),
+      sendRejectionMail: (r) => sendMail(PassStatus.FAILED, r),
       exportCsv: exportApplications,
     })
-  }, [deleteApplications, viewApplication, phaseId, updateBatch, queryClient, exportApplications])
+  }, [
+    deleteApplications,
+    viewApplication,
+    phaseId,
+    updateBatch,
+    queryClient,
+    exportApplications,
+    sendStatusMail,
+  ])
 
   return (
     <div ref={tableContainerRef}>

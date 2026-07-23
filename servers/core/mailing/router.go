@@ -49,7 +49,7 @@ func sendStatusMailManualTrigger(c *gin.Context) {
 		return
 	}
 
-	response, err := SendStatusMailManualTrigger(c, coursePhaseID, mailingInfo.StatusMailToBeSend)
+	response, err := SendStatusMailManualTrigger(c, coursePhaseID, mailingInfo.StatusMailToBeSend, mailingInfo.RecipientCourseParticipationIDs)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

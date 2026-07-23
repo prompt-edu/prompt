@@ -194,6 +194,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/applications/{coursePhaseID}/exported-answers": {
+            "get": {
+                "description": "Get the answers to exported application questions (accessible for other phases) for all participants of a course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Get exported application answers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ExportedApplicationAnswersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/applications/{coursePhaseID}/files/{fileId}/download-url": {
             "get": {
                 "security": [
@@ -4967,6 +5008,54 @@ const docTemplate = `{
                 }
             }
         },
+        "applicationDTO.ExportedAnswer": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "questionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ExportedAnswerColumn": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "orderNum": {
+                    "type": "integer"
+                },
+                "questionID": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ExportedApplicationAnswersResponse": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ParticipationExportedAnswers"
+                    }
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ExportedAnswerColumn"
+                    }
+                }
+            }
+        },
         "applicationDTO.Form": {
             "type": "object",
             "properties": {
@@ -5062,6 +5151,20 @@ const docTemplate = `{
                 },
                 "universityLoginAvailable": {
                     "type": "boolean"
+                }
+            }
+        },
+        "applicationDTO.ParticipationExportedAnswers": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ExportedAnswer"
+                    }
+                },
+                "courseParticipationID": {
+                    "type": "string"
                 }
             }
         },

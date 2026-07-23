@@ -1,10 +1,12 @@
+import type { ExportedAnswerColumn } from '@core/managementConsole/applicationAdministration/interfaces/exportedApplicationAnswers'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { PassStatus } from '@tumaet/prompt-shared-state'
-import type { ApplicationRow } from './applicationRow'
+import { type ApplicationRow, EXPORTED_ANSWER_COLUMN_PREFIX } from './applicationRow'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
 
 export function getApplicationColumns(
   additionalScores?: { key: string; name: string }[],
+  exportedColumns?: ExportedAnswerColumn[],
 ): ColumnDef<ApplicationRow>[] {
   return [
     {
@@ -37,5 +39,13 @@ export function getApplicationColumns(
       accessorKey: s.key,
       header: s.name,
     })),
+    ...(exportedColumns ?? []).map(
+      (column): ColumnDef<ApplicationRow> => ({
+        id: `${EXPORTED_ANSWER_COLUMN_PREFIX}${column.questionID}`,
+        accessorKey: `${EXPORTED_ANSWER_COLUMN_PREFIX}${column.questionID}`,
+        header: column.title,
+        cell: (info) => (info.getValue() as string | undefined) ?? '-',
+      }),
+    ),
   ]
 }

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: team-allocation
+description: PROMPT team-allocation phase - server + micro-frontend.
+type: application
+version: 0.1.0

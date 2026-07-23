@@ -1,0 +1,13 @@
+# Defaults for the infrastructure subchart. The umbrella's `infrastructure:`
+# block overrides these; `global:` is merged in by Helm.
+seaweedfs:
+  image: chrislusf/seaweedfs:4.33
+  masterStorage: 1Gi
+  volumeStorage: 20Gi
+  filerStorage: 1Gi
+backup:
+  enabled: false
+  schedule: "0 0 2 * * *"
+  retention: 30d
+  destinationPath: ""
+realmConfigMap: ""

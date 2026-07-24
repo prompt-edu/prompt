@@ -259,12 +259,73 @@ definitions:
           $ref: '#/definitions/applicationDTO.QuestionText'
         type: array
     type: object
+  applicationDTO.ImportAnswer:
+    properties:
+      answer:
+        type: string
+      columnKey:
+        type: string
+    type: object
+  applicationDTO.ImportApplicationRequest:
+    properties:
+      newQuestions:
+        items:
+          $ref: '#/definitions/applicationDTO.NewImportQuestion'
+        type: array
+      passStatus:
+        $ref: '#/definitions/db.PassStatus'
+      rows:
+        items:
+          $ref: '#/definitions/applicationDTO.ImportRow'
+        type: array
+    type: object
+  applicationDTO.ImportResult:
+    properties:
+      created:
+        type: integer
+      rows:
+        items:
+          $ref: '#/definitions/applicationDTO.ImportRowResult'
+        type: array
+      updated:
+        type: integer
+    type: object
+  applicationDTO.ImportRow:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/applicationDTO.ImportAnswer'
+        type: array
+      student:
+        $ref: '#/definitions/studentDTO.CreateStudent'
+    type: object
+  applicationDTO.ImportRowResult:
+    properties:
+      courseParticipationId:
+        type: string
+      index:
+        type: integer
+      outcome:
+        description: '"created" or "updated"'
+        type: string
+      universityLogin:
+        type: string
+    type: object
   applicationDTO.IndividualScore:
     properties:
       courseParticipationID:
         type: string
       score:
         type: number
+    type: object
+  applicationDTO.NewImportQuestion:
+    properties:
+      allowedLength:
+        type: integer
+      columnKey:
+        type: string
+      title:
+        type: string
     type: object
   applicationDTO.OpenApplication:
     properties:
@@ -1964,6 +2025,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Update application form
+      tags:
+      - applications
+  /applications/{coursePhaseID}/import:
+    post:
+      consumes:
+      - application/json
+      description: Batch import students into an import-mode application phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Students to import
+        in: body
+        name: import
+        required: true
+        schema:
+          $ref: '#/definitions/applicationDTO.ImportApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/applicationDTO.ImportResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Import applications from CSV
       tags:
       - applications
   /applications/{coursePhaseID}/participations:

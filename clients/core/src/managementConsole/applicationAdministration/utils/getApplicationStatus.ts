@@ -7,6 +7,7 @@ export const getApplicationStatus = (
   applicationPhaseIsConfigured: boolean,
 ) => {
   if (!applicationMetaData) return ApplicationStatus.Unknown
+  if (applicationMetaData.applicationMode === 'import') return ApplicationStatus.Import
   if (!applicationPhaseIsConfigured) return ApplicationStatus.NotConfigured
   const now = new Date()
   if (isBefore(now, applicationMetaData.applicationStartDate!)) return ApplicationStatus.NotYetLive

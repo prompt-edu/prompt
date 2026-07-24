@@ -226,9 +226,12 @@ func getStudentRoles(matriculationNumber, universityLogin string) ([]string, err
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	// we do not throw an error, as i.e. admins might not have a student role
-	if matriculationNumber == "" || universityLogin == "" {
-		log.Debug("no matriculation number or university login found")
+	// we do not throw an error, as i.e. admins might not have a student role.
+	// The university login is the required identity claim; the matriculation number is optional
+	// (e.g. students created via CSV import may not have one yet), so we only abort when the
+	// university login is missing.
+	if universityLogin == "" {
+		log.Debug("no university login found")
 		return []string{}, nil
 	}
 

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -989,6 +991,188 @@ func GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applic
 	}
 
 	return metaToScoresArray(coursePhaseDTO.RestrictedData)
+}
+
+// IsImportModePhase reports whether the application phase is configured for CSV import instead of
+// the public application form (restricted_data.applicationMode == "import").
+func IsImportModePhase(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	mode, err := ApplicationServiceSingleton.queries.GetApplicationModeForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return false, err
+	}
+	return mode == "import", nil
+}
+
+// PostApplicationImport imports a batch of students into an import-mode application phase.
+// It creates the text questions for the mapped columns (reusing existing questions with the same
+// title on re-import), upserts each student and its participations, stores the answers and applies
+// the chosen pass status to the whole batch. The whole import runs in a single transaction, so a
+// failing row rolls back everything.
+func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) (applicationDTO.ImportResult, error) {
+	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		return applicationDTO.ImportResult{}, err
+	}
+	defer sdkUtils.DeferRollback(tx, ctx)
+	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+	queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
+
+	courseID, err := qtx.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ImportResult{}, errors.New("could not get the application phase")
+	}
+
+	// 1. Resolve the question IDs for the imported columns, reusing existing questions by title.
+	existingQuestions, err := qtx.GetApplicationQuestionsTextForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ImportResult{}, errors.New("could not load existing questions")
+	}
+	existingIDByTitle := make(map[string]uuid.UUID, len(existingQuestions))
+	existingLengthByTitle := make(map[string]int, len(existingQuestions))
+	nextOrder := 1
+	for _, q := range existingQuestions {
+		existingIDByTitle[q.Title.String] = q.ID
+		existingLengthByTitle[q.Title.String] = int(q.AllowedLength.Int32)
+		if int(q.OrderNum.Int32) >= nextOrder {
+			nextOrder = int(q.OrderNum.Int32) + 1
+		}
+	}
+
+	questionIDByColumn := make(map[string]uuid.UUID, len(req.NewQuestions))
+	allowedLengthByColumn := make(map[string]int, len(req.NewQuestions))
+	for _, nq := range req.NewQuestions {
+		if existingID, ok := existingIDByTitle[nq.Title]; ok {
+			questionIDByColumn[nq.ColumnKey] = existingID
+			allowedLengthByColumn[nq.ColumnKey] = existingLengthByTitle[nq.Title]
+			continue
+		}
+		questionDBModel := applicationDTO.CreateQuestionText{
+			CoursePhaseID: coursePhaseID,
+			Title:         nq.Title,
+			IsRequired:    false,
+			AllowedLength: nq.AllowedLength,
+			OrderNum:      nextOrder,
+		}.GetDBModel()
+		questionDBModel.ID = uuid.New()
+		if err := qtx.CreateApplicationQuestionText(ctx, questionDBModel); err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not create import question")
+		}
+		questionIDByColumn[nq.ColumnKey] = questionDBModel.ID
+		allowedLengthByColumn[nq.ColumnKey] = nq.AllowedLength
+		existingIDByTitle[nq.Title] = questionDBModel.ID
+		existingLengthByTitle[nq.Title] = nq.AllowedLength
+		nextOrder++
+	}
+
+	// 2. Upsert each student, participation and answers.
+	result := applicationDTO.ImportResult{Rows: make([]applicationDTO.ImportRowResult, 0, len(req.Rows))}
+	participationIDs := make([]uuid.UUID, 0, len(req.Rows))
+	for i, row := range req.Rows {
+		studentInput := row.Student
+		studentInput.HasUniversityAccount = true
+		studentInput.UniversityLogin = strings.ToLower(strings.TrimSpace(studentInput.UniversityLogin))
+		studentInput.MatriculationNumber = strings.TrimSpace(studentInput.MatriculationNumber)
+		if studentInput.Gender == "" {
+			studentInput.Gender = db.GenderPreferNotToSay
+		}
+		if studentInput.StudyDegree == "" {
+			studentInput.StudyDegree = db.StudyDegreeBachelor
+		}
+
+		// Detect whether this row updates an existing student or creates a new one.
+		outcome := "created"
+		if _, resolveErr := student.ResolveStudentByUniversityCredentials(ctx, &queries, studentInput.MatriculationNumber, studentInput.UniversityLogin); resolveErr == nil {
+			outcome = "updated"
+		}
+
+		studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, studentInput)
+		if err != nil {
+			log.Error(err)
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "student_email_key" {
+				return applicationDTO.ImportResult{}, ErrEmailAlreadyInUse
+			}
+			return applicationDTO.ImportResult{}, fmt.Errorf("could not save student %s: %w", studentInput.UniversityLogin, err)
+		}
+
+		cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not save the course participation")
+		}
+
+		cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not save the course phase participation")
+		}
+		participationIDs = append(participationIDs, cPhaseParticipation.CourseParticipationID)
+
+		for _, ans := range row.Answers {
+			questionID, ok := questionIDByColumn[ans.ColumnKey]
+			if !ok || strings.TrimSpace(ans.Answer) == "" {
+				continue
+			}
+			// Enforce the question's allowed length, mirroring the public-form answer validation
+			// so an oversized CSV cell cannot bypass the question configuration.
+			if maxLen := allowedLengthByColumn[ans.ColumnKey]; maxLen > 0 && utf8.RuneCountInString(ans.Answer) > maxLen {
+				return applicationDTO.ImportResult{}, fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d", studentInput.UniversityLogin, ans.ColumnKey, maxLen)
+			}
+			answerDBModel := applicationDTO.CreateAnswerText{
+				ApplicationQuestionID: questionID,
+				Answer:                ans.Answer,
+			}.GetDBModel()
+			answerDBModel.ID = uuid.New()
+			answerDBModel.CourseParticipationID = cPhaseParticipation.CourseParticipationID
+			if err := qtx.CreateOrOverwriteApplicationAnswerText(ctx, db.CreateOrOverwriteApplicationAnswerTextParams(answerDBModel)); err != nil {
+				log.Error(err)
+				return applicationDTO.ImportResult{}, errors.New("could not save the application answers")
+			}
+		}
+
+		if err := qtx.StoreApplicationAnswerUpdateTimestamp(ctx, db.StoreApplicationAnswerUpdateTimestampParams{
+			CoursePhaseID:         coursePhaseID,
+			CourseParticipationID: cPhaseParticipation.CourseParticipationID,
+		}); err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not save the application answers")
+		}
+
+		cpID := cPhaseParticipation.CourseParticipationID
+		result.Rows = append(result.Rows, applicationDTO.ImportRowResult{
+			Index:                 i,
+			UniversityLogin:       studentInput.UniversityLogin,
+			Outcome:               outcome,
+			CourseParticipationID: &cpID,
+		})
+		if outcome == "updated" {
+			result.Updated++
+		} else {
+			result.Created++
+		}
+	}
+
+	// 3. Apply the chosen pass status to the whole batch (including pre-existing participations).
+	if len(participationIDs) > 0 {
+		if _, err := qtx.UpdateCoursePhasePassStatus(ctx, db.UpdateCoursePhasePassStatusParams{
+			CourseParticipationID: participationIDs,
+			CoursePhaseID:         coursePhaseID,
+			PassStatus:            req.PassStatus,
+		}); err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not set the pass status")
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return applicationDTO.ImportResult{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return result, nil
 }
 
 func DeleteApplications(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID) error {

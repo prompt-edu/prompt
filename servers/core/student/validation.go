@@ -39,6 +39,27 @@ func Validate(c studentDTO.CreateStudent) error {
 	return nil
 }
 
+// ValidateImport is a lenient variant of Validate used for CSV student imports.
+// It only enforces the mandatory identity fields (first name, last name, email and university
+// login) plus their formats. Optional attributes (nationality, study program, current semester)
+// and the enum defaults (gender, study degree) are filled in by the import service, so they are
+// not required here.
+func ValidateImport(c studentDTO.CreateStudent) error {
+	if err := validateName(c.FirstName, c.LastName); err != nil {
+		return err
+	}
+	if err := validateEmail(c.Email); err != nil {
+		return err
+	}
+	if c.UniversityLogin == "" {
+		return errors.New("university login is required")
+	}
+	if err := validateUniversityData(c.HasUniversityAccount, c.MatriculationNumber, c.UniversityLogin); err != nil {
+		return err
+	}
+	return nil
+}
+
 func validateName(firstName, lastName string) error {
 	if firstName == "" {
 		log.Error("first name is required")

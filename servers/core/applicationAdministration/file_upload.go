@@ -250,6 +250,16 @@ func deleteApplicationFileAuthenticated(c *gin.Context) {
 		return
 	}
 
+	importMode, err := IsImportModePhase(c.Request.Context(), coursePhaseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not resolve course phase"})
+		return
+	}
+	if importMode {
+		c.JSON(http.StatusNotFound, gin.H{"error": "application not available"})
+		return
+	}
+
 	fileID, err := uuid.Parse(c.Param("fileId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})

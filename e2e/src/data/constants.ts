@@ -200,3 +200,8 @@ export const FULL_COURSE_APPLICATION_QUESTION = {
   id: 'ab000001-0000-0000-0000-000000000001',
   title: 'Motivation',
 }
+
+// Standalone import-mode Application phase on fullCourse (applicationMode=import). The public apply
+// endpoints must not serve it (GET 404) while the CSV import endpoint accepts batches. Owned by the
+// application-import API spec.
+export const IMPORT_APPLICATION_PHASE_ID = 'd0000010-0000-0000-0000-000000000010'

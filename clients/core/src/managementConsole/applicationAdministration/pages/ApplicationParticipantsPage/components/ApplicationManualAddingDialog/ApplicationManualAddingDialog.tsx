@@ -12,6 +12,7 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -45,6 +46,9 @@ export const ApplicationManualAddingDialog = ({
     universityAccount: false,
   })
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+
+  // The type-selection step stays compact; the search table and application form steps are wider.
+  const isWideStep = state.page > 1
 
   const resetStates = useCallback(() => {
     setState({
@@ -179,7 +183,12 @@ export const ApplicationManualAddingDialog = ({
           Add Application
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[900px] w-[90vw] max-h-[90vh]'>
+      <DialogContent
+        className={cn(
+          'w-[90vw] max-h-[90vh] overflow-y-auto [&>*]:min-w-0',
+          isWideStep && 'max-w-[900px]',
+        )}
+      >
         <DialogHeader>
           <DialogTitle>Add New Application</DialogTitle>
         </DialogHeader>

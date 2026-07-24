@@ -1,0 +1,38 @@
+{
+  "name": "example_component",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "rspack serve --mode development",
+    "lint": "biome check src routes sidebar",
+    "lint:fix": "biome check src routes sidebar --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "build": "rspack --mode=production --env NODE_ENV=production"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
+    "@tumaet/prompt-shared-state": "1.1.1",
+    "@tumaet/prompt-ui-components": "1.1.5",
+    "axios": "^1.18.1",
+    "lucide-react": "^1.22.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.2",
+    "@rspack/cli": "^2.1.2",
+    "@rspack/core": "^2.1.2",
+    "@rspack/dev-server": "^2.1.0",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "css-loader": "^7.1.4",
+    "postcss": "^8.5.16",
+    "postcss-loader": "8.2.1",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^6.0.3"
+  },
+  "packageManager": "yarn@4.17.0"
+}

@@ -1,3 +1,3 @@
 -- name: GetName :many
 SELECT *
-FROM template_table;
+FROM example_table;

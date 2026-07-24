@@ -1,0 +1,60 @@
+# Production deployment behind traefik, mirroring the PROMPT monorepo setup.
+# Adjust image names to your registry and CORE_HOST to your PROMPT instance.
+services:
+  server:
+    image: "ghcr.io/<your-org>/<your-phase>-server:${IMAGE_TAG:-latest}"
+    container_name: phase-server
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - DB_HOST_EXAMPLE_SERVER=db
+      - DB_PORT_EXAMPLE_SERVER=5432
+      - DB_NAME=${DB_EXAMPLE_NAME}
+      - DB_USER=${DB_EXAMPLE_USER}
+      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example-api.rule=Host(`${PHASE_HOST}`) && PathPrefix(`/example-service`)"
+      - "traefik.http.routers.example-api.entrypoints=websecure"
+      - "traefik.http.routers.example-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.example-api.loadbalancer.server.port=8080"
+    restart: unless-stopped
+
+  client:
+    image: "ghcr.io/<your-org>/<your-phase>-client:${IMAGE_TAG:-latest}"
+    container_name: phase-client
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example.rule=Host(`${PHASE_HOST}`) && PathPrefix(`/example`)"
+      - "traefik.http.routers.example.entrypoints=websecure"
+      - "traefik.http.routers.example.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.example-strip-prefix.stripPrefix.prefixes=/example"
+      - "traefik.http.middlewares.example-compress.compress=true"
+      - "traefik.http.routers.example.middlewares=example-strip-prefix,example-compress"
+    restart: unless-stopped
+
+  db:
+    image: "postgres:15.18-alpine"
+    container_name: phase-db
+    environment:
+      - POSTGRES_USER=${DB_EXAMPLE_USER}
+      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD}
+      - POSTGRES_DB=${DB_EXAMPLE_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_EXAMPLE_NAME} -U ${DB_EXAMPLE_USER}",
+        ]
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

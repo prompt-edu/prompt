@@ -1,0 +1,55 @@
+# Local development stack for a standalone course phase.
+# Expects a PROMPT core + Keycloak reachable at the URLs in .env
+# (e.g. the monorepo dev stack: `make db && make server` in prompt-edu/prompt).
+services:
+  server:
+    build:
+      context: ./server
+    container_name: phase-server
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8086:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS=0.0.0.0:8080
+      - DB_HOST_EXAMPLE_SERVER=db
+      - DB_PORT_EXAMPLE_SERVER=5432
+      - DB_NAME=${DB_EXAMPLE_NAME:-prompt}
+      - DB_USER=${DB_EXAMPLE_USER:-prompt-postgres}
+      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+
+  client:
+    build:
+      context: ./client
+    container_name: phase-client
+    ports:
+      - "3001:80"
+
+  db:
+    image: "postgres:15.18-alpine"
+    container_name: phase-db
+    environment:
+      - POSTGRES_USER=${DB_EXAMPLE_USER:-prompt-postgres}
+      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}
+      - POSTGRES_DB=${DB_EXAMPLE_NAME:-prompt}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_EXAMPLE_NAME:-prompt} -U ${DB_EXAMPLE_USER:-prompt-postgres}",
+        ]
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5437:5432"

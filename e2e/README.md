@@ -68,6 +68,39 @@ docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e run --rm \
 docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e down -v
 ```
 
+### 3. How CI shards the suite
+
+CI does **not** run the whole suite in one container. `.github/workflows/test-e2e.yml`
+fans it out for wall-clock:
+
+1. A **build** job builds every image once and populates the GitHub Actions layer
+   cache (`docker-compose.e2e.cache.yml` + `docker-compose.e2e.cache-write.yml`).
+2. A **matrix** of shards — **one per microservice** plus a `core` shard for the
+   core-hosted tests — each restores images from that cache, boots its **own**
+   fresh stack (so modules can't collide on shared data), and runs only its
+   module's specs with `PW_BLOB=1` to emit a per-shard blob report. Each shard
+   runs with **1 worker** (`workers: 1`); parallelism comes from the matrix, not
+   from within a shard.
+3. A **merge** job downloads the blob reports and merges them into the single
+   `playwright-report` artifact (`npm run merge-reports`).
+
+The runtime budget is **~20 min per shard**, enforced by both the job
+`timeout-minutes` and Playwright's `globalTimeout` (`PW_GLOBAL_TIMEOUT_MIN`, set
+in the config). A shard that overruns fails instead of silently creeping up.
+
+Reproduce a single CI shard locally (same containerized runner, no cache
+override needed):
+
+```bash
+make test-e2e-shard PATHS="tests/interview tests/api/interview.api.spec.ts"
+```
+
+The `core` shard is the widest (all core-hosted modules); the per-microservice
+shards mirror the `tests/<module>/` layout plus that module's
+`tests/api/<module>.api.spec.ts`. When you add a **new** microservice suite, add
+a matrix entry for it in `test-e2e.yml` and cache scopes in the two cache
+override files.
+
 ---
 
 ## How it fits together

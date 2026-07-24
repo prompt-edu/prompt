@@ -1,0 +1,52 @@
+# ============================================================================
+# CI-only override that restores e2e image builds from the GitHub Actions layer
+# cache. Layered on top of docker-compose.e2e.yml **only in CI**
+# (`-f docker-compose.e2e.yml -f docker-compose.e2e.cache.yml`), so local
+# `make test-e2e` runs never touch the gha cache backend.
+#
+# "Build once, fan out" (see .github/workflows/test-e2e.yml):
+#   - the build job writes the cache (adds docker-compose.e2e.cache-write.yml),
+#   - each module-shard job restores from it here (cache_from) — a fast,
+#     near-no-op rebuild — then boots its own isolated stack.
+#
+# Read-only here on purpose: 8 shards writing the same scopes concurrently would
+# be wasteful and can fail the export, so only the single build job writes.
+# Each service uses a distinct scope. Requires a container-driver buildx builder
+# (docker/setup-buildx-action).
+# ============================================================================
+
+services:
+  server-core:
+    build: { cache_from: ["type=gha,scope=e2e-server-core"] }
+  client-core:
+    build: { cache_from: ["type=gha,scope=e2e-client-core"] }
+  clients-base:
+    build: { cache_from: ["type=gha,scope=e2e-clients-base"] }
+  server-self-team-allocation:
+    build: { cache_from: ["type=gha,scope=e2e-server-self-team-allocation"] }
+  client-self-team-allocation:
+    build: { cache_from: ["type=gha,scope=e2e-client-self-team-allocation"] }
+  server-example:
+    build: { cache_from: ["type=gha,scope=e2e-server-example"] }
+  client-example:
+    build: { cache_from: ["type=gha,scope=e2e-client-example"] }
+  server-assessment:
+    build: { cache_from: ["type=gha,scope=e2e-server-assessment"] }
+  client-assessment:
+    build: { cache_from: ["type=gha,scope=e2e-client-assessment"] }
+  client-matching:
+    build: { cache_from: ["type=gha,scope=e2e-client-matching"] }
+  server-interview:
+    build: { cache_from: ["type=gha,scope=e2e-server-interview"] }
+  client-interview:
+    build: { cache_from: ["type=gha,scope=e2e-client-interview"] }
+  server-certificate:
+    build: { cache_from: ["type=gha,scope=e2e-server-certificate"] }
+  client-certificate:
+    build: { cache_from: ["type=gha,scope=e2e-client-certificate"] }
+  server-team-allocation:
+    build: { cache_from: ["type=gha,scope=e2e-server-team-allocation"] }
+  client-team-allocation:
+    build: { cache_from: ["type=gha,scope=e2e-client-team-allocation"] }
+  e2e-runner:
+    build: { cache_from: ["type=gha,scope=e2e-runner"] }

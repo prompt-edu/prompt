@@ -1,0 +1,46 @@
+# ============================================================================
+# CI-only override that WRITES the GitHub Actions layer cache. Added on top of
+# docker-compose.e2e.cache.yml by the single build job only
+# (`-f docker-compose.e2e.yml -f docker-compose.e2e.cache.yml \
+#   -f docker-compose.e2e.cache-write.yml build`).
+#
+# The shard jobs deliberately omit this file so they never re-export the cache.
+# `ignore-error=true` keeps a cache-export hiccup from failing the build.
+# Scopes must match docker-compose.e2e.cache.yml.
+# ============================================================================
+
+services:
+  server-core:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-core,ignore-error=true"] }
+  client-core:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-core,ignore-error=true"] }
+  clients-base:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-clients-base,ignore-error=true"] }
+  server-self-team-allocation:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-self-team-allocation,ignore-error=true"] }
+  client-self-team-allocation:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-self-team-allocation,ignore-error=true"] }
+  server-example:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-example,ignore-error=true"] }
+  client-example:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-example,ignore-error=true"] }
+  server-assessment:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-assessment,ignore-error=true"] }
+  client-assessment:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-assessment,ignore-error=true"] }
+  client-matching:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-matching,ignore-error=true"] }
+  server-interview:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-interview,ignore-error=true"] }
+  client-interview:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-interview,ignore-error=true"] }
+  server-certificate:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-certificate,ignore-error=true"] }
+  client-certificate:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-certificate,ignore-error=true"] }
+  server-team-allocation:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-server-team-allocation,ignore-error=true"] }
+  client-team-allocation:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-client-team-allocation,ignore-error=true"] }
+  e2e-runner:
+    build: { cache_to: ["type=gha,mode=max,scope=e2e-runner,ignore-error=true"] }

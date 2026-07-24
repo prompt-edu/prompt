@@ -1,0 +1,54 @@
+# Cross-platform git hooks managed by the pre-commit framework
+# (https://pre-commit.com). Set up once with `pre-commit install`
+# (or `make install-hooks`). Check the whole repo with
+# `pre-commit run --all-files`.
+minimum_pre_commit_version: "3.5.0"
+
+repos:
+  # ── Generic hygiene (run everywhere) ───────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.svg$'
+      - id: end-of-file-fixer
+        exclude: '\.svg$'
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+        # tsconfig files are JSONC (comments/trailing commas), not strict JSON.
+        exclude: '(^|/)(tsconfig[^/]*\.json|.*\.jsonc)$'
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+
+  # ── gofmt (check-only; fails on unformatted staged Go files) ───────────────
+  # Upstream hook: runs `gofmt -l -d` and exits non-zero when a staged file is
+  # not gofmt-clean. Needs Go on PATH.
+  - repo: https://github.com/TekWizely/pre-commit-golang
+    rev: v0.8.3
+    hooks:
+      - id: go-fmt
+
+  # ── Project-specific hooks (reuse the repo's own tooling) ──────────────────
+  # These stay `local` because the tools cannot run from the repo root the way
+  # pre-commit invokes upstream hooks: Biome's project root is clients/ (a
+  # root-level invocation hits Biome's "nested root config" error), and the
+  # swagger hook shells out to `swag` and re-stages generated docs.
+  - repo: local
+    hooks:
+      # Biome check on staged client files, matching `make lint`. Runs the
+      # version pinned in the clients workspace from the clients/ directory.
+      - id: biome
+        name: biome check (clients)
+        language: script
+        entry: scripts/pre-commit-biome.sh
+        files: '^clients/.*\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$'
+
+      # Regenerate & re-stage the committed swagger docs for changed Go services
+      # (replaces the old .githooks/pre-commit). Requires `swag` on PATH.
+      - id: swagger-docs
+        name: regenerate swagger docs (Go services)
+        language: script
+        entry: scripts/pre-commit-swagger.sh
+        files: '^servers/(core|example_server|self_team_allocation|assessment|team_allocation|interview)/.*\.go$'

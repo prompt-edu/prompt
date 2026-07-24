@@ -194,8 +194,8 @@ swagger: ## Generate swagger docs for core server
 install-clients: ## Install client dependencies
 	cd clients && yarn install
 
-install-hooks: ## Install git hooks
-	./scripts/install-githooks.sh
+install-hooks: ## Install git hooks (via the pre-commit framework)
+	pre-commit install
 
 setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
 	./scripts/setup-skills.sh

@@ -26,7 +26,10 @@ export class CourseOverviewPage {
   // The enrolled phases show up under the "Course Phases" sidebar group; a
   // student only sees the phases their participation makes active.
   async expectPhaseListed(name: string) {
-    await expect(this.page.getByText('Course Phases')).toBeVisible()
+    // Exact match: the sidebar's empty-state copy ("No course phases yet.")
+    // also contains the substring "course phases", so a loose getByText would
+    // match two elements and trip Playwright strict mode.
+    await expect(this.page.getByText('Course Phases', { exact: true })).toBeVisible()
     await expect(this.phaseItem(name)).toBeVisible()
   }
 }

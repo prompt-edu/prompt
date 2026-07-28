@@ -192,11 +192,14 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         },
       )
     }
-    const sendMail = (status: PassStatus, rows: ApplicationRow[]) =>
+    const sendMail = (status: PassStatus, rows: ApplicationRow[]) => {
+      if (rows.length === 0) return
+
       sendStatusMail({
         status,
         recipientCourseParticipationIDs: rows.map((r) => r.courseParticipationID),
       })
+    }
     return getApplicationActions(deleteApplications, viewApplication, {
       setPassed: (r) => setStatus(PassStatus.PASSED, r),
       setFailed: (r) => setStatus(PassStatus.FAILED, r),

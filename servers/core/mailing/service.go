@@ -85,7 +85,7 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 	return true, nil
 }
 
-func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs []uuid.UUID) (mailingDTO.MailingReport, error) {
+func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs *[]uuid.UUID) (mailingDTO.MailingReport, error) {
 	response := mailingDTO.MailingReport{}
 	mailingInfo := mailingDTO.MailingInfo{}
 
@@ -129,10 +129,10 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	// 3.) Get the participants to send the status mail to. When a recipient list is provided, only
 	// those participants receive the mail; otherwise every participant with the given status does.
 	var participants []db.GetParticipantMailingInformationRow
-	if len(recipientCourseParticipationIDs) > 0 {
+	if recipientCourseParticipationIDs != nil {
 		selected, err := MailingServiceSingleton.queries.GetParticipantMailingInformationByIDs(ctx, db.GetParticipantMailingInformationByIDsParams{
 			ID:      coursePhaseID,
-			Column2: deduplicateUUIDList(recipientCourseParticipationIDs),
+			Column2: deduplicateUUIDList(*recipientCourseParticipationIDs),
 		})
 		if err != nil {
 			log.Error("failed to get participant mailing information: ", err)

@@ -9,6 +9,9 @@ export const KEYCLOAK_URL = process.env.KEYCLOAK_URL ?? 'http://localhost:18081'
 export const CORE_API_URL = process.env.CORE_API_URL ?? 'http://localhost:18090'
 export const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM_NAME ?? 'prompt'
 
+// Mailpit HTTP API for asserting campaign mail delivery in the mailing spec.
+export const MAILPIT_URL = process.env.MAILPIT_URL ?? 'http://localhost:18025'
+
 // Public Keycloak client used by the browser app (direct access grants enabled).
 export const KEYCLOAK_CLIENT_ID = 'prompt-client'
 

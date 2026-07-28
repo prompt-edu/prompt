@@ -33,26 +33,33 @@ export const CourseCards = ({ courses }: CourseCardsProps) => {
         />
       </div>
 
-      {filteredCourses.length === 0 ? (
-        <p className='text-muted-foreground'>No courses match your search.</p>
-      ) : (
-        <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 items-start justify-start'>
-          <AnimatePresence>
-            {filteredCourses.map((course) => (
-              <motion.div
-                key={course.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
-                <CourseCard course={course} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+      <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 items-start justify-start'>
+        <AnimatePresence>
+          {filteredCourses.length === 0 && (
+            <motion.p
+              key='empty'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className='text-muted-foreground col-span-full'
+            >
+              No courses match your search.
+            </motion.p>
+          )}
+          {filteredCourses.map((course) => (
+            <motion.div
+              key={course.id}
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <CourseCard course={course} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

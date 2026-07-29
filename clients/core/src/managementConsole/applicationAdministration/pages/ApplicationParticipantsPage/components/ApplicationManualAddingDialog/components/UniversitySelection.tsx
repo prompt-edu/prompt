@@ -12,7 +12,7 @@ export const UniversitySelection = ({ setHasUniversityAccount }: UniversitySelec
       <div className='grid gap-4 sm:grid-cols-2'>
         <Button
           variant='outline'
-          className='h-24 flex flex-col items-center justify-center'
+          className='h-auto min-h-24 flex flex-col items-center justify-center whitespace-normal px-2 text-center'
           onClick={() => setHasUniversityAccount(true)}
         >
           <School className='h-6 w-6 mb-2' />
@@ -20,7 +20,7 @@ export const UniversitySelection = ({ setHasUniversityAccount }: UniversitySelec
         </Button>
         <Button
           variant='outline'
-          className='h-24 flex flex-col items-center justify-center'
+          className='h-auto min-h-24 flex flex-col items-center justify-center whitespace-normal px-2 text-center'
           onClick={() => setHasUniversityAccount(false)}
         >
           <UserPlus className='h-6 w-6 mb-2' />

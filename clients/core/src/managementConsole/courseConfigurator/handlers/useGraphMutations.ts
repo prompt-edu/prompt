@@ -16,24 +16,24 @@ export function useMutations() {
     mutationFn: (coursePhase: CreateCoursePhase) => postNewCoursePhase(coursePhase),
   })
 
-  const { mutate: mutateCoursePhaseGraph, isError: isGraphError } = useMutation({
+  const { mutateAsync: mutateCoursePhaseGraph, isError: isGraphError } = useMutation({
     mutationFn: (update: CoursePhaseGraphUpdate) => updatePhaseGraph(courseId ?? '', update),
   })
 
-  const { mutate: mutateDeletePhase, isError: isDeleteError } = useMutation({
+  const { mutateAsync: mutateDeletePhase, isError: isDeleteError } = useMutation({
     mutationFn: (coursePhaseId: string) => deleteCoursePhase(coursePhaseId),
   })
 
-  const { mutate: mutateRenamePhase, isError: isRenameError } = useMutation({
+  const { mutateAsync: mutateRenamePhase, isError: isRenameError } = useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
   })
 
-  const { mutate: mutatePhaseDataGraph, isError: isPhaseDataGraphError } = useMutation({
+  const { mutateAsync: mutatePhaseDataGraph, isError: isPhaseDataGraphError } = useMutation({
     mutationFn: (updatedGraph: MetaDataGraphItem[]) =>
       updatePhaseDataGraph(courseId ?? '', updatedGraph),
   })
 
-  const { mutate: mutateParticipationDataGraph, isError: isParticipationDataGraphError } =
+  const { mutateAsync: mutateParticipationDataGraph, isError: isParticipationDataGraphError } =
     useMutation({
       mutationFn: (updatedGraph: MetaDataGraphItem[]) =>
         updateParticipationDataGraph(courseId ?? '', updatedGraph),

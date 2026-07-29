@@ -18,7 +18,7 @@ Reusable code is consumed through published packages instead of a local shared w
 - **`@tumaet/prompt-ui-components`**: Reusable React components, `shadcn/ui` primitives, table helpers, theme providers, and UI-only helpers.
 - **`@tumaet/prompt-shared-state`**: Shared TypeScript interfaces, API clients, React Query hooks, domain helpers, and state stores.
 
-### `template_component`
+### `example_component`
 A boilerplate component structure for creating new course phase modules:
 - **Structure:**
   - `src/interface`: Interfaces specific to the component.
@@ -80,7 +80,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
     plugins: [
         ...
         new container.ModuleFederationPlugin({
-            name: 'template_component',
+            name: 'example_component',
             filename: 'remoteEntry.js', // this MUST remain unchanged - file is auto-generated during runtim
             exposes: {
             './App': './src/App', // define what you want to export
@@ -97,7 +97,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
         new container.ModuleFederationPlugin({
             name: 'core',
             remotes: {
-                template_component: 'template_component@[templateComponent2Url]/remoteEntry.js',
+                example_component: 'example_component@[exampleComponent2Url]/remoteEntry.js',
                 // add your component here
             },
     ````
@@ -105,11 +105,11 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
   3. Define the url in `core/src/index.js` (currently statically)
   4. Import your component (TODO: update once we have a sidebar/router)
     ```ts
-        const TemplateComponent = React.lazy(() => import('template_component/App'))
+        const ExampleComponent = React.lazy(() => import('example_component/App'))
 
         <React.Suspense fallback='Loading...'>
-            <ErrorBoundary fallback={<div>TemplateComponent is unavailable.</div>}>
-                <TemplateComponent />
+            <ErrorBoundary fallback={<div>ExampleComponent is unavailable.</div>}>
+                <ExampleComponent />
             </ErrorBoundary>
         </React.Suspense>
     ```
@@ -123,7 +123,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
 ---
 
 ## Creating a New Course Phase Module
-1. Copy the `template_component` folder and rename it to your new module name.
+1. Copy the `example_component` folder and rename it to your new module name.
 2. Implement specific interfaces, network handlers, and utilities as required.
 3. Follow the standardized structure to ensure compatibility with the core application.
 4. Register the new module with the core application for dynamic loading as described above in `webpack`.

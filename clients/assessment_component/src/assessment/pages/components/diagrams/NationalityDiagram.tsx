@@ -44,6 +44,7 @@ export const NationalityDiagram = ({
       <CardContent className='flex-1 pb-0'>
         {showGrade ? (
           <GradeDistributionBarChart
+            chartTitle='Grade distribution by nationality'
             data={data.map((d) =>
               createGradeDistributionDataPoint(
                 d.shortLabel,
@@ -56,6 +57,7 @@ export const NationalityDiagram = ({
           />
         ) : (
           <ScoreDistributionBarChart
+            chartTitle='Score distribution by nationality'
             data={data.map((d) =>
               createScoreDistributionDataPoint(
                 d.shortLabel,

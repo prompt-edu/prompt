@@ -13,6 +13,8 @@ type AssessmentSchema struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
+	// IsOwnedByCurrentPhase is only populated by phase-scoped listings; nil elsewhere.
+	IsOwnedByCurrentPhase *bool `json:"isOwnedByCurrentPhase,omitempty"`
 }
 
 func MapDBAssessmentSchemaToDTOAssessmentSchema(dbSchema db.AssessmentSchema) AssessmentSchema {

@@ -91,6 +91,7 @@ test.describe('application: applicant journey', () => {
       await admin.expectStatus(APPLICANT.email, 'Not Assessed')
 
       await admin.openApplication(APPLICANT.email)
+      await admin.expectQuestionVisible(FULL_COURSE_APPLICATION_QUESTION.title)
       await admin.expectAnswerVisible(MOTIVATION_ANSWER)
       await admin.accept()
 

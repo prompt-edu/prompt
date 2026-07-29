@@ -149,6 +149,38 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 	}
 }
 
+func (suite *ManualMailServiceTestSuite) TestSendManualMailCoursePhaseLinkPlaceholder() {
+	oldClientURL := MailingServiceSingleton.clientURL
+	MailingServiceSingleton.clientURL = "https://prompt.example.com"
+	defer func() { MailingServiceSingleton.clientURL = oldClientURL }()
+
+	sentMails := make([]sentManualMail, 0)
+	sendMailFn = func(
+		courseMailingSettings mailingDTO.CourseMailingSettings,
+		recipientAddress, subject, htmlBody string,
+	) error {
+		sentMails = append(sentMails, sentManualMail{Recipient: recipientAddress, Content: htmlBody})
+		return nil
+	}
+
+	report, err := SendManualMailToParticipants(
+		suite.ctx,
+		suite.phaseID,
+		mailingDTO.SendManualMailRequest{
+			Subject:                         "Reminder",
+			Content:                         "Open the phase at {{coursePhaseLink}}.",
+			RecipientCourseParticipationIDs: []uuid.UUID{suite.recipient1},
+		},
+	)
+	suite.Require().NoError(err)
+	suite.Require().Len(report.SuccessfulEmails, 1)
+	suite.Require().Len(sentMails, 1)
+
+	expectedLink := "https://prompt.example.com/management/course/11111111-1111-1111-1111-111111111111/33333333-3333-3333-3333-333333333333"
+	assert.Contains(suite.T(), sentMails[0].Content, expectedLink)
+	assert.False(suite.T(), strings.Contains(sentMails[0].Content, "{{"))
+}
+
 func (suite *ManualMailServiceTestSuite) TestSendManualMailNoRecipients() {
 	fixedNow := time.Date(2026, time.January, 14, 8, 0, 0, 0, time.UTC)
 	nowFn = func() time.Time { return fixedNow }

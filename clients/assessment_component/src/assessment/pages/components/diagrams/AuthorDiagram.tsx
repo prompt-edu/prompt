@@ -48,6 +48,7 @@ export const AuthorDiagram = ({
       <CardContent className='flex-1'>
         {showGrade ? (
           <GradeDistributionBarChart
+            chartTitle='Grade distribution by author'
             data={data.map((d) =>
               createGradeDistributionDataPoint(
                 d.shortLabel,
@@ -60,6 +61,7 @@ export const AuthorDiagram = ({
           />
         ) : (
           <ScoreDistributionBarChart
+            chartTitle='Score distribution by author'
             data={data.map((d) =>
               createScoreDistributionDataPoint(
                 d.shortLabel,

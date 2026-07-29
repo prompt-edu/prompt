@@ -47,7 +47,7 @@ export const CategoryDiagram = ({ categories, assessments }: CategoryDiagramProp
         <CardDescription>Scores</CardDescription>
       </CardHeader>
       <CardContent className='flex-1'>
-        <ScoreDistributionBarChart data={chartData} />
+        <ScoreDistributionBarChart data={chartData} chartTitle='Category score distribution' />
       </CardContent>
     </Card>
   )

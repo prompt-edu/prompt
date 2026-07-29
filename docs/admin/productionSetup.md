@@ -200,7 +200,7 @@ Adjust these if deploying Keycloak on a different host:
 
 - **`SERVER_IMAGE_TAG`**
 - **`CORE_IMAGE_TAG`**
-- **`TEMPLATE_IMAGE_TAG`**
+- **`EXAMPLE_IMAGE_TAG`**
 - **`INTERVIEW_IMAGE_TAG`**
 - **`MATCHING_IMAGE_TAG`**
 

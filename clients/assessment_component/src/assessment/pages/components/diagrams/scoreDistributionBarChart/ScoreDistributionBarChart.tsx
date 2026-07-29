@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { describeGroupAverages } from '../utils/buildChartDescription'
 import { chartConfig } from '../utils/chartConfig'
 import { ScoreDistributionBar } from './components/ScoreDistributionBar'
 import { ScoreDistributionLabel } from './components/ScoreDistributionLabel'
@@ -17,9 +18,13 @@ import type { ScoreDistributionDataPoint } from './interfaces/ScoreDistributionD
 
 export interface ScoreDistributionBarChartProps {
   data: ScoreDistributionDataPoint[]
+  chartTitle?: string
 }
 
-export function ScoreDistributionBarChart({ data }: ScoreDistributionBarChartProps) {
+export function ScoreDistributionBarChart({
+  data,
+  chartTitle = 'Score distribution',
+}: ScoreDistributionBarChartProps) {
   if (!data || data.length === 0) {
     return (
       <ChartContainer config={chartConfig} className='w-full h-[280px]'>
@@ -43,7 +48,12 @@ export function ScoreDistributionBarChart({ data }: ScoreDistributionBarChartPro
 
   return (
     <ChartContainer config={chartConfig} className='w-full h-[280px]'>
-      <BarChart data={chartData} margin={{ top: 30, right: 10, bottom: 10, left: 10 }}>
+      <BarChart
+        data={chartData}
+        title={chartTitle}
+        desc={describeGroupAverages(data)}
+        margin={{ top: 30, right: 10, bottom: 10, left: 10 }}
+      >
         <CartesianGrid
           horizontal={true}
           vertical={false}
@@ -62,7 +72,12 @@ export function ScoreDistributionBarChart({ data }: ScoreDistributionBarChartPro
         >
           <Label value='Score Level' angle={-90} position='insideLeft' fill='#a3a3a3' />
         </YAxis>
-        <ChartTooltip cursor={false} content={<ScoreDistributionTooltipContent />} />
+        <ChartTooltip
+          cursor={false}
+          allowEscapeViewBox={{ x: false, y: true }}
+          wrapperStyle={{ zIndex: 50 }}
+          content={<ScoreDistributionTooltipContent />}
+        />
         <Bar dataKey='value' shape={<ScoreDistributionBar />}>
           <LabelList dataKey='average' content={<ScoreDistributionLabel />} />
         </Bar>

@@ -8,7 +8,7 @@ import (
 )
 
 func InitTeamModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
-	setupTeamRouter(routerGroup, promptSDK.AuthenticationMiddleware)
+	setupTeamRouter(routerGroup, promptSDK.AuthenticationMiddleware, queries)
 	TeamsServiceSingleton = &TeamsService{
 		queries: queries,
 		conn:    conn,

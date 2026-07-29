@@ -151,7 +151,7 @@ func (suite *CategoryRouterTestSuite) TestDeleteCategory() {
 		Weight:             1,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	err := CreateCategory(suite.suiteCtx, coursePhaseID, createReq)
+	_, err := CreateCategory(suite.suiteCtx, coursePhaseID, createReq)
 	assert.NoError(suite.T(), err)
 
 	// find created

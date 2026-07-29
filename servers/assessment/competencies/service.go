@@ -106,29 +106,15 @@ func ListCompetencies(ctx context.Context) ([]db.Competency, error) {
 }
 
 func ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Competency, error) {
-	competencies, err := CompetencyServiceSingleton.queries.ListCompetencies(ctx)
+	competencies, err := CompetencyServiceSingleton.queries.ListCompetenciesForCoursePhase(
+		ctx,
+		pgtype.UUID{Bytes: coursePhaseID, Valid: true},
+	)
 	if err != nil {
 		log.Error("could not list competencies: ", err)
 		return nil, errors.New("could not list competencies")
 	}
-
-	filtered := make([]db.Competency, 0, len(competencies))
-	for _, competency := range competencies {
-		schemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, competency.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
-		if err != nil {
-			return nil, err
-		}
-		if isAccessible {
-			filtered = append(filtered, competency)
-		}
-	}
-
-	return filtered, nil
+	return competencies, nil
 }
 
 func ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db.Competency, error) {

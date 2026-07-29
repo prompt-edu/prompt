@@ -90,7 +90,7 @@ func (suite *AssessmentServiceTestSuite) TestDeleteAssessmentNonExisting() {
 	id := uuid.New()
 	coursePhaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	err := DeleteAssessment(suite.suiteCtx, id, coursePhaseID)
-	assert.NoError(suite.T(), err, "Deleting non-existent assessment should not error")
+	assert.ErrorIs(suite.T(), err, ErrAssessmentNotFound, "Deleting non-existent assessment should return not-found")
 }
 
 func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentWithEmptyScoreLevel() {

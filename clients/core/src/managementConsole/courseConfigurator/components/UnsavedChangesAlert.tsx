@@ -20,11 +20,18 @@ export function UnsavedChangesAlert({ handleRevert, saveChanges }: UnsavedChange
             variant='outline'
             size='sm'
             onClick={handleRevert}
+            data-testid='configurator-revert'
             className='w-full text-black dark:text-white'
           >
             Revert
           </Button>
-          <Button variant='default' size='sm' onClick={saveChanges} className='w-full'>
+          <Button
+            variant='default'
+            size='sm'
+            onClick={saveChanges}
+            data-testid='configurator-save'
+            className='w-full'
+          >
             Save
           </Button>
         </div>

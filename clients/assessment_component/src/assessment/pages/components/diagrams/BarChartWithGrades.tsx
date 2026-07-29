@@ -3,6 +3,8 @@ import { Bar, BarChart, Cell, LabelList, XAxis, YAxis } from 'recharts'
 
 import { GRADE_CONFIG } from '../../utils/gradeConfig'
 
+import { describeBucketCounts } from './utils/buildChartDescription'
+
 interface GradeDataPoint {
   dataKey: string
   count: number
@@ -11,16 +13,25 @@ interface GradeDataPoint {
 
 interface BarChartWithGradesProps {
   data: GradeDataPoint[]
+  chartTitle?: string
 }
 
 const getColorForGrade = (grade: string): string => {
   return GRADE_CONFIG[grade as keyof typeof GRADE_CONFIG]?.color || '#d4d4d8'
 }
 
-export const BarChartWithGrades = ({ data }: BarChartWithGradesProps) => {
+export const BarChartWithGrades = ({
+  data,
+  chartTitle = 'Grade distribution',
+}: BarChartWithGradesProps) => {
   return (
     <ChartContainer config={GRADE_CONFIG} className='mx-auto w-full h-[280px]'>
-      <BarChart data={data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+      <BarChart
+        data={data}
+        title={chartTitle}
+        desc={describeBucketCounts(data)}
+        margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+      >
         <XAxis
           dataKey='dataKey'
           axisLine={false}

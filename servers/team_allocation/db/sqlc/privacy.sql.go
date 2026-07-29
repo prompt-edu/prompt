@@ -156,7 +156,7 @@ func (q *Queries) GetStudentTeamPreferenceResponseByCourseParticipationIDs(ctx c
 }
 
 const getTutorByCourseParticipationIDs = `-- name: GetTutorByCourseParticipationIDs :many
-SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id
+SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
 FROM tutor t
 WHERE t.course_participation_id = ANY($1::uuid[])
 `
@@ -176,6 +176,7 @@ func (q *Queries) GetTutorByCourseParticipationIDs(ctx context.Context, dollar_1
 			&i.FirstName,
 			&i.LastName,
 			&i.TeamID,
+			&i.UniversityLogin,
 		); err != nil {
 			return nil, err
 		}

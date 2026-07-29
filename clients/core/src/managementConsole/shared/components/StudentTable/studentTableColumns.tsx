@@ -4,6 +4,12 @@ import type {
   StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
 import type { ColumnDef, Row } from '@tanstack/react-table'
+import {
+  type Gender,
+  getGenderString,
+  getStudyDegreeString,
+  type StudyDegree,
+} from '@tumaet/prompt-shared-state'
 import { ProfilePicture } from '@tumaet/prompt-ui-components'
 import { format, subYears } from 'date-fns'
 import type { NoteTagColor } from '../../interfaces/InstructorNote'
@@ -34,6 +40,11 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
     cell: (info) => info.getValue(),
   },
   {
+    id: 'fullname',
+    header: 'Full Name',
+    accessorFn: (row: StudentWithCourses) => `${row.firstName} ${row.lastName}`,
+  },
+  {
     accessorKey: 'email',
     header: 'Email',
     cell: (info) => info.getValue(),
@@ -46,6 +57,21 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {
     accessorKey: 'studyProgram',
     header: 'Program',
+    cell: (info) => info.getValue(),
+  },
+  {
+    accessorKey: 'studyDegree',
+    header: 'Study Degree',
+    cell: (info) => getStudyDegreeString(info.getValue() as StudyDegree),
+  },
+  {
+    accessorKey: 'gender',
+    header: 'Gender',
+    cell: (info) => getGenderString(info.getValue() as Gender),
+  },
+  {
+    accessorKey: 'nationality',
+    header: 'Nationality',
     cell: (info) => info.getValue(),
   },
   {
@@ -81,7 +107,11 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
         {row.original.noteTags.map((tag: StudentNoteTag) => (
           <InstructorNoteTag
             key={tag.id}
-            tag={{ id: tag.id, name: tag.name, color: tag.color as NoteTagColor }}
+            tag={{
+              id: tag.id,
+              name: tag.name,
+              color: tag.color as NoteTagColor,
+            }}
           />
         ))}
       </div>

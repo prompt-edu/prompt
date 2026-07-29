@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
@@ -38,7 +39,11 @@ func GetAllocationByCourseParticipationID(ctx context.Context, courseParticipati
 		CoursePhaseID:         coursePhaseID,
 	})
 	if err != nil {
-		log.Error("Error fetching assignment from database: ", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.Debug("No assignment found for student: ", err)
+		} else {
+			log.Error("Error fetching assignment from database: ", err)
+		}
 		return uuid.Nil, err
 	}
 

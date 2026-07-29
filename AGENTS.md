@@ -25,7 +25,7 @@ clients/
   *_component/             # Course phase micro-frontends:
     - interview_component (port 3002)
     - matching_component (port 3003)
-    - template_component (port 3001)
+    - example_component (port 3001)
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
@@ -39,7 +39,7 @@ servers/
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
-  template_server/         # Course templates (port 8086)
+  example_server/          # Example phase service (port 8086)
 
 docs/                      # Docusaurus documentation
 ```

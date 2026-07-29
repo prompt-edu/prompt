@@ -27,3 +27,11 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 
 	return nil
 }
+
+func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+	if subject.StudentID == uuid.Nil {
+		return nil
+	}
+
+	return PrivacyServiceSingleton.Queries.DeleteCertificateDownloadsByStudentID(c, subject.StudentID)
+}

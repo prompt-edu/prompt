@@ -15,7 +15,7 @@ function Fallback() {
 export const PhaseStudentDetailMapping: {
   [key: string]: React.FC<CoursePhaseStudentIdentifierProps>
 } = {
-  template_component: Fallback,
+  example_component: Fallback,
   Application: ApplicationStudentDetailComponent,
   Interview: InterviewStudentDetailComponent,
   Matching: MatchingStudentDetailComponent,

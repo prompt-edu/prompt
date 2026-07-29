@@ -1,4 +1,4 @@
-import type { UseMutateFunction } from '@tanstack/react-query'
+import type { UseMutateAsyncFunction } from '@tanstack/react-query'
 import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import type { Edge, Node } from '@xyflow/react'
 import type { MetaDataGraphItem } from '../interfaces/courseMetaGraphItem'
@@ -11,12 +11,12 @@ interface HandleSaveProps {
   nodes: Node[]
   edges: Edge[]
   coursePhases: CoursePhaseWithPosition[]
-  mutateDeletePhase: UseMutateFunction<string | undefined, Error, string, unknown>
+  mutateDeletePhase: UseMutateAsyncFunction<string | undefined, Error, string, unknown>
   mutateAsyncPhases: (coursePhase: CreateCoursePhase) => Promise<string | undefined>
-  mutateRenamePhase: UseMutateFunction<string | undefined, Error, UpdateCoursePhase, unknown>
-  mutateCoursePhaseGraph: UseMutateFunction<void, Error, CoursePhaseGraphUpdate, unknown>
-  mutateParticipationDataGraph: UseMutateFunction<void, Error, MetaDataGraphItem[], unknown>
-  mutatePhaseDataGraph: UseMutateFunction<void, Error, MetaDataGraphItem[], unknown>
+  mutateRenamePhase: UseMutateAsyncFunction<string | undefined, Error, UpdateCoursePhase, unknown>
+  mutateCoursePhaseGraph: UseMutateAsyncFunction<void, Error, CoursePhaseGraphUpdate, unknown>
+  mutateParticipationDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
+  mutatePhaseDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
   queryClient: any
   setIsModified: (val: boolean) => void
 }

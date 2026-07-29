@@ -30,6 +30,7 @@ export const CoursePhaseTypePanel = ({ canEdit }: CoursePhaseTypePanelProps) => 
 
   return (
     <motion.div
+      data-testid='phase-type-panel'
       className='absolute left-0 top-0 bottom-0 z-50 flex flex-col border-r bg-background overflow-hidden'
       animate={{ width: isExpanded ? 220 : 40 }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}

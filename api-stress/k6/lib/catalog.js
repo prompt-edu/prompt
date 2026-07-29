@@ -24,7 +24,7 @@ const SERVICE_PHASE_TYPE = {
   self_team_allocation: "self team allocation",
   assessment: "assessment",
   certificate: "certificate",
-  template_server: "template",
+  example_server: "example",
   core: "application",
 };
 

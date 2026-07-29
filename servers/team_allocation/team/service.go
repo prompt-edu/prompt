@@ -155,7 +155,7 @@ func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-				return ErrDuplicateLogin
+				return fmt.Errorf("%q: %w", normalizedLogin, ErrDuplicateLogin)
 			}
 			return err
 		}

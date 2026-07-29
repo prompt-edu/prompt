@@ -36,6 +36,9 @@ export interface Surface {
   browser?: {
     path: (courseId: string) => string
     heading: string // the page <h1> rendered when authorized
+    // extra text asserted on the allowed side when the <h1> is a generic page title
+    // (e.g. a section header) so the surface still proves its own content rendered
+    assertText?: string
     allowed: Role[]
   }
   api?: {
@@ -105,8 +108,11 @@ export const SURFACES: Surface[] = [
   {
     name: 'mailing',
     browser: {
-      path: (courseId) => `/management/course/${courseId}/${MAILING_PHASE_ID}/mailing`,
-      heading: 'Application Mailing Settings',
+      // Mailing config moved into the Application settings page; the <h1> is now the
+      // generic page title, so assert the mailing section's own control too.
+      path: (courseId) => `/management/course/${courseId}/${MAILING_PHASE_ID}/settings`,
+      heading: 'Application Settings',
+      assertText: 'E-Mail Settings',
       allowed: ['admin', 'lecturer', 'course-lecturer'],
     },
     api: {

@@ -16,6 +16,7 @@ func InitCourseModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pg
 		queries:                    queries,
 		conn:                       conn,
 		createCourseGroupsAndRoles: keycloakRealmManager.CreateCourseGroupsAndRoles,
+		deleteCourseGroupsAndRoles: keycloakRealmManager.DeleteCourseGroupsAndRoles,
 	}
 
 	// possibly more setup tasks

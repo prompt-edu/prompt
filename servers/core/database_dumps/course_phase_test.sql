@@ -73,7 +73,7 @@ INSERT INTO
 VALUES
   (
     '7dc1c4e8-4255-4874-80a0-0c12b958744c',
-    'template_component',
+    'example_component',
     'Test Description'
   );
 
@@ -112,7 +112,7 @@ VALUES
   (
     '92bb0532-39e5-453d-bc50-fa61ea0128b2',
     '3f42d322-e5bf-4faa-b576-51f2cab14c2e',
-    'Template Phase',
+    'Example Phase',
     '{}',
     false,
     '7dc1c4e8-4255-4874-80a0-0c12b958744c'
@@ -214,9 +214,9 @@ WHERE
 
 UPDATE course_phase_type
 SET
-  description = 'Template component phase'
+  description = 'Example component phase'
 WHERE
-  name = 'template_component';
+  name = 'example_component';
 
 -- Insert a predecessor phase and a target phase for testing
 INSERT INTO

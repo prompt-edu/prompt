@@ -103,13 +103,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Assigned team UUID",
                         "schema": {
-                            "$ref": "#/definitions/allocationDTO.AllocationWithParticipation"
+                            "type": "string"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -921,6 +939,92 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/team/tutors/{universityLogin}": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Reassign a tutor to a different team by their university login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "team"
+                ],
+                "summary": "Update tutor team assignment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tutor university login (trimmed and lowercased; used as a lookup key, not format-validated)",
+                        "name": "universityLogin",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New team ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/teamDTO.UpdateTutorTeamRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -973,6 +1077,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1635,6 +1748,9 @@ const docTemplate = `{
                 },
                 "teamID": {
                     "type": "string"
+                },
+                "universityLogin": {
+                    "type": "string"
                 }
             }
         },
@@ -1642,6 +1758,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "newTeamName": {
+                    "type": "string"
+                }
+            }
+        },
+        "teamDTO.UpdateTutorTeamRequest": {
+            "type": "object",
+            "required": [
+                "teamID"
+            ],
+            "properties": {
+                "teamID": {
                     "type": "string"
                 }
             }

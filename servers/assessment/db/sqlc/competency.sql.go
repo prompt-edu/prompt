@@ -203,6 +203,58 @@ func (q *Queries) ListCompetenciesByCategory(ctx context.Context, categoryID uui
 	return items, nil
 }
 
+const listCompetenciesForCoursePhase = `-- name: ListCompetenciesForCoursePhase :many
+WITH phase_config AS (
+    SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+    FROM course_phase_config
+    WHERE course_phase_id = $1
+)
+SELECT comp.id, comp.category_id, comp.name, comp.description, comp.weight, comp.short_name, comp.description_very_bad, comp.description_bad, comp.description_ok, comp.description_good, comp.description_very_good
+FROM competency comp
+INNER JOIN category cat ON comp.category_id = cat.id
+INNER JOIN assessment_schema s ON cat.assessment_schema_id = s.id
+LEFT JOIN phase_config pc ON TRUE
+WHERE s.source_phase_id IS NULL
+   OR s.source_phase_id = $1
+   OR s.id = pc.assessment_schema_id
+   OR s.id = pc.self_evaluation_schema
+   OR s.id = pc.peer_evaluation_schema
+   OR s.id = pc.tutor_evaluation_schema
+ORDER BY comp.name
+`
+
+func (q *Queries) ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID pgtype.UUID) ([]Competency, error) {
+	rows, err := q.db.Query(ctx, listCompetenciesForCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Competency
+	for rows.Next() {
+		var i Competency
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Weight,
+			&i.ShortName,
+			&i.DescriptionVeryBad,
+			&i.DescriptionBad,
+			&i.DescriptionOk,
+			&i.DescriptionGood,
+			&i.DescriptionVeryGood,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCompetency = `-- name: UpdateCompetency :exec
 UPDATE competency
 SET category_id           = $2,

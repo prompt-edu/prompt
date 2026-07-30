@@ -8,6 +8,7 @@ export const AddCourseButton = () => {
       <CourseCreationChoiceDialog>
         <SidebarMenuButton
           size='lg'
+          data-testid='add-course-button'
           tooltip={{
             children: 'Add new course or template',
             hidden: false,

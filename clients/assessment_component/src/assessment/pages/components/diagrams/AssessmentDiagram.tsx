@@ -11,7 +11,6 @@ import {
 } from '@tumaet/prompt-ui-components'
 import * as React from 'react'
 import { Label, Pie, PieChart } from 'recharts'
-import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
 import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
@@ -32,7 +31,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface AssessmentDiagramProps {
-  participations: AssessmentParticipationWithStudent[]
+  participations: Array<{ courseParticipationID: string }>
   scoreLevels: ScoreLevelWithParticipation[]
   completions: CompetencyScoreCompletion[]
   assessmentType?: AssessmentType
@@ -44,7 +43,18 @@ export const AssessmentDiagram = ({
   completions,
   assessmentType = AssessmentType.ASSESSMENT,
 }: AssessmentDiagramProps) => {
-  const { chartData, totalAssessments } = React.useMemo(() => {
+  const noun =
+    assessmentType === AssessmentType.SELF
+      ? 'self evaluations'
+      : assessmentType === AssessmentType.PEER
+        ? 'peer evaluations'
+        : assessmentType === AssessmentType.TUTOR
+          ? 'tutor evaluations'
+          : 'assessments'
+
+  const centerLabel = `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`
+
+  const { chartData, totalAssessments, chartDescription } = React.useMemo(() => {
     const completed = participations.filter((p) =>
       completions?.find((c) => c.courseParticipationID === p.courseParticipationID && c.completed),
     ).length
@@ -64,8 +74,13 @@ export const AssessmentDiagram = ({
         { status: 'completed', applications: completed, fill: chartConfig.completed.color },
       ],
       totalAssessments: participations.length,
+      chartDescription:
+        `${participations.length} ${noun} in total: ${completed} completed, ` +
+        `${inProgress} in progress, ${notAssessed} not assessed.`,
     }
-  }, [participations, completions, scoreLevels])
+  }, [participations, completions, scoreLevels, noun])
+
+  const chartTitle = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} status`
 
   return (
     <Card className='flex flex-col'>
@@ -77,6 +92,8 @@ export const AssessmentDiagram = ({
                 return 'Self Evaluation'
               case AssessmentType.PEER:
                 return 'Peer Evaluation'
+              case AssessmentType.TUTOR:
+                return 'Tutor Evaluation'
               default:
                 return 'Assessments'
             }
@@ -89,6 +106,8 @@ export const AssessmentDiagram = ({
                 return 'self evaluations '
               case AssessmentType.PEER:
                 return 'peer evaluations '
+              case AssessmentType.TUTOR:
+                return 'tutor evaluations '
               default:
                 return 'assessments '
             }
@@ -98,7 +117,7 @@ export const AssessmentDiagram = ({
       </CardHeader>
       <CardContent className='flex-1 pb-0'>
         <ChartContainer config={chartConfig} className='mx-auto aspect-square max-h-[250px]'>
-          <PieChart>
+          <PieChart title={chartTitle} desc={chartDescription}>
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
             <Pie
               data={chartData}
@@ -129,7 +148,7 @@ export const AssessmentDiagram = ({
                           y={(viewBox.cy || 0) + 24}
                           className='fill-muted-foreground'
                         >
-                          Assessments
+                          {centerLabel}
                         </tspan>
                       </text>
                     )

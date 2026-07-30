@@ -36,9 +36,9 @@ func ensureSchemaAccessible(ctx context.Context, coursePhaseID uuid.UUID, schema
 	return nil
 }
 
-func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.CreateCategoryRequest) error {
+func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.CreateCategoryRequest) (categoryDTO.Category, error) {
 	if err := ensureSchemaAccessible(ctx, coursePhaseID, req.AssessmentSchemaID); err != nil {
-		return err
+		return categoryDTO.Category{}, err
 	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
@@ -49,19 +49,20 @@ func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDT
 		coursePhaseID,
 	)
 	if err != nil {
-		return err
+		return categoryDTO.Category{}, err
 	}
 
 	tx, err := CategoryServiceSingleton.conn.Begin(ctx)
 	if err != nil {
-		return err
+		return categoryDTO.Category{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
 	qtx := CategoryServiceSingleton.queries.WithTx(tx)
 
+	categoryID := uuid.New()
 	err = qtx.CreateCategory(ctx, db.CreateCategoryParams{
-		ID:                 uuid.New(),
+		ID:                 categoryID,
 		Name:               req.Name,
 		ShortName:          pgtype.Text{String: req.ShortName, Valid: true},
 		Description:        pgtype.Text{String: req.Description, Valid: true},
@@ -70,15 +71,22 @@ func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDT
 	})
 	if err != nil {
 		log.Error("could not create category: ", err)
-		return errors.New("could not create category")
+		return categoryDTO.Category{}, errors.New("could not create category")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		log.Error(err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return categoryDTO.Category{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return nil
+	return categoryDTO.Category{
+		ID:                 categoryID,
+		Name:               req.Name,
+		ShortName:          req.ShortName,
+		Description:        req.Description,
+		Weight:             req.Weight,
+		AssessmentSchemaID: result.TargetSchemaID,
+	}, nil
 }
 
 func GetCategory(ctx context.Context, id uuid.UUID) (db.Category, error) {

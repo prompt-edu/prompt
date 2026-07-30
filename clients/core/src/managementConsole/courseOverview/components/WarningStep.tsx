@@ -153,7 +153,7 @@ export const WarningStep = ({
           <Button variant='outline' onClick={onBack}>
             Back
           </Button>
-          <Button onClick={onProceed} disabled={isCopying}>
+          <Button onClick={onProceed} disabled={isCopying} data-testid='copy-course-confirm'>
             {getButtonLabel(isCopying, useTemplateCopy, createTemplate, 'ready')}
           </Button>
         </DialogFooter>

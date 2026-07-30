@@ -1623,6 +1623,8 @@ definitions:
         type: string
       firstName:
         type: string
+      gender:
+        $ref: '#/definitions/db.Gender'
       hasUniversityAccount:
         type: boolean
       id:
@@ -1631,10 +1633,14 @@ definitions:
         type: string
       lastName:
         type: string
+      nationality:
+        type: string
       noteTags:
         items:
           $ref: '#/definitions/studentDTO.StudentNoteTagDTO'
         type: array
+      studyDegree:
+        $ref: '#/definitions/db.StudyDegree'
       studyProgram:
         type: string
     type: object

@@ -10,10 +10,10 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 
 ## Frontend component
 
-1. Copy the template: `cp -R clients/template_component clients/<name>_component`.
+1. Copy the example: `cp -R clients/example_component clients/<name>_component`.
 2. In `clients/<name>_component/webpack.config.mjs` update the two constants near the top:
    `const COMPONENT_NAME = '<name>_component'` and `const COMPONENT_DEV_PORT = <unique-port>`
-   (existing ports: core 3000, template 3001, interview 3002, matching 3003, assessment 3007,
+   (existing ports: core 3000, example 3001, interview 3002, matching 3003, assessment 3007,
    team_allocation 3008, self_team_allocation 3009 — pick a free one).
 3. Set `"name": "<name>_component"` in `clients/<name>_component/package.json`.
 4. Register the workspace in BOTH `clients/lerna.json` (`packages`) and `clients/package.json`
@@ -25,7 +25,7 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 
 ## Backend service
 
-1. Copy the template: `cp -R servers/template_server servers/<name>`.
+1. Copy the example: `cp -R servers/example_server servers/<name>`.
 2. In `servers/<name>/go.mod` set the module path to
    `github.com/prompt-edu/prompt/servers/<name>` and update internal imports accordingly.
 3. Define schema + queries (use the `sqlc-migration` skill): migrations in `db/migration/` as
@@ -34,17 +34,17 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 4. Implement business logic in `<module>/service.go`, routes in `<module>/router.go` under
    `/api/course_phase/:coursePhaseID` (required for prompt-sdk auth — see the `go/auth-routing` rule),
    validation in `<module>/validation.go`.
-5. Keep the `config/` and `copy/` packages from the template (phase config + copy endpoints) and wire
+5. Keep the `config/` and `copy/` packages from the example (phase config + copy endpoints) and wire
    them in `main.go` (`InitAuthenticationMiddleware`, `RegisterConfigEndpoint`, `RegisterCopyEndpoint`).
 
 ## docker-compose wiring
 
-1. Add a `server-<name>` service (copy the `server-template` block): build context
+1. Add a `server-<name>` service (copy the `server-example` block): build context
    `./servers/<name>`, `dockerfile: ../Dockerfile`, unique published port mapped to `8080`,
    `depends_on` its db + keycloak (`condition: service_healthy`), and the `DB_*`/`KEYCLOAK_*`/
-   `CORE_HOST`/`SERVER_CORE_HOST` env vars (rename `*_TEMPLATE_*` → `*_<NAME>_*`).
-2. Add a `client-<name>-component` service (copy `client-template-component`).
-3. Add a dedicated database service (copy `db-template-server` → `db-<name>`) with its own
+   `CORE_HOST`/`SERVER_CORE_HOST` env vars (rename `*_EXAMPLE_*` → `*_<NAME>_*`).
+2. Add a `client-<name>-component` service (copy `client-example-component`).
+3. Add a dedicated database service (copy `db-example-server` → `db-<name>`) with its own
    `postgres_<name>_data` volume. Each microservice uses a SEPARATE Postgres database.
 4. Add the matching `DB_*_<NAME>_*` entries to `.env.template` and `.env.dev.template`.
 

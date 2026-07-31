@@ -261,6 +261,54 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailPartialSendFailure() 
 	assert.Equal(suite.T(), "bob@example.com", report.FailedEmails[0])
 }
 
+func (suite *ManualMailServiceTestSuite) TestSendStatusMailToSelectedRecipients() {
+	sentRecipients := make([]string, 0)
+	sendMailFn = func(
+		courseMailingSettings mailingDTO.CourseMailingSettings,
+		recipientAddress, subject, htmlBody string,
+	) error {
+		sentRecipients = append(sentRecipients, recipientAddress)
+		return nil
+	}
+
+	recipients := []uuid.UUID{suite.recipient1}
+	report, err := SendStatusMailManualTrigger(
+		suite.ctx,
+		suite.phaseID,
+		db.PassStatusPassed,
+		&recipients,
+	)
+	suite.Require().NoError(err)
+
+	assert.Equal(suite.T(), []string{"alice@example.com"}, report.SuccessfulEmails)
+	assert.Empty(suite.T(), report.FailedEmails)
+	assert.Equal(suite.T(), []string{"alice@example.com"}, sentRecipients)
+}
+
+func (suite *ManualMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelection() {
+	sendCalls := 0
+	sendMailFn = func(
+		courseMailingSettings mailingDTO.CourseMailingSettings,
+		recipientAddress, subject, htmlBody string,
+	) error {
+		sendCalls++
+		return nil
+	}
+
+	recipients := []uuid.UUID{}
+	report, err := SendStatusMailManualTrigger(
+		suite.ctx,
+		suite.phaseID,
+		db.PassStatusPassed,
+		&recipients,
+	)
+	suite.Require().NoError(err)
+
+	assert.Empty(suite.T(), report.SuccessfulEmails)
+	assert.Empty(suite.T(), report.FailedEmails)
+	assert.Equal(suite.T(), 0, sendCalls)
+}
+
 func TestManualMailServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ManualMailServiceTestSuite))
 }

@@ -6499,6 +6499,13 @@
         "mailingDTO.SendStatusMail": {
             "type": "object",
             "properties": {
+                "recipientCourseParticipationIDs": {
+                    "description": "Optional: when set, the status mail is only sent to these participants instead of all\nparticipants with the given pass status.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "statusMailToBeSend": {
                     "$ref": "#/definitions/db.PassStatus"
                 }

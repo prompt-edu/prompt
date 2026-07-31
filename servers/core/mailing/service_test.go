@@ -2,8 +2,8 @@ package mailing
 
 import (
 	"context"
-	"log"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -31,9 +31,7 @@ var (
 func (suite *StatusMailDedupTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
-	if err != nil {
-		log.Fatalf("Failed to set up test database: %v", err)
-	}
+	suite.Require().NoError(err, "failed to set up test database")
 	suite.cleanup = cleanup
 	suite.queries = testDB.Queries
 	suite.conn = testDB.Conn
@@ -127,6 +125,44 @@ func (suite *StatusMailDedupTestSuite) TestStatusMailDedup() {
 	suite.setParticipation(dedupCP1, "failed", `{"statusMailSentAt": {"passed": "2026-01-01T00:00:00Z"}}`)
 	failedRecipients := suite.recipientIDs(db.PassStatusFailed)
 	assert.Contains(t, failedRecipients, dedupCP1)
+}
+
+func (suite *StatusMailDedupTestSuite) TestStatusMailLockSerializesSamePhaseAndStatus() {
+	params := db.AcquireStatusMailLockParams{
+		CoursePhaseID: dedupCoursePhaseID,
+		Status:        db.PassStatusPassed,
+	}
+
+	firstTx, err := suite.conn.Begin(suite.ctx)
+	suite.Require().NoError(err)
+	defer func() { _ = firstTx.Rollback(suite.ctx) }()
+	suite.Require().NoError(suite.queries.WithTx(firstTx).AcquireStatusMailLock(suite.ctx, params))
+
+	secondTx, err := suite.conn.Begin(suite.ctx)
+	suite.Require().NoError(err)
+	defer func() { _ = secondTx.Rollback(suite.ctx) }()
+
+	lockCtx, cancel := context.WithTimeout(suite.ctx, 2*time.Second)
+	defer cancel()
+	lockAcquired := make(chan error, 1)
+	go func() {
+		lockAcquired <- suite.queries.WithTx(secondTx).AcquireStatusMailLock(lockCtx, params)
+	}()
+
+	select {
+	case lockErr := <-lockAcquired:
+		suite.Failf("second transaction acquired lock before first released it", "lock error: %v", lockErr)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	suite.Require().NoError(firstTx.Commit(suite.ctx))
+
+	select {
+	case lockErr := <-lockAcquired:
+		suite.Require().NoError(lockErr)
+	case <-lockCtx.Done():
+		suite.Fail("second transaction did not acquire lock after first released it")
+	}
 }
 
 func (suite *StatusMailDedupTestSuite) setParticipationNull(cpID uuid.UUID, passStatus string) {

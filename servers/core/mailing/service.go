@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	log "github.com/sirupsen/logrus"
@@ -126,8 +127,22 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		return mailingDTO.MailingReport{}, fmt.Errorf("mailing template incomplete: subject ('%s') or content ('%s') is empty", mailingInfo.MailSubject, mailingInfo.MailContent)
 	}
 
+	tx, err := MailingServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		return mailingDTO.MailingReport{}, fmt.Errorf("failed to begin status mail transaction: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	txQueries := MailingServiceSingleton.queries.WithTx(tx)
+
+	if err := txQueries.AcquireStatusMailLock(ctx, db.AcquireStatusMailLockParams{
+		CoursePhaseID: coursePhaseID,
+		Status:        status,
+	}); err != nil {
+		return mailingDTO.MailingReport{}, fmt.Errorf("failed to acquire status mail lock for course phase %s with status %s: %w", coursePhaseID, status, err)
+	}
+
 	// 3.) Get all participants that have not been accepted incl. information
-	participants, err := MailingServiceSingleton.queries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
+	participants, err := txQueries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
 		ID:         coursePhaseID,
 		PassStatus: db.NullPassStatus{PassStatus: status, Valid: true},
 	})
@@ -137,9 +152,8 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	}
 
 	// 4.) Send mail to all participants that have not already received this status mail.
-	// Recipients already mailed for this status are filtered out by GetParticipantMailingInformation,
-	// and each successful send is recorded per participation so a later re-send does not duplicate.
-	// Note: dedup is recorded after each send, so two simultaneous triggers for the same phase+status could still double-send.
+	// The transaction-level advisory lock serializes this query-send-mark sequence for each phase
+	// and status, so concurrent triggers re-check the markers written by the preceding request.
 	for _, participant := range participants {
 		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, participant)
 		// replace values in subject
@@ -158,7 +172,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		log.Debug("Successfully sent status mail to: ", participant.Email.String)
 		response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
 
-		if markErr := MailingServiceSingleton.queries.MarkStatusMailSent(ctx, db.MarkStatusMailSentParams{
+		if markErr := txQueries.MarkStatusMailSent(ctx, db.MarkStatusMailSentParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: participant.CourseParticipationID,
 			Status:                string(status),
@@ -168,6 +182,10 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 			log.Error("failed to mark status mail as sent for participant: ", markErr)
 			response.MarkFailures = append(response.MarkFailures, participant.Email.String)
 		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return response, fmt.Errorf("failed to commit status mail markers: %w", err)
 	}
 
 	return response, nil

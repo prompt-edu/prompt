@@ -12,8 +12,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const acquireStatusMailLock = `-- name: AcquireStatusMailLock :exec
+SELECT pg_advisory_xact_lock(
+    hashtextextended(
+        $1::uuid::text || ':' || $2::pass_status::text,
+        0
+    )
+)
+`
+
+type AcquireStatusMailLockParams struct {
+	CoursePhaseID uuid.UUID  `json:"course_phase_id"`
+	Status        PassStatus `json:"status"`
+}
+
+func (q *Queries) AcquireStatusMailLock(ctx context.Context, arg AcquireStatusMailLockParams) error {
+	_, err := q.db.Exec(ctx, acquireStatusMailLock, arg.CoursePhaseID, arg.Status)
+	return err
+}
+
 const getConfirmationMailingInformation = `-- name: GetConfirmationMailingInformation :one
-SELECT 
+SELECT
     s.first_name,
     s.last_name,
     s.email,
@@ -29,17 +48,17 @@ SELECT
     COALESCE((p.restricted_data->'mailingSettings'->>'confirmationMailSubject'), '')::text AS confirmation_mail_subject,
     COALESCE((p.restricted_data->'mailingSettings'->>'confirmationMailContent'), '')::text AS confirmation_mail_content,
     COALESCE((p.restricted_data->'mailingSettings'->>'sendConfirmationMail')::boolean, false)::boolean AS send_confirmation_mail
-FROM 
+FROM
     course_phase_participation cpp
-JOIN 
+JOIN
     course_participation cp ON cpp.course_participation_id = cp.id
-JOIN 
+JOIN
     student s ON cp.student_id = s.id
-JOIN 
+JOIN
     course_phase p ON cpp.course_phase_id = p.id
-JOIN 
+JOIN
     course c ON p.course_id = c.id
-WHERE 
+WHERE
     cpp.course_participation_id = $1
     AND cpp.course_phase_id = $2
 `
@@ -96,7 +115,7 @@ SELECT
     COALESCE((c.restricted_data->'mailingSettings'->>'replyToName')::text, '')::text AS reply_to_name,
     COALESCE((c.restricted_data->'mailingSettings'->>'ccAddresses')::jsonb, '[]')::jsonb AS cc_addresses,
     COALESCE((c.restricted_data->'mailingSettings'->>'bccAddresses')::jsonb, '[]')::json AS bcc_addresses
-FROM 
+FROM
   course c
 INNER JOIN
   course_phase p ON c.id = p.course_id

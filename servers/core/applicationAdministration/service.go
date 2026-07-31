@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -349,7 +351,7 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
-  queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
+	queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
 
 	// 1. Check if studentObj with this email already exists
 	studentObj, err := student.GetStudentByEmail(ctx, &queries, application.Student.Email)
@@ -789,28 +791,28 @@ func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid
 	return result, nil
 }
 
-func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow{
-  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
-  defer cancel()
+func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
 
-  answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-  return answers
+	return answers
 }
 
 func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
-  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
-  defer cancel()
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
 
-  answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-  return answersWithFileRecords
+	return answersWithFileRecords
 }
 
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {
@@ -834,6 +836,120 @@ func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUI
 	}
 
 	return applicationParticipationsDTO, nil
+}
+
+func isExportedQuestion(accessibleForOtherPhases pgtype.Bool, accessKey pgtype.Text) bool {
+	return accessibleForOtherPhases.Valid && accessibleForOtherPhases.Bool &&
+		accessKey.Valid && strings.TrimSpace(accessKey.String) != ""
+}
+
+func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.ExportedApplicationAnswersResponse, error) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	textQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application text questions")
+	}
+	multiSelectQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application multi-select questions")
+	}
+
+	columns := make([]applicationDTO.ExportedAnswerColumn, 0)
+	exportedTextQuestionIDs := make(map[uuid.UUID]struct{})
+	exportedMultiSelectQuestionIDs := make(map[uuid.UUID]struct{})
+
+	for _, question := range textQuestions {
+		if !isExportedQuestion(question.AccessibleForOtherPhases, question.AccessKey) {
+			continue
+		}
+		exportedTextQuestionIDs[question.ID] = struct{}{}
+		columns = append(columns, applicationDTO.ExportedAnswerColumn{
+			QuestionID: question.ID,
+			Key:        question.AccessKey.String,
+			Title:      question.Title.String,
+			OrderNum:   question.OrderNum.Int32,
+			Type:       "text",
+		})
+	}
+	for _, question := range multiSelectQuestions {
+		if !isExportedQuestion(question.AccessibleForOtherPhases, question.AccessKey) {
+			continue
+		}
+		exportedMultiSelectQuestionIDs[question.ID] = struct{}{}
+		columns = append(columns, applicationDTO.ExportedAnswerColumn{
+			QuestionID: question.ID,
+			Key:        question.AccessKey.String,
+			Title:      question.Title.String,
+			OrderNum:   question.OrderNum.Int32,
+			Type:       "multiselect",
+		})
+	}
+
+	sort.SliceStable(columns, func(i, j int) bool {
+		return columns[i].OrderNum < columns[j].OrderNum
+	})
+
+	participations, err := ApplicationServiceSingleton.queries.GetAllApplicationParticipations(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application participations")
+	}
+
+	answersByParticipation := make(map[uuid.UUID][]applicationDTO.ExportedAnswer, len(participations))
+	courseParticipationIDs := make([]uuid.UUID, 0, len(participations))
+	for _, participation := range participations {
+		courseParticipationIDs = append(courseParticipationIDs, participation.CourseParticipationID)
+		answersByParticipation[participation.CourseParticipationID] = make([]applicationDTO.ExportedAnswer, 0)
+	}
+
+	if len(columns) > 0 && len(courseParticipationIDs) > 0 {
+		textAnswers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application text answers")
+		}
+		multiSelectAnswers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application multi-select answers")
+		}
+
+		for _, answer := range textAnswers {
+			if _, ok := exportedTextQuestionIDs[answer.ApplicationQuestionID]; !ok || !answer.Answer.Valid {
+				continue
+			}
+			answersByParticipation[answer.CourseParticipationID] = append(answersByParticipation[answer.CourseParticipationID], applicationDTO.ExportedAnswer{
+				QuestionID: answer.ApplicationQuestionID,
+				Answer:     answer.Answer.String,
+			})
+		}
+		for _, answer := range multiSelectAnswers {
+			if _, ok := exportedMultiSelectQuestionIDs[answer.ApplicationQuestionID]; !ok || len(answer.Answer) == 0 {
+				continue
+			}
+			answersByParticipation[answer.CourseParticipationID] = append(answersByParticipation[answer.CourseParticipationID], applicationDTO.ExportedAnswer{
+				QuestionID: answer.ApplicationQuestionID,
+				Answer:     strings.Join(answer.Answer, ", "),
+			})
+		}
+	}
+
+	exportedAnswers := make([]applicationDTO.ParticipationExportedAnswers, 0, len(participations))
+	for _, participation := range participations {
+		exportedAnswers = append(exportedAnswers, applicationDTO.ParticipationExportedAnswers{
+			CourseParticipationID: participation.CourseParticipationID,
+			Answers:               answersByParticipation[participation.CourseParticipationID],
+		})
+	}
+
+	return applicationDTO.ExportedApplicationAnswersResponse{
+		Columns: columns,
+		Answers: exportedAnswers,
+	}, nil
 }
 
 func UpdateApplicationAssessment(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {

@@ -227,6 +227,37 @@ definitions:
       validationRegex:
         type: string
     type: object
+  applicationDTO.ExportedAnswer:
+    properties:
+      answer:
+        type: string
+      questionID:
+        type: string
+    type: object
+  applicationDTO.ExportedAnswerColumn:
+    properties:
+      key:
+        type: string
+      orderNum:
+        type: integer
+      questionID:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  applicationDTO.ExportedApplicationAnswersResponse:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/applicationDTO.ParticipationExportedAnswers'
+        type: array
+      columns:
+        items:
+          $ref: '#/definitions/applicationDTO.ExportedAnswerColumn'
+        type: array
+    type: object
   applicationDTO.Form:
     properties:
       questionsFileUpload:
@@ -290,6 +321,15 @@ definitions:
         type: string
       universityLoginAvailable:
         type: boolean
+    type: object
+  applicationDTO.ParticipationExportedAnswers:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/applicationDTO.ExportedAnswer'
+        type: array
+      courseParticipationID:
+        type: string
     type: object
   applicationDTO.PostApplication:
     properties:
@@ -1856,6 +1896,34 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Update applications status
+      tags:
+      - applications
+  /applications/{coursePhaseID}/exported-answers:
+    get:
+      description: Get the answers to exported application questions (accessible for
+        other phases) for all participants of a course phase
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/applicationDTO.ExportedApplicationAnswersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get exported application answers
       tags:
       - applications
   /applications/{coursePhaseID}/files/{fileId}/download-url:

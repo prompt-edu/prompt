@@ -1214,6 +1214,10 @@ definitions:
         items:
           type: string
         type: array
+      markFailures:
+        items:
+          type: string
+        type: array
       successfulEmails:
         items:
           type: string

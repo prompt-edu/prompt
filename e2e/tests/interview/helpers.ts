@@ -17,9 +17,12 @@ export function slotsUrl(phaseId = FULL_COURSE_PHASES.interview.id): string {
   return `${BASE_URL}${INTERVIEW_API}/course_phase/${phaseId}/interview-slots`
 }
 
-// Tomorrow, so the UI treats the slot as bookable (past slots are disabled).
+// Tomorrow at 10:00, so the UI treats the slot as bookable (past slots are
+// disabled) and the 30-min slot never crosses midnight (the dialog's End Time
+// is a time-of-day on the start's date).
 export function futureSlotTimes(): { start: Date; end: Date } {
   const start = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  start.setHours(10, 0, 0, 0)
   const end = new Date(start.getTime() + 30 * 60 * 1000)
   return { start, end }
 }
@@ -31,6 +34,12 @@ export function toDatetimeLocal(date: Date): string {
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   )
+}
+
+// Format for the schedule dialog's time-of-day input (End Time).
+export function toTimeOfDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 export async function createSlot(

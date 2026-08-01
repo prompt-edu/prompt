@@ -2,7 +2,7 @@ import { Page, Locator, expect } from '@playwright/test'
 
 export interface SlotFormValues {
   startTime: string // datetime-local format: YYYY-MM-DDTHH:mm
-  endTime: string
+  endTime: string // time-of-day format: HH:mm (interviews never span days)
   location: string
   capacity: number
 }
@@ -39,13 +39,20 @@ export class InterviewPage {
   }
 
   async createSlot({ startTime, endTime, location, capacity }: SlotFormValues) {
-    await this.page.getByRole('button', { name: 'Create Slot' }).click()
-    const dialog = this.page.getByRole('dialog', { name: 'Create Interview Slot' })
+    await this.page.getByRole('button', { name: 'Create Slots', exact: true }).click()
+    const dialog = this.page.getByRole('dialog', { name: 'Create Interview Slots' })
+    const createMultipleSlots = dialog.getByLabel('Create multiple slots')
+    await expect(createMultipleSlots).not.toBeChecked()
+    await createMultipleSlots.check()
+    await expect(dialog.getByLabel('Slot Duration (min)')).toBeVisible()
+    await expect(dialog.getByLabel('Break Between (min)')).toBeVisible()
+    await createMultipleSlots.uncheck()
+    await expect(dialog.getByLabel('Slot Duration (min)')).toBeHidden()
     await dialog.getByLabel('Start Time').fill(startTime)
     await dialog.getByLabel('End Time').fill(endTime)
     await dialog.getByLabel('Location (Optional)').fill(location)
-    await dialog.getByLabel('Capacity').fill(String(capacity))
-    await dialog.getByRole('button', { name: 'Create', exact: true }).click()
+    await dialog.getByLabel('Capacity per Slot').fill(String(capacity))
+    await dialog.getByRole('button', { name: 'Create Slot', exact: true }).click()
     await expect(dialog).toBeHidden()
     await expect(this.slotRow(location)).toBeVisible()
   }

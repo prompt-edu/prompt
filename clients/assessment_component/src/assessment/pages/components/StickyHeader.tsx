@@ -51,13 +51,23 @@ export const StickyHeader = ({ children, expandedContent, className }: StickyHea
       setDocked(shouldDock)
     }
 
-    const resizeObserver = new ResizeObserver(update)
+    let resizeFrame: number | undefined
+    const scheduleResizeUpdate = () => {
+      if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = undefined
+        update()
+      })
+    }
+
+    const resizeObserver = new ResizeObserver(scheduleResizeUpdate)
     resizeObserver.observe(bar)
     update()
     window.addEventListener('scroll', update, true)
     window.addEventListener('resize', update)
     return () => {
       resizeObserver.disconnect()
+      if (resizeFrame !== undefined) cancelAnimationFrame(resizeFrame)
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
     }

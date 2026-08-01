@@ -37,6 +37,7 @@ import {
   TableRow,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { format } from 'date-fns'
 import {
   Calendar,
@@ -64,7 +65,19 @@ interface SlotFormData {
   capacity: number
 }
 
+interface ErrorResponse {
+  error?: string
+}
+
 const MAX_MULTIPLE_SLOTS = 100
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  isAxiosError<ErrorResponse>(error) ? (error.response?.data?.error ?? fallback) : fallback
+
+const formatSlotCount = (count: number, capitalize = false) => {
+  const noun = capitalize ? 'Slot' : 'slot'
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
 
 // endTime is a time-of-day (HH:mm) on the same day as the start; interviews never span days.
 const buildSlotTimes = (startDateTime: string, endTimeOfDay: string) => ({
@@ -163,10 +176,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been created successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Creation failed',
-        description: error?.response?.data?.error || 'Failed to create interview slot.',
+        description: getErrorMessage(error, 'Failed to create interview slot.'),
         variant: 'destructive',
       })
     },
@@ -191,10 +204,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been updated successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Update failed',
-        description: error?.response?.data?.error || 'Failed to update interview slot.',
+        description: getErrorMessage(error, 'Failed to update interview slot.'),
         variant: 'destructive',
       })
     },
@@ -225,15 +238,15 @@ export const InterviewScheduleManagement = () => {
         title: failed > 0 ? 'Slots partially created' : 'Slots created',
         description:
           failed > 0
-            ? `${created} slot${created !== 1 ? 's' : ''} created, ${failed} failed.`
-            : `${created} interview slot${created !== 1 ? 's' : ''} created successfully.`,
+            ? `${formatSlotCount(created)} created, ${failed} failed.`
+            : `${formatSlotCount(created)} created successfully.`,
         variant: failed > 0 ? 'destructive' : undefined,
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Slot creation failed',
-        description: error?.response?.data?.error || 'Failed to create interview slots.',
+        description: getErrorMessage(error, 'Failed to create interview slots.'),
         variant: 'destructive',
       })
     },
@@ -253,10 +266,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been deleted successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Deletion failed',
-        description: error?.response?.data?.error || 'Failed to delete interview slot.',
+        description: getErrorMessage(error, 'Failed to delete interview slot.'),
         variant: 'destructive',
       })
     },
@@ -290,10 +303,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Student has been assigned to the interview slot successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Assignment failed',
-        description: error.response?.data?.error || 'Failed to assign student to interview slot.',
+        description: getErrorMessage(error, 'Failed to assign student to interview slot.'),
         variant: 'destructive',
       })
     },
@@ -315,10 +328,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Student has been removed from the interview slot.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Unassignment failed',
-        description: error?.response?.data?.error || 'Failed to unassign student.',
+        description: getErrorMessage(error, 'Failed to unassign student.'),
         variant: 'destructive',
       })
     },
@@ -564,7 +577,7 @@ export const InterviewScheduleManagement = () => {
                     </div>
                     <p className='text-sm text-muted-foreground'>
                       {multipleSlotsPreview.length > 0
-                        ? `This will create ${multipleSlotsPreview.length} slots.`
+                        ? `This will create ${formatSlotCount(multipleSlotsPreview.length)}.`
                         : 'Choose a valid time range and duration to preview the slots.'}
                     </p>
                   </>
@@ -586,7 +599,7 @@ export const InterviewScheduleManagement = () => {
                   {createSlotMutation.isPending || createMultipleSlotsMutation.isPending
                     ? 'Creating...'
                     : createMultipleSlots
-                      ? `Create ${multipleSlotsPreview.length} Slots`
+                      ? `Create ${formatSlotCount(multipleSlotsPreview.length, true)}`
                       : 'Create Slot'}
                 </Button>
               </DialogFooter>

@@ -12,6 +12,76 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteActionItemsByCourseParticipationIDs = `-- name: DeleteActionItemsByCourseParticipationIDs :exec
+DELETE FROM action_item
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteActionItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteActionItemsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteAssessmentCompletionsByCourseParticipationIDs = `-- name: DeleteAssessmentCompletionsByCourseParticipationIDs :exec
+DELETE FROM assessment_completion
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteAssessmentCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAssessmentCompletionsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteAssessmentsByCourseParticipationIDs = `-- name: DeleteAssessmentsByCourseParticipationIDs :exec
+DELETE FROM assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAssessmentsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteCategoryAssessmentsByCourseParticipationIDs = `-- name: DeleteCategoryAssessmentsByCourseParticipationIDs :exec
+DELETE FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteCategoryAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCategoryAssessmentsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteEvaluationCompletionsByCourseParticipationIDs = `-- name: DeleteEvaluationCompletionsByCourseParticipationIDs :exec
+DELETE FROM evaluation_completion
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteEvaluationCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationCompletionsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteEvaluationsByCourseParticipationIDs = `-- name: DeleteEvaluationsByCourseParticipationIDs :exec
+DELETE FROM evaluation
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteEvaluationsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteFeedbackItemsByCourseParticipationIDs = `-- name: DeleteFeedbackItemsByCourseParticipationIDs :exec
+DELETE FROM feedback_items
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteFeedbackItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFeedbackItemsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
 const getAllActionItemsByCourseParticipationIDs = `-- name: GetAllActionItemsByCourseParticipationIDs :many
 SELECT id, course_phase_id, course_participation_id, action, created_at
 FROM action_item
@@ -110,7 +180,7 @@ type GetAllAssessmentsByCourseParticipationIDsRow struct {
 	ScoreLevel            ScoreLevel         `json:"score_level"`
 }
 
-// Queries for gdpr export.
+// Queries for gdpr export and deletion.
 func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllAssessmentsByCourseParticipationIDsRow, error) {
 	rows, err := q.db.Query(ctx, getAllAssessmentsByCourseParticipationIDs, dollar_1)
 	if err != nil {

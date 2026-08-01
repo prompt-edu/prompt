@@ -1,4 +1,4 @@
--- Queries for gdpr export.
+-- Queries for gdpr export and deletion.
 
 -- name: GetAllAssessmentsByCourseParticipationIDs :many
 SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, score_level
@@ -28,4 +28,32 @@ WHERE course_participation_id = ANY($1::uuid[]);
 -- name: GetAllFeedbackItemsByCourseParticipationIDs :many
 SELECT id, feedback_type, feedback_text, course_participation_id, course_phase_id, created_at, type
 FROM feedback_items
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteAssessmentsByCourseParticipationIDs :exec
+DELETE FROM assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteAssessmentCompletionsByCourseParticipationIDs :exec
+DELETE FROM assessment_completion
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteCategoryAssessmentsByCourseParticipationIDs :exec
+DELETE FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteEvaluationsByCourseParticipationIDs :exec
+DELETE FROM evaluation
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteEvaluationCompletionsByCourseParticipationIDs :exec
+DELETE FROM evaluation_completion
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteActionItemsByCourseParticipationIDs :exec
+DELETE FROM action_item
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteFeedbackItemsByCourseParticipationIDs :exec
+DELETE FROM feedback_items
 WHERE course_participation_id = ANY($1::uuid[]);

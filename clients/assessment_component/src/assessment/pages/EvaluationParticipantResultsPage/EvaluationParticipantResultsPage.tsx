@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -9,10 +15,14 @@ import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackIte
 import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
 import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { PrintReport } from '../components/PrintReport/PrintReport'
+import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
+import { getTeamMemberName } from '../utils/getTeamMemberName'
+import { printPage } from '../utils/printPage'
 
 interface EvaluationParticipantResultsPageProps {
   assessmentType: AssessmentType.SELF | AssessmentType.PEER
@@ -28,6 +38,7 @@ export const EvaluationParticipantResultsPage = ({
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
+  const { data: teams } = useGetAllTeams()
   const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
@@ -104,6 +115,20 @@ export const EvaluationParticipantResultsPage = ({
     [typedFeedbackItems],
   )
 
+  const reportScores = useMemo(
+    () =>
+      evaluations.map((evaluation) => ({
+        ...evaluation,
+        authorName: getTeamMemberName(teams, evaluation.authorCourseParticipationID),
+      })),
+    [evaluations, teams],
+  )
+
+  const evaluatorCount = useMemo(
+    () => new Set(evaluations.map((evaluation) => evaluation.authorCourseParticipationID)).size,
+    [evaluations],
+  )
+
   const isPending = isEvaluationsPending || isFeedbackItemsPending
   const isError = isEvaluationsError || isFeedbackItemsError
   const refetch = () => {
@@ -128,48 +153,77 @@ export const EvaluationParticipantResultsPage = ({
   }
 
   const studentName = `${participant.student.firstName} ${participant.student.lastName}`
+  const teamName = teams.find((team) =>
+    team.members.some((member) => member.id === courseParticipationID),
+  )?.name
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>
-        {pageTitle} for {studentName}
-      </ManagementPageHeader>
+    <>
+      <div className='space-y-4 print:hidden'>
+        <ManagementPageHeader>
+          {pageTitle} for {studentName}
+        </ManagementPageHeader>
 
-      {categories.length === 0 ? (
-        <Card>
-          <CardContent className='p-6'>
-            <p className='text-center text-muted-foreground'>
-              No evaluation categories configured yet.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className='space-y-6'>
-          <div className='space-y-4'>
-            {categories.map((category) => (
-              <CategoryEvaluation
-                key={category.id}
-                category={category}
-                assessmentType={assessmentType}
-                evaluations={evaluationsByCategory.get(category.id) ?? []}
+        {categories.length === 0 ? (
+          <Card>
+            <CardContent className='p-6'>
+              <p className='text-center text-muted-foreground'>
+                No evaluation categories configured yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className='space-y-6'>
+            <div className='space-y-4'>
+              {categories.map((category) => (
+                <CategoryEvaluation
+                  key={category.id}
+                  category={category}
+                  assessmentType={assessmentType}
+                  evaluations={evaluationsByCategory.get(category.id) ?? []}
+                />
+              ))}
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+              <FeedbackItemDisplayPanel
+                feedbackItems={negativeFeedbackItems}
+                feedbackType='negative'
+                studentName={participant.student.firstName}
               />
-            ))}
+              <FeedbackItemDisplayPanel
+                feedbackItems={positiveFeedbackItems}
+                feedbackType='positive'
+                studentName={participant.student.firstName}
+              />
+            </div>
           </div>
+        )}
 
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-            <FeedbackItemDisplayPanel
-              feedbackItems={negativeFeedbackItems}
-              feedbackType='negative'
-              studentName={participant.student.firstName}
-            />
-            <FeedbackItemDisplayPanel
-              feedbackItems={positiveFeedbackItems}
-              feedbackType='positive'
-              studentName={participant.student.firstName}
-            />
+        {categories.length > 0 && (
+          <div className='flex justify-end pt-4'>
+            <Button variant='outline' onClick={printPage} className='gap-2'>
+              <Printer className='h-4 w-4' />
+              PDF / Print
+            </Button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <PrintReport
+        title={`${pageTitle} for ${studentName}`}
+        subtitle={teamName}
+        meta={
+          evaluatorCount > 1 ? (
+            <span>
+              <strong>Evaluators:</strong> {evaluatorCount}
+            </span>
+          ) : undefined
+        }
+        categories={categories}
+        scores={reportScores}
+        feedbackItems={typedFeedbackItems}
+      />
+    </>
   )
 }

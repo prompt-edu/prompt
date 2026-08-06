@@ -2642,6 +2642,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/evaluation/my-results": {
+            "get": {
+                "description": "Get released evaluation results for the current student. Only served on phases where the assessment is disabled; assessment-enabled phases expose results through the assessment report instead.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "Get own evaluation results",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/evaluationDTO.StudentEvaluationResults"
+                        }
+                    },
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}": {
             "get": {
                 "description": "List peer evaluations for a course participation in a course phase.",
@@ -5064,6 +5117,9 @@ const docTemplate = `{
                 "actionItemsVisible": {
                     "type": "boolean"
                 },
+                "assessmentEnabled": {
+                    "type": "boolean"
+                },
                 "assessmentSchemaID": {
                     "type": "string"
                 },
@@ -5130,6 +5186,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "actionItemsVisible": {
+                    "type": "boolean"
+                },
+                "assessmentEnabled": {
                     "type": "boolean"
                 },
                 "assessmentSchemaId": {
@@ -5329,6 +5388,17 @@ const docTemplate = `{
                 }
             }
         },
+        "evaluationDTO.AggregatedEvaluationResult": {
+            "type": "object",
+            "properties": {
+                "averageScoreNumeric": {
+                    "type": "number"
+                },
+                "competencyID": {
+                    "type": "string"
+                }
+            }
+        },
         "evaluationDTO.CreateOrUpdateEvaluationRequest": {
             "type": "object",
             "required": [
@@ -5403,6 +5473,40 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/assessmentType.AssessmentType"
+                }
+            }
+        },
+        "evaluationDTO.SelfEvaluationResult": {
+            "type": "object",
+            "properties": {
+                "competencyID": {
+                    "type": "string"
+                },
+                "scoreLevel": {
+                    "$ref": "#/definitions/scoreLevelDTO.ScoreLevel"
+                }
+            }
+        },
+        "evaluationDTO.StudentEvaluationResults": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "peerResults": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/evaluationDTO.AggregatedEvaluationResult"
+                    }
+                },
+                "selfResults": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/evaluationDTO.SelfEvaluationResult"
+                    }
                 }
             }
         },

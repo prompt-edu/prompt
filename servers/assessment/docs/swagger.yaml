@@ -418,6 +418,8 @@ definitions:
     properties:
       actionItemsVisible:
         type: boolean
+      assessmentEnabled:
+        type: boolean
       assessmentSchemaID:
         type: string
       coursePhaseID:
@@ -462,6 +464,8 @@ definitions:
   coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest:
     properties:
       actionItemsVisible:
+        type: boolean
+      assessmentEnabled:
         type: boolean
       assessmentSchemaId:
         type: string
@@ -593,6 +597,13 @@ definitions:
       type:
         $ref: '#/definitions/assessmentType.AssessmentType'
     type: object
+  evaluationDTO.AggregatedEvaluationResult:
+    properties:
+      averageScoreNumeric:
+        type: number
+      competencyID:
+        type: string
+    type: object
   evaluationDTO.CreateOrUpdateEvaluationRequest:
     properties:
       authorCourseParticipationID:
@@ -643,6 +654,28 @@ definitions:
         $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
       type:
         $ref: '#/definitions/assessmentType.AssessmentType'
+    type: object
+  evaluationDTO.SelfEvaluationResult:
+    properties:
+      competencyID:
+        type: string
+      scoreLevel:
+        $ref: '#/definitions/scoreLevelDTO.ScoreLevel'
+    type: object
+  evaluationDTO.StudentEvaluationResults:
+    properties:
+      courseParticipationID:
+        type: string
+      coursePhaseID:
+        type: string
+      peerResults:
+        items:
+          $ref: '#/definitions/evaluationDTO.AggregatedEvaluationResult'
+        type: array
+      selfResults:
+        items:
+          $ref: '#/definitions/evaluationDTO.SelfEvaluationResult'
+        type: array
     type: object
   feedbackItemDTO.CreateFeedbackItemRequest:
     properties:
@@ -2719,6 +2752,43 @@ paths:
               type: string
             type: object
       summary: List my evaluations
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/my-results:
+    get:
+      description: Get released evaluation results for the current student. Only served
+        on phases where the assessment is disabled; assessment-enabled phases expose
+        results through the assessment report instead.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/evaluationDTO.StudentEvaluationResults'
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get own evaluation results
       tags:
       - evaluations
   /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}:

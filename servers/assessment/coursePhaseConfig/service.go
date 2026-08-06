@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,6 +20,8 @@ import (
 var ErrNotStarted = errors.New("assessment has not started yet")
 var ErrDeadlinePassed = errors.New("deadline has passed")
 var ErrCannotChangeSchemaWithData = errors.New("cannot change assessment schema when assessment or evaluation data exists")
+var ErrAssessmentDisabled = errors.New("assessment is disabled for this course phase")
+var ErrCannotDisableAssessmentWithData = errors.New("cannot disable assessment while assessment data exists")
 
 type CoursePhaseConfigService struct {
 	queries db.Queries
@@ -115,8 +119,10 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		return err
 	}
 
+	configExists := err == nil
+
 	// If config exists, validate schema changes
-	if err == nil {
+	if configExists {
 		schemasToValidate := []struct {
 			old, new   uuid.UUID
 			schemaType string
@@ -171,9 +177,28 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 
 	// Preserve existing ResultsReleased value on update, default to false for new creates
 	resultsReleased := pgtype.Bool{Bool: false, Valid: true}
-	if err == nil {
-		// Config exists - preserve the existing ResultsReleased value
+	if configExists {
 		resultsReleased = pgtype.Bool{Bool: existingConfig.ResultsReleased, Valid: true}
+	}
+
+	// An omitted AssessmentEnabled must never flip the phase's mode
+	assessmentEnabled := true
+	if configExists {
+		assessmentEnabled = existingConfig.AssessmentEnabled
+	}
+	if req.AssessmentEnabled != nil {
+		assessmentEnabled = *req.AssessmentEnabled
+	}
+
+	if !assessmentEnabled {
+		hasData, err := qtx.PhaseHasAssessmentData(ctx, coursePhaseID)
+		if err != nil {
+			log.WithError(err).Error("Failed to check for existing assessment data")
+			return err
+		}
+		if hasData.Bool {
+			return ErrCannotDisableAssessmentWithData
+		}
 	}
 
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
@@ -198,6 +223,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		ActionItemsVisible:       actionItemsVisible,
 		ResultsReleased:          resultsReleased,
 		GradingSheetVisible:      gradingSheetVisible,
+		AssessmentEnabled:        assessmentEnabled,
 	}
 
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)
@@ -207,6 +233,39 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 	}
 
 	return tx.Commit(ctx)
+}
+
+// RequireAssessmentEnabled rejects assessment writes on evaluation-only phases. Without it, a stale
+// URL can create assessment rows that then lock the phase's schema.
+func RequireAssessmentEnabled() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+			return
+		}
+
+		// Read directly instead of via GetCoursePhaseConfig: a guard must not lazily create rows,
+		// and an unconfigured phase carries the default (enabled) so the handler can validate the
+		// rest of the request itself.
+		config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
+		if errors.Is(err, sql.ErrNoRows) {
+			c.Next()
+			return
+		}
+		if err != nil {
+			log.WithError(err).Error("Failed to get course phase config")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})
+			return
+		}
+
+		if !config.AssessmentEnabled {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": ErrAssessmentDisabled.Error()})
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {

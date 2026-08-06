@@ -78,3 +78,17 @@ SELECT (SELECT total FROM total_competencies) - (SELECT assessed FROM assessed_c
                )
        )                                                                                     AS categories
 FROM remaining_per_category rpc;
+
+-- name: PhaseHasAssessmentData :one
+-- Blank comments/actions are excluded: the UI creates empty action items on click and category
+-- comments have no delete route, so a bare EXISTS would permanently lock the phase.
+SELECT EXISTS(SELECT 1 FROM assessment a WHERE a.course_phase_id = $1)
+           OR EXISTS(SELECT 1 FROM assessment_completion ac WHERE ac.course_phase_id = $1)
+           OR EXISTS(SELECT 1
+                     FROM category_assessment ca
+                     WHERE ca.course_phase_id = $1
+                       AND btrim(ca.comment) <> '')
+           OR EXISTS(SELECT 1
+                     FROM action_item ai
+                     WHERE ai.course_phase_id = $1
+                       AND btrim(ai.action) <> '') AS has_assessment_data;

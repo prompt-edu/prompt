@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE course_phase_config
+    ADD COLUMN IF NOT EXISTS assessment_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMIT;

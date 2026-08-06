@@ -24,6 +24,7 @@ interface EvaluationOriginalSnapshot {
 }
 
 interface AssessmentStateSnapshot {
+  assessmentEnabled: boolean
   assessmentSchemaId: string
   start?: Date
   deadline?: Date
@@ -52,6 +53,7 @@ export const buildRequestFromConfig = (
   }
 
   return {
+    assessmentEnabled: config?.assessmentEnabled ?? true,
     assessmentSchemaId: config?.assessmentSchemaID ?? '',
     start: toDate(config?.start),
     deadline: toDate(config?.deadline),
@@ -81,6 +83,7 @@ export const hasAssessmentCardChanges = (
   if (!originalConfig) return true
 
   return (
+    current.assessmentEnabled !== (originalConfig.assessmentEnabled ?? true) ||
     current.assessmentSchemaId !== (originalConfig.assessmentSchemaID || '') ||
     !areDatesEqual(current.start, toDate(originalConfig.start)) ||
     !areDatesEqual(current.deadline, toDate(originalConfig.deadline)) ||

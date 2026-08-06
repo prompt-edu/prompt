@@ -9,6 +9,8 @@ import {
   AlertDialogTitle,
 } from '@tumaet/prompt-ui-components'
 
+import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
+
 interface UnreleaseConfirmationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -24,14 +26,20 @@ export function UnreleaseConfirmationDialog({
   isUnreleasing,
   unreleaseError,
 }: UnreleaseConfirmationDialogProps) {
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Unrelease Assessment Results?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Unrelease {assessmentEnabled ? 'Assessment' : 'Evaluation'} Results?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to hide the released assessment results from students? Existing
-            assessment data and visibility settings will stay unchanged.
+            Are you sure you want to hide the released{' '}
+            {assessmentEnabled ? 'assessment' : 'evaluation'} results from students? Existing data
+            and visibility settings will stay unchanged.
           </AlertDialogDescription>
           {unreleaseError && (
             <p className='text-sm font-medium text-destructive' role='alert'>

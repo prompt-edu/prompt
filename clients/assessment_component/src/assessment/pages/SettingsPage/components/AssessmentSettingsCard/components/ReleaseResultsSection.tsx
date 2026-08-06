@@ -9,6 +9,7 @@ interface ReleaseResultsSectionProps {
 
 export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) => {
   const {
+    assessmentEnabled,
     resultsReleased,
     showReleaseDialog,
     setShowReleaseDialog,
@@ -25,6 +26,8 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     allAssessmentsCompleted,
   } = useReleaseAssessmentResults()
 
+  const resultsLabel = assessmentEnabled ? 'assessment results' : 'evaluation results'
+
   return (
     <>
       <div className='rounded-xl border border-border bg-muted/40 p-4'>
@@ -35,8 +38,8 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
                 Results released
               </h3>
               <p className='text-sm leading-6 text-emerald-700 dark:text-emerald-400'>
-                Students in this phase can already view the released assessment results based on the
-                visibility settings above.
+                Students in this phase can already view the released {resultsLabel}
+                {assessmentEnabled ? ' based on the visibility settings above' : ''}.
               </p>
             </div>
 
@@ -54,8 +57,9 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
             <div className='space-y-1'>
               <h3 className='text-sm font-semibold text-foreground'>Release results</h3>
               <p className='text-sm leading-6 text-muted-foreground'>
-                Release final assessment results to students after every assessment is marked as
-                final.
+                {assessmentEnabled
+                  ? 'Release final assessment results to students after every assessment is marked as final.'
+                  : 'Release evaluation results so students can see their own self-evaluation and anonymized peer averages.'}
               </p>
             </div>
 
@@ -66,7 +70,9 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
             >
               {isReleasing
                 ? 'Releasing...'
-                : `Release Results (${completedAssessments}/${totalAssessments} final)`}
+                : assessmentEnabled
+                  ? `Release Results (${completedAssessments}/${totalAssessments} final)`
+                  : 'Release Results'}
             </Button>
 
             {!allAssessmentsCompleted && (

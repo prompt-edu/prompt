@@ -105,7 +105,11 @@ export const EvaluationOverviewPage = () => {
 
   return (
     <div className='px-4 py-6'>
-      <ManagementPageHeader>Assessment Results & Evaluation</ManagementPageHeader>
+      <ManagementPageHeader>
+        {(coursePhaseConfig?.assessmentEnabled ?? true)
+          ? 'Assessment Results & Evaluation'
+          : 'Evaluations'}
+      </ManagementPageHeader>
 
       <div className='space-y-4'>
         <EvaluationInfoHeader

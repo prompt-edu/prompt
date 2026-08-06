@@ -1,6 +1,7 @@
 import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { AssessmentDisabledNotice } from '../components/AssessmentDisabledNotice'
 import { AuthorDiagram } from '../components/diagrams/AuthorDiagram'
 import { CategoryDiagram } from '../components/diagrams/CategoryDiagram'
 import { GenderDiagram } from '../components/diagrams/GenderDiagram'
@@ -14,6 +15,7 @@ import { useGetAllAssessments } from '../hooks/useGetAllAssessments'
 import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { FilterBadges } from './components/FilterBadges'
 
@@ -23,9 +25,12 @@ import { useFilteredParticipations } from './hooks/useFilteredParticipations'
 export const AssessmentStatisticsPage = () => {
   const [filters, setFilters] = useState<StatisticsFilter>({})
 
-  const { data: categories } = useGetAllCategoriesWithCompetencies()
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
+
+  const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
   const { data: participations } = useGetCoursePhaseParticipations()
-  const { data: scoreLevels } = useGetAllScoreLevels()
+  const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
   const { data: teams } = useGetAllTeams()
 
   const {
@@ -33,14 +38,14 @@ export const AssessmentStatisticsPage = () => {
     isPending: isAssessmentsPending,
     isError: isAssessmentsError,
     refetch: refetchAssessments,
-  } = useGetAllAssessments()
+  } = useGetAllAssessments({ enabled: assessmentEnabled })
 
   const {
     data: assessmentCompletions,
     isPending: isAssessmentCompletionsPending,
     isError: isAssessmentCompletionsError,
     refetch: refetchAssessmentCompletions,
-  } = useGetAllAssessmentCompletions()
+  } = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
 
   const participationsWithAssessments = useGetParticipationsWithAssessment(
     participations || [],
@@ -79,6 +84,9 @@ export const AssessmentStatisticsPage = () => {
     refetchAssessmentCompletions()
   }
 
+  if (!assessmentEnabled) {
+    return <AssessmentDisabledNotice title='Assessment Statistics' />
+  }
   if (isError) {
     return <ErrorPage message='Error loading assessments' onRetry={refetch} />
   }

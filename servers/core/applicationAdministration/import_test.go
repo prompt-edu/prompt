@@ -229,6 +229,52 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportIdempote
 	assert.Equal(suite.T(), 1, answerCount)
 }
 
+// TestImportApplications_ReImportPreservesOmittedAttributes verifies that re-importing a student
+// with a CSV that omits optional attributes keeps the previously stored values instead of resetting
+// them to defaults.
+func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportPreservesOmittedAttributes() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	full := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Keep", LastName: "Attrs", Email: "keep.attrs@example.com",
+				UniversityLogin: "ka01abc",
+				Gender:          db.GenderMale,
+				Nationality:     "DE",
+				StudyDegree:     db.StudyDegreeMaster,
+				StudyProgram:    "Informatics",
+				CurrentSemester: pgtype.Int4{Int32: 4, Valid: true},
+			}},
+		},
+	}
+	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, full)
+	assert.NoError(suite.T(), err)
+
+	// Re-import the same student with only the required fields; optional attributes are omitted.
+	partial := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Keep", LastName: "Attrs", Email: "keep.attrs@example.com",
+				UniversityLogin: "ka01abc",
+			}},
+		},
+	}
+	_, err = PostApplicationImport(suite.ctx, importApplicationPhaseID, partial)
+	assert.NoError(suite.T(), err)
+
+	stored, err := suite.applicationAdminService.queries.GetStudentByUniversityLogin(suite.ctx, pgtype.Text{String: "ka01abc", Valid: true})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), db.GenderMale, stored.Gender)
+	assert.Equal(suite.T(), "DE", stored.Nationality.String)
+	assert.Equal(suite.T(), db.StudyDegreeMaster, stored.StudyDegree)
+	assert.Equal(suite.T(), "Informatics", stored.StudyProgram.String)
+	assert.Equal(suite.T(), int32(4), stored.CurrentSemester.Int32)
+}
+
 // TestImport_StudentRoleResolvedWithoutMatriculation verifies the relaxed GetStudentRoleStrings
 // query resolves the course student role for an imported student that has no matriculation number.
 func (suite *ApplicationImportTestSuite) TestImport_StudentRoleResolvedWithoutMatriculation() {
@@ -248,12 +294,22 @@ func (suite *ApplicationImportTestSuite) TestImport_StudentRoleResolvedWithoutMa
 	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 
+	// The token at login carries no matriculation number.
 	roles, err := suite.applicationAdminService.queries.GetStudentRoleStrings(suite.ctx, db.GetStudentRoleStringsParams{
 		MatriculationNumber: pgtype.Text{String: "", Valid: true},
 		UniversityLogin:     pgtype.Text{String: "ro01abc", Valid: true},
 	})
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), roles)
+
+	// The token later carries a real matriculation number, while the imported student row still has
+	// an empty one. This is the production login path and must still resolve the course role.
+	rolesWithMatriculation, err := suite.applicationAdminService.queries.GetStudentRoleStrings(suite.ctx, db.GetStudentRoleStringsParams{
+		MatriculationNumber: pgtype.Text{String: "01900001", Valid: true},
+		UniversityLogin:     pgtype.Text{String: "ro01abc", Valid: true},
+	})
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), rolesWithMatriculation)
 }
 
 func (suite *ApplicationImportTestSuite) TestImportApplications_RejectApplyMode() {
@@ -382,7 +438,14 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_AnswerExceedingA
 		},
 	}
 
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	// validateApplicationImport rejects it before the transaction, so the handler maps it to a 400
+	// (client error) instead of a 500.
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
+
+	_, err = PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
+	assert.ErrorIs(suite.T(), err, ErrImportAnswerTooLong)
 }

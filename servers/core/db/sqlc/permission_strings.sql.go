@@ -79,7 +79,7 @@ FROM course c
 JOIN course_participation cp ON c.id = cp.course_id
 JOIN student s ON cp.student_id = s.id
 WHERE s.university_login = $2
-AND (s.matriculation_number = $1 OR s.matriculation_number IS NULL OR $1 = '')
+AND (COALESCE(s.matriculation_number, '') = '' OR s.matriculation_number = $1 OR $1 = '')
 `
 
 type GetStudentRoleStringsParams struct {

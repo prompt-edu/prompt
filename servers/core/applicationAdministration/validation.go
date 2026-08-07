@@ -275,9 +275,17 @@ func validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, 
 	return validateAnswers(ctx, coursePhaseID, application)
 }
 
+// maxImportRows bounds a single CSV import. Each row runs several queries inside one transaction,
+// so an unbounded file would hold a long-running transaction open.
+const maxImportRows = 2000
+
 func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
+
+	if len(req.Rows) > maxImportRows {
+		return fmt.Errorf("too many rows in import: %d (maximum is %d)", len(req.Rows), maxImportRows)
+	}
 
 	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
@@ -306,6 +314,7 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 	// question and silently overwrite each other's answers.
 	questionColumns := make(map[string]bool, len(req.NewQuestions))
 	questionTitles := make(map[string]bool, len(req.NewQuestions))
+	allowedLengthByColumn := make(map[string]int, len(req.NewQuestions))
 	for _, q := range req.NewQuestions {
 		if q.ColumnKey == "" {
 			return errors.New("question column key cannot be empty")
@@ -324,6 +333,7 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		}
 		questionColumns[q.ColumnKey] = true
 		questionTitles[q.Title] = true
+		allowedLengthByColumn[q.ColumnKey] = q.AllowedLength
 	}
 
 	// Validate the rows.
@@ -348,6 +358,9 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		for _, ans := range row.Answers {
 			if !questionColumns[ans.ColumnKey] {
 				return fmt.Errorf("answer column %s does not map to an import question", ans.ColumnKey)
+			}
+			if maxLen := allowedLengthByColumn[ans.ColumnKey]; maxLen > 0 && utf8.RuneCountInString(ans.Answer) > maxLen {
+				return fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d", login, ans.ColumnKey, maxLen)
 			}
 		}
 	}

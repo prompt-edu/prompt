@@ -37,6 +37,7 @@ var ErrNotFound = errors.New("application was not found")
 var ErrAlreadyApplied = errors.New("application already exists")
 var ErrStudentDetailsDoNotMatch = errors.New("student details do not match")
 var ErrEmailAlreadyInUse = errors.New("email already in use")
+var ErrImportAnswerTooLong = errors.New("import answer exceeds the allowed length")
 
 func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
 	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
@@ -1075,17 +1076,44 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 		studentInput.HasUniversityAccount = true
 		studentInput.UniversityLogin = strings.ToLower(strings.TrimSpace(studentInput.UniversityLogin))
 		studentInput.MatriculationNumber = strings.TrimSpace(studentInput.MatriculationNumber)
+
+		// Detect whether this row updates a student that is already in this course phase, and
+		// preserve any attributes the CSV omits so a partial re-import (or a student known from
+		// another course) does not have their gender/nationality/degree/etc. reset to defaults.
+		outcome := "created"
+		if existing, resolveErr := student.ResolveStudentByUniversityCredentials(ctx, &queries, studentInput.MatriculationNumber, studentInput.UniversityLogin); resolveErr == nil {
+			alreadyInPhase, err := qtx.GetApplicationExistsForStudent(ctx, db.GetApplicationExistsForStudentParams{StudentID: existing.ID, ID: coursePhaseID})
+			if err != nil {
+				log.Error(err)
+				return applicationDTO.ImportResult{}, errors.New("could not check for existing participation")
+			}
+			if alreadyInPhase {
+				outcome = "updated"
+			}
+			if studentInput.Gender == "" {
+				studentInput.Gender = existing.Gender
+			}
+			if studentInput.Nationality == "" {
+				studentInput.Nationality = existing.Nationality
+			}
+			if studentInput.StudyDegree == "" {
+				studentInput.StudyDegree = existing.StudyDegree
+			}
+			if studentInput.StudyProgram == "" {
+				studentInput.StudyProgram = existing.StudyProgram
+			}
+			if !studentInput.CurrentSemester.Valid {
+				studentInput.CurrentSemester = existing.CurrentSemester
+			}
+		}
+
+		// Default the enum fields for genuinely new students, since an empty string is not a valid
+		// Go/Postgres enum constant.
 		if studentInput.Gender == "" {
 			studentInput.Gender = db.GenderPreferNotToSay
 		}
 		if studentInput.StudyDegree == "" {
 			studentInput.StudyDegree = db.StudyDegreeBachelor
-		}
-
-		// Detect whether this row updates an existing student or creates a new one.
-		outcome := "created"
-		if _, resolveErr := student.ResolveStudentByUniversityCredentials(ctx, &queries, studentInput.MatriculationNumber, studentInput.UniversityLogin); resolveErr == nil {
-			outcome = "updated"
 		}
 
 		studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, studentInput)
@@ -1119,7 +1147,7 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			// Enforce the question's allowed length, mirroring the public-form answer validation
 			// so an oversized CSV cell cannot bypass the question configuration.
 			if maxLen := allowedLengthByColumn[ans.ColumnKey]; maxLen > 0 && utf8.RuneCountInString(ans.Answer) > maxLen {
-				return applicationDTO.ImportResult{}, fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d", studentInput.UniversityLogin, ans.ColumnKey, maxLen)
+				return applicationDTO.ImportResult{}, fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d: %w", studentInput.UniversityLogin, ans.ColumnKey, maxLen, ErrImportAnswerTooLong)
 			}
 			answerDBModel := applicationDTO.CreateAnswerText{
 				ApplicationQuestionID: questionID,

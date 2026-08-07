@@ -31,7 +31,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationsStatus)
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationManual)
-	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), postApplicationImport)
+	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationImport)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteApplications)
 	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
 
@@ -731,6 +731,10 @@ func postApplicationImport(c *gin.Context) {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {
 			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			return
+		}
+		if errors.Is(err, ErrImportAnswerTooLong) {
+			handleError(c, http.StatusBadRequest, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, errors.New("could not import applications"))

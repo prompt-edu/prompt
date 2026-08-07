@@ -449,3 +449,46 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_AnswerExceedingA
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
 	assert.ErrorIs(suite.T(), err, ErrImportAnswerTooLong)
 }
+
+// TestImportApplications_ReuseUsesPersistedLength verifies that when a re-import reuses a question by
+// title, validation enforces the persisted allowed length rather than the (possibly larger) length
+// sent in the request.
+func (suite *ApplicationImportTestSuite) TestImportApplications_ReuseUsesPersistedLength() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	// Create the question with a small persisted limit.
+	create := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "note", Title: "Persisted Length Note", AllowedLength: 10},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{
+				Student: studentDTO.CreateStudent{FirstName: "Persist", LastName: "Len", Email: "persist.len@example.com", UniversityLogin: "pl01abc"},
+				Answers: []applicationDTO.ImportAnswer{{ColumnKey: "note", Answer: "tiny"}},
+			},
+		},
+	}
+	assert.NoError(suite.T(), validateApplicationImport(suite.ctx, importApplicationPhaseID, create))
+	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, create)
+	assert.NoError(suite.T(), err)
+
+	// Re-import the same title with a larger requested limit and an answer that fits the request but
+	// exceeds the persisted limit. Validation must follow the persisted limit and reject it.
+	reuse := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "note", Title: "Persisted Length Note", AllowedLength: 100},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{
+				Student: studentDTO.CreateStudent{FirstName: "Persist", LastName: "Len", Email: "persist.len@example.com", UniversityLogin: "pl01abc"},
+				Answers: []applicationDTO.ImportAnswer{{ColumnKey: "note", Answer: "this answer is definitely longer than ten"}},
+			},
+		},
+	}
+	err = validateApplicationImport(suite.ctx, importApplicationPhaseID, reuse)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length of 10")
+}

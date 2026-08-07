@@ -309,6 +309,18 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		return errors.New("invalid pass status for import")
 	}
 
+	// The import reuses an existing question when a title already exists, keeping its persisted
+	// allowed length. Load those lengths so answer validation matches what the service enforces.
+	existingQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	existingLengthByTitle := make(map[string]int, len(existingQuestions))
+	for _, q := range existingQuestions {
+		existingLengthByTitle[q.Title.String] = int(q.AllowedLength.Int32)
+	}
+
 	// Validate the imported question columns. Titles must be unique too: the import service
 	// resolves questions by title, so two columns sharing a title would collapse onto one
 	// question and silently overwrite each other's answers.
@@ -333,7 +345,12 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		}
 		questionColumns[q.ColumnKey] = true
 		questionTitles[q.Title] = true
-		allowedLengthByColumn[q.ColumnKey] = q.AllowedLength
+		// Reused titles keep the persisted limit; genuinely new questions use the requested one.
+		if persisted, ok := existingLengthByTitle[q.Title]; ok {
+			allowedLengthByColumn[q.ColumnKey] = persisted
+		} else {
+			allowedLengthByColumn[q.ColumnKey] = q.AllowedLength
+		}
 	}
 
 	// Validate the rows.

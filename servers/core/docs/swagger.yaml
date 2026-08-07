@@ -452,6 +452,67 @@ definitions:
           $ref: '#/definitions/applicationDTO.QuestionText'
         type: array
     type: object
+  auditLogDTO.AuditEntry:
+    properties:
+      action:
+        type: string
+      actionKey:
+        type: string
+      actorEmail:
+        type: string
+      actorID:
+        type: string
+      actorName:
+        type: string
+      actorRole:
+        type: string
+      actorRoles:
+        items:
+          type: string
+        type: array
+      courseID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        type: string
+      entityID:
+        type: string
+      entityName:
+        type: string
+      entityType:
+        type: string
+      httpMethod:
+        type: string
+      httpPath:
+        type: string
+      httpStatus:
+        type: integer
+      id:
+        type: string
+      metadata:
+        type: object
+      outcome:
+        type: string
+      sourceService:
+        type: string
+    type: object
+  auditLogDTO.AuditLogPage:
+    properties:
+      entries:
+        items:
+          $ref: '#/definitions/auditLogDTO.AuditEntry'
+        type: array
+      nextCursor:
+        $ref: '#/definitions/auditLogDTO.Cursor'
+    type: object
+  auditLogDTO.Cursor:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+    type: object
   authDTO.GetCoursePhaseParticipation:
     properties:
       courseParticipationID:
@@ -2426,6 +2487,23 @@ paths:
       summary: Create a presigned upload URL (authenticated)
       tags:
       - applications
+  /audit-log:
+    get:
+      description: Keyset-paginated, filterable platform-wide audit log (admins only).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auditLogDTO.AuditLogPage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Global audit log
+      tags:
+      - auditLog
   /auth/course_phase/{coursePhaseID}/is_student:
     get:
       description: Check if the user is a student of the course phase
@@ -3082,6 +3160,29 @@ paths:
       summary: Archive or unarchive a course
       tags:
       - courses
+  /courses/{uuid}/audit-log:
+    get:
+      description: Keyset-paginated, filterable audit log scoped to one course.
+      parameters:
+      - description: Course UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auditLogDTO.AuditLogPage'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Course audit log
+      tags:
+      - auditLog
   /courses/{uuid}/copy:
     post:
       description: Copy a course by UUID

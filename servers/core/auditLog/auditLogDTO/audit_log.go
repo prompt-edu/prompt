@@ -26,7 +26,7 @@ type AuditEntry struct {
 	HTTPMethod    string          `json:"httpMethod,omitempty"`
 	HTTPPath      string          `json:"httpPath,omitempty"`
 	HTTPStatus    int             `json:"httpStatus,omitempty"`
-	Metadata      json.RawMessage `json:"metadata,omitempty"`
+	Metadata      json.RawMessage `json:"metadata,omitempty" swaggertype:"object"`
 }
 
 // Cursor is the keyset position for fetching the next page (older entries).

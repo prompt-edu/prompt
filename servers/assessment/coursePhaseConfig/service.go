@@ -190,17 +190,6 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		assessmentEnabled = *req.AssessmentEnabled
 	}
 
-	if !assessmentEnabled {
-		hasData, err := qtx.PhaseHasAssessmentData(ctx, coursePhaseID)
-		if err != nil {
-			log.WithError(err).Error("Failed to check for existing assessment data")
-			return err
-		}
-		if hasData.Bool {
-			return ErrCannotDisableAssessmentWithData
-		}
-	}
-
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
 		AssessmentSchemaID:       req.AssessmentSchemaID,
 		CoursePhaseID:            coursePhaseID,
@@ -230,6 +219,19 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 	if err != nil {
 		log.WithError(err).Error("Failed to create or update course phase config")
 		return err
+	}
+
+	// Checked after the write so the snapshot also covers writes that RequireAssessmentEnabled
+	// waved through while this request was in flight; the rollback then keeps the phase enabled.
+	if !assessmentEnabled {
+		hasData, err := qtx.PhaseHasAssessmentData(ctx, coursePhaseID)
+		if err != nil {
+			log.WithError(err).Error("Failed to check for existing assessment data")
+			return err
+		}
+		if hasData.Bool {
+			return ErrCannotDisableAssessmentWithData
+		}
 	}
 
 	return tx.Commit(ctx)

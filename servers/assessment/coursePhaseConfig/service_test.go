@@ -469,18 +469,20 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 		createTestCoursePhaseConfigRequest(schemaID, testID)))
 
 	// The UI creates blank action items on click and category comments have no delete route,
-	// so neither may lock the phase.
-	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
-		`INSERT INTO action_item (id, course_phase_id, course_participation_id, action, author)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		uuid.New(), testID, uuid.New(), "   ", "Tutor")
-	assert.NoError(suite.T(), err)
+	// so neither may lock the phase. Tabs and newlines count as blank too.
+	for _, blank := range []string{"", "   ", "\t", "\n"} {
+		_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+			`INSERT INTO action_item (id, course_phase_id, course_participation_id, action, author)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			uuid.New(), testID, uuid.New(), blank, "Tutor")
+		assert.NoError(suite.T(), err)
 
-	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
-		`INSERT INTO category_assessment (id, category_id, course_phase_id, course_participation_id, comment)
-		 SELECT $1, c.category_id, $2, $3, '' FROM competency c WHERE c.id = $4`,
-		uuid.New(), testID, uuid.New(), competencyID)
-	assert.NoError(suite.T(), err)
+		_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+			`INSERT INTO category_assessment (id, category_id, course_phase_id, course_participation_id, comment)
+			 SELECT $1, c.category_id, $2, $3, $4 FROM competency c WHERE c.id = $5`,
+			uuid.New(), testID, uuid.New(), blank, competencyID)
+		assert.NoError(suite.T(), err)
+	}
 
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
 	disabled := false

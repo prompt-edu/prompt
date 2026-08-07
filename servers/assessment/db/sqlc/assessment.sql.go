@@ -297,15 +297,16 @@ SELECT EXISTS(SELECT 1 FROM assessment a WHERE a.course_phase_id = $1)
            OR EXISTS(SELECT 1
                      FROM category_assessment ca
                      WHERE ca.course_phase_id = $1
-                       AND btrim(ca.comment) <> '')
+                       AND ca.comment !~ '^[[:space:]]*$')
            OR EXISTS(SELECT 1
                      FROM action_item ai
                      WHERE ai.course_phase_id = $1
-                       AND btrim(ai.action) <> '') AS has_assessment_data
+                       AND ai.action !~ '^[[:space:]]*$') AS has_assessment_data
 `
 
 // Blank comments/actions are excluded: the UI creates empty action items on click and category
-// comments have no delete route, so a bare EXISTS would permanently lock the phase.
+// comments have no delete route, so a bare EXISTS would permanently lock the phase. The regex
+// covers tabs and newlines too, which btrim's default (spaces only) would leave in place.
 func (q *Queries) PhaseHasAssessmentData(ctx context.Context, coursePhaseID uuid.UUID) (pgtype.Bool, error) {
 	row := q.db.QueryRow(ctx, phaseHasAssessmentData, coursePhaseID)
 	var has_assessment_data pgtype.Bool

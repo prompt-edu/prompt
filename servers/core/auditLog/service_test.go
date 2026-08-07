@@ -2,7 +2,6 @@ package auditLog
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -36,7 +35,7 @@ func TestAuditLogTestSuite(t *testing.T) {
 }
 
 func (s *AuditLogTestSuite) SetupSuite() {
-	os.Setenv("AUDIT_ENABLED", "true")
+	s.T().Setenv("AUDIT_ENABLED", "true")
 	s.ctx = context.Background()
 
 	testDB, cleanup, err := sdkTestUtils.SetupTestDB(s.ctx, "../database_dumps/audit_log_test.sql",

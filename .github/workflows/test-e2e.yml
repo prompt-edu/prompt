@@ -8,33 +8,160 @@ on:
 permissions:
   contents: read
 
+env:
+  # Base stack + the read-only layer-cache override, shared by every shard.
+  E2E_COMPOSE: >-
+    -f docker-compose.e2e.yml
+    -f docker-compose.e2e.cache.yml
+    --env-file e2e/.env.e2e
+
 jobs:
-  e2e:
+  # e2e/shards.json is the single source of truth for the partition. Verify it
+  # claims every spec exactly once before spending a runner on any shard, and
+  # hand the matrix to the e2e job below so the two can never drift apart.
+  partition:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.partition.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+
+      - name: Verify the shard partition covers every spec exactly once
+        id: partition
+        working-directory: e2e
+        run: |
+          node scripts/shards.mjs check
+          echo "matrix=$(node scripts/shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+
+  # One shard per microservice, each booting its own fresh stack (own DB seed),
+  # so modules are isolated without any per-spec coordination. 1 worker per shard
+  # keeps within-shard runs serial; parallelism comes from the matrix.
+  #
+  # There is deliberately no build-once job in front of these: the shards build
+  # concurrently, and the gha layer cache below is what makes those rebuilds
+  # cheap. Unlike a per-run build job, that cache also persists ACROSS runs, so
+  # a PR that doesn't touch yarn.lock/go.sum restores the expensive dependency
+  # and bundler layers instead of rebuilding them.
+  e2e:
+    needs: partition
+    # Without this, GitHub derives the job name from every matrix value, so the
+    # check would render as "e2e (core, /tests/application/.*\.spec\.ts$ …)".
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    # Outer bound on the entire job: image build + stack boot + tests + upload.
+    # PW_GLOBAL_TIMEOUT_MIN below bounds only the Playwright phase, so it is a
+    # different (smaller) budget and this has to sit well above it for Playwright
+    # to be the one that fails first, with a clean message and a blob report.
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.partition.outputs.matrix) }}
+    env:
+      # Per-shard blob report, merged downstream by the `merge` job.
+      PW_BLOB: "1"
+      PW_SHARD_NAME: ${{ matrix.name }}
+      # Budget for the Playwright phase alone (~2-3 min per shard today), so a
+      # suite that creeps up fails instead of silently getting slower.
+      PW_GLOBAL_TIMEOUT_MIN: "20"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+
+      # type=gha resolves the cache backend from ACTIONS_RUNTIME_TOKEN and
+      # ACTIONS_RESULTS_URL, which GitHub injects into JS actions but NOT into
+      # `run:` shell steps. Without this, `docker compose build` cannot
+      # authenticate and the cache silently no-ops.
+      - uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Prepare report directories
-        run: mkdir -p e2e/playwright-report e2e/test-results
+        run: mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 
       - name: Build the e2e stack
+        env:
+          # Exactly one shard exports the cache (see cacheWriter in shards.json).
+          # All 8 exporting mode=max to the same scopes would be wasteful and
+          # would race; the rest are readers via docker-compose.e2e.cache.yml.
+          CACHE_WRITE: ${{ matrix.cacheWriter && '-f docker-compose.e2e.cache-write.yml' || '' }}
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e build
+          # shellcheck disable=SC2086 # both hold multiple flags; splitting is the point
+          docker compose ${E2E_COMPOSE} ${CACHE_WRITE} build
 
-      - name: Run e2e suite (Playwright runner)
+      - name: Run e2e shard "${{ matrix.name }}"
+        env:
+          PW_PATHS: ${{ matrix.paths }}
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e run --rm e2e-runner
+          # Word-split PW_PATHS into separate arguments, but keep pathname
+          # expansion off so the regex metacharacters in the shard patterns
+          # reach Playwright untouched.
+          set -f
+          # shellcheck disable=SC2086 # word splitting is intentional for both
+          docker compose ${E2E_COMPOSE} run --rm e2e-runner \
+            npx playwright test ${PW_PATHS}
 
       - name: Tear down
         if: always()
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e down -v
+          # shellcheck disable=SC2086 # E2E_COMPOSE holds multiple flags
+          docker compose ${E2E_COMPOSE} down -v
 
-      - name: Upload Playwright report
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.name }}
+          path: e2e/blob-report
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload failure artifacts (traces, videos, screenshots)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.name }}
+          path: e2e/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Merge the per-shard blob reports into a single HTML report.
+  merge:
+    needs: e2e
+    # Run whether the shards passed or failed, but not when they never produced
+    # artifacts: download-artifact errors when its pattern matches nothing, which
+    # would turn a single upstream failure into two red jobs.
+    if: always() && needs.e2e.result != 'skipped' && needs.e2e.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v7
+        with:
+          pattern: blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+
+      - name: Merge into a single HTML report
+        run: npm run merge-reports
+        working-directory: e2e
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      - name: Upload merged Playwright report
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: e2e/playwright-report
           retention-days: 14
+          if-no-files-found: ignore

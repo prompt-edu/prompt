@@ -1,0 +1,87 @@
+# ============================================================================
+# CI-only override that WRITES the GitHub Actions layer cache, refreshing the
+# scopes that every shard of every later run restores from
+# (docker-compose.e2e.cache.yml). Added on top of that file by the single shard
+# marked `cacheWriter` in e2e/shards.json:
+#
+#   docker compose -f docker-compose.e2e.yml -f docker-compose.e2e.cache.yml \
+#     -f docker-compose.e2e.cache-write.yml build
+#
+# The other shards deliberately omit this file: 8 concurrent mode=max exports to
+# the same scopes would be wasteful and would race. The writer is the shard with
+# the lightest test load, so the export time stays off the critical path.
+#
+# No `ignore-error=true` here on purpose - a cache export that fails should fail
+# the job loudly rather than quietly leaving every later run to build cold.
+# Scopes must match docker-compose.e2e.cache.yml.
+# ============================================================================
+
+services:
+  server-core:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-core
+  client-core:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-core
+  clients-base:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-clients-base
+  server-self-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-self-team-allocation
+  client-self-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-self-team-allocation
+  server-example:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-example
+  client-example:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-example
+  server-assessment:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-assessment
+  client-assessment:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-assessment
+  client-matching:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-matching
+  server-interview:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-interview
+  client-interview:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-interview
+  server-certificate:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-certificate
+  client-certificate:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-certificate
+  server-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-team-allocation
+  client-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-team-allocation
+  e2e-runner:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-runner

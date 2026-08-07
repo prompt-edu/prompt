@@ -357,6 +357,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/applications/{coursePhaseID}/import": {
+            "post": {
+                "description": "Batch import students into an import-mode application phase",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Import applications from CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Students to import",
+                        "name": "import",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ImportApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ImportResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/applications/{coursePhaseID}/participations": {
             "get": {
                 "description": "Get all participations for a course phase",
@@ -5016,6 +5075,86 @@ const docTemplate = `{
                 }
             }
         },
+        "applicationDTO.ImportAnswer": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "columnKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ImportApplicationRequest": {
+            "type": "object",
+            "properties": {
+                "newQuestions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.NewImportQuestion"
+                    }
+                },
+                "passStatus": {
+                    "$ref": "#/definitions/db.PassStatus"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportRow"
+                    }
+                }
+            }
+        },
+        "applicationDTO.ImportResult": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportRowResult"
+                    }
+                },
+                "updated": {
+                    "type": "integer"
+                }
+            }
+        },
+        "applicationDTO.ImportRow": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportAnswer"
+                    }
+                },
+                "student": {
+                    "$ref": "#/definitions/studentDTO.CreateStudent"
+                }
+            }
+        },
+        "applicationDTO.ImportRowResult": {
+            "type": "object",
+            "properties": {
+                "courseParticipationId": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "outcome": {
+                    "description": "\"created\" or \"updated\"",
+                    "type": "string"
+                },
+                "universityLogin": {
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.IndividualScore": {
             "type": "object",
             "properties": {
@@ -5024,6 +5163,20 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "number"
+                }
+            }
+        },
+        "applicationDTO.NewImportQuestion": {
+            "type": "object",
+            "properties": {
+                "allowedLength": {
+                    "type": "integer"
+                },
+                "columnKey": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },

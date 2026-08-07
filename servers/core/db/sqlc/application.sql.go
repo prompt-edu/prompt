@@ -101,8 +101,9 @@ JOIN
     course_phase_type cpt
 ON 
     cp.course_phase_type_id = cpt.id
-WHERE 
+WHERE
     cp.id = $1
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
 `
 
@@ -769,6 +770,7 @@ WHERE
     cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
     AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW()
 `
@@ -1020,6 +1022,19 @@ func (q *Queries) GetApplicationFileIDsByCourseParticipationIDs(ctx context.Cont
 	return items, nil
 }
 
+const getApplicationModeForCoursePhase = `-- name: GetApplicationModeForCoursePhase :one
+SELECT COALESCE(restricted_data->>'applicationMode', 'apply')::text AS application_mode
+FROM course_phase
+WHERE id = $1
+`
+
+func (q *Queries) GetApplicationModeForCoursePhase(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getApplicationModeForCoursePhase, id)
+	var application_mode string
+	err := row.Scan(&application_mode)
+	return application_mode, err
+}
+
 const getApplicationPhaseIDForCourse = `-- name: GetApplicationPhaseIDForCourse :one
 SELECT cp.id
 FROM course_phase cp
@@ -1191,6 +1206,7 @@ WHERE
     AND cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
     AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW()
 `

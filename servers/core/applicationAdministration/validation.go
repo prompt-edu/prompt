@@ -275,6 +275,116 @@ func validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, 
 	return validateAnswers(ctx, coursePhaseID, application)
 }
 
+// maxImportRows bounds a single CSV import. Each row runs several queries inside one transaction,
+// so an unbounded file would hold a long-running transaction open.
+const maxImportRows = 2000
+
+func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) error {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	if len(req.Rows) > maxImportRows {
+		return fmt.Errorf("too many rows in import: %d (maximum is %d)", len(req.Rows), maxImportRows)
+	}
+
+	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	if !isApplicationPhase {
+		return errors.New("course phase is not an application phase")
+	}
+
+	importMode, err := IsImportModePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	if !importMode {
+		return errors.New("course phase is not in import mode")
+	}
+
+	if req.PassStatus != db.PassStatusPassed && req.PassStatus != db.PassStatusNotAssessed {
+		return errors.New("invalid pass status for import")
+	}
+
+	// The import reuses an existing question when a title already exists, keeping its persisted
+	// allowed length. Load those lengths so answer validation matches what the service enforces.
+	existingQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error("could not validate import: ", err)
+		return errors.New("could not validate the import")
+	}
+	existingLengthByTitle := make(map[string]int, len(existingQuestions))
+	for _, q := range existingQuestions {
+		existingLengthByTitle[q.Title.String] = int(q.AllowedLength.Int32)
+	}
+
+	// Validate the imported question columns. Titles must be unique too: the import service
+	// resolves questions by title, so two columns sharing a title would collapse onto one
+	// question and silently overwrite each other's answers.
+	questionColumns := make(map[string]bool, len(req.NewQuestions))
+	questionTitles := make(map[string]bool, len(req.NewQuestions))
+	allowedLengthByColumn := make(map[string]int, len(req.NewQuestions))
+	for _, q := range req.NewQuestions {
+		if q.ColumnKey == "" {
+			return errors.New("question column key cannot be empty")
+		}
+		if q.Title == "" {
+			return errors.New("question title cannot be empty")
+		}
+		if q.AllowedLength < 1 {
+			return fmt.Errorf("allowed length for question %q must be at least 1", q.Title)
+		}
+		if questionColumns[q.ColumnKey] {
+			return fmt.Errorf("duplicate question column key: %s", q.ColumnKey)
+		}
+		if questionTitles[q.Title] {
+			return fmt.Errorf("duplicate question title: %s", q.Title)
+		}
+		questionColumns[q.ColumnKey] = true
+		questionTitles[q.Title] = true
+		// Reused titles keep the persisted limit; genuinely new questions use the requested one.
+		if persisted, ok := existingLengthByTitle[q.Title]; ok {
+			allowedLengthByColumn[q.ColumnKey] = persisted
+		} else {
+			allowedLengthByColumn[q.ColumnKey] = q.AllowedLength
+		}
+	}
+
+	// Validate the rows.
+	seenLogins := make(map[string]bool, len(req.Rows))
+	for _, row := range req.Rows {
+		login := strings.ToLower(strings.TrimSpace(row.Student.UniversityLogin))
+		if login == "" {
+			return errors.New("university login is required for all rows")
+		}
+		if seenLogins[login] {
+			return fmt.Errorf("duplicate university login in file: %s", login)
+		}
+		seenLogins[login] = true
+
+		studentInput := row.Student
+		studentInput.HasUniversityAccount = true
+		studentInput.UniversityLogin = login
+		if err := student.ValidateImport(studentInput); err != nil {
+			return fmt.Errorf("invalid student %s: %w", login, err)
+		}
+
+		for _, ans := range row.Answers {
+			if !questionColumns[ans.ColumnKey] {
+				return fmt.Errorf("answer column %s does not map to an import question", ans.ColumnKey)
+			}
+			if maxLen := allowedLengthByColumn[ans.ColumnKey]; maxLen > 0 && utf8.RuneCountInString(ans.Answer) > maxLen {
+				return fmt.Errorf("answer for %q in column %q exceeds the allowed length of %d", login, ans.ColumnKey, maxLen)
+			}
+		}
+	}
+
+	return nil
+}
+
 func validateApplication(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication, authenticatedRoute bool) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()

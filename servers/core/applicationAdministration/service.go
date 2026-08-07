@@ -38,6 +38,7 @@ var ErrAlreadyApplied = errors.New("application already exists")
 var ErrStudentDetailsDoNotMatch = errors.New("student details do not match")
 var ErrEmailAlreadyInUse = errors.New("email already in use")
 var ErrImportAnswerTooLong = errors.New("import answer exceeds the allowed length")
+var ErrUniversityLoginConflict = errors.New("university login already belongs to a different student")
 
 func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
 	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
@@ -1122,6 +1123,11 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "student_email_key" {
 				return applicationDTO.ImportResult{}, ErrEmailAlreadyInUse
+			}
+			// The university login is already taken by a different student (e.g. the same login with
+			// a different matriculation number). Surface a clear conflict instead of a generic 500.
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "student_university_login_unique" {
+				return applicationDTO.ImportResult{}, fmt.Errorf("university login %q already belongs to a different student: %w", studentInput.UniversityLogin, ErrUniversityLoginConflict)
 			}
 			return applicationDTO.ImportResult{}, fmt.Errorf("could not save student %s: %w", studentInput.UniversityLogin, err)
 		}

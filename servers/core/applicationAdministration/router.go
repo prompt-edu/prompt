@@ -737,6 +737,10 @@ func postApplicationImport(c *gin.Context) {
 			handleError(c, http.StatusBadRequest, err)
 			return
 		}
+		if errors.Is(err, ErrUniversityLoginConflict) {
+			handleError(c, http.StatusConflict, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, errors.New("could not import applications"))
 		return
 	}

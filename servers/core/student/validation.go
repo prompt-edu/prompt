@@ -54,7 +54,9 @@ func ValidateImport(c studentDTO.CreateStudent) error {
 	if c.UniversityLogin == "" {
 		return errors.New("university login is required")
 	}
-	if err := validateUniversityData(c.HasUniversityAccount, c.MatriculationNumber, c.UniversityLogin); err != nil {
+	// Imports always identify students by their university login, so validate the university data as
+	// if the student has an account regardless of the (import-service-managed) HasUniversityAccount flag.
+	if err := validateUniversityData(true, c.MatriculationNumber, c.UniversityLogin); err != nil {
 		return err
 	}
 	return nil

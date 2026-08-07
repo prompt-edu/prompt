@@ -5,6 +5,8 @@ import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
+import { CourseMailingComposePage } from './managementConsole/courseMailing/CourseMailingComposePage'
+import { CourseMailingOverviewPage } from './managementConsole/courseMailing/CourseMailingOverviewPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
@@ -199,6 +201,54 @@ export const App = () => {
                     requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
                   >
                     <CourseUserManagementPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingOverviewPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/new'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/:campaignId'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

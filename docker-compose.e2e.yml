@@ -29,6 +29,8 @@ services:
         condition: service_healthy
       seaweedfs-s3:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     # Alternate host port (18090) so the e2e stack can run alongside a dev stack.
     ports:
       - "18090:8080"
@@ -58,6 +60,11 @@ services:
       - S3_FORCE_PATH_STYLE
       - MAX_FILE_UPLOAD_SIZE_MB
       - ALLOWED_FILE_TYPES
+      # Campaign mails are submitted to the mailpit catcher over SMTP.
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SENDER_EMAIL=prompt-e2e@example.com
+      - SENDER_NAME=PROMPT E2E
     # No container healthcheck: the server image is distroless (no shell/wget).
     # Readiness is polled by the runner's global-setup against /api/hello instead.
 
@@ -753,6 +760,18 @@ services:
       timeout: 5s
       retries: 3
 
+  # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
+  # the runner reads them back over the HTTP API (8025) to assert delivery.
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: prompt-e2e-mailpit
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+    # HTTP UI/API published on 18025 so host-run Playwright can reach it too.
+    ports:
+      - "18025:8025"
+
   # Containerized Playwright runner. Waits for the app to be healthy, then runs
   # the suite. Its exit code is the suite result (read by `--exit-code-from`).
   # The browser, the app's runtime config, the server, and Keycloak all address
@@ -809,6 +828,7 @@ services:
       - BASE_URL=http://client-core
       - KEYCLOAK_URL=http://keycloak:8080
       - CORE_API_URL=http://server-core:8080
+      - MAILPIT_URL=http://mailpit:8025
       - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
     # Source is baked into the image; only the report/results dirs are mounted
     # out so artifacts survive `docker compose down` (and CI can upload them).

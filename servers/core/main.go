@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/courseMailing"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
@@ -182,6 +183,7 @@ func main() {
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
 	course.InitCourseModule(api, *query, conn)
+	courseMailing.InitCourseMailingModule(api, *query, conn)
 	copy.InitCourseCopyModule(api, *query, conn)
 	coursePhase.InitCoursePhaseModule(api, *query, conn)
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)

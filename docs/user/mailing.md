@@ -101,6 +101,52 @@ Students who do not have a status assigned, when sending out the mails, will not
 
 ---
 
+## 📨 Course Mailing Campaigns
+
+Beyond the per-phase status mails, every course has a **Mailing** entry in the course sidebar for
+composing, saving, and sending reusable email campaigns to a chosen group of students.
+
+### Creating a campaign
+
+1. Open **Mailing** from the course sidebar and click **New mail**.
+2. Give the campaign a **name** (internal, for your overview only).
+3. Choose the **course phase** and one or more **student statuses** (`Passed`, `Failed`,
+   `Not assessed`, or **All participants**). Recipients are the deduplicated union of the selected
+   statuses in that phase.
+4. Write the **subject** and **body** using the same rich-text editor and placeholders as the other
+   mailing pages (e.g. `{{firstName}}`, `{{courseName}}`).
+5. Optionally set a **reply-to override** for this campaign; otherwise the course-wide reply-to (and
+   CC/BCC) is used.
+6. Click **Save** to store the campaign as a draft. Drafts can be edited or deleted later.
+
+### Previewing recipients
+
+Use **Show recipients** to see exactly who will receive the mail before sending. The list is resolved
+live from the current participations, so save your changes first to refresh it.
+
+### Testing and sending
+
+* **Test send** delivers a single rendered copy to your own email address (placeholders filled from a
+  sample recipient) so you can proof-read before the real send.
+* **Send** asks you to confirm the exact number of recipients, then dispatches the emails in the
+  background. Recipients are resolved live at send time. Only lecturers (and admins) can send;
+  editors can prepare drafts.
+
+### Tracking, copying, and resending
+
+The overview lists every campaign with its **status** (`Draft`, `Sending`, `Sent`, `Partially failed`,
+`Failed`), recipient success/failure counts, and metadata (created by, last changed, sent at). You
+can:
+
+* **Copy** a campaign into a new draft to reuse and re-send it.
+* **Resend to failed** — retry delivery to only the recipients whose previous send failed.
+* **Delete** a campaign (not while it is sending).
+
+Each send is tracked per recipient, so failed addresses (e.g. students without an email) are clearly
+flagged and can be retried.
+
+---
+
 ## ✅ Best Practices
 
 * Use BCC logging to maintain an audit trail.

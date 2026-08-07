@@ -1166,6 +1166,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/audit-log": {
+            "get": {
+                "description": "Keyset-paginated, filterable platform-wide audit log (admins only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Global audit log",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogPage"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/course_phase/{coursePhaseID}/is_student": {
             "get": {
                 "description": "Check if the user is a student of the course phase",
@@ -2248,6 +2274,41 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{uuid}/audit-log": {
+            "get": {
+                "description": "Keyset-paginated, filterable audit log scoped to one course.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Course audit log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogPage"
                         }
                     },
                     "500": {
@@ -5304,6 +5365,99 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/applicationDTO.QuestionText"
                     }
+                }
+            }
+        },
+        "auditLogDTO.AuditEntry": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actionKey": {
+                    "type": "string"
+                },
+                "actorEmail": {
+                    "type": "string"
+                },
+                "actorID": {
+                    "type": "string"
+                },
+                "actorName": {
+                    "type": "string"
+                },
+                "actorRole": {
+                    "type": "string"
+                },
+                "actorRoles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "courseID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "entityID": {
+                    "type": "string"
+                },
+                "entityName": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
+                },
+                "httpMethod": {
+                    "type": "string"
+                },
+                "httpPath": {
+                    "type": "string"
+                },
+                "httpStatus": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "outcome": {
+                    "type": "string"
+                },
+                "sourceService": {
+                    "type": "string"
+                }
+            }
+        },
+        "auditLogDTO.AuditLogPage": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/auditLogDTO.AuditEntry"
+                    }
+                },
+                "nextCursor": {
+                    "$ref": "#/definitions/auditLogDTO.Cursor"
+                }
+            }
+        },
+        "auditLogDTO.Cursor": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
                 }
             }
         },

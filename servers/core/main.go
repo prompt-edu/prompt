@@ -14,13 +14,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
+	"github.com/prompt-edu/prompt/servers/core/auditLog"
+	"github.com/prompt-edu/prompt/servers/core/auth"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
-	"github.com/prompt-edu/prompt/servers/core/auth"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
@@ -169,6 +170,10 @@ func main() {
 
 	initKeycloak(api, *query)
 	permissionValidation.InitValidationService(*query, conn)
+
+	// Audit logging must be initialized before the other modules so its
+	// auto-capture middleware wraps their routes.
+	auditLog.InitAuditLogModule(api, *query, conn)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")

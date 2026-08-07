@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
-import { DateRange } from 'react-day-picker'
+import type { DateRange } from 'react-day-picker'
 import type { AuditLogFilters } from '../interfaces/auditLog'
 
 interface AuditLogFilterBarProps {

@@ -1,4 +1,4 @@
-import { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@tumaet/prompt-ui-components'
 import type { AuditEntry } from '../interfaces/auditLog'
 

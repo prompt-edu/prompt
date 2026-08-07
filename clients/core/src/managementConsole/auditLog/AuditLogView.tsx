@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   Button,
   ErrorPage,
@@ -6,6 +5,7 @@ import {
   ManagementPageHeader,
   PromptTable,
 } from '@tumaet/prompt-ui-components'
+import { useMemo } from 'react'
 import { AuditLogFilterBar } from './components/AuditLogFilterBar'
 import { getAuditLogColumns } from './components/auditLogColumns'
 import type { AuditEntry, AuditLogFilters, AuditLogPage } from './interfaces/auditLog'
@@ -33,10 +33,7 @@ export const AuditLogView = ({
   filters,
   onFiltersChange,
 }: AuditLogViewProps) => {
-  const entries: AuditEntry[] = useMemo(
-    () => pages?.flatMap((page) => page.entries) ?? [],
-    [pages],
-  )
+  const entries: AuditEntry[] = useMemo(() => pages?.flatMap((page) => page.entries) ?? [], [pages])
   const columns = useMemo(() => getAuditLogColumns(), [])
 
   return (

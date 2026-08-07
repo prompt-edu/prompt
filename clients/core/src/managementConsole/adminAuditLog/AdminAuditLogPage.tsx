@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { useGlobalAuditLog } from '@core/network/hooks/useAuditLog'
 import { AuditLogView } from '@managementConsole/auditLog/AuditLogView'
 import type { AuditLogFilters } from '@managementConsole/auditLog/interfaces/auditLog'
+import { useState } from 'react'
 
 export const AdminAuditLogPage = () => {
   const [filters, setFilters] = useState<AuditLogFilters>({})

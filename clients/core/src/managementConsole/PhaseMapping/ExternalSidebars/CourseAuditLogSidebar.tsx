@@ -10,6 +10,10 @@ export const CourseAuditLogSidebar = ({ rootPath, title }: { rootPath: string; t
     requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
   }
   return (
-    <ExternalSidebarComponent title={title} rootPath={rootPath} sidebarElement={auditLogSidebarItem} />
+    <ExternalSidebarComponent
+      title={title}
+      rootPath={rootPath}
+      sidebarElement={auditLogSidebarItem}
+    />
   )
 }

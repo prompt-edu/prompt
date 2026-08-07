@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pkg/errors v0.9.1
-	github.com/prompt-edu/prompt-sdk v1.2.2
+	github.com/prompt-edu/prompt-sdk v1.2.3-0.20260807111927-600bc191d21f
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.16.6
@@ -141,7 +141,3 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// TODO(audit): remove once prompt-sdk with the audit package is released and the
-// version in the require block above is bumped.
-replace github.com/prompt-edu/prompt-sdk => ../../../../../prompt-sdk

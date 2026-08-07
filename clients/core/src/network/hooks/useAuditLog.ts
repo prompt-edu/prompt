@@ -1,8 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
 import type {
   AuditCursor,
   AuditLogFilters,
 } from '@core/managementConsole/auditLog/interfaces/auditLog'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { getCourseAuditLog, getGlobalAuditLog } from '../queries/getAuditLog'
 
 export const useCourseAuditLog = (courseId: string | undefined, filters: AuditLogFilters) => {

@@ -1,9 +1,9 @@
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type {
   AuditCursor,
   AuditLogFilters,
   AuditLogPage,
 } from '@core/managementConsole/auditLog/interfaces/auditLog'
+import { axiosInstance } from '@tumaet/prompt-shared-state'
 
 const buildQuery = (filters: AuditLogFilters, cursor?: AuditCursor): string => {
   const params = new URLSearchParams()

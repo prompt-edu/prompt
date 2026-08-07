@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { useCourseAuditLog } from '@core/network/hooks/useAuditLog'
 import { AuditLogView } from '@managementConsole/auditLog/AuditLogView'
 import type { AuditLogFilters } from '@managementConsole/auditLog/interfaces/auditLog'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 
 export const CourseAuditLogPage = () => {
   const { courseId } = useParams<{ courseId: string }>()

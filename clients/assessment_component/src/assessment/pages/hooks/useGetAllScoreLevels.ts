@@ -6,14 +6,28 @@ import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 
 const EMPTY_SCORE_LEVELS: ScoreLevelWithParticipation[] = []
 
-export const useGetAllScoreLevels = () => {
+export const useGetAllScoreLevels = (options?: { enabled?: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()
+  const enabled = options?.enabled ?? true
 
   const { data, ...queryInfo } = useQuery<ScoreLevelWithParticipation[]>({
     queryKey: ['scoreLevels', phaseId],
     queryFn: () => getAllScoreLevels(phaseId ?? ''),
+    enabled,
     staleTime: SHELL_QUERY_STALE_TIME,
   })
+
+  // A disabled query stays pending forever, which would hang the loading gates above it.
+  // refetch() ignores `enabled`, so it has to be neutralized as well.
+  if (!enabled) {
+    return {
+      ...queryInfo,
+      data: EMPTY_SCORE_LEVELS,
+      isPending: false,
+      isError: false,
+      refetch: async () => queryInfo,
+    }
+  }
 
   return { ...queryInfo, data: data ?? EMPTY_SCORE_LEVELS }
 }

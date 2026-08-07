@@ -44,9 +44,15 @@ export const AssessmentParticipantsPage = () => {
     navigate(target)
   }
 
-  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const {
+    data: coursePhaseConfig,
+    isPending: isCoursePhaseConfigPending,
+    isError: isCoursePhaseConfigError,
+    refetch: refetchCoursePhaseConfig,
+  } = useGetCoursePhaseConfig()
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const { data: participations } = useGetCoursePhaseParticipations()
-  const { data: scoreLevels } = useGetAllScoreLevels()
+  const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
   const { data: teams } = useGetAllTeams()
 
   const {
@@ -54,7 +60,7 @@ export const AssessmentParticipantsPage = () => {
     isPending: isAssessmentCompletionsPending,
     isError: isAssessmentCompletionsError,
     refetch: refetchAssessmentCompletions,
-  } = useGetAllAssessmentCompletions()
+  } = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
 
   const {
     data: evaluationCompletions,
@@ -66,9 +72,12 @@ export const AssessmentParticipantsPage = () => {
     queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
   })
 
-  const isError = isAssessmentCompletionsError || isEvaluationCompletionsError
-  const isPending = isAssessmentCompletionsPending || isEvaluationCompletionsPending
+  const isError =
+    isCoursePhaseConfigError || isAssessmentCompletionsError || isEvaluationCompletionsError
+  const isPending =
+    isCoursePhaseConfigPending || isAssessmentCompletionsPending || isEvaluationCompletionsPending
   const refetch = () => {
+    refetchCoursePhaseConfig()
     refetchAssessmentCompletions()
     refetchEvaluationCompletions()
   }
@@ -100,8 +109,9 @@ export const AssessmentParticipantsPage = () => {
     if (!scoreLevels) return []
 
     const columns = [
-      createScoreLevelColumn(scoreLevels),
-      createGradeSuggestionColumn(assessmentCompletions),
+      ...(assessmentEnabled
+        ? [createScoreLevelColumn(scoreLevels), createGradeSuggestionColumn(assessmentCompletions)]
+        : []),
       createTeamColumn(teams, participations),
       createSelfEvalStatusColumn(
         selfEvaluationCompletions,
@@ -127,6 +137,7 @@ export const AssessmentParticipantsPage = () => {
     teams,
     scoreLevels,
     assessmentCompletions,
+    assessmentEnabled,
     coursePhaseConfig,
     selfEvaluationCompletions,
     peerEvaluationCompletions,
@@ -155,20 +166,28 @@ export const AssessmentParticipantsPage = () => {
 
   return (
     <div id='table-view' className='relative flex flex-col'>
-      <ManagementPageHeader>Assessment Participants</ManagementPageHeader>
+      <ManagementPageHeader>
+        {assessmentEnabled ? 'Assessment Participants' : 'Evaluation Participants'}
+      </ManagementPageHeader>
       <p className='text-sm text-muted-foreground mb-4'>
-        Click on a participant to view/edit their assessment. Cmd/Ctrl-click to open it in a new
-        tab.
+        {assessmentEnabled
+          ? 'Click on a participant to view/edit their assessment. Cmd/Ctrl-click to open it in a new tab.'
+          : 'Assessment is disabled for this phase. This table tracks evaluation progress only.'}
       </p>
-      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
-        <AssessmentDiagram
-          participations={participations}
-          scoreLevels={scoreLevels}
-          completions={assessmentCompletions}
-        />
-        <GradeDistributionDiagram participations={participations} grades={completedGrades} />
-        <ScoreLevelDistributionDiagram participations={participations} scoreLevels={scoreLevels} />
-      </div>
+      {assessmentEnabled && (
+        <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+          <AssessmentDiagram
+            participations={participations}
+            scoreLevels={scoreLevels}
+            completions={assessmentCompletions}
+          />
+          <GradeDistributionDiagram participations={participations} grades={completedGrades} />
+          <ScoreLevelDistributionDiagram
+            participations={participations}
+            scoreLevels={scoreLevels}
+          />
+        </div>
+      )}
       <div
         className='w-full'
         onClickCapture={(e) => {
@@ -180,7 +199,9 @@ export const AssessmentParticipantsPage = () => {
           participants={participations ?? []}
           extraColumns={extraColumns}
           extraFilters={extraFilters}
-          onClickRowAction={(row) => openAssessment(row.courseParticipationID)}
+          onClickRowAction={
+            assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
+          }
         />
       </div>
     </div>

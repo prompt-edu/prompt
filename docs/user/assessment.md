@@ -50,11 +50,12 @@ This opens a dialog for setting the phase's behavior and schedule.
 
 You must define the following core settings:
 
-| Setting                 | Description                                                                |
-| ----------------------- | -------------------------------------------------------------------------- |
-| **Assessment Template** | Select which assessment template to use (defines the competency structure) |
-| **Start Date**          | When the assessment phase begins (using the timeframe selector)            |
-| **Deadline**            | When the assessment phase ends (using the timeframe selector)              |
+| Setting                 | Description                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Assessment Enabled**  | Turn off to run the phase for evaluations only, without any lecturer grading                                                 |
+| **Assessment Template** | Select which assessment template to use (defines the competency structure). Only required while **Assessment Enabled** is on |
+| **Start Date**          | When the assessment phase begins (using the timeframe selector)                                                              |
+| **Deadline**            | When the assessment phase ends (using the timeframe selector)                                                                |
 
 #### Visibility Settings
 
@@ -90,6 +91,31 @@ Each evaluation type has its own:
 - **Deadline**: When this evaluation closes
 
 > ⚠️ **Note**: All timestamps use **system time (Europe/Berlin) with deadlines ending at 23:59**.
+
+#### Evaluation-Only Phases
+
+Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the
+lecturer-facing grading workflow from the phase. When it is off:
+
+- The assessment schema, timeframe and visibility settings are hidden, and no assessment schema is required
+- The participants table drops the score and grade-suggestion columns and tracks evaluation progress only
+- Statistics, the per-participant assessment page and the assessment schema detail page are unavailable
+- **Release Results** publishes evaluation results instead: each student sees their own self-evaluation
+  and the averaged scores their peers gave them, with a PDF export
+
+> 🔒 **Peer averages are anonymized.** A competency with fewer than two distinct peer raters is not
+> shown at all, so an average can never reveal a single teammate's score. Multiple ratings from the
+> same peer do not satisfy that threshold.
+
+**Unlocking a phase whose toggle is greyed out:** the switch locks as soon as tutor-facing assessment
+data exists, so existing grades can never be hidden. To switch such a phase to evaluations only, remove
+that data first, in this order:
+
+1. Open the participant's assessment page and **Delete Summary** (removes the final status, grade
+   suggestion and general remarks; this also works after the deadline)
+2. Delete the individual competency assessments
+3. Delete the action items
+4. Clear the category comments (saving an empty comment is enough)
 
 ---
 

@@ -54,7 +54,9 @@ func (s *AuditLogService) ListAuditLog(ctx context.Context, f auditLogDTO.ListFi
 		return auditLogDTO.AuditLogPage{}, err
 	}
 
-	page := auditLogDTO.AuditLogPage{Entries: make([]auditLogDTO.AuditEntry, 0, limit)}
+	// Allocate with the constant page cap (limit is always <= maxPageLimit) so
+	// the capacity is not a user-controlled allocation size.
+	page := auditLogDTO.AuditLogPage{Entries: make([]auditLogDTO.AuditEntry, 0, maxPageLimit)}
 	for i, row := range rows {
 		if i >= limit {
 			last := page.Entries[len(page.Entries)-1]

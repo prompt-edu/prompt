@@ -50,6 +50,8 @@ services:
       - KEYCLOAK_ID_OF_CLIENT
       - KEYCLOAK_AUTHORIZED_PARTY
       - DEBUG
+      # Audit log enabled for e2e coverage of the audit-log pages.
+      - AUDIT_ENABLED=true
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT

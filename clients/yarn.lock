@@ -3228,7 +3228,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@radix-ui/react-toolbar@npm:^1.1.16":
+"@radix-ui/react-toolbar@npm:^1.1.17":
   version: 1.1.19
   resolution: "@radix-ui/react-toolbar@npm:1.1.19"
   dependencies:
@@ -8717,12 +8717,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.25.0":
-  version: 1.26.0
-  resolution: "lucide-react@npm:1.26.0"
+"lucide-react@npm:^1.26.0":
+  version: 1.28.0
+  resolution: "lucide-react@npm:1.28.0"
   peerDependencies:
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/018125879059e926ba2fe441295237331e563923e0ee80f1d3aeb25edccd6cf71f50a16aa7c447c4da5c33f5ecaf05a81f4475a634a7fa6055b3c8a6710149f0
+  checksum: 10c0/7a18911a68d6227865ca03120e3423665478131648ffbd47d62b242ef25a5982c6312ca7041b5a4d60cf0d8ea66d0f97f50dbe848ae60ab0143471da41ef057e
   languageName: node
   linkType: hard
 
@@ -10567,7 +10567,7 @@ __metadata:
     "@hookform/resolvers": "npm:^5.4.0"
     "@module-federation/runtime-tools": "npm:^2.8.0"
     "@radix-ui/react-icons": "npm:^1.3.2"
-    "@radix-ui/react-toolbar": "npm:^1.1.16"
+    "@radix-ui/react-toolbar": "npm:^1.1.17"
     "@rspack/cli": "npm:^2.1.5"
     "@rspack/core": "npm:^2.1.5"
     "@rspack/dev-server": "npm:^2.1.0"
@@ -10610,7 +10610,7 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^9.0.7"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.25.0"
+    lucide-react: "npm:^1.26.0"
     motion: "npm:^12.42.2"
     postcss: "npm:^8.5.22"
     postcss-loader: "npm:8.2.1"

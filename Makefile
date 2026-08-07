@@ -146,11 +146,21 @@ test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runn
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 
-test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard PATHS="tests/interview tests/api/interview.api.spec.ts"
+test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHARD=interview (or PATHS="...")
 	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
-	unset $(E2E_ENV_KEYS); \
+	@if [ -z "$(SHARD)$(PATHS)" ]; then \
+		echo "make test-e2e-shard: set SHARD=<name> (or PATHS=\"<patterns>\"), else this would run the whole suite."; \
+		echo "Available shards:"; cd e2e && node scripts/shards.mjs names | sed 's/^/  /'; \
+		exit 2; \
+	fi
+	@set -e; \
+		paths="$(PATHS)"; \
+		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
+		set -f; \
+		unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
-		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $(PATHS); status=$$?; \
+		set +e; \
+		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $$paths; status=$$?; \
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 

@@ -50,12 +50,12 @@ This opens a dialog for setting the phase's behavior and schedule.
 
 You must define the following core settings:
 
-| Setting                  | Description                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| **Assessment Enabled**   | Turn off to run the phase for evaluations only, without any lecturer grading          |
-| **Assessment Template**  | Select which assessment template to use (defines the competency structure)           |
-| **Start Date**           | When the assessment phase begins (using the timeframe selector)                      |
-| **Deadline**             | When the assessment phase ends (using the timeframe selector)                        |
+| Setting                 | Description                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Assessment Enabled**  | Turn off to run the phase for evaluations only, without any lecturer grading                                                 |
+| **Assessment Template** | Select which assessment template to use (defines the competency structure). Only required while **Assessment Enabled** is on |
+| **Start Date**          | When the assessment phase begins (using the timeframe selector)                                                              |
+| **Deadline**            | When the assessment phase ends (using the timeframe selector)                                                                |
 
 #### Visibility Settings
 
@@ -103,8 +103,9 @@ lecturer-facing grading workflow from the phase. When it is off:
 - **Release Results** publishes evaluation results instead: each student sees their own self-evaluation
   and the averaged scores their peers gave them, with a PDF export
 
-> 🔒 **Peer averages are anonymized.** A competency rated by only one peer is not shown at all, so an
-> average can never reveal a single teammate's score.
+> 🔒 **Peer averages are anonymized.** A competency with fewer than two distinct peer raters is not
+> shown at all, so an average can never reveal a single teammate's score. Multiple ratings from the
+> same peer do not satisfy that threshold.
 
 **Unlocking a phase whose toggle is greyed out:** the switch locks as soon as tutor-facing assessment
 data exists, so existing grades can never be hidden. To switch such a phase to evaluations only, remove

@@ -24,7 +24,12 @@ export const AssessmentPage = () => {
   }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const {
+    data: coursePhaseConfig,
+    isPending: isCoursePhaseConfigPending,
+    isError: isCoursePhaseConfigError,
+    refetch: refetchCoursePhaseConfig,
+  } = useGetCoursePhaseConfig()
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
   const { data: participations } = useGetCoursePhaseParticipations()
@@ -70,6 +75,8 @@ export const AssessmentPage = () => {
     }
   }, [participant, setAssessmentParticipation])
 
+  if (isCoursePhaseConfigError) return <ErrorPage onRetry={refetchCoursePhaseConfig} />
+  if (isCoursePhaseConfigPending) return <LoadingPage />
   if (!assessmentEnabled) return <AssessmentDisabledNotice title='Assessment' />
   if (isStudentAssessmentError) return <ErrorPage onRetry={refetchStudentAssessment} />
   if (isStudentAssessmentPending) return <LoadingPage />

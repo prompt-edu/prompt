@@ -44,7 +44,12 @@ export const AssessmentParticipantsPage = () => {
     navigate(target)
   }
 
-  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const {
+    data: coursePhaseConfig,
+    isPending: isCoursePhaseConfigPending,
+    isError: isCoursePhaseConfigError,
+    refetch: refetchCoursePhaseConfig,
+  } = useGetCoursePhaseConfig()
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
@@ -67,9 +72,12 @@ export const AssessmentParticipantsPage = () => {
     queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
   })
 
-  const isError = isAssessmentCompletionsError || isEvaluationCompletionsError
-  const isPending = isAssessmentCompletionsPending || isEvaluationCompletionsPending
+  const isError =
+    isCoursePhaseConfigError || isAssessmentCompletionsError || isEvaluationCompletionsError
+  const isPending =
+    isCoursePhaseConfigPending || isAssessmentCompletionsPending || isEvaluationCompletionsPending
   const refetch = () => {
+    refetchCoursePhaseConfig()
     refetchAssessmentCompletions()
     refetchEvaluationCompletions()
   }

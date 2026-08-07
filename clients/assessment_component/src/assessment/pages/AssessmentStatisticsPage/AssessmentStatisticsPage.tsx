@@ -25,7 +25,12 @@ import { useFilteredParticipations } from './hooks/useFilteredParticipations'
 export const AssessmentStatisticsPage = () => {
   const [filters, setFilters] = useState<StatisticsFilter>({})
 
-  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const {
+    data: coursePhaseConfig,
+    isPending: isCoursePhaseConfigPending,
+    isError: isCoursePhaseConfigError,
+    refetch: refetchCoursePhaseConfig,
+  } = useGetCoursePhaseConfig()
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
 
   const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
@@ -76,17 +81,16 @@ export const AssessmentStatisticsPage = () => {
     [filteredParticipationWithAssessments],
   )
 
-  const isError = isAssessmentsError || isAssessmentCompletionsError
-  const isPending = isAssessmentsPending || isAssessmentCompletionsPending
+  const isError = isCoursePhaseConfigError || isAssessmentsError || isAssessmentCompletionsError
+  const isPending =
+    isCoursePhaseConfigPending || isAssessmentsPending || isAssessmentCompletionsPending
 
   const refetch = () => {
+    refetchCoursePhaseConfig()
     refetchAssessments()
     refetchAssessmentCompletions()
   }
 
-  if (!assessmentEnabled) {
-    return <AssessmentDisabledNotice title='Assessment Statistics' />
-  }
   if (isError) {
     return <ErrorPage message='Error loading assessments' onRetry={refetch} />
   }
@@ -96,6 +100,9 @@ export const AssessmentStatisticsPage = () => {
         <Loader2 className='h-12 w-12 animate-spin text-primary' />
       </div>
     )
+  }
+  if (!assessmentEnabled) {
+    return <AssessmentDisabledNotice title='Assessment Statistics' />
   }
 
   return (

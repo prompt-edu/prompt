@@ -31,7 +31,14 @@ Keycloak on this path** — each phase authenticates with its own shared secret:
 - On **each phase**, set `AUDIT_ENABLED=true` and `AUDIT_INGEST_KEY=<that service's key>`.
 
 Because keys are per-service, a leaked key only affects one service, and the reported `source` is
-trustworthy (derived from which key matched). Keep the ingest endpoint on the internal network.
+trustworthy (derived from which key matched).
+
+**Transport security.** The shared secret travels in the `X-Audit-Token` header. Keep phase→core
+traffic on the internal network (the default `SERVER_CORE_HOST=http://server-core:8080` stays inside
+the container network, the same channel the user token already uses). If it must cross an untrusted
+network, terminate it over HTTPS/TLS — otherwise the secret and event payload are sent in plaintext.
+The SDK logs a warning at startup if the configured ingest URL is plaintext HTTP to a non-internal
+host.
 
 A phase reports whether audit is enabled through its status endpoint (`GET /info`) as the
 `audit.log` capability, alongside other phase capabilities.

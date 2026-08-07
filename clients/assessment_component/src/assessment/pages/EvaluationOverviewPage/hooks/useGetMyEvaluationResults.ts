@@ -6,7 +6,7 @@ import { getMyEvaluationResults } from '../../../network/queries/getMyEvaluation
 
 export const useGetMyEvaluationResults = (options?: { enabled?: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const enabled = options?.enabled ?? true
+  const enabled = (options?.enabled ?? true) && !!phaseId
 
   const query = useQuery<StudentEvaluationResults | null>({
     queryKey: ['myEvaluationResults', phaseId],
@@ -14,9 +14,10 @@ export const useGetMyEvaluationResults = (options?: { enabled?: boolean }) => {
     enabled,
   })
 
-  // A disabled query stays pending forever, which would hang the loading gates above it
+  // A disabled query stays pending forever, which would hang the loading gates above it.
+  // refetch() ignores `enabled`, so it has to be neutralized as well.
   if (!enabled) {
-    return { ...query, data: null, isPending: false, isError: false }
+    return { ...query, data: null, isPending: false, isError: false, refetch: async () => query }
   }
 
   return query

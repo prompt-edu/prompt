@@ -17,9 +17,16 @@ export const useGetStudentAssessment = (options?: { enabled?: boolean }) => {
     placeholderData: keepPreviousData,
   })
 
-  // A disabled query stays pending forever, which would hang the loading gates above it
+  // A disabled query stays pending forever, which would hang the loading gates above it.
+  // refetch() ignores `enabled`, so it has to be neutralized as well.
   if (!enabled) {
-    return { ...query, data: undefined, isPending: false, isError: false }
+    return {
+      ...query,
+      data: undefined,
+      isPending: false,
+      isError: false,
+      refetch: async () => query,
+    }
   }
 
   return query

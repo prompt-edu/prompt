@@ -1,4 +1,7 @@
 {{- if eq .Values.global.keycloak.mode "in-cluster" }}
+{{- if ne .Values.global.postgresql.mode "in-cluster" }}
+{{- fail "global.keycloak.mode=in-cluster requires global.postgresql.mode=in-cluster: the bundled Keycloak uses the CloudNativePG cluster and its generated role secret, neither of which exists in external mode. Use an external Keycloak, or run PostgreSQL in-cluster." }}
+{{- end }}
 {{- $rel := .Release.Name -}}
 {{- $pg := .Values.global.postgresql -}}
 {{- $kcName := printf "%s-keycloak" $rel -}}
@@ -45,20 +48,11 @@ spec:
     enabled: false
   proxy:
     headers: xforwarded
-{{- if .Values.realmConfigMap }}
----
-apiVersion: k8s.keycloak.org/v2alpha1
-kind: KeycloakRealmImport
-metadata:
-  name: {{ printf "%s-realm" $rel }}
-  labels:
-    {{- include "prompt.labels" (dict "root" . "component" "keycloak-realm") | nindent 4 }}
-spec:
-  keycloakCRName: {{ $kcName }}
-  realm:
-    realm: {{ .Values.global.keycloak.realm | quote }}
-    enabled: true
-{{- end }}
+{{/*
+No KeycloakRealmImport is rendered: its spec.realm takes a full inline
+RealmRepresentation, which cannot be assembled from chart values. The realm is
+applied out of band - see docs/admin/kubernetes/keycloak.md.
+*/}}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

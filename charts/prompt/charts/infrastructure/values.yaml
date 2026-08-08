@@ -10,4 +10,5 @@ backup:
   schedule: "0 0 2 * * *"
   retention: 30d
   destinationPath: ""
-realmConfigMap: ""
+networkPolicy:
+  enabled: true

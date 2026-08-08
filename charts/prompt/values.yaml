@@ -18,6 +18,22 @@ global:
     pullPolicy: IfNotPresent
     pullSecrets: []
 
+  # UID/GID the Go backends run as. The images build on distroless static (the
+  # root variant), so the chart supplies the ID; 65532 is distroless `nonroot`.
+  podSecurity:
+    runAsUser: 65532
+    runAsGroup: 65532
+
+  # psql client used by the DB-wait init container. Must contain `psql`.
+  dbWaitImage: postgres:17-alpine
+
+  # Components served by separate deployments, not by this chart. Empty means
+  # "not configured"; exampleServerHost defaults to the apex host.
+  externalRemotes:
+    exampleServerHost: ""
+    introCourseHost: ""
+    devopsChallengeHost: ""
+
   # Display / build metadata surfaced to the frontend.
   environment: production
   chairNameShort: AET
@@ -39,7 +55,11 @@ global:
     pooler:
       enabled: true
       instances: 2
-    # external only: host/port/creds the per-phase DB secrets point at.
+    # "" = disable in-cluster, require for external. verify-ca/verify-full are
+    # not supported: the chart has no CA configuration.
+    sslMode: ""
+    # external only: host/port/creds the per-phase DB secrets point at. All are
+    # required in external mode, and one account is used for every database.
     external:
       host: ""
       port: "5432"
@@ -113,6 +133,8 @@ global:
   gateway:
     gatewayClassName: eg            # Envoy Gateway GatewayClass
     name: prompt-gateway
+    # Gates every Envoy-Gateway-specific resource (CORS, rate limiting).
+    provider: envoygateway          # envoygateway | none
     certManager:
       enabled: true
       issuerName: prompt-letsencrypt
@@ -120,9 +142,8 @@ global:
       email: admin@example.com
       server: https://acme-v02.api.letsencrypt.org/directory
     rateLimiting:
-      provider: envoygateway        # envoygateway | none
-      average: 300
-      burst: 100
+      enabled: true
+      average: 300                  # requests per second, per Envoy instance
 
   # Shared application secrets (visible to every subchart so the secret name
   # resolves). Provide values or reference an existing Secret (recommended in
@@ -137,6 +158,8 @@ global:
       SMTP_PASSWORD: ""
       SENDER_EMAIL: ""
       SENDER_NAME: PROMPT
+      # Required. S3_ACCESS_KEY is also required in external object-storage mode:
+      # the default below is only the bundled SeaweedFS identity.
       S3_ACCESS_KEY: prompt-s3
       S3_SECRET_KEY: ""
       SENTRY_DSN_CORE: ""
@@ -163,11 +186,16 @@ infrastructure:
     volumeStorage: 20Gi
     filerStorage: 1Gi
   backup:
+    # Uses CNPG's in-tree Barman support, deprecated since CNPG 1.26 and slated
+    # for removal in 1.30. See docs/admin/kubernetes/database.md.
     enabled: false              # CNPG WAL + scheduled backup to object storage
     schedule: "0 0 2 * * *"
     retention: 30d
     destinationPath: ""         # s3://bucket/path - recommend OFF-cluster storage
-  realmConfigMap: ""            # name of a ConfigMap holding the Keycloak realm.json
+  networkPolicy:
+    # Blocks cross-namespace access to the unauthenticated SeaweedFS master,
+    # volume and filer. Needs a CNI that enforces NetworkPolicy.
+    enabled: true
 
 # -----------------------------------------------------------------------------
 # Per-phase toggles + component config (each block is one subchart's .Values).
@@ -290,12 +318,12 @@ matching:
     path: /matching
     stripPrefix: true
 
-template:
+example:
   enabled: true
   client:
     enabled: true
-    image: prompt-clients-template-component
+    image: prompt-clients-example-component
     replicas: 1
     port: 80
-    path: /template
+    path: /example
     stripPrefix: true

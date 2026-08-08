@@ -1,1 +1,0 @@
-{{ include "prompt.client" (dict "root" . "name" "template" "comp" .Values.client) }}

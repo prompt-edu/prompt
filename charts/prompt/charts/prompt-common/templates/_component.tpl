@@ -13,6 +13,7 @@ dict keys:
 {{- $comp := .comp -}}
 {{- $name := include "prompt.name" (dict "root" $root "suffix" .suffix) -}}
 {{- $g := $root.Values.global -}}
+{{- $backend := eq .kind "backend" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,22 +29,76 @@ spec:
     metadata:
       labels:
         {{- include "prompt.selectorLabels" (dict "root" $root "component" .component) | nindent 8 }}
+      annotations:
+        checksum/appconfig: {{ include "prompt.appConfigData" $root | sha256sum }}
+        checksum/appsecrets: {{ $g.appSecrets | toYaml | sha256sum }}
+        {{- if $backend }}
+        checksum/db: {{ include "prompt.dbSecretInputs" (dict "root" $root "dbKey" .dbKey) | sha256sum }}
+        {{- end }}
     spec:
       {{- with $g.image.pullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if eq .kind "backend" }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        {{- if $backend }}
+        {{- /* The Go images build on distroless static (root variant, no USER), so the
+               UID has to come from here or the kubelet refuses runAsNonRoot. */}}
+        runAsNonRoot: true
+        runAsUser: {{ $g.podSecurity.runAsUser }}
+        runAsGroup: {{ $g.podSecurity.runAsGroup }}
+        {{- end }}
+      {{- if $backend }}
       initContainers:
         - name: wait-for-db
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
+          image: {{ $g.dbWaitImage }}
+          command: ["sh", "-ec"]
+          args:
             - |
-              until nc -z {{ include "prompt.dbWaitHost" (dict "root" $root) }} {{ include "prompt.dbWaitPort" (dict "root" $root) }}; do
-                echo "waiting for database..."; sleep 2;
+              until psql -qtAX -c 'select 1' >/dev/null 2>&1; do
+                echo "waiting for database $PGDATABASE at $PGHOST:$PGPORT..."; sleep 2;
               done
+          env:
+            - name: PGHOST
+              value: {{ include "prompt.dbHost" (dict "root" $root) | quote }}
+            - name: PGPORT
+              value: {{ include "prompt.dbPort" (dict "root" $root) | quote }}
+            - name: PGSSLMODE
+              value: {{ include "prompt.dbSslMode" (dict "root" $root) | quote }}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "prompt.dbSecretName" (dict "root" $root "dbKey" .dbKey) }}
+                  key: DB_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "prompt.dbSecretName" (dict "root" $root "dbKey" .dbKey) }}
+                  key: DB_PASSWORD
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "prompt.dbSecretName" (dict "root" $root "dbKey" .dbKey) }}
+                  key: DB_NAME
+            - name: HOME
+              value: /tmp
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
       {{- end }}
       containers:
         - name: {{ .component }}
@@ -55,13 +110,16 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "prompt.appConfigName" $root }}
-            {{- if eq .kind "backend" }}
+            {{- if $backend }}
             - secretRef:
                 name: {{ include "prompt.appSecretName" $root }}
             - secretRef:
                 name: {{ include "prompt.dbSecretName" (dict "root" $root "dbKey" .dbKey) }}
             {{- end }}
-          {{- if eq .kind "backend" }}
+          {{- if $backend }}
+          env:
+            - name: HOME
+              value: /tmp
           startupProbe:
             tcpSocket:
               port: http
@@ -97,18 +155,22 @@ spec:
             {{- toYaml ($comp.resources | default (dict "requests" (dict "cpu" "50m" "memory" "64Mi") "limits" (dict "memory" "256Mi"))) | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
+            {{- if $backend }}
             capabilities:
               drop: ["ALL"]
-            {{- if eq .kind "backend" }}
             runAsNonRoot: true
             readOnlyRootFilesystem: true
+            {{- else }}
+            {{- /* Frontends run stock nginx as root: it binds :80 and drops privileges
+                   itself, so it needs NET_BIND_SERVICE, SETUID/SETGID and DAC_OVERRIDE.
+                   Dropping capabilities here requires an unprivileged nginx base. */}}
             {{- end }}
-          {{- if and (eq .kind "backend") }}
+          {{- if $backend }}
           volumeMounts:
             - name: tmp
               mountPath: /tmp
           {{- end }}
-      {{- if eq .kind "backend" }}
+      {{- if $backend }}
       volumes:
         - name: tmp
           emptyDir: {}

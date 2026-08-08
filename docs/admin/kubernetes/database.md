@@ -54,6 +54,12 @@ The backup uses the S3 credentials from the shared application secret. **Use off
 storage** for backups: writing them to the in-cluster SeaweedFS is a correlated failure (if the
 cluster dies, so do the backups).
 
+:::warning Deprecated mechanism
+This renders CloudNativePG's in-tree `barmanObjectStore`, deprecated since CNPG 1.26 and slated for
+removal in 1.30. It works on 1.27, but do not treat it as a long-term backup strategy: plan a move
+to the Barman Cloud plugin, or run backups with your own tooling.
+:::
+
 ### Point-in-time recovery (PITR)
 
 Recover into a new cluster from the object store, targeting a timestamp:
@@ -84,4 +90,26 @@ startup migrations are independent of this and re-run safely.
 
 With `global.postgresql.mode: external`, no CNPG resources are created. The chart still creates
 the per-phase `<release>-db-<phase>` Secrets pointing at `global.postgresql.external.*`, so the
-services remain mode-agnostic. Provision the databases and roles on the external server yourself.
+services remain mode-agnostic. Provision the databases yourself.
+
+`external.host`, `external.user` and `external.password` are all required; the render fails without
+them rather than inventing a credential. One account is used for every logical database, matching
+the Compose deployment. That account needs **DDL rights on every configured database**, because each
+service runs its own migrations at startup.
+
+## TLS to the database
+
+Every service passes `SSL_MODE` into its connection string. `global.postgresql.sslMode` controls it:
+
+| Value | Effect |
+| --- | --- |
+| `""` (default) | `disable` in-cluster, `require` in external mode |
+| `disable` | no TLS. Only sensible for in-cluster traffic to the pooler |
+| `require` | TLS, no certificate verification |
+
+Managed Postgres offerings often refuse plaintext connections (`rds.force_ssl`, Azure Flexible
+Server), which is why external mode defaults to `require`. `verify-ca` and `verify-full` are not
+supported: the chart mounts no CA bundle for the services to verify against.
+
+The DB-wait init container uses the same resolved value as the application, so the readiness gate
+and the service cannot disagree about TLS.

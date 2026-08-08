@@ -8,6 +8,10 @@ sidebar_position: 3
 Two reference configurations are described below: a self-contained quick start and a
 production install. Both use the same chart; they differ only in values.
 
+Always install with a values file. Several settings have no usable default and the chart fails the
+render with an explicit message rather than installing something broken. See
+[Required values](./configuration.md#required-values).
+
 ## Quick start (self-contained)
 
 Everything runs in-cluster (CloudNativePG, SeaweedFS, Keycloak). Use this for evaluation or a
@@ -41,6 +45,12 @@ helm install prompt charts/prompt -n prompt --create-namespace -f values-quickst
 
 Then follow the printed notes: point DNS at the Gateway, wait for certificates, and watch the
 pods come up.
+
+**The release is not usable yet.** Because Keycloak runs in-cluster here, you still have to import
+the platform realm and feed the resulting client identity back into the release. Until then every
+login fails with `invalid_client`. Follow
+[Keycloak → Realm import](./keycloak.md#realm-import), which also covers replacing the placeholder
+client secret shipped in `keycloakConfig.json`.
 
 ## Production install (recommended)
 

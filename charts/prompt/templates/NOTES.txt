@@ -13,6 +13,19 @@ Prerequisites (must be installed in the cluster):
   - Keycloak Operator (REQUIRED for this config)
 {{- end }}
 
+{{- if eq .Values.global.keycloak.mode "in-cluster" }}
+
+ACTION REQUIRED - nobody can log in yet.
+  This chart does not import a realm: KeycloakRealmImport takes a full inline realm
+  representation, so it is applied out of band. Until you do, the "{{ .Values.global.keycloak.realm }}"
+  realm has no prompt-server/prompt-client clients and every login fails with
+  invalid_client.
+
+  Import the realm against Keycloak CR "{{ .Release.Name }}-keycloak", then set
+  global.keycloak.idOfClient and KEYCLOAK_CLIENT_SECRET and run `helm upgrade`.
+  Steps: docs/admin/kubernetes/keycloak.md#realm-import
+{{- end }}
+
 Next steps:
   1. Point DNS A/AAAA records at the Gateway's external address:
        {{ .Values.global.host }}{{ if eq .Values.global.objectStorage.mode "in-cluster" }}, s3.{{ .Values.global.host }}{{ end }}{{ if eq .Values.global.keycloak.mode "in-cluster" }}, auth.{{ .Values.global.host }}{{ end }}

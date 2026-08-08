@@ -39,6 +39,9 @@ spec:
       labels:
         {{- include "prompt.selectorLabels" (dict "root" . "component" "seaweedfs-master") | nindent 8 }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: master
           image: {{ $img }}
@@ -50,6 +53,10 @@ spec:
                   fieldPath: status.podIP
           ports:
             - containerPort: 9333
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: data
               mountPath: /data
@@ -80,6 +87,9 @@ spec:
       labels:
         {{- include "prompt.selectorLabels" (dict "root" . "component" "seaweedfs-volume") | nindent 8 }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: volume
           image: {{ $img }}
@@ -91,6 +101,10 @@ spec:
                   fieldPath: status.podIP
           ports:
             - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: data
               mountPath: /data
@@ -121,6 +135,9 @@ spec:
       labels:
         {{- include "prompt.selectorLabels" (dict "root" . "component" "seaweedfs-filer") | nindent 8 }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: filer
           image: {{ $img }}
@@ -132,6 +149,10 @@ spec:
                   fieldPath: status.podIP
           ports:
             - containerPort: 8888
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: data
               mountPath: /data
@@ -160,7 +181,13 @@ spec:
     metadata:
       labels:
         {{- include "prompt.selectorLabels" (dict "root" . "component" "seaweedfs-s3") | nindent 8 }}
+      annotations:
+        {{- /* This gateway reads the S3 credentials, so it has to roll when they change. */}}
+        checksum/appsecrets: {{ .Values.global.appSecrets | toYaml | sha256sum }}
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: s3
           image: {{ $img }}
@@ -184,6 +211,10 @@ spec:
                   key: S3_SECRET_KEY
           ports:
             - containerPort: 8333
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
 ---
 {{/* Public S3 route on the dedicated s3. listener (Host preserved for SigV4). */}}
 apiVersion: gateway.networking.k8s.io/v1
@@ -202,9 +233,13 @@ spec:
     - backendRefs:
         - name: {{ printf "%s-seaweedfs-s3" $rel }}
           port: 8333
-{{- if eq .Values.global.gateway.rateLimiting.provider "envoygateway" }}
+{{- if eq .Values.global.gateway.provider "envoygateway" }}
 ---
-{{/* CORS so browsers can PUT/GET presigned URLs from the apex origin. */}}
+{{/*
+CORS so browsers can PUT/GET presigned URLs from the apex origin. Gated on the
+gateway provider, not on rate limiting: turning rate limiting off must not break
+file upload and download.
+*/}}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
@@ -218,7 +253,7 @@ spec:
       name: {{ printf "%s-seaweedfs-s3" $rel }}
   cors:
     allowOrigins:
-      - {{ include "infra.baseUrl" . | quote }}
+      - {{ include "prompt.baseUrl" . | quote }}
     allowMethods: ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"]
     allowHeaders: ["*"]
 {{- end }}

@@ -20,7 +20,7 @@ charts/prompt/                 # umbrella
     prompt-common/             # library chart: shared Deployment/Service/HTTPRoute templates
     core/                      # server-core + client-core (platform shell)
     assessment/ interview/ ... # one subchart per phase (server + micro-frontend)
-    matching/ template/        # client-only phases
+    matching/ example/         # client-only phases
     infrastructure/            # CNPG, SeaweedFS, Gateway + TLS, optional Keycloak
 ```
 

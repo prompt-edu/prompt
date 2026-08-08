@@ -1,24 +1,29 @@
 {{- $pg := .Values.global.postgresql -}}
 {{- $inCluster := eq $pg.mode "in-cluster" -}}
 
-{{/* Assemble the database set; add keycloak when bundled in-cluster. */}}
+{{- /* Assemble the database set; add keycloak when bundled in-cluster. */}}
 {{- $dbs := deepCopy $pg.databases -}}
 {{- if eq .Values.global.keycloak.mode "in-cluster" -}}
 {{- $_ := set $dbs "keycloak" (dict "dbName" "keycloak" "owner" "keycloak" "hostVar" "KC_DB_HOST" "portVar" "KC_DB_PORT") -}}
 {{- end -}}
 
-{{/* Resolve a persisted password per role (lookup pattern - never rotate on upgrade). */}}
+{{- /*
+Resolve one password per role. In-cluster roles are generated once and then read
+back with `lookup` so an upgrade never rotates them; this needs `get` on secrets
+in the release namespace. External installs bring their own single account, so
+neither `lookup` nor a generated value is involved.
+*/}}
 {{- $passwords := dict -}}
+{{- if $inCluster -}}
 {{- range $key, $db := $dbs -}}
   {{- $roleSecret := printf "%s-role-%s" $.Release.Name $key -}}
   {{- $existing := lookup "v1" "Secret" $.Release.Namespace $roleSecret -}}
   {{- if $existing -}}
     {{- $_ := set $passwords $key (index $existing.data "password" | b64dec) -}}
-  {{- else if and (eq $pg.mode "external") $pg.external.password -}}
-    {{- $_ := set $passwords $key $pg.external.password -}}
   {{- else -}}
     {{- $_ := set $passwords $key (randAlphaNum 32) -}}
   {{- end -}}
+{{- end -}}
 {{- end -}}
 
 {{- if $inCluster }}
@@ -28,6 +33,9 @@ metadata:
   name: {{ $pg.clusterName }}
   labels:
     {{- include "prompt.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+  annotations:
+    {{- /* CNPG owns the instance PVCs, so deleting this Cluster deletes the data. */}}
+    helm.sh/resource-policy: keep
 spec:
   instances: {{ $pg.instances }}
   postgresql:
@@ -92,7 +100,7 @@ spec:
 {{- end }}
 {{- end }}
 
-{{/* Per-role basic-auth secrets (CNPG) - in-cluster only. */}}
+{{- /* Per-role basic-auth secrets (CNPG) - in-cluster only. */}}
 {{- if $inCluster }}
 {{- range $key, $db := $dbs }}
 ---
@@ -102,6 +110,9 @@ metadata:
   name: {{ printf "%s-role-%s" $.Release.Name $key }}
   labels:
     {{- include "prompt.labels" (dict "root" $ "component" (printf "role-%s" $key)) | nindent 4 }}
+  annotations:
+    {{- /* Kept so the generated password survives uninstall and still matches the data. */}}
+    helm.sh/resource-policy: keep
 type: kubernetes.io/basic-auth
 stringData:
   username: {{ $db.owner | quote }}
@@ -109,15 +120,13 @@ stringData:
 {{- end }}
 {{- end }}
 
-{{/* Per-phase application DB env secrets (both modes). */}}
+{{- /*
+Per-phase application DB env secrets (both modes). Host, port and user resolve
+through the shared helpers so this Secret, the DB-wait init container and the
+pod checksum cannot disagree.
+*/}}
 {{- range $key, $db := $pg.databases }}
-{{- $host := "" }}{{- $port := "" }}
-{{- if $inCluster }}
-  {{- if $pg.pooler.enabled }}{{ $host = printf "%s-pooler-rw" $pg.clusterName }}{{- else }}{{ $host = printf "%s-rw" $pg.clusterName }}{{- end }}
-  {{- $port = "5432" }}
-{{- else }}
-  {{- $host = $pg.external.host }}{{ $port = $pg.external.port }}
-{{- end }}
+{{- $ctx := dict "root" $ "dbKey" $key }}
 ---
 apiVersion: v1
 kind: Secret
@@ -127,9 +136,13 @@ metadata:
     {{- include "prompt.labels" (dict "root" $ "component" (printf "db-%s" $key)) | nindent 4 }}
 type: Opaque
 stringData:
-  {{ $db.hostVar }}: {{ $host | quote }}
-  {{ $db.portVar }}: {{ $port | quote }}
+  {{ $db.hostVar }}: {{ include "prompt.dbHost" $ctx | quote }}
+  {{ $db.portVar }}: {{ include "prompt.dbPort" $ctx | quote }}
   DB_NAME: {{ $db.dbName | quote }}
-  DB_USER: {{ $db.owner | quote }}
+  DB_USER: {{ include "prompt.dbUser" $ctx | quote }}
+  {{- if $inCluster }}
   DB_PASSWORD: {{ index $passwords $key | quote }}
+  {{- else }}
+  DB_PASSWORD: {{ include "prompt.dbExternalPassword" $ctx | quote }}
+  {{- end }}
 {{- end }}

@@ -50,7 +50,7 @@ dependencies:
     version: 0.1.0
     repository: file://charts/matching
     condition: matching.enabled
-  - name: template
+  - name: example
     version: 0.1.0
-    repository: file://charts/template
-    condition: template.enabled
+    repository: file://charts/example
+    condition: example.enabled

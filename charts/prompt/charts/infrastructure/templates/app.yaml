@@ -1,4 +1,16 @@
-{{- $base := include "infra.baseUrl" . -}}
+{{/*
+Shared application config and secret, consumed by every component via envFrom.
+The ConfigMap body lives in prompt-common (prompt.appConfigData) so workloads can
+hash it; the Secret is assembled from a resolved copy of appSecrets.data.
+*/}}
+{{- $data := dict -}}
+{{- if not .Values.global.appSecrets.existingSecret -}}
+{{- $data = deepCopy .Values.global.appSecrets.data -}}
+{{- $_ := set $data "S3_SECRET_KEY" (required "global.appSecrets.data.S3_SECRET_KEY is required (or set global.appSecrets.existingSecret)" $data.S3_SECRET_KEY) -}}
+{{- if eq .Values.global.objectStorage.mode "external" -}}
+{{- $_ := set $data "S3_ACCESS_KEY" (required "global.appSecrets.data.S3_ACCESS_KEY is required when global.objectStorage.mode=external" $data.S3_ACCESS_KEY) -}}
+{{- end -}}
+{{- end -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,41 +18,8 @@ metadata:
   labels:
     {{- include "prompt.labels" (dict "root" . "component" "app-config") | nindent 4 }}
 data:
-  ENVIRONMENT: {{ .Values.global.environment | quote }}
-  CORE_HOST: {{ $base | quote }}
-  SERVER_CORE_HOST: {{ printf "http://%s-core-server:8080" .Release.Name | quote }}
-  SERVER_ADDRESS: {{ .Values.global.appConfig.serverAddress | quote }}
-  KEYCLOAK_HOST: {{ include "infra.keycloakHost" . | quote }}
-  KEYCLOAK_REALM_NAME: {{ .Values.global.keycloak.realm | quote }}
-  KEYCLOAK_CLIENT_ID: {{ .Values.global.keycloak.clientId | quote }}
-  KEYCLOAK_ID_OF_CLIENT: {{ .Values.global.keycloak.idOfClient | quote }}
-  KEYCLOAK_AUTHORIZED_PARTY: {{ .Values.global.keycloak.authorizedParty | quote }}
-  SENTRY_ENABLED: {{ .Values.global.appConfig.sentryEnabled | quote }}
-  MAX_FILE_UPLOAD_SIZE_MB: {{ .Values.global.appConfig.maxFileUploadSizeMb | quote }}
-  ALLOWED_FILE_TYPES: {{ .Values.global.appConfig.allowedFileTypes | quote }}
-  S3_BUCKET: {{ .Values.global.objectStorage.bucket | quote }}
-  S3_REGION: {{ .Values.global.objectStorage.region | quote }}
-  S3_ENDPOINT: {{ include "infra.s3Endpoint" . | quote }}
-  S3_PUBLIC_ENDPOINT: {{ include "infra.s3PublicEndpoint" . | quote }}
-  S3_FORCE_PATH_STYLE: {{ .Values.global.objectStorage.forcePathStyle | quote }}
-  S3_PRESIGN_UPLOAD_TTL_SECONDS: {{ .Values.global.objectStorage.presignUploadTtlSeconds | quote }}
-  S3_PRESIGN_DOWNLOAD_TTL_SECONDS: {{ .Values.global.objectStorage.presignDownloadTtlSeconds | quote }}
-  CHAIR_NAME_SHORT: {{ .Values.global.chairNameShort | quote }}
-  CHAIR_NAME_LONG: {{ .Values.global.chairNameLong | quote }}
-  GITHUB_SHA: {{ .Values.global.githubSha | quote }}
-  GITHUB_REF: {{ .Values.global.githubRef | quote }}
-  SERVER_CORE_IMAGE_TAG: {{ .Values.global.image.tag | quote }}
-  # Module-federation remote hosts (all served under paths on the apex host).
-  CORE_API_HOST: {{ $base | quote }}
-  INTRO_COURSE_HOST: {{ $base | quote }}
-  DEVOPS_CHALLENGE_HOST: {{ $base | quote }}
-  ASSESSMENT_HOST: {{ $base | quote }}
-  INTERVIEW_HOST: {{ $base | quote }}
-  TEAM_ALLOCATION_HOST: {{ $base | quote }}
-  SELF_TEAM_ALLOCATION_HOST: {{ $base | quote }}
-  TEMPLATE_HOST: {{ $base | quote }}
-  CERTIFICATE_HOST: {{ $base | quote }}
-{{- if not .Values.global.appSecrets.existingSecret }}
+  {{- include "prompt.appConfigData" . | nindent 2 }}
+{{ if not .Values.global.appSecrets.existingSecret }}
 ---
 apiVersion: v1
 kind: Secret
@@ -50,7 +29,7 @@ metadata:
     {{- include "prompt.labels" (dict "root" . "component" "app-secrets") | nindent 4 }}
 type: Opaque
 stringData:
-  {{- range $k, $v := .Values.global.appSecrets.data }}
+  {{- range $k, $v := $data }}
   {{ $k }}: {{ $v | quote }}
   {{- end }}
 {{- end }}

@@ -32,6 +32,12 @@ global:
       issuerName: my-existing-clusterissuer
 ```
 
+A `ClusterIssuer` is cluster-scoped, so every release with `create: true` claims the same
+`issuerName`. That is fine for one PROMPT install per cluster. For a second install (a staging
+release alongside production, say), either give it its own `issuerName` or set `create: false` and
+point both at one shared issuer. Two releases both creating `prompt-letsencrypt` will fight over
+ownership of that object.
+
 ## DNS
 
 Point A/AAAA records at the Gateway's external address for every enabled host. Find the address

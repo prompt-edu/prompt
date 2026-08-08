@@ -1,5 +1,0 @@
-apiVersion: v2
-name: template
-description: PROMPT template micro-frontend (client only).
-type: application
-version: 0.1.0

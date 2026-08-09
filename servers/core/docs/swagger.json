@@ -6500,7 +6500,7 @@
             "type": "object",
             "properties": {
                 "recipientCourseParticipationIDs": {
-                    "description": "Optional: when set, the status mail is only sent to these participants instead of all\nparticipants with the given pass status.",
+                    "description": "Optional: when omitted, every participant with the given pass status is mailed. When set, the\nmail only goes to those of these participants that carry the given pass status.",
                     "type": "array",
                     "items": {
                         "type": "string"

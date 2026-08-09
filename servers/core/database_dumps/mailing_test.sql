@@ -10,6 +10,8 @@ SET row_security = off;
 
 CREATE TYPE public.study_degree AS ENUM ('bachelor', 'master');
 
+CREATE TYPE public.pass_status AS ENUM ('passed', 'failed', 'not_assessed');
+
 CREATE TABLE public.course (
     id uuid PRIMARY KEY,
     name text NOT NULL,
@@ -61,6 +63,7 @@ CREATE TABLE public.course_participation (
 CREATE TABLE public.course_phase_participation (
     course_participation_id uuid NOT NULL,
     course_phase_id uuid NOT NULL,
+    pass_status public.pass_status NOT NULL DEFAULT 'not_assessed'::public.pass_status,
     PRIMARY KEY (course_participation_id, course_phase_id),
     CONSTRAINT fk_cpp_participation FOREIGN KEY (course_participation_id) REFERENCES public.course_participation(id),
     CONSTRAINT fk_cpp_phase FOREIGN KEY (course_phase_id) REFERENCES public.course_phase(id)
@@ -158,6 +161,17 @@ VALUES
     'master',
     2,
     'Informatics'
+  ),
+  (
+    '88888888-8888-8888-8888-888888888888',
+    'Carol',
+    'Clark',
+    'carol@example.com',
+    '100003',
+    'carol.c',
+    'master',
+    1,
+    'Informatics'
   );
 
 INSERT INTO public.course_participation (id, course_id, student_id)
@@ -171,15 +185,27 @@ VALUES
     '55555555-5555-5555-5555-555555555555',
     '11111111-1111-1111-1111-111111111111',
     '77777777-7777-7777-7777-777777777777'
+  ),
+  (
+    '99999999-9999-9999-9999-999999999999',
+    '11111111-1111-1111-1111-111111111111',
+    '88888888-8888-8888-8888-888888888888'
   );
 
-INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id)
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, pass_status)
 VALUES
   (
     '44444444-4444-4444-4444-444444444444',
-    '33333333-3333-3333-3333-333333333333'
+    '33333333-3333-3333-3333-333333333333',
+    'passed'
   ),
   (
     '55555555-5555-5555-5555-555555555555',
-    '33333333-3333-3333-3333-333333333333'
+    '33333333-3333-3333-3333-333333333333',
+    'failed'
+  ),
+  (
+    '99999999-9999-9999-9999-999999999999',
+    '33333333-3333-3333-3333-333333333333',
+    'not_assessed'
   );

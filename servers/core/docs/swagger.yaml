@@ -1253,8 +1253,8 @@ definitions:
     properties:
       recipientCourseParticipationIDs:
         description: |-
-          Optional: when set, the status mail is only sent to these participants instead of all
-          participants with the given pass status.
+          Optional: when omitted, every participant with the given pass status is mailed. When set, the
+          mail only goes to those of these participants that carry the given pass status.
         items:
           type: string
         type: array

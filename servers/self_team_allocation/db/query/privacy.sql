@@ -19,3 +19,11 @@ ORDER BY a.created_at ASC;
 SELECT *
 FROM tutor
 WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);
+
+-- name: DeleteAssignmentsByCourseParticipationIDs :exec
+DELETE FROM assignments
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);
+
+-- name: DeleteTutorsByCourseParticipationIDs :exec
+DELETE FROM tutor
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);

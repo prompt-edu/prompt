@@ -11,21 +11,22 @@ interface CourseCardsProps {
 
 export const CourseCards = ({ courses }: CourseCardsProps) => {
   const [search, setSearch] = useState('')
+  const query = search.trim().toLowerCase()
 
   const filteredCourses = useMemo(() => {
-    const query = search.trim().toLowerCase()
     if (!query) return courses
     return courses.filter((course) =>
       [course.name, course.semesterTag].some((field) => field?.toLowerCase().includes(query)),
     )
-  }, [courses, search])
+  }, [courses, query])
 
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='relative mb-8 max-w-md'>
-        <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground' />
+        <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
         <Input
           type='search'
+          aria-label='Search courses'
           placeholder='Search courses...'
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -35,7 +36,8 @@ export const CourseCards = ({ courses }: CourseCardsProps) => {
 
       <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 items-start justify-start'>
         <AnimatePresence>
-          {filteredCourses.length === 0 && (
+          {/* Only a search with no matches is empty here; callers guard the no-courses-at-all case. */}
+          {query && filteredCourses.length === 0 && (
             <motion.p
               key='empty'
               initial={{ opacity: 0 }}

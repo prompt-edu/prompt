@@ -18,12 +18,23 @@ export function slotsUrl(phaseId = FULL_COURSE_PHASES.interview.id): string {
 }
 
 // Tomorrow at 10:00, so the UI treats the slot as bookable (past slots are
-// disabled) and the 30-min slot never crosses midnight (the dialog's End Time
-// is a time-of-day on the start's date).
+// disabled) and the 30-min slot stays on the start's date (the dialog's End Time
+// is a time-of-day, and an end at or before the start rolls to the next day).
 export function futureSlotTimes(): { start: Date; end: Date } {
   const start = new Date(Date.now() + 24 * 60 * 60 * 1000)
   start.setHours(10, 0, 0, 0)
   const end = new Date(start.getTime() + 30 * 60 * 1000)
+  return { start, end }
+}
+
+// A range starting tomorrow at 10:00 that divides evenly into `slotCount` slots
+// of `durationMinutes` with no break.
+export function futureSlotRange(
+  slotCount: number,
+  durationMinutes: number,
+): { start: Date; end: Date } {
+  const { start } = futureSlotTimes()
+  const end = new Date(start.getTime() + slotCount * durationMinutes * 60 * 1000)
   return { start, end }
 }
 

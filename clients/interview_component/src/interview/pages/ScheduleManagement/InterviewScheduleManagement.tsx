@@ -51,7 +51,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
@@ -69,7 +69,26 @@ interface ErrorResponse {
   error?: string
 }
 
+interface SlotTimeRange {
+  start: Date
+  end: Date
+}
+
+interface GeneratedSeries {
+  slots: SlotTimeRange[]
+  truncated: boolean
+}
+
+interface CreatedSlotResponse {
+  id: string
+}
+
 const MAX_MULTIPLE_SLOTS = 100
+
+// Only the series form uses these; the single-slot and edit forms keep them at their defaults.
+const SERIES_DEFAULTS = { durationMinutes: 30, breakMinutes: 0 }
+
+const EMPTY_SERIES: GeneratedSeries = { slots: [], truncated: false }
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   isAxiosError<ErrorResponse>(error) ? (error.response?.data?.error ?? fallback) : fallback
@@ -79,11 +98,38 @@ const formatSlotCount = (count: number, capitalize = false) => {
   return `${count} ${noun}${count === 1 ? '' : 's'}`
 }
 
-// endTime is a time-of-day (HH:mm) on the same day as the start; interviews never span days.
-const buildSlotTimes = (startDateTime: string, endTimeOfDay: string) => ({
-  start: new Date(startDateTime),
-  end: new Date(`${startDateTime.slice(0, 10)}T${endTimeOfDay}`),
+const emptySlotForm = (): SlotFormData => ({
+  startTime: '',
+  endTime: '',
+  ...SERIES_DEFAULTS,
+  location: '',
+  capacity: 1,
 })
+
+const slotFormFromSlot = (slot: InterviewSlotWithAssignments): SlotFormData => ({
+  startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
+  endTime: format(new Date(slot.endTime), 'HH:mm'),
+  ...SERIES_DEFAULTS,
+  location: slot.location || '',
+  capacity: slot.capacity ?? 1,
+})
+
+// endTime is a time-of-day (HH:mm); an end at or before the start means the slot runs past midnight.
+const buildSlotTimes = (startDateTime: string, endTimeOfDay: string): SlotTimeRange => {
+  const start = new Date(startDateTime)
+  const end = new Date(`${startDateTime.slice(0, 10)}T${endTimeOfDay}`)
+  if (end <= start) {
+    end.setDate(end.getDate() + 1)
+  }
+  return { start, end }
+}
+
+const formatResolvedEnd = (range: SlotTimeRange) => {
+  const spansNextDay = range.end.getDate() !== range.start.getDate()
+  return `Ends ${format(range.end, 'EEE, MMM d')} at ${format(range.end, 'HH:mm')}${
+    spansNextDay ? ' (next day)' : ''
+  }`
+}
 
 const slotRequestBody = (data: SlotFormData) => {
   const { start, end } = buildSlotTimes(data.startTime, data.endTime)
@@ -95,19 +141,32 @@ const slotRequestBody = (data: SlotFormData) => {
   }
 }
 
-const generateMultipleSlots = (data: SlotFormData): { start: Date; end: Date }[] => {
-  const slots: { start: Date; end: Date }[] = []
-  if (!data.startTime || !data.endTime || data.durationMinutes <= 0) return slots
+// Steps in wall-clock minutes rather than milliseconds, so a DST transition inside the range does
+// not shift the generated slot times by an hour.
+const addLocalMinutes = (base: Date, minutes: number) =>
+  new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate(),
+    base.getHours(),
+    base.getMinutes() + minutes,
+  )
+
+const generateMultipleSlots = (data: SlotFormData): GeneratedSeries => {
+  const slots: SlotTimeRange[] = []
+  if (!data.startTime || !data.endTime || data.durationMinutes <= 0) return EMPTY_SERIES
+
   const { start, end } = buildSlotTimes(data.startTime, data.endTime)
-  const rangeEnd = end.getTime()
-  const durationMs = data.durationMinutes * 60_000
-  const stepMs = durationMs + Math.max(0, data.breakMinutes) * 60_000
-  let cursor = start.getTime()
-  while (cursor + durationMs <= rangeEnd && slots.length < MAX_MULTIPLE_SLOTS) {
-    slots.push({ start: new Date(cursor), end: new Date(cursor + durationMs) })
-    cursor += stepMs
+  const stepMinutes = data.durationMinutes + Math.max(0, data.breakMinutes)
+
+  for (let offset = 0; ; offset += stepMinutes) {
+    const slotEnd = addLocalMinutes(start, offset + data.durationMinutes)
+    if (slotEnd > end) break
+    if (slots.length === MAX_MULTIPLE_SLOTS) return { slots, truncated: true }
+    slots.push({ start: addLocalMinutes(start, offset), end: slotEnd })
   }
-  return slots
+
+  return { slots, truncated: false }
 }
 
 export const InterviewScheduleManagement = () => {
@@ -126,14 +185,7 @@ export const InterviewScheduleManagement = () => {
   } | null>(null)
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>('')
   const [editingSlot, setEditingSlot] = useState<InterviewSlotWithAssignments | null>(null)
-  const [formData, setFormData] = useState<SlotFormData>({
-    startTime: '',
-    endTime: '',
-    durationMinutes: 30,
-    breakMinutes: 0,
-    location: '',
-    capacity: 1,
-  })
+  const [formData, setFormData] = useState<SlotFormData>(emptySlotForm)
 
   // Fetch all participants
   const { data: participations } = useQuery<CoursePhaseParticipationsWithResolution>({
@@ -213,34 +265,31 @@ export const InterviewScheduleManagement = () => {
     },
   })
 
-  // Create multiple slots mutation - generates all slots client-side and posts them
+  // Create multiple slots mutation - the series is generated client-side and created in one
+  // transactional request, so a rejected slot never leaves a partial series behind
   const createMultipleSlotsMutation = useMutation({
     mutationFn: async (data: SlotFormData) => {
-      const generated = generateMultipleSlots(data)
-      const results = await Promise.allSettled(
-        generated.map((slot) =>
-          interviewAxiosInstance.post(`interview/api/course_phase/${phaseId}/interview-slots`, {
+      const { slots: generatedSlots } = generateMultipleSlots(data)
+      const response = await interviewAxiosInstance.post<CreatedSlotResponse[]>(
+        `interview/api/course_phase/${phaseId}/interview-slots/batch`,
+        {
+          slots: generatedSlots.map((slot) => ({
             startTime: slot.start.toISOString(),
             endTime: slot.end.toISOString(),
             location: data.location || null,
             capacity: data.capacity,
-          }),
-        ),
+          })),
+        },
       )
-      const created = results.filter((r) => r.status === 'fulfilled').length
-      return { created, failed: generated.length - created }
+      return response.data
     },
-    onSuccess: ({ created, failed }) => {
+    onSuccess: (createdSlots) => {
       queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
       setIsCreateDialogOpen(false)
       resetForm()
       toast({
-        title: failed > 0 ? 'Slots partially created' : 'Slots created',
-        description:
-          failed > 0
-            ? `${formatSlotCount(created)} created, ${failed} failed.`
-            : `${formatSlotCount(created)} created successfully.`,
-        variant: failed > 0 ? 'destructive' : undefined,
+        title: 'Slots created',
+        description: `${formatSlotCount(createdSlots.length)} created successfully.`,
       })
     },
     onError: (error: unknown) => {
@@ -339,14 +388,7 @@ export const InterviewScheduleManagement = () => {
 
   const resetForm = () => {
     setCreateMultipleSlots(false)
-    setFormData({
-      startTime: '',
-      endTime: '',
-      durationMinutes: 30,
-      breakMinutes: 0,
-      location: '',
-      capacity: 1,
-    })
+    setFormData(emptySlotForm())
   }
 
   const slotTimes =
@@ -355,12 +397,15 @@ export const InterviewScheduleManagement = () => {
       : null
   const isTimeRangeValid = !!slotTimes && slotTimes.start < slotTimes.end
 
-  const multipleSlotsPreview = generateMultipleSlots(formData)
+  const seriesPreview = useMemo(
+    () => (createMultipleSlots ? generateMultipleSlots(formData) : EMPTY_SERIES),
+    [createMultipleSlots, formData],
+  )
 
   const handleCreateSlots = () => {
     if (!isTimeRangeValid) return
     if (createMultipleSlots) {
-      if (multipleSlotsPreview.length === 0) return
+      if (seriesPreview.slots.length === 0) return
       createMultipleSlotsMutation.mutate(formData)
     } else {
       createSlotMutation.mutate(formData)
@@ -376,27 +421,13 @@ export const InterviewScheduleManagement = () => {
 
   const handleEditClick = (slot: InterviewSlotWithAssignments) => {
     setEditingSlot(slot)
-    setFormData({
-      startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(new Date(slot.endTime), 'HH:mm'),
-      durationMinutes: 30,
-      breakMinutes: 0,
-      location: slot.location || '',
-      capacity: slot.capacity ?? 1,
-    })
+    setFormData(slotFormFromSlot(slot))
     setIsEditDialogOpen(true)
   }
 
   const handleCloneClick = (slot: InterviewSlotWithAssignments) => {
     setCreateMultipleSlots(false)
-    setFormData({
-      startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(new Date(slot.endTime), 'HH:mm'),
-      durationMinutes: 30,
-      breakMinutes: 0,
-      location: slot.location || '',
-      capacity: slot.capacity ?? 1,
-    })
+    setFormData(slotFormFromSlot(slot))
     setIsCreateDialogOpen(true)
   }
 
@@ -474,138 +505,143 @@ export const InterviewScheduleManagement = () => {
 
       <div className='flex justify-between items-center mb-6'>
         <p className='text-muted-foreground'>Create and manage interview time slots for students</p>
-        <div className='flex gap-2'>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className='mr-2 h-4 w-4' />
-                Create Slots
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Interview Slots</DialogTitle>
-                <DialogDescription>
-                  Add one interview slot or divide the time range into multiple slots.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='space-y-4 py-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='startTime'>Start Time</Label>
-                  <Input
-                    id='startTime'
-                    type='datetime-local'
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='endTime'>End Time</Label>
-                  <Input
-                    id='endTime'
-                    type='time'
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  />
-                  {formData.startTime && formData.endTime && !isTimeRangeValid && (
-                    <p className='text-sm text-destructive'>End time must be after start time.</p>
-                  )}
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='location'>Location (Optional)</Label>
-                  <Input
-                    id='location'
-                    placeholder='e.g., Room 101, Building A'
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='capacity'>Capacity per Slot</Label>
-                  <Input
-                    id='capacity'
-                    type='number'
-                    min='1'
-                    value={formData.capacity}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value, 10)
-                      setFormData({ ...formData, capacity: value > 0 ? value : 1 })
-                    }}
-                  />
-                </div>
-                <div className='flex items-center gap-2'>
-                  <Checkbox
-                    id='createMultipleSlots'
-                    checked={createMultipleSlots}
-                    onCheckedChange={(checked) => setCreateMultipleSlots(checked === true)}
-                  />
-                  <Label htmlFor='createMultipleSlots'>Create multiple slots</Label>
-                </div>
-                {createMultipleSlots && (
-                  <>
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div className='space-y-2'>
-                        <Label htmlFor='durationMinutes'>Slot Duration (min)</Label>
-                        <Input
-                          id='durationMinutes'
-                          type='number'
-                          min='1'
-                          value={formData.durationMinutes}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              durationMinutes: parseInt(e.target.value, 10) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <Label htmlFor='breakMinutes'>Break Between (min)</Label>
-                        <Input
-                          id='breakMinutes'
-                          type='number'
-                          min='0'
-                          value={formData.breakMinutes}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              breakMinutes: Math.max(0, parseInt(e.target.value, 10) || 0),
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <p className='text-sm text-muted-foreground'>
-                      {multipleSlotsPreview.length > 0
-                        ? `This will create ${formatSlotCount(multipleSlotsPreview.length)}.`
-                        : 'Choose a valid time range and duration to preview the slots.'}
-                    </p>
-                  </>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className='mr-2 h-4 w-4' />
+              Create Slots
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Interview Slots</DialogTitle>
+              <DialogDescription>
+                Add one interview slot or divide the time range into multiple slots.
+              </DialogDescription>
+            </DialogHeader>
+            <div className='space-y-4 py-4'>
+              <div className='space-y-2'>
+                <Label htmlFor='startTime'>Start Time</Label>
+                <Input
+                  id='startTime'
+                  type='datetime-local'
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='endTime'>End Time</Label>
+                <Input
+                  id='endTime'
+                  type='time'
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                />
+                {slotTimes && (
+                  <p className='text-sm text-muted-foreground'>{formatResolvedEnd(slotTimes)}</p>
                 )}
               </div>
-              <DialogFooter>
-                <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateSlots}
-                  disabled={
-                    !isTimeRangeValid ||
-                    (createMultipleSlots && multipleSlotsPreview.length === 0) ||
-                    createSlotMutation.isPending ||
-                    createMultipleSlotsMutation.isPending
-                  }
-                >
-                  {createSlotMutation.isPending || createMultipleSlotsMutation.isPending
-                    ? 'Creating...'
-                    : createMultipleSlots
-                      ? `Create ${formatSlotCount(multipleSlotsPreview.length, true)}`
-                      : 'Create Slot'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <div className='space-y-2'>
+                <Label htmlFor='location'>Location (Optional)</Label>
+                <Input
+                  id='location'
+                  placeholder='e.g., Room 101, Building A'
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='capacity'>Capacity per Slot</Label>
+                <Input
+                  id='capacity'
+                  type='number'
+                  min='1'
+                  value={formData.capacity}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10)
+                    setFormData({ ...formData, capacity: value > 0 ? value : 1 })
+                  }}
+                />
+              </div>
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='createMultipleSlots'
+                  checked={createMultipleSlots}
+                  onCheckedChange={(checked) => setCreateMultipleSlots(checked === true)}
+                />
+                <Label htmlFor='createMultipleSlots'>Create multiple slots</Label>
+              </div>
+              {createMultipleSlots && (
+                <>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='space-y-2'>
+                      <Label htmlFor='durationMinutes'>Slot Duration (min)</Label>
+                      <Input
+                        id='durationMinutes'
+                        type='number'
+                        min='1'
+                        value={formData.durationMinutes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            durationMinutes: parseInt(e.target.value, 10) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className='space-y-2'>
+                      <Label htmlFor='breakMinutes'>Break Between (min)</Label>
+                      <Input
+                        id='breakMinutes'
+                        type='number'
+                        min='0'
+                        value={formData.breakMinutes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            breakMinutes: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    {seriesPreview.slots.length > 0
+                      ? `This will create ${formatSlotCount(seriesPreview.slots.length)}.`
+                      : 'Choose a valid time range and duration to preview the slots.'}
+                  </p>
+                  {seriesPreview.truncated && (
+                    <p className='text-sm text-destructive'>
+                      The time range fits more slots than the limit of {MAX_MULTIPLE_SLOTS}. Only
+                      the first {MAX_MULTIPLE_SLOTS} will be created — shorten the range or create
+                      the rest separately.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateSlots}
+                disabled={
+                  !isTimeRangeValid ||
+                  (createMultipleSlots && seriesPreview.slots.length === 0) ||
+                  createSlotMutation.isPending ||
+                  createMultipleSlotsMutation.isPending
+                }
+              >
+                {createSlotMutation.isPending || createMultipleSlotsMutation.isPending
+                  ? 'Creating...'
+                  : createMultipleSlots
+                    ? `Create ${formatSlotCount(seriesPreview.slots.length, true)}`
+                    : 'Create Slot'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Edit Dialog */}
@@ -633,8 +669,8 @@ export const InterviewScheduleManagement = () => {
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
               />
-              {formData.startTime && formData.endTime && !isTimeRangeValid && (
-                <p className='text-sm text-destructive'>End time must be after start time.</p>
+              {slotTimes && (
+                <p className='text-sm text-muted-foreground'>{formatResolvedEnd(slotTimes)}</p>
               )}
             </div>
             <div className='space-y-2'>

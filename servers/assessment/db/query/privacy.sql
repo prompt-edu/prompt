@@ -11,7 +11,14 @@ FROM assessment_completion
 WHERE course_participation_id = ANY($1::uuid[]);
 
 -- name: GetAllCategoryAssessmentsByCourseParticipationIDs :many
-SELECT id, category_id, course_phase_id, course_participation_id, comment, created_at, updated_at
+SELECT id,
+       category_id,
+       course_phase_id,
+       course_participation_id,
+       -- This regex simply removes "(by <author>)" in the "## ..." heading; It was added in an older migration and we don't want to leak the author's name.
+       COALESCE(regexp_replace(comment, '^(##[^\n]*?)\s*\(by[^)\n]*\)\s*$', '\1', 'ng'), '')::text AS comment,
+       created_at,
+       updated_at
 FROM category_assessment
 WHERE course_participation_id = ANY($1::uuid[]);
 

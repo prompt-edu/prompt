@@ -177,6 +177,10 @@ definitions:
         type: string
       id:
         type: string
+      isOwnedByCurrentPhase:
+        description: IsOwnedByCurrentPhase is only populated by phase-scoped listings;
+          nil elsewhere.
+        type: boolean
       name:
         type: string
       updatedAt:
@@ -239,6 +243,21 @@ definitions:
         type: string
       coursePhaseID:
         type: string
+    type: object
+  categoryDTO.Category:
+    properties:
+      assessmentSchemaID:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
     type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
@@ -1123,6 +1142,18 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -1223,7 +1254,7 @@ paths:
         "201":
           description: Created
           schema:
-            type: string
+            $ref: '#/definitions/categoryDTO.Category'
         "400":
           description: Bad Request
           schema:

@@ -4,6 +4,7 @@ import { getApplicationStatusBadge, getApplicationStatusString } from './getAppl
 
 export function getApplicationFilters(
   additionalScores?: { key: string; name: string }[],
+  studyPrograms?: string[],
 ): TableFilter[] {
   return [
     {
@@ -26,6 +27,16 @@ export function getApplicationFilters(
       label: 'Gender',
       options: ['male', 'female', 'diverse'],
     },
+    ...(studyPrograms && studyPrograms.length > 0
+      ? [
+          {
+            type: 'select' as const,
+            id: 'studyProgram',
+            label: 'Study Program',
+            options: studyPrograms,
+          },
+        ]
+      : []),
     {
       type: 'numericRange',
       id: 'score',

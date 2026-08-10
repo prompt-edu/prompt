@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -43,7 +45,15 @@ func (suite *AssessmentSchemaRouterTestSuite) SetupTest() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "12345678", "admin123")
+		mock := sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "12345678", "admin123")
+		return func(c *gin.Context) {
+			roles := make(map[string]bool)
+			for _, role := range allowedRoles {
+				roles[role] = true
+			}
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{Roles: roles, Email: "admin@example.com"})
+			mock(c)
+		}
 	}
 	SetupAssessmentSchemaRouter(api, testMiddleware)
 }
@@ -201,6 +211,38 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidJ
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
+func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaForbiddenForNonOwner() {
+	// Schema owned by a different phase; the requesting lecturer is not an admin.
+	otherPhaseID := uuid.New()
+	schema, err := CreateAssessmentSchemaForCoursePhase(
+		suite.suiteCtx,
+		otherPhaseID,
+		assessmentSchemaDTO.CreateAssessmentSchemaRequest{Name: "Other Phase Schema", Description: ""},
+	)
+	assert.NoError(suite.T(), err)
+
+	lecturerRouter := gin.Default()
+	api := lecturerRouter.Group("/api/course_phase/:coursePhaseID")
+	lecturerMiddleware := func(_ ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles: map[string]bool{promptSDK.CourseLecturer: true},
+			})
+			c.Next()
+		}
+	}
+	SetupAssessmentSchemaRouter(api, lecturerMiddleware)
+
+	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Renamed", Description: ""}
+	body, _ := json.Marshal(updateReq)
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/assessment-schema/"+schema.ID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	lecturerRouter.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaNotFound() {

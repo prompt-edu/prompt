@@ -118,7 +118,7 @@ func main() {
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   true,
-			promptTypes.CapabilityPrivacyDeletion: false,
+			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       false,
 			promptTypes.CapabilityPhaseConfig:     true,
 		},

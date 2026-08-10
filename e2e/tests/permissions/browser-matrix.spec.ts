@@ -9,8 +9,11 @@ import {
 
 const browserSurfaces = SURFACES.filter((s) => s.browser)
 
-async function expectAllowed(page: Page, heading: string) {
+async function expectAllowed(page: Page, heading: string, assertText?: string) {
   await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
+  if (assertText) {
+    await expect(page.getByText(assertText).first()).toBeVisible()
+  }
 }
 
 // Blocked pages render UnauthorizedPage ("Access Denied"). Asserting that overlay
@@ -32,7 +35,7 @@ test.describe('permission matrix (browser)', () => {
 
         test(`${allowed ? 'sees' : 'is blocked from'} ${surface.name}`, async ({ page }) => {
           await page.goto(browser.path(PRIMARY_COURSE.id))
-          if (allowed) await expectAllowed(page, browser.heading)
+          if (allowed) await expectAllowed(page, browser.heading, browser.assertText)
           else await expectBlocked(page, browser.heading)
         })
       }

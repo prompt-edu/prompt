@@ -11,7 +11,6 @@ import {
 } from '@tumaet/prompt-ui-components'
 import * as React from 'react'
 import { Label, Pie, PieChart } from 'recharts'
-import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
 import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
@@ -32,7 +31,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface AssessmentDiagramProps {
-  participations: AssessmentParticipationWithStudent[]
+  participations: Array<{ courseParticipationID: string }>
   scoreLevels: ScoreLevelWithParticipation[]
   completions: CompetencyScoreCompletion[]
   assessmentType?: AssessmentType
@@ -49,7 +48,11 @@ export const AssessmentDiagram = ({
       ? 'self evaluations'
       : assessmentType === AssessmentType.PEER
         ? 'peer evaluations'
-        : 'assessments'
+        : assessmentType === AssessmentType.TUTOR
+          ? 'tutor evaluations'
+          : 'assessments'
+
+  const centerLabel = `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`
 
   const { chartData, totalAssessments, chartDescription } = React.useMemo(() => {
     const completed = participations.filter((p) =>
@@ -89,6 +92,8 @@ export const AssessmentDiagram = ({
                 return 'Self Evaluation'
               case AssessmentType.PEER:
                 return 'Peer Evaluation'
+              case AssessmentType.TUTOR:
+                return 'Tutor Evaluation'
               default:
                 return 'Assessments'
             }
@@ -101,6 +106,8 @@ export const AssessmentDiagram = ({
                 return 'self evaluations '
               case AssessmentType.PEER:
                 return 'peer evaluations '
+              case AssessmentType.TUTOR:
+                return 'tutor evaluations '
               default:
                 return 'assessments '
             }
@@ -141,7 +148,7 @@ export const AssessmentDiagram = ({
                           y={(viewBox.cy || 0) + 24}
                           className='fill-muted-foreground'
                         >
-                          Assessments
+                          {centerLabel}
                         </tspan>
                       </text>
                     )

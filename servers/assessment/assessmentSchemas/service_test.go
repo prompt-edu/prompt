@@ -90,13 +90,14 @@ func (suite *AssessmentSchemaServiceTestSuite) TestGetAssessmentSchemaNotFound()
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchema() {
-	// First create a schema
+	// The owning phase can rename its own schema without being an admin.
+	coursePhaseID := uuid.New()
 	createReq := assessmentSchemaDTO.CreateAssessmentSchemaRequest{
 		Name:        "Original Schema",
 		Description: "Original Description",
 	}
 
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, coursePhaseID, createReq)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 
 	// Now update it
@@ -105,14 +106,46 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchema() {
 		Description: "Updated Description",
 	}
 
-	err = UpdateAssessmentSchema(suite.suiteCtx, schema.ID, updateReq)
-	assert.NoError(suite.T(), err, "Should be able to update assessment schema")
+	err = UpdateAssessmentSchema(suite.suiteCtx, coursePhaseID, schema.ID, updateReq, false)
+	assert.NoError(suite.T(), err, "Owner should be able to update assessment schema")
 
 	// Verify the update
 	updatedSchema, err := GetAssessmentSchema(suite.suiteCtx, schema.ID)
 	assert.NoError(suite.T(), err, "Should be able to retrieve updated schema")
 	assert.Equal(suite.T(), updateReq.Name, updatedSchema.Name, "Name should be updated")
 	assert.Equal(suite.T(), updateReq.Description, updatedSchema.Description, "Description should be updated")
+}
+
+func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNonOwnerForbidden() {
+	// A global schema (no owning phase) cannot be renamed by a non-admin phase.
+	createReq := assessmentSchemaDTO.CreateAssessmentSchemaRequest{
+		Name:        "Global Schema",
+		Description: "Shared",
+	}
+	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
+
+	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Renamed", Description: "Shared"}
+	err = UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, false)
+	assert.ErrorIs(suite.T(), err, ErrSchemaNotAccessible, "Non-owner should be denied")
+}
+
+func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaAdminBypass() {
+	// An admin can rename a global schema they do not own.
+	createReq := assessmentSchemaDTO.CreateAssessmentSchemaRequest{
+		Name:        "Global Schema Admin",
+		Description: "Shared",
+	}
+	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
+
+	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Admin Renamed", Description: "Shared"}
+	err = UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, true)
+	assert.NoError(suite.T(), err, "Admin should be able to rename any schema")
+
+	updatedSchema, err := GetAssessmentSchema(suite.suiteCtx, schema.ID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), updateReq.Name, updatedSchema.Name, "Name should be updated")
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNotFound() {
@@ -122,7 +155,8 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNotFoun
 		Description: "Updated Description",
 	}
 
-	err := UpdateAssessmentSchema(suite.suiteCtx, nonExistentID, updateReq)
+	// Admin path reaches the update and gets ErrSchemaNotFound for a missing schema.
+	err := UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), nonExistentID, updateReq, true)
 	assert.ErrorIs(suite.T(), err, ErrSchemaNotFound, "Should return ErrSchemaNotFound for non-existent schema")
 }
 

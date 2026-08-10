@@ -70,6 +70,23 @@ export const FULL_COURSE_PHASES = {
   assessment: { id: 'd0000005-0000-0000-0000-000000000005', type: 'Assessment' },
 }
 
+// Standalone Team Allocation phase on fullCourse (no graph edge, navigate by
+// URL), owned by the lecturer journey. Stan + Selma participate; the journey
+// creates a team and publishes an allocation here, isolated from the graph
+// Team Allocation phase (FULL_COURSE_PHASES.teamAllocation) used by the smoke /
+// student / API specs so parallel Playwright files never clobber allocations.
+export const TEAM_ALLOCATION_JOURNEY_PHASE_ID = 'b3000001-0000-0000-0000-000000000001'
+
+// Standalone Team Allocation phase on fullCourse (no graph edge) owned by the
+// student journey: Stan participates and the spec publishes/clears his own
+// allocation here, isolated from the lecturer journey's phase and the graph
+// phase so parallel Playwright files never clobber each other's allocations.
+export const TEAM_ALLOCATION_STUDENT_PHASE_ID = 'b3000003-0000-0000-0000-000000000003'
+
+// Team Allocation phase on TestCourse with NO participants: requests by the e2e
+// students must be rejected (negative auth fixture).
+export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-000000000002'
+
 // Standalone Assessment phases on fullCourse (no graph edges, so they are not
 // in the course sidebar — navigate by URL). One phase per spec file, so release
 // state and schema locking never leak between parallel Playwright files:
@@ -128,6 +145,23 @@ export const FULL_COURSE_STUDENT = {
   courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
   matriculationNumber: '00000005',
   universityLogin: 'no42tum',
+  firstName: 'Stan',
+  lastName: 'Stan',
+  email: 'pgdp_enjoyer@example.com',
+  currentSemester: 3,
+}
+
+// Two stable identities among the seeded course_phase_participations on
+// FULL_COURSE_PHASES.application (six in total). The participants list asserts
+// these by identity — never by row count — so parallel specs and reruns never
+// collide.
+export const FULL_COURSE_APPLICATION_PARTICIPANTS = {
+  stan: { firstName: 'Stan', lastName: 'Stan', email: 'pgdp_enjoyer@example.com' },
+  maxMustermann: {
+    firstName: 'Max',
+    lastName: 'Mustermann',
+    email: 'max.mustermann@tum.de',
+  },
 }
 
 // The student mapping to the Keycloak `student2` user (Selma); enrolled in
@@ -145,6 +179,16 @@ export const FULL_COURSE_ROLES = {
   lecturer: 'ios2425-iPraktikumFull-Lecturer',
   editor: 'ios2425-iPraktikumFull-Editor',
 }
+
+// Standalone Example phase on fullCourse (no graph edge, navigate by URL). The
+// example phase is a minimal placeholder module: it hosts the module-federation
+// smoke test and the lecturer-only info API-auth read.
+export const EXAMPLE_PHASE_ID = 'd000000f-0000-0000-0000-00000000000f'
+
+// Example phase on TestCourse: the e2e course-lecturer holds a role scoped to
+// iPraktikumFull only, so its info endpoint must reject them (negative auth
+// fixture).
+export const EXAMPLE_FOREIGN_PHASE_ID = 'd0000010-0000-0000-0000-000000000010'
 
 // CLOSED Application phase on TestCourse (applicationEndDate in the past):
 // the public apply endpoints must reject it (GET 404, POST 400).

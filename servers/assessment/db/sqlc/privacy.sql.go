@@ -52,33 +52,36 @@ func (q *Queries) DeleteCategoryAssessmentsByCourseParticipationIDs(ctx context.
 	return err
 }
 
-const deleteEvaluationCompletionsByCourseParticipationIDs = `-- name: DeleteEvaluationCompletionsByCourseParticipationIDs :exec
+const deleteEvaluationCompletionsByRecipientOrAuthorIDs = `-- name: DeleteEvaluationCompletionsByRecipientOrAuthorIDs :exec
 DELETE FROM evaluation_completion
 WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
 `
 
-func (q *Queries) DeleteEvaluationCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteEvaluationCompletionsByCourseParticipationIDs, dollar_1)
+func (q *Queries) DeleteEvaluationCompletionsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationCompletionsByRecipientOrAuthorIDs, dollar_1)
 	return err
 }
 
-const deleteEvaluationsByCourseParticipationIDs = `-- name: DeleteEvaluationsByCourseParticipationIDs :exec
+const deleteEvaluationsByRecipientOrAuthorIDs = `-- name: DeleteEvaluationsByRecipientOrAuthorIDs :exec
 DELETE FROM evaluation
 WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
 `
 
-func (q *Queries) DeleteEvaluationsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteEvaluationsByCourseParticipationIDs, dollar_1)
+func (q *Queries) DeleteEvaluationsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationsByRecipientOrAuthorIDs, dollar_1)
 	return err
 }
 
-const deleteFeedbackItemsByCourseParticipationIDs = `-- name: DeleteFeedbackItemsByCourseParticipationIDs :exec
+const deleteFeedbackItemsByRecipientOrAuthorIDs = `-- name: DeleteFeedbackItemsByRecipientOrAuthorIDs :exec
 DELETE FROM feedback_items
 WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
 `
 
-func (q *Queries) DeleteFeedbackItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteFeedbackItemsByCourseParticipationIDs, dollar_1)
+func (q *Queries) DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFeedbackItemsByRecipientOrAuthorIDs, dollar_1)
 	return err
 }
 

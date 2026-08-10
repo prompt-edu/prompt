@@ -69,16 +69,16 @@ func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifie
 	if err := qtx.DeleteCategoryAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete category assessments: %w", err)
 	}
-	if err := qtx.DeleteEvaluationsByCourseParticipationIDs(ctx, ids); err != nil {
+	if err := qtx.DeleteEvaluationsByRecipientOrAuthorIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete evaluations: %w", err)
 	}
-	if err := qtx.DeleteEvaluationCompletionsByCourseParticipationIDs(ctx, ids); err != nil {
+	if err := qtx.DeleteEvaluationCompletionsByRecipientOrAuthorIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete evaluation completions: %w", err)
 	}
 	if err := qtx.DeleteActionItemsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete action items: %w", err)
 	}
-	if err := qtx.DeleteFeedbackItemsByCourseParticipationIDs(ctx, ids); err != nil {
+	if err := qtx.DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete feedback items: %w", err)
 	}
 

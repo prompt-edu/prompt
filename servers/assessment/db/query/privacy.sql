@@ -47,18 +47,21 @@ WHERE course_participation_id = ANY($1::uuid[]);
 DELETE FROM category_assessment
 WHERE course_participation_id = ANY($1::uuid[]);
 
--- name: DeleteEvaluationsByCourseParticipationIDs :exec
+-- name: DeleteEvaluationsByRecipientOrAuthorIDs :exec
 DELETE FROM evaluation
-WHERE course_participation_id = ANY($1::uuid[]);
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[]);
 
--- name: DeleteEvaluationCompletionsByCourseParticipationIDs :exec
+-- name: DeleteEvaluationCompletionsByRecipientOrAuthorIDs :exec
 DELETE FROM evaluation_completion
-WHERE course_participation_id = ANY($1::uuid[]);
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[]);
 
 -- name: DeleteActionItemsByCourseParticipationIDs :exec
 DELETE FROM action_item
 WHERE course_participation_id = ANY($1::uuid[]);
 
--- name: DeleteFeedbackItemsByCourseParticipationIDs :exec
+-- name: DeleteFeedbackItemsByRecipientOrAuthorIDs :exec
 DELETE FROM feedback_items
-WHERE course_participation_id = ANY($1::uuid[]);
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[]);

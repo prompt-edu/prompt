@@ -1,6 +1,8 @@
 package privacy
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -20,8 +22,6 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	q := PrivacyServiceSingleton.Queries
 	ids := subject.CourseParticipationIDs
 
-	// The queries backing this export omit every author / third-party identifier
-	// at the SQL level, so no redaction is required here.
 	exp.AddJSON("Assessments", "student/assessment.json", func() (any, error) {
 		return q.GetAllAssessmentsByCourseParticipationIDs(c, ids)
 	})
@@ -52,32 +52,36 @@ func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifie
 
 	tx, err := PrivacyServiceSingleton.Conn.Begin(c)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin deletion transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, c)
 	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
 
 	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete assessments: %w", err)
 	}
 	if err := qtx.DeleteAssessmentCompletionsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete assessment completions: %w", err)
 	}
 	if err := qtx.DeleteCategoryAssessmentsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete category assessments: %w", err)
 	}
 	if err := qtx.DeleteEvaluationsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete evaluations: %w", err)
 	}
 	if err := qtx.DeleteEvaluationCompletionsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete evaluation completions: %w", err)
 	}
 	if err := qtx.DeleteActionItemsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete action items: %w", err)
 	}
 	if err := qtx.DeleteFeedbackItemsByCourseParticipationIDs(c, ids); err != nil {
-		return err
+		return fmt.Errorf("failed to delete feedback items: %w", err)
 	}
 
-	return tx.Commit(c)
+	if err := tx.Commit(c); err != nil {
+		return fmt.Errorf("failed to commit deletion transaction: %w", err)
+	}
+
+	return nil
 }

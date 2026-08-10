@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -838,111 +836,62 @@ func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUI
 	return applicationParticipationsDTO, nil
 }
 
-func isExportedQuestion(accessibleForOtherPhases pgtype.Bool, accessKey pgtype.Text) bool {
-	return accessibleForOtherPhases.Valid && accessibleForOtherPhases.Bool &&
-		accessKey.Valid && strings.TrimSpace(accessKey.String) != ""
-}
-
 func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.ExportedApplicationAnswersResponse, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	textQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	questions, err := ApplicationServiceSingleton.queries.GetExportedApplicationQuestionsForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
-		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application text questions")
-	}
-	multiSelectQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
-	if err != nil {
-		log.Error(err)
-		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application multi-select questions")
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application questions")
 	}
 
-	columns := make([]applicationDTO.ExportedAnswerColumn, 0)
-	exportedTextQuestionIDs := make(map[uuid.UUID]struct{})
-	exportedMultiSelectQuestionIDs := make(map[uuid.UUID]struct{})
-
-	for _, question := range textQuestions {
-		if !isExportedQuestion(question.AccessibleForOtherPhases, question.AccessKey) {
-			continue
-		}
-		exportedTextQuestionIDs[question.ID] = struct{}{}
+	columns := make([]applicationDTO.ExportedAnswerColumn, 0, len(questions))
+	for _, question := range questions {
 		columns = append(columns, applicationDTO.ExportedAnswerColumn{
 			QuestionID: question.ID,
-			Key:        question.AccessKey.String,
-			Title:      question.Title.String,
-			OrderNum:   question.OrderNum.Int32,
-			Type:       "text",
-		})
-	}
-	for _, question := range multiSelectQuestions {
-		if !isExportedQuestion(question.AccessibleForOtherPhases, question.AccessKey) {
-			continue
-		}
-		exportedMultiSelectQuestionIDs[question.ID] = struct{}{}
-		columns = append(columns, applicationDTO.ExportedAnswerColumn{
-			QuestionID: question.ID,
-			Key:        question.AccessKey.String,
-			Title:      question.Title.String,
-			OrderNum:   question.OrderNum.Int32,
-			Type:       "multiselect",
+			Key:        question.AccessKey,
+			Title:      question.Title,
+			OrderNum:   question.OrderNum,
+			Type:       question.QuestionType,
 		})
 	}
 
-	sort.SliceStable(columns, func(i, j int) bool {
-		return columns[i].OrderNum < columns[j].OrderNum
-	})
+	if len(columns) == 0 {
+		return applicationDTO.ExportedApplicationAnswersResponse{
+			Columns: columns,
+			Answers: make([]applicationDTO.ParticipationExportedAnswers, 0),
+		}, nil
+	}
 
-	participations, err := ApplicationServiceSingleton.queries.GetAllApplicationParticipations(ctxWithTimeout, coursePhaseID)
+	answers, err := ApplicationServiceSingleton.queries.GetExportedApplicationAnswersForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
-		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application participations")
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application answers")
 	}
 
-	answersByParticipation := make(map[uuid.UUID][]applicationDTO.ExportedAnswer, len(participations))
-	courseParticipationIDs := make([]uuid.UUID, 0, len(participations))
-	for _, participation := range participations {
-		courseParticipationIDs = append(courseParticipationIDs, participation.CourseParticipationID)
-		answersByParticipation[participation.CourseParticipationID] = make([]applicationDTO.ExportedAnswer, 0)
-	}
-
-	if len(columns) > 0 && len(courseParticipationIDs) > 0 {
-		textAnswers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
-		if err != nil {
-			log.Error(err)
-			return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application text answers")
+	// Only participations with at least one answer are emitted; the client falls back to
+	// a placeholder for the ones it does not find.
+	answersByParticipation := make(map[uuid.UUID][]applicationDTO.ExportedAnswer)
+	participationOrder := make([]uuid.UUID, 0)
+	for _, answer := range answers {
+		if _, seen := answersByParticipation[answer.CourseParticipationID]; !seen {
+			participationOrder = append(participationOrder, answer.CourseParticipationID)
 		}
-		multiSelectAnswers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
-		if err != nil {
-			log.Error(err)
-			return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get application multi-select answers")
-		}
-
-		for _, answer := range textAnswers {
-			if _, ok := exportedTextQuestionIDs[answer.ApplicationQuestionID]; !ok || !answer.Answer.Valid {
-				continue
-			}
-			answersByParticipation[answer.CourseParticipationID] = append(answersByParticipation[answer.CourseParticipationID], applicationDTO.ExportedAnswer{
+		answersByParticipation[answer.CourseParticipationID] = append(
+			answersByParticipation[answer.CourseParticipationID],
+			applicationDTO.ExportedAnswer{
 				QuestionID: answer.ApplicationQuestionID,
-				Answer:     answer.Answer.String,
-			})
-		}
-		for _, answer := range multiSelectAnswers {
-			if _, ok := exportedMultiSelectQuestionIDs[answer.ApplicationQuestionID]; !ok || len(answer.Answer) == 0 {
-				continue
-			}
-			answersByParticipation[answer.CourseParticipationID] = append(answersByParticipation[answer.CourseParticipationID], applicationDTO.ExportedAnswer{
-				QuestionID: answer.ApplicationQuestionID,
-				Answer:     strings.Join(answer.Answer, ", "),
-			})
-		}
+				Answer:     answer.Answer,
+			},
+		)
 	}
 
-	exportedAnswers := make([]applicationDTO.ParticipationExportedAnswers, 0, len(participations))
-	for _, participation := range participations {
+	exportedAnswers := make([]applicationDTO.ParticipationExportedAnswers, 0, len(participationOrder))
+	for _, courseParticipationID := range participationOrder {
 		exportedAnswers = append(exportedAnswers, applicationDTO.ParticipationExportedAnswers{
-			CourseParticipationID: participation.CourseParticipationID,
-			Answers:               answersByParticipation[participation.CourseParticipationID],
+			CourseParticipationID: courseParticipationID,
+			Answers:               answersByParticipation[courseParticipationID],
 		})
 	}
 

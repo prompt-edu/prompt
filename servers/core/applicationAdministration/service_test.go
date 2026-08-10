@@ -491,8 +491,9 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 	qTextNonExported := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	qTextDup1 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	qTextDup2 := uuid.MustParse("44444444-4444-4444-4444-444444444444")
-	qTextEmptyKey := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	qTextWhitespaceKey := uuid.MustParse("55555555-5555-5555-5555-555555555555")
 	qMultiExported := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+	qTextEmptyKey := uuid.MustParse("77777777-7777-7777-7777-777777777777")
 
 	conn := suite.applicationAdminService.conn
 	insertText := func(id uuid.UUID, title string, orderNum int, accessible bool, accessKey interface{}) {
@@ -506,7 +507,8 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 	insertText(qTextNonExported, "Not Exported", 6, false, nil)
 	insertText(qTextDup1, "Duplicate One", 7, true, "dup_key")
 	insertText(qTextDup2, "Duplicate Two", 8, true, "dup_key")
-	insertText(qTextEmptyKey, "Whitespace Key", 9, true, "   ")
+	insertText(qTextWhitespaceKey, "Whitespace Key", 9, true, "   ")
+	insertText(qTextEmptyKey, "Empty Key", 11, true, "")
 
 	_, err = conn.Exec(suite.ctx,
 		`INSERT INTO application_question_multi_select (id, course_phase_id, title, description, placeholder, error_message, is_required, min_select, max_select, options, order_num, accessible_for_other_phases, access_key)
@@ -523,14 +525,14 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 	insertAnswerText(qTextExported, "My motivation text")
 	insertAnswerText(qTextNonExported, "should not appear")
 	insertAnswerText(qTextDup1, "dup answer 1")
-	// qTextDup2 and qTextEmptyKey intentionally left unanswered
+	// qTextDup2, qTextWhitespaceKey and qTextEmptyKey intentionally left unanswered
 
 	_, err = conn.Exec(suite.ctx,
 		`INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer) VALUES ($1, $2, $3, $4)`,
 		uuid.New(), qMultiExported, courseParticipationID, []string{"iPhone", "iPad"})
 	assert.NoError(suite.T(), err)
 
-	allQuestionIDs := []uuid.UUID{qTextExported, qTextNonExported, qTextDup1, qTextDup2, qTextEmptyKey, qMultiExported}
+	allQuestionIDs := []uuid.UUID{qTextExported, qTextNonExported, qTextDup1, qTextDup2, qTextWhitespaceKey, qTextEmptyKey, qMultiExported}
 	defer func() {
 		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_answer_text WHERE application_question_id = ANY($1)`, allQuestionIDs)
 		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_answer_multi_select WHERE application_question_id = ANY($1)`, allQuestionIDs)
@@ -543,8 +545,8 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 
 	// Columns: only exported questions with a non-empty access_key, one per questionID
 	// (duplicate access_key stays two columns), sorted by order_num.
-	assert.Equal(suite.T(), 4, len(response.Columns))
-	expectedOrder := []uuid.UUID{qMultiExported, qTextDup1, qTextDup2, qTextExported}
+	assert.Equal(suite.T(), 5, len(response.Columns))
+	expectedOrder := []uuid.UUID{qMultiExported, qTextDup1, qTextDup2, qTextWhitespaceKey, qTextExported}
 	for i, col := range response.Columns {
 		assert.Equal(suite.T(), expectedOrder[i], col.QuestionID)
 	}
@@ -558,11 +560,15 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 	assert.Equal(suite.T(), "Exported Devices", columnsByID[qMultiExported].Title)
 	assert.Equal(suite.T(), "text", columnsByID[qTextExported].Type)
 	assert.Equal(suite.T(), "motivation_key", columnsByID[qTextExported].Key)
-	// Non-exported and empty/whitespace access_key excluded
+	// Non-exported and empty access_key excluded. A whitespace-only key is kept, matching the
+	// applicationAnswers projection in course_phase_participation.sql that actually transfers
+	// answers to later phases; validateExportSettings rejects such keys on the way in.
 	_, hasNonExported := columnsByID[qTextNonExported]
 	assert.False(suite.T(), hasNonExported)
 	_, hasEmptyKey := columnsByID[qTextEmptyKey]
 	assert.False(suite.T(), hasEmptyKey)
+	_, hasWhitespaceKey := columnsByID[qTextWhitespaceKey]
+	assert.True(suite.T(), hasWhitespaceKey)
 
 	// Answers for the participant we seeded
 	var target *applicationDTO.ParticipationExportedAnswers

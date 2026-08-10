@@ -54,7 +54,7 @@ export const AssessmentHeader = ({
           )}
 
           {/* Name + badges. Sits between the buttons only while docked; fades
-                in as the full card below collapses, so it appears to move up. */}
+              in as the full card below collapses, so it appears to move up. */}
           <div
             className={cn(
               'flex min-w-0 flex-1 items-center justify-center gap-2 px-2 transition-opacity duration-300',

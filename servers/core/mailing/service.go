@@ -14,7 +14,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	log "github.com/sirupsen/logrus"
@@ -127,22 +126,8 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		return mailingDTO.MailingReport{}, fmt.Errorf("mailing template incomplete: subject ('%s') or content ('%s') is empty", mailingInfo.MailSubject, mailingInfo.MailContent)
 	}
 
-	tx, err := MailingServiceSingleton.conn.Begin(ctx)
-	if err != nil {
-		return mailingDTO.MailingReport{}, fmt.Errorf("failed to begin status mail transaction: %w", err)
-	}
-	defer promptSDK.DeferDBRollback(tx, ctx)
-	txQueries := MailingServiceSingleton.queries.WithTx(tx)
-
-	if err := txQueries.AcquireStatusMailLock(ctx, db.AcquireStatusMailLockParams{
-		CoursePhaseID: coursePhaseID,
-		Status:        status,
-	}); err != nil {
-		return mailingDTO.MailingReport{}, fmt.Errorf("failed to acquire status mail lock for course phase %s with status %s: %w", coursePhaseID, status, err)
-	}
-
-	// 3.) Get all participants that have not been accepted incl. information
-	participants, err := txQueries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
+	// 3.) Get all participants with the requested status that have not been mailed for it yet
+	participants, err := MailingServiceSingleton.queries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
 		ID:         coursePhaseID,
 		PassStatus: db.NullPassStatus{PassStatus: status, Valid: true},
 	})
@@ -151,9 +136,9 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		return mailingDTO.MailingReport{}, fmt.Errorf("failed to retrieve participant information for course phase %s with status %s: %v", coursePhaseID, status, err)
 	}
 
-	// 4.) Send mail to all participants that have not already received this status mail.
-	// The transaction-level advisory lock serializes this query-send-mark sequence for each phase
-	// and status, so concurrent triggers re-check the markers written by the preceding request.
+	// 4.) Send the mail and record the dedup marker per participant. Each marker is written by its
+	// own statement so a failure only affects that participant and delivered mails stay recorded.
+	sentAt := nowFn().Format(time.RFC3339)
 	for _, participant := range participants {
 		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, participant)
 		// replace values in subject
@@ -162,7 +147,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		// replace values in content
 		finalMessage := replacePlaceholders(mailingInfo.MailContent, placeholderMap)
 
-		err = SendCourseMail(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
+		err = sendMailFn(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
@@ -172,20 +157,17 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		log.Debug("Successfully sent status mail to: ", participant.Email.String)
 		response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
 
-		if markErr := txQueries.MarkStatusMailSent(ctx, db.MarkStatusMailSentParams{
+		if markErr := MailingServiceSingleton.queries.MarkStatusMailSent(ctx, db.MarkStatusMailSentParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: participant.CourseParticipationID,
 			Status:                string(status),
+			SentAt:                sentAt,
 		}); markErr != nil {
 			// The mail was delivered but the dedup marker could not be persisted, so a future send
 			// could duplicate it. Surface this instead of swallowing it silently.
 			log.Error("failed to mark status mail as sent for participant: ", markErr)
 			response.MarkFailures = append(response.MarkFailures, participant.Email.String)
 		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return response, fmt.Errorf("failed to commit status mail markers: %w", err)
 	}
 
 	return response, nil

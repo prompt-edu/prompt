@@ -12,27 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const acquireStatusMailLock = `-- name: AcquireStatusMailLock :exec
-SELECT pg_advisory_xact_lock(
-    hashtextextended(
-        $1::uuid::text || ':' || $2::pass_status::text,
-        0
-    )
-)
-`
-
-type AcquireStatusMailLockParams struct {
-	CoursePhaseID uuid.UUID  `json:"course_phase_id"`
-	Status        PassStatus `json:"status"`
-}
-
-func (q *Queries) AcquireStatusMailLock(ctx context.Context, arg AcquireStatusMailLockParams) error {
-	_, err := q.db.Exec(ctx, acquireStatusMailLock, arg.CoursePhaseID, arg.Status)
-	return err
-}
-
 const getConfirmationMailingInformation = `-- name: GetConfirmationMailingInformation :one
-SELECT
+SELECT 
     s.first_name,
     s.last_name,
     s.email,
@@ -48,17 +29,17 @@ SELECT
     COALESCE((p.restricted_data->'mailingSettings'->>'confirmationMailSubject'), '')::text AS confirmation_mail_subject,
     COALESCE((p.restricted_data->'mailingSettings'->>'confirmationMailContent'), '')::text AS confirmation_mail_content,
     COALESCE((p.restricted_data->'mailingSettings'->>'sendConfirmationMail')::boolean, false)::boolean AS send_confirmation_mail
-FROM
+FROM 
     course_phase_participation cpp
-JOIN
+JOIN 
     course_participation cp ON cpp.course_participation_id = cp.id
-JOIN
+JOIN 
     student s ON cp.student_id = s.id
-JOIN
+JOIN 
     course_phase p ON cpp.course_phase_id = p.id
-JOIN
+JOIN 
     course c ON p.course_id = c.id
-WHERE
+WHERE 
     cpp.course_participation_id = $1
     AND cpp.course_phase_id = $2
 `
@@ -110,16 +91,16 @@ func (q *Queries) GetConfirmationMailingInformation(ctx context.Context, arg Get
 }
 
 const getCourseMailingSettingsForCoursePhaseID = `-- name: GetCourseMailingSettingsForCoursePhaseID :one
-SELECT
+SELECT 
     COALESCE((c.restricted_data->'mailingSettings'->>'replyToEmail')::text, '')::text AS reply_to_email,
     COALESCE((c.restricted_data->'mailingSettings'->>'replyToName')::text, '')::text AS reply_to_name,
     COALESCE((c.restricted_data->'mailingSettings'->>'ccAddresses')::jsonb, '[]')::jsonb AS cc_addresses,
     COALESCE((c.restricted_data->'mailingSettings'->>'bccAddresses')::jsonb, '[]')::json AS bcc_addresses
-FROM
+FROM 
   course c
 INNER JOIN
   course_phase p ON c.id = p.course_id
-WHERE
+WHERE 
   p.id = $1
 `
 
@@ -143,17 +124,17 @@ func (q *Queries) GetCourseMailingSettingsForCoursePhaseID(ctx context.Context, 
 }
 
 const getFailedMailingInformation = `-- name: GetFailedMailingInformation :one
-SELECT
+SELECT 
     c.name AS course_name,
     c.start_date AS course_start_date,
     c.end_date AS course_end_date,
     COALESCE((p.restricted_data->'mailingSettings'->>'failedMailSubject'), '')::text AS mail_subject,
     COALESCE((p.restricted_data->'mailingSettings'->>'failedMailContent'), '')::text AS mail_content
-FROM
+FROM 
     course_phase p
-JOIN
+JOIN 
     course c ON p.course_id = c.id
-WHERE
+WHERE 
     p.id = $1
 `
 
@@ -179,7 +160,7 @@ func (q *Queries) GetFailedMailingInformation(ctx context.Context, id uuid.UUID)
 }
 
 const getParticipantMailingInformation = `-- name: GetParticipantMailingInformation :many
-SELECT
+SELECT 
     cpp.course_participation_id,
     s.first_name,
     s.last_name,
@@ -189,19 +170,19 @@ SELECT
     s.study_degree,
     s.current_semester,
     s.study_program
-FROM
+FROM 
     course_phase p
-JOIN
+JOIN 
     course_phase_participation cpp ON p.id = cpp.course_phase_id
-JOIN
+JOIN 
     course_participation cp ON cpp.course_participation_id = cp.id
-JOIN
+JOIN 
     student s ON cp.student_id = s.id
-WHERE
+WHERE 
     p.id = $1
-AND
+AND 
     cpp.pass_status = $2
-AND
+AND 
     (cpp.restricted_data -> 'statusMailSentAt' ->> $2::text) IS NULL
 `
 
@@ -253,7 +234,7 @@ func (q *Queries) GetParticipantMailingInformation(ctx context.Context, arg GetP
 }
 
 const getParticipantMailingInformationByIDs = `-- name: GetParticipantMailingInformationByIDs :many
-SELECT
+SELECT 
     cpp.course_participation_id,
     s.first_name,
     s.last_name,
@@ -263,17 +244,17 @@ SELECT
     s.study_degree,
     s.current_semester,
     s.study_program
-FROM
+FROM 
     course_phase p
-JOIN
+JOIN 
     course_phase_participation cpp ON p.id = cpp.course_phase_id
-JOIN
+JOIN 
     course_participation cp ON cpp.course_participation_id = cp.id
-JOIN
+JOIN 
     student s ON cp.student_id = s.id
-WHERE
+WHERE 
     p.id = $1
-AND
+AND 
     cpp.course_participation_id = ANY($2::uuid[])
 `
 
@@ -325,17 +306,17 @@ func (q *Queries) GetParticipantMailingInformationByIDs(ctx context.Context, arg
 }
 
 const getPassedMailingInformation = `-- name: GetPassedMailingInformation :one
-SELECT
+SELECT 
     c.name AS course_name,
     c.start_date AS course_start_date,
     c.end_date AS course_end_date,
     COALESCE((p.restricted_data->'mailingSettings'->>'passedMailSubject'), '')::text AS mail_subject,
     COALESCE((p.restricted_data->'mailingSettings'->>'passedMailContent'), '')::text AS mail_content
-FROM
+FROM 
     course_phase p
-JOIN
+JOIN 
     course c ON p.course_id = c.id
-WHERE
+WHERE 
     p.id = $1
 `
 
@@ -368,20 +349,26 @@ SET restricted_data = COALESCE(restricted_data, '{}'::jsonb) || jsonb_build_obje
         WHEN jsonb_typeof(restricted_data -> 'statusMailSentAt') = 'object'
         THEN restricted_data -> 'statusMailSentAt'
         ELSE '{}'::jsonb
-    END) || jsonb_build_object($1::text, to_jsonb(now()))
+    END) || jsonb_build_object($1::text, to_jsonb($2::text))
 )
-WHERE course_phase_id = $2
-  AND course_participation_id = $3
+WHERE course_phase_id = $3
+  AND course_participation_id = $4
 `
 
 type MarkStatusMailSentParams struct {
 	Status                string    `json:"status"`
+	SentAt                string    `json:"sent_at"`
 	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`
 }
 
 func (q *Queries) MarkStatusMailSent(ctx context.Context, arg MarkStatusMailSentParams) error {
-	_, err := q.db.Exec(ctx, markStatusMailSent, arg.Status, arg.CoursePhaseID, arg.CourseParticipationID)
+	_, err := q.db.Exec(ctx, markStatusMailSent,
+		arg.Status,
+		arg.SentAt,
+		arg.CoursePhaseID,
+		arg.CourseParticipationID,
+	)
 	return err
 }
 

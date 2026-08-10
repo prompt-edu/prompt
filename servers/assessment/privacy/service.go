@@ -50,36 +50,39 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
 	ids := subject.CourseParticipationIDs
 
-	tx, err := PrivacyServiceSingleton.Conn.Begin(c)
+	// needed so when caller closes connection we also stop the procedure
+	ctx := c.Request.Context()
+
+	tx, err := PrivacyServiceSingleton.Conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin deletion transaction: %w", err)
 	}
-	defer promptSDK.DeferDBRollback(tx, c)
+	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
 
-	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete assessments: %w", err)
 	}
-	if err := qtx.DeleteAssessmentCompletionsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteAssessmentCompletionsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete assessment completions: %w", err)
 	}
-	if err := qtx.DeleteCategoryAssessmentsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteCategoryAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete category assessments: %w", err)
 	}
-	if err := qtx.DeleteEvaluationsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteEvaluationsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete evaluations: %w", err)
 	}
-	if err := qtx.DeleteEvaluationCompletionsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteEvaluationCompletionsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete evaluation completions: %w", err)
 	}
-	if err := qtx.DeleteActionItemsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteActionItemsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete action items: %w", err)
 	}
-	if err := qtx.DeleteFeedbackItemsByCourseParticipationIDs(c, ids); err != nil {
+	if err := qtx.DeleteFeedbackItemsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete feedback items: %w", err)
 	}
 
-	if err := tx.Commit(c); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit deletion transaction: %w", err)
 	}
 

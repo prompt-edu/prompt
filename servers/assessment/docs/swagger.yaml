@@ -696,12 +696,6 @@ definitions:
     type: object
   feedbackItemDTO.UpdateFeedbackItemRequest:
     properties:
-      authorCourseParticipationID:
-        type: string
-      courseParticipationID:
-        type: string
-      coursePhaseID:
-        type: string
       feedbackText:
         type: string
       feedbackType:
@@ -710,24 +704,9 @@ definitions:
         enum:
         - positive
         - negative
-      id:
-        type: string
-      type:
-        allOf:
-        - $ref: '#/definitions/assessmentType.AssessmentType'
-        enum:
-        - self
-        - peer
-        - tutor
-        - assessment
     required:
-    - authorCourseParticipationID
-    - courseParticipationID
-    - coursePhaseID
     - feedbackText
     - feedbackType
-    - id
-    - type
     type: object
   pgtype.Float8:
     properties:
@@ -2566,6 +2545,12 @@ paths:
             type: object
         "403":
           description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string

@@ -2522,6 +2522,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -5486,24 +5495,10 @@ const docTemplate = `{
         "feedbackItemDTO.UpdateFeedbackItemRequest": {
             "type": "object",
             "required": [
-                "authorCourseParticipationID",
-                "courseParticipationID",
-                "coursePhaseID",
                 "feedbackText",
-                "feedbackType",
-                "id",
-                "type"
+                "feedbackType"
             ],
             "properties": {
-                "authorCourseParticipationID": {
-                    "type": "string"
-                },
-                "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
-                },
                 "feedbackText": {
                     "type": "string"
                 },
@@ -5515,22 +5510,6 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/db.FeedbackType"
-                        }
-                    ]
-                },
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "enum": [
-                        "self",
-                        "peer",
-                        "tutor",
-                        "assessment"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/assessmentType.AssessmentType"
                         }
                     ]
                 }

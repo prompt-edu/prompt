@@ -208,6 +208,50 @@ func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context,
 	return items, nil
 }
 
+const getAllCategoryAssessmentsByCourseParticipationIDs = `-- name: GetAllCategoryAssessmentsByCourseParticipationIDs :many
+SELECT id, category_id, course_phase_id, course_participation_id, comment, created_at, updated_at
+FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllCategoryAssessmentsByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID          `json:"id"`
+	CategoryID            uuid.UUID          `json:"category_id"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	Comment               string             `json:"comment"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetAllCategoryAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllCategoryAssessmentsByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllCategoryAssessmentsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllCategoryAssessmentsByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllCategoryAssessmentsByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.Comment,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllEvaluationCompletionsByCourseParticipationIDs = `-- name: GetAllEvaluationCompletionsByCourseParticipationIDs :many
 SELECT id, course_participation_id, course_phase_id, completed_at, completed, type
 FROM evaluation_completion

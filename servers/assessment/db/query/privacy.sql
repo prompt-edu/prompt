@@ -10,6 +10,11 @@ SELECT course_participation_id, course_phase_id, completed_at, comment, grade_su
 FROM assessment_completion
 WHERE course_participation_id = ANY($1::uuid[]);
 
+-- name: GetAllCategoryAssessmentsByCourseParticipationIDs :many
+SELECT id, category_id, course_phase_id, course_participation_id, comment, created_at, updated_at
+FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+
 -- name: GetAllEvaluationsByCourseParticipationIDs :many
 SELECT id, course_participation_id, course_phase_id, competency_id, score_level, evaluated_at, type
 FROM evaluation

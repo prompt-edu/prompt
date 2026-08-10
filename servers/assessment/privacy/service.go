@@ -28,6 +28,9 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	exp.AddJSON("Assessment Completions", "student/assessment_completion.json", func() (any, error) {
 		return q.GetAllAssessmentCompletionsByCourseParticipationIDs(c, ids)
 	})
+	exp.AddJSON("Category Assessments", "student/category_assessment.json", func() (any, error) {
+		return q.GetAllCategoryAssessmentsByCourseParticipationIDs(c, ids)
+	})
 	exp.AddJSON("Evaluations", "student/evaluation.json", func() (any, error) {
 		return q.GetAllEvaluationsByCourseParticipationIDs(c, ids)
 	})

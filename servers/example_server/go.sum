@@ -10,6 +10,8 @@ github.com/cloudwego/base64x v0.1.6 h1:t11wG9AECkCDk5fMSoxmufanudBtJ+/HemLstXDLI
 github.com/cloudwego/base64x v0.1.6/go.mod h1:OFcloc187FXDaYHvrNIjxSe8ncn0OOM8gEHfghB2IPU=
 github.com/coreos/go-oidc/v3 v3.19.0 h1:F/xyOi3x1UnG1U27YVnM1N6bHiL1K2upi6U/0qr8r+I=
 github.com/coreos/go-oidc/v3 v3.19.0/go.mod h1:DYCf24+ncYi+XkIH97GY1+dqoRlbaSI26KVTCI9SrY4=
+github.com/coreos/go-oidc/v3 v3.20.0 h1:EtE0WIBHk03N+DqGkY4+UONzzZHk7amKt6IyNd7OsZE=
+github.com/coreos/go-oidc/v3 v3.20.0/go.mod h1:DYCf24+ncYi+XkIH97GY1+dqoRlbaSI26KVTCI9SrY4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
@@ -26,6 +28,8 @@ github.com/getsentry/sentry-go/gin v0.48.0 h1:AT5zU/GZqgD4m4mzCRnY3qckeb2L423aih
 github.com/getsentry/sentry-go/gin v0.48.0/go.mod h1:MqdZe63I4Bwu3J8SiHaPIGP86/d0uZjOFfsOPZecRjU=
 github.com/getsentry/sentry-go/logrus v0.47.0 h1:GJ0X+PnvPyOTQNEPgDE6KhyWe/s7hXW7DdjF8nyWd/s=
 github.com/getsentry/sentry-go/logrus v0.47.0/go.mod h1:YyETTezOW0eAgsCrW82l/FKwpgxnkHryhXbrzxw3M54=
+github.com/getsentry/sentry-go/logrus v0.48.0 h1:GmbLhkBj4OIJtgpYPS+ATxP1fKavoQu6X7BqsBjnJEk=
+github.com/getsentry/sentry-go/logrus v0.48.0/go.mod h1:Z52c8vxKSL5nz0vifnwes5zNpKFZlO6EpeFZFW51kG8=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=
 github.com/gin-contrib/sse v1.1.0/go.mod h1:hxRZ5gVpWMT7Z0B0gSNYqqsSCNIJMjzvm6fqCz9vjwM=
 github.com/gin-gonic/gin v1.12.0 h1:b3YAbrZtnf8N//yjKeU2+MQsh2mY5htkZidOM7O0wG8=
@@ -114,6 +118,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prompt-edu/prompt-sdk v1.2.2 h1:/y7WRnWQEi6pABl1WqY3SewMkYcHE2v3Lb+QtTDVM+M=
 github.com/prompt-edu/prompt-sdk v1.2.2/go.mod h1:6uUDwlj9PWRmyBkgTkOT1s3+IoqJTrpBhH1O+IrZ3sg=
+github.com/prompt-edu/prompt-sdk v1.2.3 h1:J06BFzajd7JzRvomGZ9lyJWgv9eUfOmW5hLdItKFCIg=
+github.com/prompt-edu/prompt-sdk v1.2.3/go.mod h1:YQ7zx49hYt4c58RNFQdJNhxmFx9f35FoXGMrr+MlsIQ=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/quic-go/quic-go v0.59.1 h1:0Gmua0HW1Tv7ANR7hUYwRyD0MG5OJfgvYSZasGZzBic=

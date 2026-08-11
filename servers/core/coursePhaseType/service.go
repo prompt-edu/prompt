@@ -50,6 +50,22 @@ func GetCoursePhaseTypesForStudent(ctx context.Context, studentID uuid.UUID) ([]
 	return addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
 }
 
+func GetCoursePhaseTypesForStudentCourses(ctx context.Context, studentID uuid.UUID) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
+	if studentID == uuid.Nil {
+		return []coursePhaseTypeDTO.CoursePhaseType{}, nil
+	}
+
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	coursePhaseTypes, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseTypesForStudentCourses(ctxWithTimeout, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	return addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
+}
+
 func addCoursePhaseTypeInputOutput(ctx context.Context, coursePhaseTypes []db.CoursePhaseType) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
 	dtoCoursePhaseTypes := make([]coursePhaseTypeDTO.CoursePhaseType, 0, len(coursePhaseTypes))
 	for _, phaseType := range coursePhaseTypes {

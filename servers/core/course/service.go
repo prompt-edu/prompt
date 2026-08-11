@@ -26,6 +26,7 @@ type CourseService struct {
 	conn    *pgxpool.Pool
 	// use dependency injection for keycloak to allow mocking
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
+	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error
 }
 
 var CourseServiceSingleton *CourseService
@@ -434,6 +435,14 @@ func UpdateCourseData(ctx context.Context, courseID uuid.UUID, courseData course
 }
 
 func DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
+	// Delete the Keycloak groups and roles first: the group name is derived from
+	// the course row, which must still exist. On failure the course is kept so it
+	// stays deletable on a later retry instead of orphaning its Keycloak state.
+	if err := CourseServiceSingleton.deleteCourseGroupsAndRoles(ctx, courseID); err != nil {
+		log.Error("Failed to delete keycloak groups and roles for course: ", err)
+		return errors.New("failed to delete keycloak groups and roles")
+	}
+
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 

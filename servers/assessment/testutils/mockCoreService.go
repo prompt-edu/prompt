@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,12 +46,35 @@ func mockPersons(ids []uuid.UUID) []map[string]any {
 	return persons
 }
 
-func SetupMockCoreService() (*httptest.Server, func()) {
+// MockCore is a handle on the mock core service. It records the Authorization header of every
+// course phase data resolution so tests can assert the caller's header actually reached core.
+type MockCore struct {
+	Server *httptest.Server
+
+	mu                        sync.Mutex
+	coursePhaseDataAuthHeader string
+}
+
+func (m *MockCore) LastCoursePhaseDataAuthHeader() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.coursePhaseDataAuthHeader
+}
+
+func (m *MockCore) recordCoursePhaseDataAuthHeader(authHeader string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.coursePhaseDataAuthHeader = authHeader
+}
+
+func SetupMockCoreService() (*MockCore, func()) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	mock := &MockCore{}
 
 	// Mock course phase data resolution, used to resolve teams for a course phase
 	router.GET("/api/course_phases/:id/course_phase_data", func(c *gin.Context) {
+		mock.recordCoursePhaseDataAuthHeader(c.GetHeader("Authorization"))
 		c.JSON(http.StatusOK, gin.H{
 			"prevData": gin.H{
 				"teams": []map[string]any{
@@ -118,6 +142,7 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 	})
 
 	server := httptest.NewServer(router)
+	mock.Server = server
 
 	oldCoreHost := os.Getenv("SERVER_CORE_HOST")
 	_ = os.Setenv("SERVER_CORE_HOST", server.URL)
@@ -131,7 +156,7 @@ func SetupMockCoreService() (*httptest.Server, func()) {
 		}
 	}
 
-	return server, cleanup
+	return mock, cleanup
 }
 
 func GetMockCourseIdentifier(coursePhaseID uuid.UUID) string {

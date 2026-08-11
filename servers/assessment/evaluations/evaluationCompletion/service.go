@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,8 +41,8 @@ func IsTargetAuthorizationError(err error) bool {
 		errors.Is(err, ErrAuthorHasNoTeam)
 }
 
-func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	if err := checkEvaluationTarget(ctx, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
+func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	if err := checkEvaluationTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
 		return err
 	}
 
@@ -98,7 +97,10 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParti
 // checkEvaluationTarget enforces who a record of the given type may be written about.
 // A self evaluation must target its author; a peer evaluation must target a member of the
 // author's team; a tutor evaluation must target one of that team's tutors.
-func checkEvaluationTarget(ctx context.Context, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+//
+// The default branch returns nil rather than rejecting: unknown types are the responsibility of
+// the evaluation-type switch in CheckEvaluationIsEditable, which answers ErrInvalidEvaluationType.
+func checkEvaluationTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
 	switch evaluationType {
 	case assessmentType.Self:
 		if courseParticipationID != authorCourseParticipationID {
@@ -106,14 +108,14 @@ func checkEvaluationTarget(ctx context.Context, coursePhaseID, courseParticipati
 		}
 		return nil
 	case assessmentType.Peer, assessmentType.Tutor:
-		return checkTeamTarget(ctx, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
+		return checkTeamTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
 	default:
 		return nil
 	}
 }
 
-func checkTeamTarget(ctx context.Context, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	teams, err := getTeamsForCoursePhaseFn(ctx, authHeaderFromContext(ctx), coursePhaseID)
+func checkTeamTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	teams, err := getTeamsForCoursePhaseFn(ctx, authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch teams to validate the evaluation target: ", err)
 		return errors.New("could not fetch teams to validate the evaluation target")
@@ -137,6 +139,8 @@ func checkTeamTarget(ctx context.Context, coursePhaseID, courseParticipationID, 
 	return nil
 }
 
+// teamOfMember returns the first team the participant belongs to. A participant belongs to exactly
+// one team per course phase, so the first match is the only match.
 func teamOfMember(teams []promptTypes.Team, courseParticipationID uuid.UUID) (promptTypes.Team, bool) {
 	for _, team := range teams {
 		if containsPerson(team.Members, courseParticipationID) {
@@ -155,15 +159,8 @@ func containsPerson(persons []promptTypes.Person, courseParticipationID uuid.UUI
 	return false
 }
 
-func authHeaderFromContext(ctx context.Context) string {
-	if ginCtx, ok := ctx.(*gin.Context); ok {
-		return ginCtx.GetHeader("Authorization")
-	}
-	return ""
-}
-
-func CreateOrUpdateEvaluationCompletion(ctx context.Context, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+func CreateOrUpdateEvaluationCompletion(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
@@ -196,8 +193,8 @@ func CreateOrUpdateEvaluationCompletion(ctx context.Context, req evaluationCompl
 	return nil
 }
 
-func MarkEvaluationAsCompleted(ctx context.Context, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+func MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}

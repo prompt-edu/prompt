@@ -206,7 +206,7 @@ func createOrUpdateEvaluation(c *gin.Context) {
 		return
 	}
 
-	err = CreateOrUpdateEvaluation(c, coursePhaseID, request)
+	err = CreateOrUpdateEvaluation(c, c.GetHeader("Authorization"), coursePhaseID, request)
 	if err != nil {
 		if evaluationCompletion.IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
@@ -254,7 +254,7 @@ func deleteEvaluation(c *gin.Context) {
 		return
 	}
 
-	err = DeleteEvaluation(c, evaluationID)
+	err = DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

@@ -492,3 +492,173 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReuseUsesPersist
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length of 10")
 }
+
+// TestImportApplications_ReImportKeepsManualPassStatus verifies a re-import does not overwrite a
+// pass status a lecturer set by hand on a participation the import did not just create.
+func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportKeepsManualPassStatus() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusNotAssessed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Manual", LastName: "Status", Email: "manual.status@example.com",
+				UniversityLogin: "ms01abc",
+			}},
+		},
+	}
+
+	first, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, first.Created)
+	participationID := *first.Rows[0].CourseParticipationID
+
+	// The lecturer rejects the student by hand.
+	_, err = suite.applicationAdminService.conn.Exec(suite.ctx,
+		`UPDATE course_phase_participation SET pass_status = 'failed' WHERE course_participation_id = $1 AND course_phase_id = $2`,
+		participationID, importApplicationPhaseID)
+	assert.NoError(suite.T(), err)
+
+	// Re-importing the same roster with the default status must not flip the manual decision.
+	req.PassStatus = db.PassStatusPassed
+	second, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 0, second.Created)
+	assert.Equal(suite.T(), 1, second.Updated)
+	assert.Equal(suite.T(), "failed", suite.passStatusForParticipation(participationID, importApplicationPhaseID))
+}
+
+// TestImportApplications_QuestionDefaultsPersisted verifies imported questions store the column
+// defaults for accessible_for_other_phases and access_key instead of NULL, so the Questions editor
+// (which validates a boolean) is not broken by an import.
+func (suite *ApplicationImportTestSuite) TestImportApplications_QuestionDefaultsPersisted() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "defaults", Title: "Defaults Question", AllowedLength: 50},
+		},
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{FirstName: "Def", LastName: "Aults", Email: "def.aults@example.com", UniversityLogin: "da01abc"}},
+		},
+	}
+	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.NoError(suite.T(), err)
+
+	var accessible pgtype.Bool
+	var accessKey pgtype.Text
+	err = suite.applicationAdminService.conn.QueryRow(suite.ctx,
+		`SELECT accessible_for_other_phases, access_key FROM application_question_text
+		 WHERE course_phase_id = $1 AND title = 'Defaults Question'`, importApplicationPhaseID).Scan(&accessible, &accessKey)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), accessible.Valid)
+	assert.False(suite.T(), accessible.Bool)
+	assert.True(suite.T(), accessKey.Valid)
+	assert.Equal(suite.T(), "", accessKey.String)
+}
+
+// TestImport_RoleNotResolvedForStoredMatriculation verifies the tightened GetStudentRoleStrings
+// query: a token that carries no matriculation claim resolves the role only for a student whose
+// stored matriculation is also empty, never one that carries a number.
+func (suite *ApplicationImportTestSuite) TestImport_RoleNotResolvedForStoredMatriculation() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Has", LastName: "Matriculation", Email: "has.matriculation@example.com",
+				UniversityLogin: "hm01abc", MatriculationNumber: "01000009",
+			}},
+		},
+	}
+	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.NoError(suite.T(), err)
+
+	// A token missing the matriculation claim must not match this student, who carries one.
+	roles, err := suite.applicationAdminService.queries.GetStudentRoleStrings(suite.ctx, db.GetStudentRoleStringsParams{
+		MatriculationNumber: pgtype.Text{String: "", Valid: true},
+		UniversityLogin:     pgtype.Text{String: "hm01abc", Valid: true},
+	})
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), roles)
+
+	// The real matriculation number still resolves the role.
+	matched, err := suite.applicationAdminService.queries.GetStudentRoleStrings(suite.ctx, db.GetStudentRoleStringsParams{
+		MatriculationNumber: pgtype.Text{String: "01000009", Valid: true},
+		UniversityLogin:     pgtype.Text{String: "hm01abc", Valid: true},
+	})
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), matched)
+}
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_DuplicateEmailRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{FirstName: "Dup", LastName: "MailA", Email: "shared@example.com", UniversityLogin: "de01abc"}},
+			{Student: studentDTO.CreateStudent{FirstName: "Dup", LastName: "MailB", Email: "Shared@example.com", UniversityLogin: "de02abc"}},
+		},
+	}
+
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "duplicate email")
+}
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_EmptyRowsRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	req := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		NewQuestions: []applicationDTO.NewImportQuestion{
+			{ColumnKey: "note", Title: "Empty Rows Note", AllowedLength: 50},
+		},
+		Rows: []applicationDTO.ImportRow{},
+	}
+
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "no rows")
+}
+
+func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidOptionalFieldsRejected() {
+	suite.setApplicationMode(importApplicationPhaseID, "import")
+	defer suite.setApplicationMode(importApplicationPhaseID, "")
+
+	// A semester value the CSV does provide must be valid, since it is written to the shared student row.
+	semesterReq := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Zero", LastName: "Semester", Email: "zero.semester@example.com",
+				UniversityLogin: "zs01abc", CurrentSemester: pgtype.Int4{Int32: 0, Valid: true},
+			}},
+		},
+	}
+	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, semesterReq)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "semester is invalid")
+
+	// A study degree outside the enum must be rejected rather than silently persisted.
+	degreeReq := applicationDTO.ImportApplicationRequest{
+		PassStatus: db.PassStatusPassed,
+		Rows: []applicationDTO.ImportRow{
+			{Student: studentDTO.CreateStudent{
+				FirstName: "Bad", LastName: "Degree", Email: "bad.degree@example.com",
+				UniversityLogin: "bd01abc", StudyDegree: db.StudyDegree("phd"),
+			}},
+		},
+	}
+	err = validateApplicationImport(suite.ctx, importApplicationPhaseID, degreeReq)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "study degree is invalid")
+}

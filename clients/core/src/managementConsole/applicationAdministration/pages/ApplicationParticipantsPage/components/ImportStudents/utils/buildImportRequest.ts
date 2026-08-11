@@ -26,14 +26,14 @@ export const buildImportRequest = (
 ): ImportApplicationRequest => {
   const questionHeaders = headers.filter((header) => mapping[header] === 'question')
 
-  const newQuestions: NewImportQuestion[] = questionHeaders.map((header) => {
-    const maxLength = rows.reduce((max, row) => Math.max(max, (row[header] ?? '').length), 1)
-    return {
-      columnKey: header,
-      title: header.trim(),
-      allowedLength: Math.min(Math.max(maxLength, 1), MAX_ANSWER_LENGTH),
-    }
-  })
+  // Imported questions get a fixed default length rather than one inferred from this file's longest
+  // cell. The server freezes the length permanently and validates every later import against it, so a
+  // column that happens to be empty in the first file must not brick re-imports with a length of 1.
+  const newQuestions: NewImportQuestion[] = questionHeaders.map((header) => ({
+    columnKey: header,
+    title: header.trim(),
+    allowedLength: MAX_ANSWER_LENGTH,
+  }))
 
   const columnForTarget = (target: ColumnTarget): string | undefined =>
     headers.find((header) => mapping[header] === target)
@@ -69,4 +69,43 @@ export const buildImportRequest = (
   })
 
   return { passStatus, newQuestions, rows: importRows }
+}
+
+export interface UnmatchedEnumValues {
+  gender: string[]
+  studyDegree: string[]
+}
+
+/**
+ * Collects the distinct non-empty gender and study-degree values that do not match any enum option.
+ * These are silently coerced to the server-side defaults (bachelor / prefer_not_to_say), so the
+ * preview step surfaces them: a value the file did state is different from one it omitted.
+ */
+export const collectUnmatchedEnumValues = (
+  headers: string[],
+  rows: Record<string, string>[],
+  mapping: Record<string, ColumnTarget>,
+): UnmatchedEnumValues => {
+  const columnForTarget = (target: ColumnTarget): string | undefined =>
+    headers.find((header) => mapping[header] === target)
+
+  const collect = (target: ColumnTarget, allowed: string[]): string[] => {
+    const column = columnForTarget(target)
+    if (!column) {
+      return []
+    }
+    const unmatched = new Set<string>()
+    for (const row of rows) {
+      const raw = (row[column] ?? '').trim()
+      if (raw.length > 0 && matchEnumValue(allowed, raw) === '') {
+        unmatched.add(raw)
+      }
+    }
+    return Array.from(unmatched)
+  }
+
+  return {
+    gender: collect('gender', Object.values(Gender)),
+    studyDegree: collect('studyDegree', Object.values(StudyDegree)),
+  }
 }

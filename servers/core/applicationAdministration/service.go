@@ -1056,6 +1056,11 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			IsRequired:    false,
 			AllowedLength: nq.AllowedLength,
 			OrderNum:      nextOrder,
+			// Set both explicitly so the insert writes the migration-0009 defaults instead of NULL,
+			// matching the non-import creation path. NULL would break the Questions editor, which
+			// validates accessibleForOtherPhases as a boolean.
+			AccessibleForOtherPhases: pgtype.Bool{Bool: false, Valid: true},
+			AccessKey:                pgtype.Text{String: "", Valid: true},
 		}.GetDBModel()
 		questionDBModel.ID = uuid.New()
 		if err := qtx.CreateApplicationQuestionText(ctx, questionDBModel); err != nil {
@@ -1071,26 +1076,18 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 
 	// 2. Upsert each student, participation and answers.
 	result := applicationDTO.ImportResult{Rows: make([]applicationDTO.ImportRowResult, 0, len(req.Rows))}
-	participationIDs := make([]uuid.UUID, 0, len(req.Rows))
+	// Only participations this import newly creates receive the chosen pass status, so a re-import
+	// of an existing roster cannot silently overwrite statuses a lecturer set by hand.
+	createdParticipationIDs := make([]uuid.UUID, 0, len(req.Rows))
 	for i, row := range req.Rows {
 		studentInput := row.Student
 		studentInput.HasUniversityAccount = true
 		studentInput.UniversityLogin = strings.ToLower(strings.TrimSpace(studentInput.UniversityLogin))
 		studentInput.MatriculationNumber = strings.TrimSpace(studentInput.MatriculationNumber)
 
-		// Detect whether this row updates a student that is already in this course phase, and
-		// preserve any attributes the CSV omits so a partial re-import (or a student known from
+		// Preserve any attributes the CSV omits so a partial re-import (or a student known from
 		// another course) does not have their gender/nationality/degree/etc. reset to defaults.
-		outcome := "created"
 		if existing, resolveErr := student.ResolveStudentByUniversityCredentials(ctx, &queries, studentInput.MatriculationNumber, studentInput.UniversityLogin); resolveErr == nil {
-			alreadyInPhase, err := qtx.GetApplicationExistsForStudent(ctx, db.GetApplicationExistsForStudentParams{StudentID: existing.ID, ID: coursePhaseID})
-			if err != nil {
-				log.Error(err)
-				return applicationDTO.ImportResult{}, errors.New("could not check for existing participation")
-			}
-			if alreadyInPhase {
-				outcome = "updated"
-			}
 			if studentInput.Gender == "" {
 				studentInput.Gender = existing.Gender
 			}
@@ -1138,12 +1135,26 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			return applicationDTO.ImportResult{}, errors.New("could not save the course participation")
 		}
 
+		// Classify created vs. updated on the phase-scoped participation (checked before we create
+		// it), not on course membership, so the reported outcome matches what this phase gains.
+		alreadyInPhase, err := qtx.GetApplicationExists(ctx, db.GetApplicationExistsParams{CoursePhaseID: coursePhaseID, CourseParticipationID: cParticipation.ID})
+		if err != nil {
+			log.Error(err)
+			return applicationDTO.ImportResult{}, errors.New("could not check for existing participation")
+		}
+		outcome := "created"
+		if alreadyInPhase {
+			outcome = "updated"
+		}
+
 		cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 		if err != nil {
 			log.Error(err)
 			return applicationDTO.ImportResult{}, errors.New("could not save the course phase participation")
 		}
-		participationIDs = append(participationIDs, cPhaseParticipation.CourseParticipationID)
+		if !alreadyInPhase {
+			createdParticipationIDs = append(createdParticipationIDs, cPhaseParticipation.CourseParticipationID)
+		}
 
 		for _, ans := range row.Answers {
 			questionID, ok := questionIDByColumn[ans.ColumnKey]
@@ -1189,10 +1200,11 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 		}
 	}
 
-	// 3. Apply the chosen pass status to the whole batch (including pre-existing participations).
-	if len(participationIDs) > 0 {
+	// 3. Apply the chosen pass status only to the participations this import newly created. Pre-existing
+	// participations keep whatever status they already have, so a re-import cannot flip a manual decision.
+	if len(createdParticipationIDs) > 0 {
 		if _, err := qtx.UpdateCoursePhasePassStatus(ctx, db.UpdateCoursePhasePassStatusParams{
-			CourseParticipationID: participationIDs,
+			CourseParticipationID: createdParticipationIDs,
 			CoursePhaseID:         coursePhaseID,
 			PassStatus:            req.PassStatus,
 		}); err != nil {

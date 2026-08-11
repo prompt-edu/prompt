@@ -21,11 +21,10 @@ export const ApplicationParticipantsPage = (): ReactNode => {
           {participations && customScoresEnabled && (
             <AssessmentScoreUpload applications={participations} />
           )}
-          {importModeEnabled ? (
-            <ImportStudents existingApplications={participations ?? []} />
-          ) : (
-            <ApplicationManualAddingDialog existingApplications={participations ?? []} />
-          )}
+          {importModeEnabled && <ImportStudents existingApplications={participations ?? []} />}
+          {/* The manual-add dialog stays available in import mode: it is the only way to add a
+              student without a TUM login (e.g. an exchange student), which the CSV import rejects. */}
+          <ApplicationManualAddingDialog existingApplications={participations ?? []} />
         </div>
       </div>
       <ApplicationParticipantsTable phaseId={phaseId!} />

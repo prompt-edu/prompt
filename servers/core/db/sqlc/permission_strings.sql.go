@@ -79,7 +79,7 @@ FROM course c
 JOIN course_participation cp ON c.id = cp.course_id
 JOIN student s ON cp.student_id = s.id
 WHERE s.university_login = $2
-AND (COALESCE(s.matriculation_number, '') = '' OR s.matriculation_number = $1 OR $1 = '')
+AND (s.matriculation_number = $1 OR COALESCE(s.matriculation_number, '') = '')
 `
 
 type GetStudentRoleStringsParams struct {
@@ -87,6 +87,10 @@ type GetStudentRoleStringsParams struct {
 	UniversityLogin     pgtype.Text `json:"university_login"`
 }
 
+// The university login is unique (partial unique index), so it identifies the student on its own.
+// Matriculation is optional for imported students: match it when the row carries one, otherwise fall
+// back to the login. A token without a matriculation claim ($1 = ”) therefore matches only a student
+// whose stored matriculation is also empty, never one that carries a different number.
 func (q *Queries) GetStudentRoleStrings(ctx context.Context, arg GetStudentRoleStringsParams) ([]string, error) {
 	rows, err := q.db.Query(ctx, getStudentRoleStrings, arg.MatriculationNumber, arg.UniversityLogin)
 	if err != nil {

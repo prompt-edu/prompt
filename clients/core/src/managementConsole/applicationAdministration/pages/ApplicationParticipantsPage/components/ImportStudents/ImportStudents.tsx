@@ -20,7 +20,7 @@ import { ImportMappingStep } from './components/ImportMappingStep'
 import { ImportPreviewStep } from './components/ImportPreviewStep'
 import { ImportResultSummary } from './components/ImportResultSummary'
 import { ImportUploadStep } from './components/ImportUploadStep'
-import { buildImportRequest } from './utils/buildImportRequest'
+import { buildImportRequest, collectUnmatchedEnumValues } from './utils/buildImportRequest'
 import { buildInitialMapping, type ColumnTarget, validateMapping } from './utils/matchImportColumns'
 import { parseImportCsv } from './utils/parseImportCsv'
 
@@ -78,6 +78,11 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
     : 0
   const newCount = request ? request.rows.length - updateCount : 0
 
+  const unmatchedEnums = useMemo(
+    () => collectUnmatchedEnumValues(headers, rows, mapping),
+    [headers, rows, mapping],
+  )
+
   const { mutate, isPending } = useMutation({
     mutationFn: (importRequest: ImportApplicationRequest) =>
       postApplicationImport(phaseId ?? '', importRequest),
@@ -93,10 +98,12 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
         variant: 'default',
       })
     },
-    onError: () => {
+    onError: (error: unknown) => {
+      const serverMessage = (error as { response?: { data?: { error?: string } } })?.response?.data
+        ?.error
       toast({
         title: 'Import failed',
-        description: 'Please check the file and try again.',
+        description: serverMessage ?? 'Please check the file and try again.',
         variant: 'destructive',
       })
     },
@@ -194,6 +201,7 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
               questionCount={request.newQuestions.length}
               passStatus={passStatus}
               onPassStatusChange={setPassStatus}
+              unmatchedEnums={unmatchedEnums}
             />
           )}
           {page === RESULT_PAGE && result && <ImportResultSummary result={result} />}
@@ -218,7 +226,11 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
               Done
             </Button>
           ) : (
-            <Button className='ml-auto' onClick={goNext} disabled={isPending}>
+            <Button
+              className='ml-auto'
+              onClick={goNext}
+              disabled={isPending || (page === PREVIEW_PAGE && (request?.rows.length ?? 0) === 0)}
+            >
               {isPending && <Loader2 className='h-4 w-4 mr-2 animate-spin' />}
               {page === PREVIEW_PAGE ? 'Import' : 'Next'}
             </Button>

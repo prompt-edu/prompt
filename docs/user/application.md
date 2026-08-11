@@ -53,7 +53,7 @@ Import is an **either/or** choice per application phase: when the intake mode is
 
 ### Enabling Import Mode
 
-Open the **Settings** page, set **Intake Mode** to **CSV Import** under General Settings, and save. The **Participants** page then shows an **Import Students** button in place of the manual add dialog.
+Open the **Settings** page, set **Intake Mode** to **CSV Import** under General Settings, and save. The **Participants** page then shows an **Import Students** button. The manual **Add Student** dialog stays available too, so you can still add a single student who has no university login (for example an exchange student the CSV import cannot represent).
 
 > Switching modes never deletes existing applicants — it only opens or closes the public form.
 
@@ -85,7 +85,13 @@ Click **Import Students** on the Participants page and follow the wizard:
    * **Not assessed** — the students are registered but still reviewed like normal applicants.
 4. **Result** — A summary reports how many students were created and updated.
 
+The chosen status is applied only to students the import **newly adds**. Students who are already in the phase keep whatever status they currently have, so re-importing a roster never overrides a decision (such as a rejection) you made by hand.
+
 Re-running an import with the same University IDs **updates** those students instead of creating duplicates, so you can safely re-import an updated file.
+
+:::note Clearing an imported value
+Re-importing overwrites a student's answer only when the cell has a value. Leaving a cell **blank** on re-import keeps the previously imported value rather than clearing it; edit or remove the value on the **Questions** or participant view instead.
+:::
 
 ### Extra Columns as Questions
 

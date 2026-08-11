@@ -283,6 +283,9 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
+	if len(req.Rows) == 0 {
+		return errors.New("import contains no rows")
+	}
 	if len(req.Rows) > maxImportRows {
 		return fmt.Errorf("too many rows in import: %d (maximum is %d)", len(req.Rows), maxImportRows)
 	}
@@ -353,8 +356,11 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		}
 	}
 
-	// Validate the rows.
+	// Validate the rows. Both login and email carry unique indexes on the student row, so a duplicate
+	// of either inside the file must be caught here: otherwise the second row aborts the whole
+	// transaction mid-import with an opaque 23505 conflict instead of a clear, row-identifying error.
 	seenLogins := make(map[string]bool, len(req.Rows))
+	seenEmails := make(map[string]bool, len(req.Rows))
 	for _, row := range req.Rows {
 		login := strings.ToLower(strings.TrimSpace(row.Student.UniversityLogin))
 		if login == "" {
@@ -364,6 +370,14 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 			return fmt.Errorf("duplicate university login in file: %s", login)
 		}
 		seenLogins[login] = true
+
+		email := strings.ToLower(strings.TrimSpace(row.Student.Email))
+		if email != "" {
+			if seenEmails[email] {
+				return fmt.Errorf("duplicate email in file: %s", email)
+			}
+			seenEmails[email] = true
+		}
 
 		studentInput := row.Student
 		studentInput.HasUniversityAccount = true

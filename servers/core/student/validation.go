@@ -59,6 +59,18 @@ func ValidateImport(c studentDTO.CreateStudent) error {
 	if err := validateUniversityData(true, c.MatriculationNumber, c.UniversityLogin); err != nil {
 		return err
 	}
+	// Optional attributes are omitted-then-defaulted by the import service, but a value the CSV does
+	// provide is written verbatim to the globally shared student row, so reject an invalid one here.
+	if c.CurrentSemester.Valid && c.CurrentSemester.Int32 < 1 {
+		return errors.New("semester is invalid")
+	}
+	if c.StudyDegree != "" && c.StudyDegree != db.StudyDegreeBachelor && c.StudyDegree != db.StudyDegreeMaster {
+		return errors.New("study degree is invalid")
+	}
+	if c.Gender != "" && c.Gender != db.GenderMale && c.Gender != db.GenderFemale &&
+		c.Gender != db.GenderDiverse && c.Gender != db.GenderPreferNotToSay {
+		return errors.New("gender is invalid")
+	}
 	return nil
 }
 

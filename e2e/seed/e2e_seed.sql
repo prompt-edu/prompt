@@ -865,7 +865,7 @@ INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 
 -- existing course lifecycle fixtures remain unchanged.
 --
 
-INSERT INTO public.course_phase VALUES ('d000000f-0000-0000-0000-00000000000f', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
+INSERT INTO public.course_phase VALUES ('d0000011-0000-0000-0000-000000000011', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
 
 --
 -- Standalone interview fixture phase (no graph edge, see above):

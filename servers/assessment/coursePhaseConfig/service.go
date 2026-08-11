@@ -112,6 +112,25 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 	return coursePhaseConfigDTO.MapDBCoursePhaseConfigToDTOCoursePhaseConfig(config), nil
 }
 
+// GetStoredCoursePhaseConfig is the read-only counterpart of GetCoursePhaseConfig: it never creates
+// a row, so read paths stay reads. An unconfigured phase carries the column defaults, which is what
+// the returned config describes.
+func GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
+	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return coursePhaseConfigDTO.CoursePhaseConfig{
+			CoursePhaseID:     coursePhaseID,
+			AssessmentEnabled: true,
+		}, nil
+	}
+	if err != nil {
+		log.Error("could not get course phase config: ", err)
+		return coursePhaseConfigDTO.CoursePhaseConfig{}, errors.New("could not get course phase config")
+	}
+
+	return coursePhaseConfigDTO.MapDBCoursePhaseConfigToDTOCoursePhaseConfig(config), nil
+}
+
 func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, req coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest) error {
 	existingConfig, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -221,8 +240,9 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		return err
 	}
 
-	// Checked after the write so the snapshot also covers writes that RequireAssessmentEnabled
-	// waved through while this request was in flight; the rollback then keeps the phase enabled.
+	// Checked after the write so the snapshot covers writes that committed while this request was in
+	// flight. This narrows the race, it does not close it: the UPDATE takes no lock on the assessment
+	// tables, so a write committing after the snapshot still lands on a now-disabled phase.
 	if !assessmentEnabled {
 		hasData, err := qtx.PhaseHasAssessmentData(ctx, coursePhaseID)
 		if err != nil {
@@ -247,14 +267,10 @@ func RequireAssessmentEnabled() gin.HandlerFunc {
 			return
 		}
 
-		// Read directly instead of via GetCoursePhaseConfig: a guard must not lazily create rows,
-		// and an unconfigured phase carries the default (enabled) so the handler can validate the
-		// rest of the request itself.
-		config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
-		if errors.Is(err, sql.ErrNoRows) {
-			c.Next()
-			return
-		}
+		// A guard must not lazily create rows, so this reads instead of calling
+		// GetCoursePhaseConfig. An unconfigured phase defaults to enabled, leaving the handler to
+		// validate the rest of the request itself.
+		config, err := GetStoredCoursePhaseConfig(c, coursePhaseID)
 		if err != nil {
 			log.WithError(err).Error("Failed to get course phase config")
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})

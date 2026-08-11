@@ -193,7 +193,7 @@ func getMyAssessmentResults(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

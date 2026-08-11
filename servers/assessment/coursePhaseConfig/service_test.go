@@ -2,9 +2,12 @@ package coursePhaseConfig
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -130,6 +133,82 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfigCreatesD
 	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
 	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
 	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigDoesNotCreateARow() {
+	testID := uuid.New()
+
+	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err, "An unconfigured phase should read as the column defaults")
+	assert.Equal(suite.T(), testID, config.CoursePhaseID)
+	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
+	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+
+	var rowCount int
+	err = suite.coursePhaseConfigService.conn.QueryRow(suite.suiteCtx,
+		"SELECT COUNT(*) FROM course_phase_config WHERE course_phase_id = $1", testID).Scan(&rowCount)
+	assert.NoError(suite.T(), err)
+	assert.Zero(suite.T(), rowCount, "Reading the config must not create a row")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestRequireAssessmentEnabled() {
+	router := gin.New()
+	router.POST("/api/course_phase/:coursePhaseID/write", RequireAssessmentEnabled(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	post := func(coursePhaseID string) int {
+		req := httptest.NewRequest(http.MethodPost, "/api/course_phase/"+coursePhaseID+"/write", nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+
+	assert.Equal(suite.T(), http.StatusBadRequest, post("not-a-uuid"))
+
+	unconfiguredID := uuid.New()
+	assert.Equal(suite.T(), http.StatusOK, post(unconfiguredID.String()),
+		"An unconfigured phase defaults to enabled")
+
+	var rowCount int
+	err := suite.coursePhaseConfigService.conn.QueryRow(suite.suiteCtx,
+		"SELECT COUNT(*) FROM course_phase_config WHERE course_phase_id = $1", unconfiguredID).Scan(&rowCount)
+	assert.NoError(suite.T(), err)
+	assert.Zero(suite.T(), rowCount, "The guard must not create a config row")
+
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	enabledID := uuid.New()
+	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled)
+		 VALUES ($1, $2, TRUE)`,
+		schemaID, enabledID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusOK, post(enabledID.String()))
+
+	disabledID := uuid.New()
+	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled)
+		 VALUES ($1, $2, FALSE)`,
+		schemaID, disabledID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusConflict, post(disabledID.String()),
+		"Assessment writes must be rejected on evaluation-only phases")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigReturnsTheStoredRow() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled, results_released)
+		 VALUES ($1, $2, FALSE, TRUE)`,
+		schemaID, testID)
+	assert.NoError(suite.T(), err)
+
+	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.AssessmentEnabled)
+	assert.True(suite.T(), config.ResultsReleased)
 }
 
 func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_DefaultVisibilitySettings() {

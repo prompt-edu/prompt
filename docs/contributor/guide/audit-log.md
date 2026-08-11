@@ -12,9 +12,11 @@ phases ship entries to core over HTTP.
 ## You usually don't have to do anything
 
 Once `audit.Middleware` is registered on a service (already done for core), **every mutating request
-is captured automatically** — `POST`/`PUT`/`PATCH`/`DELETE` that succeed (2xx) or are denied (403).
-The actor, timestamp, route, and outcome are filled in for you. Read requests and validation errors
-are ignored.
+is captured automatically** — `POST`/`PUT`/`PATCH`/`DELETE` that succeed (2xx) or are denied (core
+aborts with 403, the SDK auth middleware with 401). The actor, timestamp, route, and outcome are
+filled in for you. Read requests and validation errors are ignored. An explicit `audit.Record` whose
+request later fails is recorded with the real status and an `error` outcome, rather than a premature
+success.
 
 ## Naming an action (recommended for core)
 

@@ -22,7 +22,7 @@ Each entry captures:
 - **Time** the action happened.
 - **Actor** — the person who performed it (name and email) and the **role** they used.
 - **Action** — a human-readable description, e.g. "Created slot" or "Published grades".
-- **Outcome** — whether the action **succeeded** or was **denied** (a blocked, unauthorized attempt).
+- **Outcome** — whether the action **succeeded**, was **denied** (a blocked, unauthorized attempt), or **errored** (the request failed after the action was recorded).
 - **Entity** — the specific thing acted on, when available (e.g. a team or student).
 - **Source** — which part of the system reported it (core or a course phase).
 
@@ -33,7 +33,7 @@ Read-only actions (just viewing data) are not recorded.
 The toolbar above the table lets you narrow the log:
 
 - **Search** by actor, action, or entity.
-- **Outcome** — show only successful actions or only denied attempts.
+- **Outcome** — show only successful actions, only denied attempts, or only errored ones.
 - **Role** — filter to actions by a specific role (e.g. only lecturers, or only students).
 - **Source** — restrict to a specific service.
 - **Date range** — limit to a time window.

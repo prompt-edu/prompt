@@ -31,6 +31,7 @@ const useDebouncedValue = <T,>(value: T, delayMs = 400): T => {
 const OUTCOMES = [
   { value: 'success', label: 'Success' },
   { value: 'denied', label: 'Denied' },
+  { value: 'error', label: 'Error' },
 ]
 
 const ROLES = [

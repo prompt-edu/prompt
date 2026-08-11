@@ -99,13 +99,12 @@ func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemInvalidJSON() {
 
 func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemValid() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	studentID := uuid.MustParse("da42e447-60f9-4fe0-b297-2dae3f924fd7") // target student
-	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")  // current student
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7") // current student
 
 	payload := feedbackItemDTO.CreateFeedbackItemRequest{
 		FeedbackType:                db.FeedbackTypePositive,
 		FeedbackText:                "Test positive feedback",
-		CourseParticipationID:       studentID,
+		CourseParticipationID:       authorID, // self feedback: subject is the author
 		CoursePhaseID:               phaseID,
 		AuthorCourseParticipationID: authorID,
 		Type:                        assessmentType.Self,
@@ -117,6 +116,91 @@ func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemValid() {
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemSelfTargetMismatch() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	victimID := uuid.MustParse("da42e447-60f9-4fe0-b297-2dae3f924fd7") // peer, not the author
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7") // current student
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypeNegative,
+		FeedbackText:                "Injected into a peer's self feedback",
+		CourseParticipationID:       victimID,
+		CoursePhaseID:               phaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Self,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemBeforeWindowOpens() {
+	notStartedPhaseID := uuid.MustParse("44561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Submitted before the window opens",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               notStartedPhaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Self,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+notStartedPhaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemAfterCompletion() {
+	completedPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Added after marking the evaluation complete",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               completedPhaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Self,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+completedPhaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemRejectsAssessmentType() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Forged tutor-side assessment feedback",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               phaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Assessment,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
 func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemUnauthorizedAuthor() {
@@ -152,6 +236,85 @@ func (suite *FeedbackItemRouterTestSuite) TestGetMyFeedbackItems() {
 	var feedbackItems []feedbackItemDTO.FeedbackItem
 	err := json.Unmarshal(resp.Body.Bytes(), &feedbackItems)
 	assert.NoError(suite.T(), err)
+}
+
+// seedOwnFeedbackItem inserts a self feedback item authored by the current test student
+// so update tests do not depend on rows other tests mutate.
+func (suite *FeedbackItemRouterTestSuite) seedOwnFeedbackItem(phaseID uuid.UUID) uuid.UUID {
+	currentStudentID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+	feedbackItemID := uuid.New()
+
+	err := suite.service.queries.CreateFeedbackItem(suite.suiteCtx, db.CreateFeedbackItemParams{
+		ID:                          feedbackItemID,
+		FeedbackType:                db.FeedbackTypeNegative,
+		FeedbackText:                "Original feedback text",
+		CourseParticipationID:       currentStudentID,
+		CoursePhaseID:               phaseID,
+		AuthorCourseParticipationID: currentStudentID,
+		Type:                        db.AssessmentTypeSelf,
+	})
+	assert.NoError(suite.T(), err)
+	return feedbackItemID
+}
+
+func (suite *FeedbackItemRouterTestSuite) updateRequest(phaseID, feedbackItemID uuid.UUID) *httptest.ResponseRecorder {
+	payload := feedbackItemDTO.UpdateFeedbackItemRequest{
+		FeedbackType: db.FeedbackTypePositive,
+		FeedbackText: "Rewritten feedback text",
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+phaseID.String()+"/evaluation/feedback-items/"+feedbackItemID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemValid() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedOwnFeedbackItem(phaseID)
+
+	resp := suite.updateRequest(phaseID, feedbackItemID)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+
+	updated, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Rewritten feedback text", updated.FeedbackText)
+	assert.Equal(suite.T(), db.FeedbackTypePositive, updated.FeedbackType)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemNotAuthor() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := uuid.MustParse("22222222-2222-2222-2222-222222222222") // authored by ea42e447 (lecturer)
+
+	resp := suite.updateRequest(phaseID, feedbackItemID)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+
+	unchanged, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Need to improve time management", unchanged.FeedbackText)
+	assert.Equal(suite.T(), uuid.MustParse("ea42e447-60f9-4fe0-b297-2dae3f924fd7"), unchanged.AuthorCourseParticipationID)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemWrongPhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	otherPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedOwnFeedbackItem(phaseID)
+
+	resp := suite.updateRequest(otherPhaseID, feedbackItemID)
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+
+	unchanged, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Original feedback text", unchanged.FeedbackText)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemUnknownID() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	resp := suite.updateRequest(phaseID, uuid.New())
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 }
 
 func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemValid() {

@@ -353,7 +353,7 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
-  queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
+	queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
 
 	// 1. Check if studentObj with this email already exists
 	studentObj, err := student.GetStudentByEmail(ctx, &queries, application.Student.Email)
@@ -793,28 +793,28 @@ func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid
 	return result, nil
 }
 
-func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow{
-  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
-  defer cancel()
+func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
 
-  answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-  return answers
+	return answers
 }
 
 func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
-  ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
-  defer cancel()
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
 
-  answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-  return answersWithFileRecords
+	return answersWithFileRecords
 }
 
 func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {
@@ -838,6 +838,71 @@ func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUI
 	}
 
 	return applicationParticipationsDTO, nil
+}
+
+func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.ExportedApplicationAnswersResponse, error) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	questions, err := ApplicationServiceSingleton.queries.GetExportedApplicationQuestionsForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application questions")
+	}
+
+	columns := make([]applicationDTO.ExportedAnswerColumn, 0, len(questions))
+	for _, question := range questions {
+		columns = append(columns, applicationDTO.ExportedAnswerColumn{
+			QuestionID: question.ID,
+			Key:        question.AccessKey,
+			Title:      question.Title,
+			OrderNum:   question.OrderNum,
+			Type:       question.QuestionType,
+		})
+	}
+
+	if len(columns) == 0 {
+		return applicationDTO.ExportedApplicationAnswersResponse{
+			Columns: columns,
+			Answers: make([]applicationDTO.ParticipationExportedAnswers, 0),
+		}, nil
+	}
+
+	answers, err := ApplicationServiceSingleton.queries.GetExportedApplicationAnswersForCoursePhase(ctxWithTimeout, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application answers")
+	}
+
+	// Only participations with at least one answer are emitted; the client falls back to
+	// a placeholder for the ones it does not find.
+	answersByParticipation := make(map[uuid.UUID][]applicationDTO.ExportedAnswer)
+	participationOrder := make([]uuid.UUID, 0)
+	for _, answer := range answers {
+		if _, seen := answersByParticipation[answer.CourseParticipationID]; !seen {
+			participationOrder = append(participationOrder, answer.CourseParticipationID)
+		}
+		answersByParticipation[answer.CourseParticipationID] = append(
+			answersByParticipation[answer.CourseParticipationID],
+			applicationDTO.ExportedAnswer{
+				QuestionID: answer.ApplicationQuestionID,
+				Answer:     answer.Answer,
+			},
+		)
+	}
+
+	exportedAnswers := make([]applicationDTO.ParticipationExportedAnswers, 0, len(participationOrder))
+	for _, courseParticipationID := range participationOrder {
+		exportedAnswers = append(exportedAnswers, applicationDTO.ParticipationExportedAnswers{
+			CourseParticipationID: courseParticipationID,
+			Answers:               answersByParticipation[courseParticipationID],
+		})
+	}
+
+	return applicationDTO.ExportedApplicationAnswersResponse{
+		Columns: columns,
+		Answers: exportedAnswers,
+	}, nil
 }
 
 func UpdateApplicationAssessment(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {

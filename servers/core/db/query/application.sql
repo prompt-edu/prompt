@@ -379,6 +379,51 @@ FROM application_answer_multi_select aams
 JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
 WHERE aams.course_participation_id = ANY($1::uuid[]);
 
+-- name: GetExportedApplicationQuestionsForCoursePhase :many
+-- Questions of this phase that are exported to later phases, in display order. The
+-- exported predicate lives here so it stays in sync with the applicationAnswers
+-- projection in course_phase_participation.sql.
+SELECT aqt.id, aqt.access_key::text AS access_key, COALESCE(aqt.title, '')::text AS title,
+       COALESCE(aqt.order_num, 0)::int AS order_num, 'text'::text AS question_type
+FROM application_question_text aqt
+WHERE aqt.course_phase_id = $1
+  AND aqt.accessible_for_other_phases = true
+  AND aqt.access_key IS NOT NULL
+  AND aqt.access_key <> ''
+UNION ALL
+SELECT aqms.id, aqms.access_key::text AS access_key, COALESCE(aqms.title, '')::text AS title,
+       COALESCE(aqms.order_num, 0)::int AS order_num, 'multiselect'::text AS question_type
+FROM application_question_multi_select aqms
+WHERE aqms.course_phase_id = $1
+  AND aqms.accessible_for_other_phases = true
+  AND aqms.access_key IS NOT NULL
+  AND aqms.access_key <> ''
+ORDER BY order_num, question_type;
+
+-- name: GetExportedApplicationAnswersForCoursePhase :many
+-- Answers to this phase's exported questions only, so no answer from another phase
+-- is transferred and discarded in Go. Multi-select answers arrive pre-joined.
+SELECT aat.course_participation_id, aat.application_question_id, aat.answer::text AS answer
+FROM application_answer_text aat
+JOIN application_question_text aqt ON aat.application_question_id = aqt.id
+WHERE aqt.course_phase_id = $1
+  AND aqt.accessible_for_other_phases = true
+  AND aqt.access_key IS NOT NULL
+  AND aqt.access_key <> ''
+  AND aat.answer IS NOT NULL
+  AND aat.answer <> ''
+UNION ALL
+SELECT aams.course_participation_id, aams.application_question_id,
+       array_to_string(aams.answer, ', ')::text AS answer
+FROM application_answer_multi_select aams
+JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
+WHERE aqms.course_phase_id = $1
+  AND aqms.accessible_for_other_phases = true
+  AND aqms.access_key IS NOT NULL
+  AND aqms.access_key <> ''
+  AND aams.answer IS NOT NULL
+  AND cardinality(aams.answer) > 0;
+
 -- name: GetAllApplicationAnswersFileUploadByCourseParticipationIDs :many
 SELECT aafu.*, aqfu.title AS question_title, aqfu.description AS question_description
 FROM application_answer_file_upload aafu

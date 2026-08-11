@@ -1180,6 +1180,113 @@ func (q *Queries) GetExistingAdditionalScores(ctx context.Context, id uuid.UUID)
 	return additional_scores, err
 }
 
+const getExportedApplicationAnswersForCoursePhase = `-- name: GetExportedApplicationAnswersForCoursePhase :many
+SELECT aat.course_participation_id, aat.application_question_id, aat.answer::text AS answer
+FROM application_answer_text aat
+JOIN application_question_text aqt ON aat.application_question_id = aqt.id
+WHERE aqt.course_phase_id = $1
+  AND aqt.accessible_for_other_phases = true
+  AND aqt.access_key IS NOT NULL
+  AND aqt.access_key <> ''
+  AND aat.answer IS NOT NULL
+  AND aat.answer <> ''
+UNION ALL
+SELECT aams.course_participation_id, aams.application_question_id,
+       array_to_string(aams.answer, ', ')::text AS answer
+FROM application_answer_multi_select aams
+JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
+WHERE aqms.course_phase_id = $1
+  AND aqms.accessible_for_other_phases = true
+  AND aqms.access_key IS NOT NULL
+  AND aqms.access_key <> ''
+  AND aams.answer IS NOT NULL
+  AND cardinality(aams.answer) > 0
+`
+
+type GetExportedApplicationAnswersForCoursePhaseRow struct {
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
+	Answer                string    `json:"answer"`
+}
+
+// Answers to this phase's exported questions only, so no answer from another phase
+// is transferred and discarded in Go. Multi-select answers arrive pre-joined.
+func (q *Queries) GetExportedApplicationAnswersForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]GetExportedApplicationAnswersForCoursePhaseRow, error) {
+	rows, err := q.db.Query(ctx, getExportedApplicationAnswersForCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetExportedApplicationAnswersForCoursePhaseRow
+	for rows.Next() {
+		var i GetExportedApplicationAnswersForCoursePhaseRow
+		if err := rows.Scan(&i.CourseParticipationID, &i.ApplicationQuestionID, &i.Answer); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getExportedApplicationQuestionsForCoursePhase = `-- name: GetExportedApplicationQuestionsForCoursePhase :many
+SELECT aqt.id, aqt.access_key::text AS access_key, COALESCE(aqt.title, '')::text AS title,
+       COALESCE(aqt.order_num, 0)::int AS order_num, 'text'::text AS question_type
+FROM application_question_text aqt
+WHERE aqt.course_phase_id = $1
+  AND aqt.accessible_for_other_phases = true
+  AND aqt.access_key IS NOT NULL
+  AND aqt.access_key <> ''
+UNION ALL
+SELECT aqms.id, aqms.access_key::text AS access_key, COALESCE(aqms.title, '')::text AS title,
+       COALESCE(aqms.order_num, 0)::int AS order_num, 'multiselect'::text AS question_type
+FROM application_question_multi_select aqms
+WHERE aqms.course_phase_id = $1
+  AND aqms.accessible_for_other_phases = true
+  AND aqms.access_key IS NOT NULL
+  AND aqms.access_key <> ''
+ORDER BY order_num, question_type
+`
+
+type GetExportedApplicationQuestionsForCoursePhaseRow struct {
+	ID           uuid.UUID `json:"id"`
+	AccessKey    string    `json:"access_key"`
+	Title        string    `json:"title"`
+	OrderNum     int32     `json:"order_num"`
+	QuestionType string    `json:"question_type"`
+}
+
+// Questions of this phase that are exported to later phases, in display order. The
+// exported predicate lives here so it stays in sync with the applicationAnswers
+// projection in course_phase_participation.sql.
+func (q *Queries) GetExportedApplicationQuestionsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]GetExportedApplicationQuestionsForCoursePhaseRow, error) {
+	rows, err := q.db.Query(ctx, getExportedApplicationQuestionsForCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetExportedApplicationQuestionsForCoursePhaseRow
+	for rows.Next() {
+		var i GetExportedApplicationQuestionsForCoursePhaseRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AccessKey,
+			&i.Title,
+			&i.OrderNum,
+			&i.QuestionType,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOpenApplicationPhase = `-- name: GetOpenApplicationPhase :one
 SELECT 
     cp.id AS course_phase_id,

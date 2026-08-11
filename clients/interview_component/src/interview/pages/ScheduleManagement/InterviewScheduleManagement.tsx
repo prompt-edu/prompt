@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,9 +37,21 @@ import {
   TableRow,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { format } from 'date-fns'
-import { Calendar, Clock, MapPin, Pencil, Plus, Trash2, UserPlus, Users, X } from 'lucide-react'
-import { useState } from 'react'
+import {
+  Calendar,
+  Clock,
+  Copy,
+  MapPin,
+  Pencil,
+  Plus,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
@@ -46,8 +59,114 @@ import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 interface SlotFormData {
   startTime: string
   endTime: string
+  durationMinutes: number
+  breakMinutes: number
   location: string
   capacity: number
+}
+
+interface ErrorResponse {
+  error?: string
+}
+
+interface SlotTimeRange {
+  start: Date
+  end: Date
+}
+
+interface GeneratedSeries {
+  slots: SlotTimeRange[]
+  truncated: boolean
+}
+
+interface CreatedSlotResponse {
+  id: string
+}
+
+const MAX_MULTIPLE_SLOTS = 100
+
+// Only the series form uses these; the single-slot and edit forms keep them at their defaults.
+const SERIES_DEFAULTS = { durationMinutes: 30, breakMinutes: 0 }
+
+const EMPTY_SERIES: GeneratedSeries = { slots: [], truncated: false }
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  isAxiosError<ErrorResponse>(error) ? (error.response?.data?.error ?? fallback) : fallback
+
+const formatSlotCount = (count: number, capitalize = false) => {
+  const noun = capitalize ? 'Slot' : 'slot'
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+const emptySlotForm = (): SlotFormData => ({
+  startTime: '',
+  endTime: '',
+  ...SERIES_DEFAULTS,
+  location: '',
+  capacity: 1,
+})
+
+const slotFormFromSlot = (slot: InterviewSlotWithAssignments): SlotFormData => ({
+  startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
+  endTime: format(new Date(slot.endTime), 'HH:mm'),
+  ...SERIES_DEFAULTS,
+  location: slot.location || '',
+  capacity: slot.capacity ?? 1,
+})
+
+// endTime is a time-of-day (HH:mm); an end at or before the start means the slot runs past midnight.
+const buildSlotTimes = (startDateTime: string, endTimeOfDay: string): SlotTimeRange => {
+  const start = new Date(startDateTime)
+  const end = new Date(`${startDateTime.slice(0, 10)}T${endTimeOfDay}`)
+  if (end <= start) {
+    end.setDate(end.getDate() + 1)
+  }
+  return { start, end }
+}
+
+const formatResolvedEnd = (range: SlotTimeRange) => {
+  const spansNextDay = range.end.getDate() !== range.start.getDate()
+  return `Ends ${format(range.end, 'EEE, MMM d')} at ${format(range.end, 'HH:mm')}${
+    spansNextDay ? ' (next day)' : ''
+  }`
+}
+
+const slotRequestBody = (data: SlotFormData) => {
+  const { start, end } = buildSlotTimes(data.startTime, data.endTime)
+  return {
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+    location: data.location || null,
+    capacity: data.capacity,
+  }
+}
+
+// Steps in wall-clock minutes rather than milliseconds, so a DST transition inside the range does
+// not shift the generated slot times by an hour.
+const addLocalMinutes = (base: Date, minutes: number) =>
+  new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate(),
+    base.getHours(),
+    base.getMinutes() + minutes,
+  )
+
+const generateMultipleSlots = (data: SlotFormData): GeneratedSeries => {
+  const slots: SlotTimeRange[] = []
+  if (!data.startTime || !data.endTime || data.durationMinutes <= 0) return EMPTY_SERIES
+
+  const { start, end } = buildSlotTimes(data.startTime, data.endTime)
+  const stepMinutes = data.durationMinutes + Math.max(0, data.breakMinutes)
+
+  for (let offset = 0; ; offset += stepMinutes) {
+    const slotEnd = addLocalMinutes(start, offset + data.durationMinutes)
+    if (slotEnd > end) break
+    if (slots.length === MAX_MULTIPLE_SLOTS) return { slots, truncated: true }
+    slots.push({ start: addLocalMinutes(start, offset), end: slotEnd })
+  }
+
+  return { slots, truncated: false }
 }
 
 export const InterviewScheduleManagement = () => {
@@ -55,6 +174,7 @@ export const InterviewScheduleManagement = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [createMultipleSlots, setCreateMultipleSlots] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
   const [isUnassignDialogOpen, setIsUnassignDialogOpen] = useState(false)
@@ -65,12 +185,7 @@ export const InterviewScheduleManagement = () => {
   } | null>(null)
   const [selectedParticipationId, setSelectedParticipationId] = useState<string>('')
   const [editingSlot, setEditingSlot] = useState<InterviewSlotWithAssignments | null>(null)
-  const [formData, setFormData] = useState<SlotFormData>({
-    startTime: '',
-    endTime: '',
-    location: '',
-    capacity: 1,
-  })
+  const [formData, setFormData] = useState<SlotFormData>(emptySlotForm)
 
   // Fetch all participants
   const { data: participations } = useQuery<CoursePhaseParticipationsWithResolution>({
@@ -100,12 +215,7 @@ export const InterviewScheduleManagement = () => {
     mutationFn: async (data: SlotFormData) => {
       const response = await interviewAxiosInstance.post(
         `interview/api/course_phase/${phaseId}/interview-slots`,
-        {
-          startTime: new Date(data.startTime).toISOString(),
-          endTime: new Date(data.endTime).toISOString(),
-          location: data.location || null,
-          capacity: data.capacity,
-        },
+        slotRequestBody(data),
       )
       return response.data
     },
@@ -118,10 +228,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been created successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Creation failed',
-        description: error?.response?.data?.error || 'Failed to create interview slot.',
+        description: getErrorMessage(error, 'Failed to create interview slot.'),
         variant: 'destructive',
       })
     },
@@ -132,12 +242,7 @@ export const InterviewScheduleManagement = () => {
     mutationFn: async ({ id, data }: { id: string; data: SlotFormData }) => {
       const response = await interviewAxiosInstance.put(
         `interview/api/course_phase/${phaseId}/interview-slots/${id}`,
-        {
-          startTime: new Date(data.startTime).toISOString(),
-          endTime: new Date(data.endTime).toISOString(),
-          location: data.location || null,
-          capacity: data.capacity,
-        },
+        slotRequestBody(data),
       )
       return response.data
     },
@@ -151,10 +256,46 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been updated successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Update failed',
-        description: error?.response?.data?.error || 'Failed to update interview slot.',
+        description: getErrorMessage(error, 'Failed to update interview slot.'),
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Create multiple slots mutation - the series is generated client-side and created in one
+  // transactional request, so a rejected slot never leaves a partial series behind
+  const createMultipleSlotsMutation = useMutation({
+    mutationFn: async (data: SlotFormData) => {
+      const { slots: generatedSlots } = generateMultipleSlots(data)
+      const response = await interviewAxiosInstance.post<CreatedSlotResponse[]>(
+        `interview/api/course_phase/${phaseId}/interview-slots/batch`,
+        {
+          slots: generatedSlots.map((slot) => ({
+            startTime: slot.start.toISOString(),
+            endTime: slot.end.toISOString(),
+            location: data.location || null,
+            capacity: data.capacity,
+          })),
+        },
+      )
+      return response.data
+    },
+    onSuccess: (createdSlots) => {
+      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      setIsCreateDialogOpen(false)
+      resetForm()
+      toast({
+        title: 'Slots created',
+        description: `${formatSlotCount(createdSlots.length)} created successfully.`,
+      })
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: 'Slot creation failed',
+        description: getErrorMessage(error, 'Failed to create interview slots.'),
         variant: 'destructive',
       })
     },
@@ -174,10 +315,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Interview slot has been deleted successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Deletion failed',
-        description: error?.response?.data?.error || 'Failed to delete interview slot.',
+        description: getErrorMessage(error, 'Failed to delete interview slot.'),
         variant: 'destructive',
       })
     },
@@ -211,10 +352,10 @@ export const InterviewScheduleManagement = () => {
         description: 'Student has been assigned to the interview slot successfully.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Assignment failed',
-        description: error.response?.data?.error || 'Failed to assign student to interview slot.',
+        description: getErrorMessage(error, 'Failed to assign student to interview slot.'),
         variant: 'destructive',
       })
     },
@@ -236,32 +377,39 @@ export const InterviewScheduleManagement = () => {
         description: 'Student has been removed from the interview slot.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: 'Unassignment failed',
-        description: error?.response?.data?.error || 'Failed to unassign student.',
+        description: getErrorMessage(error, 'Failed to unassign student.'),
         variant: 'destructive',
       })
     },
   })
 
   const resetForm = () => {
-    setFormData({
-      startTime: '',
-      endTime: '',
-      location: '',
-      capacity: 1,
-    })
+    setCreateMultipleSlots(false)
+    setFormData(emptySlotForm())
   }
 
-  const isTimeRangeValid =
-    !!formData.startTime &&
-    !!formData.endTime &&
-    new Date(formData.startTime) < new Date(formData.endTime)
+  const slotTimes =
+    formData.startTime && formData.endTime
+      ? buildSlotTimes(formData.startTime, formData.endTime)
+      : null
+  const isTimeRangeValid = !!slotTimes && slotTimes.start < slotTimes.end
 
-  const handleCreateSlot = () => {
+  const seriesPreview = useMemo(
+    () => (createMultipleSlots ? generateMultipleSlots(formData) : EMPTY_SERIES),
+    [createMultipleSlots, formData],
+  )
+
+  const handleCreateSlots = () => {
     if (!isTimeRangeValid) return
-    createSlotMutation.mutate(formData)
+    if (createMultipleSlots) {
+      if (seriesPreview.slots.length === 0) return
+      createMultipleSlotsMutation.mutate(formData)
+    } else {
+      createSlotMutation.mutate(formData)
+    }
   }
 
   const handleUpdateSlot = () => {
@@ -273,13 +421,14 @@ export const InterviewScheduleManagement = () => {
 
   const handleEditClick = (slot: InterviewSlotWithAssignments) => {
     setEditingSlot(slot)
-    setFormData({
-      startTime: format(new Date(slot.startTime), "yyyy-MM-dd'T'HH:mm"),
-      endTime: format(new Date(slot.endTime), "yyyy-MM-dd'T'HH:mm"),
-      location: slot.location || '',
-      capacity: slot.capacity ?? 1,
-    })
+    setFormData(slotFormFromSlot(slot))
     setIsEditDialogOpen(true)
+  }
+
+  const handleCloneClick = (slot: InterviewSlotWithAssignments) => {
+    setCreateMultipleSlots(false)
+    setFormData(slotFormFromSlot(slot))
+    setIsCreateDialogOpen(true)
   }
 
   const handleDeleteClick = (slotId: string) => {
@@ -360,13 +509,15 @@ export const InterviewScheduleManagement = () => {
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className='mr-2 h-4 w-4' />
-              Create Slot
+              Create Slots
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Interview Slot</DialogTitle>
-              <DialogDescription>Add a new time slot for student interviews</DialogDescription>
+              <DialogTitle>Create Interview Slots</DialogTitle>
+              <DialogDescription>
+                Add one interview slot or divide the time range into multiple slots.
+              </DialogDescription>
             </DialogHeader>
             <div className='space-y-4 py-4'>
               <div className='space-y-2'>
@@ -382,12 +533,12 @@ export const InterviewScheduleManagement = () => {
                 <Label htmlFor='endTime'>End Time</Label>
                 <Input
                   id='endTime'
-                  type='datetime-local'
+                  type='time'
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 />
-                {formData.startTime && formData.endTime && !isTimeRangeValid && (
-                  <p className='text-sm text-destructive'>End time must be after start time.</p>
+                {slotTimes && (
+                  <p className='text-sm text-muted-foreground'>{formatResolvedEnd(slotTimes)}</p>
                 )}
               </div>
               <div className='space-y-2'>
@@ -400,7 +551,7 @@ export const InterviewScheduleManagement = () => {
                 />
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='capacity'>Capacity</Label>
+                <Label htmlFor='capacity'>Capacity per Slot</Label>
                 <Input
                   id='capacity'
                   type='number'
@@ -412,16 +563,81 @@ export const InterviewScheduleManagement = () => {
                   }}
                 />
               </div>
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='createMultipleSlots'
+                  checked={createMultipleSlots}
+                  onCheckedChange={(checked) => setCreateMultipleSlots(checked === true)}
+                />
+                <Label htmlFor='createMultipleSlots'>Create multiple slots</Label>
+              </div>
+              {createMultipleSlots && (
+                <>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='space-y-2'>
+                      <Label htmlFor='durationMinutes'>Slot Duration (min)</Label>
+                      <Input
+                        id='durationMinutes'
+                        type='number'
+                        min='1'
+                        value={formData.durationMinutes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            durationMinutes: parseInt(e.target.value, 10) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className='space-y-2'>
+                      <Label htmlFor='breakMinutes'>Break Between (min)</Label>
+                      <Input
+                        id='breakMinutes'
+                        type='number'
+                        min='0'
+                        value={formData.breakMinutes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            breakMinutes: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    {seriesPreview.slots.length > 0
+                      ? `This will create ${formatSlotCount(seriesPreview.slots.length)}.`
+                      : 'Choose a valid time range and duration to preview the slots.'}
+                  </p>
+                  {seriesPreview.truncated && (
+                    <p className='text-sm text-destructive'>
+                      The time range fits more slots than the limit of {MAX_MULTIPLE_SLOTS}. Only
+                      the first {MAX_MULTIPLE_SLOTS} will be created — shorten the range or create
+                      the rest separately.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateSlot}
-                disabled={!isTimeRangeValid || createSlotMutation.isPending}
+                onClick={handleCreateSlots}
+                disabled={
+                  !isTimeRangeValid ||
+                  (createMultipleSlots && seriesPreview.slots.length === 0) ||
+                  createSlotMutation.isPending ||
+                  createMultipleSlotsMutation.isPending
+                }
               >
-                {createSlotMutation.isPending ? 'Creating...' : 'Create'}
+                {createSlotMutation.isPending || createMultipleSlotsMutation.isPending
+                  ? 'Creating...'
+                  : createMultipleSlots
+                    ? `Create ${formatSlotCount(seriesPreview.slots.length, true)}`
+                    : 'Create Slot'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -449,12 +665,12 @@ export const InterviewScheduleManagement = () => {
               <Label htmlFor='edit_endTime'>End Time</Label>
               <Input
                 id='edit_endTime'
-                type='datetime-local'
+                type='time'
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
               />
-              {formData.startTime && formData.endTime && !isTimeRangeValid && (
-                <p className='text-sm text-destructive'>End time must be after start time.</p>
+              {slotTimes && (
+                <p className='text-sm text-muted-foreground'>{formatResolvedEnd(slotTimes)}</p>
               )}
             </div>
             <div className='space-y-2'>
@@ -617,6 +833,15 @@ export const InterviewScheduleManagement = () => {
                           <Button
                             variant='ghost'
                             size='sm'
+                            onClick={() => handleCloneClick(slot)}
+                            aria-label='Clone slot'
+                            title='Clone slot'
+                          >
+                            <Copy className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
                             onClick={() => handleEditClick(slot)}
                             aria-label='Edit slot'
                           >
@@ -643,7 +868,7 @@ export const InterviewScheduleManagement = () => {
       ) : (
         <Alert>
           <AlertDescription>
-            No interview slots have been created yet. Click &quot;Create Slot&quot; to add your
+            No interview slots have been created yet. Click &quot;Create Slots&quot; to add your
             first slot.
           </AlertDescription>
         </Alert>

@@ -8,28 +8,36 @@ import {
 } from '../../src/data/constants'
 import {
   apiAsRole,
+  assessmentUrl,
   createCategory,
   createCompetency,
   createSchema,
+  deleteOwnEvaluations,
   getAssessmentCategories,
   gradeCompetency,
   markAssessmentComplete,
   putConfig,
   releaseResults,
   resetAssessmentPhase,
+  submitSelfEvaluation,
 } from './helpers'
+import type { CategoryWithCompetencies } from './helpers'
 
 const PHASE_ID = ASSESSMENT_FIXTURE_PHASES.print
 const SCHEMA_NAME = 'E2E Print Rubric'
+const SELF_SCHEMA_NAME = 'E2E Print Self Rubric'
 const COMPETENCY_NAME = 'Print Competency'
+const SELF_COMPETENCY_NAME = 'I documented my work'
 const REMARKS = 'Consistent, well-documented contributions across the phase.'
 const STUDENT_NAME = `${SEEDED_PHASE_STUDENTS.student.firstName} ${SEEDED_PHASE_STUDENTS.student.lastName}`
 
-const reset = () =>
-  resetAssessmentPhase(PHASE_ID, {
+const reset = async () => {
+  await deleteOwnEvaluations(PHASE_ID)
+  await resetAssessmentPhase(PHASE_ID, {
     courseParticipationIds: [FULL_COURSE_STUDENT.courseParticipationId],
-    schemaNames: [SCHEMA_NAME],
+    schemaNames: [SCHEMA_NAME, SELF_SCHEMA_NAME],
   })
+}
 
 // The `lecturer` user holds the course-scoped ios2425-iPraktikumFull-Lecturer
 // role; the student results test switches to Stan's session via storageState.
@@ -63,6 +71,43 @@ test.describe('assessment: print report', () => {
         REMARKS,
       )
       await releaseResults(lecturer, PHASE_ID)
+
+      // A separate self-evaluation rubric, so the self report renders its own
+      // categories rather than the assessment ones.
+      const selfSchema = await createSchema(lecturer, PHASE_ID, SELF_SCHEMA_NAME)
+      await putConfig(lecturer, PHASE_ID, {
+        selfEvaluationEnabled: true,
+        selfEvaluationSchema: selfSchema.id,
+      })
+      await createCategory(lecturer, PHASE_ID, selfSchema.id, 'Print Self Category')
+      const selfRes = await lecturer.get(
+        assessmentUrl(PHASE_ID, 'category/self/with-competencies'),
+      )
+      const selfCategories = (await selfRes.json()) as CategoryWithCompetencies[]
+      await createCompetency(
+        lecturer,
+        PHASE_ID,
+        selfCategories[0].id,
+        SELF_COMPETENCY_NAME,
+      )
+      const selfCompetency = (
+        (await (
+          await lecturer.get(assessmentUrl(PHASE_ID, 'category/self/with-competencies'))
+        ).json()) as CategoryWithCompetencies[]
+      )[0].competencies[0]
+
+      const student = await apiAsRole('student')
+      try {
+        await submitSelfEvaluation(
+          student,
+          PHASE_ID,
+          FULL_COURSE_STUDENT.courseParticipationId,
+          selfCompetency.id,
+          'good',
+        )
+      } finally {
+        await student.dispose()
+      }
     } finally {
       await lecturer.dispose()
     }
@@ -128,5 +173,52 @@ test.describe('assessment: print report', () => {
     } finally {
       await context.close()
     }
+  })
+
+  test('the self evaluation results view prints a clean report', async ({ page }) => {
+    const phase = new AssessmentPage(page)
+    await phase.goto(
+      SEEDED_COURSES.fullCourse.id,
+      PHASE_ID,
+      `/self-evaluations/${FULL_COURSE_STUDENT.courseParticipationId}`,
+    )
+    await expect(
+      page.getByRole('heading', { name: `Self Evaluation Results for ${STUDENT_NAME}` }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: 'PDF / Print' })).toBeVisible()
+
+    // The report is a purpose-built twin, not the interactive tree: it carries
+    // the rubric description instead of the five-option score selector.
+    await phase.expectPrintReportFillsPage()
+    await expect(phase.printReport()).toContainText(STUDENT_NAME)
+    await expect(phase.printReport()).toContainText(SELF_COMPETENCY_NAME)
+  })
+
+  test('the self evaluations overview bulk-prints one report per participant', async ({ page }) => {
+    // window.print() opens an un-scriptable native dialog; stub it so the click
+    // is observable via a console message.
+    await page.addInitScript(() => {
+      window.print = () => console.info('E2E_PRINT_INVOKED')
+    })
+
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/self-evaluations')
+    const printAll = page.getByRole('button', { name: 'PDF / Print All' })
+    await expect(printAll).toBeVisible({ timeout: 15_000 })
+
+    // The reports are mounted on demand, so nothing is in the DOM up front.
+    await expect(phase.printReport()).toHaveCount(0)
+
+    const printInvoked = page.waitForEvent('console', {
+      predicate: (message) => message.text().includes('E2E_PRINT_INVOKED'),
+      timeout: 10_000,
+    })
+    await printAll.click()
+    await printInvoked
+
+    // Only Stan has a self evaluation in this fixture; participants without one
+    // are skipped rather than printed empty.
+    await expect(phase.printReport()).toHaveCount(1)
+    await expect(phase.printReport()).toContainText(STUDENT_NAME)
   })
 })

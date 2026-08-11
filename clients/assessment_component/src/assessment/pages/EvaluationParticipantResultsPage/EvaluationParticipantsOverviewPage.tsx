@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Team } from '@tumaet/prompt-shared-state'
-import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
-import { type ReactNode, useMemo } from 'react'
+import { Button, ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import { Loader2, Printer } from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
 import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
+import { getAllFeedbackItems } from '../../network/queries/getAllFeedbackItems'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
@@ -16,11 +17,15 @@ import {
 import { PeerEvaluationCompletionBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
+import { getTeamMemberName } from '../utils/getTeamMemberName'
+import { printPage } from '../utils/printPage'
 
 interface EvaluationParticipantRow {
   id: string
@@ -72,6 +77,13 @@ export const EvaluationParticipantsOverviewPage = ({
   const { data: teams } = useGetAllTeams()
   const { data: evaluations } = useGetAllEvaluations()
 
+  const isEnabled =
+    assessmentType === AssessmentType.SELF
+      ? (coursePhaseConfig?.selfEvaluationEnabled ?? false)
+      : (coursePhaseConfig?.peerEvaluationEnabled ?? false)
+
+  const { data: categories } = useGetEvaluationCategoriesWithCompetencies(assessmentType, isEnabled)
+
   const {
     data: evaluationCompletions = [],
     isPending,
@@ -81,6 +93,23 @@ export const EvaluationParticipantsOverviewPage = ({
     queryKey: ['evaluationCompletions', phaseId],
     queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
   })
+
+  // Feedback items are only needed for the bulk report, so they are fetched on
+  // demand. A counter rather than a boolean: React Query reports isSuccess for
+  // cached data even while disabled, and a latched boolean would ignore the
+  // second click.
+  const [printRequests, setPrintRequests] = useState(0)
+  const { data: allFeedbackItems = [], isSuccess: feedbackReady } = useQuery({
+    queryKey: ['all-feedback-items', phaseId],
+    queryFn: () => getAllFeedbackItems(phaseId ?? ''),
+    enabled: printRequests > 0,
+  })
+
+  const reportsReady = printRequests > 0 && feedbackReady
+
+  useEffect(() => {
+    if (printRequests > 0 && feedbackReady) printPage()
+  }, [printRequests, feedbackReady])
 
   const typedCompletions = useMemo(
     () => evaluationCompletions.filter((completion) => completion.type === assessmentType),
@@ -94,12 +123,35 @@ export const EvaluationParticipantsOverviewPage = ({
 
   const distributionLabel = assessmentType === AssessmentType.SELF ? 'Self' : 'Peer'
 
-  const isEnabled =
-    assessmentType === AssessmentType.SELF
-      ? (coursePhaseConfig?.selfEvaluationEnabled ?? false)
-      : (coursePhaseConfig?.peerEvaluationEnabled ?? false)
-
   const pageTitle = assessmentType === AssessmentType.SELF ? 'Self Evaluations' : 'Peer Evaluations'
+  const reportTitle = `${distributionLabel} Evaluation Results`
+
+  const bulkReports = useMemo(() => {
+    if (!reportsReady) return []
+    return [...participations]
+      .sort((a, b) => a.student.lastName.localeCompare(b.student.lastName))
+      .map((participation) => ({
+        courseParticipationID: participation.courseParticipationID,
+        studentName: `${participation.student.firstName} ${participation.student.lastName}`,
+        teamName: getTeamForParticipation(teams, participation.courseParticipationID)?.name,
+        scores: evaluations
+          .filter(
+            (evaluation) =>
+              evaluation.type === assessmentType &&
+              evaluation.courseParticipationID === participation.courseParticipationID,
+          )
+          .map((evaluation) => ({
+            ...evaluation,
+            authorName: getTeamMemberName(teams, evaluation.authorCourseParticipationID),
+          })),
+        feedbackItems: allFeedbackItems.filter(
+          (item) =>
+            item.type === assessmentType &&
+            item.courseParticipationID === participation.courseParticipationID,
+        ),
+      }))
+      .filter((report) => report.scores.length > 0)
+  }, [allFeedbackItems, assessmentType, evaluations, participations, reportsReady, teams])
 
   const data: EvaluationParticipantRow[] = useMemo(() => {
     return participations.map((participation) => {
@@ -174,39 +226,71 @@ export const EvaluationParticipantsOverviewPage = ({
   }
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>{pageTitle}</ManagementPageHeader>
+    <>
+      <div className='space-y-4 print:hidden'>
+        <ManagementPageHeader>{pageTitle}</ManagementPageHeader>
 
-      {isEnabled && (
-        <p className='text-sm text-muted-foreground mb-4'>
-          Click on a participant to view their evaluation results.
-        </p>
-      )}
+        {isEnabled && (
+          <p className='text-sm text-muted-foreground mb-4'>
+            Click on a participant to view their evaluation results.
+          </p>
+        )}
 
-      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
-        <AssessmentDiagram
-          participations={participations}
-          scoreLevels={typedScoreLevels}
-          completions={typedCompletions}
-          assessmentType={assessmentType}
+        <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+          <AssessmentDiagram
+            participations={participations}
+            scoreLevels={typedScoreLevels}
+            completions={typedCompletions}
+            assessmentType={assessmentType}
+          />
+          <ScoreLevelDistributionDiagram
+            participations={participations}
+            scoreLevels={typedScoreLevels}
+            title={`${distributionLabel} Evaluation Distribution`}
+            description='Number of participants per score level'
+          />
+        </div>
+
+        <PromptTable<EvaluationParticipantRow>
+          data={data}
+          columns={columns}
+          onRowClick={(row) => {
+            if (isEnabled) {
+              navigate(`${path}/${row.id}`)
+            }
+          }}
         />
-        <ScoreLevelDistributionDiagram
-          participations={participations}
-          scoreLevels={typedScoreLevels}
-          title={`${distributionLabel} Evaluation Distribution`}
-          description='Number of participants per score level'
-        />
+
+        {isEnabled && categories.length > 0 && (
+          <div className='flex justify-end pt-4'>
+            <Button
+              variant='outline'
+              className='gap-2'
+              disabled={printRequests > 0 && !feedbackReady}
+              onClick={() => setPrintRequests((requests) => requests + 1)}
+            >
+              {printRequests > 0 && !feedbackReady ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Printer className='h-4 w-4' />
+              )}
+              PDF / Print All
+            </Button>
+          </div>
+        )}
       </div>
 
-      <PromptTable<EvaluationParticipantRow>
-        data={data}
-        columns={columns}
-        onRowClick={(row) => {
-          if (isEnabled) {
-            navigate(`${path}/${row.id}`)
-          }
-        }}
-      />
-    </div>
+      {bulkReports.map((report, index) => (
+        <PrintReport
+          key={report.courseParticipationID}
+          className={index > 0 ? 'break-before-page' : undefined}
+          title={`${reportTitle} for ${report.studentName}`}
+          subtitle={report.teamName}
+          categories={categories}
+          scores={report.scores}
+          feedbackItems={report.feedbackItems}
+        />
+      ))}
+    </>
   )
 }

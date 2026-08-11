@@ -96,6 +96,10 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 			handleError(c, http.StatusForbidden, err)
 			return
 		}
+		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
+			handleError(c, http.StatusConflict, err)
+			return
+		}
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -140,6 +144,10 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
+			handleError(c, http.StatusConflict, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)

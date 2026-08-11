@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
@@ -161,6 +162,7 @@ func getMyFeedbackItems(c *gin.Context) {
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items [post]
 func createFeedbackItem(c *gin.Context) {
@@ -212,6 +214,7 @@ func createFeedbackItem(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [put]
 func updateFeedbackItem(c *gin.Context) {
@@ -290,8 +293,10 @@ func feedbackItemErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrFeedbackItemNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, ErrNotFeedbackItemAuthor):
+	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted):
 		return http.StatusForbidden
+	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
+		return http.StatusConflict
 	case errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType),
 		errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch):
 		return http.StatusBadRequest

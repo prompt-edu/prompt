@@ -140,6 +140,48 @@ func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemSelfTargetMismat
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemBeforeWindowOpens() {
+	notStartedPhaseID := uuid.MustParse("44561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Submitted before the window opens",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               notStartedPhaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Self,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+notStartedPhaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemAfterCompletion() {
+	completedPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
+
+	payload := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Added after marking the evaluation complete",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               completedPhaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        assessmentType.Self,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+completedPhaseID.String()+"/evaluation/feedback-items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+}
+
 func (suite *FeedbackItemRouterTestSuite) TestCreateFeedbackItemRejectsAssessmentType() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	authorID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")

@@ -109,7 +109,8 @@ CREATE TABLE public.feedback_items (
 -- Insert test data for course phases
 INSERT INTO public.course_phase (id, name, course_id, start_date, end_date) VALUES
 ('24461b6b-3c3a-4bc6-ba42-69eeb1514da9', 'Test Phase 1', '12345678-1234-1234-1234-123456789abc', '2024-01-01', '2024-06-30'),
-('34561b6b-3c3a-4bc6-ba42-69eeb1514da9', 'Test Phase 2', '12345678-1234-1234-1234-123456789abc', '2024-07-01', '2024-12-31');
+('34561b6b-3c3a-4bc6-ba42-69eeb1514da9', 'Test Phase 2', '12345678-1234-1234-1234-123456789abc', '2024-07-01', '2024-12-31'),
+('44561b6b-3c3a-4bc6-ba42-69eeb1514da9', 'Test Phase 3 (not started)', '12345678-1234-1234-1234-123456789abc', '2024-07-01', '2024-12-31');
 
 -- Insert test data for course participations
 INSERT INTO public.course_participation (id, course_id, user_email, role) VALUES
@@ -133,7 +134,16 @@ INSERT INTO public.course_phase_config (assessment_schema_id, course_phase_id, d
 ('550e8400-e29b-41d4-a716-446655440000', '34561b6b-3c3a-4bc6-ba42-69eeb1514da9', '2099-12-31 23:59:59+00', '2024-01-01 00:00:00+00',
  true, '2024-01-01 00:00:00+00', '2099-12-31 23:59:59+00',
  true, '2024-01-01 00:00:00+00', '2099-12-31 23:59:59+00',
- true, '2024-01-01 00:00:00+00', '2099-12-31 23:59:59+00');
+ true, '2024-01-01 00:00:00+00', '2099-12-31 23:59:59+00'),
+-- Phase 3 has self evaluation enabled but not yet started
+('550e8400-e29b-41d4-a716-446655440000', '44561b6b-3c3a-4bc6-ba42-69eeb1514da9', '2099-12-31 23:59:59+00', '2099-01-01 00:00:00+00',
+ true, '2099-01-01 00:00:00+00', '2099-12-31 23:59:59+00',
+ true, '2099-01-01 00:00:00+00', '2099-12-31 23:59:59+00',
+ true, '2099-01-01 00:00:00+00', '2099-12-31 23:59:59+00');
+
+-- A completed self evaluation locks further writes for that author in phase 2
+INSERT INTO public.evaluation_completion (course_participation_id, course_phase_id, author_course_participation_id, completed_at, completed, type) VALUES
+('ca42e447-60f9-4fe0-b297-2dae3f924fd7', '34561b6b-3c3a-4bc6-ba42-69eeb1514da9', 'ca42e447-60f9-4fe0-b297-2dae3f924fd7', '2024-02-01 00:00:00+00', true, 'self');
 
 -- Insert test data for feedback items
 INSERT INTO public.feedback_items (id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id) VALUES

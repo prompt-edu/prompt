@@ -1,8 +1,12 @@
 import { axiosInstance, type MailingReport, type SendStatusMail } from '@tumaet/prompt-shared-state'
 
+export interface SendStatusMailRequest extends SendStatusMail {
+  recipientCourseParticipationIDs?: string[]
+}
+
 export const sendStatusMail = async (
   coursePhaseID: string,
-  status: SendStatusMail,
+  status: SendStatusMailRequest,
 ): Promise<MailingReport> => {
   try {
     return (

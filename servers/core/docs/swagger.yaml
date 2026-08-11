@@ -1251,6 +1251,13 @@ definitions:
     type: object
   mailingDTO.SendStatusMail:
     properties:
+      recipientCourseParticipationIDs:
+        description: |-
+          Optional: when omitted, every participant with the given pass status is mailed. When set, the
+          mail only goes to those of these participants that carry the given pass status.
+        items:
+          type: string
+        type: array
       statusMailToBeSend:
         $ref: '#/definitions/db.PassStatus'
     type: object

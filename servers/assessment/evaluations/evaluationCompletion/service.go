@@ -26,6 +26,7 @@ var EvaluationCompletionServiceSingleton *EvaluationCompletionService
 
 var ErrInvalidEvaluationType = errors.New("invalid evaluation type")
 var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target its author")
+var ErrEvaluationAlreadyCompleted = errors.New("evaluation completion already exists and is marked as completed")
 
 func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
 	if evaluationType == assessmentType.Self && courseParticipationID != authorCourseParticipationID {
@@ -73,8 +74,7 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParti
 		}
 
 		if completion.Completed {
-			log.Error("evaluation completion already exists and is marked as completed")
-			return errors.New("evaluation completion already exists and is marked as completed")
+			return ErrEvaluationAlreadyCompleted
 		}
 	}
 	return nil

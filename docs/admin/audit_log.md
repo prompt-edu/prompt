@@ -50,7 +50,20 @@ phase with the new `AUDIT_INGEST_KEY`, then remove the old value from core.
 
 ## Privacy / GDPR
 
-The audit log is **exempt from privacy-deletion requests**. Entries are *not* removed when a
-subject's data is deleted — they are retained as a compliance record (lawful basis:
-accountability/legal obligation) until the retention window lapses. Set `AUDIT_RETENTION_DAYS`
-according to your institution's policy.
+By design the audit log is **not** scrubbed by the privacy-deletion flow: entries (including the
+snapshotted actor name/email and entity name) are retained until the retention window lapses, even
+after the referenced subject's other data is deleted. The table is append-only, so entries cannot be
+edited or anonymized in place after the fact.
+
+This is a deliberate retention exception, not a blanket GDPR exemption. The GDPR right to erasure
+(Art. 17) can be overridden only for a specific lawful basis - typically retention required by a
+legal obligation (Art. 17(3)(b)) - and that basis, together with a defined retention schedule and a
+process for handling erasure requests, is the operator's responsibility. Before enabling audit
+logging in production:
+
+- Confirm the lawful basis and retention period with your institution's legal/privacy office.
+- Set `AUDIT_RETENTION_DAYS` to that period so entries expire on schedule (leaving it unset keeps
+  personal data indefinitely, which is rarely defensible).
+- Document how you handle erasure requests that touch audit data.
+
+If your policy does not support retaining this data, keep `AUDIT_ENABLED` off.

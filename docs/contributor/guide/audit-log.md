@@ -37,7 +37,7 @@ audit.Record(c, audit.Event{
     EntityType: "grade",
     EntityID:   gradeID,
     EntityName: "team Alpha",       // snapshotted, human-readable subject
-    Metadata:   map[string]any{"from": "PASSED", "to": "FAILED"},
+    Metadata:   map[string]any{"change": "grade updated"},
 })
 ```
 

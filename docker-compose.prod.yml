@@ -79,6 +79,9 @@ services:
     environment:
       - CORE_HOST
       - SERVER_ADDRESS
+      - AUDIT_ENABLED
+      - AUDIT_RETENTION_DAYS
+      - AUDIT_INGEST_KEYS
       - DB_HOST
       - DB_PORT
       - DB_NAME

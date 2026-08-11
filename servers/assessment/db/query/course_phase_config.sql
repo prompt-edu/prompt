@@ -130,6 +130,8 @@ SELECT EXISTS(
     )
 ) AS schema_used_in_other_phases;
 
+-- assessment_enabled takes no COALESCE like its sibling flags: an omitted value must keep the
+-- phase's current mode rather than fall back to a constant, so Go resolves it before this runs.
 -- name: CreateOrUpdateCoursePhaseConfig :exec
 INSERT INTO course_phase_config (assessment_schema_id,
                                  course_phase_id,

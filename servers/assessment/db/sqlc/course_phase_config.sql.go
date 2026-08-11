@@ -147,6 +147,8 @@ type CreateOrUpdateCoursePhaseConfigParams struct {
 	AssessmentEnabled        bool               `json:"assessment_enabled"`
 }
 
+// assessment_enabled takes no COALESCE like its sibling flags: an omitted value must keep the
+// phase's current mode rather than fall back to a constant, so Go resolves it before this runs.
 func (q *Queries) CreateOrUpdateCoursePhaseConfig(ctx context.Context, arg CreateOrUpdateCoursePhaseConfigParams) error {
 	_, err := q.db.Exec(ctx, createOrUpdateCoursePhaseConfig,
 		arg.AssessmentSchemaID,

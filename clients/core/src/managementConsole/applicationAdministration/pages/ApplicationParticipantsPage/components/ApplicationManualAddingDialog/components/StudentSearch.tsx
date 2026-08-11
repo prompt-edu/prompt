@@ -8,7 +8,6 @@ import {
   Badge,
   Button,
   Input,
-  ScrollArea,
   Separator,
   Table,
   TableBody,
@@ -60,14 +59,15 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
   return (
     <div className='space-y-4'>
       <h2 className='text-lg font-semibold'>Search Students Already Registered in Prompt</h2>
-      <form onSubmit={handleSearch} className='flex gap-2'>
+      <form onSubmit={handleSearch} className='flex flex-col gap-2 sm:flex-row'>
         <Input
           type='text'
+          className='min-w-0 flex-1'
           placeholder={`Enter a name, email, matriculation number, or ${translations.university['login-name']}`}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button type='submit' disabled={searchQuery.length <= 2}>
+        <Button type='submit' className='shrink-0' disabled={searchQuery.length <= 2}>
           <Search className='mr-2 h-4 w-4' />
           Search
         </Button>
@@ -82,7 +82,7 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
           <AlertDescription>Failed to search university users. {error?.message}</AlertDescription>
         </Alert>
       ) : enteredSearchString.length > 0 && users && users.length > 0 ? (
-        <ScrollArea className='max-h-[calc(40vh-150px)]'>
+        <div className='max-h-[calc(40vh-150px)] w-full overflow-auto'>
           <Table>
             <TableHeader>
               <TableRow>
@@ -123,7 +123,7 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
               ))}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
       ) : enteredSearchString.length > 0 ? (
         <Alert>
           <AlertTitle>No user found.</AlertTitle>

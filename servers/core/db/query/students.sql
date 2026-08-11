@@ -84,8 +84,11 @@ SELECT
   s.last_name AS student_last_name,
   s.email AS student_email,
   s.has_university_account AS student_has_university_account,
-  s.current_semester,
-  s.study_program,
+  s.current_semester AS student_current_semester,
+  s.study_program AS student_study_program,
+  s.gender AS student_gender,
+  s.nationality AS student_nationality,
+  s.study_degree AS student_study_degree,
   s.last_modified AS student_last_modified,
   COALESCE(
     jsonb_agg(
@@ -121,7 +124,12 @@ GROUP BY
   s.first_name,
   s.last_name,
   s.email,
-  s.has_university_account;
+  s.has_university_account,
+  s.current_semester,
+  s.study_program,
+  s.gender,
+  s.nationality,
+  s.study_degree;
 
 -- name: GetStudentEnrollments :one
 WITH RECURSIVE

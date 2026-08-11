@@ -127,6 +127,8 @@ func ListAssessmentSchemasForCoursePhase(
 	result := make([]assessmentSchemaDTO.AssessmentSchema, len(schemas))
 	for i, schema := range schemas {
 		result[i] = assessmentSchemaDTO.MapDBAssessmentSchemaToDTOAssessmentSchema(schema)
+		owned := schema.SourcePhaseID.Valid && schema.SourcePhaseID.Bytes == coursePhaseID
+		result[i].IsOwnedByCurrentPhase = &owned
 	}
 
 	return result, nil
@@ -168,7 +170,17 @@ func GetAssessmentSchemaForCoursePhase(
 	return GetAssessmentSchema(ctx, schemaID)
 }
 
-func UpdateAssessmentSchema(ctx context.Context, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest) error {
+func UpdateAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest, isAdmin bool) error {
+	if !isAdmin {
+		isOwner, err := CheckSchemaOwnership(ctx, schemaID, coursePhaseID)
+		if err != nil {
+			return err
+		}
+		if !isOwner {
+			return ErrSchemaNotAccessible
+		}
+	}
+
 	var description pgtype.Text
 	if req.Description != "" {
 		description = pgtype.Text{String: req.Description, Valid: true}

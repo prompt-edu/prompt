@@ -4,6 +4,7 @@ export interface AssessmentSchema {
   description: string
   createdAt?: Date
   updatedAt?: Date
+  isOwnedByCurrentPhase?: boolean
 }
 
 export interface CreateAssessmentSchemaRequest {

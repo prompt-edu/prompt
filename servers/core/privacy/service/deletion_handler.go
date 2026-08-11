@@ -37,7 +37,7 @@ func PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionReq
 	if record.StudentID != nil {
 		studentID = *record.StudentID
 	}
-	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudent(c, studentID)
+	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudentCourses(c, studentID)
 	if err != nil {
 		return Deletion{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}

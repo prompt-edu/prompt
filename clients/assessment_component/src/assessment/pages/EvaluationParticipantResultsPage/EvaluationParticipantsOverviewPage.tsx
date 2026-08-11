@@ -14,9 +14,13 @@ import {
   getEvaluationCounts,
 } from '../AssessmentParticipantsPage/utils/evaluationUtils'
 import { PeerEvaluationCompletionBadge } from '../components/badges'
+import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
+import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 
 interface EvaluationParticipantRow {
   id: string
@@ -66,6 +70,7 @@ export const EvaluationParticipantsOverviewPage = ({
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: teams } = useGetAllTeams()
+  const { data: evaluations } = useGetAllEvaluations()
 
   const {
     data: evaluationCompletions = [],
@@ -81,6 +86,13 @@ export const EvaluationParticipantsOverviewPage = ({
     () => evaluationCompletions.filter((completion) => completion.type === assessmentType),
     [assessmentType, evaluationCompletions],
   )
+
+  const typedScoreLevels = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, assessmentType),
+    [assessmentType, evaluations],
+  )
+
+  const distributionLabel = assessmentType === AssessmentType.SELF ? 'Self' : 'Peer'
 
   const isEnabled =
     assessmentType === AssessmentType.SELF
@@ -170,6 +182,21 @@ export const EvaluationParticipantsOverviewPage = ({
           Click on a participant to view their evaluation results.
         </p>
       )}
+
+      <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+        <AssessmentDiagram
+          participations={participations}
+          scoreLevels={typedScoreLevels}
+          completions={typedCompletions}
+          assessmentType={assessmentType}
+        />
+        <ScoreLevelDistributionDiagram
+          participations={participations}
+          scoreLevels={typedScoreLevels}
+          title={`${distributionLabel} Evaluation Distribution`}
+          description='Number of participants per score level'
+        />
+      </div>
 
       <PromptTable<EvaluationParticipantRow>
         data={data}

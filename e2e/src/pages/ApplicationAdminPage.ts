@@ -47,14 +47,16 @@ export class ApplicationAdminPage {
     await expect(dialog.getByRole('heading', { name: 'Personal Information' })).toBeVisible()
   }
 
+  // Mailing configuration moved into the Application settings page.
   async gotoMailing(courseId: string, phaseId: string) {
-    await this.page.goto(`/management/course/${courseId}/${phaseId}/mailing`)
+    await this.page.goto(`/management/course/${courseId}/${phaseId}/settings`)
+    await expect(
+      this.page.getByRole('heading', { name: 'Application Settings' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
   async expectMailingLoaded() {
-    await expect(
-      this.page.getByRole('heading', { name: 'Application Mailing Settings' }),
-    ).toBeVisible({ timeout: 15_000 })
+    await expect(this.page.getByText('E-Mail Settings').first()).toBeVisible({ timeout: 15_000 })
     await expect(this.page.getByRole('heading', { name: 'Mailing Templates' })).toBeVisible()
   }
 
@@ -65,6 +67,29 @@ export class ApplicationAdminPage {
 
   async expectAnswerVisible(answer: string) {
     await expect(this.page.getByText(answer)).toBeVisible()
+  }
+
+  async expectQuestionVisible(title: string) {
+    await expect(
+      this.page.getByTestId('application-answers').getByText(title, { exact: true }),
+    ).toBeVisible()
+  }
+
+  async openFilterMenu() {
+    await this.page.getByRole('button', { name: 'Filter' }).click()
+    await expect(this.page.getByRole('menu')).toBeVisible()
+  }
+
+  studyProgramOption(name: string): Locator {
+    return this.page.getByRole('menuitemcheckbox', { name })
+  }
+
+  // The checkbox item calls preventDefault, so the menu stays open on select;
+  // close it explicitly so the filtered table is not covered by the overlay.
+  async filterByStudyProgram(name: string) {
+    await this.studyProgramOption(name).click()
+    await this.page.keyboard.press('Escape')
+    await expect(this.page.getByRole('menu')).toBeHidden()
   }
 
   // Accept flips the phase participation's pass status to 'passed'; the button

@@ -8,7 +8,7 @@ export const useGetStudentAssessment = (options?: { enabled?: boolean }) => {
   const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
   const enabled = options?.enabled ?? true
 
-  const query = useQuery<StudentAssessment>({
+  return useQuery<StudentAssessment>({
     queryKey: ['assessments', phaseId, courseParticipationID],
     queryFn: () => getStudentAssessment(phaseId ?? '', courseParticipationID ?? ''),
     enabled,
@@ -16,18 +16,4 @@ export const useGetStudentAssessment = (options?: { enabled?: boolean }) => {
     // page does not collapse to a loader, which would reset the scroll position.
     placeholderData: keepPreviousData,
   })
-
-  // A disabled query stays pending forever, which would hang the loading gates above it.
-  // refetch() ignores `enabled`, so it has to be neutralized as well.
-  if (!enabled) {
-    return {
-      ...query,
-      data: undefined,
-      isPending: false,
-      isError: false,
-      refetch: async () => query,
-    }
-  }
-
-  return query
 }

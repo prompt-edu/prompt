@@ -81,14 +81,19 @@ export const AssessmentStatisticsPage = () => {
     [filteredParticipationWithAssessments],
   )
 
-  const isError = isCoursePhaseConfigError || isAssessmentsError || isAssessmentCompletionsError
+  const isError =
+    isCoursePhaseConfigError ||
+    (assessmentEnabled && (isAssessmentsError || isAssessmentCompletionsError))
   const isPending =
-    isCoursePhaseConfigPending || isAssessmentsPending || isAssessmentCompletionsPending
+    isCoursePhaseConfigPending ||
+    (assessmentEnabled && (isAssessmentsPending || isAssessmentCompletionsPending))
 
   const refetch = () => {
     refetchCoursePhaseConfig()
-    refetchAssessments()
-    refetchAssessmentCompletions()
+    if (assessmentEnabled) {
+      refetchAssessments()
+      refetchAssessmentCompletions()
+    }
   }
 
   if (isError) {

@@ -73,13 +73,19 @@ export const AssessmentParticipantsPage = () => {
   })
 
   const isError =
-    isCoursePhaseConfigError || isAssessmentCompletionsError || isEvaluationCompletionsError
+    isCoursePhaseConfigError ||
+    (assessmentEnabled && isAssessmentCompletionsError) ||
+    isEvaluationCompletionsError
   const isPending =
-    isCoursePhaseConfigPending || isAssessmentCompletionsPending || isEvaluationCompletionsPending
+    isCoursePhaseConfigPending ||
+    (assessmentEnabled && isAssessmentCompletionsPending) ||
+    isEvaluationCompletionsPending
   const refetch = () => {
     refetchCoursePhaseConfig()
-    refetchAssessmentCompletions()
     refetchEvaluationCompletions()
+    if (assessmentEnabled) {
+      refetchAssessmentCompletions()
+    }
   }
 
   const selfEvaluationCompletions = useMemo(() => {
@@ -106,8 +112,6 @@ export const AssessmentParticipantsPage = () => {
   }, [assessmentCompletions])
 
   const extraColumns: ExtraParticipantColumn<any>[] = useMemo(() => {
-    if (!scoreLevels) return []
-
     const columns = [
       ...(assessmentEnabled
         ? [createScoreLevelColumn(scoreLevels), createGradeSuggestionColumn(assessmentCompletions)]

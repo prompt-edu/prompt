@@ -9,23 +9,11 @@ export const useGetAllAssessments = (options?: { enabled?: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const enabled = options?.enabled ?? true
 
-  const query = useQuery<Assessment[]>({
+  const { data, ...queryInfo } = useQuery<Assessment[]>({
     queryKey: ['assessments', phaseId],
     queryFn: () => getAllAssessmentsInPhase(phaseId ?? ''),
     enabled,
   })
 
-  // A disabled query stays pending forever, which would hang the loading gates above it.
-  // refetch() ignores `enabled`, so it has to be neutralized as well.
-  if (!enabled) {
-    return {
-      ...query,
-      data: EMPTY_ASSESSMENTS,
-      isPending: false,
-      isError: false,
-      refetch: async () => query,
-    }
-  }
-
-  return query
+  return { ...queryInfo, data: enabled ? (data ?? EMPTY_ASSESSMENTS) : EMPTY_ASSESSMENTS }
 }

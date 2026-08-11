@@ -85,41 +85,61 @@ func (suite *StatusMailServiceTestSuite) SetupTest() {
 	sendMailFn = suite.oldSendMailFn
 }
 
-func (suite *StatusMailServiceTestSuite) recordSentRecipients() *[]string {
-	sentRecipients := make([]string, 0)
+func (suite *StatusMailServiceTestSuite) recordSentMails() *[]capturedMail {
+	sentMails := make([]capturedMail, 0)
 	sendMailFn = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
-		sentRecipients = append(sentRecipients, recipientAddress)
+		sentMails = append(sentMails, capturedMail{
+			Recipient: recipientAddress,
+			Subject:   subject,
+			Content:   htmlBody,
+		})
 		return nil
 	}
-	return &sentRecipients
+	return &sentMails
+}
+
+func recipientsOf(sentMails []capturedMail) []string {
+	recipients := make([]string, 0, len(sentMails))
+	for _, sentMail := range sentMails {
+		recipients = append(recipients, sentMail.Recipient)
+	}
+	return recipients
 }
 
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsWithStatus() {
-	sentRecipients := suite.recordSentRecipients()
+	sentMails := suite.recordSentMails()
 
 	report, err := SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), []string{"alice@example.com"}, report.SuccessfulEmails)
 	assert.Empty(suite.T(), report.FailedEmails)
-	assert.Equal(suite.T(), []string{"alice@example.com"}, *sentRecipients)
+	assert.Equal(suite.T(), []capturedMail{{
+		Recipient: "alice@example.com",
+		Subject:   "Accepted",
+		Content:   "Hi Alice, you have been accepted.",
+	}}, *sentMails)
 }
 
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsUsesStatusTemplate() {
-	sentRecipients := suite.recordSentRecipients()
+	sentMails := suite.recordSentMails()
 
 	report, err := SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusFailed, nil)
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), []string{"bob@example.com"}, report.SuccessfulEmails)
-	assert.Equal(suite.T(), []string{"bob@example.com"}, *sentRecipients)
+	assert.Equal(suite.T(), []capturedMail{{
+		Recipient: "bob@example.com",
+		Subject:   "Rejected",
+		Content:   "Hi Bob, you have not been accepted.",
+	}}, *sentMails)
 }
 
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToSelectedRecipients() {
-	sentRecipients := suite.recordSentRecipients()
+	sentMails := suite.recordSentMails()
 
 	report, err := SendStatusMailManualTrigger(
 		suite.ctx,
@@ -131,11 +151,11 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToSelectedRecipients(
 
 	assert.Equal(suite.T(), []string{"alice@example.com"}, report.SuccessfulEmails)
 	assert.Empty(suite.T(), report.FailedEmails)
-	assert.Equal(suite.T(), []string{"alice@example.com"}, *sentRecipients)
+	assert.Equal(suite.T(), []string{"alice@example.com"}, recipientsOf(*sentMails))
 }
 
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipientsWithOtherStatus() {
-	sentRecipients := suite.recordSentRecipients()
+	sentMails := suite.recordSentMails()
 
 	report, err := SendStatusMailManualTrigger(
 		suite.ctx,
@@ -146,11 +166,11 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipien
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), []string{"alice@example.com"}, report.SuccessfulEmails)
-	assert.Equal(suite.T(), []string{"alice@example.com"}, *sentRecipients)
+	assert.Equal(suite.T(), []string{"alice@example.com"}, recipientsOf(*sentMails))
 }
 
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelection() {
-	sentRecipients := suite.recordSentRecipients()
+	sentMails := suite.recordSentMails()
 
 	report, err := SendStatusMailManualTrigger(
 		suite.ctx,
@@ -164,7 +184,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelec
 	assert.NotNil(suite.T(), report.FailedEmails)
 	assert.Empty(suite.T(), report.SuccessfulEmails)
 	assert.Empty(suite.T(), report.FailedEmails)
-	assert.Empty(suite.T(), *sentRecipients)
+	assert.Empty(suite.T(), *sentMails)
 }
 
 func TestStatusMailServiceTestSuite(t *testing.T) {

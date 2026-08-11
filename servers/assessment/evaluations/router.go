@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
@@ -184,6 +185,7 @@ func getMyEvaluations(c *gin.Context) {
 // @Success 201 {string} string "Created"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation [post]
 func createOrUpdateEvaluation(c *gin.Context) {
@@ -208,11 +210,7 @@ func createOrUpdateEvaluation(c *gin.Context) {
 
 	err = CreateOrUpdateEvaluation(c, coursePhaseID, request)
 	if err != nil {
-		if errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType) || errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch) {
-			handleError(c, http.StatusBadRequest, err)
-			return
-		}
-		handleError(c, http.StatusInternalServerError, err)
+		handleError(c, evaluationErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusCreated)
@@ -227,6 +225,7 @@ func createOrUpdateEvaluation(c *gin.Context) {
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/{evaluationID} [delete]
 func deleteEvaluation(c *gin.Context) {
@@ -252,10 +251,24 @@ func deleteEvaluation(c *gin.Context) {
 
 	err = DeleteEvaluation(c, evaluationID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		handleError(c, evaluationErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)
+}
+
+func evaluationErrorStatus(err error) int {
+	switch {
+	case errors.Is(err, coursePhaseConfig.ErrNotStarted):
+		return http.StatusForbidden
+	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
+		return http.StatusConflict
+	case errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType),
+		errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func isEvaluationAuthor(c *gin.Context, evaluationID, authorID uuid.UUID) bool {

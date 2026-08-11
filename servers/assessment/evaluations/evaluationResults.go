@@ -11,8 +11,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 )
 
-// minPeerRaters keeps a peer average from revealing a single named teammate's exact score.
-const minPeerRaters = 2
+// MinPeerRaters keeps a peer average from revealing a single named teammate's exact score. Every
+// student-facing peer average takes this floor, on evaluation-only and assessment-enabled phases alike.
+const MinPeerRaters = 2
 
 // AggregateEvaluations averages the scores of one evaluation type per competency. A competency is
 // only reported when at least minDistinctAuthors different people rated it.
@@ -86,7 +87,7 @@ func GetStudentEvaluationResults(ctx context.Context, coursePhaseID, courseParti
 	}
 
 	if config.PeerEvaluationEnabled {
-		results.PeerResults = AggregateEvaluations(evals, assessmentType.Peer, minPeerRaters)
+		results.PeerResults = AggregateEvaluations(evals, assessmentType.Peer, MinPeerRaters)
 	}
 
 	return results, nil

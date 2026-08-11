@@ -103,9 +103,9 @@ lecturer-facing grading workflow from the phase. When it is off:
 - **Release Results** publishes evaluation results instead: each student sees their own self-evaluation
   and the averaged scores their peers gave them, with a PDF export
 
-> 🔒 **Peer averages are anonymized.** A competency with fewer than two distinct peer raters is not
-> shown at all, so an average can never reveal a single teammate's score. Multiple ratings from the
-> same peer do not satisfy that threshold.
+> 🔒 **Peer averages shown to students are anonymized**, here and in the assessment report alike. A
+> competency with fewer than two distinct peer raters is not shown at all, so an average can never
+> reveal a single teammate's score. Multiple ratings from the same peer do not satisfy that threshold.
 
 **Unlocking a phase whose toggle is greyed out:** the switch locks as soon as tutor-facing assessment
 data exists, so existing grades can never be hidden. To switch such a phase to evaluations only, remove

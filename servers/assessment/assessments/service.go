@@ -313,7 +313,8 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	peerEvalResults := []assessmentDTO.AggregatedEvaluationResult{}
 	selfEvalResults := []assessmentDTO.AggregatedEvaluationResult{}
 	if config.GradingSheetVisible {
-		peerEvalResults = evaluations.AggregateEvaluations(evals, assessmentType.Peer, 1)
+		peerEvalResults = evaluations.AggregateEvaluations(evals, assessmentType.Peer, evaluations.MinPeerRaters)
+		// A self-evaluation only ever has its own author, so it takes no anonymity floor
 		selfEvalResults = evaluations.AggregateEvaluations(evals, assessmentType.Self, 1)
 	}
 

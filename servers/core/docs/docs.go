@@ -1176,11 +1176,91 @@ const docTemplate = `{
                     "auditLog"
                 ],
                 "summary": "Global audit log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by actor role",
+                        "name": "actorRole",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by outcome (success|denied)",
+                        "name": "outcome",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action key (e.g. POST /api/.../slots)",
+                        "name": "actionKey",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity type",
+                        "name": "entityType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source service (e.g. core)",
+                        "name": "sourceService",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by course phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search over actor, action and entity",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start of time range (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End of time range (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor timestamp (RFC3339) from a previous page",
+                        "name": "cursorTs",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor entry UUID from a previous page",
+                        "name": "cursorId",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/auditLogDTO.AuditLogPage"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {
@@ -2302,6 +2382,78 @@ const docTemplate = `{
                         "name": "uuid",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by actor role",
+                        "name": "actorRole",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by outcome (success|denied)",
+                        "name": "outcome",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action key (e.g. POST /api/.../slots)",
+                        "name": "actionKey",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity type",
+                        "name": "entityType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source service (e.g. core)",
+                        "name": "sourceService",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by course phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search over actor, action and entity",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start of time range (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End of time range (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor timestamp (RFC3339) from a previous page",
+                        "name": "cursorTs",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor entry UUID from a previous page",
+                        "name": "cursorId",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2309,6 +2461,12 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/auditLogDTO.AuditLogPage"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "500": {

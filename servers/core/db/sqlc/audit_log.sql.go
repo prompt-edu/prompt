@@ -113,14 +113,13 @@ WHERE ($1::uuid IS NULL OR course_id = $1)
   AND ($8::timestamptz IS NULL OR created_at >= $8)
   AND ($9::timestamptz IS NULL OR created_at <= $9)
   AND ($10::text IS NULL OR (
-        actor_name ILIKE '%' || $10 || '%' OR
-        actor_email ILIKE '%' || $10 || '%' OR
-        action ILIKE '%' || $10 || '%' OR
-        entity_name ILIKE '%' || $10 || '%' OR
-        entity_id ILIKE '%' || $10 || '%'))
+        actor_name ILIKE '%' || $10 || '%' ESCAPE '\' OR
+        actor_email ILIKE '%' || $10 || '%' ESCAPE '\' OR
+        action ILIKE '%' || $10 || '%' ESCAPE '\' OR
+        entity_name ILIKE '%' || $10 || '%' ESCAPE '\' OR
+        entity_id ILIKE '%' || $10 || '%' ESCAPE '\'))
   AND ($11::timestamptz IS NULL OR
-        created_at < $11 OR
-        (created_at = $11 AND id < $12))
+        (created_at, id) < ($11::timestamptz, $12::uuid))
 ORDER BY created_at DESC, id DESC
 LIMIT $13
 `

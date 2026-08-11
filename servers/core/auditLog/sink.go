@@ -3,6 +3,7 @@ package auditLog
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -50,6 +51,19 @@ func eventToParams(ctx context.Context, r courseResolver, e audit.Event) db.Crea
 			} else {
 				log.WithError(err).Debug("audit: could not resolve course from phase")
 			}
+		}
+	}
+
+	// Core's course-level routes carry the course in the ":uuid" param (e.g.
+	// PUT/DELETE /api/courses/:uuid, .../archive, POST .../participations). The
+	// SDK only fills CourseID from ":courseId"/":courseID", so backfill from the
+	// entity id on these routes; otherwise course renames, archival and deletion
+	// would be invisible in the course log. Scoped to the courses path so the
+	// ":uuid" of unrelated routes (course_phases, students, …) is never mistaken
+	// for a course.
+	if !courseID.Valid && strings.HasPrefix(e.HTTPPath, "/api/courses/:uuid") && e.EntityID != "" {
+		if cid, err := uuid.Parse(e.EntityID); err == nil {
+			courseID = pgtype.UUID{Bytes: cid, Valid: true}
 		}
 	}
 
@@ -108,6 +122,7 @@ func CoreActorExtractor(c *gin.Context) (audit.Actor, bool) {
 			for r := range roleMap {
 				roles = append(roles, r)
 			}
+			sort.Strings(roles) // stable order (map iteration is randomized)
 			role = primaryRole(roleMap)
 		}
 	}
@@ -137,8 +152,13 @@ func primaryRole(roles map[string]bool) string {
 			}
 		}
 	}
+	// No known role: pick the lexicographically smallest so the value is stable
+	// across requests (map iteration order is randomized).
+	fallback := ""
 	for r := range roles {
-		return r
+		if fallback == "" || r < fallback {
+			fallback = r
+		}
 	}
-	return ""
+	return fallback
 }

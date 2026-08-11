@@ -25,13 +25,12 @@ WHERE (sqlc.narg('course_id')::uuid IS NULL OR course_id = sqlc.narg('course_id'
   AND (sqlc.narg('from_time')::timestamptz IS NULL OR created_at >= sqlc.narg('from_time'))
   AND (sqlc.narg('to_time')::timestamptz IS NULL OR created_at <= sqlc.narg('to_time'))
   AND (sqlc.narg('search')::text IS NULL OR (
-        actor_name ILIKE '%' || sqlc.narg('search') || '%' OR
-        actor_email ILIKE '%' || sqlc.narg('search') || '%' OR
-        action ILIKE '%' || sqlc.narg('search') || '%' OR
-        entity_name ILIKE '%' || sqlc.narg('search') || '%' OR
-        entity_id ILIKE '%' || sqlc.narg('search') || '%'))
+        actor_name ILIKE '%' || sqlc.narg('search') || '%' ESCAPE '\' OR
+        actor_email ILIKE '%' || sqlc.narg('search') || '%' ESCAPE '\' OR
+        action ILIKE '%' || sqlc.narg('search') || '%' ESCAPE '\' OR
+        entity_name ILIKE '%' || sqlc.narg('search') || '%' ESCAPE '\' OR
+        entity_id ILIKE '%' || sqlc.narg('search') || '%' ESCAPE '\'))
   AND (sqlc.narg('cursor_ts')::timestamptz IS NULL OR
-        created_at < sqlc.narg('cursor_ts') OR
-        (created_at = sqlc.narg('cursor_ts') AND id < sqlc.narg('cursor_id')))
+        (created_at, id) < (sqlc.narg('cursor_ts')::timestamptz, sqlc.narg('cursor_id')::uuid))
 ORDER BY created_at DESC, id DESC
 LIMIT sqlc.arg('page_limit');

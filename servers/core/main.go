@@ -168,12 +168,18 @@ func main() {
 		})
 	})
 
+	// The audit auto-capture middleware must wrap every module's routes. Gin
+	// snapshots the middleware chain when a route/group is registered, so it has
+	// to be registered before initKeycloak and all other modules; otherwise
+	// their routes (e.g. Keycloak course-role grants) are never captured.
+	auditLog.InitAuditLogCapture(api, *query, conn)
+
 	initKeycloak(api, *query)
 	permissionValidation.InitValidationService(*query, conn)
 
-	// Audit logging must be initialized before the other modules so its
-	// auto-capture middleware wraps their routes.
-	auditLog.InitAuditLogModule(api, *query, conn)
+	// Mount the audit read/ingest endpoints and start the pruner now that the
+	// permission-validation singleton the read routes rely on is initialized.
+	auditLog.InitAuditLogRoutes(api)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")

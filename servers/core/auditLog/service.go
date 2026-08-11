@@ -3,6 +3,7 @@ package auditLog
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -45,7 +46,7 @@ func (s *AuditLogService) ListAuditLog(ctx context.Context, f auditLogDTO.ListFi
 		CoursePhaseID: pgUUID(f.CoursePhaseID),
 		FromTime:      pgTimestamptz(f.From),
 		ToTime:        pgTimestamptz(f.To),
-		Search:        pgText(f.Search),
+		Search:        pgText(escapeLike(f.Search)),
 		CursorTs:      pgTimestamptz(f.CursorCreatedAt),
 		CursorID:      pgUUID(f.CursorID),
 		PageLimit:     int32(limit + 1), // fetch one extra to detect a next page
@@ -66,6 +67,16 @@ func (s *AuditLogService) ListAuditLog(ctx context.Context, f auditLogDTO.ListFi
 		page.Entries = append(page.Entries, toAuditEntry(row))
 	}
 	return page, nil
+}
+
+// escapeLike escapes ILIKE wildcards so user input matches literally rather than
+// as a pattern. Must be paired with an ESCAPE '\' clause in the query. The
+// backslash is escaped first so the added backslashes are not re-escaped.
+func escapeLike(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
 func toAuditEntry(row db.AuditLog) auditLogDTO.AuditEntry {
@@ -122,10 +133,13 @@ func StartRetentionPruner(ctx context.Context) {
 		return
 	}
 
-	pruneOnce(ctx, days)
 	ticker := time.NewTicker(24 * time.Hour)
 	go func() {
 		defer ticker.Stop()
+		// Run the first prune inside the goroutine so a large initial backlog
+		// delete never blocks startup (core must bind its port for the health
+		// probe before this finishes).
+		pruneOnce(ctx, days)
 		for {
 			select {
 			case <-ticker.C:

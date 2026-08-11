@@ -96,6 +96,54 @@ func (s *AuditLogTestSuite) TestDBSink_ResolvesCourseAndSnapshotsEntity() {
 	require.Equal(s.T(), "team Alpha", entityName.String)
 }
 
+func (s *AuditLogTestSuite) TestDBSink_BackfillsCourseIDFromCoursesRoute() {
+	// A core course-level route carries the course only in the ":uuid" entity id
+	// (not CourseID/CoursePhaseID); the sink must still resolve course_id so the
+	// entry is visible in the course log.
+	require.NoError(s.T(), s.sink.Record(s.ctx, audit.Event{
+		Action:   "Archived course",
+		HTTPPath: "/api/courses/:uuid/archive",
+		EntityID: seededCourseID,
+	}))
+	// A non-course ":uuid" route must NOT be mistaken for a course.
+	require.NoError(s.T(), s.sink.Record(s.ctx, audit.Event{
+		Action:   "Updated student",
+		HTTPPath: "/api/students/:uuid",
+		EntityID: "55555555-5555-5555-5555-555555555555",
+	}))
+
+	scoped, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), scoped.Entries, 1)
+	require.Equal(s.T(), "Archived course", scoped.Entries[0].Action)
+
+	global, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), global.Entries, 2)
+	for _, e := range global.Entries {
+		if e.Action == "Updated student" {
+			require.Empty(s.T(), e.CourseID)
+		}
+	}
+}
+
+func (s *AuditLogTestSuite) TestListAuditLog_SearchEscapesWildcards() {
+	now := time.Now()
+	s.insertRaw(now.Add(-2*time.Minute), seededCourseID, "Lecturer", "success", "student_id")
+	s.insertRaw(now.Add(-1*time.Minute), seededCourseID, "Lecturer", "success", "studentXid")
+
+	// "_" is a LIKE wildcard; escaped it matches literally, so only "student_id".
+	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "student_id"})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), page.Entries, 1)
+	require.Equal(s.T(), "student_id", page.Entries[0].Action)
+
+	// A bare "%" must match nothing (there is no literal percent), not everything.
+	pct, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "%"})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), pct.Entries, 0)
+}
+
 func (s *AuditLogTestSuite) TestAntiUpdateTriggerRejectsUpdate() {
 	require.NoError(s.T(), s.sink.Record(s.ctx, audit.Event{Action: "Created slot"}))
 

@@ -16,7 +16,9 @@ import type { PresentationSummary } from '../interfaces'
 import { openMaterialDownload, presentationApi, uploadMaterial } from '../network'
 import { formatFileSize, getErrorMessage } from '../utils'
 
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+// Only covers the moment before the config query resolves. The server enforces its own
+// limit either way, so this never has to be exactly right.
+const FALLBACK_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 interface MaterialsPanelProps {
   coursePhaseId: string
@@ -37,6 +39,13 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
     queryFn: () => presentationApi.getMaterials(coursePhaseId, presentation.id),
     enabled: Boolean(coursePhaseId && presentation.id),
   })
+
+  const configQuery = useQuery({
+    queryKey: ['presentation-config', coursePhaseId],
+    queryFn: () => presentationApi.getConfig(coursePhaseId),
+    enabled: Boolean(coursePhaseId),
+  })
+  const maxFileSizeBytes = configQuery.data?.maxUploadBytes || FALLBACK_MAX_FILE_SIZE_BYTES
 
   const deleteMutation = useMutation({
     mutationFn: (materialId: string) =>
@@ -62,11 +71,11 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
   const handleFiles = async (files: FileList | null) => {
     const selectedFiles = Array.from(files ?? [])
     if (selectedFiles.length === 0) return
-    const oversized = selectedFiles.find((file) => file.size > MAX_FILE_SIZE_BYTES)
+    const oversized = selectedFiles.find((file) => file.size > maxFileSizeBytes)
     if (oversized) {
       toast({
         title: 'File is too large',
-        description: `${oversized.name} exceeds the 50 MB limit.`,
+        description: `${oversized.name} exceeds the ${formatFileSize(maxFileSizeBytes)} limit.`,
         variant: 'destructive',
       })
       return
@@ -119,7 +128,7 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
         <div>
           <CardTitle className='text-base'>Presentation materials</CardTitle>
           <CardDescription>
-            Slides and supporting files. Each file may be up to 50 MB.
+            Slides and supporting files. Each file may be up to {formatFileSize(maxFileSizeBytes)}.
           </CardDescription>
         </div>
         {canManage ? (

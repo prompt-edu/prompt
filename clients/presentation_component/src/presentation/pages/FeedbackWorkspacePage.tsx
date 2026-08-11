@@ -49,6 +49,14 @@ import type { ActiveEditor, FeedbackAnswer, FeedbackDocument, FeedbackForm } fro
 import { presentationApi, streamFeedbackEvents } from '../network'
 import { formatDateTime, getApiError, getErrorMessage } from '../utils'
 
+const SHARED_REFETCH_INTERVAL_MS = 15_000
+
+const FEEDBACK_LOAD_MESSAGES: Record<string, string> = {
+  feedback_not_released: 'Your feedback has not been released yet.',
+  team_not_resolved:
+    'This phase is set to team presentations, but no team allocation is connected to it. Please ask your lecturer to finish configuring the phase.',
+}
+
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'conflict' | 'error'
 type StreamStatus = 'connecting' | 'live' | 'offline'
 type FeedbackActionType = 'submit' | 'reopen' | 'delete-draft' | 'release' | 'unrelease' | 'reset'
@@ -132,6 +140,12 @@ const FeedbackWorkspacePage = () => {
     queryKey: ['presentation-feedback', coursePhaseId, presentationId],
     queryFn: () => presentationApi.getFeedback(coursePhaseId, presentationId),
     enabled: Boolean(coursePhaseId && presentationId),
+    // The event stream drops events when a subscriber falls behind, so shared mode polls
+    // slowly as a floor. Without it a client that missed one event stays stale forever.
+    refetchInterval: (query) =>
+      query.state.data?.mode === 'shared' && !query.state.data.presentation.feedbackReleasedAt
+        ? SHARED_REFETCH_INTERVAL_MS
+        : false,
   })
 
   const feedback = feedbackQuery.data
@@ -142,7 +156,10 @@ const FeedbackWorkspacePage = () => {
     const nextValues: Record<string, string> = {}
     const nextRevisions: Record<string, number> = {}
     for (const answer of editableForm?.answers ?? []) {
-      if (!dirtyRef.current[answer.categoryId]) nextValues[answer.categoryId] = answer.value
+      // Adopting a newer revision for a field being edited would make the next save look
+      // current and silently overwrite whoever wrote that revision.
+      if (dirtyRef.current[answer.categoryId]) continue
+      nextValues[answer.categoryId] = answer.value
       nextRevisions[answer.categoryId] = answer.revision
     }
     setValues((current) => ({ ...current, ...nextValues }))
@@ -151,11 +168,12 @@ const FeedbackWorkspacePage = () => {
   }, [editableForm?.answers, feedback])
 
   const applyLiveAnswer = useCallback((answer: FeedbackAnswer) => {
+    // Same reason as the query sync above: a dirty field keeps the revision it was typed
+    // against, so saving it conflicts instead of clobbering the other editor.
+    if (dirtyRef.current[answer.categoryId]) return
     setRevisions((current) => ({ ...current, [answer.categoryId]: answer.revision }))
-    if (!dirtyRef.current[answer.categoryId]) {
-      setValues((current) => ({ ...current, [answer.categoryId]: answer.value }))
-      setSaveStatuses((current) => ({ ...current, [answer.categoryId]: 'saved' }))
-    }
+    setValues((current) => ({ ...current, [answer.categoryId]: answer.value }))
+    setSaveStatuses((current) => ({ ...current, [answer.categoryId]: 'saved' }))
   }, [])
 
   useEffect(() => {
@@ -323,6 +341,10 @@ const FeedbackWorkspacePage = () => {
 
   if (feedbackQuery.isLoading) return <LoadingPage />
   if (feedbackQuery.isError || !feedback) {
+    // These are states the reader can act on, not failures, so they get their own message
+    // instead of the generic retry page.
+    const message = FEEDBACK_LOAD_MESSAGES[getApiError(feedbackQuery.error).code ?? '']
+    if (message) return <ManagementPageHeader>{message}</ManagementPageHeader>
     return (
       <ErrorPage
         message='Feedback could not be loaded.'
@@ -331,7 +353,7 @@ const FeedbackWorkspacePage = () => {
     )
   }
 
-  const released = feedback.released ?? Boolean(feedback.presentation.feedbackReleasedAt)
+  const released = Boolean(feedback.presentation.feedbackReleasedAt)
   const formSubmitted = editableForm?.status === 'submitted'
   const canWrite = feedback.canEdit && !formSubmitted && !released
   const hasUnsavedAnswers =

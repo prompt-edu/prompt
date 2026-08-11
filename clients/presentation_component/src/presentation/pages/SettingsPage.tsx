@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   AlertDescription,
@@ -38,18 +38,75 @@ import type { CategoryRequest, FeedbackCategory, FeedbackMode, TargetMode } from
 import { presentationApi } from '../network'
 import { getApiError, getErrorMessage } from '../utils'
 
-interface ResetAction {
+type SettingsAction = { resetExistingData?: boolean } & (
+  | { type: 'config' }
+  | { type: 'create-category'; request: CategoryRequest }
+  | { type: 'update-category'; categoryId: string; request: CategoryRequest }
+  | { type: 'delete-category'; categoryId: string }
+)
+
+interface ResetPrompt {
   title: string
   description: string
   actionLabel: string
-  run: () => Promise<void>
+}
+
+interface ResetAction extends ResetPrompt {
+  run: () => SettingsAction
+}
+
+const CATEGORY_LOCK_DESCRIPTION =
+  'The category structure is locked because feedback already exists. Continuing permanently deletes every draft and submitted evaluation in this phase'
+
+const SETTINGS_ACTION_COPY: Record<
+  SettingsAction['type'],
+  { success: string; failure: string; resetDescription?: string; reset: ResetPrompt }
+> = {
+  config: {
+    success: 'Presentation settings saved',
+    failure: 'Could not save presentation settings',
+    resetDescription: 'Existing presentation data was reset to apply the new modes.',
+    reset: {
+      title: 'Reset existing presentation data?',
+      description:
+        'Changing the target or feedback mode is locked because the phase already contains presentations or evaluations. Continuing permanently deletes the affected schedule assignments, uploaded materials, and feedback so the new mode can be applied.',
+      actionLabel: 'Reset data and save',
+    },
+  },
+  'create-category': {
+    success: 'Feedback category added',
+    failure: 'Could not add feedback category',
+    reset: {
+      title: 'Reset feedback and add this category?',
+      description: `${CATEGORY_LOCK_DESCRIPTION} before adding the category.`,
+      actionLabel: 'Reset feedback and add',
+    },
+  },
+  'update-category': {
+    success: 'Feedback category updated',
+    failure: 'Could not update feedback category',
+    reset: {
+      title: 'Reset feedback and update this category?',
+      description: `${CATEGORY_LOCK_DESCRIPTION} before saving the category.`,
+      actionLabel: 'Reset feedback and save',
+    },
+  },
+  'delete-category': {
+    success: 'Feedback category deleted',
+    failure: 'Could not delete feedback category',
+    reset: {
+      title: 'Reset feedback and delete this category?',
+      description: `${CATEGORY_LOCK_DESCRIPTION} before deleting the category.`,
+      actionLabel: 'Reset feedback and delete',
+    },
+  },
 }
 
 interface CategoryRowProps {
   category: FeedbackCategory
   isPending: boolean
-  onSave: (request: CategoryRequest) => Promise<void>
-  onDelete: () => Promise<void>
+  onSave: (request: CategoryRequest) => void
+  onDelete: () => void
 }
 
 const CategoryRow = ({ category, isPending, onSave, onDelete }: CategoryRowProps) => {
@@ -147,7 +204,6 @@ const SettingsPage = () => {
   const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('independent')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryDescription, setNewCategoryDescription] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
   const [resetAction, setResetAction] = useState<ResetAction>()
 
   const configQuery = useQuery({
@@ -175,133 +231,69 @@ const SettingsPage = () => {
     void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
   }
 
-  const handleFailure = (
-    error: unknown,
-    fallback: string,
-    reset: Omit<ResetAction, 'run'> & { run: () => Promise<void> },
-  ) => {
-    const apiError = getApiError(error)
-    if (
-      apiError.code === 'config_locked' ||
-      apiError.code === 'feedback_locked' ||
-      apiError.code === 'categories_locked'
-    ) {
-      setResetAction(reset)
-      return
-    }
-    toast({
-      title: fallback,
-      description: getErrorMessage(error, 'Please try again.'),
-      variant: 'destructive',
-    })
-  }
-
-  const saveConfig = async (resetExistingData = false) => {
-    setIsSaving(true)
-    try {
-      await presentationApi.updateConfig(
-        coursePhaseId,
-        { targetMode, feedbackMode },
-        resetExistingData,
-      )
+  const mutation = useMutation({
+    mutationFn: async (action: SettingsAction) => {
+      const reset = action.resetExistingData ?? false
+      if (action.type === 'config') {
+        await presentationApi.updateConfig(coursePhaseId, { targetMode, feedbackMode }, reset)
+      } else if (action.type === 'create-category') {
+        await presentationApi.createCategory(coursePhaseId, action.request, reset)
+      } else if (action.type === 'update-category') {
+        await presentationApi.updateCategory(
+          coursePhaseId,
+          action.categoryId,
+          action.request,
+          reset,
+        )
+      } else {
+        await presentationApi.deleteCategory(coursePhaseId, action.categoryId, reset)
+      }
+    },
+    onSuccess: (_data, action) => {
       invalidateSettings()
+      setResetAction(undefined)
+      if (action.type === 'create-category') {
+        setNewCategoryName('')
+        setNewCategoryDescription('')
+      }
+      const copy = SETTINGS_ACTION_COPY[action.type]
       toast({
-        title: 'Presentation settings saved',
-        description: resetExistingData
-          ? 'Existing presentation data was reset to apply the new modes.'
-          : undefined,
+        title: copy.success,
+        description: action.resetExistingData ? copy.resetDescription : undefined,
       })
-    } catch (error) {
-      handleFailure(error, 'Could not save presentation settings', {
-        title: 'Reset existing presentation data?',
-        description:
-          'Changing the target or feedback mode is locked because the phase already contains presentations or evaluations. Continuing permanently deletes the affected schedule assignments, uploaded materials, and feedback so the new mode can be applied.',
-        actionLabel: 'Reset data and save',
-        run: () => saveConfig(true),
+    },
+    onError: (error, action) => {
+      const copy = SETTINGS_ACTION_COPY[action.type]
+      const code = getApiError(error).code
+      // The lock is not a failure: it asks the lecturer to confirm a destructive reset,
+      // which replays the same action with resetExistingData set.
+      if (code === 'config_locked' || code === 'categories_locked') {
+        setResetAction({ ...copy.reset, run: () => ({ ...action, resetExistingData: true }) })
+        return
+      }
+      toast({
+        title: copy.failure,
+        description: getErrorMessage(error, 'Please try again.'),
+        variant: 'destructive',
       })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+    },
+  })
 
-  const createCategory = async (resetExistingData = false) => {
-    const request: CategoryRequest = {
+  const isSaving = mutation.isPending
+
+  const newCategoryAction = (): SettingsAction => ({
+    type: 'create-category',
+    request: {
       name: newCategoryName.trim(),
       description: newCategoryDescription.trim(),
       position:
         Math.max(-1, ...(categoriesQuery.data ?? []).map((category) => category.position)) + 1,
-    }
-    setIsSaving(true)
-    try {
-      await presentationApi.createCategory(coursePhaseId, request, resetExistingData)
-      invalidateSettings()
-      setNewCategoryName('')
-      setNewCategoryDescription('')
-      toast({ title: 'Feedback category added' })
-    } catch (error) {
-      handleFailure(error, 'Could not add feedback category', {
-        title: 'Reset feedback and add this category?',
-        description:
-          'The category structure is locked because feedback already exists. Continuing permanently deletes every draft and submitted evaluation in this phase before adding the category.',
-        actionLabel: 'Reset feedback and add',
-        run: () => createCategory(true),
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+    },
+  })
 
-  const updateCategory = async (
-    categoryId: string,
-    request: CategoryRequest,
-    resetExistingData = false,
-  ) => {
-    setIsSaving(true)
-    try {
-      await presentationApi.updateCategory(coursePhaseId, categoryId, request, resetExistingData)
-      invalidateSettings()
-      toast({ title: 'Feedback category updated' })
-    } catch (error) {
-      handleFailure(error, 'Could not update feedback category', {
-        title: 'Reset feedback and update this category?',
-        description:
-          'The category structure is locked because feedback already exists. Continuing permanently deletes every draft and submitted evaluation in this phase before saving the category.',
-        actionLabel: 'Reset feedback and save',
-        run: () => updateCategory(categoryId, request, true),
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const deleteCategory = async (categoryId: string, resetExistingData = false) => {
-    setIsSaving(true)
-    try {
-      await presentationApi.deleteCategory(coursePhaseId, categoryId, resetExistingData)
-      invalidateSettings()
-      toast({ title: 'Feedback category deleted' })
-    } catch (error) {
-      handleFailure(error, 'Could not delete feedback category', {
-        title: 'Reset feedback and delete this category?',
-        description:
-          'The category structure is locked because feedback already exists. Continuing permanently deletes every draft and submitted evaluation in this phase before deleting the category.',
-        actionLabel: 'Reset feedback and delete',
-        run: () => deleteCategory(categoryId, true),
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const confirmReset = async () => {
+  const confirmReset = () => {
     if (!resetAction) return
-    setIsSaving(true)
-    try {
-      await resetAction.run()
-      setResetAction(undefined)
-    } finally {
-      setIsSaving(false)
-    }
+    mutation.mutate(resetAction.run())
   }
 
   if (configQuery.isLoading || categoriesQuery.isLoading) return <LoadingPage />
@@ -390,7 +382,10 @@ const SettingsPage = () => {
               </p>
             </div>
           </div>
-          <Button disabled={!configChanged || isSaving} onClick={() => void saveConfig()}>
+          <Button
+            disabled={!configChanged || isSaving}
+            onClick={() => mutation.mutate({ type: 'config' })}
+          >
             {isSaving ? (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             ) : (
@@ -436,7 +431,7 @@ const SettingsPage = () => {
             <Button
               variant='outline'
               disabled={!newCategoryName.trim() || isSaving}
-              onClick={() => void createCategory()}
+              onClick={() => mutation.mutate(newCategoryAction())}
             >
               <Plus className='mr-2 h-4 w-4' />
               Add category
@@ -453,8 +448,10 @@ const SettingsPage = () => {
               key={category.id}
               category={category}
               isPending={isSaving}
-              onSave={(request) => updateCategory(category.id, request)}
-              onDelete={() => deleteCategory(category.id)}
+              onSave={(request) =>
+                mutation.mutate({ type: 'update-category', categoryId: category.id, request })
+              }
+              onDelete={() => mutation.mutate({ type: 'delete-category', categoryId: category.id })}
             />
           ))}
         </CardContent>

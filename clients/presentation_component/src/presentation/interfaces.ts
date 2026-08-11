@@ -7,6 +7,7 @@ export interface PresentationConfig {
   coursePhaseId: string
   targetMode: TargetMode
   feedbackMode: FeedbackMode
+  maxUploadBytes: number
 }
 
 export interface FeedbackCategory {
@@ -105,7 +106,6 @@ export interface FeedbackDocument {
   presentation: PresentationSummary
   mode: FeedbackMode
   categories: FeedbackCategory[]
-  released?: boolean
   ownForm?: FeedbackForm
   forms: FeedbackForm[]
   activeEditors: ActiveEditor[]

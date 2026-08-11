@@ -17,7 +17,7 @@ import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
 import type { PresentationSummary } from '../interfaces'
 import { presentationApi } from '../network'
-import { formatDateTime } from '../utils'
+import { formatDateTime, getApiError } from '../utils'
 
 interface PresentationCardProps {
   coursePhaseId: string
@@ -102,6 +102,16 @@ const OverviewPage = () => {
 
   if (presentationsQuery.isLoading) return <LoadingPage />
   if (presentationsQuery.isError) {
+    // An unconnected team allocation is a phase misconfiguration the student cannot fix
+    // and retrying will not resolve, so it gets an explanation rather than a retry page.
+    if (getApiError(presentationsQuery.error).code === 'team_not_resolved') {
+      return (
+        <ManagementPageHeader>
+          This phase is set to team presentations, but no team allocation is connected to it. Please
+          ask your lecturer to finish configuring the phase.
+        </ManagementPageHeader>
+      )
+    }
     return (
       <ErrorPage
         message='Presentations could not be loaded.'

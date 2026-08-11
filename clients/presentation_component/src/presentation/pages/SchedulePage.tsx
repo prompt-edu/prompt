@@ -232,12 +232,6 @@ const SchedulePage = () => {
     queryFn: () => presentationApi.getTargets(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
-  const presentationsQuery = useQuery({
-    queryKey: ['presentations', coursePhaseId, 'all'],
-    queryFn: () => presentationApi.getPresentations(coursePhaseId),
-    enabled: Boolean(coursePhaseId),
-  })
-
   const invalidateSchedule = () => {
     void queryClient.invalidateQueries({ queryKey: ['presentation-slots', coursePhaseId] })
     void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
@@ -289,17 +283,16 @@ const SchedulePage = () => {
     },
   })
 
-  if (slotsQuery.isLoading || targetsQuery.isLoading || presentationsQuery.isLoading) {
+  if (slotsQuery.isLoading || targetsQuery.isLoading) {
     return <LoadingPage />
   }
-  if (slotsQuery.isError || targetsQuery.isError || presentationsQuery.isError) {
+  if (slotsQuery.isError || targetsQuery.isError) {
     return (
       <ErrorPage
         message='The presentation schedule could not be loaded.'
         onRetry={() => {
           void slotsQuery.refetch()
           void targetsQuery.refetch()
-          void presentationsQuery.refetch()
         }}
       />
     )
@@ -307,10 +300,6 @@ const SchedulePage = () => {
 
   const slots = slotsQuery.data ?? []
   const targets = targetsQuery.data ?? []
-  const presentations = presentationsQuery.data ?? []
-  const presentationBySlot = new Map(
-    presentations.map((presentation) => [presentation.slotId, presentation]),
-  )
   const createInvalid =
     !startTime || !endTime || new Date(endTime).getTime() <= new Date(startTime).getTime()
 
@@ -412,7 +401,7 @@ const SchedulePage = () => {
           <SlotCard
             key={slot.id}
             slot={slot}
-            presentation={slot.presentation ?? presentationBySlot.get(slot.id)}
+            presentation={slot.presentation}
             targets={targets}
             overlaps={slotOverlaps(slot)}
             isPending={mutation.isPending}

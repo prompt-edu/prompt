@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 )
@@ -64,15 +63,24 @@ func TestFeedbackScope(t *testing.T) {
 	}
 }
 
-func TestPresentationResponseIncludesNamedRelease(t *testing.T) {
-	releaseName := "Final jury feedback"
-	releasedAt := time.Date(2026, time.July, 16, 12, 0, 0, 0, time.UTC)
-	presentation := db.Presentation{
-		ID:                  uuid.New(),
-		FeedbackReleaseName: pgtype.Text{String: releaseName, Valid: true},
-		FeedbackReleasedAt:  pgtype.Timestamptz{Time: releasedAt, Valid: true},
+func TestEnsureAllowedType(t *testing.T) {
+	restricted := &Service{allowedTypes: []string{"application/pdf", "image/png"}}
+	if err := restricted.ensureAllowedType("application/pdf"); err != nil {
+		t.Fatalf("expected pdf to be allowed, got %v", err)
 	}
-	if !presentation.FeedbackReleaseName.Valid || presentation.FeedbackReleaseName.String != releaseName {
-		t.Fatal("expected named release metadata to be persisted in the presentation model")
+	// Browsers append parameters such as charset, which must not defeat the match.
+	if err := restricted.ensureAllowedType("application/pdf; charset=binary"); err != nil {
+		t.Fatalf("expected parameterized pdf to be allowed, got %v", err)
+	}
+	if err := restricted.ensureAllowedType("APPLICATION/PDF"); err != nil {
+		t.Fatalf("expected the match to be case-insensitive, got %v", err)
+	}
+	if err := restricted.ensureAllowedType("text/html"); err == nil {
+		t.Fatal("expected text/html to be rejected")
+	}
+
+	unrestricted := &Service{}
+	if err := unrestricted.ensureAllowedType("text/html"); err != nil {
+		t.Fatalf("expected an empty allow-list to permit anything, got %v", err)
 	}
 }

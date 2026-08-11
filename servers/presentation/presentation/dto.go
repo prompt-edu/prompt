@@ -10,6 +10,8 @@ type SettingsResponse struct {
 	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
 	TargetMode    string    `json:"targetMode"`
 	FeedbackMode  string    `json:"feedbackMode"`
+	// Server-side upload limit, so the client need not keep its own copy in sync.
+	MaxUploadBytes int64 `json:"maxUploadBytes"`
 }
 
 type UpdateSettingsRequest struct {

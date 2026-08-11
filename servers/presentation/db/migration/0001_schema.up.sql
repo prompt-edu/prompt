@@ -16,8 +16,8 @@ CREATE TABLE feedback_category (
     position integer NOT NULL CHECK (position >= 0),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (course_phase_id, name),
-    UNIQUE (course_phase_id, position)
+    CONSTRAINT feedback_category_phase_name_key UNIQUE (course_phase_id, name),
+    CONSTRAINT feedback_category_phase_position_key UNIQUE (course_phase_id, position)
 );
 
 CREATE TABLE presentation_slot (
@@ -34,7 +34,7 @@ CREATE TABLE presentation_slot (
 CREATE TABLE presentation (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     course_phase_id uuid NOT NULL,
-    slot_id uuid NOT NULL UNIQUE REFERENCES presentation_slot(id) ON DELETE RESTRICT,
+    slot_id uuid NOT NULL REFERENCES presentation_slot(id) ON DELETE RESTRICT,
     target_type text NOT NULL CHECK (target_type IN ('individual', 'team')),
     target_id uuid NOT NULL,
     target_name text NOT NULL CHECK (length(btrim(target_name)) > 0),
@@ -44,7 +44,8 @@ CREATE TABLE presentation (
     feedback_released_by_name text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (course_phase_id, target_type, target_id)
+    CONSTRAINT presentation_slot_key UNIQUE (slot_id),
+    CONSTRAINT presentation_phase_target_key UNIQUE (course_phase_id, target_type, target_id)
 );
 
 CREATE TABLE presentation_material (
@@ -98,15 +99,6 @@ CREATE TABLE feedback_contributor (
     PRIMARY KEY (feedback_form_id, user_id)
 );
 
-CREATE TABLE feedback_presence (
-    presentation_id uuid NOT NULL REFERENCES presentation(id) ON DELETE CASCADE,
-    connection_id uuid NOT NULL,
-    user_id text NOT NULL,
-    name text NOT NULL,
-    expires_at timestamptz NOT NULL,
-    PRIMARY KEY (presentation_id, connection_id)
-);
-
 CREATE INDEX idx_feedback_category_phase ON feedback_category(course_phase_id, position);
 CREATE INDEX idx_presentation_slot_phase_time ON presentation_slot(course_phase_id, start_time);
 CREATE INDEX idx_presentation_phase ON presentation(course_phase_id);
@@ -116,6 +108,5 @@ CREATE INDEX idx_material_uploader ON presentation_material(uploader_user_id);
 CREATE INDEX idx_feedback_form_presentation_status ON feedback_form(presentation_id, status);
 CREATE INDEX idx_feedback_form_evaluator ON feedback_form(evaluator_user_id);
 CREATE INDEX idx_feedback_answer_category ON feedback_answer(category_id);
-CREATE INDEX idx_presence_expiry ON feedback_presence(expires_at);
 
 COMMIT;

@@ -1,9 +1,11 @@
 package presentation
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
@@ -17,7 +19,11 @@ type CopyHandler struct {
 }
 
 func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseCopyRequest) error {
-	sourceConfig, err := h.Service.queries.EnsureCoursePhaseConfig(c, request.SourceCoursePhaseID)
+	sourceConfig, err := h.Service.queries.GetCoursePhaseConfig(c, request.SourceCoursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Nothing configured on the source phase, so there is nothing to copy.
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("get source presentation config: %w", err)
 	}
@@ -92,9 +98,24 @@ func (s *Service) PrivacyExportHandler(
 		})
 	})
 	if userID != "" {
+		// Independent feedback is attributable through evaluator_user_id. Shared feedback
+		// is not: those forms carry a NULL evaluator, so the subject's own work is only
+		// reachable through their contributor rows and the answers they last wrote. Both
+		// are exported per record rather than as whole forms, which would also disclose
+		// co-instructors' text.
 		export.AddJSON("Presentation feedback", "presentation-feedback.json", func() (any, error) {
 			return s.queries.GetPrivacyFeedbackForms(c, pgtype.Text{String: userID, Valid: true})
 		})
+		export.AddJSON(
+			"Presentation feedback contributions",
+			"presentation-feedback-contributions.json",
+			func() (any, error) { return s.queries.GetPrivacyFeedbackContributions(c, userID) },
+		)
+		export.AddJSON(
+			"Presentation feedback answers",
+			"presentation-feedback-answers.json",
+			func() (any, error) { return s.queries.GetPrivacyFeedbackAnswers(c, userID) },
+		)
 	}
 	return export.Err()
 }

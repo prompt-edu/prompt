@@ -1,6 +1,5 @@
 BEGIN;
 
-DROP TABLE IF EXISTS feedback_presence;
 DROP TABLE IF EXISTS feedback_contributor;
 DROP TABLE IF EXISTS feedback_answer;
 DROP TABLE IF EXISTS feedback_form;

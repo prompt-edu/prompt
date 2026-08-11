@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,6 +25,10 @@ const (
 	targetModeTeam       = "team"
 	feedbackIndependent  = "independent"
 	feedbackShared       = "shared"
+
+	// How long a pending upload row survives before the reaper reclaims it. Deliberately
+	// far longer than the presigned URL's own TTL, which only has to cover the PUT.
+	materialReclaimAfter = 24 * time.Hour
 )
 
 type User struct {
@@ -43,6 +49,7 @@ type Service struct {
 	uploadTTLSeconds int
 	downloadTTL      int
 	maxUploadBytes   int64
+	allowedTypes     []string
 	now              func() time.Time
 }
 
@@ -54,6 +61,7 @@ func NewService(
 	uploadTTLSeconds int,
 	downloadTTLSeconds int,
 	maxUploadBytes int64,
+	allowedTypes []string,
 ) *Service {
 	return &Service{
 		queries:          queries,
@@ -64,15 +72,39 @@ func NewService(
 		uploadTTLSeconds: uploadTTLSeconds,
 		downloadTTL:      downloadTTLSeconds,
 		maxUploadBytes:   maxUploadBytes,
+		allowedTypes:     allowedTypes,
 		now:              time.Now,
 	}
 }
 
-func configResponse(config db.CoursePhaseConfig) SettingsResponse {
+// An empty allow-list means unrestricted, matching core's file storage behaviour.
+func (s *Service) ensureAllowedType(contentType string) error {
+	if len(s.allowedTypes) == 0 {
+		return nil
+	}
+	if slices.ContainsFunc(s.allowedTypes, func(allowed string) bool {
+		return strings.EqualFold(mediaType(allowed), mediaType(contentType))
+	}) {
+		return nil
+	}
+	return apiError(415, "material_type_not_allowed",
+		fmt.Sprintf("Material type %q is not allowed", contentType), nil)
+}
+
+func mediaType(value string) string {
+	parsed, _, err := mime.ParseMediaType(strings.TrimSpace(value))
+	if err != nil {
+		return strings.TrimSpace(strings.Split(value, ";")[0])
+	}
+	return parsed
+}
+
+func (s *Service) configResponse(config db.CoursePhaseConfig) SettingsResponse {
 	return SettingsResponse{
-		CoursePhaseID: config.CoursePhaseID,
-		TargetMode:    config.TargetMode,
-		FeedbackMode:  config.FeedbackMode,
+		CoursePhaseID:  config.CoursePhaseID,
+		TargetMode:     config.TargetMode,
+		FeedbackMode:   config.FeedbackMode,
+		MaxUploadBytes: s.maxUploadBytes,
 	}
 }
 
@@ -98,12 +130,22 @@ func materialResponse(material db.PresentationMaterial) MaterialResponse {
 	}
 }
 
+// Read-only: a phase with no config row yet simply reports the defaults, rather than
+// making every page load write one.
 func (s *Service) GetConfig(ctx context.Context, coursePhaseID uuid.UUID) (SettingsResponse, error) {
-	config, err := s.queries.EnsureCoursePhaseConfig(ctx, coursePhaseID)
-	if err != nil {
-		return SettingsResponse{}, fmt.Errorf("ensure presentation config: %w", err)
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SettingsResponse{
+			CoursePhaseID:  coursePhaseID,
+			TargetMode:     targetModeIndividual,
+			FeedbackMode:   feedbackIndependent,
+			MaxUploadBytes: s.maxUploadBytes,
+		}, nil
 	}
-	return configResponse(config), nil
+	if err != nil {
+		return SettingsResponse{}, fmt.Errorf("get presentation config: %w", err)
+	}
+	return s.configResponse(config), nil
 }
 
 func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, request UpdateSettingsRequest) (SettingsResponse, error) {
@@ -112,7 +154,7 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 		return SettingsResponse{}, fmt.Errorf("ensure presentation config: %w", err)
 	}
 	if current.TargetMode == request.TargetMode && current.FeedbackMode == request.FeedbackMode {
-		return configResponse(current), nil
+		return s.configResponse(current), nil
 	}
 
 	presentationCount, err := s.queries.CountPresentationsByPhase(ctx, coursePhaseID)
@@ -169,13 +211,10 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 			log.WithError(err).WithField("storageKey", storageKey).Warn("Failed to delete material object during presentation config reset")
 		}
 	}
-	return configResponse(config), nil
+	return s.configResponse(config), nil
 }
 
 func (s *Service) ListCategories(ctx context.Context, coursePhaseID uuid.UUID) ([]CategoryResponse, error) {
-	if _, err := s.queries.EnsureCoursePhaseConfig(ctx, coursePhaseID); err != nil {
-		return nil, fmt.Errorf("ensure presentation config: %w", err)
-	}
 	categories, err := s.queries.ListFeedbackCategories(ctx, coursePhaseID)
 	if err != nil {
 		return nil, fmt.Errorf("list feedback categories: %w", err)
@@ -211,9 +250,20 @@ func (s *Service) CreateCategory(
 		return mutationErr
 	})
 	if err != nil {
-		return CategoryResponse{}, fmt.Errorf("create feedback category: %w", err)
+		return CategoryResponse{}, fmt.Errorf("create feedback category: %w", categoryConflict(err))
 	}
 	return categoryResponse(category), nil
+}
+
+// Reordering and renaming both collide with the per-phase unique constraints, which
+// callers can resolve; without this they surface as an unexplained 500.
+func categoryConflict(err error) error {
+	return conflictOnUniqueViolation(err, map[string]*APIError{
+		"feedback_category_phase_position_key": apiError(409, "category_position_taken",
+			"Another feedback category already uses this position", nil),
+		"feedback_category_phase_name_key": apiError(409, "category_name_taken",
+			"Another feedback category already uses this name", nil),
+	})
 }
 
 func (s *Service) UpdateCategory(
@@ -241,7 +291,7 @@ func (s *Service) UpdateCategory(
 		return CategoryResponse{}, apiError(404, "category_not_found", "Feedback category not found", err)
 	}
 	if err != nil {
-		return CategoryResponse{}, fmt.Errorf("update feedback category: %w", err)
+		return CategoryResponse{}, fmt.Errorf("update feedback category: %w", categoryConflict(err))
 	}
 	return categoryResponse(category), nil
 }
@@ -291,6 +341,10 @@ func (s *Service) withCategoryMutation(
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
+	// Presentation rows first, matching withFeedbackMutation's lock order.
+	if _, err := qtx.LockPresentationsByPhase(ctx, coursePhaseID); err != nil {
+		return fmt.Errorf("lock phase presentations: %w", err)
+	}
 	if err := qtx.DeleteFeedbackFormsByPhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("delete phase feedback forms: %w", err)
 	}
@@ -387,6 +441,15 @@ func (s *Service) DeleteSlot(ctx context.Context, coursePhaseID, slotID uuid.UUI
 		return fmt.Errorf("delete presentation slot: %w", err)
 	}
 	if deleted == 0 {
+		// Zero rows means either the slot is not there or it still carries a presentation.
+		if _, err := s.queries.GetPresentationSlot(ctx, db.GetPresentationSlotParams{
+			ID:            slotID,
+			CoursePhaseID: coursePhaseID,
+		}); errors.Is(err, pgx.ErrNoRows) {
+			return apiError(404, "slot_not_found", "Presentation slot not found", err)
+		} else if err != nil {
+			return fmt.Errorf("get presentation slot: %w", err)
+		}
 		return apiError(409, "slot_assigned", "Unassign the presentation before deleting this slot", nil)
 	}
 	return nil
@@ -516,7 +579,15 @@ func (s *Service) AssignTarget(
 		TargetName:    targetName,
 	})
 	if err != nil {
-		return PresentationResponse{}, fmt.Errorf("assign presentation target: %w", err)
+		// The checks above are read-before-write, so a concurrent assignment can still
+		// reach the constraints first.
+		return PresentationResponse{}, fmt.Errorf("assign presentation target: %w",
+			conflictOnUniqueViolation(err, map[string]*APIError{
+				"presentation_slot_key": apiError(409, "slot_assigned",
+					"This slot was assigned by someone else", nil),
+				"presentation_phase_target_key": apiError(409, "target_assigned",
+					"This target was assigned to another slot by someone else", nil),
+			}))
 	}
 	return s.presentationResponse(ctx, presentation, slot)
 }
@@ -539,6 +610,12 @@ func (s *Service) UnassignTarget(ctx context.Context, coursePhaseID, slotID uuid
 	if dependencies.MaterialCount > 0 || dependencies.FeedbackCount > 0 {
 		return apiError(409, "presentation_has_data", "Delete presentation materials and feedback before unassigning it", nil)
 	}
+	// Deleting the presentation cascades any still-pending material rows, taking their
+	// storage keys with them, so collect them while they are still readable.
+	storageKeys, err := s.queries.ListMaterialStorageKeysByPresentation(ctx, presentation.ID)
+	if err != nil {
+		return fmt.Errorf("list presentation material keys: %w", err)
+	}
 	deleted, err := s.queries.DeletePresentation(ctx, db.DeletePresentationParams{
 		ID:            presentation.ID,
 		CoursePhaseID: coursePhaseID,
@@ -549,7 +626,31 @@ func (s *Service) UnassignTarget(ctx context.Context, coursePhaseID, slotID uuid
 	if deleted == 0 {
 		return apiError(404, "assignment_not_found", "Presentation assignment not found", nil)
 	}
+	s.deleteStoredMaterials(ctx, storageKeys)
 	return nil
+}
+
+// Best effort: the rows are already gone, so a failed object delete can only leak storage.
+// S3 and Postgres cannot commit together, and the alternative is blocking the unassign.
+func (s *Service) deleteStoredMaterials(ctx context.Context, storageKeys []string) {
+	for _, key := range storageKeys {
+		if err := s.storage.Delete(ctx, key); err != nil {
+			log.WithError(err).WithField("storageKey", key).
+				Warn("Could not delete presentation material object")
+		}
+	}
+}
+
+// ReclaimExpiredMaterials removes uploads that were presigned but never completed. The
+// claim and delete happen in one statement, so a concurrent completion either wins the
+// row outright or finds it already gone.
+func (s *Service) ReclaimExpiredMaterials(ctx context.Context, limit int32) (int, error) {
+	storageKeys, err := s.queries.ReclaimExpiredPendingMaterials(ctx, limit)
+	if err != nil {
+		return 0, fmt.Errorf("reclaim expired pending materials: %w", err)
+	}
+	s.deleteStoredMaterials(ctx, storageKeys)
+	return len(storageKeys), nil
 }
 
 func (s *Service) ListPresentations(ctx context.Context, coursePhaseID uuid.UUID) ([]PresentationResponse, error) {
@@ -782,8 +883,12 @@ func (s *Service) CreateUploadIntent(
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
+	if err := s.ensureAllowedType(contentType); err != nil {
+		return PresignMaterialResponse{}, err
+	}
 	uploadID := uuid.New()
-	expiresAt := s.now().Add(time.Duration(s.uploadTTLSeconds) * time.Second)
+	presignExpiresAt := s.now().Add(time.Duration(s.uploadTTLSeconds) * time.Second)
+	reclaimAt := s.now().Add(materialReclaimAfter)
 	storageKey := fmt.Sprintf(
 		"presentations/%s/%s/%s/%s",
 		coursePhaseID,
@@ -799,7 +904,7 @@ func (s *Service) CreateUploadIntent(
 		UploaderUserID:   user.ID,
 		UploaderName:     user.Name,
 		UploaderEmail:    user.Email,
-		ExpiresAt:        pgtype.Timestamptz{Time: expiresAt, Valid: true},
+		ExpiresAt:        pgtype.Timestamptz{Time: reclaimAt, Valid: true},
 	})
 	if err != nil {
 		return PresignMaterialResponse{}, fmt.Errorf("create pending presentation material: %w", err)
@@ -816,7 +921,7 @@ func (s *Service) CreateUploadIntent(
 		UploadID:  material.ID,
 		UploadURL: uploadURL,
 		Headers:   map[string]string{"Content-Type": contentType},
-		ExpiresAt: expiresAt,
+		ExpiresAt: presignExpiresAt,
 	}, nil
 }
 
@@ -864,6 +969,15 @@ func (s *Service) CompleteUpload(
 	contentType := metadata.ContentType
 	if contentType == "" {
 		contentType = pending.ContentType
+	}
+	// The stored object decides the type, not the presign request, so re-check it here.
+	if err := s.ensureAllowedType(contentType); err != nil {
+		_ = s.storage.Delete(ctx, pending.StorageKey)
+		_, _ = s.queries.DeletePresentationMaterial(ctx, db.DeletePresentationMaterialParams{
+			ID:             pending.ID,
+			PresentationID: presentationID,
+		})
+		return MaterialResponse{}, err
 	}
 	material, err := s.queries.CompletePresentationMaterial(ctx, db.CompletePresentationMaterialParams{
 		ID:             pending.ID,
@@ -936,6 +1050,11 @@ func (s *Service) DeleteMaterial(
 	if err != nil {
 		return fmt.Errorf("get presentation material: %w", err)
 	}
+	// Staff may curate anything on the presentation; a presenter only their own uploads,
+	// so they cannot remove a rubric an instructor attached for them.
+	if !user.Staff && material.UploaderUserID != user.ID {
+		return apiError(403, "material_forbidden", "You can only delete materials you uploaded", nil)
+	}
 	deleted, err := s.queries.DeletePresentationMaterial(ctx, db.DeletePresentationMaterialParams{
 		ID:             materialID,
 		PresentationID: presentationID,
@@ -1006,14 +1125,52 @@ func (s *Service) feedbackScope(config SettingsResponse, user User) (string, pgt
 	return user.ID, pgtype.Text{String: user.ID, Valid: true}, user.Name
 }
 
+// Locks the presentation FOR SHARE so concurrent instructors coexist while still blocking
+// ReleaseFeedback's FOR UPDATE. Every flow touching both release state and feedback rows
+// must take the presentation lock first, or it deadlocks against this one.
+func (s *Service) withFeedbackMutation(
+	ctx context.Context,
+	coursePhaseID, presentationID uuid.UUID,
+	releasedMessage string,
+	mutate func(queries *db.Queries) error,
+) error {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin feedback mutation: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+	presentation, err := qtx.GetPresentationForShare(ctx, db.GetPresentationForShareParams{
+		ID:            presentationID,
+		CoursePhaseID: coursePhaseID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return apiError(404, "presentation_not_found", "Presentation not found", err)
+	}
+	if err != nil {
+		return fmt.Errorf("lock presentation: %w", err)
+	}
+	if presentation.FeedbackReleasedAt.Valid {
+		return apiError(409, "feedback_released", releasedMessage, nil)
+	}
+	if err := mutate(qtx); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit feedback mutation: %w", err)
+	}
+	return nil
+}
+
 func (s *Service) getOrCreateFeedbackForm(
 	ctx context.Context,
+	queries *db.Queries,
 	config SettingsResponse,
 	presentationID uuid.UUID,
 	user User,
 ) (db.FeedbackForm, error) {
 	scope, evaluatorID, evaluatorName := s.feedbackScope(config, user)
-	form, err := s.queries.GetFeedbackFormByScope(ctx, db.GetFeedbackFormByScopeParams{
+	form, err := queries.GetFeedbackFormByScope(ctx, db.GetFeedbackFormByScopeParams{
 		PresentationID: presentationID,
 		ScopeKey:       scope,
 	})
@@ -1023,7 +1180,7 @@ func (s *Service) getOrCreateFeedbackForm(
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return db.FeedbackForm{}, fmt.Errorf("get feedback form: %w", err)
 	}
-	form, err = s.queries.CreateFeedbackForm(ctx, db.CreateFeedbackFormParams{
+	form, err = queries.CreateFeedbackForm(ctx, db.CreateFeedbackFormParams{
 		PresentationID:  presentationID,
 		ScopeKey:        scope,
 		EvaluatorUserID: evaluatorID,
@@ -1075,12 +1232,8 @@ func (s *Service) GetFeedback(
 		document.ActiveEditors = s.hub.ActiveEditors(presentationID)
 	}
 
-	var forms []db.FeedbackForm
-	if user.Staff {
-		forms, err = s.queries.ListSubmittedFeedbackForms(ctx, presentationID)
-	} else {
-		forms, err = s.queries.ListSubmittedFeedbackForms(ctx, presentationID)
-	}
+	// Drafts stay private to their author, who reads their own through ownForm below.
+	forms, err := s.queries.ListSubmittedFeedbackForms(ctx, presentationID)
 	if err != nil {
 		return FeedbackDocumentResponse{}, fmt.Errorf("list visible feedback forms: %w", err)
 	}
@@ -1123,19 +1276,6 @@ func (s *Service) PutFeedbackAnswer(
 	user User,
 	request PutAnswerRequest,
 ) (FeedbackAnswerResponse, error) {
-	presentation, err := s.queries.GetPresentation(ctx, db.GetPresentationParams{
-		ID:            presentationID,
-		CoursePhaseID: coursePhaseID,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return FeedbackAnswerResponse{}, apiError(404, "presentation_not_found", "Presentation not found", err)
-	}
-	if err != nil {
-		return FeedbackAnswerResponse{}, fmt.Errorf("get presentation: %w", err)
-	}
-	if presentation.FeedbackReleasedAt.Valid {
-		return FeedbackAnswerResponse{}, apiError(409, "feedback_released", "Unrelease feedback before editing it", nil)
-	}
 	if _, err := s.queries.GetFeedbackCategory(ctx, db.GetFeedbackCategoryParams{
 		ID:            categoryID,
 		CoursePhaseID: coursePhaseID,
@@ -1148,49 +1288,36 @@ func (s *Service) PutFeedbackAnswer(
 	if err != nil {
 		return FeedbackAnswerResponse{}, err
 	}
-	form, err := s.getOrCreateFeedbackForm(ctx, config, presentationID, user)
+
+	var answer db.FeedbackAnswer
+	err = s.withFeedbackMutation(ctx, coursePhaseID, presentationID,
+		"Unrelease feedback before editing it",
+		func(queries *db.Queries) error {
+			form, err := s.getOrCreateFeedbackForm(ctx, queries, config, presentationID, user)
+			if err != nil {
+				return err
+			}
+			if form.Status != "draft" {
+				return apiError(409, "feedback_submitted", "Reopen submitted feedback before editing it", nil)
+			}
+			answer, err = s.writeFeedbackAnswer(ctx, queries, form.ID, categoryID, user, request)
+			if err != nil {
+				return err
+			}
+			if _, err := queries.UpsertFeedbackContributor(ctx, db.UpsertFeedbackContributorParams{
+				FeedbackFormID: form.ID,
+				UserID:         user.ID,
+				Name:           user.Name,
+				Email:          user.Email,
+			}); err != nil {
+				return fmt.Errorf("record feedback contributor: %w", err)
+			}
+			return nil
+		})
 	if err != nil {
 		return FeedbackAnswerResponse{}, err
 	}
-	if form.Status != "draft" {
-		return FeedbackAnswerResponse{}, apiError(409, "feedback_submitted", "Reopen submitted feedback before editing it", nil)
-	}
-	answer, err := s.queries.PutFeedbackAnswer(ctx, db.PutFeedbackAnswerParams{
-		FeedbackFormID:   form.ID,
-		CategoryID:       categoryID,
-		Value:            request.Value,
-		ExpectedRevision: request.ExpectedRevision,
-		UpdatedByUserID:  user.ID,
-		UpdatedByName:    user.Name,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		current, currentErr := s.queries.GetFeedbackAnswer(ctx, db.GetFeedbackAnswerParams{
-			FeedbackFormID: form.ID,
-			CategoryID:     categoryID,
-		})
-		if currentErr != nil {
-			return FeedbackAnswerResponse{}, apiError(409, "feedback_conflict", "Feedback was updated by another editor", nil)
-		}
-		currentResponse := answerResponse(current)
-		return FeedbackAnswerResponse{}, &APIError{
-			Status:  409,
-			Code:    "feedback_conflict",
-			Message: "Feedback was updated by another editor",
-			Details: currentResponse,
-			Err:     err,
-		}
-	}
-	if err != nil {
-		return FeedbackAnswerResponse{}, fmt.Errorf("update feedback answer: %w", err)
-	}
-	if _, err := s.queries.UpsertFeedbackContributor(ctx, db.UpsertFeedbackContributorParams{
-		FeedbackFormID: form.ID,
-		UserID:         user.ID,
-		Name:           user.Name,
-		Email:          user.Email,
-	}); err != nil {
-		return FeedbackAnswerResponse{}, fmt.Errorf("record feedback contributor: %w", err)
-	}
+
 	response := answerResponse(answer)
 	if config.FeedbackMode == feedbackShared {
 		s.hub.Publish(FeedbackEvent{
@@ -1202,39 +1329,95 @@ func (s *Service) PutFeedbackAnswer(
 	return response, nil
 }
 
+// expectedRevision 0 means "this answer does not exist yet". Insert and update are separate
+// statements because a single upsert cannot both refuse to insert for a nonzero expected
+// revision and still run the guarded update.
+func (s *Service) writeFeedbackAnswer(
+	ctx context.Context,
+	queries *db.Queries,
+	formID, categoryID uuid.UUID,
+	user User,
+	request PutAnswerRequest,
+) (db.FeedbackAnswer, error) {
+	var answer db.FeedbackAnswer
+	var err error
+	if request.ExpectedRevision == 0 {
+		answer, err = queries.InsertFeedbackAnswer(ctx, db.InsertFeedbackAnswerParams{
+			FeedbackFormID:  formID,
+			CategoryID:      categoryID,
+			Value:           request.Value,
+			UpdatedByUserID: user.ID,
+			UpdatedByName:   user.Name,
+		})
+	} else {
+		answer, err = queries.UpdateFeedbackAnswer(ctx, db.UpdateFeedbackAnswerParams{
+			FeedbackFormID:   formID,
+			CategoryID:       categoryID,
+			Value:            request.Value,
+			ExpectedRevision: request.ExpectedRevision,
+			UpdatedByUserID:  user.ID,
+			UpdatedByName:    user.Name,
+		})
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return db.FeedbackAnswer{}, s.feedbackConflict(ctx, queries, formID, categoryID, err)
+	}
+	if err != nil {
+		return db.FeedbackAnswer{}, fmt.Errorf("write feedback answer: %w", err)
+	}
+	return answer, nil
+}
+
+func (s *Service) feedbackConflict(
+	ctx context.Context,
+	queries *db.Queries,
+	formID, categoryID uuid.UUID,
+	cause error,
+) error {
+	conflict := &APIError{
+		Status:  409,
+		Code:    "feedback_conflict",
+		Message: "Feedback was updated by another editor",
+		Err:     cause,
+	}
+	current, err := queries.GetFeedbackAnswer(ctx, db.GetFeedbackAnswerParams{
+		FeedbackFormID: formID,
+		CategoryID:     categoryID,
+	})
+	if err == nil {
+		conflict.Details = answerResponse(current)
+	}
+	return conflict
+}
+
 func (s *Service) setFeedbackStatus(
 	ctx context.Context,
 	coursePhaseID, presentationID uuid.UUID,
 	user User,
 	status string,
 ) error {
-	presentation, err := s.queries.GetPresentation(ctx, db.GetPresentationParams{
-		ID:            presentationID,
-		CoursePhaseID: coursePhaseID,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return apiError(404, "presentation_not_found", "Presentation not found", err)
-	}
-	if err != nil {
-		return fmt.Errorf("get presentation: %w", err)
-	}
-	if presentation.FeedbackReleasedAt.Valid {
-		return apiError(409, "feedback_released", "Unrelease feedback before changing its status", nil)
-	}
 	config, err := s.GetConfig(ctx, coursePhaseID)
 	if err != nil {
 		return err
 	}
-	form, err := s.getOrCreateFeedbackForm(ctx, config, presentationID, user)
+	err = s.withFeedbackMutation(ctx, coursePhaseID, presentationID,
+		"Unrelease feedback before changing its status",
+		func(queries *db.Queries) error {
+			form, err := s.getOrCreateFeedbackForm(ctx, queries, config, presentationID, user)
+			if err != nil {
+				return err
+			}
+			if _, err := queries.SetFeedbackFormStatus(ctx, db.SetFeedbackFormStatusParams{
+				ID:             form.ID,
+				PresentationID: presentationID,
+				Status:         status,
+			}); err != nil {
+				return fmt.Errorf("set feedback status: %w", err)
+			}
+			return nil
+		})
 	if err != nil {
 		return err
-	}
-	if _, err := s.queries.SetFeedbackFormStatus(ctx, db.SetFeedbackFormStatusParams{
-		ID:             form.ID,
-		PresentationID: presentationID,
-		Status:         status,
-	}); err != nil {
-		return fmt.Errorf("set feedback status: %w", err)
 	}
 	if config.FeedbackMode == feedbackShared {
 		s.hub.Publish(FeedbackEvent{Type: "form.status.changed", PresentationID: presentationID})
@@ -1251,43 +1434,38 @@ func (s *Service) ReopenFeedback(ctx context.Context, coursePhaseID, presentatio
 }
 
 func (s *Service) DeleteDraft(ctx context.Context, coursePhaseID, presentationID uuid.UUID, user User) error {
-	presentation, err := s.queries.GetPresentation(ctx, db.GetPresentationParams{
-		ID:            presentationID,
-		CoursePhaseID: coursePhaseID,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return apiError(404, "presentation_not_found", "Presentation not found", err)
-	}
-	if err != nil {
-		return fmt.Errorf("get presentation: %w", err)
-	}
-	if presentation.FeedbackReleasedAt.Valid {
-		return apiError(409, "feedback_released", "Unrelease feedback before deleting drafts", nil)
-	}
 	config, err := s.GetConfig(ctx, coursePhaseID)
 	if err != nil {
 		return err
 	}
 	scope, _, _ := s.feedbackScope(config, user)
-	form, err := s.queries.GetFeedbackFormByScope(ctx, db.GetFeedbackFormByScopeParams{
-		PresentationID: presentationID,
-		ScopeKey:       scope,
-	})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
+	err = s.withFeedbackMutation(ctx, coursePhaseID, presentationID,
+		"Unrelease feedback before deleting drafts",
+		func(queries *db.Queries) error {
+			form, err := queries.GetFeedbackFormByScope(ctx, db.GetFeedbackFormByScopeParams{
+				PresentationID: presentationID,
+				ScopeKey:       scope,
+			})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			if err != nil {
+				return fmt.Errorf("get feedback draft: %w", err)
+			}
+			deleted, err := queries.DeleteDraftFeedbackForm(ctx, db.DeleteDraftFeedbackFormParams{
+				ID:             form.ID,
+				PresentationID: presentationID,
+			})
+			if err != nil {
+				return fmt.Errorf("delete feedback draft: %w", err)
+			}
+			if deleted == 0 {
+				return apiError(409, "feedback_submitted", "Submitted feedback must be reopened before deletion", nil)
+			}
+			return nil
+		})
 	if err != nil {
-		return fmt.Errorf("get feedback draft: %w", err)
-	}
-	deleted, err := s.queries.DeleteDraftFeedbackForm(ctx, db.DeleteDraftFeedbackFormParams{
-		ID:             form.ID,
-		PresentationID: presentationID,
-	})
-	if err != nil {
-		return fmt.Errorf("delete feedback draft: %w", err)
-	}
-	if deleted == 0 {
-		return apiError(409, "feedback_submitted", "Submitted feedback must be reopened before deletion", nil)
+		return err
 	}
 	if config.FeedbackMode == feedbackShared {
 		s.hub.Publish(FeedbackEvent{Type: "form.status.changed", PresentationID: presentationID})
@@ -1305,7 +1483,16 @@ func (s *Service) ReleaseFeedback(
 	if releaseName == "" {
 		return apiError(400, "invalid_release_name", "Feedback release name must not be empty", nil)
 	}
-	presentation, err := s.queries.GetPresentation(ctx, db.GetPresentationParams{
+	// The exclusive lock is what makes the draft check meaningful: it waits out any
+	// in-flight feedback mutation holding the shared lock, and blocks later ones.
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin feedback release: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	presentation, err := qtx.GetPresentationForUpdate(ctx, db.GetPresentationForUpdateParams{
 		ID:            presentationID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -1313,26 +1500,26 @@ func (s *Service) ReleaseFeedback(
 		return apiError(404, "presentation_not_found", "Presentation not found", err)
 	}
 	if err != nil {
-		return fmt.Errorf("get presentation: %w", err)
+		return fmt.Errorf("lock presentation: %w", err)
 	}
 	if presentation.FeedbackReleasedAt.Valid {
 		return nil
 	}
-	draftCount, err := s.queries.CountDraftFeedbackForms(ctx, presentationID)
+	draftCount, err := qtx.CountDraftFeedbackForms(ctx, presentationID)
 	if err != nil {
 		return fmt.Errorf("count feedback drafts: %w", err)
 	}
 	if draftCount > 0 {
 		return apiError(409, "feedback_drafts_exist", "All instructor drafts must be submitted or deleted before release", nil)
 	}
-	submittedCount, err := s.queries.CountSubmittedFeedbackForms(ctx, presentationID)
+	submittedCount, err := qtx.CountSubmittedFeedbackForms(ctx, presentationID)
 	if err != nil {
 		return fmt.Errorf("count submitted feedback: %w", err)
 	}
 	if submittedCount == 0 {
 		return apiError(409, "feedback_empty", "At least one submitted feedback form is required before release", nil)
 	}
-	if _, err := s.queries.SetFeedbackRelease(ctx, db.SetFeedbackReleaseParams{
+	if _, err := qtx.SetFeedbackRelease(ctx, db.SetFeedbackReleaseParams{
 		ID:                       presentationID,
 		CoursePhaseID:            coursePhaseID,
 		FeedbackReleaseName:      pgtype.Text{String: releaseName, Valid: true},
@@ -1340,6 +1527,9 @@ func (s *Service) ReleaseFeedback(
 		FeedbackReleasedByName:   pgtype.Text{String: user.Name, Valid: true},
 	}); err != nil {
 		return fmt.Errorf("release presentation feedback: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit feedback release: %w", err)
 	}
 	s.hub.Publish(FeedbackEvent{Type: "released", PresentationID: presentationID})
 	return nil
@@ -1359,20 +1549,21 @@ func (s *Service) UnreleaseFeedback(ctx context.Context, coursePhaseID, presenta
 }
 
 func (s *Service) ResetFeedback(ctx context.Context, coursePhaseID, presentationID uuid.UUID) error {
-	if _, err := s.queries.GetPresentation(ctx, db.GetPresentationParams{
-		ID:            presentationID,
-		CoursePhaseID: coursePhaseID,
-	}); errors.Is(err, pgx.ErrNoRows) {
-		return apiError(404, "presentation_not_found", "Presentation not found", err)
-	} else if err != nil {
-		return fmt.Errorf("get presentation: %w", err)
-	}
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin feedback reset: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
+	// Presentation before feedback rows, matching withFeedbackMutation's lock order.
+	if _, err := qtx.GetPresentationForUpdate(ctx, db.GetPresentationForUpdateParams{
+		ID:            presentationID,
+		CoursePhaseID: coursePhaseID,
+	}); errors.Is(err, pgx.ErrNoRows) {
+		return apiError(404, "presentation_not_found", "Presentation not found", err)
+	} else if err != nil {
+		return fmt.Errorf("lock presentation: %w", err)
+	}
 	if err := qtx.ResetPresentationFeedback(ctx, presentationID); err != nil {
 		return fmt.Errorf("reset presentation feedback: %w", err)
 	}

@@ -59,14 +59,6 @@ type FeedbackForm struct {
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
-type FeedbackPresence struct {
-	PresentationID uuid.UUID          `json:"presentation_id"`
-	ConnectionID   uuid.UUID          `json:"connection_id"`
-	UserID         string             `json:"user_id"`
-	Name           string             `json:"name"`
-	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
-}
-
 type Presentation struct {
 	ID                       uuid.UUID          `json:"id"`
 	CoursePhaseID            uuid.UUID          `json:"course_phase_id"`

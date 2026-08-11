@@ -43,10 +43,14 @@ func (q *Queries) AnonymizePrivacyFeedback(ctx context.Context, evaluatorUserID 
 }
 
 const anonymizePrivacyMaterials = `-- name: AnonymizePrivacyMaterials :exec
-UPDATE presentation_material SET uploader_user_id = 'deleted:' || md5(uploader_user_id), uploader_email = ''
+UPDATE presentation_material
+SET uploader_user_id = 'deleted:' || md5(uploader_user_id), uploader_name = 'Deleted user', uploader_email = ''
 WHERE uploader_user_id = $1
 `
 
+// Anonymizes uploader identity only. The object, its original_filename and its storage
+// key are retained on purpose; whether uploaded material is personal data or course work
+// is an open retention question.
 func (q *Queries) AnonymizePrivacyMaterials(ctx context.Context, uploaderUserID string) error {
 	_, err := q.db.Exec(ctx, anonymizePrivacyMaterials, uploaderUserID)
 	return err
@@ -175,25 +179,9 @@ func (q *Queries) CountFeedbackFormsByPhase(ctx context.Context, coursePhaseID u
 	return count, err
 }
 
-const countFeedbackFormsByStatus = `-- name: CountFeedbackFormsByStatus :one
-SELECT count(*) FROM feedback_form WHERE presentation_id = $1 AND status = $2
-`
-
-type CountFeedbackFormsByStatusParams struct {
-	PresentationID uuid.UUID `json:"presentation_id"`
-	Status         string    `json:"status"`
-}
-
-func (q *Queries) CountFeedbackFormsByStatus(ctx context.Context, arg CountFeedbackFormsByStatusParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countFeedbackFormsByStatus, arg.PresentationID, arg.Status)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countPresentationDependencies = `-- name: CountPresentationDependencies :one
 SELECT
-  (SELECT count(*) FROM presentation_material m WHERE m.presentation_id = $1) AS material_count,
+  (SELECT count(*) FROM presentation_material m WHERE m.presentation_id = $1 AND m.state = 'ready') AS material_count,
   (SELECT count(*) FROM feedback_form f WHERE f.presentation_id = $1) AS feedback_count
 `
 
@@ -428,15 +416,6 @@ func (q *Queries) CreatePresentationSlot(ctx context.Context, arg CreatePresenta
 	return i, err
 }
 
-const deleteCoursePhaseConfig = `-- name: DeleteCoursePhaseConfig :exec
-DELETE FROM course_phase_config WHERE course_phase_id = $1
-`
-
-func (q *Queries) DeleteCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteCoursePhaseConfig, coursePhaseID)
-	return err
-}
-
 const deleteDraftFeedbackForm = `-- name: DeleteDraftFeedbackForm :execrows
 DELETE FROM feedback_form
 WHERE id = $1 AND presentation_id = $2 AND status = 'draft'
@@ -453,15 +432,6 @@ func (q *Queries) DeleteDraftFeedbackForm(ctx context.Context, arg DeleteDraftFe
 		return 0, err
 	}
 	return result.RowsAffected(), nil
-}
-
-const deleteExpiredFeedbackPresence = `-- name: DeleteExpiredFeedbackPresence :exec
-DELETE FROM feedback_presence WHERE expires_at <= now()
-`
-
-func (q *Queries) DeleteExpiredFeedbackPresence(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, deleteExpiredFeedbackPresence)
-	return err
 }
 
 const deleteFeedbackCategoriesByPhase = `-- name: DeleteFeedbackCategoriesByPhase :exec
@@ -497,20 +467,6 @@ WHERE presentation_id IN (SELECT id FROM presentation WHERE course_phase_id = $1
 
 func (q *Queries) DeleteFeedbackFormsByPhase(ctx context.Context, coursePhaseID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteFeedbackFormsByPhase, coursePhaseID)
-	return err
-}
-
-const deleteFeedbackPresence = `-- name: DeleteFeedbackPresence :exec
-DELETE FROM feedback_presence WHERE presentation_id = $1 AND connection_id = $2
-`
-
-type DeleteFeedbackPresenceParams struct {
-	PresentationID uuid.UUID `json:"presentation_id"`
-	ConnectionID   uuid.UUID `json:"connection_id"`
-}
-
-func (q *Queries) DeleteFeedbackPresence(ctx context.Context, arg DeleteFeedbackPresenceParams) error {
-	_, err := q.db.Exec(ctx, deleteFeedbackPresence, arg.PresentationID, arg.ConnectionID)
 	return err
 }
 
@@ -679,35 +635,6 @@ func (q *Queries) GetFeedbackCategory(ctx context.Context, arg GetFeedbackCatego
 	return i, err
 }
 
-const getFeedbackForm = `-- name: GetFeedbackForm :one
-SELECT f.id, f.presentation_id, f.scope_key, f.evaluator_user_id, f.evaluator_name, f.evaluator_email, f.status, f.submitted_at, f.created_at, f.updated_at FROM feedback_form f
-JOIN presentation p ON p.id = f.presentation_id
-WHERE f.id = $1 AND p.course_phase_id = $2
-`
-
-type GetFeedbackFormParams struct {
-	ID            uuid.UUID `json:"id"`
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
-}
-
-func (q *Queries) GetFeedbackForm(ctx context.Context, arg GetFeedbackFormParams) (FeedbackForm, error) {
-	row := q.db.QueryRow(ctx, getFeedbackForm, arg.ID, arg.CoursePhaseID)
-	var i FeedbackForm
-	err := row.Scan(
-		&i.ID,
-		&i.PresentationID,
-		&i.ScopeKey,
-		&i.EvaluatorUserID,
-		&i.EvaluatorName,
-		&i.EvaluatorEmail,
-		&i.Status,
-		&i.SubmittedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getFeedbackFormByScope = `-- name: GetFeedbackFormByScope :one
 SELECT id, presentation_id, scope_key, evaluator_user_id, evaluator_name, evaluator_email, status, submitted_at, created_at, updated_at FROM feedback_form WHERE presentation_id = $1 AND scope_key = $2
 `
@@ -823,6 +750,35 @@ func (q *Queries) GetPresentationByTarget(ctx context.Context, arg GetPresentati
 	return i, err
 }
 
+const getPresentationForShare = `-- name: GetPresentationForShare :one
+SELECT id, course_phase_id, slot_id, target_type, target_id, target_name, feedback_release_name, feedback_released_at, feedback_released_by_user_id, feedback_released_by_name, created_at, updated_at FROM presentation WHERE id = $1 AND course_phase_id = $2 FOR SHARE
+`
+
+type GetPresentationForShareParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+}
+
+func (q *Queries) GetPresentationForShare(ctx context.Context, arg GetPresentationForShareParams) (Presentation, error) {
+	row := q.db.QueryRow(ctx, getPresentationForShare, arg.ID, arg.CoursePhaseID)
+	var i Presentation
+	err := row.Scan(
+		&i.ID,
+		&i.CoursePhaseID,
+		&i.SlotID,
+		&i.TargetType,
+		&i.TargetID,
+		&i.TargetName,
+		&i.FeedbackReleaseName,
+		&i.FeedbackReleasedAt,
+		&i.FeedbackReleasedByUserID,
+		&i.FeedbackReleasedByName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getPresentationForUpdate = `-- name: GetPresentationForUpdate :one
 SELECT id, course_phase_id, slot_id, target_type, target_id, target_name, feedback_release_name, feedback_released_at, feedback_released_by_user_id, feedback_released_by_name, created_at, updated_at FROM presentation WHERE id = $1 AND course_phase_id = $2 FOR UPDATE
 `
@@ -832,6 +788,8 @@ type GetPresentationForUpdateParams struct {
 	CoursePhaseID uuid.UUID `json:"course_phase_id"`
 }
 
+// Release takes the exclusive lock; feedback mutations take the shared one. Every flow
+// touching both release state and feedback rows must lock the presentation first.
 func (q *Queries) GetPresentationForUpdate(ctx context.Context, arg GetPresentationForUpdateParams) (Presentation, error) {
 	row := q.db.QueryRow(ctx, getPresentationForUpdate, arg.ID, arg.CoursePhaseID)
 	var i Presentation
@@ -908,28 +866,70 @@ func (q *Queries) GetPresentationSlot(ctx context.Context, arg GetPresentationSl
 	return i, err
 }
 
-const getPresentationSlotForUpdate = `-- name: GetPresentationSlotForUpdate :one
-SELECT id, course_phase_id, start_time, end_time, location, created_at, updated_at FROM presentation_slot WHERE id = $1 AND course_phase_id = $2 FOR UPDATE
+const getPrivacyFeedbackAnswers = `-- name: GetPrivacyFeedbackAnswers :many
+SELECT a.feedback_form_id, a.category_id, a.value, a.revision, a.updated_by_user_id, a.updated_by_name, a.updated_at FROM feedback_answer a WHERE a.updated_by_user_id = $1
 `
 
-type GetPresentationSlotForUpdateParams struct {
-	ID            uuid.UUID `json:"id"`
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+func (q *Queries) GetPrivacyFeedbackAnswers(ctx context.Context, updatedByUserID string) ([]FeedbackAnswer, error) {
+	rows, err := q.db.Query(ctx, getPrivacyFeedbackAnswers, updatedByUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FeedbackAnswer
+	for rows.Next() {
+		var i FeedbackAnswer
+		if err := rows.Scan(
+			&i.FeedbackFormID,
+			&i.CategoryID,
+			&i.Value,
+			&i.Revision,
+			&i.UpdatedByUserID,
+			&i.UpdatedByName,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) GetPresentationSlotForUpdate(ctx context.Context, arg GetPresentationSlotForUpdateParams) (PresentationSlot, error) {
-	row := q.db.QueryRow(ctx, getPresentationSlotForUpdate, arg.ID, arg.CoursePhaseID)
-	var i PresentationSlot
-	err := row.Scan(
-		&i.ID,
-		&i.CoursePhaseID,
-		&i.StartTime,
-		&i.EndTime,
-		&i.Location,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+const getPrivacyFeedbackContributions = `-- name: GetPrivacyFeedbackContributions :many
+SELECT c.feedback_form_id, c.user_id, c.name, c.email, c.first_contributed_at, c.last_contributed_at FROM feedback_contributor c WHERE c.user_id = $1
+`
+
+// Shared forms carry evaluator_user_id = NULL, so a subject's shared work is only
+// reachable through their contributor rows and the answers they last updated. Both are
+// scoped to the subject: exporting whole shared forms would disclose co-instructor text.
+func (q *Queries) GetPrivacyFeedbackContributions(ctx context.Context, userID string) ([]FeedbackContributor, error) {
+	rows, err := q.db.Query(ctx, getPrivacyFeedbackContributions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FeedbackContributor
+	for rows.Next() {
+		var i FeedbackContributor
+		if err := rows.Scan(
+			&i.FeedbackFormID,
+			&i.UserID,
+			&i.Name,
+			&i.Email,
+			&i.FirstContributedAt,
+			&i.LastContributedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPrivacyFeedbackForms = `-- name: GetPrivacyFeedbackForms :many
@@ -1013,45 +1013,41 @@ func (q *Queries) GetPrivacyMaterials(ctx context.Context, arg GetPrivacyMateria
 	return items, nil
 }
 
-const listExpiredPendingMaterials = `-- name: ListExpiredPendingMaterials :many
-SELECT id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at FROM presentation_material
-WHERE state = 'pending' AND expires_at <= now()
-ORDER BY expires_at
-LIMIT $1
+const insertFeedbackAnswer = `-- name: InsertFeedbackAnswer :one
+INSERT INTO feedback_answer (
+  feedback_form_id, category_id, value, revision, updated_by_user_id, updated_by_name
+) VALUES ($1, $2, $3, 1, $4, $5)
+ON CONFLICT (feedback_form_id, category_id) DO NOTHING
+RETURNING feedback_form_id, category_id, value, revision, updated_by_user_id, updated_by_name, updated_at
 `
 
-func (q *Queries) ListExpiredPendingMaterials(ctx context.Context, limit int32) ([]PresentationMaterial, error) {
-	rows, err := q.db.Query(ctx, listExpiredPendingMaterials, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PresentationMaterial
-	for rows.Next() {
-		var i PresentationMaterial
-		if err := rows.Scan(
-			&i.ID,
-			&i.PresentationID,
-			&i.OriginalFilename,
-			&i.ContentType,
-			&i.SizeBytes,
-			&i.StorageKey,
-			&i.State,
-			&i.UploaderUserID,
-			&i.UploaderName,
-			&i.UploaderEmail,
-			&i.ExpiresAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+type InsertFeedbackAnswerParams struct {
+	FeedbackFormID  uuid.UUID `json:"feedback_form_id"`
+	CategoryID      uuid.UUID `json:"category_id"`
+	Value           string    `json:"value"`
+	UpdatedByUserID string    `json:"updated_by_user_id"`
+	UpdatedByName   string    `json:"updated_by_name"`
+}
+
+func (q *Queries) InsertFeedbackAnswer(ctx context.Context, arg InsertFeedbackAnswerParams) (FeedbackAnswer, error) {
+	row := q.db.QueryRow(ctx, insertFeedbackAnswer,
+		arg.FeedbackFormID,
+		arg.CategoryID,
+		arg.Value,
+		arg.UpdatedByUserID,
+		arg.UpdatedByName,
+	)
+	var i FeedbackAnswer
+	err := row.Scan(
+		&i.FeedbackFormID,
+		&i.CategoryID,
+		&i.Value,
+		&i.Revision,
+		&i.UpdatedByUserID,
+		&i.UpdatedByName,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const listFeedbackAnswers = `-- name: ListFeedbackAnswers :many
@@ -1149,71 +1145,6 @@ func (q *Queries) ListFeedbackContributors(ctx context.Context, feedbackFormID u
 	return items, nil
 }
 
-const listFeedbackForms = `-- name: ListFeedbackForms :many
-SELECT id, presentation_id, scope_key, evaluator_user_id, evaluator_name, evaluator_email, status, submitted_at, created_at, updated_at FROM feedback_form WHERE presentation_id = $1 ORDER BY created_at, id
-`
-
-func (q *Queries) ListFeedbackForms(ctx context.Context, presentationID uuid.UUID) ([]FeedbackForm, error) {
-	rows, err := q.db.Query(ctx, listFeedbackForms, presentationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FeedbackForm
-	for rows.Next() {
-		var i FeedbackForm
-		if err := rows.Scan(
-			&i.ID,
-			&i.PresentationID,
-			&i.ScopeKey,
-			&i.EvaluatorUserID,
-			&i.EvaluatorName,
-			&i.EvaluatorEmail,
-			&i.Status,
-			&i.SubmittedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listFeedbackPresence = `-- name: ListFeedbackPresence :many
-SELECT presentation_id, connection_id, user_id, name, expires_at FROM feedback_presence WHERE presentation_id = $1 AND expires_at > now() ORDER BY name, connection_id
-`
-
-func (q *Queries) ListFeedbackPresence(ctx context.Context, presentationID uuid.UUID) ([]FeedbackPresence, error) {
-	rows, err := q.db.Query(ctx, listFeedbackPresence, presentationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []FeedbackPresence
-	for rows.Next() {
-		var i FeedbackPresence
-		if err := rows.Scan(
-			&i.PresentationID,
-			&i.ConnectionID,
-			&i.UserID,
-			&i.Name,
-			&i.ExpiresAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listMaterialStorageKeysByPhase = `-- name: ListMaterialStorageKeysByPhase :many
 SELECT m.storage_key
 FROM presentation_material m
@@ -1223,6 +1154,30 @@ WHERE p.course_phase_id = $1
 
 func (q *Queries) ListMaterialStorageKeysByPhase(ctx context.Context, coursePhaseID uuid.UUID) ([]string, error) {
 	rows, err := q.db.Query(ctx, listMaterialStorageKeysByPhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var storage_key string
+		if err := rows.Scan(&storage_key); err != nil {
+			return nil, err
+		}
+		items = append(items, storage_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMaterialStorageKeysByPresentation = `-- name: ListMaterialStorageKeysByPresentation :many
+SELECT storage_key FROM presentation_material WHERE presentation_id = $1
+`
+
+func (q *Queries) ListMaterialStorageKeysByPresentation(ctx context.Context, presentationID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, listMaterialStorageKeysByPresentation, presentationID)
 	if err != nil {
 		return nil, err
 	}
@@ -1410,61 +1365,63 @@ func (q *Queries) ListSubmittedFeedbackForms(ctx context.Context, presentationID
 	return items, nil
 }
 
-const notifyFeedbackEvent = `-- name: NotifyFeedbackEvent :exec
-SELECT pg_notify('presentation_feedback', $1)
+const lockPresentationsByPhase = `-- name: LockPresentationsByPhase :many
+SELECT id FROM presentation WHERE course_phase_id = $1 ORDER BY id FOR UPDATE
 `
 
-func (q *Queries) NotifyFeedbackEvent(ctx context.Context, pgNotify string) error {
-	_, err := q.db.Exec(ctx, notifyFeedbackEvent, pgNotify)
-	return err
+func (q *Queries) LockPresentationsByPhase(ctx context.Context, coursePhaseID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, lockPresentationsByPhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-const putFeedbackAnswer = `-- name: PutFeedbackAnswer :one
-INSERT INTO feedback_answer (
-  feedback_form_id, category_id, value, revision, updated_by_user_id, updated_by_name
+const reclaimExpiredPendingMaterials = `-- name: ReclaimExpiredPendingMaterials :many
+WITH reclaimed AS (
+  SELECT id FROM presentation_material
+  WHERE state = 'pending' AND expires_at <= now()
+  ORDER BY expires_at
+  LIMIT $1
+  FOR UPDATE SKIP LOCKED
 )
-SELECT $1, $2, $3, 1,
-       $4, $5
-WHERE $6::bigint = 0
-ON CONFLICT (feedback_form_id, category_id) DO UPDATE
-SET value = EXCLUDED.value,
-    revision = feedback_answer.revision + 1,
-    updated_by_user_id = EXCLUDED.updated_by_user_id,
-    updated_by_name = EXCLUDED.updated_by_name,
-    updated_at = now()
-WHERE feedback_answer.revision = $6::bigint
-RETURNING feedback_form_id, category_id, value, revision, updated_by_user_id, updated_by_name, updated_at
+DELETE FROM presentation_material m USING reclaimed r
+WHERE m.id = r.id
+RETURNING m.storage_key
 `
 
-type PutFeedbackAnswerParams struct {
-	FeedbackFormID   uuid.UUID `json:"feedback_form_id"`
-	CategoryID       uuid.UUID `json:"category_id"`
-	Value            string    `json:"value"`
-	UpdatedByUserID  string    `json:"updated_by_user_id"`
-	UpdatedByName    string    `json:"updated_by_name"`
-	ExpectedRevision int64     `json:"expected_revision"`
-}
-
-func (q *Queries) PutFeedbackAnswer(ctx context.Context, arg PutFeedbackAnswerParams) (FeedbackAnswer, error) {
-	row := q.db.QueryRow(ctx, putFeedbackAnswer,
-		arg.FeedbackFormID,
-		arg.CategoryID,
-		arg.Value,
-		arg.UpdatedByUserID,
-		arg.UpdatedByName,
-		arg.ExpectedRevision,
-	)
-	var i FeedbackAnswer
-	err := row.Scan(
-		&i.FeedbackFormID,
-		&i.CategoryID,
-		&i.Value,
-		&i.Revision,
-		&i.UpdatedByUserID,
-		&i.UpdatedByName,
-		&i.UpdatedAt,
-	)
-	return i, err
+// Claims and removes abandoned uploads in one statement. SKIP LOCKED settles the
+// race with a concurrent completion: whichever transaction locks the row first wins.
+func (q *Queries) ReclaimExpiredPendingMaterials(ctx context.Context, limit int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, reclaimExpiredPendingMaterials, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var storage_key string
+		if err := rows.Scan(&storage_key); err != nil {
+			return nil, err
+		}
+		items = append(items, storage_key)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const resetPresentationFeedback = `-- name: ResetPresentationFeedback :exec
@@ -1577,6 +1534,49 @@ func (q *Queries) UpdateCoursePhaseConfig(ctx context.Context, arg UpdateCourseP
 	return i, err
 }
 
+const updateFeedbackAnswer = `-- name: UpdateFeedbackAnswer :one
+UPDATE feedback_answer
+SET value = $3,
+    revision = revision + 1,
+    updated_by_user_id = $4,
+    updated_by_name = $5,
+    updated_at = now()
+WHERE feedback_form_id = $1 AND category_id = $2
+  AND revision = $6::bigint
+RETURNING feedback_form_id, category_id, value, revision, updated_by_user_id, updated_by_name, updated_at
+`
+
+type UpdateFeedbackAnswerParams struct {
+	FeedbackFormID   uuid.UUID `json:"feedback_form_id"`
+	CategoryID       uuid.UUID `json:"category_id"`
+	Value            string    `json:"value"`
+	UpdatedByUserID  string    `json:"updated_by_user_id"`
+	UpdatedByName    string    `json:"updated_by_name"`
+	ExpectedRevision int64     `json:"expected_revision"`
+}
+
+func (q *Queries) UpdateFeedbackAnswer(ctx context.Context, arg UpdateFeedbackAnswerParams) (FeedbackAnswer, error) {
+	row := q.db.QueryRow(ctx, updateFeedbackAnswer,
+		arg.FeedbackFormID,
+		arg.CategoryID,
+		arg.Value,
+		arg.UpdatedByUserID,
+		arg.UpdatedByName,
+		arg.ExpectedRevision,
+	)
+	var i FeedbackAnswer
+	err := row.Scan(
+		&i.FeedbackFormID,
+		&i.CategoryID,
+		&i.Value,
+		&i.Revision,
+		&i.UpdatedByUserID,
+		&i.UpdatedByName,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateFeedbackCategory = `-- name: UpdateFeedbackCategory :one
 UPDATE feedback_category
 SET name = $3, description = $4, position = $5, updated_at = now()
@@ -1679,41 +1679,6 @@ func (q *Queries) UpsertFeedbackContributor(ctx context.Context, arg UpsertFeedb
 		&i.Email,
 		&i.FirstContributedAt,
 		&i.LastContributedAt,
-	)
-	return i, err
-}
-
-const upsertFeedbackPresence = `-- name: UpsertFeedbackPresence :one
-INSERT INTO feedback_presence (presentation_id, connection_id, user_id, name, expires_at)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (presentation_id, connection_id) DO UPDATE
-SET expires_at = EXCLUDED.expires_at, name = EXCLUDED.name
-RETURNING presentation_id, connection_id, user_id, name, expires_at
-`
-
-type UpsertFeedbackPresenceParams struct {
-	PresentationID uuid.UUID          `json:"presentation_id"`
-	ConnectionID   uuid.UUID          `json:"connection_id"`
-	UserID         string             `json:"user_id"`
-	Name           string             `json:"name"`
-	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
-}
-
-func (q *Queries) UpsertFeedbackPresence(ctx context.Context, arg UpsertFeedbackPresenceParams) (FeedbackPresence, error) {
-	row := q.db.QueryRow(ctx, upsertFeedbackPresence,
-		arg.PresentationID,
-		arg.ConnectionID,
-		arg.UserID,
-		arg.Name,
-		arg.ExpiresAt,
-	)
-	var i FeedbackPresence
-	err := row.Scan(
-		&i.PresentationID,
-		&i.ConnectionID,
-		&i.UserID,
-		&i.Name,
-		&i.ExpiresAt,
 	)
 	return i, err
 }

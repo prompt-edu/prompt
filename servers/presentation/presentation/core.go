@@ -84,24 +84,20 @@ func (s *Service) fetchOwnTeamID(authHeader string, coursePhaseID, coursePartici
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("resolve current team allocation: %w", err)
 		}
-		switch value := resolved.(type) {
-		case string:
-			teamID, parseErr := uuid.Parse(value)
-			if parseErr != nil {
-				return uuid.Nil, fmt.Errorf("parse resolved team allocation: %w", parseErr)
-			}
-			return teamID, nil
-		case map[string]interface{}:
-			raw, ok := value["teamAllocation"].(string)
-			if !ok {
-				break
-			}
-			teamID, parseErr := uuid.Parse(raw)
-			if parseErr != nil {
-				return uuid.Nil, fmt.Errorf("parse resolved team allocation: %w", parseErr)
-			}
-			return teamID, nil
+		// ResolveParticipation unwraps the DTO envelope, so the allocation arrives as the
+		// bare UUID string its specification declares.
+		value, ok := resolved.(string)
+		if !ok {
+			continue
 		}
+		teamID, parseErr := uuid.Parse(value)
+		if parseErr != nil {
+			return uuid.Nil, fmt.Errorf("parse resolved team allocation: %w", parseErr)
+		}
+		return teamID, nil
 	}
-	return uuid.Nil, apiError(403, "team_not_resolved", "No current team allocation is available", nil)
+	// Reached when the optional teamAllocation input is not connected but the phase is in
+	// team mode. The client renders this code as a configuration hint, not a failure.
+	return uuid.Nil, apiError(409, "team_not_resolved",
+		"This phase is set to team presentations, but no team allocation is connected to it", nil)
 }

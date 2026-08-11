@@ -24,7 +24,7 @@ const (
 	testRecipientTwo  = "55555555-5555-5555-5555-555555555555"
 )
 
-type sentManualMail struct {
+type capturedMail struct {
 	Recipient string
 	Subject   string
 	Content   string
@@ -62,7 +62,7 @@ func (suite *ManualMailServiceTestSuite) SetupSuite() {
 
 	testDB, cleanup, err := testutils.SetupTestDB(
 		suite.ctx,
-		"../database_dumps/manual_mail_test.sql",
+		"../database_dumps/mailing_test.sql",
 		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
 	)
 	if err != nil {
@@ -101,12 +101,12 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 	fixedNow := time.Date(2026, time.January, 10, 8, 30, 0, 0, time.UTC)
 	nowFn = func() time.Time { return fixedNow }
 
-	sentMails := make([]sentManualMail, 0)
+	sentMails := make([]capturedMail, 0)
 	sendMailFn = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
-		sentMails = append(sentMails, sentManualMail{
+		sentMails = append(sentMails, capturedMail{
 			Recipient: recipientAddress,
 			Subject:   subject,
 			Content:   htmlBody,
@@ -154,12 +154,12 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailCoursePhaseLinkPlaceh
 	MailingServiceSingleton.clientURL = "https://prompt.example.com"
 	defer func() { MailingServiceSingleton.clientURL = oldClientURL }()
 
-	sentMails := make([]sentManualMail, 0)
+	sentMails := make([]capturedMail, 0)
 	sendMailFn = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
-		sentMails = append(sentMails, sentManualMail{Recipient: recipientAddress, Content: htmlBody})
+		sentMails = append(sentMails, capturedMail{Recipient: recipientAddress, Content: htmlBody})
 		return nil
 	}
 

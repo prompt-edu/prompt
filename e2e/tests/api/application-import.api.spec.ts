@@ -168,10 +168,11 @@ test.describe.serial('core API: CSV student import', () => {
       expect(result.created).toBe(0)
       expect(result.updated).toBe(2)
 
-      // The status change from the re-import is applied to the whole batch.
+      // The re-import's status applies only to newly-created participations. These students already
+      // exist (created above with 'passed'), so their status is preserved rather than overwritten.
       const byEmail = await participationsByEmail(lecturer, IMPORT_APPLICATION_PHASE_ID)
       for (const student of IMPORT_STUDENTS) {
-        expect(byEmail.get(student.email)?.passStatus).toBe('not_assessed')
+        expect(byEmail.get(student.email)?.passStatus).toBe('passed')
       }
 
       // No duplicate question was created on re-import.

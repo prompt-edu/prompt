@@ -10,6 +10,8 @@ export const TemplateCoursesPage = () => {
 
   const filteredCourses = useMemo(() => courses.filter((course) => course.template), [courses])
 
+  const isEmpty = filteredCourses.length === 0
+
   return (
     <div className='flex flex-col gap-6 w-full'>
       <div className='flex items-center justify-between gap-4 flex-wrap'>
@@ -17,11 +19,10 @@ export const TemplateCoursesPage = () => {
         <CourseViewToggle viewMode={viewMode} onChange={setViewMode} />
       </div>
 
-      {viewMode === 'cards' ? (
-        <>
-          {filteredCourses.length === 0 && <p>No template courses yet</p>}
-          <CourseCards courses={filteredCourses} />
-        </>
+      {isEmpty ? (
+        <p>No template courses yet</p>
+      ) : viewMode === 'cards' ? (
+        <CourseCards courses={filteredCourses} />
       ) : (
         <CourseTable courses={filteredCourses} />
       )}

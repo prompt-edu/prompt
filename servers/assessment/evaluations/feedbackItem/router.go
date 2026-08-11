@@ -293,7 +293,8 @@ func feedbackItemErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrFeedbackItemNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted),
+		evaluationCompletion.IsTargetAuthorizationError(err):
 		return http.StatusForbidden
 	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
 		return http.StatusConflict

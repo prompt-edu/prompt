@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -18,6 +20,17 @@ import (
 	"github.com/prompt-edu/prompt/servers/presentation/presentation"
 	"github.com/prompt-edu/prompt/servers/presentation/storage"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	materialReaperInterval  = time.Hour
+	materialReaperBatchSize = 100
+
+	defaultAllowedMaterialTypes = "application/pdf," +
+		"application/vnd.ms-powerpoint," +
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation," +
+		"application/vnd.oasis.opendocument.presentation," +
+		"image/jpeg,image/png,image/gif,application/zip,text/plain"
 )
 
 func databaseURL() string {
@@ -87,7 +100,50 @@ func boolEnv(key string, defaultValue bool) bool {
 	return value
 }
 
+// Deliberately separate from core's ALLOWED_FILE_TYPES: presentation materials are slide
+// decks, and widening the shared variable would also widen core's document uploads.
+func allowedMaterialTypes() []string {
+	raw := promptSDK.GetEnv("PRESENTATION_ALLOWED_FILE_TYPES", defaultAllowedMaterialTypes)
+	types := make([]string, 0)
+	for _, value := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			types = append(types, trimmed)
+		}
+	}
+	return types
+}
+
+// Reclaims uploads that were presigned but never completed, freeing both the row and the
+// stored object. Runs in-process; the claim query is safe to run from several replicas.
+func startMaterialReaper(ctx context.Context, service *presentation.Service) {
+	ticker := time.NewTicker(materialReaperInterval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				reclaimed, err := service.ReclaimExpiredMaterials(ctx, materialReaperBatchSize)
+				if err != nil {
+					log.WithError(err).Warn("Could not reclaim expired presentation materials")
+					continue
+				}
+				if reclaimed > 0 {
+					log.WithField("count", reclaimed).Info("Reclaimed expired presentation materials")
+				}
+			}
+		}
+	}()
+}
+
 func main() {
+	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
+	if sentryEnabled {
+		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_PRESENTATION", ""))
+		defer sentry.Flush(2 * time.Second)
+	}
+
 	connectionURL := databaseURL()
 	runMigrations(connectionURL)
 	ctx := context.Background()
@@ -121,9 +177,14 @@ func main() {
 		intEnv("S3_PRESIGN_UPLOAD_TTL_SECONDS", 900),
 		intEnv("S3_PRESIGN_DOWNLOAD_TTL_SECONDS", 900),
 		int64(intEnv("MAX_FILE_UPLOAD_SIZE_MB", 50))*1024*1024,
+		allowedMaterialTypes(),
 	)
+	startMaterialReaper(ctx, service)
 
 	router := gin.Default()
+	if sentryEnabled {
+		router.Use(sentrygin.New(sentrygin.Options{}))
+	}
 	router.Use(promptSDK.CORSMiddleware(promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")))
 	api := router.Group("/presentation/api")
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")

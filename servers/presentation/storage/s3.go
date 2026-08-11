@@ -11,6 +11,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 )
 
@@ -46,8 +47,20 @@ func NewS3Adapter(ctx context.Context, bucket, region, endpoint, publicEndpoint,
 		}
 	}))
 	if _, err := client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(bucket)}); err != nil {
-		if _, createErr := client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String(bucket)}); createErr != nil {
-			return nil, fmt.Errorf("ensure S3 bucket: %w", createErr)
+		// Only a genuine "not found" justifies creating it. Reporting a 403 or a timeout
+		// as a failed bucket creation sends operators chasing the wrong problem.
+		var notFound *types.NotFound
+		if !errors.As(err, &notFound) {
+			return nil, fmt.Errorf("check S3 bucket existence: %w", err)
+		}
+		createInput := &s3.CreateBucketInput{Bucket: aws.String(bucket)}
+		if region != "" && region != "us-east-1" {
+			createInput.CreateBucketConfiguration = &types.CreateBucketConfiguration{
+				LocationConstraint: types.BucketLocationConstraint(region),
+			}
+		}
+		if _, createErr := client.CreateBucket(ctx, createInput); createErr != nil {
+			return nil, fmt.Errorf("create S3 bucket: %w", createErr)
 		}
 	}
 	return &S3Adapter{client: client, presignClient: presignClient, bucket: bucket}, nil
@@ -66,6 +79,8 @@ func (a *S3Adapter) GetUploadURL(ctx context.Context, key, contentType string, t
 func (a *S3Adapter) GetDownloadURL(ctx context.Context, key string, ttlSeconds int) (string, error) {
 	request, err := a.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(a.bucket), Key: aws.String(key),
+		// Materials are downloads, never documents to render in the browser origin.
+		ResponseContentDisposition: aws.String("attachment"),
 	}, func(options *s3.PresignOptions) { options.Expires = time.Duration(ttlSeconds) * time.Second })
 	if err != nil {
 		return "", fmt.Errorf("presign download: %w", err)

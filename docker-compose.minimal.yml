@@ -388,7 +388,7 @@ services:
       - S3_PRESIGN_UPLOAD_TTL_SECONDS
       - S3_PRESIGN_DOWNLOAD_TTL_SECONDS
       - MAX_FILE_UPLOAD_SIZE_MB
-      - ALLOWED_FILE_TYPES
+      - PRESENTATION_ALLOWED_FILE_TYPES
 
   client-presentation-component:
     build:

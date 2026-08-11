@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
@@ -87,6 +88,51 @@ func CreateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, req inter
 	}
 
 	return slot, nil
+}
+
+// CreateInterviewSlotsBatch creates all requested slots in a single transaction, so a rejected slot
+// never leaves a partial series behind.
+func CreateInterviewSlotsBatch(ctx context.Context, coursePhaseID uuid.UUID, req interviewSlotDTO.CreateInterviewSlotsBatchRequest) ([]db.InterviewSlot, error) {
+	if len(req.Slots) > interviewSlotDTO.MaxBatchInterviewSlots {
+		return nil, newServiceError(http.StatusBadRequest, fmt.Sprintf("A batch may contain at most %d slots", interviewSlotDTO.MaxBatchInterviewSlots), nil)
+	}
+
+	for i, slot := range req.Slots {
+		if !slot.EndTime.After(slot.StartTime) {
+			return nil, newServiceError(http.StatusBadRequest, fmt.Sprintf("Slot %d: end time must be after start time", i+1), nil)
+		}
+	}
+
+	tx, err := InterviewSlotServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		log.Errorf("Failed to begin interview slot batch transaction: %v", err)
+		return nil, newServiceError(http.StatusInternalServerError, "Failed to create interview slots", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := InterviewSlotServiceSingleton.queries.WithTx(tx)
+
+	slots := make([]db.InterviewSlot, 0, len(req.Slots))
+	for _, slot := range req.Slots {
+		created, err := qtx.CreateInterviewSlot(ctx, db.CreateInterviewSlotParams{
+			CoursePhaseID: coursePhaseID,
+			StartTime:     timeToPgTimestamptz(slot.StartTime),
+			EndTime:       timeToPgTimestamptz(slot.EndTime),
+			Location:      stringPtrToPgText(slot.Location),
+			Capacity:      slot.Capacity,
+		})
+		if err != nil {
+			log.Errorf("Failed to create interview slot in batch: %v", err)
+			return nil, newServiceError(http.StatusInternalServerError, "Failed to create interview slots", err)
+		}
+		slots = append(slots, created)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Errorf("Failed to commit interview slot batch: %v", err)
+		return nil, newServiceError(http.StatusInternalServerError, "Failed to create interview slots", err)
+	}
+
+	return slots, nil
 }
 
 func GetAllInterviewSlots(ctx context.Context, coursePhaseID uuid.UUID, authHeader string) ([]interviewSlotDTO.InterviewSlotResponse, error) {
@@ -324,4 +370,3 @@ func fetchAllStudentsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID
 
 	return studentMap, nil
 }
-

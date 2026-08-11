@@ -1,7 +1,7 @@
 import { test, expect } from '../../src/fixtures/auth'
 import { InterviewPage } from '../../src/pages/InterviewPage'
 import { SEEDED_COURSES, FULL_COURSE_PHASES } from '../../src/data/constants'
-import { deleteSlotsByLocation, futureSlotTimes, toDatetimeLocal } from './helpers'
+import { deleteSlotsByLocation, futureSlotTimes, toDatetimeLocal, toTimeOfDay } from './helpers'
 
 const LOCATION = 'E2E Lecturer Slot'
 // The only uniquely-named interview participant: the phase has two distinct
@@ -27,7 +27,7 @@ test.describe('interview: lecturer journey', () => {
     const { start, end } = futureSlotTimes()
     await phase.createSlot({
       startTime: toDatetimeLocal(start),
-      endTime: toDatetimeLocal(end),
+      endTime: toTimeOfDay(end),
       location: LOCATION,
       capacity: 1,
     })

@@ -1,11 +1,14 @@
 package feedbackItem
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
@@ -159,6 +162,7 @@ func getMyFeedbackItems(c *gin.Context) {
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items [post]
 func createFeedbackItem(c *gin.Context) {
@@ -191,7 +195,7 @@ func createFeedbackItem(c *gin.Context) {
 
 	err = CreateFeedbackItem(c, req)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		handleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Feedback item created successfully"})
@@ -209,6 +213,8 @@ func createFeedbackItem(c *gin.Context) {
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [put]
 func updateFeedbackItem(c *gin.Context) {
@@ -219,23 +225,28 @@ func updateFeedbackItem(c *gin.Context) {
 		return
 	}
 
+	feedbackItemID, err := uuid.Parse(c.Param("feedbackItemID"))
+	if err != nil {
+		log.Error("Error parsing feedbackItemID: ", err)
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req feedbackItemDTO.UpdateFeedbackItemRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	statusCode, err := utils.ValidateStudentOwnership(c, req.AuthorCourseParticipationID)
+	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, statusCode, err)
+		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	req.CoursePhaseID = coursePhaseID
-
-	err = UpdateFeedbackItem(c, req)
+	err = UpdateFeedbackItem(c, feedbackItemID, coursePhaseID, courseParticipationID, req)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		handleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Feedback item updated successfully"})
@@ -276,6 +287,22 @@ func deleteFeedbackItem(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusOK)
+}
+
+func feedbackItemErrorStatus(err error) int {
+	switch {
+	case errors.Is(err, ErrFeedbackItemNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+		return http.StatusForbidden
+	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
+		return http.StatusConflict
+	case errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType),
+		errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

@@ -18,9 +18,53 @@ type MockCourseResponse struct {
 	SemesterTag string `json:"semesterTag"`
 }
 
+// Team layout served by the mock core for course phase data resolution. Peer and tutor
+// evaluation targets are validated against it, so tests can rely on these fixed IDs.
+var (
+	MockTeamID      = uuid.MustParse("7ea11111-1111-1111-1111-111111111111")
+	MockTeamMembers = []uuid.UUID{
+		uuid.MustParse("01234567-1234-1234-1234-123456789012"),
+		uuid.MustParse("02234567-1234-1234-1234-123456789012"),
+		uuid.MustParse("03234567-1234-1234-1234-123456789012"),
+	}
+	MockTeamTutors = []uuid.UUID{
+		uuid.MustParse("0a234567-1234-1234-1234-123456789012"),
+	}
+	MockOutsiderParticipationID = uuid.MustParse("0f234567-1234-1234-1234-123456789012")
+)
+
+func mockPersons(ids []uuid.UUID) []map[string]any {
+	persons := make([]map[string]any, 0, len(ids))
+	for i, id := range ids {
+		persons = append(persons, map[string]any{
+			"id":        id.String(),
+			"firstName": "Person",
+			"lastName":  string(rune('A' + i)),
+		})
+	}
+	return persons
+}
+
 func SetupMockCoreService() (*httptest.Server, func()) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+
+	// Mock course phase data resolution, used to resolve teams for a course phase
+	router.GET("/api/course_phases/:id/course_phase_data", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"prevData": gin.H{
+				"teams": []map[string]any{
+					{
+						"id":      MockTeamID.String(),
+						"name":    "Mock Team",
+						"members": mockPersons(MockTeamMembers),
+						"tutors":  mockPersons(MockTeamTutors),
+					},
+				},
+			},
+			"resolutions": []any{},
+		})
+	})
 
 	// Mock course phases endpoint
 	router.GET("/api/course_phases/:id", func(c *gin.Context) {

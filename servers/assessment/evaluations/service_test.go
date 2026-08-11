@@ -11,7 +11,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -20,6 +22,7 @@ type EvaluationServiceTestSuite struct {
 	suite.Suite
 	suiteCtx              context.Context
 	cleanup               func()
+	mockCoreCleanup       func()
 	evaluationService     EvaluationService
 	testCoursePhaseID     uuid.UUID
 	testCoursePhaseID2    uuid.UUID
@@ -39,6 +42,9 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 	if err != nil {
 		suite.T().Fatalf("Failed to setup test database: %v", err)
 	}
+
+	_, mockCleanup := testutils.SetupMockCoreService()
+	suite.mockCoreCleanup = mockCleanup
 
 	suite.cleanup = cleanup
 	suite.evaluationService = EvaluationService{
@@ -67,6 +73,9 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 func (suite *EvaluationServiceTestSuite) TearDownSuite() {
 	if suite.cleanup != nil {
 		suite.cleanup()
+	}
+	if suite.mockCoreCleanup != nil {
+		suite.mockCoreCleanup()
 	}
 }
 
@@ -249,6 +258,62 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluation() {
 		}
 	}
 	assert.True(suite.T(), found, "Newly created peer evaluation should be found")
+}
+
+// Test that a peer evaluation cannot target somebody outside the author's team
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsOutsider() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       testutils.MockOutsiderParticipationID,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
+}
+
+// Test that a peer evaluation cannot be used to evaluate oneself
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsSelfTarget() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID3,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
+}
+
+// Test that a tutor evaluation must target a tutor of the author's team
+func (suite *EvaluationServiceTestSuite) TestCreateTutorEvaluationRejectsNonTutorTarget() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID2, // a teammate, not a tutor
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Tutor,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrTutorEvaluationTargetNotTeamTutor)
+}
+
+// Test that an author outside every team cannot write peer evaluations
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsTeamlessAuthor() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID2,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: testutils.MockOutsiderParticipationID,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrAuthorHasNoTeam)
 }
 
 // Test DTO mapping functionality

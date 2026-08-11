@@ -208,6 +208,10 @@ func createOrUpdateEvaluation(c *gin.Context) {
 
 	err = CreateOrUpdateEvaluation(c, coursePhaseID, request)
 	if err != nil {
+		if evaluationCompletion.IsTargetAuthorizationError(err) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
 		if errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType) || errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch) {
 			handleError(c, http.StatusBadRequest, err)
 			return

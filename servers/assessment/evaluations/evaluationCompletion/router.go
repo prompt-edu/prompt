@@ -92,7 +92,7 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 
 	err = CreateOrUpdateEvaluationCompletion(c, req)
 	if err != nil {
-		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
+		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
 			return
 		}
@@ -138,7 +138,7 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 
 	err = MarkEvaluationAsCompleted(c, req)
 	if err != nil {
-		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
+		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
 			return
 		}

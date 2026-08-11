@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -26,10 +28,23 @@ var EvaluationCompletionServiceSingleton *EvaluationCompletionService
 
 var ErrInvalidEvaluationType = errors.New("invalid evaluation type")
 var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target its author")
+var ErrPeerEvaluationTargetNotInTeam = errors.New("peer evaluation must target a member of the author's team")
+var ErrTutorEvaluationTargetNotTeamTutor = errors.New("tutor evaluation must target a tutor of the author's team")
+var ErrAuthorHasNoTeam = errors.New("author is not a member of any team in this course phase")
+
+var getTeamsForCoursePhaseFn = coursePhaseConfig.GetTeamsForCoursePhase
+
+// IsTargetAuthorizationError reports whether err means the caller may not write a record
+// about the requested subject, so routers can answer 403 instead of 500.
+func IsTargetAuthorizationError(err error) bool {
+	return errors.Is(err, ErrPeerEvaluationTargetNotInTeam) ||
+		errors.Is(err, ErrTutorEvaluationTargetNotTeamTutor) ||
+		errors.Is(err, ErrAuthorHasNoTeam)
+}
 
 func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	if evaluationType == assessmentType.Self && courseParticipationID != authorCourseParticipationID {
-		return ErrSelfEvaluationTargetMismatch
+	if err := checkEvaluationTarget(ctx, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
+		return err
 	}
 
 	var open bool
@@ -78,6 +93,73 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParti
 		}
 	}
 	return nil
+}
+
+// checkEvaluationTarget enforces who a record of the given type may be written about.
+// A self evaluation must target its author; a peer evaluation must target a member of the
+// author's team; a tutor evaluation must target one of that team's tutors.
+func checkEvaluationTarget(ctx context.Context, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	switch evaluationType {
+	case assessmentType.Self:
+		if courseParticipationID != authorCourseParticipationID {
+			return ErrSelfEvaluationTargetMismatch
+		}
+		return nil
+	case assessmentType.Peer, assessmentType.Tutor:
+		return checkTeamTarget(ctx, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
+	default:
+		return nil
+	}
+}
+
+func checkTeamTarget(ctx context.Context, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	teams, err := getTeamsForCoursePhaseFn(ctx, authHeaderFromContext(ctx), coursePhaseID)
+	if err != nil {
+		log.Error("could not fetch teams to validate the evaluation target: ", err)
+		return errors.New("could not fetch teams to validate the evaluation target")
+	}
+
+	team, found := teamOfMember(teams, authorCourseParticipationID)
+	if !found {
+		return ErrAuthorHasNoTeam
+	}
+
+	if evaluationType == assessmentType.Tutor {
+		if !containsPerson(team.Tutors, courseParticipationID) {
+			return ErrTutorEvaluationTargetNotTeamTutor
+		}
+		return nil
+	}
+
+	if courseParticipationID == authorCourseParticipationID || !containsPerson(team.Members, courseParticipationID) {
+		return ErrPeerEvaluationTargetNotInTeam
+	}
+	return nil
+}
+
+func teamOfMember(teams []promptTypes.Team, courseParticipationID uuid.UUID) (promptTypes.Team, bool) {
+	for _, team := range teams {
+		if containsPerson(team.Members, courseParticipationID) {
+			return team, true
+		}
+	}
+	return promptTypes.Team{}, false
+}
+
+func containsPerson(persons []promptTypes.Person, courseParticipationID uuid.UUID) bool {
+	for _, person := range persons {
+		if person.ID == courseParticipationID {
+			return true
+		}
+	}
+	return false
+}
+
+func authHeaderFromContext(ctx context.Context) string {
+	if ginCtx, ok := ctx.(*gin.Context); ok {
+		return ginCtx.GetHeader("Authorization")
+	}
+	return ""
 }
 
 func CreateOrUpdateEvaluationCompletion(ctx context.Context, req evaluationCompletionDTO.EvaluationCompletion) error {

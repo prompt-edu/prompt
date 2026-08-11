@@ -48,7 +48,13 @@ export const AuditLogView = ({
         <LoadingPage />
       ) : (
         <>
-          <PromptTable data={entries} columns={columns} />
+          {/*
+            The audit log is paged server-side via "Load more"; keep every
+            loaded row on a single PromptTable page (pageSize = row count) so its
+            client-side pager does not split the accumulated rows and make the
+            button appear to do nothing.
+          */}
+          <PromptTable data={entries} columns={columns} pageSize={Math.max(entries.length, 1)} />
           {hasNextPage && (
             <div className='flex justify-center'>
               <Button variant='outline' onClick={onLoadMore} disabled={isFetchingNextPage}>

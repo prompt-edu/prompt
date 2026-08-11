@@ -7,6 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tumaet/prompt-ui-components'
+import { endOfDay, startOfDay } from 'date-fns'
+import { useEffect, useRef, useState } from 'react'
 import type { DateRange } from 'react-day-picker'
 import type { AuditLogFilters } from '../interfaces/auditLog'
 
@@ -16,6 +18,15 @@ interface AuditLogFilterBarProps {
 }
 
 const ALL = 'all'
+
+const useDebouncedValue = <T,>(value: T, delayMs = 400): T => {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(id)
+  }, [value, delayMs])
+  return debounced
+}
 
 const OUTCOMES = [
   { value: 'success', label: 'Success' },
@@ -33,22 +44,39 @@ const ROLES = [
 export const AuditLogFilterBar = ({ filters, onFiltersChange }: AuditLogFilterBarProps) => {
   const update = (partial: Partial<AuditLogFilters>) => onFiltersChange({ ...filters, ...partial })
 
+  // Debounce the free-text search so a burst of keystrokes does not fire a
+  // request (and a full-table ILIKE scan) per character. The debounced value is
+  // pushed into the filters, which are part of the query key.
+  const [searchInput, setSearchInput] = useState(filters.search ?? '')
+  const debouncedSearch = useDebouncedValue(searchInput, 400)
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+  useEffect(() => {
+    const next = debouncedSearch || undefined
+    if (next !== filtersRef.current.search) {
+      onFiltersChange({ ...filtersRef.current, search: next })
+    }
+  }, [debouncedSearch, onFiltersChange])
+
   const dateRange: DateRange | undefined = filters.from
     ? { from: new Date(filters.from), to: filters.to ? new Date(filters.to) : undefined }
     : undefined
 
+  // Send whole-day bounds: startOfDay(from)..endOfDay(to). Sending the raw
+  // midnight values would exclude the selected end day and pull in the evening
+  // before the start day once converted to UTC.
   const onDateChange = (range: DateRange | undefined) =>
     update({
-      from: range?.from ? range.from.toISOString() : undefined,
-      to: range?.to ? range.to.toISOString() : undefined,
+      from: range?.from ? startOfDay(range.from).toISOString() : undefined,
+      to: range?.to ? endOfDay(range.to).toISOString() : undefined,
     })
 
   return (
     <div className='flex flex-wrap items-center gap-3'>
       <Input
         placeholder='Search actor, action, entity…'
-        value={filters.search ?? ''}
-        onChange={(e) => update({ search: e.target.value || undefined })}
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
         className='w-64'
       />
 

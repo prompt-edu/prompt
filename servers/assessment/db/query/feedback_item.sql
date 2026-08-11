@@ -13,15 +13,13 @@ INSERT INTO feedback_items (id,
                             type)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
--- name: UpdateFeedbackItem :exec
+-- name: UpdateFeedbackItem :execrows
 UPDATE feedback_items
-SET feedback_type                  = $2,
-    feedback_text                  = $3,
-    course_participation_id        = $4,
-    course_phase_id                = $5,
-    author_course_participation_id = $6,
-    type                           = $7
-WHERE id = $1;
+SET feedback_type = $4,
+    feedback_text = $5
+WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3;
 
 -- name: DeleteFeedbackItem :exec
 DELETE

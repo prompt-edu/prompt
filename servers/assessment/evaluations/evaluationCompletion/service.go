@@ -30,6 +30,7 @@ var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target it
 var ErrPeerEvaluationTargetNotInTeam = errors.New("peer evaluation must target a member of the author's team")
 var ErrTutorEvaluationTargetNotTeamTutor = errors.New("tutor evaluation must target a tutor of the author's team")
 var ErrAuthorHasNoTeam = errors.New("author is not a member of any team in this course phase")
+var ErrEvaluationAlreadyCompleted = errors.New("evaluation completion already exists and is marked as completed")
 
 var getTeamsForCoursePhaseFn = coursePhaseConfig.GetTeamsForCoursePhase
 
@@ -87,8 +88,7 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader 
 		}
 
 		if completion.Completed {
-			log.Error("evaluation completion already exists and is marked as completed")
-			return errors.New("evaluation completion already exists and is marked as completed")
+			return ErrEvaluationAlreadyCompleted
 		}
 	}
 	return nil

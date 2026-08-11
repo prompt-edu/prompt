@@ -1785,6 +1785,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2280,6 +2289,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2515,6 +2533,24 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2854,6 +2890,15 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -5486,24 +5531,10 @@ const docTemplate = `{
         "feedbackItemDTO.UpdateFeedbackItemRequest": {
             "type": "object",
             "required": [
-                "authorCourseParticipationID",
-                "courseParticipationID",
-                "coursePhaseID",
                 "feedbackText",
-                "feedbackType",
-                "id",
-                "type"
+                "feedbackType"
             ],
             "properties": {
-                "authorCourseParticipationID": {
-                    "type": "string"
-                },
-                "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
-                },
                 "feedbackText": {
                     "type": "string"
                 },
@@ -5515,22 +5546,6 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/db.FeedbackType"
-                        }
-                    ]
-                },
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "enum": [
-                        "self",
-                        "peer",
-                        "tutor",
-                        "assessment"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/assessmentType.AssessmentType"
                         }
                     ]
                 }

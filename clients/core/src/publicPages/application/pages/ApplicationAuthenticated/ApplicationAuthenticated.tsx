@@ -10,7 +10,7 @@ import { getApplicationFormWithDetails } from '@core/network/queries/application
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type Student, useAuthStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { AuthenticatedPageWrapper } from '../../../shared/components/AuthenticatedPageWrapper'
 import { ApplicationHeader } from '../../components/ApplicationHeader'
 import { ApplicationSavingDialog } from '../../components/ApplicationSavingDialog'
@@ -21,7 +21,8 @@ import { InfoBanner } from './components/InfoBanner'
 
 export const ApplicationAuthenticated = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [showDialog, setShowDialog] = useState<'saving' | 'success' | 'error' | null>(null)
   const queryClient = useQueryClient()
   const [confirmationMailSent, setConfirmationMailSent] = useState<boolean>(false)
@@ -83,7 +84,11 @@ export const ApplicationAuthenticated = () => {
   }
 
   const handleBack = () => {
-    logout()
+    navigate('/')
+  }
+
+  const handleGoToManagement = () => {
+    navigate('/management/courses')
   }
 
   if (isPending || isApplicationPending) {
@@ -153,7 +158,8 @@ export const ApplicationAuthenticated = () => {
       <ApplicationSavingDialog
         showDialog={showDialog}
         onClose={handleCloseDialog}
-        onNavigateBack={handleBack}
+        onNavigateBack={handleGoToManagement}
+        navigateBackLabel='Go to App'
         errorMessage={mutateError?.message}
         confirmationMailSent={confirmationMailSent}
       />

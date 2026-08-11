@@ -12,6 +12,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteAllocationsByCourseParticipationIDs = `-- name: DeleteAllocationsByCourseParticipationIDs :exec
+DELETE FROM allocations
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteAllocationsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAllocationsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteStudentSkillResponseByCourseParticipationIDs = `-- name: DeleteStudentSkillResponseByCourseParticipationIDs :exec
+DELETE FROM student_skill_response
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteStudentSkillResponseByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStudentSkillResponseByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteStudentTeamPreferenceResponseByCourseParticipationIDs = `-- name: DeleteStudentTeamPreferenceResponseByCourseParticipationIDs :exec
+DELETE FROM student_team_preference_response
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteStudentTeamPreferenceResponseByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStudentTeamPreferenceResponseByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteTutorByCourseParticipationIDs = `-- name: DeleteTutorByCourseParticipationIDs :exec
+DELETE FROM tutor
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteTutorByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTutorByCourseParticipationIDs, dollar_1)
+	return err
+}
+
 const getAllocationByCourseParticipationIDs = `-- name: GetAllocationByCourseParticipationIDs :many
 SELECT a.id, a.course_participation_id, a.team_id, a.course_phase_id, a.created_at, a.updated_at, a.student_first_name, a.student_last_name, t.id, t.name, t.course_phase_id, t.created_at
 FROM allocations a, team t

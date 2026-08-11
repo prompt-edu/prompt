@@ -14,6 +14,7 @@ interface ApplicationSavingDialogProps {
   showDialog: 'saving' | 'success' | 'error' | null
   onClose: () => void
   onNavigateBack: () => void
+  navigateBackLabel?: string
   errorMessage?: string
   confirmationMailSent?: boolean
 }
@@ -22,6 +23,7 @@ export const ApplicationSavingDialog = ({
   showDialog,
   onClose,
   onNavigateBack,
+  navigateBackLabel = 'Back to Overview',
   errorMessage,
   confirmationMailSent = false,
 }: ApplicationSavingDialogProps) => {
@@ -92,10 +94,8 @@ export const ApplicationSavingDialog = ({
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={() => {
-        if (showDialog === 'success') {
-          onNavigateBack()
-        } else {
+      onOpenChange={(open) => {
+        if (!open) {
           onClose()
         }
       }}
@@ -125,7 +125,7 @@ export const ApplicationSavingDialog = ({
             </Button>
           ) : showDialog === 'success' ? (
             <Button onClick={onNavigateBack} className='w-full sm:w-auto'>
-              Back to Overview
+              {navigateBackLabel}
             </Button>
           ) : (
             <Button variant='outline' onClick={onClose} className='w-full sm:w-auto'>

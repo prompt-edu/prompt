@@ -1,11 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  Button,
-  Card,
-  CardContent,
-  ErrorPage,
-  ManagementPageHeader,
-} from '@tumaet/prompt-ui-components'
+import { Button, Card, CardContent, ErrorPage } from '@tumaet/prompt-ui-components'
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -14,6 +8,7 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
 import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
 import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
+import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -160,9 +155,9 @@ export const EvaluationParticipantResultsPage = ({
   return (
     <>
       <div className='space-y-4 print:hidden'>
-        <ManagementPageHeader>
+        <EvaluationHeader>
           {pageTitle} for {studentName}
-        </ManagementPageHeader>
+        </EvaluationHeader>
 
         {categories.length === 0 ? (
           <Card>

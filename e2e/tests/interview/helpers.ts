@@ -17,10 +17,24 @@ export function slotsUrl(phaseId = FULL_COURSE_PHASES.interview.id): string {
   return `${BASE_URL}${INTERVIEW_API}/course_phase/${phaseId}/interview-slots`
 }
 
-// Tomorrow, so the UI treats the slot as bookable (past slots are disabled).
+// Tomorrow at 10:00, so the UI treats the slot as bookable (past slots are
+// disabled) and the 30-min slot stays on the start's date (the dialog's End Time
+// is a time-of-day, and an end at or before the start rolls to the next day).
 export function futureSlotTimes(): { start: Date; end: Date } {
   const start = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  start.setHours(10, 0, 0, 0)
   const end = new Date(start.getTime() + 30 * 60 * 1000)
+  return { start, end }
+}
+
+// A range starting tomorrow at 10:00 that divides evenly into `slotCount` slots
+// of `durationMinutes` with no break.
+export function futureSlotRange(
+  slotCount: number,
+  durationMinutes: number,
+): { start: Date; end: Date } {
+  const { start } = futureSlotTimes()
+  const end = new Date(start.getTime() + slotCount * durationMinutes * 60 * 1000)
   return { start, end }
 }
 
@@ -31,6 +45,12 @@ export function toDatetimeLocal(date: Date): string {
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   )
+}
+
+// Format for the schedule dialog's time-of-day input (End Time).
+export function toTimeOfDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 export async function createSlot(

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   AlertDescription,
+  Badge,
   Button,
   Card,
   CardContent,
@@ -10,9 +11,15 @@ import {
   CardTitle,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { Download, File, Loader2, Trash2, Upload } from 'lucide-react'
+import { CircleDashed, Download, File, Loader2, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
-import type { PresentationSummary } from '../interfaces'
+import type { MaterialType, PresentationMaterial, PresentationSummary } from '../interfaces'
+import {
+  getMaterialTypeAccept,
+  getMaterialTypeDefinition,
+  type MaterialTypeDefinition,
+  sortMaterialTypes,
+} from '../materialTypes'
 import { openMaterialDownload, presentationApi, uploadMaterial } from '../network'
 import { formatFileSize, getErrorMessage } from '../utils'
 
@@ -20,24 +27,155 @@ import { formatFileSize, getErrorMessage } from '../utils'
 // limit either way, so this never has to be exactly right.
 const FALLBACK_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
+interface MaterialSlotProps {
+  definition: MaterialTypeDefinition
+  materials: PresentationMaterial[]
+  required: boolean
+  isUploading: boolean
+  isDeleting: boolean
+  downloadingId?: string
+  onUpload?: (files: FileList | null) => void
+  onDownload: (materialId: string) => void
+  onDelete?: (materialId: string) => void
+}
+
+const MaterialSlot = ({
+  definition,
+  materials,
+  required,
+  isUploading,
+  isDeleting,
+  downloadingId,
+  onUpload,
+  onDownload,
+  onDelete,
+}: MaterialSlotProps) => {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <div className='space-y-3 rounded-md border p-3'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
+        <div className='min-w-0'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <p className='font-medium'>{definition.label}</p>
+            {required ? (
+              <Badge variant='secondary'>Required</Badge>
+            ) : (
+              <Badge variant='outline'>No longer requested</Badge>
+            )}
+            {required && materials.length === 0 ? (
+              <span className='flex items-center gap-1 text-xs text-muted-foreground'>
+                <CircleDashed className='h-3 w-3' />
+                Missing
+              </span>
+            ) : null}
+          </div>
+          <p className='text-xs text-muted-foreground'>
+            {definition.formats}
+            {definition.note ? ` · ${definition.note}` : ''}
+          </p>
+        </div>
+        {onUpload ? (
+          <>
+            <input
+              ref={inputRef}
+              type='file'
+              multiple
+              accept={getMaterialTypeAccept(definition)}
+              className='hidden'
+              onChange={(event) => onUpload(event.target.files)}
+            />
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={isUploading}
+              onClick={() => inputRef.current?.click()}
+            >
+              {isUploading ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Upload className='mr-2 h-4 w-4' />
+              )}
+              Upload
+            </Button>
+          </>
+        ) : null}
+      </div>
+      {materials.map((material) => (
+        <div
+          key={material.id}
+          className='flex flex-col gap-3 rounded-md bg-muted/30 p-2 sm:flex-row sm:items-center sm:justify-between'
+        >
+          <div className='flex min-w-0 items-center gap-3'>
+            <File className='h-5 w-5 shrink-0 text-muted-foreground' />
+            <div className='min-w-0'>
+              <p className='truncate text-sm font-medium'>{material.fileName}</p>
+              <p className='text-xs text-muted-foreground'>
+                {formatFileSize(material.sizeBytes)}
+                {material.uploadedByName ? ` · ${material.uploadedByName}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className='flex gap-2'>
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={downloadingId === material.id}
+              onClick={() => onDownload(material.id)}
+            >
+              {downloadingId === material.id ? (
+                <Loader2 className='h-4 w-4 animate-spin' />
+              ) : (
+                <Download className='h-4 w-4' />
+              )}
+              <span className='sr-only'>Download {material.fileName}</span>
+            </Button>
+            {onDelete ? (
+              <Button
+                size='sm'
+                variant='ghost'
+                className='text-destructive hover:bg-destructive/10 hover:text-destructive'
+                disabled={isDeleting}
+                onClick={() => onDelete(material.id)}
+              >
+                <Trash2 className='h-4 w-4' />
+                <span className='sr-only'>Delete {material.fileName}</span>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface MaterialsPanelProps {
   coursePhaseId: string
   presentation: PresentationSummary
   isStaff: boolean
+  // Sample files for the staff preview of the student page. They replace the API data and
+  // turn every action off, so the preview never touches a real presentation.
+  previewMaterials?: PresentationMaterial[]
 }
 
-export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: MaterialsPanelProps) => {
-  const inputRef = useRef<HTMLInputElement>(null)
+export const MaterialsPanel = ({
+  coursePhaseId,
+  presentation,
+  isStaff,
+  previewMaterials,
+}: MaterialsPanelProps) => {
+  const isPreview = previewMaterials !== undefined
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
+  const [uploadingType, setUploadingType] = useState<MaterialType>()
   const [downloadingId, setDownloadingId] = useState<string>()
-  const canManage = isStaff || new Date(presentation.startTime).getTime() > Date.now()
+  const canManage =
+    !isPreview && (isStaff || new Date(presentation.startTime).getTime() > Date.now())
 
   const materialsQuery = useQuery({
     queryKey: ['presentation-materials', coursePhaseId, presentation.id],
     queryFn: () => presentationApi.getMaterials(coursePhaseId, presentation.id),
-    enabled: Boolean(coursePhaseId && presentation.id),
+    enabled: !isPreview && Boolean(coursePhaseId && presentation.id),
   })
 
   const configQuery = useQuery({
@@ -46,17 +184,26 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
     enabled: Boolean(coursePhaseId),
   })
   const maxFileSizeBytes = configQuery.data?.maxUploadBytes || FALLBACK_MAX_FILE_SIZE_BYTES
+  const requiredTypes = sortMaterialTypes(configQuery.data?.requiredMaterialTypes ?? [])
+  const materials = previewMaterials ?? materialsQuery.data ?? []
+  // Files whose type the lecturer has since removed from the requirements. They stay
+  // visible and downloadable, because deleting a presenter's work is never implicit.
+  const staleMaterials = materials.filter(
+    (material) => !requiredTypes.includes(material.materialType),
+  )
+
+  const invalidateMaterials = () => {
+    void queryClient.invalidateQueries({
+      queryKey: ['presentation-materials', coursePhaseId, presentation.id],
+    })
+    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
+  }
 
   const deleteMutation = useMutation({
     mutationFn: (materialId: string) =>
       presentationApi.deleteMaterial(coursePhaseId, presentation.id, materialId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['presentation-materials', coursePhaseId, presentation.id],
-      })
-      void queryClient.invalidateQueries({
-        queryKey: ['presentations', coursePhaseId],
-      })
+      invalidateMaterials()
       toast({ title: 'Material deleted' })
     },
     onError: (error) => {
@@ -68,7 +215,7 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
     },
   })
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (materialType: MaterialType, files: FileList | null) => {
     const selectedFiles = Array.from(files ?? [])
     if (selectedFiles.length === 0) return
     const oversized = selectedFiles.find((file) => file.size > maxFileSizeBytes)
@@ -81,22 +228,23 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
       return
     }
 
-    setUploadingFiles(selectedFiles.map((file) => file.name))
+    setUploadingType(materialType)
     const results = await Promise.allSettled(
-      selectedFiles.map((file) => uploadMaterial(coursePhaseId, presentation.id, file)),
+      selectedFiles.map((file) =>
+        uploadMaterial(coursePhaseId, presentation.id, materialType, file),
+      ),
     )
-    setUploadingFiles([])
-    if (inputRef.current) inputRef.current.value = ''
+    setUploadingType(undefined)
 
-    const failed = results.filter((result) => result.status === 'rejected').length
-    void queryClient.invalidateQueries({
-      queryKey: ['presentation-materials', coursePhaseId, presentation.id],
-    })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-    if (failed > 0) {
+    const rejected = results.filter((result) => result.status === 'rejected')
+    invalidateMaterials()
+    if (rejected.length > 0) {
       toast({
         title: 'Some files could not be uploaded',
-        description: `${selectedFiles.length - failed} of ${selectedFiles.length} files uploaded.`,
+        description: getErrorMessage(
+          rejected[0].reason,
+          `${selectedFiles.length - rejected.length} of ${selectedFiles.length} files uploaded.`,
+        ),
         variant: 'destructive',
       })
     } else {
@@ -124,50 +272,21 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
 
   return (
     <Card>
-      <CardHeader className='flex-row items-start justify-between gap-4'>
-        <div>
-          <CardTitle className='text-base'>Presentation materials</CardTitle>
-          <CardDescription>
-            Slides and supporting files. Each file may be up to {formatFileSize(maxFileSizeBytes)}.
-          </CardDescription>
-        </div>
-        {canManage ? (
-          <>
-            <input
-              ref={inputRef}
-              type='file'
-              multiple
-              className='hidden'
-              onChange={(event) => void handleFiles(event.target.files)}
-            />
-            <Button
-              size='sm'
-              variant='outline'
-              disabled={uploadingFiles.length > 0}
-              onClick={() => inputRef.current?.click()}
-            >
-              {uploadingFiles.length > 0 ? (
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-              ) : (
-                <Upload className='mr-2 h-4 w-4' />
-              )}
-              Upload files
-            </Button>
-          </>
-        ) : null}
+      <CardHeader>
+        <CardTitle className='text-base'>Presentation materials</CardTitle>
+        <CardDescription>
+          {requiredTypes.length > 0
+            ? `The teaching team asks for the uploads below. Each file may be up to ${formatFileSize(maxFileSizeBytes)}.`
+            : 'The teaching team does not ask for any uploads in this phase.'}
+        </CardDescription>
       </CardHeader>
       <CardContent className='space-y-3'>
-        {!canManage && !isStaff ? (
+        {!canManage && !isStaff && !isPreview ? (
           <Alert>
             <AlertDescription>
               Student uploads and deletions closed when the presentation started.
             </AlertDescription>
           </Alert>
-        ) : null}
-        {uploadingFiles.length > 0 ? (
-          <div className='rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground'>
-            Uploading {uploadingFiles.join(', ')}
-          </div>
         ) : null}
         {materialsQuery.isLoading ? (
           <div className='flex items-center gap-2 text-sm text-muted-foreground'>
@@ -180,53 +299,38 @@ export const MaterialsPanel = ({ coursePhaseId, presentation, isStaff }: Materia
             <AlertDescription>Materials could not be loaded.</AlertDescription>
           </Alert>
         ) : null}
-        {materialsQuery.data?.length === 0 ? (
-          <p className='text-sm text-muted-foreground'>No materials have been uploaded yet.</p>
-        ) : null}
-        {materialsQuery.data?.map((material) => (
-          <div
-            key={material.id}
-            className='flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between'
-          >
-            <div className='flex min-w-0 items-center gap-3'>
-              <File className='h-5 w-5 shrink-0 text-muted-foreground' />
-              <div className='min-w-0'>
-                <p className='truncate text-sm font-medium'>{material.fileName}</p>
-                <p className='text-xs text-muted-foreground'>
-                  {formatFileSize(material.sizeBytes)}
-                  {material.uploadedByName ? ` · ${material.uploadedByName}` : ''}
-                </p>
-              </div>
-            </div>
-            <div className='flex gap-2'>
-              <Button
-                size='sm'
-                variant='outline'
-                disabled={downloadingId === material.id}
-                onClick={() => void handleDownload(material.id)}
-              >
-                {downloadingId === material.id ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <Download className='h-4 w-4' />
-                )}
-                <span className='sr-only'>Download {material.fileName}</span>
-              </Button>
-              {canManage ? (
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  className='text-destructive hover:bg-destructive/10 hover:text-destructive'
-                  disabled={deleteMutation.isPending}
-                  onClick={() => deleteMutation.mutate(material.id)}
-                >
-                  <Trash2 className='h-4 w-4' />
-                  <span className='sr-only'>Delete {material.fileName}</span>
-                </Button>
-              ) : null}
-            </div>
-          </div>
+        {requiredTypes.map((materialType) => (
+          <MaterialSlot
+            key={materialType}
+            definition={getMaterialTypeDefinition(materialType)}
+            materials={materials.filter((material) => material.materialType === materialType)}
+            required
+            isUploading={uploadingType === materialType}
+            isDeleting={deleteMutation.isPending}
+            downloadingId={downloadingId}
+            onUpload={canManage ? (files) => void handleFiles(materialType, files) : undefined}
+            onDownload={(materialId) => void handleDownload(materialId)}
+            onDelete={canManage ? (materialId) => deleteMutation.mutate(materialId) : undefined}
+          />
         ))}
+        {staleMaterials.length > 0 ? (
+          <MaterialSlot
+            definition={{
+              type: 'slides',
+              label: 'Previously uploaded files',
+              description: '',
+              extensions: [],
+              formats: 'These uploads are no longer requested by the teaching team',
+            }}
+            materials={staleMaterials}
+            required={false}
+            isUploading={false}
+            isDeleting={deleteMutation.isPending}
+            downloadingId={downloadingId}
+            onDownload={(materialId) => void handleDownload(materialId)}
+            onDelete={canManage ? (materialId) => deleteMutation.mutate(materialId) : undefined}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )

@@ -2,12 +2,14 @@ export type TargetMode = 'individual' | 'team'
 export type FeedbackMode = 'independent' | 'shared'
 export type FeedbackStatus = 'draft' | 'submitted'
 export type TargetType = 'individual' | 'team'
+export type MaterialType = 'slides' | 'summary' | 'handout' | 'poster' | 'code' | 'recording'
 
 export interface PresentationConfig {
   coursePhaseId: string
   targetMode: TargetMode
   feedbackMode: FeedbackMode
   maxUploadBytes: number
+  requiredMaterialTypes: MaterialType[]
 }
 
 export interface FeedbackCategory {
@@ -57,6 +59,7 @@ export interface PresentationTarget {
 export interface PresentationMaterial {
   id: string
   presentationId?: string
+  materialType: MaterialType
   fileName: string
   contentType: string
   sizeBytes: number

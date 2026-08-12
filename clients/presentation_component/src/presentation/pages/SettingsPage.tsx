@@ -17,6 +17,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
   ErrorPage,
   Input,
   Label,
@@ -30,16 +31,33 @@ import {
   Textarea,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { AlertTriangle, ListChecks, Loader2, Plus, Save, Settings2, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  ListChecks,
+  Loader2,
+  Plus,
+  Save,
+  Settings2,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DestructiveResetDialog } from '../components/DestructiveResetDialog'
 import { useCoursePhaseId } from '../hooks'
-import type { CategoryRequest, FeedbackCategory, FeedbackMode, TargetMode } from '../interfaces'
+import type {
+  CategoryRequest,
+  FeedbackCategory,
+  FeedbackMode,
+  MaterialType,
+  TargetMode,
+} from '../interfaces'
+import { MATERIAL_TYPE_CATALOG, sortMaterialTypes } from '../materialTypes'
 import { presentationApi } from '../network'
 import { getApiError, getErrorMessage } from '../utils'
 
 type SettingsAction = { resetExistingData?: boolean } & (
   | { type: 'config' }
+  | { type: 'materials' }
   | { type: 'create-category'; request: CategoryRequest }
   | { type: 'update-category'; categoryId: string; request: CategoryRequest }
   | { type: 'delete-category'; categoryId: string }
@@ -70,6 +88,18 @@ const SETTINGS_ACTION_COPY: Record<
       title: 'Reset existing presentation data?',
       description:
         'Changing the target or feedback mode is locked because the phase already contains presentations or evaluations. Continuing permanently deletes the affected schedule assignments, uploaded materials, and feedback so the new mode can be applied.',
+      actionLabel: 'Reset data and save',
+    },
+  },
+  materials: {
+    success: 'Requested uploads saved',
+    failure: 'Could not save the requested uploads',
+    // Requirements never invalidate existing data, so the server does not lock this change.
+    // The prompt only exists because every action shares one confirmation path.
+    reset: {
+      title: 'Reset existing presentation data?',
+      description:
+        'This phase already contains presentations or evaluations that block the change. Continuing permanently deletes the affected schedule assignments, uploaded materials, and feedback.',
       actionLabel: 'Reset data and save',
     },
   },
@@ -202,6 +232,7 @@ const SettingsPage = () => {
   const { toast } = useToast()
   const [targetMode, setTargetMode] = useState<TargetMode>('individual')
   const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('independent')
+  const [requiredMaterialTypes, setRequiredMaterialTypes] = useState<MaterialType[]>([])
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryDescription, setNewCategoryDescription] = useState('')
   const [resetAction, setResetAction] = useState<ResetAction>()
@@ -221,6 +252,7 @@ const SettingsPage = () => {
     if (!configQuery.data) return
     setTargetMode(configQuery.data.targetMode)
     setFeedbackMode(configQuery.data.feedbackMode)
+    setRequiredMaterialTypes(sortMaterialTypes(configQuery.data.requiredMaterialTypes ?? []))
   }, [configQuery.data])
 
   const invalidateSettings = () => {
@@ -231,11 +263,24 @@ const SettingsPage = () => {
     void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
   }
 
+  // The modes and the requested uploads have their own save button, so each one submits its
+  // own edits together with the values already stored for the other.
+  const configPayload = (action: SettingsAction) => ({
+    targetMode:
+      action.type === 'materials' ? (configQuery.data?.targetMode ?? targetMode) : targetMode,
+    feedbackMode:
+      action.type === 'materials' ? (configQuery.data?.feedbackMode ?? feedbackMode) : feedbackMode,
+    requiredMaterialTypes:
+      action.type === 'materials'
+        ? requiredMaterialTypes
+        : (configQuery.data?.requiredMaterialTypes ?? requiredMaterialTypes),
+  })
+
   const mutation = useMutation({
     mutationFn: async (action: SettingsAction) => {
       const reset = action.resetExistingData ?? false
-      if (action.type === 'config') {
-        await presentationApi.updateConfig(coursePhaseId, { targetMode, feedbackMode }, reset)
+      if (action.type === 'config' || action.type === 'materials') {
+        await presentationApi.updateConfig(coursePhaseId, configPayload(action), reset)
       } else if (action.type === 'create-category') {
         await presentationApi.createCategory(coursePhaseId, action.request, reset)
       } else if (action.type === 'update-category') {
@@ -312,6 +357,17 @@ const SettingsPage = () => {
   const categories = categoriesQuery.data ?? []
   const configChanged =
     targetMode !== configQuery.data?.targetMode || feedbackMode !== configQuery.data?.feedbackMode
+  const savedMaterialTypes = sortMaterialTypes(configQuery.data?.requiredMaterialTypes ?? [])
+  const materialTypesChanged =
+    savedMaterialTypes.length !== requiredMaterialTypes.length ||
+    savedMaterialTypes.some((type, index) => type !== requiredMaterialTypes[index])
+
+  const toggleMaterialType = (type: MaterialType, enabled: boolean) =>
+    setRequiredMaterialTypes((current) =>
+      sortMaterialTypes(
+        enabled ? [...current, type] : current.filter((candidate) => candidate !== type),
+      ),
+    )
 
   return (
     <div className='space-y-6'>
@@ -392,6 +448,60 @@ const SettingsPage = () => {
               <Save className='mr-2 h-4 w-4' />
             )}
             Save modes
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            <Upload className='h-5 w-5' />
+            Requested student uploads
+          </CardTitle>
+          <CardDescription>
+            Presenters get one upload slot per selected item, and only the listed file formats are
+            accepted. Changing this never deletes files that were already handed in.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-5'>
+          <div className='space-y-3'>
+            {MATERIAL_TYPE_CATALOG.map((definition) => (
+              <div key={definition.type} className='flex items-start gap-3 rounded-lg border p-3'>
+                <Checkbox
+                  id={`material-type-${definition.type}`}
+                  className='mt-0.5'
+                  checked={requiredMaterialTypes.includes(definition.type)}
+                  onCheckedChange={(checked) =>
+                    toggleMaterialType(definition.type, checked === true)
+                  }
+                />
+                <div className='space-y-1'>
+                  <Label htmlFor={`material-type-${definition.type}`} className='cursor-pointer'>
+                    {definition.label}
+                  </Label>
+                  <p className='text-xs text-muted-foreground'>
+                    {definition.description} {definition.formats}
+                    {definition.note ? ` · ${definition.note}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {requiredMaterialTypes.length === 0 ? (
+            <p className='text-sm text-muted-foreground'>
+              Presenters are not asked for any uploads and cannot attach files.
+            </p>
+          ) : null}
+          <Button
+            disabled={!materialTypesChanged || isSaving}
+            onClick={() => mutation.mutate({ type: 'materials' })}
+          >
+            {isSaving ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : (
+              <Save className='mr-2 h-4 w-4' />
+            )}
+            Save requested uploads
           </Button>
         </CardContent>
       </Card>

@@ -8,6 +8,7 @@ import type {
   FeedbackDocument,
   FeedbackEvent,
   MaterialDownload,
+  MaterialType,
   MaterialUploadIntent,
   PresentationConfig,
   PresentationMaterial,
@@ -44,7 +45,7 @@ export const presentationApi = {
 
   updateConfig: async (
     coursePhaseId: string,
-    config: Pick<PresentationConfig, 'targetMode' | 'feedbackMode'>,
+    config: Pick<PresentationConfig, 'targetMode' | 'feedbackMode' | 'requiredMaterialTypes'>,
     resetExistingData = false,
   ): Promise<PresentationConfig> =>
     (
@@ -127,6 +128,18 @@ export const presentationApi = {
       )
     ).data,
 
+  // One transactional request, so a rejected slot never leaves a partial series behind.
+  createSlots: async (
+    coursePhaseId: string,
+    requests: CreateSlotRequest[],
+  ): Promise<PresentationSlot[]> =>
+    (
+      await presentationAxiosInstance.post<PresentationSlot[]>(
+        `${phasePath(coursePhaseId)}/slots/batch`,
+        { slots: requests },
+      )
+    ).data,
+
   updateSlot: async (
     coursePhaseId: string,
     slotId: string,
@@ -179,12 +192,14 @@ export const presentationApi = {
   createUploadIntent: async (
     coursePhaseId: string,
     presentationId: string,
+    materialType: MaterialType,
     file: File,
   ): Promise<MaterialUploadIntent> =>
     (
       await presentationAxiosInstance.post<MaterialUploadIntent>(
         `${phasePath(coursePhaseId)}/presentations/${presentationId}/materials/presign`,
         {
+          materialType,
           fileName: file.name,
           contentType: file.type || 'application/octet-stream',
           sizeBytes: file.size,
@@ -290,9 +305,15 @@ export const presentationApi = {
 export const uploadMaterial = async (
   coursePhaseId: string,
   presentationId: string,
+  materialType: MaterialType,
   file: File,
 ): Promise<PresentationMaterial> => {
-  const intent = await presentationApi.createUploadIntent(coursePhaseId, presentationId, file)
+  const intent = await presentationApi.createUploadIntent(
+    coursePhaseId,
+    presentationId,
+    materialType,
+    file,
+  )
   const uploadResponse = await fetch(intent.uploadUrl, {
     method: 'PUT',
     headers: intent.headers,

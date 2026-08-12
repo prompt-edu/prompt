@@ -492,6 +492,67 @@ definitions:
           $ref: '#/definitions/applicationDTO.QuestionText'
         type: array
     type: object
+  auditLogDTO.AuditEntry:
+    properties:
+      action:
+        type: string
+      actionKey:
+        type: string
+      actorEmail:
+        type: string
+      actorID:
+        type: string
+      actorName:
+        type: string
+      actorRole:
+        type: string
+      actorRoles:
+        items:
+          type: string
+        type: array
+      courseID:
+        type: string
+      coursePhaseID:
+        type: string
+      createdAt:
+        type: string
+      entityID:
+        type: string
+      entityName:
+        type: string
+      entityType:
+        type: string
+      httpMethod:
+        type: string
+      httpPath:
+        type: string
+      httpStatus:
+        type: integer
+      id:
+        type: string
+      metadata:
+        type: object
+      outcome:
+        type: string
+      sourceService:
+        type: string
+    type: object
+  auditLogDTO.AuditLogPage:
+    properties:
+      entries:
+        items:
+          $ref: '#/definitions/auditLogDTO.AuditEntry'
+        type: array
+      nextCursor:
+        $ref: '#/definitions/auditLogDTO.Cursor'
+    type: object
+  auditLogDTO.Cursor:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+    type: object
   authDTO.GetCoursePhaseParticipation:
     properties:
       courseParticipationID:
@@ -2501,6 +2562,76 @@ paths:
       summary: Create a presigned upload URL (authenticated)
       tags:
       - applications
+  /audit-log:
+    get:
+      description: Keyset-paginated, filterable platform-wide audit log (admins only).
+      parameters:
+      - description: Filter by actor role
+        in: query
+        name: actorRole
+        type: string
+      - description: Filter by outcome (success|denied)
+        in: query
+        name: outcome
+        type: string
+      - description: Filter by action key (e.g. POST /api/.../slots)
+        in: query
+        name: actionKey
+        type: string
+      - description: Filter by entity type
+        in: query
+        name: entityType
+        type: string
+      - description: Filter by source service (e.g. core)
+        in: query
+        name: sourceService
+        type: string
+      - description: Filter by course phase UUID
+        in: query
+        name: coursePhaseID
+        type: string
+      - description: Free-text search over actor, action and entity
+        in: query
+        name: search
+        type: string
+      - description: Start of time range (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: End of time range (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Keyset cursor timestamp (RFC3339) from a previous page
+        in: query
+        name: cursorTs
+        type: string
+      - description: Keyset cursor entry UUID from a previous page
+        in: query
+        name: cursorId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auditLogDTO.AuditLogPage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Global audit log
+      tags:
+      - auditLog
   /auth/course_phase/{coursePhaseID}/is_student:
     get:
       description: Check if the user is a student of the course phase
@@ -3157,6 +3288,81 @@ paths:
       summary: Archive or unarchive a course
       tags:
       - courses
+  /courses/{uuid}/audit-log:
+    get:
+      description: Keyset-paginated, filterable audit log scoped to one course.
+      parameters:
+      - description: Course UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      - description: Filter by actor role
+        in: query
+        name: actorRole
+        type: string
+      - description: Filter by outcome (success|denied)
+        in: query
+        name: outcome
+        type: string
+      - description: Filter by action key (e.g. POST /api/.../slots)
+        in: query
+        name: actionKey
+        type: string
+      - description: Filter by entity type
+        in: query
+        name: entityType
+        type: string
+      - description: Filter by source service (e.g. core)
+        in: query
+        name: sourceService
+        type: string
+      - description: Filter by course phase UUID
+        in: query
+        name: coursePhaseID
+        type: string
+      - description: Free-text search over actor, action and entity
+        in: query
+        name: search
+        type: string
+      - description: Start of time range (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: End of time range (RFC3339)
+        in: query
+        name: to
+        type: string
+      - description: Page size (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Keyset cursor timestamp (RFC3339) from a previous page
+        in: query
+        name: cursorTs
+        type: string
+      - description: Keyset cursor entry UUID from a previous page
+        in: query
+        name: cursorId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auditLogDTO.AuditLogPage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Course audit log
+      tags:
+      - auditLog
   /courses/{uuid}/copy:
     post:
       description: Copy a course by UUID

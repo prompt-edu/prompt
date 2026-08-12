@@ -22,6 +22,7 @@ to the example in those directories, not here.
 | `repo/docker-compose.prod.yml`| `docker-compose.prod.yml`                                 |
 | `repo/client.package.json`    | `client/package.json` (standalone deps, replaces the workspace one) |
 | `repo/client.Dockerfile`      | `client/Dockerfile` (self-contained, no `prompt-clients-base`) |
+| `repo/client.dockerignore`    | `client/.dockerignore` (keeps `node_modules`/`build` out of the image) |
 | `repo/client.nginx.conf`      | `client/nginx.conf`                                       |
 | `repo/server.Dockerfile`      | `server/Dockerfile` (copy of `servers/Dockerfile`)        |
 | `repo/workflows/quality.yml`  | `.github/workflows/quality.yml`                           |

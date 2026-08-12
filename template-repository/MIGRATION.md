@@ -36,6 +36,7 @@ repo/docker-compose.yml      -> docker-compose.yml
 repo/docker-compose.prod.yml -> docker-compose.prod.yml
 repo/client.package.json     -> client/package.json   (replaces the workspace package.json)
 repo/client.Dockerfile       -> client/Dockerfile     (replaces the monorepo one)
+repo/client.dockerignore     -> client/.dockerignore
 repo/client.nginx.conf       -> client/nginx.conf
 repo/server.Dockerfile       -> server/Dockerfile
 repo/workflows/*.yml         -> .github/workflows/

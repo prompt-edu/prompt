@@ -31,7 +31,7 @@ config/              Phase config endpoint (PhaseConfigHandler) — lets core as
 copy/                Phase copy endpoint (PhaseCopyHandler) — called on course deep copy and
                      course templating to duplicate phase data; placeholder returns 404
 db/
-  migration/         golang-migrate SQL (0001_schema.up.sql creates the demo example_table)
+  migration/         golang-migrate SQL (0001 creates the demo table, 0002 renames it to example_table)
   query/             sqlc query definitions
   sqlc/              GENERATED type-safe Go — never edit, run `make sqlc-example`
 docs/                GENERATED swagger (swag) — regenerate after annotation changes

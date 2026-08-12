@@ -67,8 +67,10 @@ types remotes by that suffix):
 
 **Infrastructure:**
 
-1. `docker-compose.yml`: add `server-<name>`, `client-<name>-component`, and `db-<name>` services
-   (copy the `*-example` blocks; separate database per service, own `postgres_<name>_data` volume).
+1. `docker-compose.yml`: add `server-<name>`, `client-<name>-component`, and `db-<name>-server`
+   services, kebab-case like the existing ones (copy the `*-example` blocks; separate database per
+   service, own `postgres_<name>_data` volume). `DB_HOST_<NAME>_SERVER` in `.env.template` must
+   match the db service name.
 2. `.env.template` + `.env.dev.template`: add the `DB_*_<NAME>_*` entries and `<NAME>_HOST`.
 3. `Makefile`: add `server-<name>`, `test-<name>`, `sqlc-<name>` targets and wire them into the
    aggregate `server`, `test`, `sqlc`, and `lint-servers` targets.

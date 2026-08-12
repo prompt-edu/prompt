@@ -71,6 +71,9 @@ rename_tokens() {
     s/example_server/${NAME}/g;
     s/example_table/${NAME}_table/g;
     s/ExampleTable/${PASCAL}Table/g;
+    s/server-example/server-${KEBAB}/g;
+    s/client-example-component/client-${KEBAB}-component/g;
+    s/db-example-server/db-${KEBAB}-server/g;
     s/example-service/${KEBAB}-service/g;
     s/example-root/${KEBAB}-root/g;
     s/EXAMPLE_SERVER/${UPPER}_SERVER/g;
@@ -240,7 +243,7 @@ cat >> .env.template <<EOF
 # ${UPPER} SERVER DATABASE CONFIGURATION
 # ============================================================================
 
-DB_HOST_${UPPER}_SERVER=db-${KEBAB}
+DB_HOST_${UPPER}_SERVER=db-${KEBAB}-server
 DB_PORT_${UPPER}_SERVER=${DB_PORT}
 DB_${UPPER}_NAME=prompt
 DB_${UPPER}_USER=prompt-postgres
@@ -287,9 +290,10 @@ echo "-> verifying"
   || die "yarn install failed"
 (cd clients && yarn tsc -p "${NAME}_component/tsconfig.json" --noEmit --pretty false) \
   || die "typecheck failed for ${NAME}_component"
-(cd clients && yarn biome check --write "${NAME}_component" core >/dev/null 2>&1) || true
-(cd clients && yarn biome check --diagnostic-level=error "${NAME}_component" >/dev/null) \
-  || die "biome check failed for ${NAME}_component"
+CORE_TOUCHED=(core/rspack.config.mjs core/src/App.tsx core/src/managementConsole/PhaseMapping)
+(cd clients && yarn biome check --write "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null 2>&1) || true
+(cd clients && yarn biome check --diagnostic-level=error "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null) \
+  || die "biome check failed for ${NAME}_component or the touched core files"
 
 cat <<EOF
 

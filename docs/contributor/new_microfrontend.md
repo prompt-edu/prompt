@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 9
 ---
 
 # How to Add a New Microfrontend

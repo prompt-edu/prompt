@@ -5,9 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
@@ -74,6 +76,21 @@ export const TutorEvaluationResultsPage = () => {
     return feedbackItems.filter((item) => item.feedbackType === 'negative')
   }, [feedbackItems])
 
+  const reportScores = useMemo(
+    () =>
+      tutorEvaluations.map((evaluation) => ({
+        ...evaluation,
+        authorName: getTeamMemberName(teams, evaluation.authorCourseParticipationID),
+      })),
+    [teams, tutorEvaluations],
+  )
+
+  const evaluatorCount = useMemo(
+    () =>
+      new Set(tutorEvaluations.map((evaluation) => evaluation.authorCourseParticipationID)).size,
+    [tutorEvaluations],
+  )
+
   if (isError) return <ErrorPage onRetry={refetch} />
   if (isPending)
     return (
@@ -87,91 +104,108 @@ export const TutorEvaluationResultsPage = () => {
   }
 
   return (
-    <div className='space-y-4'>
-      <EvaluationHeader
-        previousAction={
-          prevTutor && (
-            <Button
-              variant='outline'
-              className='h-10 shrink-0'
-              aria-label={`Navigate to previous tutor: ${prevTutor.firstName} ${prevTutor.lastName}`}
-              onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
-            >
-              <ChevronLeft className='h-4 w-4' />
-              <span className='hidden md:inline'>
-                {prevTutor.firstName} {prevTutor.lastName}
-              </span>
-            </Button>
-          )
-        }
-        nextAction={
-          nextTutor && (
-            <Button
-              variant='outline'
-              className='h-10 shrink-0'
-              aria-label={`Navigate to next tutor: ${nextTutor.firstName} ${nextTutor.lastName}`}
-              onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
-            >
-              <span className='hidden md:inline'>
-                {nextTutor.firstName} {nextTutor.lastName}
-              </span>
-              <ChevronRight className='h-4 w-4' />
-            </Button>
-          )
-        }
-      >
-        Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
-      </EvaluationHeader>
+    <>
+      <div className='space-y-4 print:hidden'>
+        <EvaluationHeader
+          previousAction={
+            prevTutor && (
+              <Button
+                variant='outline'
+                className='h-10 shrink-0'
+                aria-label={`Navigate to previous tutor: ${prevTutor.firstName} ${prevTutor.lastName}`}
+                onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
+              >
+                <ChevronLeft className='h-4 w-4' />
+                <span className='hidden md:inline'>
+                  {prevTutor.firstName} {prevTutor.lastName}
+                </span>
+              </Button>
+            )
+          }
+          nextAction={
+            nextTutor && (
+              <Button
+                variant='outline'
+                className='h-10 shrink-0'
+                aria-label={`Navigate to next tutor: ${nextTutor.firstName} ${nextTutor.lastName}`}
+                onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
+              >
+                <span className='hidden md:inline'>
+                  {nextTutor.firstName} {nextTutor.lastName}
+                </span>
+                <ChevronRight className='h-4 w-4' />
+              </Button>
+            )
+          }
+        >
+          Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+        </EvaluationHeader>
 
-      {tutorEvaluationCategories.length === 0 ? (
-        <Card>
-          <CardContent className='p-6'>
-            <p className='text-center text-muted-foreground'>
-              No evaluation categories configured yet.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className='space-y-6'>
-          <div className='space-y-4'>
-            {tutorEvaluationCategories.map((category) => {
-              return (
-                <CategoryEvaluation
-                  key={category.id}
-                  category={category}
-                  evaluations={tutorEvaluations.filter((evaluation) =>
-                    category.competencies
-                      .map((competency) => competency.id)
-                      .includes(evaluation.competencyID),
-                  )}
-                />
-              )
-            })}
+        {tutorEvaluationCategories.length === 0 ? (
+          <Card>
+            <CardContent className='p-6'>
+              <p className='text-center text-muted-foreground'>
+                No evaluation categories configured yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className='space-y-6'>
+            <div className='space-y-4'>
+              {tutorEvaluationCategories.map((category) => {
+                return (
+                  <CategoryEvaluation
+                    key={category.id}
+                    category={category}
+                    evaluations={tutorEvaluations.filter((evaluation) =>
+                      category.competencies
+                        .map((competency) => competency.id)
+                        .includes(evaluation.competencyID),
+                    )}
+                  />
+                )
+              })}
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+              <FeedbackItemDisplayPanel
+                feedbackItems={negativeFeedbackItems}
+                feedbackType='negative'
+                studentName={tutor.firstName}
+              />
+              <FeedbackItemDisplayPanel
+                feedbackItems={positiveFeedbackItems}
+                feedbackType='positive'
+                studentName={tutor.firstName}
+              />
+            </div>
           </div>
+        )}
 
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-            <FeedbackItemDisplayPanel
-              feedbackItems={negativeFeedbackItems}
-              feedbackType='negative'
-              studentName={tutor.firstName}
-            />
-            <FeedbackItemDisplayPanel
-              feedbackItems={positiveFeedbackItems}
-              feedbackType='positive'
-              studentName={tutor.firstName}
-            />
+        {tutorEvaluationCategories.length > 0 && (
+          <div className='flex justify-end pt-4'>
+            <Button variant='outline' onClick={printPage} className='gap-2'>
+              <Printer className='h-4 w-4' />
+              PDF / Print
+            </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {tutorEvaluationCategories.length > 0 && (
-        <div className='flex justify-end pt-4 print:hidden'>
-          <Button variant='outline' onClick={printPage} className='gap-2'>
-            <Printer className='h-4 w-4' />
-            PDF / Print
-          </Button>
-        </div>
-      )}
-    </div>
+      <PrintReport
+        title={`Tutor Evaluation Results for ${tutor.firstName} ${tutor.lastName}`}
+        subtitle={tutor.teamName}
+        meta={
+          evaluatorCount > 1 ? (
+            <span>
+              <strong>Evaluators:</strong> {evaluatorCount}
+            </span>
+          ) : undefined
+        }
+        categories={tutorEvaluationCategories}
+        scores={reportScores}
+        feedbackItems={feedbackItems}
+      />
+    </>
   )
 }

@@ -32,6 +32,11 @@ make test-e2e        # build the stack, run all specs, exit non-zero on failure
 make test-e2e-down   # stop the stack and remove volumes (also done automatically)
 ```
 
+Iterating on specs only? `make test-e2e SKIP_BUILD=1` reuses the images already
+on your machine and skips the build pass entirely. Only use it when nothing under
+`clients/`, `servers/`, or `e2e/` changed since your last build - otherwise you
+are testing stale images.
+
 The HTML report lands in `e2e/playwright-report/` (open `index.html`, or
 `npx playwright show-report e2e/playwright-report`). On CI it's uploaded as the
 `playwright-report` artifact.

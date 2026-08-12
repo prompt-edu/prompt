@@ -17,7 +17,6 @@ import type { MaterialType, PresentationMaterial, PresentationSummary } from '..
 import {
   getMaterialTypeAccept,
   getMaterialTypeDefinition,
-  type MaterialTypeDefinition,
   sortMaterialTypes,
 } from '../materialTypes'
 import { openMaterialDownload, presentationApi, uploadMaterial } from '../network'
@@ -28,7 +27,11 @@ import { formatFileSize, getErrorMessage } from '../utils'
 const FALLBACK_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 
 interface MaterialSlotProps {
-  definition: MaterialTypeDefinition
+  label: string
+  // The friendly format list, also used for the group of uploads that are no longer requested.
+  formats: string
+  note?: string
+  accept?: string
   materials: PresentationMaterial[]
   required: boolean
   isUploading: boolean
@@ -40,7 +43,10 @@ interface MaterialSlotProps {
 }
 
 const MaterialSlot = ({
-  definition,
+  label,
+  formats,
+  note,
+  accept,
   materials,
   required,
   isUploading,
@@ -57,7 +63,7 @@ const MaterialSlot = ({
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div className='min-w-0'>
           <div className='flex flex-wrap items-center gap-2'>
-            <p className='font-medium'>{definition.label}</p>
+            <p className='font-medium'>{label}</p>
             {required ? (
               <Badge variant='secondary'>Required</Badge>
             ) : (
@@ -71,8 +77,8 @@ const MaterialSlot = ({
             ) : null}
           </div>
           <p className='text-xs text-muted-foreground'>
-            {definition.formats}
-            {definition.note ? ` · ${definition.note}` : ''}
+            {formats}
+            {note ? ` · ${note}` : ''}
           </p>
         </div>
         {onUpload ? (
@@ -81,7 +87,7 @@ const MaterialSlot = ({
               ref={inputRef}
               type='file'
               multiple
-              accept={getMaterialTypeAccept(definition)}
+              accept={accept}
               className='hidden'
               onChange={(event) => onUpload(event.target.files)}
             />
@@ -299,29 +305,30 @@ export const MaterialsPanel = ({
             <AlertDescription>Materials could not be loaded.</AlertDescription>
           </Alert>
         ) : null}
-        {requiredTypes.map((materialType) => (
-          <MaterialSlot
-            key={materialType}
-            definition={getMaterialTypeDefinition(materialType)}
-            materials={materials.filter((material) => material.materialType === materialType)}
-            required
-            isUploading={uploadingType === materialType}
-            isDeleting={deleteMutation.isPending}
-            downloadingId={downloadingId}
-            onUpload={canManage ? (files) => void handleFiles(materialType, files) : undefined}
-            onDownload={(materialId) => void handleDownload(materialId)}
-            onDelete={canManage ? (materialId) => deleteMutation.mutate(materialId) : undefined}
-          />
-        ))}
+        {requiredTypes.map((materialType) => {
+          const definition = getMaterialTypeDefinition(materialType)
+          return (
+            <MaterialSlot
+              key={materialType}
+              label={definition.label}
+              formats={definition.formats}
+              note={definition.note}
+              accept={getMaterialTypeAccept(definition)}
+              materials={materials.filter((material) => material.materialType === materialType)}
+              required
+              isUploading={uploadingType === materialType}
+              isDeleting={deleteMutation.isPending}
+              downloadingId={downloadingId}
+              onUpload={canManage ? (files) => void handleFiles(materialType, files) : undefined}
+              onDownload={(materialId) => void handleDownload(materialId)}
+              onDelete={canManage ? (materialId) => deleteMutation.mutate(materialId) : undefined}
+            />
+          )
+        })}
         {staleMaterials.length > 0 ? (
           <MaterialSlot
-            definition={{
-              type: 'slides',
-              label: 'Previously uploaded files',
-              description: '',
-              extensions: [],
-              formats: 'These uploads are no longer requested by the teaching team',
-            }}
+            label='Previously uploaded files'
+            formats='These uploads are no longer requested by the teaching team'
             materials={staleMaterials}
             required={false}
             isUploading={false}

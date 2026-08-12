@@ -82,6 +82,9 @@ fans it out for wall-clock:
    (`workers: 1`); parallelism comes from the matrix, not from within a shard.
 3. A **merge** job downloads the blob reports and merges them into the single
    `playwright-report` artifact (`npm run merge-reports`).
+4. An **e2e** job fails unless all of the above succeeded. It exists purely to
+   give branch protection one required check (`e2e-tests / e2e`) whose name does
+   not change when a shard is added or renamed.
 
 There is deliberately **no build-once job** in front of the shards. Serializing a
 full build ahead of shards that then rebuild anyway only adds wall-clock; what

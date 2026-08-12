@@ -39,7 +39,7 @@ jobs:
           echo "matrix=$(node scripts/shards.mjs matrix)" >> "$GITHUB_OUTPUT"
 
   # One shard per microservice, each on its own fresh stack; see e2e/README.md.
-  e2e:
+  shard:
     needs: partition
     # Otherwise GitHub derives the job name from every matrix value.
     name: ${{ matrix.name }}
@@ -125,9 +125,10 @@ jobs:
 
   # Merge the per-shard blob reports into a single HTML report.
   merge:
-    needs: e2e
-    # Skip when no shard ran: download-artifact errors on zero matches.
-    if: always() && needs.e2e.result != 'skipped' && needs.e2e.result != 'cancelled'
+    needs: shard
+    # Report whether shards passed or failed, but skip when none ran:
+    # download-artifact errors on zero matches.
+    if: ${{ !cancelled() && needs.shard.result != 'skipped' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -160,3 +161,33 @@ jobs:
           path: e2e/playwright-report
           retention-days: 14
           if-no-files-found: ignore
+
+  # Stable name for the branch-protection required check (`e2e-tests / e2e`).
+  # The matrix job reports one check per shard, so its names track shards.json;
+  # this one does not, and so survives adding or renaming a suite.
+  e2e:
+    needs: [partition, shard, merge]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify every e2e job succeeded
+        env:
+          # A matrix job's result is the aggregate: success only if every
+          # shard succeeded.
+          PARTITION: ${{ needs.partition.result }}
+          SHARD: ${{ needs.shard.result }}
+          MERGE: ${{ needs.merge.result }}
+        run: |
+          # Not named `status`: that is a special parameter in zsh.
+          failed=0
+          for pair in "partition:$PARTITION" "shard:$SHARD" "merge:$MERGE"; do
+            name=${pair%%:*}
+            result=${pair#*:}
+            echo "$name = $result"
+            if [ "$result" != "success" ]; then
+              echo "::error::e2e job '$name' did not succeed ($result)"
+              failed=1
+            fi
+          done
+          exit $failed

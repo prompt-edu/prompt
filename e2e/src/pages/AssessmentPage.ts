@@ -80,6 +80,68 @@ export class AssessmentPage {
     return this.page.getByRole('button', { name: /Release Results/ })
   }
 
+  // ── CampusOnline grade export (last card on the settings page) ────────────
+
+  gradeExportCard(): Locator {
+    return this.page
+      .locator('div.p-6')
+      .filter({
+        has: this.page.getByRole('heading', { name: 'CampusOnline Grade Export', exact: true }),
+      })
+      .first()
+  }
+
+  // The file input is scoped to the card so it never picks up the schema-import
+  // input elsewhere on the settings page.
+  async uploadCampusCsv(fileName: string, contents: Buffer) {
+    await this.gradeExportCard()
+      .locator('input[type="file"][accept=".csv"]')
+      .setInputFiles({ name: fileName, mimeType: 'text/csv', buffer: contents })
+  }
+
+  // Asserts a filled row by identity (registration number + grade), never by
+  // row index, so the summary's ordering is free to change.
+  async expectGradeFilled(registrationNumber: string, grade: string) {
+    await expect(
+      this.gradeExportCard()
+        .getByRole('row', { name: new RegExp(registrationNumber) })
+        .filter({ hasText: grade }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectSkippedForReason(heading: string | RegExp, registrationNumber: string) {
+    const section = this.gradeExportCard().locator('div.space-y-2').filter({ hasText: heading })
+    await expect(
+      section.getByRole('row', { name: new RegExp(registrationNumber) }).first(),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectGradedStudentMissingWarning(studentName: string) {
+    await expect(
+      this.gradeExportCard().getByText('Some grades will not reach CampusOnline'),
+    ).toBeVisible()
+    await expect(
+      this.gradeExportCard()
+        .getByRole('row', { name: new RegExp(studentName) })
+        .first(),
+    ).toBeVisible()
+  }
+
+  // Clicks the download button and returns the produced file's raw bytes, so
+  // the spec can assert on encoding as well as content.
+  async downloadFilledCampusCsv(): Promise<Buffer> {
+    const button = this.gradeExportCard().getByRole('button', { name: 'Download Filled CSV' })
+    await expect(button).toBeEnabled({ timeout: 15_000 })
+
+    const [download] = await Promise.all([this.page.waitForEvent('download'), button.click()])
+    const stream = await download.createReadStream()
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk))
+    }
+    return Buffer.concat(chunks)
+  }
+
   // ── Schema configuration (rubric) ────────────────────────────────────────
 
   async addCategory(name: string, shortName: string, weight = 1) {

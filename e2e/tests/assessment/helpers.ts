@@ -349,3 +349,114 @@ export async function resetAssessmentPhase(
 export async function apiAsRole(role: Role): Promise<APIRequestContext> {
   return apiContextFor(role)
 }
+
+// ── CampusOnline grade export ───────────────────────────────────────────────
+
+// The exact exam-result header CampusOnline produces, in its exact order. The
+// grade export must hand all 26 columns back untouched except GRADE and
+// DATE_OF_ASSESSMENT, so this list doubles as the round-trip assertion.
+export const CAMPUS_ONLINE_HEADER = [
+  'REGISTRATION_NUMBER',
+  'CODE_OF_STUDY_PROGRAMME',
+  'Studienplan_Version',
+  'FAMILY_NAME_OF_STUDENT',
+  'FIRST_NAME_OF_STUDENT',
+  'GESCHLECHT',
+  'GRADE',
+  'DATE_OF_ASSESSMENT',
+  'REMARK',
+  'FILE_REMARK',
+  'ECTS_GRADE',
+  'ANTRAGEINSICHT_BEANTRAGT',
+  'NUMBER_OF_ATTEMPTS',
+  'Number_Of_The_Course',
+  'SEMESTER_OF_The_COURSE',
+  'COURSE_TITLE',
+  'Examiner',
+  'Start_Time',
+  'TERMIN_ORT',
+  'DB_PRIMARY_Key_OF_STUDY',
+  'DB_Primary_Key_Of_Candidate',
+  'DB_Primary_Key_Of_Exam',
+  'COURSE_GROUP_NAME',
+  'TOTAL_POINTS',
+  'TOTAL_POINTS_LIMIT_REACHED',
+  'EDITING_NOTES',
+] as const
+
+export type CampusOnlineColumn = (typeof CAMPUS_ONLINE_HEADER)[number]
+export type CampusOnlineRow = Partial<Record<CampusOnlineColumn, string>>
+
+const quoteCsvField = (value: string): string => `"${value.replace(/"/g, '""')}"`
+
+export function campusOnlineHeaderLine(): string {
+  return CAMPUS_ONLINE_HEADER.map(quoteCsvField).join(';')
+}
+
+// Semicolon-delimited with every field quoted and CRLF line endings, the way
+// CampusOnline writes it.
+export function buildCampusOnlineCsv(rows: CampusOnlineRow[]): string {
+  const lines = rows.map((row) =>
+    CAMPUS_ONLINE_HEADER.map((column) => quoteCsvField(row[column] ?? '')).join(';'),
+  )
+  return `${[campusOnlineHeaderLine(), ...lines].join('\r\n')}\r\n`
+}
+
+// Windows-1252 is what CampusOnline exports in practice; the download has to
+// come back in the same encoding or umlauts in student names get corrupted.
+export function encodeWindows1252(text: string): Buffer {
+  return Buffer.from(Uint8Array.from(text, (char) => char.charCodeAt(0)))
+}
+
+// Parses a downloaded CSV back into rows for assertions. Quote-aware, because
+// the fixtures deliberately put a semicolon inside a quoted field to prove the
+// export does not mangle it.
+export function parseCampusOnlineCsv(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  const endField = () => {
+    row.push(field)
+    field = ''
+  }
+  const endRow = () => {
+    endField()
+    rows.push(row)
+    row = []
+  }
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]
+
+    if (inQuotes) {
+      if (char !== '"') {
+        field += char
+      } else if (text[index + 1] === '"') {
+        field += '"'
+        index++
+      } else {
+        inQuotes = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inQuotes = true
+    } else if (char === ';') {
+      endField()
+    } else if (char === '\r' && text[index + 1] === '\n') {
+      endRow()
+      index++
+    } else if (char === '\n') {
+      endRow()
+    } else {
+      field += char
+    }
+  }
+
+  if (field !== '' || row.length > 0) endRow()
+
+  return rows.filter((entry) => entry.length > 1 || entry[0] !== '')
+}

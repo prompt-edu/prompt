@@ -13,8 +13,10 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 1. Copy the example: `cp -R clients/example_component clients/<name>_component`.
 2. In `clients/<name>_component/rspack.config.mjs` update the two constants near the top:
    `const COMPONENT_NAME = '<name>_component'` and `const COMPONENT_DEV_PORT = <unique-port>`
-   (existing ports: core 3000, example 3001, interview 3002, matching 3003, assessment 3007,
-   team_allocation 3008, self_team_allocation 3009 — pick a free one).
+   (taken ports: core 3000, example 3001, interview 3002, matching 3003, intro_course_developer
+   3005, github_challenge 3006, assessment 3007, team_allocation 3008, self_team_allocation 3009,
+   certificate 3010 — pick a free one, and check `clients/core/rspack.config.mjs` for the current
+   list before deciding).
 3. Set `"name": "<name>_component"` in `clients/<name>_component/package.json`.
 4. Register the workspace in BOTH `clients/lerna.json` (`packages`) and `clients/package.json`
    (`workspaces.packages`).
@@ -44,13 +46,18 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 ## docker-compose wiring
 
 1. Add a `server-<name>` service (copy the `server-example` block): build context
-   `./servers/<name>`, `dockerfile: ../Dockerfile`, unique published port mapped to `8080`,
+   `./servers/<name>`, `dockerfile: ../Dockerfile`, unique published port mapped to `8080`
+   (taken: core 8080, team_allocation 8083, self_team_allocation 8084, assessment 8085, example
+   8086, interview 8087, certificate 8088),
    `depends_on` its db + keycloak (`condition: service_healthy`), and the `DB_*`/`KEYCLOAK_*`/
    `CORE_HOST`/`SERVER_CORE_HOST` env vars (rename `*_EXAMPLE_*` → `*_<NAME>_*`).
 2. Add a `client-<name>-component` service (copy `client-example-component`).
 3. Add a dedicated database service (copy `db-example-server` → `db-<name>`) with its own
    `postgres_<name>_data` volume. Each microservice uses a SEPARATE Postgres database.
 4. Add the matching `DB_*_<NAME>_*` entries to `.env.template` and `.env.dev.template`.
+5. Add the service to the Makefile: `server-<name>`, `test-<name>`, `sqlc-<name>`, a
+   `client-<name>` target, and the corresponding entries in `.PHONY`, `servers`, `lint-servers`,
+   `test`, and `sqlc`.
 
 ## Verify
 

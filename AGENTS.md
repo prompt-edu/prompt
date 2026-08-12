@@ -22,23 +22,25 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 clients/
   core/                    # Main React app shell (port 3000)
   *_component/             # Course phase micro-frontends:
+    - example_component (port 3001)
     - interview_component (port 3002)
     - matching_component (port 3003)
-    - example_component (port 3001)
+    - assessment_component (port 3007)
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
-    - assessment_component (port 3007)
+    - certificate_component (port 3010)
   external remotes:
-    - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
-    - devops_challenge_component (served by prompt-github-challenge)
+    - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
+    - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
 
 servers/
   core/                    # Main Go service (port 8080)
-  interview/               # Interview scheduling (port 8087)
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
   example_server/          # Example phase service (port 8086)
+  interview/               # Interview scheduling (port 8087)
+  certificate/             # Certificate generation (port 8088)
 
 docs/                      # Docusaurus documentation
 ```

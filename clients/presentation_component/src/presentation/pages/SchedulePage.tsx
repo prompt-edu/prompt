@@ -2,14 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   AlertDescription,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   Badge,
   Button,
   Card,
@@ -17,6 +9,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
   ErrorPage,
   Input,
   Label,
@@ -27,200 +27,133 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { CalendarPlus, Loader2, MapPin, Save, Trash2, UserRoundCheck, X } from 'lucide-react'
-import { useState } from 'react'
+import { format } from 'date-fns'
+import {
+  Calendar,
+  Clock,
+  Copy,
+  MapPin,
+  MessageSquareText,
+  Paperclip,
+  Pencil,
+  Plus,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCoursePhaseId } from '../hooks'
-import type {
-  CreateSlotRequest,
-  PresentationSlot,
-  PresentationSummary,
-  PresentationTarget,
-} from '../interfaces'
+import type { CreateSlotRequest, PresentationSlot, PresentationTarget } from '../interfaces'
 import { presentationApi } from '../network'
-import { getErrorMessage, toDateTimeLocal } from '../utils'
+import {
+  buildSlotTimes,
+  EMPTY_SERIES,
+  emptySlotForm,
+  formatResolvedEnd,
+  formatSlotCount,
+  generateSlotSeries,
+  MAX_SERIES_SLOTS,
+  type SlotFormData,
+  slotFormFromTimes,
+} from '../slotSeries'
+import { getErrorMessage } from '../utils'
 
-interface SlotCardProps {
-  slot: PresentationSlot
-  presentation?: PresentationSummary
-  targets: PresentationTarget[]
-  overlaps: boolean
-  isPending: boolean
-  onSave: (slotId: string, request: CreateSlotRequest) => void
-  onDelete: (slotId: string) => void
-  onAssign: (slotId: string, target: PresentationTarget) => void
-  onUnassign: (slotId: string) => void
+type ScheduleAction =
+  | { type: 'create'; request: CreateSlotRequest }
+  | { type: 'create-series'; requests: CreateSlotRequest[] }
+  | { type: 'update'; slotId: string; request: CreateSlotRequest }
+  | { type: 'delete'; slotId: string }
+  | { type: 'assign'; slotId: string; target: PresentationTarget }
+  | { type: 'unassign'; slotId: string }
+
+const slotRequest = (data: SlotFormData): CreateSlotRequest => {
+  const { start, end } = buildSlotTimes(data.startTime, data.endTime)
+  return {
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+    location: data.location.trim() || undefined,
+  }
 }
 
-const SlotCard = ({
-  slot,
-  presentation,
-  targets,
-  overlaps,
-  isPending,
-  onSave,
-  onDelete,
-  onAssign,
-  onUnassign,
-}: SlotCardProps) => {
-  const [startTime, setStartTime] = useState(() => toDateTimeLocal(slot.startTime))
-  const [endTime, setEndTime] = useState(() => toDateTimeLocal(slot.endTime))
-  const [location, setLocation] = useState(slot.location ?? '')
-  const [targetId, setTargetId] = useState(presentation?.targetId ?? '')
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const selectedTarget = targets.find((target) => target.id === targetId)
-  const invalidTime =
-    !startTime || !endTime || new Date(endTime).getTime() <= new Date(startTime).getTime()
+const seriesRequests = (data: SlotFormData): CreateSlotRequest[] =>
+  generateSlotSeries(data).slots.map((slot) => ({
+    startTime: slot.start.toISOString(),
+    endTime: slot.end.toISOString(),
+    location: data.location.trim() || undefined,
+  }))
+
+interface SlotFormFieldsProps {
+  idPrefix: string
+  formData: SlotFormData
+  onChange: (data: SlotFormData) => void
+}
+
+const SlotFormFields = ({ idPrefix, formData, onChange }: SlotFormFieldsProps) => {
+  const slotTimes =
+    formData.startTime && formData.endTime
+      ? buildSlotTimes(formData.startTime, formData.endTime)
+      : null
 
   return (
-    <Card>
-      <CardHeader>
-        <div className='flex flex-wrap items-start justify-between gap-3'>
-          <div>
-            <CardTitle className='text-base'>
-              {presentation?.targetName ?? 'Unassigned presentation slot'}
-            </CardTitle>
-            <CardDescription>
-              Slot times may overlap when presentations run in parallel.
-            </CardDescription>
-          </div>
-          <div className='flex gap-2'>
-            {overlaps ? <Badge variant='secondary'>Overlapping</Badge> : null}
-            {presentation ? <Badge>Assigned</Badge> : <Badge variant='outline'>Open</Badge>}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className='space-y-5'>
-        <div className='grid gap-4 md:grid-cols-3'>
-          <div className='space-y-2'>
-            <Label htmlFor={`slot-start-${slot.id}`}>Start</Label>
-            <Input
-              id={`slot-start-${slot.id}`}
-              type='datetime-local'
-              value={startTime}
-              onChange={(event) => setStartTime(event.target.value)}
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor={`slot-end-${slot.id}`}>End</Label>
-            <Input
-              id={`slot-end-${slot.id}`}
-              type='datetime-local'
-              value={endTime}
-              onChange={(event) => setEndTime(event.target.value)}
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor={`slot-location-${slot.id}`}>Location (optional)</Label>
-            <div className='relative'>
-              <MapPin className='absolute left-3 top-2.5 h-4 w-4 text-muted-foreground' />
-              <Input
-                id={`slot-location-${slot.id}`}
-                className='pl-9'
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                placeholder='Room or meeting link'
-              />
-            </div>
-          </div>
-        </div>
-        {invalidTime ? (
-          <p className='text-sm text-destructive'>End time must be after the start time.</p>
-        ) : null}
-        <div className='flex flex-wrap items-end justify-between gap-3 border-t pt-4'>
-          <div className='min-w-64 flex-1 space-y-2'>
-            <Label>Presenter</Label>
-            <Select value={targetId || undefined} onValueChange={setTargetId}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select a team or student' />
-              </SelectTrigger>
-              <SelectContent>
-                {targets.map((target) => {
-                  const assignedElsewhere =
-                    Boolean(target.assigned || target.assignedPresentationId) &&
-                    target.id !== presentation?.targetId
-                  return (
-                    <SelectItem key={target.id} value={target.id} disabled={assignedElsewhere}>
-                      {target.name}
-                      {assignedElsewhere ? ' (already assigned)' : ''}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className='flex flex-wrap gap-2'>
-            <Button
-              variant='outline'
-              disabled={isPending || invalidTime}
-              onClick={() =>
-                onSave(slot.id, {
-                  startTime: new Date(startTime).toISOString(),
-                  endTime: new Date(endTime).toISOString(),
-                  location: location.trim() || undefined,
-                })
-              }
-            >
-              <Save className='mr-2 h-4 w-4' />
-              Save slot
-            </Button>
-            {presentation ? (
-              <Button variant='outline' disabled={isPending} onClick={() => onUnassign(slot.id)}>
-                <X className='mr-2 h-4 w-4' />
-                Unassign
-              </Button>
-            ) : (
-              <Button
-                disabled={!selectedTarget || isPending}
-                onClick={() => selectedTarget && onAssign(slot.id, selectedTarget)}
-              >
-                <UserRoundCheck className='mr-2 h-4 w-4' />
-                Assign
-              </Button>
-            )}
-            <Button
-              variant='ghost'
-              className='text-destructive hover:bg-destructive/10 hover:text-destructive'
-              disabled={Boolean(presentation) || isPending}
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className='h-4 w-4' />
-              <span className='sr-only'>Delete slot</span>
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this presentation slot?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The unassigned time slot will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              onClick={() => onDelete(slot.id)}
-            >
-              Delete slot
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+    <>
+      <div className='space-y-2'>
+        <Label htmlFor={`${idPrefix}-start`}>Start Time</Label>
+        <Input
+          id={`${idPrefix}-start`}
+          type='datetime-local'
+          value={formData.startTime}
+          onChange={(event) => onChange({ ...formData, startTime: event.target.value })}
+        />
+      </div>
+      <div className='space-y-2'>
+        <Label htmlFor={`${idPrefix}-end`}>End Time</Label>
+        <Input
+          id={`${idPrefix}-end`}
+          type='time'
+          value={formData.endTime}
+          onChange={(event) => onChange({ ...formData, endTime: event.target.value })}
+        />
+        {slotTimes && (
+          <p className='text-sm text-muted-foreground'>{formatResolvedEnd(slotTimes)}</p>
+        )}
+      </div>
+      <div className='space-y-2'>
+        <Label htmlFor={`${idPrefix}-location`}>Location (Optional)</Label>
+        <Input
+          id={`${idPrefix}-location`}
+          placeholder='e.g., Room 101, Building A'
+          value={formData.location}
+          onChange={(event) => onChange({ ...formData, location: event.target.value })}
+        />
+      </div>
+    </>
   )
 }
 
 const SchedulePage = () => {
   const coursePhaseId = useCoursePhaseId()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { toast } = useToast()
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
-  const [location, setLocation] = useState('')
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [createMultipleSlots, setCreateMultipleSlots] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
+  const [editingSlot, setEditingSlot] = useState<PresentationSlot>()
+  const [assigningSlot, setAssigningSlot] = useState<PresentationSlot>()
+  const [selectedTargetId, setSelectedTargetId] = useState('')
+  const [unassigningSlot, setUnassigningSlot] = useState<PresentationSlot>()
+  const [deletingSlot, setDeletingSlot] = useState<PresentationSlot>()
+  const [formData, setFormData] = useState<SlotFormData>(emptySlotForm)
 
   const slotsQuery = useQuery({
     queryKey: ['presentation-slots', coursePhaseId],
@@ -232,23 +165,31 @@ const SchedulePage = () => {
     queryFn: () => presentationApi.getTargets(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
+
+  const slots = slotsQuery.data ?? []
+  const targets = targetsQuery.data ?? []
+  const unassignedTargets = targets.filter(
+    (target) => !target.assigned && !target.assignedPresentationId,
+  )
+
   const invalidateSchedule = () => {
     void queryClient.invalidateQueries({ queryKey: ['presentation-slots', coursePhaseId] })
     void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
     void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
   }
 
+  const resetForm = () => {
+    setCreateMultipleSlots(false)
+    setFormData(emptySlotForm())
+  }
+
   const mutation = useMutation({
-    mutationFn: async (
-      action:
-        | { type: 'create'; request: CreateSlotRequest }
-        | { type: 'update'; slotId: string; request: CreateSlotRequest }
-        | { type: 'delete'; slotId: string }
-        | { type: 'assign'; slotId: string; target: PresentationTarget }
-        | { type: 'unassign'; slotId: string },
-    ) => {
+    mutationFn: async (action: ScheduleAction) => {
       if (action.type === 'create') {
         return presentationApi.createSlot(coursePhaseId, action.request)
+      }
+      if (action.type === 'create-series') {
+        return presentationApi.createSlots(coursePhaseId, action.requests)
       }
       if (action.type === 'update') {
         return presentationApi.updateSlot(coursePhaseId, action.slotId, action.request)
@@ -265,13 +206,32 @@ const SchedulePage = () => {
       }
       return presentationApi.unassignTarget(coursePhaseId, action.slotId)
     },
-    onSuccess: (_data, action) => {
+    onSuccess: (result, action) => {
       invalidateSchedule()
-      if (action.type === 'create') {
-        setStartTime('')
-        setEndTime('')
-        setLocation('')
+      if (action.type === 'create' || action.type === 'create-series') {
+        setIsCreateDialogOpen(false)
+        resetForm()
+        toast({
+          title: action.type === 'create' ? 'Slot created' : 'Slots created',
+          description:
+            action.type === 'create'
+              ? 'The presentation slot has been created.'
+              : `${formatSlotCount(Array.isArray(result) ? result.length : 0)} created successfully.`,
+        })
+        return
       }
+      if (action.type === 'update') {
+        setIsEditDialogOpen(false)
+        setEditingSlot(undefined)
+        resetForm()
+      }
+      if (action.type === 'assign') {
+        setIsAssignDialogOpen(false)
+        setAssigningSlot(undefined)
+        setSelectedTargetId('')
+      }
+      if (action.type === 'unassign') setUnassigningSlot(undefined)
+      if (action.type === 'delete') setDeletingSlot(undefined)
       toast({ title: 'Schedule updated' })
     },
     onError: (error) => {
@@ -283,9 +243,51 @@ const SchedulePage = () => {
     },
   })
 
-  if (slotsQuery.isLoading || targetsQuery.isLoading) {
-    return <LoadingPage />
+  const slotTimes =
+    formData.startTime && formData.endTime
+      ? buildSlotTimes(formData.startTime, formData.endTime)
+      : null
+  const isTimeRangeValid = !!slotTimes && slotTimes.start < slotTimes.end
+  const seriesPreview = useMemo(
+    () => (createMultipleSlots ? generateSlotSeries(formData) : EMPTY_SERIES),
+    [createMultipleSlots, formData],
+  )
+
+  const handleCreateSlots = () => {
+    if (!isTimeRangeValid) return
+    if (createMultipleSlots) {
+      if (seriesPreview.slots.length === 0) return
+      mutation.mutate({ type: 'create-series', requests: seriesRequests(formData) })
+    } else {
+      mutation.mutate({ type: 'create', request: slotRequest(formData) })
+    }
   }
+
+  const handleEditClick = (slot: PresentationSlot) => {
+    setEditingSlot(slot)
+    setFormData(slotFormFromTimes(slot.startTime, slot.endTime, slot.location ?? ''))
+    setIsEditDialogOpen(true)
+  }
+
+  const handleCloneClick = (slot: PresentationSlot) => {
+    setCreateMultipleSlots(false)
+    setFormData(slotFormFromTimes(slot.startTime, slot.endTime, slot.location ?? ''))
+    setIsCreateDialogOpen(true)
+  }
+
+  const handleAssignClick = (slot: PresentationSlot) => {
+    setAssigningSlot(slot)
+    setSelectedTargetId('')
+    setIsAssignDialogOpen(true)
+  }
+
+  const handleAssign = () => {
+    const target = targets.find((candidate) => candidate.id === selectedTargetId)
+    if (!assigningSlot || !target) return
+    mutation.mutate({ type: 'assign', slotId: assigningSlot.id, target })
+  }
+
+  if (slotsQuery.isLoading || targetsQuery.isLoading) return <LoadingPage />
   if (slotsQuery.isError || targetsQuery.isError) {
     return (
       <ErrorPage
@@ -298,120 +300,443 @@ const SchedulePage = () => {
     )
   }
 
-  const slots = slotsQuery.data ?? []
-  const targets = targetsQuery.data ?? []
-  const createInvalid =
-    !startTime || !endTime || new Date(endTime).getTime() <= new Date(startTime).getTime()
-
-  const slotOverlaps = (slot: PresentationSlot): boolean =>
-    slots.some(
-      (candidate) =>
-        candidate.id !== slot.id &&
-        new Date(slot.startTime).getTime() < new Date(candidate.endTime).getTime() &&
-        new Date(slot.endTime).getTime() > new Date(candidate.startTime).getTime(),
-    )
-
   return (
-    <div className='space-y-6'>
-      <div>
-        <ManagementPageHeader>Presentation schedule</ManagementPageHeader>
+    <div className='container mx-auto px-4 py-8'>
+      <ManagementPageHeader>Presentation Schedule Management</ManagementPageHeader>
+
+      <div className='mb-6 flex items-center justify-between gap-4'>
         <p className='text-muted-foreground'>
-          Create staff-assigned slots for individual or team presentations. Overlapping slots are
-          supported for parallel sessions.
+          Create presentation slots and assign presenters. Slots may overlap for parallel sessions.
         </p>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={resetForm}>
+              <Plus className='mr-2 h-4 w-4' />
+              Create Slots
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Presentation Slots</DialogTitle>
+              <DialogDescription>
+                Add one presentation slot or divide the time range into multiple slots.
+              </DialogDescription>
+            </DialogHeader>
+            <div className='space-y-4 py-4'>
+              <SlotFormFields idPrefix='create-slot' formData={formData} onChange={setFormData} />
+              <div className='flex items-center gap-2'>
+                <Checkbox
+                  id='createMultipleSlots'
+                  checked={createMultipleSlots}
+                  onCheckedChange={(checked) => setCreateMultipleSlots(checked === true)}
+                />
+                <Label htmlFor='createMultipleSlots'>Create multiple slots</Label>
+              </div>
+              {createMultipleSlots && (
+                <>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='space-y-2'>
+                      <Label htmlFor='durationMinutes'>Slot Duration (min)</Label>
+                      <Input
+                        id='durationMinutes'
+                        type='number'
+                        min='1'
+                        value={formData.durationMinutes}
+                        onChange={(event) =>
+                          setFormData({
+                            ...formData,
+                            durationMinutes: parseInt(event.target.value, 10) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className='space-y-2'>
+                      <Label htmlFor='breakMinutes'>Break Between (min)</Label>
+                      <Input
+                        id='breakMinutes'
+                        type='number'
+                        min='0'
+                        value={formData.breakMinutes}
+                        onChange={(event) =>
+                          setFormData({
+                            ...formData,
+                            breakMinutes: Math.max(0, parseInt(event.target.value, 10) || 0),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    {seriesPreview.slots.length > 0
+                      ? `This will create ${formatSlotCount(seriesPreview.slots.length)}.`
+                      : 'Choose a valid time range and duration to preview the slots.'}
+                  </p>
+                  {seriesPreview.truncated && (
+                    <p className='text-sm text-destructive'>
+                      The time range fits more slots than the limit of {MAX_SERIES_SLOTS}. Only the
+                      first {MAX_SERIES_SLOTS} will be created. Shorten the range or create the rest
+                      separately.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant='outline' onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateSlots}
+                disabled={
+                  !isTimeRangeValid ||
+                  (createMultipleSlots && seriesPreview.slots.length === 0) ||
+                  mutation.isPending
+                }
+              >
+                {mutation.isPending
+                  ? 'Creating...'
+                  : createMultipleSlots
+                    ? `Create ${formatSlotCount(seriesPreview.slots.length, true)}`
+                    : 'Create Slot'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <CalendarPlus className='h-5 w-5' />
-            Add presentation slot
-          </CardTitle>
-          <CardDescription>
-            The location is optional and can be a room, stage, or meeting link.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          <div className='grid gap-4 md:grid-cols-3'>
-            <div className='space-y-2'>
-              <Label htmlFor='new-slot-start'>Start</Label>
-              <Input
-                id='new-slot-start'
-                type='datetime-local'
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-              />
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='new-slot-end'>End</Label>
-              <Input
-                id='new-slot-end'
-                type='datetime-local'
-                value={endTime}
-                onChange={(event) => setEndTime(event.target.value)}
-              />
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='new-slot-location'>Location (optional)</Label>
-              <Input
-                id='new-slot-location'
-                value={location}
-                onChange={(event) => setLocation(event.target.value)}
-                placeholder='Room or meeting link'
-              />
-            </div>
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Presentation Slot</DialogTitle>
+            <DialogDescription>Update the presentation slot details</DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <SlotFormFields idPrefix='edit-slot' formData={formData} onChange={setFormData} />
           </div>
-          {startTime && endTime && createInvalid ? (
-            <Alert variant='destructive'>
-              <AlertDescription>End time must be after the start time.</AlertDescription>
-            </Alert>
-          ) : null}
-          <Button
-            disabled={createInvalid || mutation.isPending}
-            onClick={() =>
-              mutation.mutate({
-                type: 'create',
-                request: {
-                  startTime: new Date(startTime).toISOString(),
-                  endTime: new Date(endTime).toISOString(),
-                  location: location.trim() || undefined,
-                },
-              })
-            }
-          >
-            {mutation.isPending ? (
-              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-            ) : (
-              <CalendarPlus className='mr-2 h-4 w-4' />
-            )}
-            Add slot
-          </Button>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() =>
+                editingSlot &&
+                isTimeRangeValid &&
+                mutation.mutate({
+                  type: 'update',
+                  slotId: editingSlot.id,
+                  request: slotRequest(formData),
+                })
+              }
+              disabled={!isTimeRangeValid || mutation.isPending}
+            >
+              {mutation.isPending ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <div className='space-y-4'>
-        {slots.length === 0 ? (
-          <Card>
-            <CardContent className='py-10 text-center text-sm text-muted-foreground'>
-              No presentation slots have been created.
-            </CardContent>
-          </Card>
-        ) : null}
-        {slots.map((slot) => (
-          <SlotCard
-            key={slot.id}
-            slot={slot}
-            presentation={slot.presentation}
-            targets={targets}
-            overlaps={slotOverlaps(slot)}
-            isPending={mutation.isPending}
-            onSave={(slotId, request) => mutation.mutate({ type: 'update', slotId, request })}
-            onDelete={(slotId) => mutation.mutate({ type: 'delete', slotId })}
-            onAssign={(slotId, target) => mutation.mutate({ type: 'assign', slotId, target })}
-            onUnassign={(slotId) => mutation.mutate({ type: 'unassign', slotId })}
-          />
-        ))}
-      </div>
+      {/* Slots Table */}
+      {slots.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Presentation Slots</CardTitle>
+            <CardDescription>Manage all scheduled presentation slots</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date &amp; Time</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Presenter</TableHead>
+                  <TableHead>Materials</TableHead>
+                  <TableHead>Feedback</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {slots.map((slot) => {
+                  const presentation = slot.presentation
+                  const isPast = new Date(slot.endTime) < new Date()
+
+                  return (
+                    <TableRow key={slot.id}>
+                      <TableCell>
+                        <div className='space-y-1'>
+                          <div className='flex items-center gap-2'>
+                            <Calendar className='h-4 w-4 text-muted-foreground' />
+                            <span className='font-medium'>
+                              {format(new Date(slot.startTime), 'EEE, MMM d, yyyy')}
+                            </span>
+                            {isPast ? <Badge variant='secondary'>Past</Badge> : null}
+                          </div>
+                          <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                            <Clock className='h-4 w-4' />
+                            <span>
+                              {format(new Date(slot.startTime), 'HH:mm')} -{' '}
+                              {format(new Date(slot.endTime), 'HH:mm')}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {slot.location ? (
+                          <div className='flex items-center gap-2'>
+                            <MapPin className='h-4 w-4 shrink-0 text-muted-foreground' />
+                            {slot.location.match(/^https?:\/\//) ? (
+                              <a
+                                href={slot.location}
+                                target='_blank'
+                                rel='noopener noreferrer'
+                                className='min-w-0 truncate text-blue-600 hover:underline'
+                              >
+                                {slot.location}
+                              </a>
+                            ) : (
+                              <span className='min-w-0 truncate'>{slot.location}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className='text-muted-foreground'>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {presentation ? (
+                          <Badge
+                            variant='outline'
+                            className='group cursor-pointer pr-1 transition-colors hover:bg-destructive hover:text-destructive-foreground'
+                            onClick={() => setUnassigningSlot(slot)}
+                            title={`Click to unassign ${presentation.targetName}`}
+                          >
+                            {presentation.targetName}
+                            <X className='ml-1 h-3 w-3 opacity-50 group-hover:opacity-100' />
+                          </Badge>
+                        ) : (
+                          <span className='text-sm text-muted-foreground'>Unassigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
+                          <Paperclip className='h-4 w-4 text-muted-foreground' />
+                          <span>{presentation?.materialCount ?? 0}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {presentation?.feedbackReleasedAt ? (
+                          <Badge>Released</Badge>
+                        ) : (presentation?.submittedFeedbackCount ?? 0) > 0 ? (
+                          <Badge variant='secondary'>
+                            {presentation?.submittedFeedbackCount} submitted
+                          </Badge>
+                        ) : (
+                          <span className='text-sm text-muted-foreground'>No evaluations</span>
+                        )}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <div className='flex justify-end gap-2'>
+                          {presentation ? (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              onClick={() => navigate(`../presentations/${presentation.id}`)}
+                              aria-label='Open feedback'
+                              title='Open feedback'
+                            >
+                              <MessageSquareText className='h-4 w-4' />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              onClick={() => handleAssignClick(slot)}
+                              disabled={unassignedTargets.length === 0}
+                              aria-label='Assign presenter'
+                              title='Assign presenter to slot'
+                            >
+                              <UserPlus className='h-4 w-4' />
+                            </Button>
+                          )}
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => handleCloneClick(slot)}
+                            aria-label='Clone slot'
+                            title='Clone slot'
+                          >
+                            <Copy className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => handleEditClick(slot)}
+                            aria-label='Edit slot'
+                          >
+                            <Pencil className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => setDeletingSlot(slot)}
+                            disabled={Boolean(presentation) || mutation.isPending}
+                            aria-label='Delete slot'
+                            title={
+                              presentation
+                                ? 'Unassign the presenter before deleting the slot'
+                                : 'Delete slot'
+                            }
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <Alert>
+          <AlertDescription>
+            No presentation slots have been created yet. Click &quot;Create Slots&quot; to add your
+            first slot.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Assign Presenter Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Presenter to Slot</DialogTitle>
+            <DialogDescription>
+              {assigningSlot && (
+                <>
+                  Assign a presenter to the slot on{' '}
+                  {new Date(assigningSlot.startTime).toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  . Students cannot pick their own slot.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            {unassignedTargets.length > 0 ? (
+              <div className='space-y-2'>
+                <Label htmlFor='presenter-select'>Select Presenter</Label>
+                <Select value={selectedTargetId} onValueChange={setSelectedTargetId}>
+                  <SelectTrigger id='presenter-select'>
+                    <SelectValue placeholder='Choose a team or student...' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unassignedTargets.map((target) => (
+                      <SelectItem key={target.id} value={target.id}>
+                        {target.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className='text-sm text-muted-foreground'>
+                  {unassignedTargets.length} unassigned presenter
+                  {unassignedTargets.length !== 1 && 's'} available
+                </p>
+              </div>
+            ) : (
+              <Alert>
+                <AlertDescription>
+                  Every presenter already has a slot. No unassigned presenters are available.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setIsAssignDialogOpen(false)
+                setAssigningSlot(undefined)
+                setSelectedTargetId('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssign}
+              disabled={!selectedTargetId || mutation.isPending || unassignedTargets.length === 0}
+            >
+              {mutation.isPending ? 'Assigning...' : 'Assign Presenter'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unassign Confirmation Dialog */}
+      <Dialog
+        open={Boolean(unassigningSlot)}
+        onOpenChange={(open) => !open && setUnassigningSlot(undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unassign Presenter</DialogTitle>
+            <DialogDescription>
+              {unassigningSlot?.presentation && (
+                <>
+                  Are you sure you want to unassign{' '}
+                  <strong>{unassigningSlot.presentation.targetName}</strong> from this slot?
+                  Uploaded materials and feedback have to be deleted first.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setUnassigningSlot(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={() =>
+                unassigningSlot && mutation.mutate({ type: 'unassign', slotId: unassigningSlot.id })
+              }
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? 'Unassigning...' : 'Unassign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deletingSlot)}
+        onOpenChange={(open) => !open && setDeletingSlot(undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Presentation Slot</DialogTitle>
+            <DialogDescription>
+              The unassigned time slot will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDeletingSlot(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={() =>
+                deletingSlot && mutation.mutate({ type: 'delete', slotId: deletingSlot.id })
+              }
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? 'Deleting...' : 'Delete Slot'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

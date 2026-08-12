@@ -171,6 +171,46 @@ If a **different schema** is configured for self or peer evaluation, those score
 
 ---
 
+## 🎓 Exporting Grades to CampusOnline
+
+The **CampusOnline Grade Export** card at the bottom of the assessment settings fills your PROMPT grades into the exam list from CampusOnline, so you do not have to retype them.
+
+The grades come from the **grade suggestion** of every assessment that is marked as final. Assessments that are not yet finalized are skipped.
+
+### The Workflow
+
+1. In CampusOnline, download the exam list for your course as a CSV file.
+2. In PROMPT, open **Settings** in the assessment phase and upload that file into the CampusOnline Grade Export card.
+3. Check the summary. PROMPT reports which rows it filled, which it skipped, and why.
+4. Click **Download Filled CSV**.
+5. Upload the downloaded file back into CampusOnline.
+
+Steps 1 and 5 happen in CampusOnline; PROMPT is only involved in the middle.
+
+### How Students Are Matched
+
+PROMPT matches each row of your file to a student of the phase by **registration number** (compared against the student's matriculation number, ignoring leading zeros). If a row has no usable registration number, PROMPT falls back to matching by **family name and first name**.
+
+If a row could match more than one student, PROMPT leaves it empty rather than guessing. Rows matched by name only are flagged in the summary so you can spot-check them.
+
+### What Gets Changed
+
+Only the **GRADE** and **DATE_OF_ASSESSMENT** columns are written. Every other column, the column order, the delimiter and the file's text encoding are handed back exactly as CampusOnline delivered them, so the file stays importable.
+
+### Warnings to Watch For
+
+| Warning                                      | What it means                                                                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Graded students missing from the CSV**      | These students are graded in PROMPT but have no row in your file, so their grade is not exported. Usually the wrong exam date or course group was downloaded. |
+| **No matching student in this phase**        | The row belongs to a student who does not participate in this assessment phase.                                            |
+| **Not graded in PROMPT yet**                 | The student was found, but their assessment is not marked as final. Finish grading and upload the file again.              |
+| **Matches more than one student**            | Two students share the same name, so the row was left empty. Add the registration number to the file to resolve it.        |
+| **Existing grades replaced**                 | The file already contained grades in those rows and PROMPT overwrote them.                                                |
+
+📺 **Video Tutorial**: Coming soon
+
+---
+
 ## 📈 How Average Scores Are Calculated
 
 The assessment system uses a sophisticated weighted scoring algorithm to compute final scores.

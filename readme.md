@@ -73,7 +73,7 @@ This section is for **developers and contributors** looking to run PROMPT locall
 
 #### Clients
 
-- Built with **React**, **TypeScript**, and **Webpack Module Federation**
+- Built with **React**, **TypeScript**, and **Module Federation** (rspack)
 - Micro-frontends for each course phase
 - Shared design system using [`shadcn/ui`](https://ui.shadcn.com/)
 

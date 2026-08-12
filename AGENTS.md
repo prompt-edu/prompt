@@ -8,7 +8,7 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 
 **PROMPT 2.0** is a modular course management platform for project-based university teaching, originally developed for the iPraktikum at TU Munich. It uses a **micro-frontend + microservices architecture** with:
 
-- **Core System**: React frontend (Webpack Module Federation) + Go backend (Gin framework)
+- **Core System**: React frontend (Module Federation) + Go backend (Gin framework)
 - **Course Phase Modules**: Independent frontend components and backend services dynamically loaded based on course configuration
 - **Authentication**: Keycloak for identity management with RBAC
 
@@ -77,7 +77,7 @@ make setup-skills
 
 ### Frontend
 
-- React 19, TypeScript 5.9, Webpack 5 (Module Federation)
+- React 19, TypeScript 6, rspack 2 (Module Federation)
 - Tailwind CSS v4, shadcn/ui + Radix UI
 - Zustand (state), TanStack React Query (data fetching)
 - React Hook Form, Axios, React Router DOM 7

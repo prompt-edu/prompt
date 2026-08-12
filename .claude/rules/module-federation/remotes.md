@@ -1,12 +1,13 @@
 ---
 paths:
-  - "**/webpack.config.mjs"
+  - "**/rspack.config.mjs"
 ---
 
 # Module Federation
 
-Micro-frontends are composed via Webpack Module Federation: `clients/core` is the host; each
-`<name>_component` is a remote. For the step-by-step wiring use the **`module-federation-remote`** skill.
+Micro-frontends are composed via Module Federation (rspack's `ModuleFederationPlugin`, imported as
+`rspack.container.ModuleFederationPlugin`): `clients/core` is the host; each `<name>_component` is a
+remote. For the step-by-step wiring use the **`module-federation-remote`** skill.
 
 ## Expose (remote component)
 
@@ -18,7 +19,7 @@ new ModuleFederationPlugin({
 })
 ```
 
-The top of each component's `webpack.config.mjs` sets `COMPONENT_NAME` and `COMPONENT_DEV_PORT`.
+The top of each component's `rspack.config.mjs` sets `COMPONENT_NAME` and `COMPONENT_DEV_PORT`.
 
 ## Register (core host)
 

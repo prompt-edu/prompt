@@ -25,9 +25,9 @@ This guide explains how to add a new microfrontend component (ending with `_comp
    - Copy the entire `example_component` folder.
    - Rename it to your new component’s name, ensuring you include the `_component` suffix.
 
-3. **Update `webpack.config.mjs`**
+3. **Update `rspack.config.mjs`**
 
-   - In your new component’s `webpack.config.mjs`, update the following constants:
+   - In your new component’s `rspack.config.mjs`, update the following constants:
      - `COMPONENT_NAME` (set this to your component’s name)
      - `COMPONENT_DEV_PORT` (assign a unique port for local development, e.g. `3001`. Make sure it does not collide with other components in this repo.)
 
@@ -70,7 +70,7 @@ This guide explains how to add a new microfrontend component (ending with `_comp
 
 ## 2. Integrate Your Microfrontend with the Core
 
-### 2.1. Update `core/webpack.config.mjs`
+### 2.1. Update `core/rspack.config.mjs`
 
 1. Determine the URL of your new microfrontend (e.g., via an environment variable).
 2. In the `ModuleFederationPlugin > remotes` section, add an entry for your new microfrontend so it can be dynamically loaded.
@@ -93,7 +93,7 @@ IMPORTANT: Make sure to exactly follow and copy the files such that the permissi
    - Yes! it would be possible to reduce code duplication by introducing a separate class to abstract the import logic.
    - Yes! We have already implemented that but decided to discard it again.
    - Why?
-     - Webpack requires static imports for code splitting and analysis. Hence, import paths need to be static and not in form of a variable. This could be resolved by a dictionary, but this would introduce another part which needs to be adjusted
+     - The bundler requires static imports for code splitting and analysis. Hence, import paths need to be static and not in form of a variable. This could be resolved by a dictionary, but this would introduce another part which needs to be adjusted
      - Main reason: Dynamically passed import path (i.e. through a dictionary) can introduce repeated reloading and undesired "Loading" states. Our current approach ensures components are loaded and cached effectively. The downside of code repetition of the loading logic seems neglectable (for now.)
 
 ### 2.3. Map the Microfrontend to Course Phases

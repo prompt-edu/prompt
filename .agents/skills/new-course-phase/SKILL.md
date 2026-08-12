@@ -11,14 +11,14 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 ## Frontend component
 
 1. Copy the example: `cp -R clients/example_component clients/<name>_component`.
-2. In `clients/<name>_component/webpack.config.mjs` update the two constants near the top:
+2. In `clients/<name>_component/rspack.config.mjs` update the two constants near the top:
    `const COMPONENT_NAME = '<name>_component'` and `const COMPONENT_DEV_PORT = <unique-port>`
    (existing ports: core 3000, example 3001, interview 3002, matching 3003, assessment 3007,
    team_allocation 3008, self_team_allocation 3009 — pick a free one).
 3. Set `"name": "<name>_component"` in `clients/<name>_component/package.json`.
 4. Register the workspace in BOTH `clients/lerna.json` (`packages`) and `clients/package.json`
    (`workspaces.packages`).
-5. Register the remote in `clients/core/webpack.config.mjs` `remotes:` using the cache-busting
+5. Register the remote in `clients/core/rspack.config.mjs` `remotes:` using the cache-busting
    pattern (see the `module-federation-remote` skill for the exact line and the matching URL env var).
 6. Load it lazily in core: `const X = React.lazy(() => import('<name>_component/App'))`.
 7. `cd clients && yarn install` so the workspace resolves.

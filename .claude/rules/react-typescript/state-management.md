@@ -51,4 +51,4 @@ const { data, isLoading } = useQuery({
   reorder/insert/delete.
 
 For performance work (waterfalls, bundle size for Module Federation remotes, re-render reduction),
-use the `react-performance` skill (client-only patterns scoped to our Webpack/Module Federation setup).
+use the `react-performance` skill (client-only patterns scoped to our rspack/Module Federation setup).

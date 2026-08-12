@@ -12,7 +12,7 @@ editing files that match a pattern below, read the corresponding rule file(s) an
 | `servers/**/*.go` | `.claude/rules/go/*.md` (coding-style, patterns, auth-routing, sqlc, prompt-sdk) |
 | `clients/**/*.{ts,tsx}` | `.claude/rules/react-typescript/*.md` (coding-style, state-management, shared-libraries) |
 | `**/db/migration/**`, `**/db/query/**`, `**/sqlc.yaml` | `.claude/rules/database/migrations.md` |
-| `**/webpack.config.mjs` | `.claude/rules/module-federation/remotes.md` |
+| `**/rspack.config.mjs` | `.claude/rules/module-federation/remotes.md` |
 | `docker-compose*.yml` | `.claude/rules/docker/compose.md` |
 | any file | `.claude/rules/common/*.md` (always applies) |
 

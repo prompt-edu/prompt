@@ -21,7 +21,7 @@ Check:
    feedback) using the shared hooks/queries; global state via Zustand stores; `axiosInstance` (not
    raw axios) for calls.
 4. **Naming:** PascalCase components/folders, camelCase non-component, SCREAMING_SNAKE_CASE constants.
-5. **Module Federation:** if `webpack.config.mjs` changed, federation `name`/remotes key/import
+5. **Module Federation:** if `rspack.config.mjs` changed, federation `name`/remotes key/import
    specifier match and shared React deps stay `singleton`.
 
 Ground rules: `.claude/rules/react-typescript/*` and `.claude/rules/common/*`. If clean, say so briefly.

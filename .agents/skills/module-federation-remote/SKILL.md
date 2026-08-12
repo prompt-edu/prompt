@@ -1,14 +1,15 @@
 ---
 name: module-federation-remote
-description: Register or expose a Webpack Module Federation remote in PROMPT 2.0 — wire a micro-frontend's exposes and the core shell's remotes with the cache-busting pattern. Use when connecting a component to core, exposing a new module, or debugging a remote that won't load.
+description: Register or expose a Module Federation remote in PROMPT 2.0 — wire a micro-frontend's exposes and the core shell's remotes with the cache-busting pattern. Use when connecting a component to core, exposing a new module, or debugging a remote that won't load.
 ---
 
-PROMPT 2.0 composes micro-frontends with Webpack Module Federation. The core shell (`clients/core`)
-is the host; each `<name>_component` is a remote. All webpack config is in `webpack.config.mjs` files.
+PROMPT 2.0 composes micro-frontends with Module Federation. The core shell (`clients/core`)
+is the host; each `<name>_component` is a remote. All bundler config is in `rspack.config.mjs` files.
 
 ## Expose from the remote component
 
-In `clients/<name>_component/webpack.config.mjs`, the `ModuleFederationPlugin`:
+In `clients/<name>_component/rspack.config.mjs`, the `ModuleFederationPlugin`
+(`const { ModuleFederationPlugin } = rspack.container`):
 
 ```js
 new ModuleFederationPlugin({
@@ -24,7 +25,7 @@ new ModuleFederationPlugin({
 
 ## Register in core (host)
 
-In `clients/core/webpack.config.mjs`, add to `remotes:` using the cache-busting query so a redeploy
+In `clients/core/rspack.config.mjs`, add to `remotes:` using the cache-busting query so a redeploy
 forces a reload:
 
 ```js

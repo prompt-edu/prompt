@@ -6,7 +6,7 @@ paths:
 
 # React / TypeScript Coding Style
 
-Stack: React 19, TypeScript 5.9, Webpack 5 (Module Federation), Tailwind CSS v4, shadcn/ui + Radix.
+Stack: React 19, TypeScript 6, rspack 2 (Module Federation), Tailwind CSS v4, shadcn/ui + Radix.
 Extends `../common/coding-style.md`.
 
 ## Naming

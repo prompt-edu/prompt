@@ -95,10 +95,10 @@ const StudentView = ({
 // instructors also see a disabled preview of the student experience.
 const NonStudentPreview = ({
   coursePhaseId,
-  isStaff,
+  canManagePhase,
 }: {
   coursePhaseId: string
-  isStaff: boolean
+  canManagePhase: boolean
 }) => {
   const navigate = useNavigate()
   const configQuery = useQuery({
@@ -141,7 +141,7 @@ const NonStudentPreview = ({
             presenters get to see. Slots, presenter assignments, uploaded materials, and instructor
             feedback are managed from the schedule page.
           </p>
-          {isStaff ? (
+          {canManagePhase ? (
             <Button variant='outline' size='sm' onClick={() => navigate('schedule')}>
               <CalendarCog className='mr-2 h-4 w-4' />
               Manage schedule
@@ -163,7 +163,7 @@ const NonStudentPreview = ({
 
 const OverviewPage = () => {
   const coursePhaseId = useCoursePhaseId()
-  const { isStaff, isStudent } = usePresentationAccess()
+  const { canManagePhase, isStudent } = usePresentationAccess()
   const navigate = useNavigate()
 
   const presentationQuery = useQuery({
@@ -172,7 +172,8 @@ const OverviewPage = () => {
     enabled: isStudent && Boolean(coursePhaseId),
   })
 
-  if (!isStudent) return <NonStudentPreview coursePhaseId={coursePhaseId} isStaff={isStaff} />
+  if (!isStudent)
+    return <NonStudentPreview coursePhaseId={coursePhaseId} canManagePhase={canManagePhase} />
 
   if (presentationQuery.isLoading) return <LoadingPage />
   if (presentationQuery.isError) {

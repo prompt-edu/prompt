@@ -33,6 +33,9 @@ export const usePresentationAccess = () => {
     isLecturer,
     isEditor,
     isStaff: isEditor,
+    // Matches the server's manager roles: schedule and settings are course level, so a PROMPT
+    // lecturer evaluating presentations still cannot change them.
+    canManagePhase: isAdmin || has(Role.COURSE_LECTURER),
     isStudent: isStudentOfCourse(courseId ?? ''),
   }
 }

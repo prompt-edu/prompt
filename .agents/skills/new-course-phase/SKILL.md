@@ -18,9 +18,13 @@ dev port, and a unique server port. Work through both checklists; do not skip th
 3. Set `"name": "<name>_component"` in `clients/<name>_component/package.json`.
 4. Register the workspace in BOTH `clients/lerna.json` (`packages`) and `clients/package.json`
    (`workspaces.packages`).
-5. Register the remote in `clients/core/rspack.config.mjs` `remotes:` using the cache-busting
-   pattern (see the `module-federation-remote` skill for the exact line and the matching URL env var).
-6. Load it lazily in core: `const X = React.lazy(() => import('<name>_component/App'))`.
+5. Register the remote in `clients/core/rspack.config.mjs`: add a
+   `const <name>URL = IS_DEV ? \`http://localhost:<port>\` : \`/<name>\`` next to the other `*URL`
+   constants, then a `remotes:` entry using the cache-busting pattern (see the
+   `module-federation-remote` skill for the exact lines).
+6. Load it lazily in core by adding a file under
+   `clients/core/src/managementConsole/PhaseMapping/ExternalRoutes/` (and `ExternalSidebars/`) that
+   imports `<name>_component/routes` (and `/sidebar`), mirroring `ExampleRoutes.tsx`.
 7. `cd clients && yarn install` so the workspace resolves.
 
 ## Backend service

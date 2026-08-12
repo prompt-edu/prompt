@@ -44,6 +44,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { DestructiveResetDialog } from '../components/DestructiveResetDialog'
+import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
 import type { ActiveEditor, FeedbackAnswer, FeedbackDocument, FeedbackForm } from '../interfaces'
 import { presentationApi, streamFeedbackEvents } from '../network'
@@ -422,6 +423,16 @@ const FeedbackWorkspacePage = () => {
               : 'Edits synchronize live. Each category uses a revision check so simultaneous changes are never silently overwritten.'}
           </AlertDescription>
         </Alert>
+      ) : null}
+
+      {/* What the presenters handed in is the material being evaluated, so instructors read
+          it here rather than on the presenter page. */}
+      {isStaff ? (
+        <MaterialsPanel
+          coursePhaseId={coursePhaseId}
+          presentation={feedback.presentation}
+          isStaff={isStaff}
+        />
       ) : null}
 
       {isStaff && (editableForm || feedback.canEdit) ? (

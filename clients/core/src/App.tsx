@@ -4,6 +4,8 @@ import { Toaster } from '@tumaet/prompt-ui-components'
 import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
+import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
+import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
@@ -164,6 +166,16 @@ export const App = () => {
               }
             />
             <Route
+              path='/management/admin/audit-log'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AdminAuditLogPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
               path='/management/course/:courseId/configurator'
               element={
                 <ManagementRoot>
@@ -187,6 +199,18 @@ export const App = () => {
                     requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
                   >
                     <CourseSettingsPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/audit-log'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
+                  >
+                    <CourseAuditLogPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

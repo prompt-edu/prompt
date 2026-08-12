@@ -108,6 +108,16 @@ const NonStudentPreview = ({
   })
 
   if (configQuery.isLoading) return <LoadingPage />
+  // The preview mirrors the phase configuration, so a genuinely unreachable phase API is still
+  // reported rather than illustrated with defaults.
+  if (configQuery.isError) {
+    return (
+      <ErrorPage
+        message='The presentation phase could not be loaded.'
+        onRetry={() => void configQuery.refetch()}
+      />
+    )
+  }
 
   const targetMode = configQuery.data?.targetMode ?? 'individual'
   const presentation = buildSamplePresentation(coursePhaseId, targetMode)

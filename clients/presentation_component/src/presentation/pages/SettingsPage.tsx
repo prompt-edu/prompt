@@ -477,7 +477,10 @@ const SettingsPage = () => {
                   }
                 />
                 <div className='space-y-1'>
-                  <Label htmlFor={`material-type-${definition.type}`} className='cursor-pointer'>
+                  <Label
+                    htmlFor={`material-type-${definition.type}`}
+                    className='block cursor-pointer leading-5'
+                  >
                     {definition.label}
                   </Label>
                   <p className='text-xs text-muted-foreground'>

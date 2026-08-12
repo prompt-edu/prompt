@@ -1,4 +1,4 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { type Course, Role } from '@tumaet/prompt-shared-state'
 import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
 import { ArrowRight, Settings } from 'lucide-react'
@@ -17,7 +17,7 @@ export const CourseTable = ({ courses }: CourseTableProps) => {
   const navigate = useNavigate()
   const showActions = useHasRolePermission({ roles: [Role.PROMPT_ADMIN, Role.PROMPT_LECTURER] })
 
-  const columns: ColumnDef<Course>[] = useMemo(() => CourseTableColumns, [])
+  const columns: ColumnDef<TableFeatures, Course>[] = useMemo(() => CourseTableColumns, [])
 
   const courseTableActions: RowAction<Course>[] = [
     ...CourseTableActions,

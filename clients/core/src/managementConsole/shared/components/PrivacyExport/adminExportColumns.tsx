@@ -3,7 +3,7 @@ import {
   type AdminPrivacyExport,
   ExportStatus,
 } from '@core/network/queries/privacyStudentDataExport'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { Archive, CircleCheck, CircleX, Info, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
@@ -89,7 +89,7 @@ function ExportStatusBadge({ status }: { status: ExportStatus }) {
   )
 }
 
-export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
+export const adminExportColumns: ColumnDef<TableFeatures, AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',

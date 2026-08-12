@@ -3,7 +3,7 @@ import { useApplicationStore } from '@core/managementConsole/applicationAdminist
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { useQueryClient } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
 import { PromptTableURL, type TableFilter, useToast } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useCallback, useMemo, useRef } from 'react'
@@ -62,7 +62,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [participations, additionalScores],
   )
 
-  const columns: ColumnDef<ApplicationRow>[] = useMemo(
+  const columns: ColumnDef<TableFeatures, ApplicationRow>[] = useMemo(
     () => getApplicationColumns(additionalScores),
     [additionalScores],
   )

@@ -4,7 +4,7 @@ import {
   DeletionSubrequestStatus,
   type PrivacyDeletionSubrequest,
 } from '@core/network/queries/privacyStudentDataDeletion'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
@@ -95,7 +95,7 @@ function SourceSummaryCell({ subs }: { subs: PrivacyDeletionSubrequest[] }) {
   )
 }
 
-export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
+export const adminDeletionColumns: ColumnDef<TableFeatures, AdminPrivacyDeletionRequest>[] = [
   {
     accessorKey: 'status',
     header: 'Status',

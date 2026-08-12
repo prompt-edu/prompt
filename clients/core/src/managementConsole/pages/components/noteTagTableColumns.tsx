@@ -1,8 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { InstructorNoteTagColor } from '../../shared/components/InstructorNote/InstructorNoteTag'
 import type { NoteTag } from '../../shared/interfaces/InstructorNote'
 
-export const noteTagTableColumns: ColumnDef<NoteTag>[] = [
+export const noteTagTableColumns: ColumnDef<TableFeatures, NoteTag>[] = [
   {
     accessorKey: 'name',
     header: 'Name',

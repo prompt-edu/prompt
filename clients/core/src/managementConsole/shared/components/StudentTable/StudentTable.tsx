@@ -2,7 +2,7 @@ import {
   getStudentsWithCourses,
   type StudentWithCourses,
 } from '@core/network/queries/getStudentsWithCourses'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { Role } from '@tumaet/prompt-shared-state'
 import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -37,7 +37,10 @@ export const StudentTable = () => {
     fetchStudents()
   }, [fetchStudents])
 
-  const columns: ColumnDef<StudentWithCourses>[] = useMemo(() => studentTableColumns, [])
+  const columns: ColumnDef<TableFeatures, StudentWithCourses>[] = useMemo(
+    () => studentTableColumns,
+    [],
+  )
 
   const filters: TableFilter[] = useMemo(
     () => getStudentTableFilters(studentsWithCourses),

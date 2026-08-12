@@ -1,11 +1,11 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import type { PassStatus } from '@tumaet/prompt-shared-state'
 import type { ApplicationRow } from './applicationRow'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
 
 export function getApplicationColumns(
   additionalScores?: { key: string; name: string }[],
-): ColumnDef<ApplicationRow>[] {
+): ColumnDef<TableFeatures, ApplicationRow>[] {
   return [
     {
       id: 'firstName',

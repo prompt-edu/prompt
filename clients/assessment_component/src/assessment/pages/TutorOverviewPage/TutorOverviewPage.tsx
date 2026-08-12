@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -61,7 +61,7 @@ export const TutorOverviewPage = (): ReactNode => {
     [evaluations],
   )
 
-  const columns: ColumnDef<TutorRow>[] = useMemo(
+  const columns: ColumnDef<TableFeatures, TutorRow>[] = useMemo(
     () => [
       {
         accessorKey: 'firstName',

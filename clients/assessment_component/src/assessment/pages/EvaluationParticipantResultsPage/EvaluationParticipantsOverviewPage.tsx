@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, TableFeatures } from '@tanstack/react-table'
 import type { Team } from '@tumaet/prompt-shared-state'
 import { ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
@@ -131,7 +131,7 @@ export const EvaluationParticipantsOverviewPage = ({
     })
   }, [assessmentType, participations, teams, typedCompletions])
 
-  const columns: ColumnDef<EvaluationParticipantRow>[] = useMemo(
+  const columns: ColumnDef<TableFeatures, EvaluationParticipantRow>[] = useMemo(
     () => [
       {
         accessorKey: 'firstName',

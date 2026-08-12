@@ -11,6 +11,7 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 - **Core System**: React frontend (Module Federation) + Go backend (Gin framework)
 - **Course Phase Modules**: Independent frontend components and backend services dynamically loaded based on course configuration
 - **Authentication**: Keycloak for identity management with RBAC
+- **Object Storage**: SeaweedFS (S3-compatible) for uploaded files, served through presigned URLs
 
 **Live Instance:** <https://prompt.aet.cit.tum.de/>
 
@@ -56,6 +57,9 @@ make clients
 # Start core server (loads .env and .env.dev automatically)
 make server
 
+# Start every server (core + all microservices)
+make servers
+
 # Start database and Keycloak (detached)
 make db
 
@@ -68,9 +72,21 @@ make lint
 # Run tests
 make test
 
+# Regenerate sqlc code for every service (or make sqlc-<service>)
+make sqlc
+
+# Regenerate the core server's swagger docs
+make swagger
+
+# Install the pre-commit git hooks
+make install-hooks
+
 # Regenerate .claude/skills symlinks from .agents/skills
 make setup-skills
 ```
+
+`make help` lists every target, including the per-service `server-*`, `client-*`, `test-*`, and
+`sqlc-*` ones.
 
 **Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`). For auth/Keycloak setup and common failures, use the `keycloak-local-setup` skill.
 
@@ -109,7 +125,6 @@ Agent configuration is shared with the team and split by purpose:
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
-- Full rollout rationale and community-skill references: `AI_TOOLING_PLAN.md`.
 
 ## Creating New Course Phases
 
@@ -121,7 +136,8 @@ skills cover the sub-steps.
 ## Testing
 
 Run `make lint` and `make test` before completing a change. Go tests use `testcontainers-go`;
-end-to-end tests use Playwright (`e2e-testing` skill). Details: `.claude/rules/common/testing.md`.
+end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:
+`.claude/rules/common/testing.md`.
 
 ## Definition of Done
 

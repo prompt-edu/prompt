@@ -10,7 +10,7 @@ editing files that match a pattern below, read the corresponding rule file(s) an
 | When editing | Read |
 | --- | --- |
 | `servers/**/*.go` | `.claude/rules/go/*.md` (coding-style, patterns, auth-routing, sqlc, prompt-sdk) |
-| `clients/**/*.{ts,tsx}` | `.claude/rules/react-typescript/*.md` (coding-style, state-management, shared-libraries) |
+| `clients/**/*.{ts,tsx}` | `.claude/rules/react-typescript/*.md` (coding-style, state-management, shared-libraries, shadcn) |
 | `**/db/migration/**`, `**/db/query/**`, `**/sqlc.yaml` | `.claude/rules/database/migrations.md` |
 | `**/rspack.config.mjs` | `.claude/rules/module-federation/remotes.md` |
 | `docker-compose*.yml` | `.claude/rules/docker/compose.md` |
@@ -20,4 +20,4 @@ Repeatable procedures are in `.agents/skills/` (e.g. `new-course-phase`, `sqlc-m
 `module-federation-remote`, `add-shared-ui-component`, `keycloak-local-setup`).
 
 > Maintenance: this is a hand-maintained pointer because Codex's root override replaces (not merges
-> with) `AGENTS.md`. Keep the table in sync with `.claude/rules/`. See `AI_TOOLING_PLAN.md`.
+> with) `AGENTS.md`. Keep the table in sync with `.claude/rules/`.

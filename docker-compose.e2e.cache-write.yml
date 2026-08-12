@@ -1,20 +1,4 @@
-# ============================================================================
-# CI-only override that WRITES the GitHub Actions layer cache, refreshing the
-# scopes that every shard of every later run restores from
-# (docker-compose.e2e.cache.yml). Added on top of that file by the single shard
-# marked `cacheWriter` in e2e/shards.json:
-#
-#   docker compose -f docker-compose.e2e.yml -f docker-compose.e2e.cache.yml \
-#     -f docker-compose.e2e.cache-write.yml build
-#
-# The other shards deliberately omit this file: 8 concurrent mode=max exports to
-# the same scopes would be wasteful and would race. The writer is the shard with
-# the lightest test load, so the export time stays off the critical path.
-#
-# No `ignore-error=true` here on purpose - a cache export that fails should fail
-# the job loudly rather than quietly leaving every later run to build cold.
-# Scopes must match docker-compose.e2e.cache.yml.
-# ============================================================================
+# CI-only: exports the gha layer cache; added by the cacheWriter shard alone.
 
 services:
   server-core:

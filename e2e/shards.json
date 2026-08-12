@@ -1,28 +1,5 @@
 {
-  "$comment": [
-    "Single source of truth for how CI splits the e2e suite: one shard per",
-    "microservice plus a 'core' shard for the core-hosted tests.",
-    "",
-    "'paths' entries are passed verbatim to `playwright test`, which treats them as",
-    "REGEXES tested (unanchored, case-insensitive) against the ABSOLUTE spec path -",
-    "not as directory names. So they are anchored on both ends: a leading '/' pins",
-    "the segment boundary and a trailing '$' pins the extension. Without that,",
-    "a future tests/interview-v2/ would silently join the 'interview' shard.",
-    "",
-    "Note: a pattern that both starts and ends with '/' would be parsed by",
-    "Playwright as a /regex/flags literal and lose its leading slash, which is why",
-    "directory patterns end in '.*\\\\.spec\\\\.ts$' rather than a bare '/'.",
-    "",
-    "scripts/shards.mjs check asserts this covers every spec under tests/ exactly",
-    "once and that no pattern is stale; CI runs that check before any shard starts",
-    "and builds its matrix from this file, so adding a suite here is all it takes.",
-    "",
-    "cacheWriter marks the single shard that exports the Docker layer cache. It",
-    "sits on the shard with the lightest test load so the extra export time stays",
-    "off the critical path; retune it if shard runtimes shift.",
-    "",
-    "Consumers: .github/workflows/test-e2e.yml, `make test-e2e-shard SHARD=<name>`."
-  ],
+  "$comment": "Shard partition for CI. 'paths' are Playwright regexes matched against the absolute spec path, anchored on both ends. Run `npm run check-shards` after editing. See e2e/README.md.",
   "shards": [
     {
       "name": "core",
@@ -44,12 +21,18 @@
     {
       "name": "interview",
       "cacheWriter": false,
-      "paths": ["/tests/interview/.*\\.spec\\.ts$", "/tests/api/interview\\.api\\.spec\\.ts$"]
+      "paths": [
+        "/tests/interview/.*\\.spec\\.ts$",
+        "/tests/api/interview\\.api\\.spec\\.ts$"
+      ]
     },
     {
       "name": "matching",
       "cacheWriter": false,
-      "paths": ["/tests/matching/.*\\.spec\\.ts$", "/tests/api/matching\\.api\\.spec\\.ts$"]
+      "paths": [
+        "/tests/matching/.*\\.spec\\.ts$",
+        "/tests/api/matching\\.api\\.spec\\.ts$"
+      ]
     },
     {
       "name": "team-allocation",
@@ -70,17 +53,26 @@
     {
       "name": "assessment",
       "cacheWriter": false,
-      "paths": ["/tests/assessment/.*\\.spec\\.ts$", "/tests/api/assessment\\.api\\.spec\\.ts$"]
+      "paths": [
+        "/tests/assessment/.*\\.spec\\.ts$",
+        "/tests/api/assessment\\.api\\.spec\\.ts$"
+      ]
     },
     {
       "name": "certificate",
       "cacheWriter": false,
-      "paths": ["/tests/certificate/.*\\.spec\\.ts$", "/tests/api/certificate\\.api\\.spec\\.ts$"]
+      "paths": [
+        "/tests/certificate/.*\\.spec\\.ts$",
+        "/tests/api/certificate\\.api\\.spec\\.ts$"
+      ]
     },
     {
       "name": "example",
       "cacheWriter": true,
-      "paths": ["/tests/example/.*\\.spec\\.ts$", "/tests/api/example\\.api\\.spec\\.ts$"]
+      "paths": [
+        "/tests/example/.*\\.spec\\.ts$",
+        "/tests/api/example\\.api\\.spec\\.ts$"
+      ]
     }
   ]
 }

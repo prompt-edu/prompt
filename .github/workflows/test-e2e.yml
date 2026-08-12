@@ -15,10 +15,11 @@ env:
     -f docker-compose.e2e.cache.yml
     --env-file e2e/.env.e2e
 
+  # Pinned so the pre-pull warms exactly the tag the bootstrap then uses.
+  BUILDKIT_IMAGE: moby/buildkit:buildx-stable-1
+
 jobs:
-  # e2e/shards.json is the single source of truth for the partition. Verify it
-  # claims every spec exactly once before spending a runner on any shard, and
-  # hand the matrix to the e2e job below so the two can never drift apart.
+  # Verify e2e/shards.json claims every spec once, and emit the shard matrix.
   partition:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -37,25 +38,14 @@ jobs:
           node scripts/shards.mjs check
           echo "matrix=$(node scripts/shards.mjs matrix)" >> "$GITHUB_OUTPUT"
 
-  # One shard per microservice, each booting its own fresh stack (own DB seed),
-  # so modules are isolated without any per-spec coordination. 1 worker per shard
-  # keeps within-shard runs serial; parallelism comes from the matrix.
-  #
-  # There is deliberately no build-once job in front of these: the shards build
-  # concurrently, and the gha layer cache below is what makes those rebuilds
-  # cheap. Unlike a per-run build job, that cache also persists ACROSS runs, so
-  # a PR that doesn't touch yarn.lock/go.sum restores the expensive dependency
-  # and bundler layers instead of rebuilding them.
+  # One shard per microservice, each on its own fresh stack; see e2e/README.md.
   e2e:
     needs: partition
-    # Without this, GitHub derives the job name from every matrix value, so the
-    # check would render as "e2e (core, /tests/application/.*\.spec\.ts$ …)".
+    # Otherwise GitHub derives the job name from every matrix value.
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
-    # Outer bound on the entire job: image build + stack boot + tests + upload.
-    # PW_GLOBAL_TIMEOUT_MIN below bounds only the Playwright phase, so it is a
-    # different (smaller) budget and this has to sit well above it for Playwright
-    # to be the one that fails first, with a clean message and a blob report.
+    # Whole job: build + boot + tests. Sits above PW_GLOBAL_TIMEOUT_MIN so
+    # Playwright fails first, with a clean message and a blob report.
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -64,17 +54,28 @@ jobs:
       # Per-shard blob report, merged downstream by the `merge` job.
       PW_BLOB: "1"
       PW_SHARD_NAME: ${{ matrix.name }}
-      # Budget for the Playwright phase alone (~2-3 min per shard today), so a
-      # suite that creeps up fails instead of silently getting slower.
+      # Bounds the Playwright phase only (~2-3 min per shard today).
       PW_GLOBAL_TIMEOUT_MIN: "20"
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v3
 
-      # type=gha resolves the cache backend from ACTIONS_RUNTIME_TOKEN and
-      # ACTIONS_RESULTS_URL, which GitHub injects into JS actions but NOT into
-      # `run:` shell steps. Without this, `docker compose build` cannot
-      # authenticate and the cache silently no-ops.
+      # Booting the builder pulls this from Docker Hub, once per shard; warming
+      # it with backoff lets the bootstrap fall back to the local copy.
+      - name: Pre-pull the buildkit builder image
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if docker pull "$BUILDKIT_IMAGE"; then exit 0; fi
+            echo "::warning::pull of $BUILDKIT_IMAGE failed (attempt $attempt/5), retrying"
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not pull $BUILDKIT_IMAGE after 5 attempts"
+          exit 1
+
+      - uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=${{ env.BUILDKIT_IMAGE }}
+
+      # Exports the ACTIONS_* credentials type=gha needs in a `run:` step.
       - uses: crazy-max/ghaction-github-runtime@v3
 
       - name: Prepare report directories
@@ -82,9 +83,7 @@ jobs:
 
       - name: Build the e2e stack
         env:
-          # Exactly one shard exports the cache (see cacheWriter in shards.json).
-          # All 8 exporting mode=max to the same scopes would be wasteful and
-          # would race; the rest are readers via docker-compose.e2e.cache.yml.
+          # Only the cacheWriter shard exports; the rest are readers.
           CACHE_WRITE: ${{ matrix.cacheWriter && '-f docker-compose.e2e.cache-write.yml' || '' }}
         run: |
           # shellcheck disable=SC2086 # both hold multiple flags; splitting is the point
@@ -94,9 +93,7 @@ jobs:
         env:
           PW_PATHS: ${{ matrix.paths }}
         run: |
-          # Word-split PW_PATHS into separate arguments, but keep pathname
-          # expansion off so the regex metacharacters in the shard patterns
-          # reach Playwright untouched.
+          # Split PW_PATHS into args, but keep globbing off so the regexes survive.
           set -f
           # shellcheck disable=SC2086 # word splitting is intentional for both
           docker compose ${E2E_COMPOSE} run --rm e2e-runner \
@@ -129,9 +126,7 @@ jobs:
   # Merge the per-shard blob reports into a single HTML report.
   merge:
     needs: e2e
-    # Run whether the shards passed or failed, but not when they never produced
-    # artifacts: download-artifact errors when its pattern matches nothing, which
-    # would turn a single upstream failure into two red jobs.
+    # Skip when no shard ran: download-artifact errors on zero matches.
     if: always() && needs.e2e.result != 'skipped' && needs.e2e.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 10

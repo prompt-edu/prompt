@@ -1,19 +1,5 @@
 #!/usr/bin/env node
-/**
- * Shard partition helper for the e2e suite.
- *
- * `shards.json` is the single source of truth for how CI splits the suite. This
- * script is the only thing that reads it, and it serves three consumers:
- *
- *   check          assert the partition covers every spec exactly once
- *   matrix         emit the GitHub Actions matrix (consumed via fromJSON)
- *   paths <name>   emit one shard's patterns, for `make test-e2e-shard`
- *   names          list the shard names
- *
- * The `check` command is what makes the partition durable: Playwright's path
- * filters are regexes, so a mis-scoped pattern would silently route a spec to
- * the wrong shard, and a spec matched by no shard would simply never run.
- */
+// Reads e2e/shards.json: check | matrix | paths <name> | names.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
@@ -22,21 +8,13 @@ import { fileURLToPath } from 'node:url'
 const e2eDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const testsDir = path.join(e2eDir, 'tests')
 
-/**
- * Mirror of Playwright's `forceRegExp` (packages/playwright/src/util.ts): a
- * `/…/flags` literal keeps its flags, anything else compiles with `gi`. Kept in
- * sync deliberately so `check` matches what the runner actually does.
- */
+// Mirrors Playwright's forceRegExp (packages/playwright/src/util.ts).
 function forceRegExp(pattern) {
   const match = pattern.match(/^\/(.*)\/([gi]*)$/)
   return match ? new RegExp(match[1], match[2]) : new RegExp(pattern, 'gi')
 }
 
-/**
- * Playwright tests its filters against the absolute spec path. Specs live under
- * `<e2eDir>/tests`, and the patterns never reference anything above `tests/`, so
- * a leading-slash relative path is an equivalent stand-in here.
- */
+// Leading-slash relative paths stand in for the absolute ones Playwright matches.
 function specPaths() {
   const walk = (dir) =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -72,8 +50,7 @@ function check() {
     else if (owners.length > 1) errors.push(`${spec} is claimed by ${owners.join(', ')}`)
   }
 
-  // And every pattern must still claim something, so stale entries surface when
-  // a suite is renamed or removed.
+  // And every pattern must still claim something, so stale entries surface.
   for (const shard of shards) {
     for (const pattern of shard.paths) {
       if (!specs.some((spec) => forceRegExp(pattern).test(spec)))

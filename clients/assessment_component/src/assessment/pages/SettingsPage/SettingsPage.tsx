@@ -4,6 +4,7 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { AssessmentReminderCard } from './components/AssessmentReminderCard/AssessmentReminderCard'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
+import { GradeExportCard } from './components/GradeExportCard/GradeExportCard'
 
 export const SettingsPage = () => {
   return (
@@ -27,6 +28,8 @@ export const SettingsPage = () => {
       />
 
       <AssessmentReminderCard />
+
+      <GradeExportCard />
     </div>
   )
 }

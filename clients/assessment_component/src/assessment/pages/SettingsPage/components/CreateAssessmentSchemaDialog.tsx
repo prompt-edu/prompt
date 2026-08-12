@@ -64,7 +64,7 @@ export const CreateAssessmentSchemaDialog = ({
           <Plus className='h-4 w-4' aria-hidden />
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent className='max-w-md [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Create New Assessment Schema</DialogTitle>
         </DialogHeader>

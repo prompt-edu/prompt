@@ -169,7 +169,7 @@ export const AssessmentScoreUploadPage2 = forwardRef<Page2Ref>(
               {errors.scoreColumn && <p className='text-sm text-red-500'>{errors.scoreColumn}</p>}
             </div>
 
-            <div className='mt-4 h-[300px] sm:max-w-[850px] w-[85vw] overflow-hidden flex flex-col'>
+            <div className='mt-4 h-[300px] min-w-0 overflow-hidden flex flex-col'>
               <h4 className='text-sm font-medium mb-2'>CSV Preview</h4>
               <div className='overflow-x-auto overflow-y-auto grow'>
                 <Table>

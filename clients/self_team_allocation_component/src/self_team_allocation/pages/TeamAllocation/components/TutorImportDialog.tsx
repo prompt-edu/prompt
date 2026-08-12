@@ -154,7 +154,7 @@ export function TutorImportDialog() {
           Import Tutors
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[600px] max-h-[90vh] overflow-y-auto'>
+      <DialogContent className='max-w-[600px] max-h-[90vh] flex flex-col [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>
@@ -162,7 +162,8 @@ export function TutorImportDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className='grid gap-4 py-4'>
+        {/* Scroll the body, not the dialog, so the close button stays pinned. */}
+        <div className='grid gap-4 py-4 min-h-0 overflow-y-auto'>
           <div className='grid gap-2'>
             <Label htmlFor='course'>Select Source Course</Label>
             <Select value={selectedSourceCourse || ''} onValueChange={handleCourseChange}>

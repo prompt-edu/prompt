@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Badge,
   Button,
   Card,
@@ -11,100 +14,161 @@ import {
   LoadingPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { CalendarClock, MapPin, MessageSquareText, Users } from 'lucide-react'
+import { CalendarClock, CalendarCog, MapPin, MessageSquareText, TriangleAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
-import type { PresentationSummary } from '../interfaces'
+import type { PresentationMaterial, PresentationSummary } from '../interfaces'
 import { presentationApi } from '../network'
+import { buildSampleMaterials, buildSamplePresentation } from '../samplePresentation'
 import { formatDateTime, getApiError } from '../utils'
 
 interface PresentationCardProps {
-  coursePhaseId: string
   presentation: PresentationSummary
-  isStaff: boolean
-  onOpenFeedback: () => void
+  onOpenFeedback?: () => void
 }
 
-const PresentationCard = ({
+const PresentationCard = ({ presentation, onOpenFeedback }: PresentationCardProps) => (
+  <Card>
+    <CardHeader className='flex-row items-start justify-between gap-4'>
+      <div>
+        <div className='mb-2 flex flex-wrap items-center gap-2'>
+          <Badge variant='outline'>
+            {presentation.targetType === 'team' ? 'Team' : 'Individual'}
+          </Badge>
+          {presentation.feedbackReleasedAt ? <Badge>Feedback released</Badge> : null}
+        </div>
+        <CardTitle>{presentation.targetName}</CardTitle>
+        <CardDescription className='mt-2 space-y-1'>
+          <span className='flex items-center gap-2'>
+            <CalendarClock className='h-4 w-4' />
+            {formatDateTime(presentation.startTime)} –{' '}
+            {new Date(presentation.endTime).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+          {presentation.location ? (
+            <span className='flex items-center gap-2'>
+              <MapPin className='h-4 w-4' />
+              {presentation.location}
+            </span>
+          ) : null}
+        </CardDescription>
+      </div>
+      {onOpenFeedback ? (
+        <Button onClick={onOpenFeedback}>
+          <MessageSquareText className='mr-2 h-4 w-4' />
+          View feedback
+        </Button>
+      ) : null}
+    </CardHeader>
+  </Card>
+)
+
+interface StudentViewProps {
+  coursePhaseId: string
+  presentation: PresentationSummary
+  previewMaterials?: PresentationMaterial[]
+  onOpenFeedback?: () => void
+}
+
+const StudentView = ({
   coursePhaseId,
   presentation,
-  isStaff,
+  previewMaterials,
   onOpenFeedback,
-}: PresentationCardProps) => (
+}: StudentViewProps) => (
   <div className='space-y-4'>
-    <Card>
-      <CardHeader className='flex-row items-start justify-between gap-4'>
-        <div>
-          <div className='mb-2 flex flex-wrap items-center gap-2'>
-            <Badge variant='outline'>
-              {presentation.targetType === 'team' ? 'Team' : 'Individual'}
-            </Badge>
-            {presentation.feedbackReleasedAt ? <Badge>Feedback released</Badge> : null}
-          </div>
-          <CardTitle>{presentation.targetName}</CardTitle>
-          <CardDescription className='mt-2 space-y-1'>
-            <span className='flex items-center gap-2'>
-              <CalendarClock className='h-4 w-4' />
-              {formatDateTime(presentation.startTime)} –{' '}
-              {new Date(presentation.endTime).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            {presentation.location ? (
-              <span className='flex items-center gap-2'>
-                <MapPin className='h-4 w-4' />
-                {presentation.location}
-              </span>
-            ) : null}
-          </CardDescription>
-        </div>
-        {isStaff || presentation.feedbackReleasedAt ? (
-          <Button onClick={onOpenFeedback}>
-            <MessageSquareText className='mr-2 h-4 w-4' />
-            {isStaff ? 'Open feedback' : 'View feedback'}
-          </Button>
-        ) : null}
-      </CardHeader>
-      {isStaff ? (
-        <CardContent className='flex flex-wrap gap-4 text-sm text-muted-foreground'>
-          <span>{presentation.materialCount ?? 0} materials</span>
-          <span>{presentation.submittedFeedbackCount ?? 0} submitted evaluations</span>
-          {presentation.feedbackReleasedByName ? (
-            <span>Released by {presentation.feedbackReleasedByName}</span>
-          ) : null}
-          {presentation.feedbackReleaseName ? (
-            <span>Release: {presentation.feedbackReleaseName}</span>
-          ) : null}
-        </CardContent>
-      ) : null}
-    </Card>
-    <MaterialsPanel coursePhaseId={coursePhaseId} presentation={presentation} isStaff={isStaff} />
+    <PresentationCard presentation={presentation} onOpenFeedback={onOpenFeedback} />
+    <MaterialsPanel
+      coursePhaseId={coursePhaseId}
+      presentation={presentation}
+      isStaff={false}
+      previewMaterials={previewMaterials}
+    />
   </div>
 )
 
-const OverviewPage = () => {
-  const coursePhaseId = useCoursePhaseId()
-  const { isStaff } = usePresentationAccess()
+// Everything on this page belongs to a presenter, so anybody else gets the same layout filled
+// with sample data instead of an error. It mirrors the assessment evaluation pages, where
+// instructors also see a disabled preview of the student experience.
+const NonStudentPreview = ({
+  coursePhaseId,
+  isStaff,
+}: {
+  coursePhaseId: string
+  isStaff: boolean
+}) => {
   const navigate = useNavigate()
-
-  const presentationsQuery = useQuery({
-    queryKey: ['presentations', coursePhaseId, isStaff ? 'all' : 'own'],
-    queryFn: () =>
-      isStaff
-        ? presentationApi.getPresentations(coursePhaseId)
-        : presentationApi
-            .getOwnPresentation(coursePhaseId)
-            .then((presentation) => (presentation ? [presentation] : [])),
+  const configQuery = useQuery({
+    queryKey: ['presentation-config', coursePhaseId],
+    queryFn: () => presentationApi.getConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
 
-  if (presentationsQuery.isLoading) return <LoadingPage />
-  if (presentationsQuery.isError) {
+  if (configQuery.isLoading) return <LoadingPage />
+
+  const targetMode = configQuery.data?.targetMode ?? 'individual'
+  const presentation = buildSamplePresentation(coursePhaseId, targetMode)
+  const materials = buildSampleMaterials(configQuery.data?.requiredMaterialTypes ?? [])
+
+  return (
+    <div className='space-y-6'>
+      <div>
+        <ManagementPageHeader>Presentations</ManagementPageHeader>
+        <p className='text-muted-foreground'>
+          The page presenters see for their own slot, their materials, and released feedback.
+        </p>
+      </div>
+
+      <Alert>
+        <TriangleAlert className='h-4 w-4' />
+        <AlertTitle>You are not a student of this course.</AlertTitle>
+        <AlertDescription className='space-y-3'>
+          <p>
+            The view below is filled with sample data and is disabled, to demonstrate what
+            presenters get to see. Slots, presenter assignments, uploaded materials, and instructor
+            feedback are managed from the schedule page.
+          </p>
+          {isStaff ? (
+            <Button variant='outline' size='sm' onClick={() => navigate('schedule')}>
+              <CalendarCog className='mr-2 h-4 w-4' />
+              Manage schedule
+            </Button>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+
+      <div className='pointer-events-none select-none opacity-70'>
+        <StudentView
+          coursePhaseId={coursePhaseId}
+          presentation={presentation}
+          previewMaterials={materials}
+        />
+      </div>
+    </div>
+  )
+}
+
+const OverviewPage = () => {
+  const coursePhaseId = useCoursePhaseId()
+  const { isStaff, isStudent } = usePresentationAccess()
+  const navigate = useNavigate()
+
+  const presentationQuery = useQuery({
+    queryKey: ['presentations', coursePhaseId, 'own'],
+    queryFn: () => presentationApi.getOwnPresentation(coursePhaseId),
+    enabled: isStudent && Boolean(coursePhaseId),
+  })
+
+  if (!isStudent) return <NonStudentPreview coursePhaseId={coursePhaseId} isStaff={isStaff} />
+
+  if (presentationQuery.isLoading) return <LoadingPage />
+  if (presentationQuery.isError) {
     // An unconnected team allocation is a phase misconfiguration the student cannot fix
     // and retrying will not resolve, so it gets an explanation rather than a retry page.
-    if (getApiError(presentationsQuery.error).code === 'team_not_resolved') {
+    if (getApiError(presentationQuery.error).code === 'team_not_resolved') {
       return (
         <ManagementPageHeader>
           This phase is set to team presentations, but no team allocation is connected to it. Please
@@ -114,56 +178,45 @@ const OverviewPage = () => {
     }
     return (
       <ErrorPage
-        message='Presentations could not be loaded.'
-        onRetry={() => void presentationsQuery.refetch()}
+        message='Your presentation could not be loaded.'
+        onRetry={() => void presentationQuery.refetch()}
       />
     )
   }
 
-  const presentations = presentationsQuery.data ?? []
+  const presentation = presentationQuery.data ?? undefined
 
   return (
     <div className='space-y-6'>
       <div>
-        <ManagementPageHeader>{isStaff ? 'Presentations' : 'My presentation'}</ManagementPageHeader>
+        <ManagementPageHeader>My presentation</ManagementPageHeader>
         <p className='text-muted-foreground'>
-          {isStaff
-            ? 'Review scheduled presentations, materials, and instructor feedback.'
-            : 'Find your presentation time and submit slides or supporting materials.'}
+          Find your presentation time and hand in the materials your instructors ask for.
         </p>
       </div>
 
-      {presentations.length === 0 ? (
+      {presentation ? (
+        <StudentView
+          coursePhaseId={coursePhaseId}
+          presentation={presentation}
+          onOpenFeedback={
+            presentation.feedbackReleasedAt
+              ? () => navigate(`presentations/${presentation.id}`)
+              : undefined
+          }
+        />
+      ) : (
         <Card>
           <CardContent className='flex flex-col items-center gap-3 py-12 text-center'>
-            <Users className='h-10 w-10 text-muted-foreground' />
+            <CalendarClock className='h-10 w-10 text-muted-foreground' />
             <div>
               <p className='font-medium'>No presentation is assigned yet</p>
               <p className='text-sm text-muted-foreground'>
-                {isStaff
-                  ? 'Create slots and assign presenters from the schedule page.'
-                  : 'Your instructors will publish your presentation slot here.'}
+                Your instructors will publish your presentation slot here.
               </p>
             </div>
-            {isStaff ? (
-              <Button variant='outline' onClick={() => navigate('schedule')}>
-                Manage schedule
-              </Button>
-            ) : null}
           </CardContent>
         </Card>
-      ) : (
-        <div className='space-y-8'>
-          {presentations.map((presentation) => (
-            <PresentationCard
-              key={presentation.id}
-              coursePhaseId={coursePhaseId}
-              presentation={presentation}
-              isStaff={isStaff}
-              onOpenFeedback={() => navigate(`presentations/${presentation.id}`)}
-            />
-          ))}
-        </div>
       )}
     </div>
   )

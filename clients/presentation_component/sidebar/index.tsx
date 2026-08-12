@@ -9,6 +9,7 @@ const sidebarItems: SidebarMenuItemProps = {
   goToPath: '',
   requiredPermissions: [
     Role.PROMPT_ADMIN,
+    Role.PROMPT_LECTURER,
     Role.COURSE_LECTURER,
     Role.COURSE_EDITOR,
     Role.COURSE_STUDENT,

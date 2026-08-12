@@ -259,10 +259,12 @@ cd servers/<service> && go test ./...
 
 # Lint clients
 cd clients && yarn biome check "core"
-
-# Add shadcn/ui component
-cd clients/shared_library && yarn dlx shadcn add <component-name>
 ```
+
+Shared UI components are not kept in this repository. They live in
+[`prompt-edu/prompt-lib`](https://github.com/prompt-edu/prompt-lib) and are consumed here as
+`@tumaet/prompt-ui-components`, so new shadcn/ui primitives are added there and released as a new
+package version.
 
 ### Git Hooks (pre-commit)
 

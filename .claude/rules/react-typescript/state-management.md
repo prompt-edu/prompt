@@ -13,24 +13,29 @@ paths:
 ## Data fetching pattern
 
 ```typescript
-// shared_library/network/queries/
-export const getCoursePhase = async (coursePhaseID: string): Promise<CoursePhase> => {
-  const response = await axios.get(`/api/course_phase/${coursePhaseID}`);
+// <component>/src/<module>/network/queries/
+import { axiosInstance } from '@tumaet/prompt-shared-state'
+
+export const getSomething = async (coursePhaseID: string): Promise<Something> => {
+  const response = await axiosInstance.get(`/api/course_phase/${coursePhaseID}/something`);
   return response.data;
 };
 
 // in a component
 const { data, isLoading } = useQuery({
-  queryKey: ["coursePhase", id],
-  queryFn: () => getCoursePhase(id),
+  queryKey: ["something", coursePhaseID],
+  queryFn: () => getSomething(coursePhaseID),
 });
 ```
 
-- Use the project hooks/queries/mutations under `@/` rather than re-implementing fetches:
-  `useGetCoursePhase`, `useModifyCoursePhase`, `useUpdateCoursePhaseParticipation(Batch)`,
+- Use the hooks/queries/mutations from `@tumaet/prompt-shared-state` rather than re-implementing
+  fetches: `useGetCoursePhase`, `useModifyCoursePhase`, `useUpdateCoursePhaseParticipation(Batch)`,
   `getCoursePhaseParticipations`, `updateCoursePhase` (JSON-Patch), `sendStatusMail`, …
-- Mutations should invalidate the relevant query keys and surface toast feedback (`useToast`).
-- Use the shared `axiosInstance` (JWT injection + CORS) and the global `env` config object.
+  Phase-specific queries live inside the owning component, under `src/<module>/network/`.
+- Mutations should invalidate the relevant query keys and surface toast feedback (`useToast` from
+  `@tumaet/prompt-ui-components`).
+- Use the shared `axiosInstance` (JWT injection + CORS) and the global `env` config object, both
+  from `@tumaet/prompt-shared-state` — never raw `axios`.
 
 ## State location decision tree
 

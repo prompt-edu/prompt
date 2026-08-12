@@ -21,7 +21,6 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 ```text
 clients/
   core/                    # Main React app shell (port 3000)
-  shared_library/          # Shared UI components, hooks, network utilities
   *_component/             # Course phase micro-frontends:
     - interview_component (port 3002)
     - matching_component (port 3003)
@@ -164,5 +163,6 @@ make test-e2e-down     # stop the stack and remove volumes
 
 - All microservices use separate PostgreSQL databases
 - Routes must be under `<server>/api/course_phase/:coursePhaseID` for SDK auth
-- Use `yarn dlx shadcn add <component>` in `shared_library` for new UI components
+- Shared UI lives in the `prompt-edu/prompt-lib` repository (`@tumaet/prompt-ui-components`), not in
+  this one; new primitives are added there and released as a package version
 - Course-specific roles are dynamically created with a naming convention including semester and course name

@@ -21,17 +21,16 @@ Extends `../common/coding-style.md`.
 - **Never use `any`** — strict typing is enforced.
 - Place type definitions at the top of the file.
 
-## Imports — use the `@/` alias for in-repo shared code
+## Imports — shared code comes from the published packages
 
 ```typescript
-import { Button } from "@/components/ui/button";        // shadcn/ui
-import { useGetCoursePhase } from "@/hooks/useGetCoursePhase";
-import { getCoursePhase } from "@/network/queries/getCoursePhase";
-import { CoursePhase } from "@/interfaces/coursePhase";
+import { Button, ManagementPageHeader } from "@tumaet/prompt-ui-components";
+import { useGetCoursePhase, axiosInstance, CoursePhase } from "@tumaet/prompt-shared-state";
 ```
 
-Shared, published code comes from `@tumaet/prompt-ui-components` and `@tumaet/prompt-shared-state`
-(see `shared-libraries.md`). Prefer these over custom UI.
+There is no `@/` alias and no in-repo shared library: everything shared comes from
+`@tumaet/prompt-ui-components` or `@tumaet/prompt-shared-state` (see `shared-libraries.md`), and
+prefer these over custom UI. Within a component, import its own modules by relative path.
 
 ## Folder structure per component
 

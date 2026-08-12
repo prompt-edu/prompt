@@ -134,7 +134,7 @@ The course phase types are stored in the DB. We assume here that you already hav
 
 **Note:**
 
-- For an external component, the `shared_library` must be published in full, and you must adjust the `publicPath` accordingly in `webpack.config.mjs`.
+- For an external component, you must adjust the `publicPath` accordingly in `rspack.config.mjs`. The shared UI and state libraries are already published as `@tumaet/prompt-ui-components` and `@tumaet/prompt-shared-state`, so an external component consumes them like any other dependency.
 
 ---
 

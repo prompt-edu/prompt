@@ -6,9 +6,11 @@ paths:
 
 # Client Shared Libraries — Prefer These Over Custom Code
 
-Always check and reuse these before writing custom components/functions.
+Always check and reuse these before writing custom components/functions. Both libraries are external
+packages; there is no in-repo shared library and no `@/` alias — everything shared lives in one of
+the two packages below.
 
-## `@tumaet/prompt-ui-components` (source: `../prompt-lib/prompt-ui-components/`)
+## `@tumaet/prompt-ui-components` (source: `github.com/prompt-edu/prompt-lib`)
 
 ```typescript
 import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
@@ -20,12 +22,19 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   Separator, Sheet, Sidebar, Skeleton, Switch, Table, Tabs, Textarea, Toast, Toaster, Toggle,
   ToggleGroup, Tooltip.
 - **Pages:** `ManagementPageHeader`, `ErrorPage`, `LoadingPage`, `UnauthorizedPage`, `SaveChangesAlert`.
-- **Dialogs:** `DeleteConfirmation`, `DialogErrorDisplay`, `DialogLoadingDisplay`.
-- **Inputs:** `DatePicker`, `DatePickerWithRange`, `MultiSelect`.
-- **Data table:** `PromptTable<T>` — sorting, filtering, row selection, column visibility, search, row actions.
+- **Dialogs:** `DeleteConfirmation`, `DialogErrorDisplay`, `DialogLoadingDisplay`, `GroupActionDialog`.
+- **Inputs:** `DatePicker`, `DatePickerWithRange`, `MultiSelect`, `ScoreLevelSelector`, `FileUpload`,
+  `FileList`.
+- **Data table:** `PromptTable<T>` — sorting, filtering, row selection, column visibility, search,
+  row actions. `PromptTableURL<T>` mirrors it with the table state kept in the URL.
+- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`.
+- **Student/course UI:** `StudentProfile`, `StudentAvatar`, `StudentProfilePicture`, `SettingsCard`,
+  `FilterBadge`, `DynamicIcon`, `MissingConfig`, `MissingSettings`, `ExportedApplicationAnswerTable`,
+  `ThemeToggle`.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
-- **Utilities:** `cn` (clsx + tailwind-merge). **Table types:** `WithId`, `RowAction<T>`,
+- **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`, `getGravatarUrl`,
+  `getCountries`, `formatFileSize`, `openFileDownload`. **Table types:** `WithId`, `RowAction<T>`,
   `TableFilter`, `SortableHeader`.
 
 ## `@tumaet/prompt-shared-state` (source: `prompt-shared-state` repo)
@@ -41,21 +50,16 @@ import { Role, PassStatus, useCourseStore } from '@tumaet/prompt-shared-state'
   `getGenderString`, `getStudyDegreeString`.
 - **Zustand stores:** `useAuthStore` (`user`, `permissions`, `logout`, `setPermissions`),
   `useCourseStore` (`courses`, `ownCourseIDs`, `setSelectedCourseID`, `isStudentOfCourse`, …).
-
-## In-repo `shared_library` (`@/` alias)
-
-- **Hooks:** `useGetCoursePhase`, `useModifyCoursePhase`, `useUpdateCoursePhaseParticipation`,
-  `useUpdateCoursePhaseParticipationBatch`, `useUpdateCoursePhaseMetaData`, `useGetMailingIsConfigured`.
+- **Hooks:** `useGetCoursePhase`, `useGetCoursePhaseParticipants`, `useModifyCoursePhase`,
+  `useUpdateCoursePhaseParticipation`, `useUpdateCoursePhaseParticipationBatch`,
+  `useUpdateCoursePhaseMetaData`, `useGetMailingIsConfigured`, `useFileUpload`.
 - **Queries:** `getCoursePhase`, `getCoursePhaseParticipations`, `getOwnCoursePhaseParticipation`,
   `getCoursePhaseParticipationStatusCounts`.
-- **Mutations:** `updateCoursePhase` (JSON-Patch), `updateCoursePhaseParticipation(Batch)`, `sendStatusMail`.
-- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`.
-- **UI:** `StudentProfile`, `StudentAvatar`/`RenderStudents`, `SettingsCard`, `FilterBadge`,
-  `DynamicIcon`, `UnauthorizedPage`, `MissingConfig`/`MissingSettings`, `ExportedApplicationAnswerTable`,
-  `SortableHeader`, `GroupActionDialog`.
-- **Utils:** `getStatusBadge`/`getStatusString`/`getStatusColor`, `getGravatarUrl`,
-  `getCountryName`/`countriesArr`, `axiosInstance`, `env`.
+- **Mutations:** `updateCoursePhase` (JSON-Patch), `updateCoursePhaseParticipationBatch`,
+  `updateCoursePhaseParticipationMetaData`, `sendStatusMail`, `uploadFile`, `deleteApplicationFile`.
+- **Network/config:** `axiosInstance` (JWT injection + CORS), `configService`, the global `env` object.
 
 ## Adding components
 
-`cd clients/shared_library && yarn dlx shadcn add <component>` — see the `add-shared-ui-component` skill.
+New shared UI belongs in the `prompt-edu/prompt-lib` repository and reaches this repo as a published
+`@tumaet/prompt-ui-components` version — see the `add-shared-ui-component` skill.

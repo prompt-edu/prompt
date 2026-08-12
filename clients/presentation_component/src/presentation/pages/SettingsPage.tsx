@@ -374,7 +374,8 @@ const SettingsPage = () => {
       <div>
         <ManagementPageHeader>Presentation settings</ManagementPageHeader>
         <p className='text-muted-foreground'>
-          Choose who presents, how instructors collaborate, and the written feedback structure.
+          Choose who presents, what they hand in, how instructors collaborate, and the written
+          feedback structure.
         </p>
       </div>
 

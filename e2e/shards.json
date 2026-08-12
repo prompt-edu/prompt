@@ -6,6 +6,7 @@
       "cacheWriter": false,
       "paths": [
         "/tests/application/.*\\.spec\\.ts$",
+        "/tests/audit-log/.*\\.spec\\.ts$",
         "/tests/auth/.*\\.spec\\.ts$",
         "/tests/configurator/.*\\.spec\\.ts$",
         "/tests/course-staff/.*\\.spec\\.ts$",

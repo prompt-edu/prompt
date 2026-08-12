@@ -19,10 +19,10 @@ var (
 	// Has categories but no presentations or feedback, so category mutations are unlocked.
 	categoryOnlyPhaseID = uuid.MustParse("10000000-0000-0000-0000-000000000003")
 	deliveryCategory    = uuid.MustParse("20000000-0000-0000-0000-000000000001")
-	contentCategory   = uuid.MustParse("20000000-0000-0000-0000-000000000002")
-	adaPresentationID = uuid.MustParse("40000000-0000-0000-0000-000000000001")
-	freeSlotID        = uuid.MustParse("30000000-0000-0000-0000-000000000003")
-	assignedSlotID    = uuid.MustParse("30000000-0000-0000-0000-000000000001")
+	contentCategory     = uuid.MustParse("20000000-0000-0000-0000-000000000002")
+	adaPresentationID   = uuid.MustParse("40000000-0000-0000-0000-000000000001")
+	freeSlotID          = uuid.MustParse("30000000-0000-0000-0000-000000000003")
+	assignedSlotID      = uuid.MustParse("30000000-0000-0000-0000-000000000001")
 )
 
 func instructor(id string) User {

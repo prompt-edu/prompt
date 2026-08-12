@@ -10,11 +10,12 @@ import (
 )
 
 type CoursePhaseConfig struct {
-	CoursePhaseID uuid.UUID          `json:"course_phase_id"`
-	TargetMode    string             `json:"target_mode"`
-	FeedbackMode  string             `json:"feedback_mode"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	TargetMode            string             `json:"target_mode"`
+	FeedbackMode          string             `json:"feedback_mode"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+	RequiredMaterialTypes []string           `json:"required_material_types"`
 }
 
 type FeedbackAnswer struct {
@@ -88,6 +89,7 @@ type PresentationMaterial struct {
 	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	MaterialType     string             `json:"material_type"`
 }
 
 type PresentationSlot struct {

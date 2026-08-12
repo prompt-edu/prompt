@@ -25,12 +25,6 @@ import (
 const (
 	materialReaperInterval  = time.Hour
 	materialReaperBatchSize = 100
-
-	defaultAllowedMaterialTypes = "application/pdf," +
-		"application/vnd.ms-powerpoint," +
-		"application/vnd.openxmlformats-officedocument.presentationml.presentation," +
-		"application/vnd.oasis.opendocument.presentation," +
-		"image/jpeg,image/png,image/gif,application/zip,text/plain"
 )
 
 func databaseURL() string {
@@ -101,9 +95,14 @@ func boolEnv(key string, defaultValue bool) bool {
 }
 
 // Deliberately separate from core's ALLOWED_FILE_TYPES: presentation materials are slide
-// decks, and widening the shared variable would also widen core's document uploads.
+// decks, and widening the shared variable would also widen core's document uploads. The
+// default is the union of the material catalog, so no upload a lecturer can require is
+// blocked by the deployment-wide gate.
 func allowedMaterialTypes() []string {
-	raw := promptSDK.GetEnv("PRESENTATION_ALLOWED_FILE_TYPES", defaultAllowedMaterialTypes)
+	raw := promptSDK.GetEnv(
+		"PRESENTATION_ALLOWED_FILE_TYPES",
+		strings.Join(presentation.DefaultAllowedMaterialTypes(), ","),
+	)
 	types := make([]string, 0)
 	for _, value := range strings.Split(raw, ",") {
 		if trimmed := strings.TrimSpace(value); trimmed != "" {

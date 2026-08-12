@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,11 +20,21 @@ type TestDB struct {
 	Queries *db.Queries
 }
 
-// migrationPath resolves against this source file rather than the working directory, so
-// suites in any package can call SetupTestDB without knowing their depth.
-func migrationPath() string {
+// migrationPaths resolves against this source file rather than the working directory, so
+// suites in any package can call SetupTestDB without knowing their depth. Every up
+// migration is applied in numbered order, so a new one cannot be forgotten here.
+func migrationPaths() ([]string, error) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(thisFile), "..", "db", "migration", "0001_schema.up.sql")
+	pattern := filepath.Join(filepath.Dir(thisFile), "..", "db", "migration", "*.up.sql")
+	paths, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("list migrations: %w", err)
+	}
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no migrations found at %s", pattern)
+	}
+	sort.Strings(paths)
+	return paths, nil
 }
 
 // SetupTestDB starts a throwaway Postgres, applies the real migration, and optionally
@@ -72,7 +83,13 @@ func SetupTestDB(ctx context.Context, seedPaths ...string) (*TestDB, func(), err
 		return nil, nil, err
 	}
 
-	for _, path := range append([]string{migrationPath()}, seedPaths...) {
+	migrations, err := migrationPaths()
+	if err != nil {
+		conn.Close()
+		terminate()
+		return nil, nil, err
+	}
+	for _, path := range append(migrations, seedPaths...) {
 		if err := runSQLFile(ctx, conn, path); err != nil {
 			conn.Close()
 			terminate()

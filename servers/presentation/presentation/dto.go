@@ -12,12 +12,18 @@ type SettingsResponse struct {
 	FeedbackMode  string    `json:"feedbackMode"`
 	// Server-side upload limit, so the client need not keep its own copy in sync.
 	MaxUploadBytes int64 `json:"maxUploadBytes"`
+	// The uploads presenters have to hand in, in catalog order. An empty list means the
+	// phase asks for no materials at all.
+	RequiredMaterialTypes []string `json:"requiredMaterialTypes"`
 }
 
 type UpdateSettingsRequest struct {
-	TargetMode        string `json:"targetMode" binding:"required,oneof=individual team"`
-	FeedbackMode      string `json:"feedbackMode" binding:"required,oneof=independent shared"`
-	ResetExistingData bool   `json:"resetExistingData"`
+	TargetMode   string `json:"targetMode" binding:"required,oneof=individual team"`
+	FeedbackMode string `json:"feedbackMode" binding:"required,oneof=independent shared"`
+	// Replaces the phase's requirements wholesale. Omitting it clears them, which is how a
+	// lecturer asks for no uploads; the keys are validated against the material catalog.
+	RequiredMaterialTypes []string `json:"requiredMaterialTypes"`
+	ResetExistingData     bool     `json:"resetExistingData"`
 }
 
 type CategoryRequest struct {
@@ -38,6 +44,13 @@ type SlotRequest struct {
 	StartTime time.Time `json:"startTime" binding:"required"`
 	EndTime   time.Time `json:"endTime" binding:"required"`
 	Location  string    `json:"location"`
+}
+
+// MaxBatchSlots bounds a single batch so one request cannot create an unbounded schedule.
+const MaxBatchSlots = 100
+
+type SlotBatchRequest struct {
+	Slots []SlotRequest `json:"slots" binding:"required,min=1,max=100,dive"`
 }
 
 type SlotResponse struct {
@@ -81,9 +94,10 @@ type PresentationResponse struct {
 }
 
 type PresignMaterialRequest struct {
-	FileName    string `json:"fileName" binding:"required"`
-	ContentType string `json:"contentType" binding:"required"`
-	SizeBytes   int64  `json:"sizeBytes" binding:"required,min=1"`
+	MaterialType string `json:"materialType" binding:"required"`
+	FileName     string `json:"fileName" binding:"required"`
+	ContentType  string `json:"contentType" binding:"required"`
+	SizeBytes    int64  `json:"sizeBytes" binding:"required,min=1"`
 }
 
 type PresignMaterialResponse struct {
@@ -96,6 +110,7 @@ type PresignMaterialResponse struct {
 type MaterialResponse struct {
 	ID             uuid.UUID `json:"id"`
 	PresentationID uuid.UUID `json:"presentationId"`
+	MaterialType   string    `json:"materialType"`
 	FileName       string    `json:"fileName"`
 	ContentType    string    `json:"contentType"`
 	SizeBytes      int64     `json:"sizeBytes"`

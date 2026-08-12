@@ -55,9 +55,10 @@ func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseC
 		return fmt.Errorf("ensure target presentation config: %w", err)
 	}
 	if _, err := qtx.UpdateCoursePhaseConfig(c, db.UpdateCoursePhaseConfigParams{
-		CoursePhaseID: request.TargetCoursePhaseID,
-		TargetMode:    sourceConfig.TargetMode,
-		FeedbackMode:  sourceConfig.FeedbackMode,
+		CoursePhaseID:         request.TargetCoursePhaseID,
+		TargetMode:            sourceConfig.TargetMode,
+		FeedbackMode:          sourceConfig.FeedbackMode,
+		RequiredMaterialTypes: sourceConfig.RequiredMaterialTypes,
 	}); err != nil {
 		return fmt.Errorf("copy presentation config: %w", err)
 	}

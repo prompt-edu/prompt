@@ -43,6 +43,7 @@ func RegisterRoutes(router *gin.RouterGroup, service *Service) {
 
 	router.GET("/slots", promptSDK.AuthenticationMiddleware(allRoles...), service.listSlots)
 	router.POST("/slots", promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlot)
+	router.POST("/slots/batch", promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlotsBatch)
 	router.PUT("/slots/:slotID", promptSDK.AuthenticationMiddleware(managerRoles...), service.updateSlot)
 	router.DELETE("/slots/:slotID", promptSDK.AuthenticationMiddleware(managerRoles...), service.deleteSlot)
 	router.GET("/targets", promptSDK.AuthenticationMiddleware(staffRoles...), service.listTargets)
@@ -240,6 +241,25 @@ func (s *Service) createSlot(c *gin.Context) {
 		return
 	}
 	response, err := s.CreateSlot(c, phaseID, request)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, response)
+}
+
+func (s *Service) createSlotsBatch(c *gin.Context) {
+	phaseID, err := coursePhaseID(c)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	var request SlotBatchRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		writeError(c, apiError(http.StatusBadRequest, "invalid_slot_batch", "Invalid presentation slot batch", err))
+		return
+	}
+	response, err := s.CreateSlots(c, phaseID, request.Slots)
 	if err != nil {
 		writeError(c, err)
 		return

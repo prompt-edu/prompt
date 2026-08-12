@@ -101,10 +101,11 @@ func mediaType(value string) string {
 
 func (s *Service) configResponse(config db.CoursePhaseConfig) SettingsResponse {
 	return SettingsResponse{
-		CoursePhaseID:  config.CoursePhaseID,
-		TargetMode:     config.TargetMode,
-		FeedbackMode:   config.FeedbackMode,
-		MaxUploadBytes: s.maxUploadBytes,
+		CoursePhaseID:         config.CoursePhaseID,
+		TargetMode:            config.TargetMode,
+		FeedbackMode:          config.FeedbackMode,
+		MaxUploadBytes:        s.maxUploadBytes,
+		RequiredMaterialTypes: config.RequiredMaterialTypes,
 	}
 }
 
@@ -122,6 +123,7 @@ func materialResponse(material db.PresentationMaterial) MaterialResponse {
 	return MaterialResponse{
 		ID:             material.ID,
 		PresentationID: material.PresentationID,
+		MaterialType:   material.MaterialType,
 		FileName:       material.OriginalFilename,
 		ContentType:    material.ContentType,
 		SizeBytes:      material.SizeBytes,
@@ -136,10 +138,11 @@ func (s *Service) GetConfig(ctx context.Context, coursePhaseID uuid.UUID) (Setti
 	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SettingsResponse{
-			CoursePhaseID:  coursePhaseID,
-			TargetMode:     targetModeIndividual,
-			FeedbackMode:   feedbackIndependent,
-			MaxUploadBytes: s.maxUploadBytes,
+			CoursePhaseID:         coursePhaseID,
+			TargetMode:            targetModeIndividual,
+			FeedbackMode:          feedbackIndependent,
+			MaxUploadBytes:        s.maxUploadBytes,
+			RequiredMaterialTypes: defaultRequiredMaterialTypes,
 		}, nil
 	}
 	if err != nil {
@@ -153,28 +156,39 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 	if err != nil {
 		return SettingsResponse{}, fmt.Errorf("ensure presentation config: %w", err)
 	}
-	if current.TargetMode == request.TargetMode && current.FeedbackMode == request.FeedbackMode {
+	requiredMaterialTypes, err := normalizeMaterialTypes(request.RequiredMaterialTypes)
+	if err != nil {
+		return SettingsResponse{}, err
+	}
+	modesChanged := current.TargetMode != request.TargetMode || current.FeedbackMode != request.FeedbackMode
+	if !modesChanged && slices.Equal(current.RequiredMaterialTypes, requiredMaterialTypes) {
 		return s.configResponse(current), nil
 	}
 
-	presentationCount, err := s.queries.CountPresentationsByPhase(ctx, coursePhaseID)
-	if err != nil {
-		return SettingsResponse{}, fmt.Errorf("count presentations: %w", err)
-	}
-	feedbackCount, err := s.queries.CountFeedbackFormsByPhase(ctx, coursePhaseID)
-	if err != nil {
-		return SettingsResponse{}, fmt.Errorf("count feedback forms: %w", err)
-	}
-	if (presentationCount > 0 || feedbackCount > 0) && !request.ResetExistingData {
-		return SettingsResponse{}, apiError(
-			409,
-			"config_locked",
-			"Changing target or feedback mode requires explicitly resetting existing presentation data",
-			nil,
-		)
+	// Only the modes invalidate existing presentations. Asking for a different set of
+	// uploads leaves every schedule assignment and evaluation intact, so it is never
+	// gated behind a destructive reset.
+	resetExistingData := request.ResetExistingData && modesChanged
+	if modesChanged {
+		presentationCount, countErr := s.queries.CountPresentationsByPhase(ctx, coursePhaseID)
+		if countErr != nil {
+			return SettingsResponse{}, fmt.Errorf("count presentations: %w", countErr)
+		}
+		feedbackCount, countErr := s.queries.CountFeedbackFormsByPhase(ctx, coursePhaseID)
+		if countErr != nil {
+			return SettingsResponse{}, fmt.Errorf("count feedback forms: %w", countErr)
+		}
+		if (presentationCount > 0 || feedbackCount > 0) && !resetExistingData {
+			return SettingsResponse{}, apiError(
+				409,
+				"config_locked",
+				"Changing target or feedback mode requires explicitly resetting existing presentation data",
+				nil,
+			)
+		}
 	}
 	var storageKeys []string
-	if request.ResetExistingData {
+	if resetExistingData {
 		storageKeys, err = s.queries.ListMaterialStorageKeysByPhase(ctx, coursePhaseID)
 		if err != nil {
 			return SettingsResponse{}, fmt.Errorf("list materials during config reset: %w", err)
@@ -187,7 +201,7 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
-	if request.ResetExistingData {
+	if resetExistingData {
 		if err := qtx.DeletePresentationsByPhase(ctx, coursePhaseID); err != nil {
 			return SettingsResponse{}, fmt.Errorf("delete presentations during config reset: %w", err)
 		}
@@ -196,9 +210,10 @@ func (s *Service) UpdateConfig(ctx context.Context, coursePhaseID uuid.UUID, req
 		}
 	}
 	config, err := qtx.UpdateCoursePhaseConfig(ctx, db.UpdateCoursePhaseConfigParams{
-		CoursePhaseID: coursePhaseID,
-		TargetMode:    request.TargetMode,
-		FeedbackMode:  request.FeedbackMode,
+		CoursePhaseID:         coursePhaseID,
+		TargetMode:            request.TargetMode,
+		FeedbackMode:          request.FeedbackMode,
+		RequiredMaterialTypes: requiredMaterialTypes,
 	})
 	if err != nil {
 		return SettingsResponse{}, fmt.Errorf("update presentation config: %w", err)
@@ -396,6 +411,49 @@ func (s *Service) CreateSlot(ctx context.Context, coursePhaseID uuid.UUID, reque
 		return SlotResponse{}, fmt.Errorf("create presentation slot: %w", err)
 	}
 	return slotResponse(slot, nil), nil
+}
+
+// CreateSlots creates a whole series in one transaction, so a rejected slot never leaves a
+// partial series behind for the lecturer to clean up.
+func (s *Service) CreateSlots(ctx context.Context, coursePhaseID uuid.UUID, requests []SlotRequest) ([]SlotResponse, error) {
+	if len(requests) == 0 {
+		return nil, apiError(400, "invalid_slot", "A batch must contain at least one slot", nil)
+	}
+	if len(requests) > MaxBatchSlots {
+		return nil, apiError(400, "too_many_slots",
+			fmt.Sprintf("A batch may contain at most %d slots", MaxBatchSlots), nil)
+	}
+	for index, request := range requests {
+		if err := validateSlot(request); err != nil {
+			return nil, fmt.Errorf("slot %d: %w", index+1, err)
+		}
+	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin slot batch: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	responses := make([]SlotResponse, 0, len(requests))
+	for _, request := range requests {
+		location := strings.TrimSpace(request.Location)
+		slot, createErr := qtx.CreatePresentationSlot(ctx, db.CreatePresentationSlotParams{
+			CoursePhaseID: coursePhaseID,
+			StartTime:     pgtype.Timestamptz{Time: request.StartTime, Valid: true},
+			EndTime:       pgtype.Timestamptz{Time: request.EndTime, Valid: true},
+			Location:      pgtype.Text{String: location, Valid: location != ""},
+		})
+		if createErr != nil {
+			return nil, fmt.Errorf("create presentation slot in batch: %w", createErr)
+		}
+		responses = append(responses, slotResponse(slot, nil))
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit slot batch: %w", err)
+	}
+	return responses, nil
 }
 
 func (s *Service) UpdateSlot(ctx context.Context, coursePhaseID, slotID uuid.UUID, request SlotRequest) (SlotResponse, error) {
@@ -883,7 +941,15 @@ func (s *Service) CreateUploadIntent(
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	if err := s.ensureAllowedType(contentType); err != nil {
+	config, err := s.GetConfig(ctx, coursePhaseID)
+	if err != nil {
+		return PresignMaterialResponse{}, err
+	}
+	materialType := strings.TrimSpace(request.MaterialType)
+	if err := ensureMaterialTypeRequested(config.RequiredMaterialTypes, materialType); err != nil {
+		return PresignMaterialResponse{}, err
+	}
+	if err := s.ensureContentTypeForMaterial(materialType, contentType); err != nil {
 		return PresignMaterialResponse{}, err
 	}
 	uploadID := uuid.New()
@@ -898,6 +964,7 @@ func (s *Service) CreateUploadIntent(
 	)
 	material, err := s.queries.CreatePendingMaterial(ctx, db.CreatePendingMaterialParams{
 		PresentationID:   presentationID,
+		MaterialType:     materialType,
 		OriginalFilename: fileName,
 		ContentType:      contentType,
 		StorageKey:       storageKey,
@@ -971,7 +1038,7 @@ func (s *Service) CompleteUpload(
 		contentType = pending.ContentType
 	}
 	// The stored object decides the type, not the presign request, so re-check it here.
-	if err := s.ensureAllowedType(contentType); err != nil {
+	if err := s.ensureContentTypeForMaterial(pending.MaterialType, contentType); err != nil {
 		_ = s.storage.Delete(ctx, pending.StorageKey)
 		_, _ = s.queries.DeletePresentationMaterial(ctx, db.DeletePresentationMaterialParams{
 			ID:             pending.ID,

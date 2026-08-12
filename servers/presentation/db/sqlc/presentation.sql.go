@@ -119,7 +119,7 @@ const completePresentationMaterial = `-- name: CompletePresentationMaterial :one
 UPDATE presentation_material
 SET size_bytes = $3, content_type = $4, state = 'ready', expires_at = NULL, updated_at = now()
 WHERE id = $1 AND presentation_id = $2 AND state = 'pending' AND expires_at > now()
-RETURNING id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at
+RETURNING id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at, material_type
 `
 
 type CompletePresentationMaterialParams struct {
@@ -151,6 +151,7 @@ func (q *Queries) CompletePresentationMaterial(ctx context.Context, arg Complete
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MaterialType,
 	)
 	return i, err
 }
@@ -296,14 +297,15 @@ func (q *Queries) CreateFeedbackForm(ctx context.Context, arg CreateFeedbackForm
 
 const createPendingMaterial = `-- name: CreatePendingMaterial :one
 INSERT INTO presentation_material (
-  presentation_id, original_filename, content_type, storage_key,
+  presentation_id, material_type, original_filename, content_type, storage_key,
   uploader_user_id, uploader_name, uploader_email, expires_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at, material_type
 `
 
 type CreatePendingMaterialParams struct {
 	PresentationID   uuid.UUID          `json:"presentation_id"`
+	MaterialType     string             `json:"material_type"`
 	OriginalFilename string             `json:"original_filename"`
 	ContentType      string             `json:"content_type"`
 	StorageKey       string             `json:"storage_key"`
@@ -316,6 +318,7 @@ type CreatePendingMaterialParams struct {
 func (q *Queries) CreatePendingMaterial(ctx context.Context, arg CreatePendingMaterialParams) (PresentationMaterial, error) {
 	row := q.db.QueryRow(ctx, createPendingMaterial,
 		arg.PresentationID,
+		arg.MaterialType,
 		arg.OriginalFilename,
 		arg.ContentType,
 		arg.StorageKey,
@@ -339,6 +342,7 @@ func (q *Queries) CreatePendingMaterial(ctx context.Context, arg CreatePendingMa
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MaterialType,
 	)
 	return i, err
 }
@@ -554,7 +558,7 @@ const ensureCoursePhaseConfig = `-- name: EnsureCoursePhaseConfig :one
 INSERT INTO course_phase_config (course_phase_id)
 VALUES ($1)
 ON CONFLICT (course_phase_id) DO UPDATE SET course_phase_id = EXCLUDED.course_phase_id
-RETURNING course_phase_id, target_mode, feedback_mode, created_at, updated_at
+RETURNING course_phase_id, target_mode, feedback_mode, created_at, updated_at, required_material_types
 `
 
 func (q *Queries) EnsureCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (CoursePhaseConfig, error) {
@@ -566,12 +570,13 @@ func (q *Queries) EnsureCoursePhaseConfig(ctx context.Context, coursePhaseID uui
 		&i.FeedbackMode,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RequiredMaterialTypes,
 	)
 	return i, err
 }
 
 const getCoursePhaseConfig = `-- name: GetCoursePhaseConfig :one
-SELECT course_phase_id, target_mode, feedback_mode, created_at, updated_at FROM course_phase_config WHERE course_phase_id = $1
+SELECT course_phase_id, target_mode, feedback_mode, created_at, updated_at, required_material_types FROM course_phase_config WHERE course_phase_id = $1
 `
 
 func (q *Queries) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (CoursePhaseConfig, error) {
@@ -583,6 +588,7 @@ func (q *Queries) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.U
 		&i.FeedbackMode,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RequiredMaterialTypes,
 	)
 	return i, err
 }
@@ -811,7 +817,7 @@ func (q *Queries) GetPresentationForUpdate(ctx context.Context, arg GetPresentat
 }
 
 const getPresentationMaterial = `-- name: GetPresentationMaterial :one
-SELECT m.id, m.presentation_id, m.original_filename, m.content_type, m.size_bytes, m.storage_key, m.state, m.uploader_user_id, m.uploader_name, m.uploader_email, m.expires_at, m.created_at, m.updated_at FROM presentation_material m
+SELECT m.id, m.presentation_id, m.original_filename, m.content_type, m.size_bytes, m.storage_key, m.state, m.uploader_user_id, m.uploader_name, m.uploader_email, m.expires_at, m.created_at, m.updated_at, m.material_type FROM presentation_material m
 JOIN presentation p ON p.id = m.presentation_id
 WHERE m.id = $1 AND p.course_phase_id = $2
 `
@@ -838,6 +844,7 @@ func (q *Queries) GetPresentationMaterial(ctx context.Context, arg GetPresentati
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MaterialType,
 	)
 	return i, err
 }
@@ -968,7 +975,7 @@ func (q *Queries) GetPrivacyFeedbackForms(ctx context.Context, evaluatorUserID p
 }
 
 const getPrivacyMaterials = `-- name: GetPrivacyMaterials :many
-SELECT m.id, m.presentation_id, m.original_filename, m.content_type, m.size_bytes, m.storage_key, m.state, m.uploader_user_id, m.uploader_name, m.uploader_email, m.expires_at, m.created_at, m.updated_at FROM presentation_material m
+SELECT m.id, m.presentation_id, m.original_filename, m.content_type, m.size_bytes, m.storage_key, m.state, m.uploader_user_id, m.uploader_name, m.uploader_email, m.expires_at, m.created_at, m.updated_at, m.material_type FROM presentation_material m
 JOIN presentation p ON p.id = m.presentation_id
 WHERE m.uploader_user_id = $1
    OR (p.target_type = 'individual' AND p.target_id = ANY($2::uuid[]))
@@ -1002,6 +1009,7 @@ func (q *Queries) GetPrivacyMaterials(ctx context.Context, arg GetPrivacyMateria
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.MaterialType,
 		); err != nil {
 			return nil, err
 		}
@@ -1197,7 +1205,7 @@ func (q *Queries) ListMaterialStorageKeysByPresentation(ctx context.Context, pre
 }
 
 const listPresentationMaterials = `-- name: ListPresentationMaterials :many
-SELECT id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at FROM presentation_material
+SELECT id, presentation_id, original_filename, content_type, size_bytes, storage_key, state, uploader_user_id, uploader_name, uploader_email, expires_at, created_at, updated_at, material_type FROM presentation_material
 WHERE presentation_id = $1 AND state = 'ready'
 ORDER BY created_at, id
 `
@@ -1225,6 +1233,7 @@ func (q *Queries) ListPresentationMaterials(ctx context.Context, presentationID 
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.MaterialType,
 		); err != nil {
 			return nil, err
 		}
@@ -1510,19 +1519,25 @@ func (q *Queries) SetFeedbackRelease(ctx context.Context, arg SetFeedbackRelease
 
 const updateCoursePhaseConfig = `-- name: UpdateCoursePhaseConfig :one
 UPDATE course_phase_config
-SET target_mode = $2, feedback_mode = $3, updated_at = now()
+SET target_mode = $2, feedback_mode = $3, required_material_types = $4, updated_at = now()
 WHERE course_phase_id = $1
-RETURNING course_phase_id, target_mode, feedback_mode, created_at, updated_at
+RETURNING course_phase_id, target_mode, feedback_mode, created_at, updated_at, required_material_types
 `
 
 type UpdateCoursePhaseConfigParams struct {
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
-	TargetMode    string    `json:"target_mode"`
-	FeedbackMode  string    `json:"feedback_mode"`
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+	TargetMode            string    `json:"target_mode"`
+	FeedbackMode          string    `json:"feedback_mode"`
+	RequiredMaterialTypes []string  `json:"required_material_types"`
 }
 
 func (q *Queries) UpdateCoursePhaseConfig(ctx context.Context, arg UpdateCoursePhaseConfigParams) (CoursePhaseConfig, error) {
-	row := q.db.QueryRow(ctx, updateCoursePhaseConfig, arg.CoursePhaseID, arg.TargetMode, arg.FeedbackMode)
+	row := q.db.QueryRow(ctx, updateCoursePhaseConfig,
+		arg.CoursePhaseID,
+		arg.TargetMode,
+		arg.FeedbackMode,
+		arg.RequiredMaterialTypes,
+	)
 	var i CoursePhaseConfig
 	err := row.Scan(
 		&i.CoursePhaseID,
@@ -1530,6 +1545,7 @@ func (q *Queries) UpdateCoursePhaseConfig(ctx context.Context, arg UpdateCourseP
 		&i.FeedbackMode,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RequiredMaterialTypes,
 	)
 	return i, err
 }

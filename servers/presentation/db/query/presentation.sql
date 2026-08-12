@@ -9,7 +9,7 @@ SELECT * FROM course_phase_config WHERE course_phase_id = $1;
 
 -- name: UpdateCoursePhaseConfig :one
 UPDATE course_phase_config
-SET target_mode = $2, feedback_mode = $3, updated_at = now()
+SET target_mode = $2, feedback_mode = $3, required_material_types = $4, updated_at = now()
 WHERE course_phase_id = $1
 RETURNING *;
 
@@ -145,9 +145,9 @@ RETURNING *;
 
 -- name: CreatePendingMaterial :one
 INSERT INTO presentation_material (
-  presentation_id, original_filename, content_type, storage_key,
+  presentation_id, material_type, original_filename, content_type, storage_key,
   uploader_user_id, uploader_name, uploader_email, expires_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetPresentationMaterial :one

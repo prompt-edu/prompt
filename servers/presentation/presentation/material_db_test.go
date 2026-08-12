@@ -51,8 +51,19 @@ func (s *MaterialDBTestSuite) TearDownSuite() {
 func (s *MaterialDBTestSuite) upload(
 	presentationID uuid.UUID, user User, fileName, contentType string,
 ) (PresignMaterialResponse, error) {
+	return s.uploadAs(presentationID, user, MaterialTypeSlides, fileName, contentType)
+}
+
+func (s *MaterialDBTestSuite) uploadAs(
+	presentationID uuid.UUID, user User, materialType, fileName, contentType string,
+) (PresignMaterialResponse, error) {
 	return s.service.CreateUploadIntent(s.ctx, "", individualPhaseID, presentationID, user,
-		PresignMaterialRequest{FileName: fileName, ContentType: contentType, SizeBytes: 1024})
+		PresignMaterialRequest{
+			MaterialType: materialType,
+			FileName:     fileName,
+			ContentType:  contentType,
+			SizeBytes:    1024,
+		})
 }
 
 // The completion guard used to reuse the presign TTL, so any upload slower than the
@@ -171,6 +182,45 @@ func (s *MaterialDBTestSuite) TestDisallowedContentTypeRejected() {
 	require.True(s.T(), errors.As(err, &apiErr))
 	assert.Equal(s.T(), "material_type_not_allowed", apiErr.Code)
 	assert.False(s.T(), s.storage.Has(material.StorageKey))
+}
+
+// The upload slots are what the phase asks for, so a client cannot invent a slot the
+// lecturer never enabled.
+func (s *MaterialDBTestSuite) TestUploadRejectsMaterialTypeThePhaseDoesNotAsk() {
+	_, err := s.uploadAs(adaPresentationID, instructor("unasked"),
+		MaterialTypeCode, "solution.zip", "application/zip")
+
+	var apiErr *APIError
+	require.True(s.T(), errors.As(err, &apiErr))
+	assert.Equal(s.T(), 409, apiErr.Status)
+	assert.Equal(s.T(), "material_type_not_requested", apiErr.Code)
+}
+
+// Asking for a different set of uploads touches no presentation data, so it must not run
+// into the destructive-reset lock that guards the target and feedback modes.
+func (s *MaterialDBTestSuite) TestRequiredMaterialTypesChangeNeedsNoReset() {
+	config, err := s.service.GetConfig(s.ctx, individualPhaseID)
+	require.NoError(s.T(), err)
+	require.Equal(s.T(), []string{MaterialTypeSlides}, config.RequiredMaterialTypes)
+
+	updated, err := s.service.UpdateConfig(s.ctx, individualPhaseID, UpdateSettingsRequest{
+		TargetMode:            config.TargetMode,
+		FeedbackMode:          config.FeedbackMode,
+		RequiredMaterialTypes: []string{MaterialTypeHandout, MaterialTypeSlides},
+	})
+	require.NoError(s.T(), err, "the phase has presentations, but only mode changes are locked")
+	assert.Equal(s.T(), []string{MaterialTypeSlides, MaterialTypeHandout}, updated.RequiredMaterialTypes)
+
+	// The newly asked-for slot accepts uploads, and the stored file remembers its slot.
+	intent, err := s.uploadAs(adaPresentationID, instructor("handout"),
+		MaterialTypeHandout, "handout.pdf", "application/pdf")
+	require.NoError(s.T(), err)
+	material, err := s.service.queries.GetPresentationMaterial(s.ctx, db.GetPresentationMaterialParams{
+		ID:            intent.UploadID,
+		CoursePhaseID: individualPhaseID,
+	})
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), MaterialTypeHandout, material.MaterialType)
 }
 
 // A presenter may curate their own uploads but not an instructor's rubric.

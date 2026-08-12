@@ -23,15 +23,17 @@ export const useUploadAndParseCSV = () => {
       // 1. Parse the CSV using Papa Parse in 'header' mode
       //    Setting `dynamicTyping: false` ensures all values are treated as strings
       //    so leading zeros are preserved.
-      const result = await new Promise<Papa.ParseResult>((resolve, reject) => {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          dynamicTyping: false, // ensures leading zeros remain as strings
-          complete: resolve,
-          error: reject,
-        })
-      })
+      const result = await new Promise<Papa.ParseResult<Record<string, string>>>(
+        (resolve, reject) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: false, // ensures leading zeros remain as strings
+            complete: resolve,
+            error: reject,
+          })
+        },
+      )
 
       // 2. Basic validations
       if (!result?.data || result.data.length === 0) {

@@ -73,6 +73,68 @@ docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e run --rm \
 docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e down -v
 ```
 
+### 3. How CI shards the suite
+
+CI does **not** run the whole suite in one container. `.github/workflows/test-e2e.yml`
+fans it out for wall-clock:
+
+1. A **partition** job verifies `shards.json` (see below) still claims every spec
+   exactly once, then emits the shard matrix for the next job.
+2. A **matrix** of shards — **one per microservice** plus a `core` shard for the
+   core-hosted tests — each builds the stack, boots its **own** fresh stack (so
+   modules can't collide on shared data), and runs only its module's specs with
+   `PW_BLOB=1` to emit a per-shard blob report. Each shard runs with **1 worker**
+   (`workers: 1`); parallelism comes from the matrix, not from within a shard.
+3. A **merge** job downloads the blob reports and merges them into the single
+   `playwright-report` artifact (`npm run merge-reports`).
+4. An **e2e** job fails unless all of the above succeeded. It exists purely to
+   give branch protection one required check (`e2e-tests / e2e`) whose name does
+   not change when a shard is added or renamed.
+
+There is deliberately **no build-once job** in front of the shards. Serializing a
+full build ahead of shards that then rebuild anyway only adds wall-clock; what
+makes the rebuilds cheap is the **cross-run** GitHub Actions layer cache
+(`docker-compose.e2e.cache.yml` restores, `docker-compose.e2e.cache-write.yml`
+exports from the one shard flagged `cacheWriter`). Because that cache survives
+between runs, a PR that doesn't touch `yarn.lock` or `go.sum` restores the
+dependency and bundler layers instead of rebuilding them.
+
+> `type=gha` resolves its backend from `ACTIONS_RUNTIME_TOKEN` /
+> `ACTIONS_RESULTS_URL`, which GitHub injects into JS actions but **not** into
+> `run:` steps — hence `crazy-max/ghaction-github-runtime` in the shard job.
+> Without it the cache silently no-ops and every shard builds cold.
+
+Two separate budgets guard the runtime: the job's `timeout-minutes` (40) bounds
+the whole job — image build, stack boot, tests, uploads — while Playwright's
+`globalTimeout` (`PW_GLOBAL_TIMEOUT_MIN`, 20) bounds only the Playwright phase.
+The job timeout sits well above it so an overrunning suite fails with
+Playwright's message and still writes its blob report.
+
+#### The shard partition
+
+`shards.json` is the single source of truth: CI builds its matrix from it, and
+`make test-e2e-shard` resolves shard names through it. Reproduce a CI shard
+locally (same containerized runner, no cache override needed):
+
+```bash
+make test-e2e-shard SHARD=interview
+```
+
+`SKIP_BUILD=1` works here too, under the same caveat as the full run.
+
+The `core` shard is the widest (all core-hosted modules); the per-microservice
+shards mirror the `tests/<module>/` layout plus that module's
+`tests/api/<module>.api.spec.ts`. When you add a **new** microservice suite, add
+an entry to `shards.json` and cache scopes to the two cache override files.
+
+Note that Playwright's path arguments are **regexes matched against the absolute
+spec path**, not directory names — so the patterns are anchored on both ends
+(`/tests/interview/.*\.spec\.ts$`). Unanchored, a later `tests/interview-v2/`
+would silently join the `interview` shard. `npm run check-shards` asserts every
+spec under `tests/` is claimed by exactly one shard and that no pattern has gone
+stale; the `partition` job runs it before any shard starts, so a suite that would
+run twice — or not at all — fails fast instead of quietly.
+
 ---
 
 ## How it fits together

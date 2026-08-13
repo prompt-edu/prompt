@@ -23,7 +23,7 @@ type EvaluationService struct {
 
 var EvaluationServiceSingleton *EvaluationService
 
-func CreateOrUpdateEvaluation(ctx context.Context, coursePhaseID uuid.UUID, req evaluationDTO.CreateOrUpdateEvaluationRequest) error {
+func CreateOrUpdateEvaluation(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, req evaluationDTO.CreateOrUpdateEvaluationRequest) error {
 	tx, err := EvaluationServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func CreateOrUpdateEvaluation(ctx context.Context, coursePhaseID uuid.UUID, req 
 
 	qtx := EvaluationServiceSingleton.queries.WithTx(tx)
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, req.CourseParticipationID, coursePhaseID, req.AuthorCourseParticipationID, req.Type)
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, req.CourseParticipationID, coursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func CreateOrUpdateEvaluation(ctx context.Context, coursePhaseID uuid.UUID, req 
 	return nil
 }
 
-func DeleteEvaluation(ctx context.Context, id uuid.UUID) error {
+func DeleteEvaluation(ctx context.Context, authHeader string, id uuid.UUID) error {
 	tx, err := EvaluationServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func DeleteEvaluation(ctx context.Context, id uuid.UUID) error {
 		return errors.New("could not get evaluation by ID")
 	}
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, evaluation.CourseParticipationID, evaluation.CoursePhaseID, evaluation.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(evaluation.Type))
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, evaluation.CourseParticipationID, evaluation.CoursePhaseID, evaluation.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(evaluation.Type))
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,5 @@
 # Self-contained build (no prompt-clients-base image needed outside the monorepo)
-FROM node:22.23.2-alpine AS build
+FROM node:24.19.0-alpine AS build
 
 WORKDIR /app
 # .yarnrc.yml is optional (Corepack reads the Yarn version from package.json);

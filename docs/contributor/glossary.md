@@ -159,3 +159,12 @@ Generates and distributes course completion certificates.
 
 - Certificate Template, Release Date, Download Status
 - Code: client `clients/certificate_component/`, server `servers/certificate/`
+
+### Infrastructure Setup
+
+Provisions external resources for each team or student: GitLab groups, Slack channels,
+Outline collections, Rancher projects and Keycloak groups.
+
+- Provider Config (encrypted credentials), Resource Config (what to create), Resource
+  Instance (one provisioned resource and its status)
+- Code: client `clients/infrastructure_setup_component/`, server `servers/infrastructure_setup/`

@@ -29,6 +29,7 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
+    - infrastructure_setup_component (port 3011)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
     - devops_challenge_component (served by prompt-github-challenge)
@@ -40,6 +41,7 @@ servers/
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
   example_server/          # Example phase service (port 8086)
+  infrastructure_setup/    # External resource provisioning (port 8091)
 
 docs/                      # Docusaurus documentation
 ```

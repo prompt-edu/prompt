@@ -542,7 +542,7 @@ services:
       - "5439:5432"
 
   db-infrastructure-setup:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.18-alpine"
     container_name: prompt-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}

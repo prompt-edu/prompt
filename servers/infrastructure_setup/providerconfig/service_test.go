@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -115,5 +116,76 @@ func TestListAndDeleteProviderConfigs(t *testing.T) {
 func TestGetAuthFieldsRejectsUnknownProvider(t *testing.T) {
 	if _, err := GetAuthFields("unknown"); err == nil {
 		t.Fatal("GetAuthFields returned nil error for unknown provider")
+	}
+}
+
+// Credentials are stored as JSON and unmarshalled into string fields by the providers,
+// so a non-string value has to be rejected up front rather than blowing up in the
+// worker much later.
+func TestValidateUpsertRequestRejectsNonStringCredentials(t *testing.T) {
+	tests := map[string]map[string]interface{}{
+		"nested object": {"base_url": map[string]interface{}{"nested": true}, "private_token": "t"},
+		"array":         {"base_url": []interface{}{"a"}, "private_token": "t"},
+		"number":        {"base_url": "https://gitlab.test", "private_token": 42},
+	}
+
+	for name, credentials := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := validateUpsertRequest(providerconfigDTO.UpsertRequest{
+				ProviderType: "gitlab",
+				Credentials:  credentials,
+			})
+			if !errors.Is(err, ErrValidation) {
+				t.Fatalf("error = %v, want ErrValidation", err)
+			}
+		})
+	}
+}
+
+func TestValidateUpsertRequestRejectsUnknownField(t *testing.T) {
+	err := validateUpsertRequest(providerconfigDTO.UpsertRequest{
+		ProviderType: "gitlab",
+		Credentials: map[string]interface{}{
+			"base_url":      "https://gitlab.test",
+			"private_token": "token",
+			"typo_field":    "value",
+		},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("error = %v, want ErrValidation for an unknown field", err)
+	}
+}
+
+func TestValidateUpsertRequestAcceptsValidCredentials(t *testing.T) {
+	if err := validateUpsertRequest(providerconfigDTO.UpsertRequest{
+		ProviderType: "gitlab",
+		Credentials: map[string]interface{}{
+			"base_url":      "https://gitlab.test",
+			"private_token": "token",
+		},
+	}); err != nil {
+		t.Fatalf("validateUpsertRequest: %v", err)
+	}
+}
+
+func TestSupportedResourceTypes(t *testing.T) {
+	for providerType, want := range map[string]string{
+		"gitlab":   "group",
+		"slack":    "channel",
+		"outline":  "collection",
+		"rancher":  "project",
+		"keycloak": "group",
+	} {
+		got, err := SupportedResourceTypes(providerType)
+		if err != nil {
+			t.Fatalf("SupportedResourceTypes(%q): %v", providerType, err)
+		}
+		if len(got) != 1 || got[0] != want {
+			t.Fatalf("SupportedResourceTypes(%q) = %v, want [%s]", providerType, got, want)
+		}
+	}
+
+	if _, err := SupportedResourceTypes("unknown"); err == nil {
+		t.Fatal("SupportedResourceTypes returned no error for an unknown provider")
 	}
 }

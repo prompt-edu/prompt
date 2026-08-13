@@ -16,6 +16,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/encryption"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/execution"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
@@ -113,6 +114,10 @@ func main() {
 		log.WithError(err).Warn("startup recovery: ResetInProgressToPending failed")
 	}
 
+	if err := encryption.ValidateKey(); err != nil {
+		log.Fatalf("Invalid ENCRYPTION_KEY: %v", err)
+	}
+
 	initKeycloak()
 	registerProviderFactories()
 
@@ -124,18 +129,21 @@ func main() {
 
 	authMw := promptSDK.AuthenticationMiddleware
 
-	// Phase-scoped API routes (lecturer + editor access).
+	// Phase-scoped API routes. These carry external provider credentials, so they are
+	// restricted to admins and lecturers - editors are deliberately excluded.
 	api := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID",
-		authMw(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor))
+		authMw(promptSDK.PromptAdmin, promptSDK.CourseLecturer))
 
 	providerconfig.RegisterRoutes(api, providerconfig.NewService(conn))
 	resourceconfig.RegisterRoutes(api, resourceconfig.NewService(conn))
 	phaseconfig.RegisterRoutes(api, phaseconfig.NewService(conn))
 	execution.RegisterRoutes(api, execution.NewService(conn))
 
-	// Copy endpoint (global, not phase-scoped).
+	// Copy endpoint (global, not phase-scoped). The config endpoint is phase-scoped but
+	// brings its own auth middleware from the SDK, so it gets a group without one.
 	copyApi := router.Group("infrastructure-setup/api")
-	copy.InitCopyModule(copyApi, conn)
+	configApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID")
+	copy.InitCopyModule(copyApi, configApi, conn)
 
 	// Public /info endpoint consumed by the management console's System Status page.
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{

@@ -96,10 +96,12 @@ func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, erro
 	}, nil
 }
 
-// InitCopyModule registers copy routes and initialises the singleton.
-func InitCopyModule(routerGroup *gin.RouterGroup, conn *pgxpool.Pool) {
-	promptTypes.RegisterCopyEndpoint(routerGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &InfrastructureSetupCopyHandler{})
-	promptTypes.RegisterConfigEndpoint(routerGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), &ConfigHandler{})
+// InitCopyModule registers the copy and config routes and initialises the singleton.
+// The config endpoint is registered as a bare /config by the SDK, so it must be mounted
+// on the phase-scoped group for :coursePhaseID to resolve.
+func InitCopyModule(copyGroup, coursePhaseGroup *gin.RouterGroup, conn *pgxpool.Pool) {
+	promptTypes.RegisterCopyEndpoint(copyGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &InfrastructureSetupCopyHandler{})
+	promptTypes.RegisterConfigEndpoint(coursePhaseGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &ConfigHandler{})
 	CopyServiceSingleton = &CopyService{
 		queries: db.New(conn),
 	}

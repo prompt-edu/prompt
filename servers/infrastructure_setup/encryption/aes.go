@@ -23,6 +23,14 @@ var ErrEmptyKey = errors.New("ENCRYPTION_KEY environment variable is not set")
 // ErrShortCiphertext is returned when the ciphertext is too short to contain a nonce.
 var ErrShortCiphertext = errors.New("ciphertext too short")
 
+// ValidateKey reports whether a usable encryption key is configured. Call it at
+// startup so a misconfigured deployment fails immediately instead of on the first
+// credential write.
+func ValidateKey() error {
+	_, err := getKey()
+	return err
+}
+
 // getKey reads and decodes the AES key from the environment.
 func getKey() ([]byte, error) {
 	raw := promptSDK.GetEnv("ENCRYPTION_KEY", "")

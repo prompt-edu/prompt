@@ -1,7 +1,10 @@
-import { env, parseURL } from '@tumaet/prompt-shared-state'
+import { parseURL } from '@tumaet/prompt-shared-state'
 import axios from 'axios'
 
-const infrastructureSetupServer = (env as any).INFRASTRUCTURE_SETUP_HOST || ''
+// INFRASTRUCTURE_SETUP_HOST is injected via core's env.js but not yet part of the
+// @tumaet/prompt-shared-state EnvType, so it is read from window.env directly.
+const infrastructureSetupServer =
+  (window.env as { INFRASTRUCTURE_SETUP_HOST?: string }).INFRASTRUCTURE_SETUP_HOST ?? ''
 
 const serverBaseUrl = parseURL(infrastructureSetupServer)
 

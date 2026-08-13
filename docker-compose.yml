@@ -180,6 +180,8 @@ services:
     depends_on:
       db-infrastructure-setup:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     ports:
       - "8091:8080"
     extra_hosts:
@@ -198,6 +200,8 @@ services:
       - KEYCLOAK_AUTHORIZED_PARTY
       - ENCRYPTION_KEY
       - DEBUG
+      - SENTRY_DSN_INFRASTRUCTURE_SETUP
+      - SENTRY_ENABLED
 
   # Example server (example service)
   server-example:
@@ -276,6 +280,7 @@ services:
       - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
+      - INFRASTRUCTURE_SETUP_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - CHAIR_NAME_SHORT

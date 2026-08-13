@@ -3,5 +3,6 @@ export enum ApplicationStatus {
   NotYetLive = 'Not Yet Live',
   Passed = 'Closed',
   Live = 'Live',
+  Import = 'CSV Import',
   Unknown = 'Unknown',
 }

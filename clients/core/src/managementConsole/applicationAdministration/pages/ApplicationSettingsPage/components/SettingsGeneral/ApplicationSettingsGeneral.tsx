@@ -9,13 +9,18 @@ import {
   Input,
   Label,
   Switch,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@tumaet/prompt-ui-components'
 import { format, formatISO, parse, set } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, ClipboardList, Loader2, Upload } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
+import type {
+  ApplicationMetaData,
+  ApplicationMode,
+} from '../../../../interfaces/applicationMetaData'
 import { ApplicationConfigDialogError } from './ApplicationSettingsGeneralErrorMessage'
 
 interface ApplicationConfigDialogProps {
@@ -39,7 +44,10 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
   const [universityLoginAvailable, setUniversityLoginAvailable] = useState(false)
   const [autoAccept, setAutoAccept] = useState(false)
   const [useCustomScores, setUseCustomScores] = useState(false)
+  const [mode, setMode] = useState<ApplicationMode>('apply')
   const [dateError, setDateError] = useState<string | null>(null)
+
+  const isImportMode = mode === 'import'
 
   const timeZone = 'Europe/Berlin'
 
@@ -65,6 +73,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
     setExternalStudentsAllowed(initialData?.externalStudentsAllowed ?? false)
     setUniversityLoginAvailable(initialData?.universityLoginAvailable ?? false)
     setUseCustomScores(initialData?.useCustomScores ?? false)
+    setMode(initialData?.applicationMode === 'import' ? 'import' : 'apply')
     setDateError(null)
   }, [initialData])
 
@@ -103,8 +112,14 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
       })
     }
 
-    // Validate that the start date/time comes before the end date/time
-    if (startDateTime && endDateTime && startDateTime.getTime() >= endDateTime.getTime()) {
+    // Validate that the start date/time comes before the end date/time (only relevant for the
+    // public application form; import mode has no application window).
+    if (
+      !isImportMode &&
+      startDateTime &&
+      endDateTime &&
+      startDateTime.getTime() >= endDateTime.getTime()
+    ) {
       setDateError('Start date and time must be before end date and time.')
       return
     }
@@ -122,6 +137,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
         universityLoginAvailable,
         autoAccept,
         useCustomScores,
+        applicationMode: mode,
       },
     }
 
@@ -166,99 +182,142 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
 
             <form onSubmit={handleSubmit}>
               <div className='grid gap-4 py-4'>
-                {/* Start Date/Time */}
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='startDate' className='text-right'>
-                    Start Date
-                  </Label>
-                  <div className='col-span-3 flex items-center gap-2'>
-                    <DatePicker
-                      date={startDate}
-                      onSelect={(date) =>
-                        setStartDate(date ? new Date(format(date, 'yyyy-MM-dd')) : undefined)
-                      }
-                    />
-                    <Input
-                      id='startTime'
-                      type='time'
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className='w-24'
-                    />
-                  </div>
-                </div>
-
-                {/* End Date/Time */}
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='endDate' className='text-right'>
-                    End Date
-                  </Label>
-                  <div className='col-span-3 flex items-center gap-2'>
-                    <DatePicker
-                      date={endDate}
-                      onSelect={(date) =>
-                        setEndDate(date ? new Date(format(date, 'yyyy-MM-dd')) : undefined)
-                      }
-                    />
-                    <Input
-                      id='endTime'
-                      type='time'
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className='w-24'
-                    />
-                  </div>
-                </div>
-
-                {/* University Login Available */}
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='universityLoginAvailable' className='text-right'>
-                    Enforce Student Login
-                  </Label>
-                  <div className='col-span-3 flex items-center gap-4'>
-                    <Switch
-                      id='universityLoginAvailable'
-                      checked={universityLoginAvailable}
-                      onCheckedChange={setUniversityLoginAvailable}
-                    />
+                {/* Intake Mode */}
+                <div className='grid grid-cols-4 items-start gap-4'>
+                  <Label className='text-right pt-2'>Intake Mode</Label>
+                  <div className='col-span-3 space-y-2'>
+                    <ToggleGroup
+                      type='single'
+                      value={mode}
+                      onValueChange={(value) => {
+                        if (value) setMode(value as ApplicationMode)
+                      }}
+                      className='justify-start'
+                    >
+                      <ToggleGroupItem value='apply' aria-label='Application Form'>
+                        <ClipboardList className='h-4 w-4 mr-2' />
+                        Application Form
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value='import' aria-label='CSV Import'>
+                        <Upload className='h-4 w-4 mr-2' />
+                        CSV Import
+                      </ToggleGroupItem>
+                    </ToggleGroup>
                     <p className='text-sm text-muted-foreground'>
-                      This option is highly recommended. It requires a Keycloak login for students
-                      and provides matriculation number and university login data.
+                      {isImportMode
+                        ? 'Students are imported from a CSV file. The public application form is closed for this phase.'
+                        : 'Students apply themselves through the public application form.'}
                     </p>
                   </div>
                 </div>
 
-                {/* External Students Allowed */}
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='externalStudentsAllowed' className='text-right'>
-                    Allow External Students
-                  </Label>
-                  <div className='col-span-3 flex items-center gap-4'>
-                    <Switch
-                      id='externalStudentsAllowed'
-                      checked={externalStudentsAllowed}
-                      onCheckedChange={setExternalStudentsAllowed}
-                    />
-                    <p className='text-sm text-muted-foreground'>
-                      This option is to allow external students to apply without login and
-                      matriculation number.
-                    </p>
+                {isImportMode ? (
+                  <div className='rounded-md border border-dashed p-4 text-sm text-muted-foreground'>
+                    In import mode the application timeframe and public-form options do not apply.
+                    Go to the <span className='font-medium'>Participants</span> page and use{' '}
+                    <span className='font-medium'>Import Students</span> to upload your CSV.
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Start Date/Time */}
+                    <div className='grid grid-cols-4 items-center gap-4'>
+                      <Label htmlFor='startDate' className='text-right'>
+                        Start Date
+                      </Label>
+                      <div className='col-span-3 flex items-center gap-2'>
+                        <DatePicker
+                          date={startDate}
+                          onSelect={(date) =>
+                            setStartDate(date ? new Date(format(date, 'yyyy-MM-dd')) : undefined)
+                          }
+                        />
+                        <Input
+                          id='startTime'
+                          type='time'
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className='w-24'
+                        />
+                      </div>
+                    </div>
 
-                {/* Auto Accept */}
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='autoAccept' className='text-right'>
-                    Auto Accept
-                  </Label>
-                  <div className='col-span-3 flex items-center gap-4'>
-                    <Switch id='autoAccept' checked={autoAccept} onCheckedChange={setAutoAccept} />
-                    <p className='text-sm text-muted-foreground'>
-                      This option will automatically accept all applications without any manual
-                      review.
-                    </p>
-                  </div>
-                </div>
+                    {/* End Date/Time */}
+                    <div className='grid grid-cols-4 items-center gap-4'>
+                      <Label htmlFor='endDate' className='text-right'>
+                        End Date
+                      </Label>
+                      <div className='col-span-3 flex items-center gap-2'>
+                        <DatePicker
+                          date={endDate}
+                          onSelect={(date) =>
+                            setEndDate(date ? new Date(format(date, 'yyyy-MM-dd')) : undefined)
+                          }
+                        />
+                        <Input
+                          id='endTime'
+                          type='time'
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                          className='w-24'
+                        />
+                      </div>
+                    </div>
+
+                    {/* University Login Available */}
+                    <div className='grid grid-cols-4 items-center gap-4'>
+                      <Label htmlFor='universityLoginAvailable' className='text-right'>
+                        Enforce Student Login
+                      </Label>
+                      <div className='col-span-3 flex items-center gap-4'>
+                        <Switch
+                          id='universityLoginAvailable'
+                          checked={universityLoginAvailable}
+                          onCheckedChange={setUniversityLoginAvailable}
+                        />
+                        <p className='text-sm text-muted-foreground'>
+                          This option is highly recommended. It requires a Keycloak login for
+                          students and provides matriculation number and university login data.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* External Students Allowed */}
+                    <div className='grid grid-cols-4 items-center gap-4'>
+                      <Label htmlFor='externalStudentsAllowed' className='text-right'>
+                        Allow External Students
+                      </Label>
+                      <div className='col-span-3 flex items-center gap-4'>
+                        <Switch
+                          id='externalStudentsAllowed'
+                          checked={externalStudentsAllowed}
+                          onCheckedChange={setExternalStudentsAllowed}
+                        />
+                        <p className='text-sm text-muted-foreground'>
+                          This option is to allow external students to apply without login and
+                          matriculation number.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Auto Accept */}
+                    <div className='grid grid-cols-4 items-center gap-4'>
+                      <Label htmlFor='autoAccept' className='text-right'>
+                        Auto Accept
+                      </Label>
+                      <div className='col-span-3 flex items-center gap-4'>
+                        <Switch
+                          id='autoAccept'
+                          checked={autoAccept}
+                          onCheckedChange={setAutoAccept}
+                        />
+                        <p className='text-sm text-muted-foreground'>
+                          This option will automatically accept all applications without any manual
+                          review.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className='flex justify-end'>

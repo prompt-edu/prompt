@@ -11,18 +11,18 @@ import (
 
 const getName = `-- name: GetName :many
 SELECT course_phase_id, name
-FROM template_table
+FROM example_table
 `
 
-func (q *Queries) GetName(ctx context.Context) ([]TemplateTable, error) {
+func (q *Queries) GetName(ctx context.Context) ([]ExampleTable, error) {
 	rows, err := q.db.Query(ctx, getName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []TemplateTable
+	var items []ExampleTable
 	for rows.Next() {
-		var i TemplateTable
+		var i ExampleTable
 		if err := rows.Scan(&i.CoursePhaseID, &i.Name); err != nil {
 			return nil, err
 		}

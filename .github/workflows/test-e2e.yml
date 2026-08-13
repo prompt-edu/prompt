@@ -71,7 +71,7 @@ jobs:
           echo "::error::could not pull $BUILDKIT_IMAGE after 5 attempts"
           exit 1
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         with:
           driver-opts: image=${{ env.BUILDKIT_IMAGE }}
 

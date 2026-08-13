@@ -12,6 +12,79 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteActionItemsByCourseParticipationIDs = `-- name: DeleteActionItemsByCourseParticipationIDs :exec
+DELETE FROM action_item
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteActionItemsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteActionItemsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteAssessmentCompletionsByCourseParticipationIDs = `-- name: DeleteAssessmentCompletionsByCourseParticipationIDs :exec
+DELETE FROM assessment_completion
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteAssessmentCompletionsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAssessmentCompletionsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteAssessmentsByCourseParticipationIDs = `-- name: DeleteAssessmentsByCourseParticipationIDs :exec
+DELETE FROM assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAssessmentsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteCategoryAssessmentsByCourseParticipationIDs = `-- name: DeleteCategoryAssessmentsByCourseParticipationIDs :exec
+DELETE FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteCategoryAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCategoryAssessmentsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
+const deleteEvaluationCompletionsByRecipientOrAuthorIDs = `-- name: DeleteEvaluationCompletionsByRecipientOrAuthorIDs :exec
+DELETE FROM evaluation_completion
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteEvaluationCompletionsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationCompletionsByRecipientOrAuthorIDs, dollar_1)
+	return err
+}
+
+const deleteEvaluationsByRecipientOrAuthorIDs = `-- name: DeleteEvaluationsByRecipientOrAuthorIDs :exec
+DELETE FROM evaluation
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteEvaluationsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEvaluationsByRecipientOrAuthorIDs, dollar_1)
+	return err
+}
+
+const deleteFeedbackItemsByRecipientOrAuthorIDs = `-- name: DeleteFeedbackItemsByRecipientOrAuthorIDs :exec
+DELETE FROM feedback_items
+WHERE course_participation_id = ANY($1::uuid[])
+   OR author_course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFeedbackItemsByRecipientOrAuthorIDs, dollar_1)
+	return err
+}
+
 const getAllActionItemsByCourseParticipationIDs = `-- name: GetAllActionItemsByCourseParticipationIDs :many
 SELECT id, course_phase_id, course_participation_id, action, created_at
 FROM action_item
@@ -110,7 +183,7 @@ type GetAllAssessmentsByCourseParticipationIDsRow struct {
 	ScoreLevel            ScoreLevel         `json:"score_level"`
 }
 
-// Queries for gdpr export.
+// Queries for gdpr export and deletion.
 func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllAssessmentsByCourseParticipationIDsRow, error) {
 	rows, err := q.db.Query(ctx, getAllAssessmentsByCourseParticipationIDs, dollar_1)
 	if err != nil {
@@ -127,6 +200,57 @@ func (q *Queries) GetAllAssessmentsByCourseParticipationIDs(ctx context.Context,
 			&i.CompetencyID,
 			&i.AssessedAt,
 			&i.ScoreLevel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllCategoryAssessmentsByCourseParticipationIDs = `-- name: GetAllCategoryAssessmentsByCourseParticipationIDs :many
+SELECT id,
+       category_id,
+       course_phase_id,
+       course_participation_id,
+       -- This regex simply removes "(by <author>)" in the "## ..." heading; It was added in an older migration and we don't want to leak the author's name.
+       COALESCE(regexp_replace(comment, '^(##[^\n]*?)\s*\(by[^)\n]*\)\s*$', '\1', 'ng'), '')::text AS comment,
+       created_at,
+       updated_at
+FROM category_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllCategoryAssessmentsByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID          `json:"id"`
+	CategoryID            uuid.UUID          `json:"category_id"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	Comment               string             `json:"comment"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetAllCategoryAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllCategoryAssessmentsByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllCategoryAssessmentsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllCategoryAssessmentsByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllCategoryAssessmentsByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.Comment,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

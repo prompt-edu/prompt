@@ -19,17 +19,17 @@ export function LandingPage() {
   return (
     <NonAuthenticatedPageWrapper>
       <section className='text-center mb-16'>
-        <h2 className='text-2xl font-bold text-gray-900 sm:text-3xl lg:text-4xl mb-4'>
+        <h2 className='text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl mb-4'>
           Course Application Portal
         </h2>
-        <p className='text-xl text-gray-600 max-w-4xl mx-auto mb-8'>
+        <p className='text-xl text-muted-foreground max-w-4xl mx-auto mb-8'>
           Welcome! You’ll find all courses currently open for applications below—you can apply by
           selecting the course you are interested in.
         </p>
       </section>
 
       <section className='mb-16'>
-        <h3 className='text-2xl font-semibold text-gray-800 mb-6'>
+        <h3 className='text-2xl font-semibold text-foreground mb-6'>
           Available Courses for Application
         </h3>
         {isPending ? (

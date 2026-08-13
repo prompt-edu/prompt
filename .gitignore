@@ -74,6 +74,7 @@ Thumbs.db
 .claude/worktrees/
 .gemini/
 .worktrees/
+CLAUDE.local.md
 
 # =============================================================================
 # Local Tooling (not shared)

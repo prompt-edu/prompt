@@ -11,7 +11,8 @@
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-infrastructure-setup \
-	swagger install-clients install-hooks setup-skills seaweed seaweed-down deps deps-down
+	swagger install-clients install-hooks setup-skills new-phase \
+	seaweed seaweed-down deps deps-down
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -217,8 +218,14 @@ swagger: ## Generate swagger docs for core server
 install-clients: ## Install client dependencies
 	cd clients && yarn install
 
-install-hooks: ## Install git hooks
-	./scripts/install-githooks.sh
+install-hooks: ## Install git hooks (via the pre-commit framework)
+	git config --local --unset-all core.hooksPath 2>/dev/null || true
+	pre-commit install
 
 setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
 	./scripts/setup-skills.sh
+
+# DB_PORT is also defined in .env (included above), so only forward it when it
+# was given on the command line; otherwise the script picks the next free port.
+new-phase: ## Scaffold a new course phase (make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port> [DB_PORT=<port>])
+	./scripts/new-course-phase.sh "$(NAME)" "$(CLIENT_PORT)" "$(SERVER_PORT)" "$(if $(filter command line,$(origin DB_PORT)),$(DB_PORT),)"

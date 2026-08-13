@@ -11,3 +11,7 @@ FROM interview_assignment ia
 JOIN interview_slot s ON ia.interview_slot_id = s.id
 WHERE ia.course_participation_id = ANY(@course_participation_ids::uuid[])
 ORDER BY s.start_time ASC;
+
+-- name: DeleteInterviewAssignmentsByParticipationIDs :exec
+DELETE FROM interview_assignment
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);

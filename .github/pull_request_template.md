@@ -1,32 +1,37 @@
-# 📝 Pull Request Template
+<!--
+  Fill in the sections below. Lines in HTML comments (like this one) are
+  invisible in the final PR — replace or delete them. See the PR guide:
+  docs/contributor/guide/pull_requests.md
+-->
 
-Use this template to provide all necessary information for reviewing and testing your changes.
+## Summary
 
-## ✨ What is the change?
+<!-- One or two sentences: what does this PR do and why? -->
 
-<!-- Briefly describe what has been changed or added in this PR. -->
+## Details
 
-## 📌 Reason for the change / Link to issue
+<!-- What changed or was added. -->
 
-<!-- Explain why this change was made. Optionally include a link to the relevant issue or ticket. -->
+## Reason / Link to issue
 
-## 🧪 How to Test
+<!-- Why this change was made. Reference the issue, e.g. "Closes #123". -->
 
-<!-- List the steps someone should follow to test this PR. -->
+## How to Test
 
+<!-- Steps to verify. Delete this section if not applicable.
 1. Step 1
 2. Step 2
-3. ...
+-->
 
-## 🖼️ Screenshots (if UI changes are included)
+## Screenshots
 
-<!-- Include before/after screenshots if this PR involves any visual changes. -->
-
+<!-- For UI changes only — delete this section otherwise.
 | Before         | After         |
 | -------------- | ------------- |
 | ![before](url) | ![after](url) |
+-->
 
-## ✅ PR Checklist
+## PR Checklist
 
 - [ ] Tested locally or on the dev environment
 - [ ] Code is clean, readable, and documented

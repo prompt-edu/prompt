@@ -4,65 +4,53 @@ description: Scaffold a new PROMPT 2.0 course phase end-to-end — a micro-front
 ---
 
 Scaffold a new course phase. A phase is two parts: a React micro-frontend under `clients/` and a
-Go microservice under `servers/`. Pick a `snake_case` phase name (e.g. `feedback`), a unique client
-dev port, and a unique server port. Work through both checklists; do not skip the registration steps
-— a phase that isn't registered in core + compose will not load.
+Go microservice under `servers/`, both derived from the example phase
+(`clients/example_component` + `servers/example_server` — each has a README).
 
-## Frontend component
+## Preferred: use the generator
 
-1. Copy the example: `cp -R clients/example_component clients/<name>_component`.
-2. In `clients/<name>_component/rspack.config.mjs` update the two constants near the top:
-   `const COMPONENT_NAME = '<name>_component'` and `const COMPONENT_DEV_PORT = <unique-port>`
-   (taken ports: core 3000, example 3001, interview 3002, matching 3003, intro_course_developer
-   3005, github_challenge 3006, assessment 3007, team_allocation 3008, self_team_allocation 3009,
-   certificate 3010 — pick a free one, and check `clients/core/rspack.config.mjs` for the current
-   list before deciding).
-3. Set `"name": "<name>_component"` in `clients/<name>_component/package.json`.
-4. Register the workspace in BOTH `clients/lerna.json` (`packages`) and `clients/package.json`
-   (`workspaces.packages`).
-5. Register the remote in `clients/core/rspack.config.mjs`: add a
-   `const <name>URL = IS_DEV ? \`http://localhost:<port>\` : \`/<name>\`` next to the other `*URL`
-   constants, then a `remotes:` entry using the cache-busting pattern (see the
-   `module-federation-remote` skill for the exact lines).
-6. Load it lazily in core by adding a file under
-   `clients/core/src/managementConsole/PhaseMapping/ExternalRoutes/` (and `ExternalSidebars/`) that
-   imports `<name>_component/routes` (and `/sidebar`), mirroring `ExampleRoutes.tsx`.
-7. `cd clients && yarn install` so the workspace resolves.
+```bash
+make new-phase NAME=<snake_case_name> CLIENT_PORT=<port> SERVER_PORT=<port> [DB_PORT=<port>]
+```
 
-## Backend service
+`scripts/new-course-phase.sh` copies both parts, renames every identifier, registers the phase
+(workspaces, core remote + phase mappings + `App.tsx` route, docker-compose services, env
+templates, Makefile targets, CI matrices), and verifies with `go build`, `yarn install`, `tsc`,
+and biome. Run it on a clean working tree so a failed run can be reverted. Taken client dev
+ports: core 3000, example 3001, interview 3002, matching 3003, intro_course_developer 3005,
+github_challenge 3006, assessment 3007, team_allocation 3008, self_team_allocation 3009,
+certificate 3010. Taken server ports: core 8080, team_allocation 8083, self_team_allocation 8084,
+assessment 8085, example 8086, interview 8087, certificate 8088. Pick free ones; the script aborts
+on collisions.
 
-1. Copy the example: `cp -R servers/example_server servers/<name>`.
-2. In `servers/<name>/go.mod` set the module path to
-   `github.com/prompt-edu/prompt/servers/<name>` and update internal imports accordingly.
-3. Define schema + queries (use the `sqlc-migration` skill): migrations in `db/migration/` as
-   `0001_<desc>.up.sql`, queries in `db/query/*.sql`, then run `sqlc generate` (config in
-   `servers/<name>/sqlc.yaml`).
-4. Implement business logic in `<module>/service.go`, routes in `<module>/router.go` under
-   `/api/course_phase/:coursePhaseID` (required for prompt-sdk auth — see the `go/auth-routing` rule),
-   validation in `<module>/validation.go`.
-5. Keep the `config/` and `copy/` packages from the example (phase config + copy endpoints) and wire
-   them in `main.go` (`InitAuthenticationMiddleware`, `RegisterConfigEndpoint`, `RegisterCopyEndpoint`).
+Afterwards, complete the steps the generator prints:
 
-## docker-compose wiring
+1. **Course phase type** — add an `init<Name>()` in
+   `servers/core/coursePhaseType/initializeTypes.go` (name key `<name>_component`, `BaseUrl`
+   `{CORE_HOST}/<name>/api` in prod / `http://localhost:<port>/<name>/api` in dev, required
+   inputs / provided outputs).
+2. **Schema + logic** — migrations in `db/migration/` as `0001_<desc>.up.sql`, queries in
+   `db/query/*.sql`, then `make sqlc-<name>` (use the `sqlc-migration` skill). Business logic in
+   `<module>/service.go`, routes in `<module>/router.go` under
+   `/api/course_phase/:coursePhaseID` (required for prompt-sdk auth — `go/auth-routing` rule).
+   Keep the `config/` and `copy/` packages (phase config + copy endpoints).
+3. **Deployment** — `docker-compose.prod.yml` service + traefik labels, and the
+   `build-and-push-clients.yml` / `deploy-docker.yml` / `dev.yml` / `prod.yml` wiring.
 
-1. Add a `server-<name>` service (copy the `server-example` block): build context
-   `./servers/<name>`, `dockerfile: ../Dockerfile`, unique published port mapped to `8080`
-   (taken: core 8080, team_allocation 8083, self_team_allocation 8084, assessment 8085, example
-   8086, interview 8087, certificate 8088),
-   `depends_on` its db + keycloak (`condition: service_healthy`), and the `DB_*`/`KEYCLOAK_*`/
-   `CORE_HOST`/`SERVER_CORE_HOST` env vars (rename `*_EXAMPLE_*` → `*_<NAME>_*`).
-2. Add a `client-<name>-component` service (copy `client-example-component`).
-3. Add a dedicated database service (copy `db-example-server` → `db-<name>`) with its own
-   `postgres_<name>_data` volume. Each microservice uses a SEPARATE Postgres database.
-4. Add the matching `DB_*_<NAME>_*` entries to `.env.template` and `.env.dev.template`.
-5. Add the service to the Makefile: `server-<name>`, `test-<name>`, `sqlc-<name>`, a
-   `client-<name>` target, and the corresponding entries in `.PHONY`, `servers`, `lint-servers`,
-   `test`, and `sqlc`.
+## Manual fallback / verification checklist
+
+If the generator can't be used, follow the manual checklist in
+`docs/contributor/new_course_phase.md` (it mirrors what the script does). Key files:
+`rspack.config.mjs` (`COMPONENT_NAME`, `COMPONENT_DEV_PORT`), `clients/package.json` +
+`clients/lerna.json` workspaces, `clients/core/rspack.config.mjs` remotes (cache-busting pattern
+— `module-federation-remote` skill), the three `PhaseMapping` files, and the `*-example`
+docker-compose blocks.
 
 ## Verify
 
-- `make setup-skills` not needed here. Run `cd servers/<name> && go build ./...` and
-  `go test ./...`; `cd clients && yarn install`; `make lint`.
-- Start the phase (`make clients`, the new server target) and confirm core lazy-loads the remote.
-- Source of truth for these conventions: `AGENTS.md` ("Creating New Course Phases") and the
-  `.claude/rules/` stack files.
+- `cd servers/<name> && go build ./... && go test ./...`; `cd clients && yarn install`;
+  `make lint`.
+- Start the phase (`make db`, `make server-<name>`, `make clients`) and confirm core lazy-loads
+  the remote for a course phase of type `<name>_component`.
+- External (out-of-repo) phases: see the external-phase section of
+  `docs/contributor/new_course_phase.md` and the `template-repository/` staging directory.

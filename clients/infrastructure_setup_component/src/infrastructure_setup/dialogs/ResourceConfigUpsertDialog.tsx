@@ -283,8 +283,9 @@ export const ResourceConfigUpsertDialog = ({
               />
               <p className='text-xs text-muted-foreground'>
                 Available variables: <code>{`{{semesterTag}}`}</code>, <code>{`{{teamName}}`}</code>
-                , <code>{`{{studentFirstName}}`}</code>, <code>{`{{studentLastName}}`}</code>,{' '}
-                <code>{`{{studentEmail}}`}</code>.
+                , <code>{`{{studentName}}`}</code>, <code>{`{{studentFirstName}}`}</code>,{' '}
+                <code>{`{{studentLastName}}`}</code>, <code>{`{{studentEmail}}`}</code>,{' '}
+                <code>{`{{studentLogin}}`}</code>. Anything else is rejected.
               </p>
             </div>
 

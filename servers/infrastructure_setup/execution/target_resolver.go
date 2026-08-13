@@ -87,7 +87,6 @@ func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHead
 				StudentLogin:     student.UniversityLogin,
 				StudentName:      student.FirstName + " " + student.LastName,
 				SemesterTag:      cfg.SemesterTag,
-				Semester:         cfg.SemesterTag,
 			},
 		})
 	}
@@ -134,7 +133,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 			TeamID:       &teamID,
 			TeamName:     team.Name,
 			Members:      members,
-			TemplateData: TemplateData{TeamName: team.Name, SemesterTag: cfg.SemesterTag, Semester: cfg.SemesterTag},
+			TemplateData: TemplateData{TeamName: team.Name, SemesterTag: cfg.SemesterTag},
 		})
 	}
 	return targets, nil

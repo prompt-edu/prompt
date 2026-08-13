@@ -5,51 +5,69 @@ package execution
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 )
 
 // TemplateData holds the variables available for name template substitution.
 type TemplateData struct {
-	CourseName       string
 	TeamName         string
-	TeamIndex        int
 	StudentName      string
 	StudentFirstName string
 	StudentLastName  string
 	StudentEmail     string
 	StudentLogin     string
 	SemesterTag      string
-	Semester         string
-	Year             string
 }
 
+// unresolvedPlaceholder matches any {{...}} left after substitution.
+var unresolvedPlaceholder = regexp.MustCompile(`{{[^}]*}}`)
+
 // ResolveName resolves a name template string against the provided data.
-// Supported placeholders: {{.CourseName}}, {{.TeamName}}, {{.TeamIndex}},
-// {{.StudentName}}, {{.StudentLogin}}, {{.Semester}}, {{.Year}}.
-// Braces-style (not Go text/template) keeps the server dependency-light.
+//
+// Braces-style (not Go text/template) keeps the server dependency-light. Both the
+// dotted and the lowercase spelling of each placeholder are accepted because saved
+// templates use either. An unresolved placeholder is an error rather than an empty
+// string: it would otherwise end up in the name of a real external resource.
 func ResolveName(tmpl string, data TemplateData) (string, error) {
 	replacements := map[string]string{
-		"{{.CourseName}}":      sanitize(data.CourseName),
 		"{{.TeamName}}":        sanitize(data.TeamName),
 		"{{teamName}}":         sanitize(data.TeamName),
-		"{{.TeamIndex}}":       fmt.Sprintf("%d", data.TeamIndex),
 		"{{.StudentName}}":     sanitize(data.StudentName),
+		"{{studentName}}":      sanitize(data.StudentName),
 		"{{studentFirstName}}": sanitize(data.StudentFirstName),
 		"{{studentLastName}}":  sanitize(data.StudentLastName),
 		"{{studentEmail}}":     sanitize(data.StudentEmail),
 		"{{.StudentLogin}}":    sanitize(data.StudentLogin),
 		"{{studentLogin}}":     sanitize(data.StudentLogin),
 		"{{semesterTag}}":      sanitize(data.SemesterTag),
-		"{{.Semester}}":        sanitize(data.Semester),
-		"{{.Year}}":            sanitize(data.Year),
+		"{{.SemesterTag}}":     sanitize(data.SemesterTag),
+		"{{.Semester}}":        sanitize(data.SemesterTag),
 	}
 
 	result := tmpl
 	for placeholder, value := range replacements {
 		result = strings.ReplaceAll(result, placeholder, value)
 	}
+
+	if leftover := unresolvedPlaceholder.FindString(result); leftover != "" {
+		return "", fmt.Errorf("unknown placeholder %s in name template", leftover)
+	}
 	return result, nil
+}
+
+// SupportedPlaceholders lists the placeholders a name template may use.
+func SupportedPlaceholders() []string {
+	return []string{
+		"{{teamName}}",
+		"{{studentName}}",
+		"{{studentFirstName}}",
+		"{{studentLastName}}",
+		"{{studentEmail}}",
+		"{{studentLogin}}",
+		"{{semesterTag}}",
+	}
 }
 
 // sanitize strips characters that are problematic in resource names across providers.

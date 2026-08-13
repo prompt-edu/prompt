@@ -12,18 +12,6 @@ func TestResolveName(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "team name template",
-			tmpl:     "{{.CourseName}}-team-{{.TeamIndex}}",
-			data:     TemplateData{CourseName: "iPraktikum", TeamIndex: 3},
-			expected: "ipraktikum-team-3",
-		},
-		{
-			name:     "student template",
-			tmpl:     "{{.CourseName}}-{{.StudentLogin}}",
-			data:     TemplateData{CourseName: "iPraktikum", StudentLogin: "ga12abc"},
-			expected: "ipraktikum-ga12abc",
-		},
-		{
 			name:     "lowercase student placeholders",
 			tmpl:     "{{studentFirstName}}-{{studentLastName}}-{{studentEmail}}",
 			data:     TemplateData{StudentFirstName: "Max", StudentLastName: "Muster", StudentEmail: "max@example.com"},
@@ -36,10 +24,17 @@ func TestResolveName(t *testing.T) {
 			expected: "team-alpha-ios26",
 		},
 		{
-			name:     "spaces in course name become hyphens",
-			tmpl:     "{{.CourseName}}-group",
-			data:     TemplateData{CourseName: "My Course"},
-			expected: "my-course-group",
+			name:     "dotted spellings resolve to the same values",
+			tmpl:     "{{.TeamName}}-{{.StudentLogin}}",
+			data:     TemplateData{TeamName: "Team Alpha", StudentLogin: "ga12abc"},
+			expected: "team-alpha-ga12abc",
+		},
+		{
+			// Saved templates may use either spelling of the semester tag.
+			name:     "semester aliases",
+			tmpl:     "{{.Semester}}-{{.SemesterTag}}-{{semesterTag}}",
+			data:     TemplateData{SemesterTag: "ios26"},
+			expected: "ios26-ios26-ios26",
 		},
 		{
 			name:     "special characters stripped",
@@ -48,16 +43,10 @@ func TestResolveName(t *testing.T) {
 			expected: "team-alpha-1-channel",
 		},
 		{
-			name:     "semester included",
-			tmpl:     "{{.CourseName}}-{{.Semester}}{{.Year}}",
-			data:     TemplateData{CourseName: "iPraktikum", Semester: "WS", Year: "2024"},
-			expected: "ipraktikum-ws2024",
-		},
-		{
-			name:     "empty placeholder leaves no artifacts",
-			tmpl:     "{{.CourseName}}-{{.TeamName}}",
-			data:     TemplateData{CourseName: "Course"},
-			expected: "course-",
+			name:     "known placeholder with no value renders empty",
+			tmpl:     "team-{{teamName}}",
+			data:     TemplateData{},
+			expected: "team-",
 		},
 	}
 
@@ -71,6 +60,15 @@ func TestResolveName(t *testing.T) {
 				t.Errorf("ResolveName(%q) = %q, want %q", tt.tmpl, got, tt.expected)
 			}
 		})
+	}
+}
+
+// An unknown placeholder must fail rather than end up in the name of a real resource.
+func TestResolveNameRejectsUnknownPlaceholder(t *testing.T) {
+	for _, tmpl := range []string{"{{.CourseName}}-team", "team-{{.TeamIndex}}", "{{typo}}"} {
+		if _, err := ResolveName(tmpl, TemplateData{TeamName: "Team A"}); err == nil {
+			t.Errorf("ResolveName(%q) returned no error for an unknown placeholder", tmpl)
+		}
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/execution"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 	log "github.com/sirupsen/logrus"
@@ -73,10 +74,10 @@ func validateScope(scope string) error {
 	return logAndReturnError("scope must be per_team or per_student")
 }
 
-// validateNameTemplate ensures the template is non-empty, within size limits,
-// and has balanced {{ }} placeholder delimiters. The execution worker renders
-// names via plain string replacement (see execution.ResolveName), so we only
-// need to catch malformed delimiter pairs here.
+// validateNameTemplate ensures the template is non-empty, within size limits, has
+// balanced {{ }} delimiters, and uses only placeholders the worker can resolve.
+// An unknown placeholder would otherwise only surface as a failed instance once
+// provisioning runs.
 func validateNameTemplate(nameTemplate string) error {
 	trimmed := strings.TrimSpace(nameTemplate)
 	if trimmed == "" {
@@ -87,6 +88,10 @@ func validateNameTemplate(nameTemplate string) error {
 	}
 	if strings.Count(nameTemplate, "{{") != strings.Count(nameTemplate, "}}") {
 		return logAndReturnError("invalid nameTemplate: unbalanced {{ }} delimiters")
+	}
+	if _, err := execution.ResolveName(nameTemplate, execution.TemplateData{}); err != nil {
+		return logAndReturnError(fmt.Sprintf("%v (supported: %s)",
+			err, strings.Join(execution.SupportedPlaceholders(), ", ")))
 	}
 	return nil
 }

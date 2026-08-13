@@ -35,16 +35,13 @@ export const SetupConfigPage = () => {
     enabled: !!coursePhaseID,
   })
 
+  // Seed the field once the stored config arrives, falling back to the parent course's
+  // tag when the phase has none yet. This runs only on a new response: refilling
+  // whenever the field is empty would make an intentionally cleared tag unsavable.
   useEffect(() => {
     if (!data) return
-    setSemesterTag(data.semesterTag ?? '')
-  }, [data])
-
-  // Prefill semester tag from the parent course if not set yet.
-  useEffect(() => {
-    if (!course || semesterTag) return
-    setSemesterTag(course.semesterTag ?? '')
-  }, [course, semesterTag])
+    setSemesterTag(data.semesterTag || (course?.semesterTag ?? ''))
+  }, [data, course])
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: () =>

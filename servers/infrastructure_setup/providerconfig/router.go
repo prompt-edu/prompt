@@ -1,6 +1,7 @@
 package providerconfig
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -108,6 +109,10 @@ func upsertProviderConfig(svc *Service) gin.HandlerFunc {
 
 		resp, err := svc.UpsertProviderConfig(c.Request.Context(), coursePhaseID, req)
 		if err != nil {
+			if errors.Is(err, ErrValidation) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			log.WithError(err).Error("upsert provider config")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

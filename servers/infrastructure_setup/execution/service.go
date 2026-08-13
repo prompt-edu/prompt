@@ -169,9 +169,17 @@ func createResourceInstanceParams(cfg db.ResourceConfig, coursePhaseID uuid.UUID
 	}
 }
 
-// ListInstances returns all resource instances for a course phase.
+// ListInstances returns all resource instances for a course phase. The slice is never
+// nil, so the endpoint answers with [] rather than null when nothing is provisioned.
 func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]db.ResourceInstance, error) {
-	return s.queries.ListResourceInstances(ctx, coursePhaseID)
+	instances, err := s.queries.ListResourceInstances(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	if instances == nil {
+		return []db.ResourceInstance{}, nil
+	}
+	return instances, nil
 }
 
 // RetryInstance resets a failed or partial instance back to pending and starts the worker.

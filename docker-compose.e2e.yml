@@ -101,6 +101,10 @@ services:
         condition: service_started
       client-team-allocation:
         condition: service_started
+      server-infrastructure-setup:
+        condition: service_started
+      client-infrastructure-setup:
+        condition: service_started
     # Adds the /self-team-allocation/* proxy locations that Traefik provides
     # in prod (client prefix stripped, API prefix kept).
     volumes:
@@ -120,6 +124,7 @@ services:
       - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
+      - INFRASTRUCTURE_SETUP_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - CHAIR_NAME_SHORT
@@ -507,6 +512,74 @@ services:
         [
           "CMD-SHELL",
           "pg_isready -d ${DB_CERTIFICATE_NAME} -U ${DB_CERTIFICATE_USER}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Infrastructure setup phase module (server + MF remote + own DB) ──────
+  # Sixth phase module in the e2e stack, following the blueprint in
+  # e2e/README.md ("Phase modules in the e2e stack").
+  server-infrastructure-setup:
+    build:
+      context: ./servers/infrastructure_setup
+      dockerfile: ../Dockerfile
+    container_name: prompt-e2e-server-infrastructure-setup
+    depends_on:
+      db-infrastructure-setup:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    # No host port: reached only through the client-core nginx proxy.
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SSL_MODE
+      - DB_USER=${DB_INFRASTRUCTURE_SETUP_USER}
+      - DB_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
+      - DB_NAME=${DB_INFRASTRUCTURE_SETUP_NAME}
+      - DB_HOST_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_HOST}
+      - DB_PORT_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_PORT}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      # Fixed test key: the phase refuses to start without a valid one.
+      - ENCRYPTION_KEY
+      - DEBUG
+
+  client-infrastructure-setup:
+    build:
+      context: ./clients/infrastructure_setup_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-infrastructure-setup
+    depends_on:
+      - clients-base
+    # No host port: the remote is served through the client-core nginx proxy
+    # at /infrastructure-setup/ (prefix stripped, like Traefik in prod).
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  db-infrastructure-setup:
+    image: "postgres:15.18-alpine"
+    container_name: prompt-e2e-db-infrastructure-setup
+    environment:
+      - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
+      - POSTGRES_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
+      - POSTGRES_DB=${DB_INFRASTRUCTURE_SETUP_NAME}
+      - TZ=Europe/Berlin
+    # No seed: the phase server runs its own migrations on the empty DB and the
+    # tests create all phase data themselves.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_INFRASTRUCTURE_SETUP_NAME} -U ${DB_INFRASTRUCTURE_SETUP_USER}",
         ]
       interval: 5s
       timeout: 5s

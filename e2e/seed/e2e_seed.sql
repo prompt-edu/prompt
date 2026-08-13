@@ -704,6 +704,11 @@ INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+-- Two students on the standalone Infrastructure Setup phase, so a per_student
+-- resource config resolves to a non-empty set of provisioning targets.
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000012-0000-0000-0000-000000000012', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000012-0000-0000-0000-000000000012', '{}', 'passed', '{}');
+
 -- Standalone assessment fixture phases (see the course_phase inserts below):
 -- Stan + Selma in the visibility phase, Stan in the self-evaluation phase,
 -- Stan in the print phase.
@@ -754,6 +759,9 @@ INSERT INTO public.course_phase_type VALUES ('b2222222-2222-2222-2222-2222222222
 INSERT INTO public.course_phase_type VALUES ('b3333333-3333-3333-3333-333333333333', 'Team Allocation', false, '{CORE_HOST}/team-allocation/api', 'A placeholder description for this course phase type. Detailed description will follow.');
 INSERT INTO public.course_phase_type VALUES ('b4444444-4444-4444-4444-444444444444', 'Assessment', false, '{CORE_HOST}/assessment/api', 'A placeholder description for this course phase type. Detailed description will follow.');
 INSERT INTO public.course_phase_type VALUES ('c5555555-5555-5555-5555-555555555555', 'Certificate', false, '{CORE_HOST}/certificate/api', 'Certificate of completion generation and distribution.');
+-- Seeded with a fixed ID so the phase below can reference it. Core skips its own
+-- registration when a type of this name already exists.
+INSERT INTO public.course_phase_type VALUES ('c6666666-6666-6666-6666-666666666666', 'Infrastructure Setup', false, '{CORE_HOST}/infrastructure-setup/api', 'Automated provisioning of external resources per team or student.');
 
 
 --
@@ -832,6 +840,13 @@ INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 
 --
 INSERT INTO public.course_phase VALUES ('d000000f-0000-0000-0000-00000000000f', 'c0000001-0000-0000-0000-000000000001', 'Example', '{}', false, 'a2222222-2222-2222-2222-222222222222', '{}');
 INSERT INTO public.course_phase VALUES ('d0000010-0000-0000-0000-000000000010', 'be780b32-a678-4b79-ae1c-80071771d254', 'Example', '{}', false, 'a2222222-2222-2222-2222-222222222222', '{}');
+
+--
+-- Standalone Infrastructure Setup phase (no graph edge, route by URL). The
+-- lecturer journey drives it through its own API, so it needs no graph inputs:
+-- per_student resource configs resolve from the phase's own participations.
+--
+INSERT INTO public.course_phase VALUES ('d0000012-0000-0000-0000-000000000012', 'c0000001-0000-0000-0000-000000000001', 'Infrastructure Setup', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
 
 --
 -- Standalone Matching phase (no graph edge) owned by the matching lecturer
@@ -1824,4 +1839,3 @@ ALTER TABLE ONLY public.privacy_export
 --
 
 \unrestrict uiXVLaqKXF7gSedZuy9c3H2gUqZa6VyxWQoZSShJpDmfp6Ju8Xhj14PSv45Sbb5
-

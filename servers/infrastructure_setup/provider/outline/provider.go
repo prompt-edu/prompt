@@ -14,6 +14,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
 
+const outlinePageSize = 100
+
 // Config holds credentials for the Outline provider.
 type Config struct {
 	APIKey  string `json:"api_key"`
@@ -98,23 +100,39 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 
 // findOrCreateCollection returns the ID and URL of a collection, creating it if necessary.
 func (p *Provider) findOrCreateCollection(ctx context.Context, name string) (string, string, error) {
-	// Outline does not provide a search-by-name endpoint; list all and match.
-	var listResp struct {
-		OK   bool `json:"ok"`
-		Data []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-			URL  string `json:"url"`
-		} `json:"data"`
-	}
-	if err := p.call(ctx, "collections.list", map[string]interface{}{"limit": 100}, &listResp); err != nil {
-		return "", "", err
-	}
-
-	for _, c := range listResp.Data {
-		if strings.EqualFold(c.Name, name) {
-			return c.ID, c.URL, nil
+	// Outline has no search-by-name endpoint, so every page is listed and matched.
+	// Stopping after the first page would miss an existing collection and create a
+	// duplicate under the same name.
+	offset := 0
+	for {
+		var listResp struct {
+			OK   bool `json:"ok"`
+			Data []struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"data"`
 		}
+		if err := p.call(ctx, "collections.list", map[string]interface{}{
+			"offset": offset,
+			"limit":  outlinePageSize,
+		}, &listResp); err != nil {
+			return "", "", err
+		}
+		if !listResp.OK {
+			return "", "", fmt.Errorf("outline collections.list returned ok=false")
+		}
+
+		for _, c := range listResp.Data {
+			if strings.EqualFold(c.Name, name) {
+				return c.ID, c.URL, nil
+			}
+		}
+
+		if len(listResp.Data) < outlinePageSize {
+			break
+		}
+		offset += outlinePageSize
 	}
 
 	// Create the collection.
@@ -142,16 +160,23 @@ func (p *Provider) findOrCreateCollection(ctx context.Context, name string) (str
 	return createResp.Data.Collection.ID, createResp.Data.Collection.URL, nil
 }
 
-// addMember adds a user to an Outline collection using memberships.create.
+// addMember adds a user to an Outline collection.
 func (p *Provider) addMember(ctx context.Context, collectionID, userID, permission string) error {
 	var resp struct {
-		OK bool `json:"ok"`
+		OK    bool   `json:"ok"`
+		Error string `json:"error"`
 	}
-	return p.call(ctx, "memberships.create", map[string]interface{}{
-		"collectionId": collectionID,
-		"userId":       userID,
-		"permission":   permission, // "read", "read_write", or "admin"
-	}, &resp)
+	if err := p.call(ctx, "collections.add_user", map[string]interface{}{
+		"id":         collectionID,
+		"userId":     userID,
+		"permission": permission, // "read", "read_write", or "admin"
+	}, &resp); err != nil {
+		return err
+	}
+	if !resp.OK {
+		return fmt.Errorf("outline collections.add_user failed: %s", resp.Error)
+	}
+	return nil
 }
 
 // lookupUserByEmail finds an Outline user by email.
@@ -168,11 +193,10 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 	}
 
 	offset := 0
-	limit := 100
 	for {
 		if err := p.call(ctx, "users.list", map[string]interface{}{
 			"offset": offset,
-			"limit":  limit,
+			"limit":  outlinePageSize,
 		}, &listResp); err != nil {
 			return "", err
 		}
@@ -183,10 +207,10 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 			}
 		}
 
-		if len(listResp.Data) < limit {
+		if len(listResp.Data) < outlinePageSize {
 			break
 		}
-		offset += limit
+		offset += outlinePageSize
 	}
 
 	return "", fmt.Errorf("outline user not found for email: %s", email)

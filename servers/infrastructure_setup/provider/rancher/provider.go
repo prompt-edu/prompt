@@ -139,40 +139,66 @@ func (p *Provider) findOrCreateProject(ctx context.Context, name string) (string
 
 // addMember binds a user to a Rancher project with the given role template.
 func (p *Provider) addMember(ctx context.Context, projectID, email, roleTemplateID string) error {
-	userID, err := p.lookupUserByEmail(ctx, email)
+	principalID, err := p.lookupUserPrincipal(ctx, email)
 	if err != nil {
 		return err
 	}
 
 	payload := map[string]interface{}{
 		"projectId":       projectID,
-		"userPrincipalId": "local://" + userID,
+		"userPrincipalId": principalID,
 		"roleTemplateId":  roleTemplateID,
 	}
 	_, err = p.post(ctx, "/v3/projectroletemplatebindings", payload)
 	return err
 }
 
-// lookupUserByEmail finds a Rancher user ID by email address.
-func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string, error) {
-	path := fmt.Sprintf("/v3/users?email=%s", url.QueryEscape(email))
-	body, err := p.get(ctx, path)
+// lookupUserPrincipal resolves the Rancher principal ID for an email address.
+//
+// The principals search endpoint is used rather than /v3/users: the v3 user schema has
+// no email field, so ?email= is not a supported filter and Rancher answers with an
+// unfiltered list. Taking the first entry would bind whichever user happens to come
+// first - usually the local admin - into a student project.
+//
+// The returned principal ID is used as-is. Assembling "local://"+userID is wrong on any
+// LDAP- or OIDC-backed Rancher.
+func (p *Provider) lookupUserPrincipal(ctx context.Context, email string) (string, error) {
+	body, err := p.post(ctx, "/v3/principals?action=search", map[string]interface{}{
+		"name":          email,
+		"principalType": "user",
+	})
 	if err != nil {
 		return "", err
 	}
 
 	var resp struct {
 		Data []struct {
-			ID string `json:"id"`
+			ID            string `json:"id"`
+			LoginName     string `json:"loginName"`
+			Name          string `json:"name"`
+			PrincipalType string `json:"principalType"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return "", fmt.Errorf("rancher users parse error: %w", err)
+		return "", fmt.Errorf("rancher principals parse error: %w", err)
 	}
-	if len(resp.Data) > 0 {
-		return resp.Data[0].ID, nil
+
+	// Search is a fuzzy match, so the result is confirmed against the address rather
+	// than trusted positionally.
+	for _, principal := range resp.Data {
+		if principal.PrincipalType != "" && principal.PrincipalType != "user" {
+			continue
+		}
+		if principalMatchesEmail(principal.LoginName, principal.Name, email) {
+			return principal.ID, nil
+		}
 	}
 	return "", fmt.Errorf("rancher user not found for email: %s", email)
+}
+
+// principalMatchesEmail reports whether a search hit really is the requested address.
+func principalMatchesEmail(loginName, name, email string) bool {
+	return strings.EqualFold(loginName, email) || strings.EqualFold(name, email)
 }
 
 // get performs an authenticated GET request.

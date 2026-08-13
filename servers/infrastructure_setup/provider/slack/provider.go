@@ -3,13 +3,14 @@
 package slack
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
@@ -26,11 +27,13 @@ type Config struct {
 type Provider struct {
 	cfg    Config
 	client *http.Client
+	// baseURL is the Slack API root. Only tests point it elsewhere.
+	baseURL string
 }
 
 // New creates a Slack provider from decoded credentials.
 func New(cfg Config) *Provider {
-	return &Provider{cfg: cfg, client: &http.Client{}}
+	return &Provider{cfg: cfg, client: &http.Client{}, baseURL: slackAPIBase}
 }
 
 func (p *Provider) GetType() string { return "slack" }
@@ -117,24 +120,30 @@ func (p *Provider) findOrCreateChannel(ctx context.Context, name string) (string
 }
 
 // lookupChannelByName finds an existing channel by name using conversations.list.
+//
+// Archived channels are included: they still hold the name, so excluding them turned
+// a name conflict into a permanent "not found". The response struct is declared inside
+// the loop because a page without response_metadata would otherwise leave the previous
+// cursor in place and the loop would request the same page until the context expired.
 func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string, string, error) {
-	var listResp struct {
-		OK       bool   `json:"ok"`
-		Error    string `json:"error"`
-		Channels []struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-		} `json:"channels"`
-		ResponseMetadata struct {
-			NextCursor string `json:"next_cursor"`
-		} `json:"response_metadata"`
-	}
-
 	cursor := ""
 	for {
+		var listResp struct {
+			OK       bool   `json:"ok"`
+			Error    string `json:"error"`
+			Channels []struct {
+				ID         string `json:"id"`
+				Name       string `json:"name"`
+				IsArchived bool   `json:"is_archived"`
+			} `json:"channels"`
+			ResponseMetadata struct {
+				NextCursor string `json:"next_cursor"`
+			} `json:"response_metadata"`
+		}
+
 		params := map[string]interface{}{
 			"types":            "private_channel",
-			"exclude_archived": true,
+			"exclude_archived": false,
 			"limit":            200,
 		}
 		if cursor != "" {
@@ -149,19 +158,21 @@ func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string
 		}
 
 		for _, ch := range listResp.Channels {
-			if ch.Name == name {
-				channelURL := fmt.Sprintf("https://slack.com/app_redirect?channel=%s", ch.ID)
-				return ch.ID, channelURL, nil
+			if ch.Name != name {
+				continue
 			}
+			if ch.IsArchived {
+				return "", "", fmt.Errorf("slack channel %q exists but is archived; unarchive or rename it", name)
+			}
+			channelURL := fmt.Sprintf("https://slack.com/app_redirect?channel=%s", ch.ID)
+			return ch.ID, channelURL, nil
 		}
 
 		if listResp.ResponseMetadata.NextCursor == "" {
-			break
+			return "", "", fmt.Errorf("slack channel %q not found after name conflict", name)
 		}
 		cursor = listResp.ResponseMetadata.NextCursor
 	}
-
-	return "", "", fmt.Errorf("slack channel %q not found after name conflict", name)
 }
 
 // inviteToChannel invites a user to a channel, ignoring "already in channel" errors.
@@ -200,20 +211,33 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 	return resp.User.ID, nil
 }
 
-// callAPI makes a Slack Web API call using POST with a JSON body.
+// callAPI makes a Slack Web API call.
+//
+// Parameters are form-encoded: conversations.list and users.lookupByEmail are
+// documented as form-only, and every method used here takes scalars, so one encoding
+// covers all of them.
 func (p *Provider) callAPI(ctx context.Context, method string, params map[string]interface{}, result interface{}) error {
-	data, err := json.Marshal(params)
-	if err != nil {
-		return err
+	form := url.Values{}
+	for key, value := range params {
+		switch typed := value.(type) {
+		case string:
+			form.Set(key, typed)
+		case bool:
+			form.Set(key, strconv.FormatBool(typed))
+		case int:
+			form.Set(key, strconv.Itoa(typed))
+		default:
+			return fmt.Errorf("slack %s: parameter %q has unsupported type %T", method, key, value)
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("%s/%s", slackAPIBase, method), bytes.NewReader(data))
+		fmt.Sprintf("%s/%s", p.baseURL, method), strings.NewReader(form.Encode()))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+p.cfg.BotToken)
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 
 	resp, err := p.client.Do(req)
 	if err != nil {

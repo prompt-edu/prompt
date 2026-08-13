@@ -87,8 +87,15 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 }
 
 // findOrCreateGroup returns the group ID and URL for a group, creating it if necessary.
+//
+// With a parent configured we search that parent's subgroups and compare the path
+// exactly. Matching on a full_path suffix across all visible groups would also match
+// another course's group of the same name and add students to it.
 func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (int, string, error) {
-	searchPath := fmt.Sprintf("/api/v4/groups?search=%s&min_access_level=50", url.QueryEscape(slug))
+	searchPath := fmt.Sprintf("/api/v4/groups?search=%s", url.QueryEscape(slug))
+	if p.cfg.ParentGroupID != nil {
+		searchPath = fmt.Sprintf("/api/v4/groups/%d/subgroups?search=%s", *p.cfg.ParentGroupID, url.QueryEscape(slug))
+	}
 	body, err := p.get(ctx, searchPath)
 	if err != nil {
 		return 0, "", err
@@ -96,6 +103,7 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (in
 
 	var groups []struct {
 		ID       int    `json:"id"`
+		Path     string `json:"path"`
 		FullPath string `json:"full_path"`
 		WebURL   string `json:"web_url"`
 	}
@@ -103,15 +111,12 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (in
 		return 0, "", err
 	}
 
-	// Check for exact full_path match (idempotency).
 	for _, g := range groups {
-		basePath := slug
 		if p.cfg.ParentGroupID != nil {
-			// Group full paths include parent namespace; check suffix.
-			if strings.HasSuffix(g.FullPath, "/"+slug) {
+			if g.Path == slug {
 				return g.ID, g.WebURL, nil
 			}
-		} else if g.FullPath == basePath {
+		} else if g.FullPath == slug {
 			return g.ID, g.WebURL, nil
 		}
 	}
@@ -141,53 +146,53 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (in
 	return created.ID, created.WebURL, nil
 }
 
-// addMember adds a user to a GitLab group by email and permission level string.
+// addMember invites a user to a GitLab group by email.
+//
+// The invitations endpoint is used rather than a user lookup followed by /members:
+// /users?search=<email> only returns the email field to admin tokens, so resolving a
+// user ID fails for the personal access token a course would normally use. Invitations
+// also cover students who have not signed in to the GitLab instance yet.
 func (p *Provider) addMember(ctx context.Context, groupID int, email, permission string) error {
-	userID, err := p.lookupUserByEmail(ctx, email)
-	if err != nil {
-		return err
-	}
-
-	accessLevel := gitlabAccessLevel(permission)
 	payload := map[string]interface{}{
-		"user_id":      userID,
-		"access_level": accessLevel,
+		"email":        email,
+		"access_level": gitlabAccessLevel(permission),
 	}
 
-	path := fmt.Sprintf("/api/v4/groups/%d/members", groupID)
-	_, err = p.post(ctx, path, payload)
+	path := fmt.Sprintf("/api/v4/groups/%d/invitations", groupID)
+	body, err := p.post(ctx, path, payload)
 	if err != nil {
-		// HTTP 409 means "already a member", treat as success.
 		if strings.Contains(err.Error(), "HTTP 409") {
 			return nil
 		}
 		return err
 	}
+
+	// The endpoint answers 201 even when an individual invitation was rejected; the
+	// per-email outcome is in the body.
+	var resp struct {
+		Status  string            `json:"status"`
+		Message map[string]string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return err
+	}
+	if resp.Status == "success" {
+		return nil
+	}
+	if reason, ok := resp.Message[email]; ok {
+		if isAlreadyMember(reason) {
+			return nil
+		}
+		return fmt.Errorf("gitlab invitation for %s rejected: %s", email, reason)
+	}
 	return nil
 }
 
-// lookupUserByEmail searches for a GitLab user by email.
-func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (int, error) {
-	path := fmt.Sprintf("/api/v4/users?search=%s", url.QueryEscape(email))
-	body, err := p.get(ctx, path)
-	if err != nil {
-		return 0, err
-	}
-
-	var users []struct {
-		ID    int    `json:"id"`
-		Email string `json:"email"`
-	}
-	if err := json.Unmarshal(body, &users); err != nil {
-		return 0, err
-	}
-
-	for _, u := range users {
-		if strings.EqualFold(u.Email, email) {
-			return u.ID, nil
-		}
-	}
-	return 0, fmt.Errorf("gitlab user not found for email: %s", email)
+func isAlreadyMember(reason string) bool {
+	lowered := strings.ToLower(reason)
+	return strings.Contains(lowered, "already a member") ||
+		strings.Contains(lowered, "already invited") ||
+		strings.Contains(lowered, "member already exists")
 }
 
 // get performs an authenticated GET request and returns the response body.

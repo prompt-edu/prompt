@@ -113,9 +113,11 @@ Agent configuration is shared with the team and split by purpose:
 ## Creating New Course Phases
 
 A phase is a micro-frontend (`clients/<name>_component`) plus a Go service (`servers/<name>`), wired
-into Module Federation, the workspaces, and `docker-compose.yml`. **Use the `new-course-phase`
-skill** for the full end-to-end checklist; the `module-federation-remote` and `sqlc-migration`
-skills cover the sub-steps.
+into Module Federation, the workspaces, and `docker-compose.yml`. **Scaffold with
+`make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port>`** (the `new-course-phase` skill
+and `docs/contributor/new_course_phase.md` cover the remaining manual steps); the
+`module-federation-remote` and `sqlc-migration` skills cover the sub-steps. External (out-of-repo)
+phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
 

@@ -142,7 +142,7 @@ jobs:
         working-directory: e2e
 
       - name: Download all blob reports
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           path: e2e/all-blob-reports

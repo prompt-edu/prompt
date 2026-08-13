@@ -11,7 +11,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -20,6 +22,9 @@ type EvaluationServiceTestSuite struct {
 	suite.Suite
 	suiteCtx              context.Context
 	cleanup               func()
+	mockCore              *testutils.MockCore
+	mockCoreCleanup       func()
+	testAuthHeader        string
 	evaluationService     EvaluationService
 	testCoursePhaseID     uuid.UUID
 	testCoursePhaseID2    uuid.UUID
@@ -39,6 +44,11 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 	if err != nil {
 		suite.T().Fatalf("Failed to setup test database: %v", err)
 	}
+
+	mockCore, mockCleanup := testutils.SetupMockCoreService()
+	suite.mockCore = mockCore
+	suite.mockCoreCleanup = mockCleanup
+	suite.testAuthHeader = "Bearer evaluation-service-test-token"
 
 	suite.cleanup = cleanup
 	suite.evaluationService = EvaluationService{
@@ -67,6 +77,9 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 func (suite *EvaluationServiceTestSuite) TearDownSuite() {
 	if suite.cleanup != nil {
 		suite.cleanup()
+	}
+	if suite.mockCoreCleanup != nil {
+		suite.mockCoreCleanup()
 	}
 }
 
@@ -132,7 +145,7 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Create() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was created by retrieving all evaluations for this participant
@@ -161,12 +174,12 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Update() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Now update it with a different score
 	request.ScoreLevel = scoreLevelDTO.ScoreLevelVeryGood
-	err = CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	err = CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was updated
@@ -195,7 +208,7 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Get the evaluation to find its ID
@@ -214,7 +227,7 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 	assert.True(suite.T(), found, "Evaluation to delete should be found")
 
 	// Delete the evaluation
-	err = DeleteEvaluation(suite.suiteCtx, evaluationToDelete.ID)
+	err = DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationToDelete.ID)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was deleted
@@ -232,7 +245,7 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluation() {
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testCoursePhaseID, request)
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the peer evaluation was created
@@ -249,6 +262,108 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluation() {
 		}
 	}
 	assert.True(suite.T(), found, "Newly created peer evaluation should be found")
+}
+
+// Test that a peer evaluation cannot target somebody outside the author's team
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsOutsider() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       testutils.MockOutsiderParticipationID,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
+}
+
+// Test that a peer evaluation cannot be used to evaluate oneself
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsSelfTarget() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID3,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
+}
+
+// Test that a tutor evaluation must target a tutor of the author's team
+func (suite *EvaluationServiceTestSuite) TestCreateTutorEvaluationRejectsNonTutorTarget() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID2, // a teammate, not a tutor
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Tutor,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrTutorEvaluationTargetNotTeamTutor)
+}
+
+// Test that an author outside every team cannot write peer evaluations
+func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsTeamlessAuthor() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID2,
+		CompetencyID:                suite.testCompetencyID2,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: testutils.MockOutsiderParticipationID,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrAuthorHasNoTeam)
+}
+
+// Test that a tutor evaluation targeting a tutor of the author's team is accepted. This is the
+// positive counterpart to the rejection tests: without it, a resolution payload that stopped
+// populating Tutors would 403 every tutor evaluation while the suite stayed green.
+func (suite *EvaluationServiceTestSuite) TestCreateTutorEvaluation() {
+	tutorParticipationID := testutils.MockTeamTutors[0]
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       tutorParticipationID,
+		CompetencyID:                suite.testCompetencyID1,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Tutor,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.NoError(suite.T(), err)
+
+	evaluations, err := GetEvaluationsForTutorInPhase(suite.suiteCtx, tutorParticipationID, suite.testCoursePhaseID)
+	assert.NoError(suite.T(), err)
+
+	found := false
+	for _, evaluation := range evaluations {
+		if evaluation.CompetencyID == suite.testCompetencyID1 &&
+			evaluation.AuthorCourseParticipationID == suite.testParticipantID3 {
+			found = true
+			break
+		}
+	}
+	assert.True(suite.T(), found, "Newly created tutor evaluation should be found")
+}
+
+// Test that the caller's Authorization header reaches core when teams are resolved. Without this
+// the target check would still pass every test while silently sending an unauthenticated request.
+func (suite *EvaluationServiceTestSuite) TestTargetCheckForwardsAuthHeaderToCore() {
+	request := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       suite.testParticipantID1,
+		CompetencyID:                suite.testCompetencyID3,
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: suite.testParticipantID3,
+		Type:                        assessmentType.Peer,
+	}
+
+	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), suite.testAuthHeader, suite.mockCore.LastCoursePhaseDataAuthHeader())
 }
 
 // Test DTO mapping functionality

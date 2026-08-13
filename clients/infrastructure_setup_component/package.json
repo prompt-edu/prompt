@@ -1,6 +1,6 @@
 {
   "name": "infrastructure_setup_component",
-  "version": "2.13.1",
+  "version": "2.16.1",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {

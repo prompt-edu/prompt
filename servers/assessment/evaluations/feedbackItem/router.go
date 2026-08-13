@@ -193,7 +193,7 @@ func createFeedbackItem(c *gin.Context) {
 
 	req.CoursePhaseID = coursePhaseID
 
-	err = CreateFeedbackItem(c, req)
+	err = CreateFeedbackItem(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		handleError(c, feedbackItemErrorStatus(err), err)
 		return
@@ -244,7 +244,7 @@ func updateFeedbackItem(c *gin.Context) {
 		return
 	}
 
-	err = UpdateFeedbackItem(c, feedbackItemID, coursePhaseID, courseParticipationID, req)
+	err = UpdateFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID, req)
 	if err != nil {
 		handleError(c, feedbackItemErrorStatus(err), err)
 		return
@@ -293,7 +293,8 @@ func feedbackItemErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrFeedbackItemNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+	case errors.Is(err, ErrNotFeedbackItemAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted),
+		evaluationCompletion.IsTargetAuthorizationError(err):
 		return http.StatusForbidden
 	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
 		return http.StatusConflict

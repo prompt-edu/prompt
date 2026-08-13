@@ -6,11 +6,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/certificate/testutils"
 )
 
 type ConfigServiceTestSuite struct {
@@ -22,7 +23,7 @@ type ConfigServiceTestSuite struct {
 
 func (s *ConfigServiceTestSuite) SetupSuite() {
 	s.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(s.suiteCtx, "../database_dumps/certificate.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(s.suiteCtx, "../database_dumps/certificate.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		s.T().Fatalf("Failed to set up test database: %v", err)
 	}

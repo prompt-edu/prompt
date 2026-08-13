@@ -45,6 +45,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
+func (p *Provider) SupportedResourceTypes() []string { return []string{"collection"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK   bool `json:"ok"`
@@ -66,11 +68,16 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 // CreateResource creates an Outline collection and adds members.
 // If a collection with the same name already exists, it is reused.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
+	if strings.TrimSpace(input.Name) == "" {
+		return nil, fmt.Errorf("outline: resource name is empty")
+	}
+
 	collectionID, collectionURL, err := p.findOrCreateCollection(ctx, input.Name)
 	if err != nil {
 		return nil, err
 	}
 
+	var warnings []string
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
 		if !ok {
@@ -78,23 +85,15 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		}
 		userID, err := p.lookupUserByEmail(ctx, member.Email)
 		if err != nil {
-			// Skip users not found in Outline.
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 			continue
 		}
 		if err := p.addMember(ctx, collectionID, userID, permission); err != nil {
-			return nil, fmt.Errorf("adding member %s to outline collection: %w", member.Email, err)
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
 
-	return &provider.Resource{ExternalID: collectionID, ExternalURL: collectionURL}, nil
-}
-
-// DeleteResource removes an Outline collection by its ID.
-func (p *Provider) DeleteResource(ctx context.Context, externalID string) error {
-	var resp struct {
-		OK bool `json:"ok"`
-	}
-	return p.call(ctx, "collections.delete", map[string]interface{}{"id": externalID}, &resp)
+	return &provider.Resource{ExternalID: collectionID, ExternalURL: collectionURL, Warnings: warnings}, nil
 }
 
 // findOrCreateCollection returns the ID and URL of a collection, creating it if necessary.

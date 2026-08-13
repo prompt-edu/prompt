@@ -11,6 +11,52 @@ import (
 	"github.com/google/uuid"
 )
 
+const claimPendingInstances = `-- name: ClaimPendingInstances :many
+UPDATE resource_instance
+SET status = 'in_progress',
+    updated_at = NOW()
+WHERE id IN (
+    SELECT pending.id FROM resource_instance AS pending
+    WHERE pending.course_phase_id = $1 AND pending.status = 'pending'
+    FOR UPDATE SKIP LOCKED
+)
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+`
+
+// Atomically takes ownership of every pending instance in one statement, so two
+// overlapping runs can never process the same row.
+func (q *Queries) ClaimPendingInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]ResourceInstance, error) {
+	rows, err := q.db.Query(ctx, claimPendingInstances, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ResourceInstance
+	for rows.Next() {
+		var i ResourceInstance
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResourceConfigID,
+			&i.CoursePhaseID,
+			&i.TeamID,
+			&i.CourseParticipationID,
+			&i.Status,
+			&i.ExternalID,
+			&i.ExternalUrl,
+			&i.ErrorMessage,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const countNonTerminalInstances = `-- name: CountNonTerminalInstances :one
 SELECT COUNT(*)
 FROM resource_instance
@@ -113,44 +159,6 @@ func (q *Queries) GetResourceInstance(ctx context.Context, arg GetResourceInstan
 	return i, err
 }
 
-const listPendingInstances = `-- name: ListPendingInstances :many
-SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
-FROM resource_instance
-WHERE course_phase_id = $1 AND status = 'pending'
-`
-
-func (q *Queries) ListPendingInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]ResourceInstance, error) {
-	rows, err := q.db.Query(ctx, listPendingInstances, coursePhaseID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ResourceInstance
-	for rows.Next() {
-		var i ResourceInstance
-		if err := rows.Scan(
-			&i.ID,
-			&i.ResourceConfigID,
-			&i.CoursePhaseID,
-			&i.TeamID,
-			&i.CourseParticipationID,
-			&i.Status,
-			&i.ExternalID,
-			&i.ExternalUrl,
-			&i.ErrorMessage,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listResourceInstances = `-- name: ListResourceInstances :many
 SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
 FROM resource_instance
@@ -190,21 +198,69 @@ func (q *Queries) ListResourceInstances(ctx context.Context, coursePhaseID uuid.
 	return items, nil
 }
 
-const resetFailedInstanceToPending = `-- name: ResetFailedInstanceToPending :exec
+const markInstanceCreated = `-- name: MarkInstanceCreated :exec
 UPDATE resource_instance
-SET status = 'pending',
+SET status = 'created',
+    external_id = $2,
+    external_url = $3,
     error_message = NULL,
     updated_at = NOW()
-WHERE id = $1 AND course_phase_id = $2 AND status = 'failed'
+WHERE id = $1
 `
 
-type ResetFailedInstanceToPendingParams struct {
-	ID            uuid.UUID `json:"id"`
-	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
+type MarkInstanceCreatedParams struct {
+	ID          uuid.UUID `json:"id"`
+	ExternalID  *string   `json:"externalId"`
+	ExternalUrl *string   `json:"externalUrl"`
 }
 
-func (q *Queries) ResetFailedInstanceToPending(ctx context.Context, arg ResetFailedInstanceToPendingParams) error {
-	_, err := q.db.Exec(ctx, resetFailedInstanceToPending, arg.ID, arg.CoursePhaseID)
+func (q *Queries) MarkInstanceCreated(ctx context.Context, arg MarkInstanceCreatedParams) error {
+	_, err := q.db.Exec(ctx, markInstanceCreated, arg.ID, arg.ExternalID, arg.ExternalUrl)
+	return err
+}
+
+const markInstanceFailed = `-- name: MarkInstanceFailed :exec
+UPDATE resource_instance
+SET status = 'failed',
+    error_message = $2,
+    updated_at = NOW()
+WHERE id = $1
+`
+
+type MarkInstanceFailedParams struct {
+	ID           uuid.UUID `json:"id"`
+	ErrorMessage *string   `json:"errorMessage"`
+}
+
+func (q *Queries) MarkInstanceFailed(ctx context.Context, arg MarkInstanceFailedParams) error {
+	_, err := q.db.Exec(ctx, markInstanceFailed, arg.ID, arg.ErrorMessage)
+	return err
+}
+
+const markInstancePartial = `-- name: MarkInstancePartial :exec
+UPDATE resource_instance
+SET status = 'partial',
+    external_id = $2,
+    external_url = $3,
+    error_message = $4,
+    updated_at = NOW()
+WHERE id = $1
+`
+
+type MarkInstancePartialParams struct {
+	ID           uuid.UUID `json:"id"`
+	ExternalID   *string   `json:"externalId"`
+	ExternalUrl  *string   `json:"externalUrl"`
+	ErrorMessage *string   `json:"errorMessage"`
+}
+
+func (q *Queries) MarkInstancePartial(ctx context.Context, arg MarkInstancePartialParams) error {
+	_, err := q.db.Exec(ctx, markInstancePartial,
+		arg.ID,
+		arg.ExternalID,
+		arg.ExternalUrl,
+		arg.ErrorMessage,
+	)
 	return err
 }
 
@@ -220,31 +276,48 @@ func (q *Queries) ResetInProgressToPending(ctx context.Context) error {
 	return err
 }
 
-const updateResourceInstanceStatus = `-- name: UpdateResourceInstanceStatus :exec
+const resetInstanceToPending = `-- name: ResetInstanceToPending :one
 UPDATE resource_instance
-SET status = $2,
-    external_id = $3,
-    external_url = $4,
-    error_message = $5,
+SET status = 'pending',
+    error_message = NULL,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = $1 AND course_phase_id = $2 AND status IN ('failed', 'partial')
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
 `
 
-type UpdateResourceInstanceStatusParams struct {
-	ID           uuid.UUID      `json:"id"`
-	Status       ResourceStatus `json:"status"`
-	ExternalID   *string        `json:"externalId"`
-	ExternalUrl  *string        `json:"externalUrl"`
-	ErrorMessage *string        `json:"errorMessage"`
+type ResetInstanceToPendingParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
 }
 
-func (q *Queries) UpdateResourceInstanceStatus(ctx context.Context, arg UpdateResourceInstanceStatusParams) error {
-	_, err := q.db.Exec(ctx, updateResourceInstanceStatus,
-		arg.ID,
-		arg.Status,
-		arg.ExternalID,
-		arg.ExternalUrl,
-		arg.ErrorMessage,
+func (q *Queries) ResetInstanceToPending(ctx context.Context, arg ResetInstanceToPendingParams) (ResourceInstance, error) {
+	row := q.db.QueryRow(ctx, resetInstanceToPending, arg.ID, arg.CoursePhaseID)
+	var i ResourceInstance
+	err := row.Scan(
+		&i.ID,
+		&i.ResourceConfigID,
+		&i.CoursePhaseID,
+		&i.TeamID,
+		&i.CourseParticipationID,
+		&i.Status,
+		&i.ExternalID,
+		&i.ExternalUrl,
+		&i.ErrorMessage,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
-	return err
+	return i, err
+}
+
+const tryLockPhaseExecution = `-- name: TryLockPhaseExecution :one
+SELECT pg_try_advisory_xact_lock(hashtextextended($1::text, 0))
+`
+
+// Transaction-scoped advisory lock keyed on the course phase. Held only while the
+// trigger counts and inserts instances, never across provider calls.
+func (q *Queries) TryLockPhaseExecution(ctx context.Context, coursePhaseID string) (bool, error) {
+	row := q.db.QueryRow(ctx, tryLockPhaseExecution, coursePhaseID)
+	var pg_try_advisory_xact_lock bool
+	err := row.Scan(&pg_try_advisory_xact_lock)
+	return pg_try_advisory_xact_lock, err
 }

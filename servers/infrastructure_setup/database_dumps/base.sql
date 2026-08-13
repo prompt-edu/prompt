@@ -10,7 +10,8 @@ DROP TYPE IF EXISTS provider_type CASCADE;
 
 CREATE TYPE provider_type AS ENUM ('gitlab', 'slack', 'outline', 'rancher', 'keycloak');
 CREATE TYPE resource_scope AS ENUM ('per_team', 'per_student');
-CREATE TYPE resource_status AS ENUM ('pending', 'in_progress', 'created', 'failed');
+-- 'partial' is appended last to match the ALTER TYPE ADD VALUE in migration 0002.
+CREATE TYPE resource_status AS ENUM ('pending', 'in_progress', 'created', 'failed', 'partial');
 
 CREATE TABLE course_phase_config (
     course_phase_id uuid PRIMARY KEY,
@@ -37,7 +38,9 @@ CREATE TABLE resource_config (
     created_at            timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_resource_config_provider
         FOREIGN KEY (course_phase_id, provider_type)
-        REFERENCES provider_config (course_phase_id, provider_type) ON DELETE CASCADE
+        REFERENCES provider_config (course_phase_id, provider_type) ON DELETE CASCADE,
+    CONSTRAINT uq_resource_config_identity
+        UNIQUE (course_phase_id, provider_type, resource_type, scope, name_template)
 );
 
 CREATE TABLE resource_instance (

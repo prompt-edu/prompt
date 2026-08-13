@@ -26,6 +26,7 @@ INSERT INTO resource_config (
 SELECT gen_random_uuid(), $1, rc.provider_type, rc.resource_type, rc.scope, rc.name_template, rc.permission_mapping, rc.resource_extra_config
 FROM resource_config AS rc
 WHERE rc.course_phase_id = $2
+ON CONFLICT (course_phase_id, provider_type, resource_type, scope, name_template) DO NOTHING
 `
 
 type CopyResourceConfigsParams struct {

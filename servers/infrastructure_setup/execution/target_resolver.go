@@ -28,7 +28,6 @@ type ProvisioningTarget struct {
 // TargetResolver resolves PROMPT course data into provisioning targets.
 type TargetResolver interface {
 	ResolveTargets(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, scope db.ResourceScope) ([]ProvisioningTarget, error)
-	ResolveInstanceTarget(ctx context.Context, authHeader string, instance db.ResourceInstance) (ProvisioningTarget, error)
 }
 
 // CoreTargetResolver fetches targets through core's resolution endpoints. The
@@ -62,31 +61,6 @@ func (r *CoreTargetResolver) ResolveTargets(ctx context.Context, authHeader stri
 	default:
 		return nil, fmt.Errorf("unsupported resource scope: %s", scope)
 	}
-}
-
-func (r *CoreTargetResolver) ResolveInstanceTarget(ctx context.Context, authHeader string, instance db.ResourceInstance) (ProvisioningTarget, error) {
-	config, err := r.queries.GetResourceConfig(ctx, db.GetResourceConfigParams{
-		ID:            instance.ResourceConfigID,
-		CoursePhaseID: instance.CoursePhaseID,
-	})
-	if err != nil {
-		return ProvisioningTarget{}, fmt.Errorf("load resource config: %w", err)
-	}
-
-	targets, err := r.ResolveTargets(ctx, authHeader, instance.CoursePhaseID, config.Scope)
-	if err != nil {
-		return ProvisioningTarget{}, err
-	}
-
-	for _, target := range targets {
-		if instance.TeamID != nil && target.TeamID != nil && *instance.TeamID == *target.TeamID {
-			return target, nil
-		}
-		if instance.CourseParticipationID != nil && target.CourseParticipationID != nil && *instance.CourseParticipationID == *target.CourseParticipationID {
-			return target, nil
-		}
-	}
-	return ProvisioningTarget{}, errors.New("resource instance target no longer exists")
 }
 
 func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHeader string, cfg db.CoursePhaseConfig, coursePhaseID uuid.UUID) ([]ProvisioningTarget, error) {

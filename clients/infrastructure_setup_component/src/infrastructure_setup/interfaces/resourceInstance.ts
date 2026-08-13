@@ -1,4 +1,5 @@
-export type ResourceStatus = 'pending' | 'in_progress' | 'created' | 'failed'
+// 'partial' means the resource exists but some members could not be granted access.
+export type ResourceStatus = 'pending' | 'in_progress' | 'created' | 'partial' | 'failed'
 
 export interface ResourceInstance {
   id: string

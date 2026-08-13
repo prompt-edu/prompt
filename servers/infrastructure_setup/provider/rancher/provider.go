@@ -49,6 +49,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
+func (p *Provider) SupportedResourceTypes() []string { return []string{"project"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	_, err := p.get(ctx, "/v3")
 	return err
@@ -57,6 +59,10 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 // CreateResource creates a Rancher project and adds members.
 // The roleTemplateId (e.g. "project-member") is read from ExtraConfig.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
+	if strings.TrimSpace(input.Name) == "" {
+		return nil, fmt.Errorf("rancher: resource name is empty")
+	}
+
 	projectID, projectURL, err := p.findOrCreateProject(ctx, input.Name)
 	if err != nil {
 		return nil, err
@@ -67,39 +73,18 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		roleTemplateID = rt
 	}
 
+	var warnings []string
 	for _, member := range input.Members {
 		perm, ok := input.PermissionMapping[member.Role]
 		if !ok {
 			perm = roleTemplateID
 		}
 		if err := p.addMember(ctx, projectID, member.Email, perm); err != nil {
-			return nil, fmt.Errorf("adding member %s to rancher project: %w", member.Email, err)
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
 
-	return &provider.Resource{ExternalID: projectID, ExternalURL: projectURL}, nil
-}
-
-// DeleteResource removes a Rancher project by its ID.
-func (p *Provider) DeleteResource(ctx context.Context, externalID string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
-		p.cfg.RancherURL+"/v3/projects/"+externalID, nil)
-	if err != nil {
-		return err
-	}
-	req.SetBasicAuth(p.cfg.AccessKey, p.cfg.SecretKey)
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("rancher delete project %s: HTTP %d: %s", externalID, resp.StatusCode, body)
+	return &provider.Resource{ExternalID: projectID, ExternalURL: projectURL, Warnings: warnings}, nil
 }
 
 // findOrCreateProject returns the project ID and URL, creating the project if it does not exist.

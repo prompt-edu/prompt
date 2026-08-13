@@ -11,6 +11,30 @@ import (
 	"github.com/google/uuid"
 )
 
+const copyCoursePhaseConfig = `-- name: CopyCoursePhaseConfig :exec
+INSERT INTO course_phase_config (course_phase_id, semester_tag)
+VALUES (
+    $1,
+    COALESCE((
+        SELECT src.semester_tag FROM course_phase_config AS src
+        WHERE src.course_phase_id = $2
+    ), '')
+)
+ON CONFLICT (course_phase_id) DO NOTHING
+`
+
+type CopyCoursePhaseConfigParams struct {
+	TargetCoursePhaseID uuid.UUID `json:"targetCoursePhaseId"`
+	SourceCoursePhaseID uuid.UUID `json:"sourceCoursePhaseId"`
+}
+
+// Creates the target phase's config row, carrying the source semester tag when there is
+// one and falling back to ”. Never overwrites a config already edited on the target.
+func (q *Queries) CopyCoursePhaseConfig(ctx context.Context, arg CopyCoursePhaseConfigParams) error {
+	_, err := q.db.Exec(ctx, copyCoursePhaseConfig, arg.TargetCoursePhaseID, arg.SourceCoursePhaseID)
+	return err
+}
+
 const getCoursePhaseConfig = `-- name: GetCoursePhaseConfig :one
 SELECT course_phase_id, semester_tag
 FROM course_phase_config

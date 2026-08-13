@@ -16,6 +16,14 @@ FROM provider_config
 WHERE course_phase_id = $1
 ORDER BY provider_type;
 
+-- name: ListConfiguredProviderConfigs :many
+-- Only providers that actually hold credentials. A copied phase carries provider rows
+-- with empty credentials, which must not count as configured.
+SELECT id, course_phase_id, provider_type, credentials
+FROM provider_config
+WHERE course_phase_id = $1 AND length(credentials) > 0
+ORDER BY provider_type;
+
 -- name: DeleteProviderConfig :exec
 DELETE FROM provider_config
 WHERE course_phase_id = $1 AND provider_type = $2;

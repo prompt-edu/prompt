@@ -8,6 +8,9 @@ import "context"
 type Resource struct {
 	ExternalID  string
 	ExternalURL string
+	// Warnings lists members that could not be granted access. The resource itself
+	// exists, so the instance is recorded as partial rather than failed.
+	Warnings []string
 }
 
 // Member represents a user to be granted access to a resource.
@@ -48,9 +51,15 @@ type Provider interface {
 	GetAuthFields() []AuthField
 	// ValidateCredentials tests the credentials without creating any resource.
 	ValidateCredentials(ctx context.Context) error
+	// SupportedResourceTypes returns the resource kinds this provider can create.
+	SupportedResourceTypes() []string
 	// CreateResource creates the external resource and returns its ID and URL.
 	// Implementations must be idempotent: if the resource already exists, return it.
+	// A member that cannot be granted access is reported through Resource.Warnings,
+	// never silently skipped.
 	CreateResource(ctx context.Context, input CreateResourceInput) (*Resource, error)
-	// DeleteResource attempts to remove the external resource identified by externalID.
-	DeleteResource(ctx context.Context, externalID string) error
 }
+
+// PROMPT never deletes external resources. Providers adopt existing resources by name,
+// so a delete could remove something the course does not own; instance deletion only
+// drops the PROMPT row and external cleanup stays manual.

@@ -107,6 +107,7 @@ const (
 	ResourceStatusInProgress ResourceStatus = "in_progress"
 	ResourceStatusCreated    ResourceStatus = "created"
 	ResourceStatusFailed     ResourceStatus = "failed"
+	ResourceStatusPartial    ResourceStatus = "partial"
 )
 
 func (e *ResourceStatus) Scan(src interface{}) error {

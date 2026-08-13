@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -52,6 +53,7 @@ func listInstances(svc *Service) gin.HandlerFunc {
 // @Param coursePhaseID path string true "Course phase ID"
 // @Success 202 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/execute [post]
@@ -63,8 +65,15 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			return
 		}
 		if err := svc.TriggerExecution(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID); err != nil {
-			log.WithError(err).Error("trigger execution")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			switch {
+			case errors.Is(err, ErrExecutionInProgress):
+				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			case errors.Is(err, ErrProviderNotConfigured):
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			default:
+				log.WithError(err).Error("trigger execution")
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
 			return
 		}
 		c.JSON(http.StatusAccepted, gin.H{"message": "execution started"})
@@ -73,13 +82,15 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 
 // retryInstance godoc
 // @Summary Retry failed resource instance
-// @Description Resets a failed resource instance to pending and starts asynchronous provisioning.
+// @Description Resets a failed or partial resource instance to pending and starts asynchronous provisioning.
 // @Tags execution
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param instanceID path string true "Resource instance ID"
 // @Success 202 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/instances/{instanceID}/retry [post]
@@ -95,9 +106,16 @@ func retryInstance(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid instanceID"})
 			return
 		}
-		if err := svc.RetryFailedInstanceWithAuth(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID, instanceID); err != nil {
-			log.WithError(err).Error("retry instance")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err := svc.RetryInstance(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID, instanceID); err != nil {
+			switch {
+			case errors.Is(err, ErrInstanceNotFound):
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			case errors.Is(err, ErrInstanceNotRetryable):
+				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			default:
+				log.WithError(err).Error("retry instance")
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
 			return
 		}
 		c.JSON(http.StatusAccepted, gin.H{"message": "retry started"})

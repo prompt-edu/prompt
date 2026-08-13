@@ -50,4 +50,5 @@ INSERT INTO resource_config (
 )
 SELECT gen_random_uuid(), sqlc.arg(target_course_phase_id), rc.provider_type, rc.resource_type, rc.scope, rc.name_template, rc.permission_mapping, rc.resource_extra_config
 FROM resource_config AS rc
-WHERE rc.course_phase_id = sqlc.arg(source_course_phase_id);
+WHERE rc.course_phase_id = sqlc.arg(source_course_phase_id)
+ON CONFLICT (course_phase_id, provider_type, resource_type, scope, name_template) DO NOTHING;

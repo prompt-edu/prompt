@@ -42,6 +42,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
+func (p *Provider) SupportedResourceTypes() []string { return []string{"channel"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK    bool   `json:"ok"`
@@ -60,39 +62,28 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 // It is idempotent: if the channel name is already taken, the existing channel is reused.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	channelName := sanitizeChannelName(input.Name)
+	if channelName == "" {
+		return nil, fmt.Errorf("slack: resource name %q sanitizes to an empty channel name", input.Name)
+	}
 
 	channelID, channelURL, err := p.findOrCreateChannel(ctx, channelName)
 	if err != nil {
 		return nil, err
 	}
 
+	var warnings []string
 	for _, member := range input.Members {
 		userID, err := p.lookupUserByEmail(ctx, member.Email)
 		if err != nil {
-			// Skip users not found in Slack rather than failing the whole operation.
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 			continue
 		}
 		if err := p.inviteToChannel(ctx, channelID, userID); err != nil {
-			return nil, fmt.Errorf("inviting %s to channel: %w", member.Email, err)
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
 
-	return &provider.Resource{ExternalID: channelID, ExternalURL: channelURL}, nil
-}
-
-// DeleteResource archives a Slack channel by its ID.
-func (p *Provider) DeleteResource(ctx context.Context, externalID string) error {
-	var resp struct {
-		OK    bool   `json:"ok"`
-		Error string `json:"error"`
-	}
-	if err := p.callAPI(ctx, "conversations.archive", map[string]interface{}{"channel": externalID}, &resp); err != nil {
-		return err
-	}
-	if !resp.OK && resp.Error != "already_archived" && resp.Error != "channel_not_found" {
-		return fmt.Errorf("slack conversations.archive failed: %s", resp.Error)
-	}
-	return nil
+	return &provider.Resource{ExternalID: channelID, ExternalURL: channelURL, Warnings: warnings}, nil
 }
 
 // findOrCreateChannel returns the channel ID for the given name, creating it if needed.

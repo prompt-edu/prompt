@@ -67,6 +67,40 @@ func (q *Queries) GetProviderConfig(ctx context.Context, arg GetProviderConfigPa
 	return i, err
 }
 
+const listConfiguredProviderConfigs = `-- name: ListConfiguredProviderConfigs :many
+SELECT id, course_phase_id, provider_type, credentials
+FROM provider_config
+WHERE course_phase_id = $1 AND length(credentials) > 0
+ORDER BY provider_type
+`
+
+// Only providers that actually hold credentials. A copied phase carries provider rows
+// with empty credentials, which must not count as configured.
+func (q *Queries) ListConfiguredProviderConfigs(ctx context.Context, coursePhaseID uuid.UUID) ([]ProviderConfig, error) {
+	rows, err := q.db.Query(ctx, listConfiguredProviderConfigs, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProviderConfig
+	for rows.Next() {
+		var i ProviderConfig
+		if err := rows.Scan(
+			&i.ID,
+			&i.CoursePhaseID,
+			&i.ProviderType,
+			&i.Credentials,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProviderConfigs = `-- name: ListProviderConfigs :many
 SELECT id, course_phase_id, provider_type, credentials
 FROM provider_config

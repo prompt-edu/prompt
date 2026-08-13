@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   CardContent,
+  cn,
   DeleteConfirmation,
   useToast,
 } from '@tumaet/prompt-ui-components'
@@ -53,6 +54,8 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   })
 
   const hasError = !!instance.errorMessage && instance.errorMessage.length > 0
+  const isPartial = instance.status === 'partial'
+  const isRetryable = instance.status === 'failed' || isPartial
   const target = instance.teamId
     ? `team ${instance.teamId.slice(0, 8)}…`
     : instance.courseParticipationId
@@ -86,7 +89,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
             </div>
 
             <div className='flex items-center gap-2'>
-              {instance.status === 'failed' && (
+              {isRetryable && (
                 <Button variant='outline' size='sm' onClick={() => retry()} disabled={isRetrying}>
                   <RotateCcw className='mr-1 h-3 w-3' />
                   {isRetrying ? 'Retrying…' : 'Retry'}
@@ -108,17 +111,25 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
               <button
                 type='button'
                 onClick={() => setExpanded((p) => !p)}
-                className='inline-flex items-center gap-1 text-sm text-red-700 hover:underline'
+                className={cn(
+                  'inline-flex items-center gap-1 text-sm hover:underline',
+                  isPartial ? 'text-amber-700' : 'text-red-700',
+                )}
               >
                 {expanded ? (
                   <ChevronDown className='h-3 w-3' />
                 ) : (
                   <ChevronRight className='h-3 w-3' />
                 )}
-                Error details
+                {isPartial ? 'Members that could not be added' : 'Error details'}
               </button>
               {expanded && (
-                <pre className='mt-2 overflow-x-auto rounded bg-red-50 p-2 text-xs text-red-900'>
+                <pre
+                  className={cn(
+                    'mt-2 overflow-x-auto rounded p-2 text-xs',
+                    isPartial ? 'bg-amber-50 text-amber-900' : 'bg-red-50 text-red-900',
+                  )}
+                >
                   {instance.errorMessage}
                 </pre>
               )}

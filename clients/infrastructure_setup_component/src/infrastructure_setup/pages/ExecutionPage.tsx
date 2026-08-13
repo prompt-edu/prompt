@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { Play, RefreshCw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { InstanceRow } from '../components/InstanceRow'
@@ -7,6 +8,16 @@ import { triggerExecution } from '../network/mutations/triggerExecution'
 import { getInstances } from '../network/queries/getInstances'
 
 const isPollingStatus = (status: string) => status === 'pending' || status === 'in_progress'
+
+const isConflict = (err: unknown) => isAxiosError(err) && err.response?.status === 409
+
+const describeError = (err: unknown) => {
+  if (isAxiosError(err)) {
+    const responseError = (err.response?.data as { error?: string } | undefined)?.error
+    return responseError ?? err.message
+  }
+  return err instanceof Error ? err.message : 'Unknown error'
+}
 
 export const ExecutionPage = () => {
   const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()
@@ -33,13 +44,16 @@ export const ExecutionPage = () => {
       toast({ title: 'Execution started' })
     },
     onError: (err: unknown) => {
+      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
       toast({
-        title: 'Failed to trigger execution',
-        description: err instanceof Error ? err.message : 'Unknown error',
+        title: isConflict(err) ? 'An execution is already running' : 'Failed to trigger execution',
+        description: describeError(err),
         variant: 'destructive',
       })
     },
   })
+
+  const hasRunningWork = (instances ?? []).some((i) => isPollingStatus(i.status))
 
   if (isLoading) {
     return <LoadingPage />
@@ -59,7 +73,11 @@ export const ExecutionPage = () => {
           <Button variant='outline' size='icon' onClick={() => refetch()} title='Refresh'>
             <RefreshCw className='h-4 w-4' />
           </Button>
-          <Button onClick={() => execute()} disabled={isExecuting}>
+          <Button
+            onClick={() => execute()}
+            disabled={isExecuting || hasRunningWork}
+            title={hasRunningWork ? 'An execution is already running' : undefined}
+          >
             <Play className='mr-2 h-4 w-4' />
             {isExecuting ? 'Triggering…' : 'Trigger execution'}
           </Button>

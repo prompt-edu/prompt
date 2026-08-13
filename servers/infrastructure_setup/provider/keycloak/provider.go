@@ -62,6 +62,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
+func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	token, err := p.getAccessToken(ctx)
 	if err != nil {
@@ -95,6 +97,10 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 // CreateResource creates a Keycloak group and adds members.
 // It is idempotent: if a group with the same name already exists, it is reused.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
+	if strings.TrimSpace(input.Name) == "" {
+		return nil, fmt.Errorf("keycloak: resource name is empty")
+	}
+
 	token, err := p.getAccessToken(ctx)
 	if err != nil {
 		return nil, err
@@ -105,46 +111,20 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		return nil, err
 	}
 
+	var warnings []string
 	for _, member := range input.Members {
 		userID, err := p.lookupUserByEmail(ctx, token, member.Email)
 		if err != nil {
-			// Skip users not found in Keycloak.
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 			continue
 		}
 		if err := p.addMemberToGroup(ctx, token, userID, groupID); err != nil {
-			return nil, fmt.Errorf("adding user %s to keycloak group: %w", member.Email, err)
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
 
 	groupURL := fmt.Sprintf("%s/admin/realms/%s/groups/%s", p.cfg.KeycloakURL, p.cfg.Realm, groupID)
-	return &provider.Resource{ExternalID: groupID, ExternalURL: groupURL}, nil
-}
-
-// DeleteResource removes a Keycloak group by its ID.
-func (p *Provider) DeleteResource(ctx context.Context, externalID string) error {
-	token, err := p.getAccessToken(ctx)
-	if err != nil {
-		return err
-	}
-
-	path := fmt.Sprintf("/admin/realms/%s/groups/%s", p.cfg.Realm, externalID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, p.cfg.KeycloakURL+path, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("keycloak delete group %s: HTTP %d: %s", externalID, resp.StatusCode, body)
+	return &provider.Resource{ExternalID: groupID, ExternalURL: groupURL, Warnings: warnings}, nil
 }
 
 // findOrCreateGroup returns the group ID for a given name, creating it if needed.

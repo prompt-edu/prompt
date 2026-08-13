@@ -47,6 +47,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
+func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	_, err := p.get(ctx, "/api/v4/user")
 	return err
@@ -57,48 +59,31 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	name := sanitizeName(input.Name)
 	slug := toSlug(name)
+	if slug == "" {
+		return nil, fmt.Errorf("gitlab: resource name %q sanitizes to an empty group path", input.Name)
+	}
 
 	groupID, groupURL, err := p.findOrCreateGroup(ctx, name, slug)
 	if err != nil {
 		return nil, err
 	}
 
+	var warnings []string
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
 		if !ok {
 			permission = "guest"
 		}
 		if err := p.addMember(ctx, groupID, member.Email, permission); err != nil {
-			return nil, fmt.Errorf("adding member %s: %w", member.Email, err)
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
 
-	return &provider.Resource{ExternalID: fmt.Sprintf("%d", groupID), ExternalURL: groupURL}, nil
-}
-
-// DeleteResource removes a GitLab group by its numeric ID.
-func (p *Provider) DeleteResource(ctx context.Context, externalID string) error {
-	path := fmt.Sprintf("/api/v4/groups/%s", externalID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, p.cfg.BaseURL+path, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("PRIVATE-TOKEN", p.cfg.PrivateToken)
-
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusAccepted {
-		return nil
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return nil // already gone, treat as success
-	}
-	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("gitlab delete group %s: HTTP %d: %s", externalID, resp.StatusCode, body)
+	return &provider.Resource{
+		ExternalID:  fmt.Sprintf("%d", groupID),
+		ExternalURL: groupURL,
+		Warnings:    warnings,
+	}, nil
 }
 
 // findOrCreateGroup returns the group ID and URL for a group, creating it if necessary.

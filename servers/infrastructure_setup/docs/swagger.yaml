@@ -6,12 +6,14 @@ definitions:
     - in_progress
     - created
     - failed
+    - partial
     type: string
     x-enum-varnames:
     - ResourceStatusPending
     - ResourceStatusInProgress
     - ResourceStatusCreated
     - ResourceStatusFailed
+    - ResourceStatusPartial
   execution.ResourceInstanceResponse:
     properties:
       courseParticipationId:
@@ -65,6 +67,11 @@ definitions:
     type: object
   providerconfigDTO.ProviderConfigResponse:
     properties:
+      configured:
+        description: |-
+          Configured is false for a provider copied from another phase, which keeps the
+          row but not the credentials.
+        type: boolean
       id:
         type: string
       providerType:
@@ -190,6 +197,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -276,8 +289,8 @@ paths:
       - execution
   /course_phase/{coursePhaseID}/instances/{instanceID}/retry:
     post:
-      description: Resets a failed resource instance to pending and starts asynchronous
-        provisioning.
+      description: Resets a failed or partial resource instance to pending and starts
+        asynchronous provisioning.
       parameters:
       - description: Course phase ID
         in: path
@@ -300,6 +313,18 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             additionalProperties:
               type: string
@@ -473,6 +498,46 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get provider credential fields
+      tags:
+      - provider-configs
+  /course_phase/{coursePhaseID}/provider-configs/{providerType}/resource-types:
+    get:
+      description: Returns the resource kinds a provider type can create.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Provider type
+        enum:
+        - gitlab
+        - slack
+        - outline
+        - rancher
+        - keycloak
+        in: path
+        name: providerType
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get supported resource types
       tags:
       - provider-configs
   /course_phase/{coursePhaseID}/provider-configs/{providerType}/validate:

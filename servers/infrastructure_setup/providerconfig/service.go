@@ -29,21 +29,39 @@ func NewService(pool *pgxpool.Pool) *Service {
 	return &Service{queries: db.New(pool)}
 }
 
-// GetAuthFields returns the auth fields for a provider type.
-func GetAuthFields(providerType string) ([]provider.AuthField, error) {
+// descriptorFor returns a credential-free provider used to read static metadata.
+func descriptorFor(providerType string) (provider.Provider, error) {
 	switch providerType {
 	case "gitlab":
-		return (&gitlab.Provider{}).GetAuthFields(), nil
+		return &gitlab.Provider{}, nil
 	case "slack":
-		return (&slack.Provider{}).GetAuthFields(), nil
+		return &slack.Provider{}, nil
 	case "outline":
-		return (&outline.Provider{}).GetAuthFields(), nil
+		return &outline.Provider{}, nil
 	case "rancher":
-		return (&rancher.Provider{}).GetAuthFields(), nil
+		return &rancher.Provider{}, nil
 	case "keycloak":
-		return (&keycloak.Provider{}).GetAuthFields(), nil
+		return &keycloak.Provider{}, nil
 	}
 	return nil, fmt.Errorf("unknown provider type: %s", providerType)
+}
+
+// GetAuthFields returns the auth fields for a provider type.
+func GetAuthFields(providerType string) ([]provider.AuthField, error) {
+	descriptor, err := descriptorFor(providerType)
+	if err != nil {
+		return nil, err
+	}
+	return descriptor.GetAuthFields(), nil
+}
+
+// SupportedResourceTypes returns the resource kinds a provider type can create.
+func SupportedResourceTypes(providerType string) ([]string, error) {
+	descriptor, err := descriptorFor(providerType)
+	if err != nil {
+		return nil, err
+	}
+	return descriptor.SupportedResourceTypes(), nil
 }
 
 // UpsertProviderConfig encrypts and stores the provider credentials.

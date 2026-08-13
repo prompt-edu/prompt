@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Dialog,
@@ -31,6 +31,7 @@ import type {
 } from '../interfaces/resourceConfig'
 import { createResourceConfig } from '../network/mutations/createResourceConfig'
 import { updateResourceConfig } from '../network/mutations/updateResourceConfig'
+import { getProviderResourceTypes } from '../network/queries/getProviderResourceTypes'
 
 interface Props {
   coursePhaseID: string
@@ -90,6 +91,20 @@ export const ResourceConfigUpsertDialog = ({
     JSON.stringify(existing?.resourceExtraConfig ?? {}, null, 2),
   )
   const [extraConfigError, setExtraConfigError] = useState<string | null>(null)
+
+  const { data: resourceTypes = [] } = useQuery({
+    queryKey: ['provider-resource-types', coursePhaseID, providerType],
+    queryFn: () => getProviderResourceTypes(coursePhaseID, providerType as ProviderType),
+    enabled: open && !!providerType,
+  })
+
+  // Providers support exactly one kind today, so preselect it rather than making the
+  // lecturer open a single-entry dropdown.
+  useEffect(() => {
+    if (resourceTypes.length > 0 && !resourceTypes.includes(resourceType)) {
+      setResourceType(resourceTypes[0])
+    }
+  }, [resourceTypes, resourceType])
 
   useEffect(() => {
     if (!open) return
@@ -220,15 +235,24 @@ export const ResourceConfigUpsertDialog = ({
 
             <div className='space-y-1'>
               <Label htmlFor='resourceType'>Resource type</Label>
-              <Input
-                id='resourceType'
+              <Select
                 value={resourceType}
-                onChange={(e) => setResourceType(e.target.value)}
-                placeholder='group, channel, collection, project, …'
-              />
+                onValueChange={setResourceType}
+                disabled={resourceTypes.length === 0}
+              >
+                <SelectTrigger id='resourceType'>
+                  <SelectValue placeholder='Select a resource type' />
+                </SelectTrigger>
+                <SelectContent>
+                  {resourceTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className='text-xs text-muted-foreground'>
-                Provider-specific resource kind (e.g. <code>group</code> for GitLab,{' '}
-                <code>channel</code> for Slack).
+                The resource kinds this provider can create.
               </p>
             </div>
 

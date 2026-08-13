@@ -50,7 +50,11 @@ export const ResourceConfigPage = () => {
     setDialogOpen(true)
   }
 
-  const availableProviderTypes = (providers ?? []).map((p) => p.providerType)
+  // Only providers holding credentials can back a resource config; the server rejects
+  // the rest, so they are not offered here either.
+  const availableProviderTypes = (providers ?? [])
+    .filter((p) => p.configured)
+    .map((p) => p.providerType)
 
   return (
     <div className='space-y-4 p-6'>
@@ -67,7 +71,9 @@ export const ResourceConfigPage = () => {
 
       {availableProviderTypes.length === 0 && (
         <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900'>
-          Add at least one provider before creating resource configurations.
+          {(providers ?? []).length === 0
+            ? 'Add at least one provider before creating resource configurations.'
+            : 'The providers on this phase have no credentials. Enter them on the Providers page before creating resource configurations.'}
         </div>
       )}
 

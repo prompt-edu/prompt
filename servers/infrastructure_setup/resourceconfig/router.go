@@ -1,6 +1,7 @@
 package resourceconfig
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -73,8 +74,7 @@ func createResourceConfig(svc *Service) gin.HandlerFunc {
 		}
 		resp, err := svc.CreateResourceConfig(c.Request.Context(), coursePhaseID, req)
 		if err != nil {
-			log.WithError(err).Error("create resource config")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondWithError(c, "create resource config", err)
 			return
 		}
 		c.JSON(http.StatusCreated, resp)
@@ -147,8 +147,7 @@ func updateResourceConfig(svc *Service) gin.HandlerFunc {
 		}
 		resp, err := svc.UpdateResourceConfig(c.Request.Context(), coursePhaseID, id, req)
 		if err != nil {
-			log.WithError(err).Error("update resource config")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondWithError(c, "update resource config", err)
 			return
 		}
 		c.JSON(http.StatusOK, resp)
@@ -186,4 +185,14 @@ func deleteResourceConfig(svc *Service) gin.HandlerFunc {
 		}
 		c.JSON(http.StatusNoContent, nil)
 	}
+}
+
+// respondWithError answers 400 for a rejected request and 500 for anything else.
+func respondWithError(c *gin.Context, action string, err error) {
+	if errors.Is(err, ErrValidation) || errors.Is(err, ErrProviderNotConfigured) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	log.WithError(err).Error(action)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }

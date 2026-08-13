@@ -5,6 +5,9 @@ export const providerTypes: ProviderType[] = ['gitlab', 'slack', 'outline', 'ran
 export interface ProviderConfig {
   id: string
   providerType: ProviderType
+  // False for a provider copied from another phase, which keeps the row but not the
+  // credentials. Such a provider cannot provision anything until they are re-entered.
+  configured: boolean
 }
 
 export interface AuthField {

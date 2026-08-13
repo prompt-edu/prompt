@@ -2,6 +2,8 @@
 package copy
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +18,7 @@ import (
 // CopyService handles phase-level data duplication.
 type CopyService struct {
 	queries *db.Queries
+	conn    *pgxpool.Pool
 }
 
 var CopyServiceSingleton *CopyService
@@ -23,34 +26,55 @@ var CopyServiceSingleton *CopyService
 // InfrastructureSetupCopyHandler implements the PhaseCopyHandler interface.
 type InfrastructureSetupCopyHandler struct{}
 
-// HandlePhaseCopy copies provider config stubs (without credentials) and resource
-// configs from a source phase to a target phase.
+// HandlePhaseCopy copies the phase config, provider config stubs (without credentials)
+// and resource configs from a source phase to a target phase. Everything happens in one
+// transaction so a failure part-way cannot leave a half-copied phase.
 func (h *InfrastructureSetupCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	if CopyServiceSingleton == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "copy service not initialized"})
 		return nil
 	}
-	ctx := c.Request.Context()
 
-	if err := CopyServiceSingleton.queries.CopyProviderConfigsWithEmptyCredentials(ctx, db.CopyProviderConfigsWithEmptyCredentialsParams{
-		SourceCoursePhaseID: req.SourceCoursePhaseID,
-		TargetCoursePhaseID: req.TargetCoursePhaseID,
-	}); err != nil {
-		log.WithError(err).Error("copy provider configs")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return err
-	}
-	if err := CopyServiceSingleton.queries.CopyResourceConfigs(ctx, db.CopyResourceConfigsParams{
-		SourceCoursePhaseID: req.SourceCoursePhaseID,
-		TargetCoursePhaseID: req.TargetCoursePhaseID,
-	}); err != nil {
-		log.WithError(err).Error("copy resource configs")
+	if err := CopyServiceSingleton.copyPhase(c.Request.Context(), req); err != nil {
+		log.WithError(err).Error("copy infrastructure setup phase")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return err
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "phase data copied successfully"})
 	return nil
+}
+
+func (s *CopyService) copyPhase(ctx context.Context, req promptTypes.PhaseCopyRequest) error {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	// The config row must exist on the target: HandlePhaseConfig reports nothing
+	// configured at all when it is missing.
+	if err := qtx.CopyCoursePhaseConfig(ctx, db.CopyCoursePhaseConfigParams{
+		SourceCoursePhaseID: req.SourceCoursePhaseID,
+		TargetCoursePhaseID: req.TargetCoursePhaseID,
+	}); err != nil {
+		return fmt.Errorf("copy course phase config: %w", err)
+	}
+	if err := qtx.CopyProviderConfigsWithEmptyCredentials(ctx, db.CopyProviderConfigsWithEmptyCredentialsParams{
+		SourceCoursePhaseID: req.SourceCoursePhaseID,
+		TargetCoursePhaseID: req.TargetCoursePhaseID,
+	}); err != nil {
+		return fmt.Errorf("copy provider configs: %w", err)
+	}
+	if err := qtx.CopyResourceConfigs(ctx, db.CopyResourceConfigsParams{
+		SourceCoursePhaseID: req.SourceCoursePhaseID,
+		TargetCoursePhaseID: req.TargetCoursePhaseID,
+	}); err != nil {
+		return fmt.Errorf("copy resource configs: %w", err)
+	}
+
+	return tx.Commit(ctx)
 }
 
 // ConfigHandler implements the PhaseConfigHandler interface for core config status checks.
@@ -80,7 +104,9 @@ func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, erro
 		return empty, nil
 	}
 
-	providers, err := CopyServiceSingleton.queries.ListProviderConfigs(ctx, coursePhaseID)
+	// Only providers holding credentials count: a copied phase carries provider rows
+	// with empty credentials, which cannot provision anything.
+	providers, err := CopyServiceSingleton.queries.ListConfiguredProviderConfigs(ctx, coursePhaseID)
 	if err != nil {
 		return empty, nil
 	}
@@ -104,5 +130,6 @@ func InitCopyModule(copyGroup, coursePhaseGroup *gin.RouterGroup, conn *pgxpool.
 	promptTypes.RegisterConfigEndpoint(coursePhaseGroup, promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &ConfigHandler{})
 	CopyServiceSingleton = &CopyService{
 		queries: db.New(conn),
+		conn:    conn,
 	}
 }

@@ -8,7 +8,7 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import axios from 'axios'
-import { CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import type { ProviderConfig } from '../interfaces/providerConfig'
@@ -78,9 +78,18 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
             <div>
               <div className='flex items-center gap-2'>
                 <p className='font-medium capitalize'>{provider.providerType}</p>
-                <Badge variant='secondary' className='gap-1'>
-                  <CheckCircle2 className='h-3 w-3' /> configured
-                </Badge>
+                {provider.configured ? (
+                  <Badge variant='secondary' className='gap-1'>
+                    <CheckCircle2 className='h-3 w-3' /> configured
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant='outline'
+                    className='gap-1 border-amber-500 text-amber-600 dark:text-amber-400'
+                  >
+                    <AlertTriangle className='h-3 w-3' /> credentials required
+                  </Badge>
+                )}
               </div>
               <p className='font-mono text-xs text-muted-foreground'>{provider.id}</p>
             </div>

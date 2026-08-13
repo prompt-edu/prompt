@@ -17,6 +17,7 @@ func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 	rg.DELETE("/provider-configs/:providerType", deleteProviderConfig(svc))
 	rg.POST("/provider-configs/:providerType/validate", validateProviderConfig(svc))
 	rg.GET("/provider-configs/:providerType/fields", getAuthFields())
+	rg.GET("/provider-configs/:providerType/resource-types", getResourceTypes())
 }
 
 // deleteProviderConfig godoc
@@ -163,5 +164,27 @@ func getAuthFields() gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, fields)
+	}
+}
+
+// getResourceTypes godoc
+// @Summary Get supported resource types
+// @Description Returns the resource kinds a provider type can create.
+// @Tags provider-configs
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param providerType path string true "Provider type" Enums(gitlab, slack, outline, rancher, keycloak)
+// @Success 200 {array} string
+// @Failure 400 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/provider-configs/{providerType}/resource-types [get]
+func getResourceTypes() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resourceTypes, err := SupportedResourceTypes(c.Param("providerType"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, resourceTypes)
 	}
 }

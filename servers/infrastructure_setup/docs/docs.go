@@ -58,6 +58,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -188,7 +197,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Resets a failed resource instance to pending and starts asynchronous provisioning.",
+                "description": "Resets a failed or partial resource instance to pending and starts asynchronous provisioning.",
                 "produces": [
                     "application/json"
                 ],
@@ -224,6 +233,24 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -468,6 +495,66 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/providerconfigDTO.AuthField"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/provider-configs/{providerType}/resource-types": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns the resource kinds a provider type can create.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "provider-configs"
+                ],
+                "summary": "Get supported resource types",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "gitlab",
+                            "slack",
+                            "outline",
+                            "rancher",
+                            "keycloak"
+                        ],
+                        "type": "string",
+                        "description": "Provider type",
+                        "name": "providerType",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
                             }
                         }
                     },
@@ -964,13 +1051,15 @@ const docTemplate = `{
                 "pending",
                 "in_progress",
                 "created",
-                "failed"
+                "failed",
+                "partial"
             ],
             "x-enum-varnames": [
                 "ResourceStatusPending",
                 "ResourceStatusInProgress",
                 "ResourceStatusCreated",
-                "ResourceStatusFailed"
+                "ResourceStatusFailed",
+                "ResourceStatusPartial"
             ]
         },
         "execution.ResourceInstanceResponse": {
@@ -1054,6 +1143,10 @@ const docTemplate = `{
         "providerconfigDTO.ProviderConfigResponse": {
             "type": "object",
             "properties": {
+                "configured": {
+                    "description": "Configured is false for a provider copied from another phase, which keeps the\nrow but not the credentials.",
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "string"
                 },

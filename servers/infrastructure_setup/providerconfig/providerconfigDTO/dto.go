@@ -19,6 +19,9 @@ type UpsertRequest struct {
 type ProviderConfigResponse struct {
 	ID           uuid.UUID `json:"id"`
 	ProviderType string    `json:"providerType"`
+	// Configured is false for a provider copied from another phase, which keeps the
+	// row but not the credentials.
+	Configured bool `json:"configured"`
 }
 
 // GetProviderConfigDTOFromDBModel builds the redacted API response from the DB row.
@@ -26,5 +29,6 @@ func GetProviderConfigDTOFromDBModel(pc db.ProviderConfig) ProviderConfigRespons
 	return ProviderConfigResponse{
 		ID:           pc.ID,
 		ProviderType: string(pc.ProviderType),
+		Configured:   len(pc.Credentials) > 0,
 	}
 }

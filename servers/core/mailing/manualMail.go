@@ -79,7 +79,7 @@ func SendManualMailToParticipants(
 			passedMailingInfo.CourseName,
 			passedMailingInfo.CourseStartDate,
 			passedMailingInfo.CourseEndDate,
-			db.GetParticipantMailingInformationRow(participant),
+			participant,
 		)
 		if coursePhaseLink != "" {
 			placeholderMap["coursePhaseLink"] = coursePhaseLink

@@ -29,7 +29,7 @@ WITH claimed AS (
     WHERE
         cpp.course_phase_id = $1
     AND
-        cpp.pass_status = $2
+        cpp.pass_status::text = $2::text
     AND
         (cpp.restricted_data -> 'statusMailSentAt' ->> $2::text) IS NULL
     AND
@@ -60,7 +60,7 @@ JOIN
 
 type ClaimStatusMailRecipientsParams struct {
 	CoursePhaseID          uuid.UUID   `json:"course_phase_id"`
-	PassStatus             string      `json:"pass_status"`
+	Status                 string      `json:"status"`
 	SentAt                 string      `json:"sent_at"`
 	CourseParticipationIds []uuid.UUID `json:"course_participation_ids"`
 }
@@ -77,12 +77,12 @@ type ClaimStatusMailRecipientsRow struct {
 	StudyProgram          pgtype.Text `json:"study_program"`
 }
 
-// Marks the participants that are still eligible for the status mail as mailed and returns them, so
+// Marks the participants still eligible for the status mail as mailed and returns them, so that
 // concurrent triggers cannot claim the same participant twice.
 func (q *Queries) ClaimStatusMailRecipients(ctx context.Context, arg ClaimStatusMailRecipientsParams) ([]ClaimStatusMailRecipientsRow, error) {
 	rows, err := q.db.Query(ctx, claimStatusMailRecipients,
 		arg.CoursePhaseID,
-		arg.PassStatus,
+		arg.Status,
 		arg.SentAt,
 		arg.CourseParticipationIds,
 	)
@@ -379,13 +379,13 @@ AND
 `
 
 type ReleaseStatusMailClaimParams struct {
-	PassStatus            string    `json:"pass_status"`
+	Status                string    `json:"status"`
 	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`
 }
 
 func (q *Queries) ReleaseStatusMailClaim(ctx context.Context, arg ReleaseStatusMailClaimParams) error {
-	_, err := q.db.Exec(ctx, releaseStatusMailClaim, arg.PassStatus, arg.CoursePhaseID, arg.CourseParticipationID)
+	_, err := q.db.Exec(ctx, releaseStatusMailClaim, arg.Status, arg.CoursePhaseID, arg.CourseParticipationID)
 	return err
 }
 

@@ -58,7 +58,7 @@ WHERE
     p.id = $1;
 
 -- name: ClaimStatusMailRecipients :many
--- Marks the participants that are still eligible for the status mail as mailed and returns them, so
+-- Marks the participants still eligible for the status mail as mailed and returns them, so that
 -- concurrent triggers cannot claim the same participant twice.
 WITH claimed AS (
     UPDATE course_phase_participation cpp
@@ -71,14 +71,14 @@ WITH claimed AS (
                 WHEN jsonb_typeof(cpp.restricted_data -> 'statusMailSentAt') = 'object'
                 THEN cpp.restricted_data -> 'statusMailSentAt'
                 ELSE '{}'::jsonb
-            END) || jsonb_build_object(sqlc.arg(pass_status)::text, to_jsonb(sqlc.arg(sent_at)::text))
+            END) || jsonb_build_object(sqlc.arg(status)::text, to_jsonb(sqlc.arg(sent_at)::text))
         )
     WHERE
         cpp.course_phase_id = sqlc.arg(course_phase_id)
     AND
-        cpp.pass_status = sqlc.arg(pass_status)
+        cpp.pass_status::text = sqlc.arg(status)::text
     AND
-        (cpp.restricted_data -> 'statusMailSentAt' ->> sqlc.arg(pass_status)::text) IS NULL
+        (cpp.restricted_data -> 'statusMailSentAt' ->> sqlc.arg(status)::text) IS NULL
     AND
         (sqlc.narg(course_participation_ids)::uuid[] IS NULL
          OR cpp.course_participation_id = ANY(sqlc.narg(course_participation_ids)::uuid[]))
@@ -106,7 +106,7 @@ JOIN
 
 -- name: ReleaseStatusMailClaim :exec
 UPDATE course_phase_participation
-SET restricted_data = restricted_data #- ARRAY['statusMailSentAt', sqlc.arg(pass_status)::text]
+SET restricted_data = restricted_data #- ARRAY['statusMailSentAt', sqlc.arg(status)::text]
 WHERE
     course_phase_id = sqlc.arg(course_phase_id)
 AND

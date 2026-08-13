@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/mail"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -113,10 +114,12 @@ func (suite *StatusMailDedupTestSuite) setParticipationNull(cpID uuid.UUID, pass
 	assert.NoError(suite.T(), err)
 }
 
-func (suite *StatusMailDedupTestSuite) recipientIDs(status db.PassStatus) []uuid.UUID {
-	rows, err := suite.queries.GetParticipantMailingInformation(suite.ctx, db.GetParticipantMailingInformationParams{
-		ID:         dedupCoursePhaseID,
-		PassStatus: db.NullPassStatus{PassStatus: status, Valid: true},
+// claimIDs claims every participant that is still eligible for the given status and returns them.
+func (suite *StatusMailDedupTestSuite) claimIDs(status db.PassStatus) []uuid.UUID {
+	rows, err := suite.queries.ClaimStatusMailRecipients(suite.ctx, db.ClaimStatusMailRecipientsParams{
+		CoursePhaseID: dedupCoursePhaseID,
+		Status:        string(status),
+		SentAt:        dedupSentAt,
 	})
 	assert.NoError(suite.T(), err)
 	ids := make([]uuid.UUID, 0, len(rows))
@@ -152,57 +155,119 @@ func (suite *StatusMailDedupTestSuite) recordingSendMailFn(failFor string) *[]st
 	return &sent
 }
 
-func (suite *StatusMailDedupTestSuite) markStatusMailSent(cpID uuid.UUID, status string) {
-	err := suite.queries.MarkStatusMailSent(suite.ctx, db.MarkStatusMailSentParams{
-		CoursePhaseID:         dedupCoursePhaseID,
-		CourseParticipationID: cpID,
-		Status:                status,
-		SentAt:                dedupSentAt,
-	})
-	assert.NoError(suite.T(), err)
-}
-
-func (suite *StatusMailDedupTestSuite) TestStatusMailDedup() {
+func (suite *StatusMailDedupTestSuite) TestStatusMailClaim() {
 	t := suite.T()
 
 	// Both accepted; cp1 with a pre-existing restricted_data key, cp2 with NULL restricted_data.
 	suite.setParticipationNull(dedupCP2, "passed")
 	suite.setParticipation(dedupCP1, "passed", `{"foo": "bar"}`)
 
-	// Initially both are recipients for the passed status.
-	initial := suite.recipientIDs(db.PassStatusPassed)
+	// The first claim covers both, including the one with NULL restricted_data.
+	initial := suite.claimIDs(db.PassStatusPassed)
 	assert.Contains(t, initial, dedupCP1)
 	assert.Contains(t, initial, dedupCP2)
-
-	// Mark cp1 as mailed for "passed".
-	suite.markStatusMailSent(dedupCP1, "passed")
-
-	// cp1 is now excluded; cp2 (unmarked, previously NULL restricted_data) is still included.
-	afterMark := suite.recipientIDs(db.PassStatusPassed)
-	assert.NotContains(t, afterMark, dedupCP1)
-	assert.Contains(t, afterMark, dedupCP2)
 
 	// The pre-existing restricted_data key is preserved and the marker records the passed timestamp.
 	cp1Data := suite.restrictedData(dedupCP1)
 	assert.Contains(t, cp1Data, `"foo": "bar"`)
 	assert.Contains(t, cp1Data, dedupSentAt)
 
-	// Marking cp2 (NULL restricted_data) upgrades it to an object and excludes it.
-	suite.markStatusMailSent(dedupCP2, "passed")
-	assert.NotContains(t, suite.recipientIDs(db.PassStatusPassed), dedupCP2)
-
-	// Idempotency: marking cp1 again keeps it excluded (single valid marker).
-	suite.markStatusMailSent(dedupCP1, "passed")
-	assert.NotContains(t, suite.recipientIDs(db.PassStatusPassed), dedupCP1)
+	// A second claim finds nobody left.
+	assert.Empty(t, suite.claimIDs(db.PassStatusPassed))
 
 	// Opposite-status non-interference: a failed participant that already has statusMailSentAt.passed
-	// must still receive the failed status mail.
+	// is still claimed for the failed status mail.
 	suite.setParticipation(dedupCP1, "failed", `{"statusMailSentAt": {"passed": "2026-01-01T00:00:00Z"}}`)
-	failedRecipients := suite.recipientIDs(db.PassStatusFailed)
-	assert.Contains(t, failedRecipients, dedupCP1)
+	assert.Contains(t, suite.claimIDs(db.PassStatusFailed), dedupCP1)
 }
 
-// TestSendStatusMailOnlyOncePerParticipant covers the send-and-mark loop: a repeated trigger for the
+// TestStatusMailClaimNormalizesNonObjectRestrictedData covers restricted_data values that are not
+// objects, where a plain `||` merge would not produce a readable statusMailSentAt marker.
+func (suite *StatusMailDedupTestSuite) TestStatusMailClaimNormalizesNonObjectRestrictedData() {
+	t := suite.T()
+
+	for _, restrictedData := range []string{`null`, `"scalar"`, `[1, 2]`, `{"statusMailSentAt": "scalar"}`} {
+		suite.setParticipation(dedupCP1, "passed", restrictedData)
+		suite.setParticipation(dedupCP2, "failed", `{}`)
+
+		assert.Contains(t, suite.claimIDs(db.PassStatusPassed), dedupCP1, restrictedData)
+		assert.Contains(t, suite.restrictedData(dedupCP1), dedupSentAt, restrictedData)
+		assert.Empty(t, suite.claimIDs(db.PassStatusPassed), restrictedData)
+	}
+}
+
+// TestStatusMailClaimRestrictedToSelectedRecipients covers the recipient-list variant of the claim.
+func (suite *StatusMailDedupTestSuite) TestStatusMailClaimRestrictedToSelectedRecipients() {
+	t := suite.T()
+
+	suite.setParticipation(dedupCP1, "passed", `{}`)
+	suite.setParticipation(dedupCP2, "passed", `{}`)
+
+	claimed, err := suite.queries.ClaimStatusMailRecipients(suite.ctx, db.ClaimStatusMailRecipientsParams{
+		CoursePhaseID:          dedupCoursePhaseID,
+		Status:                 string(db.PassStatusPassed),
+		SentAt:                 dedupSentAt,
+		CourseParticipationIds: []uuid.UUID{dedupCP1},
+	})
+	suite.Require().NoError(err)
+	suite.Require().Len(claimed, 1)
+	assert.Equal(t, dedupCP1, claimed[0].CourseParticipationID)
+
+	// cp2 was left untouched and is still claimable.
+	assert.Equal(t, []uuid.UUID{dedupCP2}, suite.claimIDs(db.PassStatusPassed))
+}
+
+// TestSendStatusMailConcurrentTriggersMailOnce covers two triggers for the same phase and status that
+// overlap: the second one runs while the first is still sending, so it must find no recipients left.
+func (suite *StatusMailDedupTestSuite) TestSendStatusMailConcurrentTriggersMailOnce() {
+	t := suite.T()
+
+	suite.setParticipation(dedupCP1, "passed", `{}`)
+	suite.setParticipation(dedupCP2, "passed", `{}`)
+
+	var mu sync.Mutex
+	sent := make([]string, 0)
+	sending := make(chan struct{})
+	secondTriggerDone := make(chan struct{})
+
+	sendMailFn = func(
+		courseMailingSettings mailingDTO.CourseMailingSettings,
+		recipientAddress, subject, htmlBody string,
+	) error {
+		mu.Lock()
+		sent = append(sent, recipientAddress)
+		isFirstSend := len(sent) == 1
+		mu.Unlock()
+
+		if isFirstSend {
+			close(sending)
+			<-secondTriggerDone
+		}
+		return nil
+	}
+
+	firstReports := make(chan mailingDTO.MailingReport, 1)
+	go func() {
+		report, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+		assert.NoError(t, err)
+		firstReports <- report
+	}()
+
+	<-sending
+	secondReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	suite.Require().NoError(err)
+	close(secondTriggerDone)
+
+	assert.Empty(t, secondReport.SuccessfulEmails)
+	assert.Len(t, (<-firstReports).SuccessfulEmails, 2)
+
+	mu.Lock()
+	defer mu.Unlock()
+	sort.Strings(sent)
+	assert.Equal(t, []string{dedupEmail1, dedupEmail2}, sent)
+}
+
+// TestSendStatusMailOnlyOncePerParticipant covers the claim-and-send loop: a repeated trigger for the
 // same status must not mail anybody again.
 func (suite *StatusMailDedupTestSuite) TestSendStatusMailOnlyOncePerParticipant() {
 	t := suite.T()
@@ -219,9 +284,8 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailOnlyOncePerParticipant(
 	assert.Equal(t, []string{dedupEmail1, dedupEmail2}, sortedSent)
 	assert.Len(t, report.SuccessfulEmails, 2)
 	assert.Empty(t, report.FailedEmails)
-	assert.Empty(t, report.MarkFailures)
 
-	// The markers are committed per participant, so the second trigger has no recipients left.
+	// The claims are committed per trigger, so the second trigger has no recipients left.
 	secondSent := suite.recordingSendMailFn("")
 	secondReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
@@ -229,12 +293,12 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailOnlyOncePerParticipant(
 	assert.Empty(t, secondReport.SuccessfulEmails)
 }
 
-// TestSendStatusMailRetriesFailedRecipients ensures a failed send leaves no marker behind, so the
-// participant is picked up again by the next trigger while the successful one is not re-mailed.
+// TestSendStatusMailRetriesFailedRecipients ensures a failed send releases its claim again, so the
+// participant is picked up by the next trigger while the successful one is not re-mailed.
 func (suite *StatusMailDedupTestSuite) TestSendStatusMailRetriesFailedRecipients() {
 	t := suite.T()
 
-	suite.setParticipation(dedupCP1, "passed", `{}`)
+	suite.setParticipation(dedupCP1, "passed", `{"foo": "bar"}`)
 	suite.setParticipation(dedupCP2, "passed", `{}`)
 	failingRecipient := dedupEmail1
 
@@ -243,7 +307,11 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailRetriesFailedRecipients
 	suite.Require().NoError(err)
 	assert.Equal(t, []string{dedupEmail2}, *sent)
 	assert.Equal(t, []string{failingRecipient}, report.FailedEmails)
-	assert.Empty(t, report.MarkFailures)
+
+	// Releasing the claim removes only the marker for this status, not the other restricted_data keys.
+	cp1Data := suite.restrictedData(dedupCP1)
+	assert.NotContains(t, cp1Data, `"passed"`)
+	assert.Contains(t, cp1Data, `"foo": "bar"`)
 
 	retried := suite.recordingSendMailFn("")
 	retryReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)

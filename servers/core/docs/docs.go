@@ -7016,12 +7016,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "markFailures": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "successfulEmails": {
                     "type": "array",
                     "items": {

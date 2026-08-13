@@ -1,11 +1,11 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 
 import { useStudentEvaluationStore } from '../../zustand/useStudentEvaluationStore'
+import { EvaluationHeader } from '../components/EvaluationHeader'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
@@ -51,7 +51,7 @@ export const PeerEvaluationPage = () => {
 
   return (
     <div className='flex flex-col gap-4'>
-      <ManagementPageHeader>Peer Evaluation for {studentName}</ManagementPageHeader>
+      <EvaluationHeader>Peer Evaluation for {studentName}</EvaluationHeader>
 
       <p className='text-sm text-gray-600 dark:text-gray-400'>
         Please fill out the Peer evaluation below to assess the performance and contributions of

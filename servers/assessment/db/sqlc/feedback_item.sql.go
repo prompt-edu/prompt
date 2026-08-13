@@ -242,36 +242,33 @@ func (q *Queries) ListFeedbackItemsForTutorInPhase(ctx context.Context, arg List
 	return items, nil
 }
 
-const updateFeedbackItem = `-- name: UpdateFeedbackItem :exec
+const updateFeedbackItem = `-- name: UpdateFeedbackItem :execrows
 UPDATE feedback_items
-SET feedback_type                  = $2,
-    feedback_text                  = $3,
-    course_participation_id        = $4,
-    course_phase_id                = $5,
-    author_course_participation_id = $6,
-    type                           = $7
+SET feedback_type = $4,
+    feedback_text = $5
 WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3
 `
 
 type UpdateFeedbackItemParams struct {
-	ID                          uuid.UUID      `json:"id"`
-	FeedbackType                FeedbackType   `json:"feedback_type"`
-	FeedbackText                string         `json:"feedback_text"`
-	CourseParticipationID       uuid.UUID      `json:"course_participation_id"`
-	CoursePhaseID               uuid.UUID      `json:"course_phase_id"`
-	AuthorCourseParticipationID uuid.UUID      `json:"author_course_participation_id"`
-	Type                        AssessmentType `json:"type"`
+	ID                          uuid.UUID    `json:"id"`
+	CoursePhaseID               uuid.UUID    `json:"course_phase_id"`
+	AuthorCourseParticipationID uuid.UUID    `json:"author_course_participation_id"`
+	FeedbackType                FeedbackType `json:"feedback_type"`
+	FeedbackText                string       `json:"feedback_text"`
 }
 
-func (q *Queries) UpdateFeedbackItem(ctx context.Context, arg UpdateFeedbackItemParams) error {
-	_, err := q.db.Exec(ctx, updateFeedbackItem,
+func (q *Queries) UpdateFeedbackItem(ctx context.Context, arg UpdateFeedbackItemParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateFeedbackItem,
 		arg.ID,
-		arg.FeedbackType,
-		arg.FeedbackText,
-		arg.CourseParticipationID,
 		arg.CoursePhaseID,
 		arg.AuthorCourseParticipationID,
-		arg.Type,
+		arg.FeedbackType,
+		arg.FeedbackText,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

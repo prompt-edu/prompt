@@ -116,6 +116,31 @@ WHERE
 AND
     cpp.course_participation_id = ANY($2::uuid[]);
 
+-- name: GetParticipantMailingInformationByIDsAndStatus :many
+SELECT
+    s.first_name,
+    s.last_name,
+    s.email,
+    s.matriculation_number,
+    s.university_login,
+    s.study_degree,
+    s.current_semester,
+    s.study_program
+FROM
+    course_phase p
+JOIN
+    course_phase_participation cpp ON p.id = cpp.course_phase_id
+JOIN
+    course_participation cp ON cpp.course_participation_id = cp.id
+JOIN
+    student s ON cp.student_id = s.id
+WHERE
+    p.id = $1
+AND
+    cpp.course_participation_id = ANY($2::uuid[])
+AND
+    cpp.pass_status = $3;
+
 -- name: UpdateAssessmentReminderLastSentAt :exec
 UPDATE course_phase
 SET restricted_data = jsonb_set(

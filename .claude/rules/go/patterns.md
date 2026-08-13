@@ -16,3 +16,8 @@ paths:
   `PhaseCopyHandler` implementations (see the `config/` and `copy/` packages in `example_server`).
 - Custom validators are registered via the SDK `utils` subpackage (`RegisterValidation`,
   `ValidateStruct`); built-ins include `matriculationNumber` and `universityLogin`.
+- **Audit logging** is automatic via the shared `prompt-sdk/audit` middleware — mutating requests are
+  captured with no per-route work. Name important actions with `audit.Describe("…")`, emit rich or
+  background events with `audit.Record`/`RecordTx`, and silence noisy routes with `audit.Skip()`.
+  Keep `Metadata` to identifiers/change-summaries, never raw sensitive values. See
+  `docs/contributor/guide/audit-log.md`.

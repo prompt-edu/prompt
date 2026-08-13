@@ -436,6 +436,29 @@ type ApplicationQuestionText struct {
 	AccessKey                pgtype.Text `json:"access_key"`
 }
 
+type AuditLog struct {
+	ID            uuid.UUID          `json:"id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	ActorID       pgtype.UUID        `json:"actor_id"`
+	ActorName     string             `json:"actor_name"`
+	ActorEmail    string             `json:"actor_email"`
+	ActorRoles    []string           `json:"actor_roles"`
+	ActorRole     string             `json:"actor_role"`
+	Action        string             `json:"action"`
+	ActionKey     string             `json:"action_key"`
+	Outcome       string             `json:"outcome"`
+	EntityType    pgtype.Text        `json:"entity_type"`
+	EntityID      pgtype.Text        `json:"entity_id"`
+	EntityName    pgtype.Text        `json:"entity_name"`
+	CourseID      pgtype.UUID        `json:"course_id"`
+	CoursePhaseID pgtype.UUID        `json:"course_phase_id"`
+	SourceService string             `json:"source_service"`
+	HttpMethod    pgtype.Text        `json:"http_method"`
+	HttpPath      pgtype.Text        `json:"http_path"`
+	HttpStatus    pgtype.Int4        `json:"http_status"`
+	Metadata      []byte             `json:"metadata"`
+}
+
 type Course struct {
 	ID                  uuid.UUID          `json:"id"`
 	Name                string             `json:"name"`

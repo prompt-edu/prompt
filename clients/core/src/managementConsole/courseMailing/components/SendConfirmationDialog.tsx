@@ -14,6 +14,8 @@ interface SendConfirmationDialogProps {
   onClose: () => void
   onConfirm: () => void
   recipientCount: number
+  // Distinguishes a resolved "0 recipients" from a still-loading/failed preview.
+  isCountKnown: boolean
   isPending?: boolean
 }
 
@@ -22,6 +24,7 @@ export const SendConfirmationDialog = ({
   onClose,
   onConfirm,
   recipientCount,
+  isCountKnown,
   isPending,
 }: SendConfirmationDialogProps) => {
   return (
@@ -30,15 +33,21 @@ export const SendConfirmationDialog = ({
         <DialogHeader>
           <DialogTitle>Send this campaign?</DialogTitle>
           <DialogDescription>
-            This will send the email to <strong>{recipientCount}</strong>{' '}
-            {recipientCount === 1 ? 'recipient' : 'recipients'}. This action cannot be undone.
+            {isCountKnown ? (
+              <>
+                This will send the email to <strong>{recipientCount}</strong>{' '}
+                {recipientCount === 1 ? 'recipient' : 'recipients'}. This action cannot be undone.
+              </>
+            ) : (
+              <>Resolving the recipient list...</>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant='outline' onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isPending || recipientCount === 0}>
+          <Button onClick={onConfirm} disabled={isPending || !isCountKnown || recipientCount === 0}>
             {isPending ? (
               <>
                 <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -47,7 +56,7 @@ export const SendConfirmationDialog = ({
             ) : (
               <>
                 <Send className='mr-2 h-4 w-4' />
-                Send to {recipientCount}
+                {isCountKnown ? `Send to ${recipientCount}` : 'Send'}
               </>
             )}
           </Button>

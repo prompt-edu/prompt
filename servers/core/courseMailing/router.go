@@ -63,6 +63,8 @@ func parseCourseAndCampaign(c *gin.Context) (uuid.UUID, uuid.UUID, error) {
 // @Produce json
 // @Param uuid path string true "Course UUID"
 // @Success 200 {array} courseMailingDTO.MailCampaign
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns [get]
 func listCampaigns(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
@@ -86,6 +88,8 @@ func listCampaigns(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaign body courseMailingDTO.MailCampaignRequest true "Campaign"
 // @Success 201 {object} courseMailingDTO.MailCampaign
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns [post]
 func createCampaign(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
@@ -113,6 +117,9 @@ func createCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 200 {object} courseMailingDTO.MailCampaignDetail
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [get]
 func getCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -137,6 +144,10 @@ func getCampaign(c *gin.Context) {
 // @Param campaignID path string true "Campaign UUID"
 // @Param campaign body courseMailingDTO.MailCampaignRequest true "Campaign"
 // @Success 200 {object} courseMailingDTO.MailCampaign
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [put]
 func updateCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -163,6 +174,9 @@ func updateCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 200 {string} string "OK"
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [delete]
 func deleteCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -184,6 +198,9 @@ func deleteCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 201 {object} courseMailingDTO.MailCampaign
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/copy [post]
 func copyCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -206,6 +223,9 @@ func copyCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 200 {object} courseMailingDTO.RecipientPreview
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/recipients-preview [get]
 func previewRecipients(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -227,6 +247,9 @@ func previewRecipients(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 200 {string} string "OK"
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/test [post]
 func testSendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -248,6 +271,11 @@ func testSendCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 202 {object} courseMailingDTO.SendResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 422 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/send [post]
 func sendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -270,6 +298,11 @@ func sendCampaign(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Param campaignID path string true "Campaign UUID"
 // @Success 202 {object} courseMailingDTO.SendResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 422 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/resend-failed [post]
 func resendFailedCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
@@ -287,10 +320,9 @@ func resendFailedCampaign(c *gin.Context) {
 
 func bindCampaignRequest(c *gin.Context) (courseMailingDTO.MailCampaignRequest, error) {
 	var req courseMailingDTO.MailCampaignRequest
-	if err := c.BindJSON(&req); err != nil {
-		return courseMailingDTO.MailCampaignRequest{}, err
-	}
-	if err := validateCampaignRequest(req); err != nil {
+	// ShouldBindJSON does not write a response on error, so the handler owns the
+	// error mapping (BindJSON would abort with its own 400 and double-write).
+	if err := c.ShouldBindJSON(&req); err != nil {
 		return courseMailingDTO.MailCampaignRequest{}, err
 	}
 	return req, nil
@@ -311,7 +343,8 @@ func handleServiceError(c *gin.Context, err error) {
 	case errors.Is(err, ErrValidation):
 		handleError(c, http.StatusBadRequest, err)
 	default:
+		// Do not leak wrapped database/internal error text to the client.
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, err)
+		handleError(c, http.StatusInternalServerError, errors.New("internal server error"))
 	}
 }

@@ -149,6 +149,9 @@ func (s *CourseMailingService) ensurePhaseInCourse(ctx context.Context, base db.
 }
 
 func (s *CourseMailingService) CreateCampaign(ctx context.Context, courseID uuid.UUID, actor courseMailingDTO.Actor, req courseMailingDTO.MailCampaignRequest) (db.MailCampaign, error) {
+	if err := validateCampaignRequest(req); err != nil {
+		return db.MailCampaign{}, err
+	}
 	if err := s.validateTargetPhase(ctx, courseID, req.TargetCoursePhaseID); err != nil {
 		return db.MailCampaign{}, err
 	}
@@ -189,6 +192,9 @@ func (s *CourseMailingService) UpdateCampaign(ctx context.Context, courseID, cam
 	}
 	if existing.Status == db.MailCampaignStatusSending {
 		return db.MailCampaign{}, ErrSendInProgress
+	}
+	if err := validateCampaignRequest(req); err != nil {
+		return db.MailCampaign{}, err
 	}
 	if err := s.validateTargetPhase(ctx, courseID, req.TargetCoursePhaseID); err != nil {
 		return db.MailCampaign{}, err

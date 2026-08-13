@@ -343,6 +343,57 @@ func (suite *CourseMailingServiceTestSuite) TestCCBCCSentOnce() {
 	suite.Equal(1, archiveCalls)
 }
 
+func (suite *CourseMailingServiceTestSuite) TestCreateRejectsInvalidOverrideEmail() {
+	_, err := suite.service.CreateCampaign(suite.ctx, suite.courseID, suite.actor, courseMailingDTO.MailCampaignRequest{
+		Name:                "Bad CC",
+		TargetCoursePhaseID: &suite.phaseID,
+		TargetPassStatuses:  []string{"passed"},
+		CcOverride:          []courseMailingDTO.MailItem{{Name: "Broken", Email: "not-an-email"}},
+	})
+	suite.ErrorIs(err, ErrValidation)
+}
+
+func (suite *CourseMailingServiceTestSuite) TestCreateRejectsEmptyNameAtServiceBoundary() {
+	// The service validates independently of the HTTP router.
+	_, err := suite.service.CreateCampaign(suite.ctx, suite.courseID, suite.actor, courseMailingDTO.MailCampaignRequest{
+		Name:                "   ",
+		TargetCoursePhaseID: &suite.phaseID,
+		TargetPassStatuses:  []string{"passed"},
+	})
+	suite.ErrorIs(err, ErrValidation)
+}
+
+func (suite *CourseMailingServiceTestSuite) TestSendRejectsSubjectWithLineBreak() {
+	campaign := suite.newCampaign("Injection", "Hi\r\nBcc: attacker@example.com", "Body", &suite.phaseID, []string{"failed"})
+	_, err := suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.ErrorIs(err, ErrValidation)
+	suite.Empty(suite.captured, "no mail must be sent for an invalid subject")
+}
+
+func (suite *CourseMailingServiceTestSuite) TestArchiveCopyRendersCoursePhaseLink() {
+	campaign, err := suite.service.CreateCampaign(suite.ctx, suite.courseID, suite.actor, courseMailingDTO.MailCampaignRequest{
+		Name:                "Link Campaign",
+		Subject:             "Hi",
+		Body:                "Open {{coursePhaseLink}}",
+		TargetCoursePhaseID: &suite.phaseID,
+		TargetPassStatuses:  []string{"failed"}, // one student (Bob)
+		CcOverride:          []courseMailingDTO.MailItem{{Name: "Archive", Email: "archive@example.com"}},
+	})
+	suite.Require().NoError(err)
+
+	_, err = suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.Require().NoError(err)
+
+	var archiveBody string
+	for _, c := range suite.captured {
+		if c.recipient == "replyto@example.com" {
+			archiveBody = c.body
+		}
+	}
+	suite.Contains(archiveBody, "https://prompt.example.com/management/course/")
+	suite.NotContains(archiveBody, "{{coursePhaseLink}}")
+}
+
 func addressEmails(addresses []mail.Address) []string {
 	out := make([]string, 0, len(addresses))
 	for _, a := range addresses {

@@ -29,7 +29,13 @@ export const MailItemListEditor = ({ label, items, onChange }: MailItemListEdito
             value={item.name}
             onChange={(e) => update(index, { name: e.target.value })}
           />
-          <Button variant='ghost' size='icon' type='button' onClick={() => remove(index)}>
+          <Button
+            variant='ghost'
+            size='icon'
+            type='button'
+            aria-label={`Remove ${label} recipient ${index + 1}`}
+            onClick={() => remove(index)}
+          >
             <Trash2 className='h-4 w-4' />
           </Button>
         </div>

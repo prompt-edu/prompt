@@ -10,7 +10,7 @@ PROMPT supports customizable email communication. This guide explains how to con
 
 ## 🧩 Course-Wide Mailing Settings
 
-You can access the course-wide mailing settings via the **"Mailing Settings"** entry at the top of the course sidebar.
+You can access the course-wide mailing settings under the **"Settings"** entry in the course sidebar. (The separate **"Mailing"** entry is for sending [campaigns](#-course-mailing-campaigns), not for configuration.)
 
 ![Mailing Settings Sidebar](./images/mailing_1.png)
 

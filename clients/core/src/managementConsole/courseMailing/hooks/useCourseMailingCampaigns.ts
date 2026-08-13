@@ -15,6 +15,11 @@ import {
 
 const campaignsKey = (courseID: string) => ['mailCampaigns', courseID]
 const campaignKey = (courseID: string, campaignID: string) => ['mailCampaign', courseID, campaignID]
+const recipientPreviewKey = (courseID: string, campaignID: string) => [
+  'mailCampaignRecipientPreview',
+  courseID,
+  campaignID,
+]
 
 export const useGetMailCampaigns = (courseID: string) =>
   useQuery({
@@ -55,6 +60,8 @@ export const useUpdateMailCampaign = (courseID: string, campaignID: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: campaignsKey(courseID) })
       queryClient.invalidateQueries({ queryKey: campaignKey(courseID, campaignID) })
+      // Targeting (phase/statuses) may have changed, so the cached preview is stale.
+      queryClient.invalidateQueries({ queryKey: recipientPreviewKey(courseID, campaignID) })
     },
   })
 }

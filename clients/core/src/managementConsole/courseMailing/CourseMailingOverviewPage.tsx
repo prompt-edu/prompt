@@ -16,6 +16,7 @@ import { Copy, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MailCampaignStatusBadge } from './components/MailCampaignStatusBadge'
+import { useCanSendMailCampaign } from './hooks/useCanSendMailCampaign'
 import {
   useCopyMailCampaign,
   useDeleteMailCampaign,
@@ -38,6 +39,7 @@ export const CourseMailingOverviewPage = () => {
   const { mutate: deleteCampaign } = useDeleteMailCampaign(courseId ?? '')
   const { mutate: copyCampaign } = useCopyMailCampaign(courseId ?? '')
   const { mutate: resendFailed } = useResendFailedMailCampaign(courseId ?? '')
+  const canSend = useCanSendMailCampaign(courseId)
 
   const [campaignToDelete, setCampaignToDelete] = useState<MailCampaign | null>(null)
 
@@ -131,7 +133,7 @@ export const CourseMailingOverviewPage = () => {
                       >
                         <Pencil className='h-4 w-4' />
                       </Button>
-                      {campaign.failedCount > 0 && (
+                      {canSend && campaign.failedCount > 0 && (
                         <Button
                           variant='ghost'
                           size='icon'

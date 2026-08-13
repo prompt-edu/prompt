@@ -28,6 +28,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { MailItemListEditor } from './components/MailItemListEditor'
 import { RecipientListPanel } from './components/RecipientListPanel'
 import { SendConfirmationDialog } from './components/SendConfirmationDialog'
+import { useCanSendMailCampaign } from './hooks/useCanSendMailCampaign'
 import {
   useCreateMailCampaign,
   useGetMailCampaign,
@@ -90,8 +91,14 @@ export const CourseMailingComposePage = () => {
   const { mutate: sendCampaign, isPending: isSending } = useSendMailCampaign(courseId ?? '')
   const { mutate: testSend, isPending: isTesting } = useTestSendMailCampaign(courseId ?? '')
 
+  const canSendRole = useCanSendMailCampaign(courseId)
+
   const canPreview = !!campaignId && !isDirty
-  const { data: recipientPreview, isLoading: isPreviewLoading } = useGetRecipientPreview(
+  const {
+    data: recipientPreview,
+    isLoading: isPreviewLoading,
+    isError: isPreviewError,
+  } = useGetRecipientPreview(
     courseId ?? '',
     campaignId,
     canPreview && (showRecipients || sendDialogOpen),
@@ -190,7 +197,10 @@ export const CourseMailingComposePage = () => {
   // mailing config is unset.
   const hasReplyToOverride = replyToEmail.trim() !== ''
   const canSend = mailingConfigured || hasReplyToOverride
-  const sendDisabled = !campaignId || isDirty || !canSend
+  // Course editors may edit drafts but not send; only lecturers/admins can send.
+  const sendDisabled = !campaignId || isDirty || !canSend || !canSendRole
+  // The recipient count is only trustworthy once the preview query has resolved.
+  const isRecipientCountKnown = canPreview && !isPreviewLoading && !isPreviewError
 
   if (campaignId && isError) {
     return <ErrorPage message='Failed to load the campaign' onRetry={refetchCampaign} />
@@ -414,6 +424,7 @@ export const CourseMailingComposePage = () => {
         onClose={() => setSendDialogOpen(false)}
         onConfirm={handleSend}
         recipientCount={recipientPreview?.count ?? 0}
+        isCountKnown={isRecipientCountKnown}
         isPending={isSending}
       />
     </div>

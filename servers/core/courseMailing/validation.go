@@ -2,6 +2,7 @@ package courseMailing
 
 import (
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
@@ -17,8 +18,35 @@ func validateCampaignRequest(req courseMailingDTO.MailCampaignRequest) error {
 	if _, err := validateStatusValues(req.TargetPassStatuses); err != nil {
 		return err
 	}
-	if req.ReplyToOverride != nil && req.ReplyToOverride.Email == "" {
-		return fmt.Errorf("%w: reply-to override requires an email address", ErrValidation)
+	if req.ReplyToOverride != nil {
+		if req.ReplyToOverride.Email == "" {
+			return fmt.Errorf("%w: reply-to override requires an email address", ErrValidation)
+		}
+		if err := validateOverrideAddress(req.ReplyToOverride.Email); err != nil {
+			return err
+		}
+	}
+	for _, item := range req.CcOverride {
+		if err := validateOverrideAddress(item.Email); err != nil {
+			return err
+		}
+	}
+	for _, item := range req.BccOverride {
+		if err := validateOverrideAddress(item.Email); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateOverrideAddress rejects a malformed override address. Empty entries are
+// ignored (blank field-array rows) and dropped later by parseAddresses.
+func validateOverrideAddress(email string) error {
+	if strings.TrimSpace(email) == "" {
+		return nil
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("%w: invalid email address %q", ErrValidation, email)
 	}
 	return nil
 }
@@ -39,6 +67,9 @@ func validateCampaignForTest(base db.MailCampaign) error {
 	}
 	if !isASCII(base.Subject) {
 		return fmt.Errorf("%w: the subject must contain only ASCII characters", ErrValidation)
+	}
+	if strings.ContainsAny(base.Subject, "\r\n") {
+		return fmt.Errorf("%w: the subject must not contain line breaks", ErrValidation)
 	}
 	if strings.TrimSpace(base.Body) == "" {
 		return fmt.Errorf("%w: a message body is required before sending", ErrValidation)

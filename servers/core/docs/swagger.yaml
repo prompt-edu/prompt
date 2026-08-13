@@ -3724,6 +3724,14 @@ paths:
             items:
               $ref: '#/definitions/courseMailingDTO.MailCampaign'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: List mail campaigns for a course
       tags:
       - course_mailing
@@ -3749,6 +3757,14 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/courseMailingDTO.MailCampaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Create a mail campaign draft
       tags:
       - course_mailing
@@ -3770,6 +3786,18 @@ paths:
           description: OK
           schema:
             type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Delete a mail campaign
       tags:
       - course_mailing
@@ -3792,6 +3820,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/courseMailingDTO.MailCampaignDetail'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Get a mail campaign with recipients
       tags:
       - course_mailing
@@ -3822,6 +3862,22 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/courseMailingDTO.MailCampaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Update a mail campaign
       tags:
       - course_mailing
@@ -3845,6 +3901,18 @@ paths:
           description: Created
           schema:
             $ref: '#/definitions/courseMailingDTO.MailCampaign'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Copy a mail campaign into a new draft
       tags:
       - course_mailing
@@ -3868,6 +3936,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/courseMailingDTO.RecipientPreview'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Preview the live recipient list for a campaign
       tags:
       - course_mailing
@@ -3891,6 +3971,26 @@ paths:
           description: Accepted
           schema:
             $ref: '#/definitions/courseMailingDTO.SendResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Resend a campaign to its failed recipients only
       tags:
       - course_mailing
@@ -3914,6 +4014,26 @@ paths:
           description: Accepted
           schema:
             $ref: '#/definitions/courseMailingDTO.SendResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Send a mail campaign to all matching recipients
       tags:
       - course_mailing
@@ -3935,6 +4055,18 @@ paths:
           description: OK
           schema:
             type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Send a test copy of a campaign to the current user
       tags:
       - course_mailing

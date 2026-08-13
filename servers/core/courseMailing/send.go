@@ -43,6 +43,7 @@ type campaignSendJob struct {
 	campaignID  uuid.UUID
 	subject     string // raw template, for the archive copy
 	body        string // raw template, for the archive copy
+	link        string // resolved {{coursePhaseLink}}, for the archive copy
 	items       []campaignSendItem
 	settings    mailingDTO.CourseMailingSettings
 	courseInfo  db.GetPassedMailingInformationRow
@@ -130,6 +131,7 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 		campaignID:  campaignID,
 		subject:     base.Subject,
 		body:        base.Body,
+		link:        link,
 		items:       items,
 		settings:    settings,
 		courseInfo:  courseInfo,
@@ -138,7 +140,7 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 	}
 	runSendAsync(func() { s.runCampaignSend(job) })
 
-	return len(rows), nil
+	return len(items), nil
 }
 
 // ResendFailed re-sends only the recipients that previously failed, re-resolving
@@ -241,6 +243,7 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 		campaignID:  campaignID,
 		subject:     base.Subject,
 		body:        base.Body,
+		link:        link,
 		items:       items,
 		settings:    settings,
 		courseInfo:  courseInfo,
@@ -373,7 +376,8 @@ func (s *CourseMailingService) sendOne(ctx context.Context, settings mailingDTO.
 		return
 	}
 	if err := sendMailFn(settings, item.email, item.subject, item.body); err != nil {
-		log.WithError(err).WithField("email", item.email).Warn("failed to send campaign mail to recipient")
+		// Log the recipient row ID, not the address (student email is personal data).
+		log.WithError(err).WithField("recipientID", item.recipientID).Warn("failed to send campaign mail to recipient")
 		s.setRecipientFailed(statusCtx, item.recipientID, err.Error())
 		return
 	}
@@ -405,6 +409,9 @@ func (s *CourseMailingService) sendArchiveCopy(ctx context.Context, job campaign
 		return
 	}
 	placeholders := mailing.StatusPlaceholderValues(job.courseInfo.CourseName, job.courseInfo.CourseStartDate, job.courseInfo.CourseEndDate, db.GetParticipantMailingInformationRow{})
+	if job.link != "" {
+		placeholders["coursePhaseLink"] = job.link
+	}
 	subject := mailing.ReplacePlaceholders(job.subject, placeholders)
 	body := mailing.ReplacePlaceholders(job.body, placeholders)
 	if err := sendMailFn(job.settings, job.settings.ReplyTo.Address, subject, body); err != nil {

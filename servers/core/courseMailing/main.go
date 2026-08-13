@@ -15,7 +15,7 @@ func InitCourseMailingModule(routerGroup *gin.RouterGroup, queries db.Queries, c
 	CourseMailingServiceSingleton = &CourseMailingService{
 		queries:   queries,
 		conn:      conn,
-		clientURL: sdkUtils.GetEnv("CORE_HOST", "localhost:3000"),
+		clientURL: sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"),
 	}
 	setupCourseMailingRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
 

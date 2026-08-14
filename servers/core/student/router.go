@@ -19,7 +19,7 @@ func setupStudentRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 	student.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudents)
 	student.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), createStudent)
 	student.PUT("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), updateStudent)
-	student.GET("/:uuid/enrollments", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getStudentEnrollments)
+	student.GET("/:uuid/enrollments", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getStudentEnrollments)
 }
 
 // getAllStudents godoc
@@ -198,11 +198,21 @@ func getStudentEnrollments(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, parseErr)
 		return
 	}
-  studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
+
+	rolesVal, exists := c.Get("userRoles")
+	if !exists {
+		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
+		return
+	}
+	userRoles := rolesVal.(map[string]bool)
+
+	studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
+
+	studentEnrollments = FilterEnrollmentsToAccessibleCourses(studentEnrollments, userRoles)
 	c.IndentedJSON(http.StatusOK, studentEnrollments)
 }
 

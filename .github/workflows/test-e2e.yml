@@ -27,9 +27,9 @@ jobs:
       matrix: ${{ steps.partition.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24.18.0
+          node-version: 24.19.0
 
       - name: Verify the shard partition covers every spec exactly once
         id: partition
@@ -76,7 +76,7 @@ jobs:
           driver-opts: image=${{ env.BUILDKIT_IMAGE }}
 
       # Exports the ACTIONS_* credentials type=gha needs in a `run:` step.
-      - uses: crazy-max/ghaction-github-runtime@v3
+      - uses: crazy-max/ghaction-github-runtime@v4
 
       - name: Prepare report directories
         run: mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
@@ -133,16 +133,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24.18.0
+          node-version: 24.19.0
 
       - name: Install e2e dependencies
         run: npm ci
         working-directory: e2e
 
       - name: Download all blob reports
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           path: e2e/all-blob-reports

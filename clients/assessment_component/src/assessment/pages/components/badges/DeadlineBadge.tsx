@@ -13,14 +13,13 @@ export const DeadlineBadge = ({ deadline, type = AssessmentType.SELF }: Deadline
   const deadlineDate = typeof deadline === 'string' ? new Date(deadline) : deadline
   const currentDate = new Date()
   const isDeadlinePassed = deadlineDate < currentDate
+  const formattedDeadline = format(deadlineDate, 'dd.MM.yyyy')
 
   let badgeClassName: string
-  let deadlineText: string
 
   if (isDeadlinePassed) {
     badgeClassName =
       'bg-red-100 text-red-800 border-red-200 dark:border-red-700 flex items-center gap-1 hover:bg-red-100'
-    deadlineText = `Deadline passed: ${format(deadlineDate, 'dd.MM.yyyy')}`
   } else {
     switch (type) {
       case AssessmentType.SELF:
@@ -40,13 +39,17 @@ export const DeadlineBadge = ({ deadline, type = AssessmentType.SELF }: Deadline
           'bg-gray-200 text-gray-800 border-gray-300 hover:bg-gray-100 flex items-center gap-1'
         break
     }
-    deadlineText = `Deadline: ${format(deadlineDate, 'dd.MM.yyyy')}`
   }
 
   return (
     <Badge className={badgeClassName}>
       <Clock className='h-3 w-3' />
-      {deadlineText}
+      {isDeadlinePassed ? (
+        <span className='hidden sm:inline'>Deadline passed:</span>
+      ) : (
+        <span>Deadline:</span>
+      )}
+      <span>{formattedDeadline}</span>
     </Badge>
   )
 }

@@ -1,17 +1,17 @@
 .PHONY: help server servers client-core client-certificate client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
-	server-team-allocation server-self-team-allocation server-template \
+	server-team-allocation server-self-team-allocation server-example \
 	server-certificate \
 	lint lint-clients lint-servers \
 	test test-core test-assessment test-interview \
-	test-team-allocation test-self-team-allocation test-template \
+	test-team-allocation test-self-team-allocation test-example \
 	test-certificate \
-	test-e2e test-e2e-ui test-e2e-down \
+	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
-	sqlc-team-allocation sqlc-self-team-allocation sqlc-template \
+	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate \
-	swagger install-clients install-hooks setup-skills
+	swagger install-clients install-hooks setup-skills new-phase
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -39,7 +39,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-interview &
 	@$(MAKE) server-team-allocation &
 	@$(MAKE) server-self-team-allocation &
-	@$(MAKE) server-template &
+	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
 	@wait
 	@echo "All servers started."
@@ -59,8 +59,8 @@ server-team-allocation: ## Start team allocation server (port 8083)
 server-self-team-allocation: ## Start self team allocation server (port 8084)
 	cd servers/self_team_allocation && go run main.go
 
-server-template: ## Start template server (port 8086)
-	cd servers/template_server && go run main.go
+server-example: ## Start example server (port 8086)
+	cd servers/example_server && go run main.go
 
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
@@ -102,12 +102,12 @@ lint-servers: ## Run go vet on all servers
 	cd servers/interview && go vet ./...
 	cd servers/team_allocation && go vet ./...
 	cd servers/self_team_allocation && go vet ./...
-	cd servers/template_server && go vet ./...
+	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-template test-certificate ## Run all server tests
+test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate ## Run all server tests
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...
@@ -124,8 +124,8 @@ test-team-allocation: ## Run team allocation server tests
 test-self-team-allocation: ## Run self team allocation server tests
 	cd servers/self_team_allocation && go test ./...
 
-test-template: ## Run template server tests
-	cd servers/template_server && go test ./...
+test-example: ## Run example server tests
+	cd servers/example_server && go test ./...
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
@@ -139,10 +139,28 @@ E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
 
 test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
-	@mkdir -p e2e/playwright-report e2e/test-results
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
 		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
+		$(E2E_COMPOSE) down -v; \
+		exit $$status
+
+test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHARD=interview (or PATHS="...")
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
+	@if [ -z "$(SHARD)$(PATHS)" ]; then \
+		echo "make test-e2e-shard: set SHARD=<name> (or PATHS=\"<patterns>\"), else this would run the whole suite."; \
+		echo "Available shards:"; cd e2e && node scripts/shards.mjs names | sed 's/^/  /'; \
+		exit 2; \
+	fi
+	@set -e; \
+		paths="$(PATHS)"; \
+		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
+		set -f; \
+		unset $(E2E_ENV_KEYS); \
+		$(E2E_COMPOSE) build; \
+		set +e; \
+		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $$paths; status=$$?; \
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 
@@ -163,7 +181,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-template sqlc-certificate ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -180,8 +198,8 @@ sqlc-team-allocation: ## Generate sqlc code for team allocation server
 sqlc-self-team-allocation: ## Generate sqlc code for self team allocation server
 	cd servers/self_team_allocation && sqlc generate
 
-sqlc-template: ## Generate sqlc code for template server
-	cd servers/template_server && sqlc generate
+sqlc-example: ## Generate sqlc code for example server
+	cd servers/example_server && sqlc generate
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate
@@ -194,8 +212,14 @@ swagger: ## Generate swagger docs for core server
 install-clients: ## Install client dependencies
 	cd clients && yarn install
 
-install-hooks: ## Install git hooks
-	./scripts/install-githooks.sh
+install-hooks: ## Install git hooks (via the pre-commit framework)
+	git config --local --unset-all core.hooksPath 2>/dev/null || true
+	pre-commit install
 
 setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
 	./scripts/setup-skills.sh
+
+# DB_PORT is also defined in .env (included above), so only forward it when it
+# was given on the command line; otherwise the script picks the next free port.
+new-phase: ## Scaffold a new course phase (make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port> [DB_PORT=<port>])
+	./scripts/new-course-phase.sh "$(NAME)" "$(CLIENT_PORT)" "$(SERVER_PORT)" "$(if $(filter command line,$(origin DB_PORT)),$(DB_PORT),)"

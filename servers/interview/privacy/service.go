@@ -22,3 +22,10 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	})
 	return nil
 }
+
+func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+	if err := PrivacyServiceSingleton.Queries.DeleteInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
+		return err
+	}
+	return PrivacyServiceSingleton.Queries.DeleteInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
+}

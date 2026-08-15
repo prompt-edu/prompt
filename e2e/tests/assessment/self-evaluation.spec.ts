@@ -81,6 +81,53 @@ test.describe('assessment: student self evaluation', () => {
     await reset()
   })
 
+  // Runs before the finalizing test so the evaluation is still editable. Shares this
+  // spec's phase deliberately: files run in parallel, so a separate file resetting the
+  // same phase would clobber this one's schema.
+  test('the evaluation header docks on scroll without shifting the content below', async ({
+    page,
+  }) => {
+    // Short enough that the evaluation form overflows, tall enough to keep the
+    // desktop layout (and so the header still starts undocked).
+    await page.setViewportSize({ width: 1280, height: 520 })
+
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID)
+    await phase.expectOverviewLoaded()
+    await phase.openSelfEvaluation()
+
+    const header = page.getByTestId('sticky-header')
+    const placeholder = page.getByTestId('sticky-header-placeholder')
+    const position = () => header.evaluate((el) => getComputedStyle(el).position)
+    const placeholderHeight = () =>
+      placeholder.evaluate((el) => el.getBoundingClientRect().height)
+
+    // Scrolls whichever ancestor actually overflows, and reports whether one did.
+    const scrollTo = (offset: 'bottom' | 'top') =>
+      header.evaluate((el, target) => {
+        let node: HTMLElement | null = el.parentElement
+        while (node && node.scrollHeight <= node.clientHeight) node = node.parentElement
+        if (!node) return false
+        node.scrollTop = target === 'bottom' ? node.scrollHeight : 0
+        return true
+      }, offset)
+
+    await expect(header).toBeVisible()
+    expect(await position()).not.toBe('fixed')
+    const undockedHeight = await placeholderHeight()
+
+    // If nothing overflows, the rest of this test would prove nothing.
+    expect(await scrollTo('bottom')).toBe(true)
+    await expect.poll(position).toBe('fixed')
+
+    // The placeholder keeps its undocked height, so nothing below the header moves.
+    expect(await placeholderHeight()).toBeCloseTo(undockedHeight, 0)
+
+    await scrollTo('top')
+    await expect.poll(position).not.toBe('fixed')
+    expect(await placeholderHeight()).toBeCloseTo(undockedHeight, 0)
+  })
+
   test('a student fills in and finalizes the self evaluation', async ({ page }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID)

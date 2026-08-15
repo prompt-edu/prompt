@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -26,10 +27,24 @@ var EvaluationCompletionServiceSingleton *EvaluationCompletionService
 
 var ErrInvalidEvaluationType = errors.New("invalid evaluation type")
 var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target its author")
+var ErrPeerEvaluationTargetNotInTeam = errors.New("peer evaluation must target a member of the author's team")
+var ErrTutorEvaluationTargetNotTeamTutor = errors.New("tutor evaluation must target a tutor of the author's team")
+var ErrAuthorHasNoTeam = errors.New("author is not a member of any team in this course phase")
+var ErrEvaluationAlreadyCompleted = errors.New("evaluation completion already exists and is marked as completed")
 
-func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	if evaluationType == assessmentType.Self && courseParticipationID != authorCourseParticipationID {
-		return ErrSelfEvaluationTargetMismatch
+var getTeamsForCoursePhaseFn = coursePhaseConfig.GetTeamsForCoursePhase
+
+// IsTargetAuthorizationError reports whether err means the caller may not write a record
+// about the requested subject, so routers can answer 403 instead of 500.
+func IsTargetAuthorizationError(err error) bool {
+	return errors.Is(err, ErrPeerEvaluationTargetNotInTeam) ||
+		errors.Is(err, ErrTutorEvaluationTargetNotTeamTutor) ||
+		errors.Is(err, ErrAuthorHasNoTeam)
+}
+
+func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	if err := checkEvaluationTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
+		return err
 	}
 
 	var open bool
@@ -73,15 +88,79 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, courseParti
 		}
 
 		if completion.Completed {
-			log.Error("evaluation completion already exists and is marked as completed")
-			return errors.New("evaluation completion already exists and is marked as completed")
+			return ErrEvaluationAlreadyCompleted
 		}
 	}
 	return nil
 }
 
-func CreateOrUpdateEvaluationCompletion(ctx context.Context, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+// checkEvaluationTarget enforces who a record of the given type may be written about.
+// A self evaluation must target its author; a peer evaluation must target a member of the
+// author's team; a tutor evaluation must target one of that team's tutors.
+//
+// The default branch returns nil rather than rejecting: unknown types are the responsibility of
+// the evaluation-type switch in CheckEvaluationIsEditable, which answers ErrInvalidEvaluationType.
+func checkEvaluationTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	switch evaluationType {
+	case assessmentType.Self:
+		if courseParticipationID != authorCourseParticipationID {
+			return ErrSelfEvaluationTargetMismatch
+		}
+		return nil
+	case assessmentType.Peer, assessmentType.Tutor:
+		return checkTeamTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
+	default:
+		return nil
+	}
+}
+
+func checkTeamTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	teams, err := getTeamsForCoursePhaseFn(ctx, authHeader, coursePhaseID)
+	if err != nil {
+		log.Error("could not fetch teams to validate the evaluation target: ", err)
+		return errors.New("could not fetch teams to validate the evaluation target")
+	}
+
+	team, found := teamOfMember(teams, authorCourseParticipationID)
+	if !found {
+		return ErrAuthorHasNoTeam
+	}
+
+	if evaluationType == assessmentType.Tutor {
+		if !containsPerson(team.Tutors, courseParticipationID) {
+			return ErrTutorEvaluationTargetNotTeamTutor
+		}
+		return nil
+	}
+
+	if courseParticipationID == authorCourseParticipationID || !containsPerson(team.Members, courseParticipationID) {
+		return ErrPeerEvaluationTargetNotInTeam
+	}
+	return nil
+}
+
+// teamOfMember returns the first team the participant belongs to. A participant belongs to exactly
+// one team per course phase, so the first match is the only match.
+func teamOfMember(teams []promptTypes.Team, courseParticipationID uuid.UUID) (promptTypes.Team, bool) {
+	for _, team := range teams {
+		if containsPerson(team.Members, courseParticipationID) {
+			return team, true
+		}
+	}
+	return promptTypes.Team{}, false
+}
+
+func containsPerson(persons []promptTypes.Person, courseParticipationID uuid.UUID) bool {
+	for _, person := range persons {
+		if person.ID == courseParticipationID {
+			return true
+		}
+	}
+	return false
+}
+
+func CreateOrUpdateEvaluationCompletion(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
@@ -114,8 +193,8 @@ func CreateOrUpdateEvaluationCompletion(ctx context.Context, req evaluationCompl
 	return nil
 }
 
-func MarkEvaluationAsCompleted(ctx context.Context, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+func MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}

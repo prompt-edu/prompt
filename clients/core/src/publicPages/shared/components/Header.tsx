@@ -1,6 +1,6 @@
 import { NavUserMenu } from '@managementConsole/layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { Button } from '@tumaet/prompt-ui-components'
+import { Button, ThemeToggle } from '@tumaet/prompt-ui-components'
 import { LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import packageJSON from '../../../../package.json'
@@ -23,32 +23,35 @@ export const Header = ({ withLoginButton = true, onLogout }: HeaderProps) => {
           <span className='text-2xl font-extrabold tracking-wide text-primary drop-shadow-xs'>
             PROMPT
           </span>
-          <span className='ml-1 text-s font-normal text-gray-400'>{version}</span>
+          <span className='ml-1 text-s font-normal text-muted-foreground'>{version}</span>
         </div>
       </div>
-      {withLoginButton && !user && (
-        <Button
-          variant='outline'
-          className='flex items-center space-x-2'
-          onClick={() => navigate('/management')}
-        >
-          <LogIn className='h-4 w-4' />
-          <span>Login</span>
-        </Button>
-      )}
-      {user && (
-        <div className='flex items-center gap-2'>
+      <div className='flex items-center gap-2'>
+        <ThemeToggle />
+        {withLoginButton && !user && (
           <Button
             variant='outline'
             className='flex items-center space-x-2'
             onClick={() => navigate('/management')}
           >
             <LogIn className='h-4 w-4' />
-            <span>Go to App</span>
+            <span>Login</span>
           </Button>
-          <NavUserMenu onLogout={onLogout ?? (() => {})} showThemeToggle={false} />
-        </div>
-      )}
+        )}
+        {user && (
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              className='flex items-center space-x-2'
+              onClick={() => navigate('/management')}
+            >
+              <LogIn className='h-4 w-4' />
+              <span>Go to App</span>
+            </Button>
+            <NavUserMenu onLogout={onLogout ?? (() => {})} showThemeToggle={false} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

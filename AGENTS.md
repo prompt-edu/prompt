@@ -25,7 +25,7 @@ clients/
   *_component/             # Course phase micro-frontends:
     - interview_component (port 3002)
     - matching_component (port 3003)
-    - template_component (port 3001)
+    - example_component (port 3001)
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - assessment_component (port 3007)
@@ -39,7 +39,7 @@ servers/
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
-  template_server/         # Course templates (port 8086)
+  example_server/          # Example phase service (port 8086)
 
 docs/                      # Docusaurus documentation
 ```
@@ -113,9 +113,11 @@ Agent configuration is shared with the team and split by purpose:
 ## Creating New Course Phases
 
 A phase is a micro-frontend (`clients/<name>_component`) plus a Go service (`servers/<name>`), wired
-into Module Federation, the workspaces, and `docker-compose.yml`. **Use the `new-course-phase`
-skill** for the full end-to-end checklist; the `module-federation-remote` and `sqlc-migration`
-skills cover the sub-steps.
+into Module Federation, the workspaces, and `docker-compose.yml`. **Scaffold with
+`make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port>`** (the `new-course-phase` skill
+and `docs/contributor/new_course_phase.md` cover the remaining manual steps); the
+`module-federation-remote` and `sqlc-migration` skills cover the sub-steps. External (out-of-repo)
+phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
 

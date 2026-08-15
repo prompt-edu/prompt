@@ -3,11 +3,13 @@ import {
   getGravatarUrl,
   getStatusColor,
   getStudyDegreeString,
+  useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
+  Button,
   Card,
   CardContent,
   CardHeader,
@@ -15,7 +17,17 @@ import {
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
-import { BookOpen, Calendar, Clock, FileUserIcon, GraduationCap, MapPin, Mic } from 'lucide-react'
+import {
+  BookOpen,
+  Calendar,
+  Clock,
+  ExternalLink,
+  FileUserIcon,
+  GraduationCap,
+  MapPin,
+  Mic,
+} from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewSlotData {
@@ -32,8 +44,20 @@ interface StudentCardProps {
 
 export function StudentCard({ participation, interviewSlot }: StudentCardProps) {
   const { interviewReviews } = useParticipationStore()
+  const navigate = useNavigate()
+  const { courseId } = useParams<{ courseId: string }>()
+  const { courses } = useCourseStore()
+
   const assessmentScore = participation.prevData?.score ?? 'N/A'
   const interviewScore = interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'
+
+  const applicationPhaseId = courses
+    .find((c) => c.id === courseId)
+    ?.coursePhases.find((p) => p.coursePhaseType === 'Application')?.id
+  const applicationLink =
+    courseId && applicationPhaseId && participation.courseParticipationID
+      ? `/management/course/${courseId}/${applicationPhaseId}/participants/${participation.courseParticipationID}`
+      : undefined
 
   return (
     <Card className='h-full relative overflow-hidden'>
@@ -120,6 +144,24 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
             </div>
           </div>
         </div>
+
+        {applicationLink && (
+          <>
+            <Separator />
+            <Button
+              variant='outline'
+              size='sm'
+              className='w-full'
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(applicationLink)
+              }}
+            >
+              <ExternalLink className='h-4 w-4 mr-2' />
+              View full application
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   )

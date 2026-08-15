@@ -2,13 +2,15 @@ import { getApplicationCsvExportSettings } from '@core/managementConsole/applica
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { useQueryClient } from '@tanstack/react-query'
+import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
 import { PromptTableURL, type TableFilter, useToast } from '@tumaet/prompt-ui-components'
-import { type ReactNode, useCallback, useMemo, useRef } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
+import { useSendStatusMail } from '../../hooks/useSendStatusMail'
 import { downloadApplications } from '../../utils/downloadApplications'
 import { getApplicationActions } from './applicationActions'
 import { getApplicationColumns } from './applicationColumns'
@@ -57,19 +59,55 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   const tableContainerRef = useRef<HTMLDivElement | null>(null)
   const { toast } = useToast()
 
+  const { data: exportedAnswers, isError: exportedAnswersError } = useQuery({
+    queryKey: ['application_exported_answers', phaseId],
+    queryFn: () => getExportedApplicationAnswers(phaseId),
+  })
+
+  useEffect(() => {
+    if (exportedAnswersError) {
+      toast({
+        title: 'Could not load exported application answers.',
+        description: 'The participants table is shown without the exported question columns.',
+        variant: 'destructive',
+      })
+    }
+  }, [exportedAnswersError, toast])
+
+  const exportedColumns = useMemo(() => exportedAnswers?.columns ?? [], [exportedAnswers])
+
+  const exportedAnswersByParticipation = useMemo(() => {
+    const byParticipation = new Map<string, Map<string, string>>()
+    for (const participation of exportedAnswers?.answers ?? []) {
+      byParticipation.set(
+        participation.courseParticipationID,
+        new Map(participation.answers.map((answer) => [answer.questionID, answer.answer])),
+      )
+    }
+    return byParticipation
+  }, [exportedAnswers])
+
   const data = useMemo(
-    () => buildApplicationRows(participations, additionalScores),
-    [participations, additionalScores],
+    () => buildApplicationRows(participations, additionalScores, exportedAnswersByParticipation),
+    [participations, additionalScores, exportedAnswersByParticipation],
   )
 
   const columns: ColumnDef<ApplicationRow>[] = useMemo(
-    () => getApplicationColumns(additionalScores),
-    [additionalScores],
+    () => getApplicationColumns(additionalScores, exportedColumns),
+    [additionalScores, exportedColumns],
+  )
+
+  const studyPrograms = useMemo(
+    () =>
+      Array.from(new Set(data.map((row) => row.studyProgram).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b),
+      ),
+    [data],
   )
 
   const filters: TableFilter[] = useMemo(
-    () => getApplicationFilters(additionalScores),
-    [additionalScores],
+    () => getApplicationFilters(additionalScores, studyPrograms),
+    [additionalScores, studyPrograms],
   )
 
   const getVisibleApplicationIds = useCallback(() => {
@@ -102,6 +140,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
 
   const queryClient = useQueryClient()
   const { mutate: updateBatch } = useUpdateCoursePhaseParticipationBatch()
+  const { mutate: sendStatusMail } = useSendStatusMail()
 
   const exportApplications = useCallback(
     async (rows: ApplicationRow[]) => {
@@ -182,12 +221,30 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         },
       )
     }
+    const sendMail = (status: PassStatus, rows: ApplicationRow[]) => {
+      if (rows.length === 0) return
+
+      sendStatusMail({
+        status,
+        recipientCourseParticipationIDs: rows.map((r) => r.courseParticipationID),
+      })
+    }
     return getApplicationActions(deleteApplications, viewApplication, {
       setPassed: (r) => setStatus(PassStatus.PASSED, r),
       setFailed: (r) => setStatus(PassStatus.FAILED, r),
+      sendAcceptanceMail: (r) => sendMail(PassStatus.PASSED, r),
+      sendRejectionMail: (r) => sendMail(PassStatus.FAILED, r),
       exportCsv: exportApplications,
     })
-  }, [deleteApplications, viewApplication, phaseId, updateBatch, queryClient, exportApplications])
+  }, [
+    deleteApplications,
+    viewApplication,
+    phaseId,
+    updateBatch,
+    queryClient,
+    exportApplications,
+    sendStatusMail,
+  ])
 
   return (
     <div ref={tableContainerRef}>

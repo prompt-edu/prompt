@@ -23,17 +23,24 @@ const ApplicationOverview = ({
         applicationStatus={applicationStatus}
       />
       <CardContent className='space-y-6'>
-        {applicationPhaseIsConfigured && (
-          <>
-            <ApplicationTimeline
-              startDate={applicationMetaData?.applicationStartDate}
-              endDate={applicationMetaData?.applicationEndDate}
-            />
-            <ExternalStudentsStatusBadge
-              externalStudentsAllowed={applicationMetaData?.externalStudentsAllowed ?? false}
-            />
-            <ApplicationSettingsOverviewApplicationLink />
-          </>
+        {applicationMetaData?.applicationMode === 'import' ? (
+          <p className='text-sm text-muted-foreground'>
+            This phase uses CSV import. Students are imported by the course staff on the
+            Participants page; the public application form is closed.
+          </p>
+        ) : (
+          applicationPhaseIsConfigured && (
+            <>
+              <ApplicationTimeline
+                startDate={applicationMetaData?.applicationStartDate}
+                endDate={applicationMetaData?.applicationEndDate}
+              />
+              <ExternalStudentsStatusBadge
+                externalStudentsAllowed={applicationMetaData?.externalStudentsAllowed ?? false}
+              />
+              <ApplicationSettingsOverviewApplicationLink />
+            </>
+          )
         )}
       </CardContent>
     </Card>

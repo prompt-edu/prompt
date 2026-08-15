@@ -177,6 +177,10 @@ definitions:
         type: string
       id:
         type: string
+      isOwnedByCurrentPhase:
+        description: IsOwnedByCurrentPhase is only populated by phase-scoped listings;
+          nil elsewhere.
+        type: boolean
       name:
         type: string
       updatedAt:
@@ -239,6 +243,21 @@ definitions:
         type: string
       coursePhaseID:
         type: string
+    type: object
+  categoryDTO.Category:
+    properties:
+      assessmentSchemaID:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+      weight:
+        type: integer
     type: object
   categoryDTO.CategoryWithCompetencies:
     properties:
@@ -677,12 +696,6 @@ definitions:
     type: object
   feedbackItemDTO.UpdateFeedbackItemRequest:
     properties:
-      authorCourseParticipationID:
-        type: string
-      courseParticipationID:
-        type: string
-      coursePhaseID:
-        type: string
       feedbackText:
         type: string
       feedbackType:
@@ -691,24 +704,9 @@ definitions:
         enum:
         - positive
         - negative
-      id:
-        type: string
-      type:
-        allOf:
-        - $ref: '#/definitions/assessmentType.AssessmentType'
-        enum:
-        - self
-        - peer
-        - tutor
-        - assessment
     required:
-    - authorCourseParticipationID
-    - courseParticipationID
-    - coursePhaseID
     - feedbackText
     - feedbackType
-    - id
-    - type
     type: object
   pgtype.Float8:
     properties:
@@ -1123,6 +1121,18 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -1223,7 +1233,7 @@ paths:
         "201":
           description: Created
           schema:
-            type: string
+            $ref: '#/definitions/categoryDTO.Category'
         "400":
           description: Bad Request
           schema:
@@ -2080,6 +2090,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -2116,6 +2132,12 @@ paths:
             type: object
         "403":
           description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             additionalProperties:
               type: string
@@ -2448,6 +2470,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -2535,6 +2563,18 @@ paths:
             type: object
         "403":
           description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             additionalProperties:
               type: string
@@ -2927,6 +2967,12 @@ paths:
             type: string
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string

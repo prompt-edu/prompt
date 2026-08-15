@@ -50,7 +50,7 @@ export const GradeSuggestion = ({
       <CardHeader>
         <CardTitle className='mb-3'>Grade</CardTitle>
         {selfEvaluations &&
-          selfEvaluations.length > 1 &&
+          selfEvaluations.length > 0 &&
           (() => {
             const weightedScoreLevel = getWeightedScoreLevel(
               selfEvaluations,
@@ -67,7 +67,7 @@ export const GradeSuggestion = ({
             )
           })()}
         {peerEvaluations &&
-          peerEvaluations.length > 1 &&
+          peerEvaluations.length > 0 &&
           (() => {
             const weightedScoreLevel = getWeightedScoreLevel(
               peerEvaluations,

@@ -188,6 +188,47 @@
                 }
             }
         },
+        "/applications/{coursePhaseID}/exported-answers": {
+            "get": {
+                "description": "Get the answers to exported application questions (accessible for other phases) for all participants of a course phase",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Get exported application answers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ExportedApplicationAnswersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/applications/{coursePhaseID}/files/{fileId}/download-url": {
             "get": {
                 "security": [
@@ -338,6 +379,65 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/applications/{coursePhaseID}/import": {
+            "post": {
+                "description": "Batch import students into an import-mode application phase",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Import applications from CSV",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Students to import",
+                        "name": "import",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ImportApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/applicationDTO.ImportResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -1143,6 +1243,112 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/files.PresignUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/audit-log": {
+            "get": {
+                "description": "Keyset-paginated, filterable platform-wide audit log (admins only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Global audit log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by actor role",
+                        "name": "actorRole",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by outcome (success|denied)",
+                        "name": "outcome",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action key (e.g. POST /api/.../slots)",
+                        "name": "actionKey",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity type",
+                        "name": "entityType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source service (e.g. core)",
+                        "name": "sourceService",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by course phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search over actor, action and entity",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start of time range (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End of time range (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor timestamp (RFC3339) from a previous page",
+                        "name": "cursorTs",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor entry UUID from a previous page",
+                        "name": "cursorId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogPage"
                         }
                     },
                     "400": {
@@ -2236,6 +2442,119 @@
                         "description": "Updated course",
                         "schema": {
                             "$ref": "#/definitions/courseDTO.Course"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{uuid}/audit-log": {
+            "get": {
+                "description": "Keyset-paginated, filterable audit log scoped to one course.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Course audit log",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by actor role",
+                        "name": "actorRole",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by outcome (success|denied)",
+                        "name": "outcome",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action key (e.g. POST /api/.../slots)",
+                        "name": "actionKey",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity type",
+                        "name": "entityType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source service (e.g. core)",
+                        "name": "sourceService",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by course phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Free-text search over actor, action and entity",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start of time range (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End of time range (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor timestamp (RFC3339) from a previous page",
+                        "name": "cursorTs",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Keyset cursor entry UUID from a previous page",
+                        "name": "cursorId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogPage"
                         }
                     },
                     "400": {
@@ -4961,6 +5280,54 @@
                 }
             }
         },
+        "applicationDTO.ExportedAnswer": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "questionID": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ExportedAnswerColumn": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "orderNum": {
+                    "type": "integer"
+                },
+                "questionID": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ExportedApplicationAnswersResponse": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ParticipationExportedAnswers"
+                    }
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ExportedAnswerColumn"
+                    }
+                }
+            }
+        },
         "applicationDTO.Form": {
             "type": "object",
             "properties": {
@@ -5010,6 +5377,86 @@
                 }
             }
         },
+        "applicationDTO.ImportAnswer": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "columnKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "applicationDTO.ImportApplicationRequest": {
+            "type": "object",
+            "properties": {
+                "newQuestions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.NewImportQuestion"
+                    }
+                },
+                "passStatus": {
+                    "$ref": "#/definitions/db.PassStatus"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportRow"
+                    }
+                }
+            }
+        },
+        "applicationDTO.ImportResult": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportRowResult"
+                    }
+                },
+                "updated": {
+                    "type": "integer"
+                }
+            }
+        },
+        "applicationDTO.ImportRow": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ImportAnswer"
+                    }
+                },
+                "student": {
+                    "$ref": "#/definitions/studentDTO.CreateStudent"
+                }
+            }
+        },
+        "applicationDTO.ImportRowResult": {
+            "type": "object",
+            "properties": {
+                "courseParticipationId": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "outcome": {
+                    "description": "\"created\" or \"updated\"",
+                    "type": "string"
+                },
+                "universityLogin": {
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.IndividualScore": {
             "type": "object",
             "properties": {
@@ -5018,6 +5465,20 @@
                 },
                 "score": {
                     "type": "number"
+                }
+            }
+        },
+        "applicationDTO.NewImportQuestion": {
+            "type": "object",
+            "properties": {
+                "allowedLength": {
+                    "type": "integer"
+                },
+                "columnKey": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -5056,6 +5517,20 @@
                 },
                 "universityLoginAvailable": {
                     "type": "boolean"
+                }
+            }
+        },
+        "applicationDTO.ParticipationExportedAnswers": {
+            "type": "object",
+            "properties": {
+                "answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/applicationDTO.ExportedAnswer"
+                    }
+                },
+                "courseParticipationID": {
+                    "type": "string"
                 }
             }
         },
@@ -5298,6 +5773,99 @@
                     "items": {
                         "$ref": "#/definitions/applicationDTO.QuestionText"
                     }
+                }
+            }
+        },
+        "auditLogDTO.AuditEntry": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actionKey": {
+                    "type": "string"
+                },
+                "actorEmail": {
+                    "type": "string"
+                },
+                "actorID": {
+                    "type": "string"
+                },
+                "actorName": {
+                    "type": "string"
+                },
+                "actorRole": {
+                    "type": "string"
+                },
+                "actorRoles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "courseID": {
+                    "type": "string"
+                },
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "entityID": {
+                    "type": "string"
+                },
+                "entityName": {
+                    "type": "string"
+                },
+                "entityType": {
+                    "type": "string"
+                },
+                "httpMethod": {
+                    "type": "string"
+                },
+                "httpPath": {
+                    "type": "string"
+                },
+                "httpStatus": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object"
+                },
+                "outcome": {
+                    "type": "string"
+                },
+                "sourceService": {
+                    "type": "string"
+                }
+            }
+        },
+        "auditLogDTO.AuditLogPage": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/auditLogDTO.AuditEntry"
+                    }
+                },
+                "nextCursor": {
+                    "$ref": "#/definitions/auditLogDTO.Cursor"
+                }
+            }
+        },
+        "auditLogDTO.Cursor": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
                 }
             }
         },
@@ -6499,6 +7067,13 @@
         "mailingDTO.SendStatusMail": {
             "type": "object",
             "properties": {
+                "recipientCourseParticipationIDs": {
+                    "description": "Optional: when omitted, every participant with the given pass status is mailed. When set, the\nmail only goes to those of these participants that carry the given pass status.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "statusMailToBeSend": {
                     "$ref": "#/definitions/db.PassStatus"
                 }
@@ -7067,6 +7642,9 @@
                 "firstName": {
                     "type": "string"
                 },
+                "gender": {
+                    "$ref": "#/definitions/db.Gender"
+                },
                 "hasUniversityAccount": {
                     "type": "boolean"
                 },
@@ -7079,11 +7657,17 @@
                 "lastName": {
                     "type": "string"
                 },
+                "nationality": {
+                    "type": "string"
+                },
                 "noteTags": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/studentDTO.StudentNoteTagDTO"
                     }
+                },
+                "studyDegree": {
+                    "$ref": "#/definitions/db.StudyDegree"
                 },
                 "studyProgram": {
                     "type": "string"

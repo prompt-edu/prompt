@@ -95,7 +95,7 @@ jobs:
     with:
       environment: prompt-dev-vm
       core_image_tag: ${{ needs.build-clients.outputs.core_image_tag }}
-      template_image_tag: ${{ needs.build-clients.outputs.template_image_tag }}
+      example_image_tag: ${{ needs.build-clients.outputs.example_image_tag }}
       interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag }}
       matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag }}
       assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag }}

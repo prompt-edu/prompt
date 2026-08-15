@@ -31,6 +31,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationsStatus)
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationManual)
+	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationImport)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteApplications)
 	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
 
@@ -38,6 +39,7 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationAssessment)
 
 	application.GET("/:coursePhaseID/participations", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getAllApplicationParticipations)
+	application.GET("/:coursePhaseID/exported-answers", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getExportedApplicationAnswers)
 
 	// Apply Endpoints - No Authentication needed
 	apply := router.Group("/apply")
@@ -194,6 +196,17 @@ func getApplicationAuthenticated(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	importMode, err := IsImportModePhase(c, coursePhaseID)
+	if err != nil {
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
+		return
+	}
+	if importMode {
+		handleError(c, http.StatusNotFound, errors.New("application not available"))
+		return
+	}
+
 	matriculationNumber := c.GetString("matriculationNumber")
 
 	universityLogin := c.GetString("universityLogin")
@@ -492,6 +505,33 @@ func getAllApplicationParticipations(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, applications)
 }
 
+// getExportedApplicationAnswers godoc
+// @Summary Get exported application answers
+// @Description Get the answers to exported application questions (accessible for other phases) for all participants of a course phase
+// @Tags applications
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} applicationDTO.ExportedApplicationAnswersResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /applications/{coursePhaseID}/exported-answers [get]
+func getExportedApplicationAnswers(c *gin.Context) {
+	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	exportedAnswers, err := GetExportedApplicationAnswers(c, coursePhaseId)
+	if err != nil {
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("could not get exported application answers"))
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, exportedAnswers)
+}
+
 // updateApplicationAssessment godoc
 // @Summary Update application assessment
 // @Description Update the assessment for an application
@@ -679,6 +719,61 @@ func deleteApplications(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "applications deleted"})
+}
+
+// postApplicationImport godoc
+// @Summary Import applications from CSV
+// @Description Batch import students into an import-mode application phase
+// @Tags applications
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param import body applicationDTO.ImportApplicationRequest true "Students to import"
+// @Success 201 {object} applicationDTO.ImportResult
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /applications/{coursePhaseID}/import [post]
+func postApplicationImport(c *gin.Context) {
+	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var req applicationDTO.ImportApplicationRequest
+	if err := c.BindJSON(&req); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	err = validateApplicationImport(c, coursePhaseId, req)
+	if err != nil {
+		log.Error(err)
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := PostApplicationImport(c, coursePhaseId, req)
+	if err != nil {
+		log.Error(err)
+		if errors.Is(err, ErrEmailAlreadyInUse) {
+			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			return
+		}
+		if errors.Is(err, ErrImportAnswerTooLong) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
+		if errors.Is(err, ErrUniversityLoginConflict) {
+			handleError(c, http.StatusConflict, err)
+			return
+		}
+		handleError(c, http.StatusInternalServerError, errors.New("could not import applications"))
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

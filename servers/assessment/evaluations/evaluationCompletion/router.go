@@ -90,10 +90,14 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 		return
 	}
 
-	err = CreateOrUpdateEvaluationCompletion(c, req)
+	err = CreateOrUpdateEvaluationCompletion(c, c.GetHeader("Authorization"), req)
 	if err != nil {
-		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
+		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
+			handleError(c, http.StatusConflict, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)
@@ -136,10 +140,14 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 		return
 	}
 
-	err = MarkEvaluationAsCompleted(c, req)
+	err = MarkEvaluationAsCompleted(c, c.GetHeader("Authorization"), req)
 	if err != nil {
-		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
+		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
+			handleError(c, http.StatusConflict, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)

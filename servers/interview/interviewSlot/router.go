@@ -19,6 +19,7 @@ func setupInterviewSlotRouter(routerGroup *gin.RouterGroup, authMiddleware func(
 
 	// Admin routes - manage interview slots
 	interviewRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createInterviewSlot)
+	interviewRouter.POST("/batch", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createInterviewSlotsBatch)
 	interviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), getAllInterviewSlots)
 	interviewRouter.GET("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), getInterviewSlot)
 	interviewRouter.PUT("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), updateInterviewSlot)
@@ -69,6 +70,41 @@ func createInterviewSlot(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, slot)
+}
+
+// createInterviewSlotsBatch godoc
+// @Summary Create multiple interview slots
+// @Description Creates all given interview time slots for the course phase in a single transaction
+// @Tags interview-slots
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param request body interviewSlotDTO.CreateInterviewSlotsBatchRequest true "Interview slots"
+// @Success 201 {array} db.InterviewSlot
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/interview-slots/batch [post]
+func createInterviewSlotsBatch(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	var req interviewSlotDTO.CreateInterviewSlotsBatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	slots, err := CreateInterviewSlotsBatch(c.Request.Context(), coursePhaseID, req)
+	if err != nil {
+		writeServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, slots)
 }
 
 // getAllInterviewSlots godoc

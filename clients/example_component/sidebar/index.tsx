@@ -1,0 +1,22 @@
+import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { Construction } from 'lucide-react'
+
+const sidebarItems: SidebarMenuItemProps = {
+  title: 'ExampleComponent',
+  icon: <Construction />,
+  goToPath: '',
+  subitems: [
+    {
+      title: 'Participants',
+      goToPath: '/participants',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+    {
+      title: 'Settings',
+      goToPath: '/settings',
+      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    },
+  ],
+}
+
+export default sidebarItems

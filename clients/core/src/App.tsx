@@ -4,12 +4,14 @@ import { Toaster } from '@tumaet/prompt-ui-components'
 import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
+import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
+import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ManagementRoot } from './managementConsole/ManagementConsole'
-import { TemplateRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/TemplateRoutes'
+import { ExampleRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/ExampleRoutes'
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
 import { AdminPrivacyPage } from './managementConsole/pages/AdminPrivacyPage'
@@ -164,6 +166,16 @@ export const App = () => {
               }
             />
             <Route
+              path='/management/admin/audit-log'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AdminAuditLogPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
               path='/management/course/:courseId/configurator'
               element={
                 <ManagementRoot>
@@ -192,6 +204,18 @@ export const App = () => {
               }
             />
             <Route
+              path='/management/course/:courseId/audit-log'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
+                  >
+                    <CourseAuditLogPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
               path='/management/course/:courseId/user-management'
               element={
                 <ManagementRoot>
@@ -212,11 +236,11 @@ export const App = () => {
               }
             />
             <Route
-              path='/management/course/:courseId/template_component/*'
+              path='/management/course/:courseId/example_component/*'
               element={
                 <ManagementRoot>
                   <Suspense fallback={<div>Fallback</div>}>
-                    <TemplateRoutes />
+                    <ExampleRoutes />
                   </Suspense>
                 </ManagementRoot>
               }

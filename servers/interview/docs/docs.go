@@ -665,6 +665,73 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/interview-slots/batch": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates all given interview time slots for the course phase in a single transaction",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "interview-slots"
+                ],
+                "summary": "Create multiple interview slots",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Interview slots",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/interviewSlotDTO.CreateInterviewSlotsBatchRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db.InterviewSlot"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/interview-slots/{slotId}": {
             "get": {
                 "security": [
@@ -1057,6 +1124,22 @@ const docTemplate = `{
                 },
                 "startTime": {
                     "type": "string"
+                }
+            }
+        },
+        "interviewSlotDTO.CreateInterviewSlotsBatchRequest": {
+            "type": "object",
+            "required": [
+                "slots"
+            ],
+            "properties": {
+                "slots": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/interviewSlotDTO.CreateInterviewSlotRequest"
+                    }
                 }
             }
         },

@@ -24,3 +24,11 @@ SELECT
 FROM interview_review
 WHERE course_participation_id = ANY(@course_participation_ids::uuid[])
 ORDER BY course_phase_id ASC;
+
+-- name: DeleteInterviewAssignmentsByParticipationIDs :exec
+DELETE FROM interview_assignment
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);
+
+-- name: DeleteInterviewReviewsByParticipationIDs :exec
+DELETE FROM interview_review
+WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);

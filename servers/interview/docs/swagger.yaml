@@ -137,6 +137,17 @@ definitions:
     - endTime
     - startTime
     type: object
+  interviewSlotDTO.CreateInterviewSlotsBatchRequest:
+    properties:
+      slots:
+        items:
+          $ref: '#/definitions/interviewSlotDTO.CreateInterviewSlotRequest'
+        maxItems: 100
+        minItems: 1
+        type: array
+    required:
+    - slots
+    type: object
   interviewSlotDTO.InterviewSlotResponse:
     properties:
       assignedCount:
@@ -765,6 +776,50 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update an interview slot
+      tags:
+      - interview-slots
+  /course_phase/{coursePhaseID}/interview-slots/batch:
+    post:
+      consumes:
+      - application/json
+      description: Creates all given interview time slots for the course phase in
+        a single transaction
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Interview slots
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/interviewSlotDTO.CreateInterviewSlotsBatchRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/db.InterviewSlot'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create multiple interview slots
       tags:
       - interview-slots
 securityDefinitions:

@@ -32,7 +32,7 @@ export const validateGrade = (
   gradeString: string,
 ): { isValid: boolean; value?: number; error?: string } => {
   if (!gradeString || gradeString.trim() === '') {
-    return { isValid: true, value: 5.0 }
+    return { isValid: false, error: 'a grade must be selected' }
   }
 
   const gradeValue = parseFloat(gradeString)

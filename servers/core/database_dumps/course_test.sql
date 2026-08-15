@@ -463,7 +463,7 @@ INSERT INTO
 VALUES
     (
         '7dc1c4e8-4255-4874-80a0-0c12b958744c',
-        'template_component'
+        'example_component'
     );
 
 --
@@ -506,7 +506,7 @@ VALUES
     (
         '92bb0532-39e5-453d-bc50-fa61ea0128b2',
         '3f42d322-e5bf-4faa-b576-51f2cab14c2e',
-        'Template Phase',
+        'Example Phase',
         '{}',
         '{}',
         false,

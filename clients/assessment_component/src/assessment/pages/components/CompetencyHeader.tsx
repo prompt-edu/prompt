@@ -39,15 +39,15 @@ export const CompetencyHeader = ({
     <div className={className}>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2'>
-          <ClipboardCheck className='h-4 w-4 text-muted-foreground shrink-0' />
+          <ClipboardCheck className='h-4 w-4 text-muted-foreground shrink-0' aria-hidden />
           <h3 className='text-base font-medium'>{competencyName}</h3>
         </div>
         {competencyScore && !completed && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant='ghost' onClick={onResetClick}>
-                  <RotateCcw />
+                <Button variant='ghost' onClick={onResetClick} aria-label='Reset this selection'>
+                  <RotateCcw aria-hidden />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

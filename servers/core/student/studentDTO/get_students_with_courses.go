@@ -1,14 +1,13 @@
 package studentDTO
 
 import (
-  "encoding/json"
-  "time"
+	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
-
 
 // for StudentWithCourses query
 type StudentCourseParticipationDTO struct {
@@ -24,19 +23,21 @@ type StudentNoteTagDTO struct {
 }
 
 type StudentWithCourseParticipationsDTO struct {
-	ID                   uuid.UUID    `json:"id"`
-	FirstName            string       `json:"firstName"`
-	LastName             string       `json:"lastName"`
-	Email                string       `json:"email"`
-	HasUniversityAccount bool         `json:"hasUniversityAccount"`
-	CurrentSemester      pgtype.Int4  `json:"currentSemester" swaggertype:"integer"`
-	StudyProgram         string       `json:"studyProgram"`
-	LastModified         time.Time    `json:"lastModified"`
+	ID                   uuid.UUID      `json:"id"`
+	FirstName            string         `json:"firstName"`
+	LastName             string         `json:"lastName"`
+	Email                string         `json:"email"`
+	HasUniversityAccount bool           `json:"hasUniversityAccount"`
+	CurrentSemester      pgtype.Int4    `json:"currentSemester" swaggertype:"integer"`
+	Gender               db.Gender      `json:"gender"`
+	Nationality          string         `json:"nationality"`
+	StudyDegree          db.StudyDegree `json:"studyDegree"`
+	StudyProgram         string         `json:"studyProgram"`
+	LastModified         time.Time      `json:"lastModified"`
 
 	Courses  []StudentCourseParticipationDTO `json:"courses"`
 	NoteTags []StudentNoteTagDTO             `json:"noteTags"`
 }
-
 
 func GetStudentWithCoursesFromDB(row db.GetAllStudentsWithCourseParticipationsRow) (StudentWithCourseParticipationsDTO, error) {
 	var courses []StudentCourseParticipationDTO
@@ -55,8 +56,11 @@ func GetStudentWithCoursesFromDB(row db.GetAllStudentsWithCourseParticipationsRo
 		LastName:             row.StudentLastName.String,
 		Email:                row.StudentEmail.String,
 		HasUniversityAccount: row.StudentHasUniversityAccount.Bool,
-		CurrentSemester:      row.CurrentSemester,
-		StudyProgram:         row.StudyProgram.String,
+		CurrentSemester:      row.StudentCurrentSemester,
+		Gender:               row.StudentGender,
+		Nationality:          row.StudentNationality.String,
+		StudyDegree:          row.StudentStudyDegree,
+		StudyProgram:         row.StudentStudyProgram.String,
 		LastModified:         row.StudentLastModified.Time,
 		Courses:              courses,
 		NoteTags:             noteTags,

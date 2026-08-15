@@ -64,6 +64,7 @@ CREATE TABLE public.course_phase_participation (
     course_participation_id uuid NOT NULL,
     course_phase_id uuid NOT NULL,
     pass_status public.pass_status NOT NULL DEFAULT 'not_assessed'::public.pass_status,
+    restricted_data jsonb,
     PRIMARY KEY (course_participation_id, course_phase_id),
     CONSTRAINT fk_cpp_participation FOREIGN KEY (course_participation_id) REFERENCES public.course_participation(id),
     CONSTRAINT fk_cpp_phase FOREIGN KEY (course_phase_id) REFERENCES public.course_phase(id)

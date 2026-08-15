@@ -149,7 +149,7 @@ E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 # which Compose ranks above --env-file. Unset the keys e2e/.env.e2e defines so it stays authoritative.
 E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
 
-test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
+test-e2e: ## Whole suite in one container - CI-only, use test-e2e-shard SHARD=<name> locally
 	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \

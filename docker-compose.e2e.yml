@@ -4,7 +4,7 @@
 # (no host volume mounts on the databases) so every run starts from a clean,
 # deterministically seeded state.
 #
-# Run:   make test-e2e        (full Docker, CI-identical)
+# Run:   make test-e2e-shard SHARD=<name>   (one shard, same runner as CI)
 #
 # Env comes from e2e/.env.e2e (committed, test-only credentials).
 # ============================================================================

@@ -113,6 +113,7 @@ WHERE
     cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
     AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW();
 
@@ -142,8 +143,14 @@ WHERE
     AND cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
     AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW();
+
+-- name: GetApplicationModeForCoursePhase :one
+SELECT COALESCE(restricted_data->>'applicationMode', 'apply')::text AS application_mode
+FROM course_phase
+WHERE id = $1;
 
 -- name: GetApplicationExistsForStudent :one
 SELECT EXISTS (
@@ -163,8 +170,9 @@ JOIN
     course_phase_type cpt
 ON 
     cp.course_phase_type_id = cpt.id
-WHERE 
+WHERE
     cp.id = $1
+    AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW();
 
 -- name: GetApplicationAnswersTextForCourseParticipationID :many

@@ -1,12 +1,12 @@
 {
   "name": "presentation_component",
-  "version": "2.16.0",
+  "version": "2.16.1",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
     "dev": "rspack serve --mode development",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --fix",
+    "lint": "biome check src",
+    "lint:fix": "biome check src --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "build": "rspack --mode=production --env NODE_ENV=production",
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"

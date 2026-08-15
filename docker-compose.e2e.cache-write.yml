@@ -1,0 +1,79 @@
+# CI-only: exports the gha layer cache; added by the cacheWriter shard alone.
+
+services:
+  server-core:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-core
+  client-core:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-core
+  clients-base:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-clients-base
+  server-self-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-self-team-allocation
+  client-self-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-self-team-allocation
+  server-example:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-example
+  client-example:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-example
+  server-assessment:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-assessment
+  client-assessment:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-assessment
+  client-matching:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-matching
+  server-interview:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-interview
+  client-interview:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-interview
+  server-certificate:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-certificate
+  client-certificate:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-certificate
+  server-presentation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-presentation
+  client-presentation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-presentation
+  server-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-team-allocation
+  client-team-allocation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-team-allocation
+  e2e-runner:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-runner

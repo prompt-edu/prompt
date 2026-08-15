@@ -7,11 +7,11 @@
 	test test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-presentation \
-	test-e2e test-e2e-ui test-e2e-down \
+	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation \
-	swagger install-clients install-hooks setup-skills
+	swagger install-clients install-hooks setup-skills new-phase
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -150,10 +150,28 @@ E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
 
 test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
-	@mkdir -p e2e/playwright-report e2e/test-results
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_COMPOSE) build; \
 		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
+		$(E2E_COMPOSE) down -v; \
+		exit $$status
+
+test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHARD=interview (or PATHS="...")
+	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
+	@if [ -z "$(SHARD)$(PATHS)" ]; then \
+		echo "make test-e2e-shard: set SHARD=<name> (or PATHS=\"<patterns>\"), else this would run the whole suite."; \
+		echo "Available shards:"; cd e2e && node scripts/shards.mjs names | sed 's/^/  /'; \
+		exit 2; \
+	fi
+	@set -e; \
+		paths="$(PATHS)"; \
+		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
+		set -f; \
+		unset $(E2E_ENV_KEYS); \
+		$(E2E_COMPOSE) build; \
+		set +e; \
+		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $$paths; status=$$?; \
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 
@@ -214,3 +232,8 @@ install-hooks: ## Install git hooks (via the pre-commit framework)
 
 setup-skills: ## Regenerate .claude/skills symlinks from .agents/skills (canonical source)
 	./scripts/setup-skills.sh
+
+# DB_PORT is also defined in .env (included above), so only forward it when it
+# was given on the command line; otherwise the script picks the next free port.
+new-phase: ## Scaffold a new course phase (make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port> [DB_PORT=<port>])
+	./scripts/new-course-phase.sh "$(NAME)" "$(CLIENT_PORT)" "$(SERVER_PORT)" "$(if $(filter command line,$(origin DB_PORT)),$(DB_PORT),)"

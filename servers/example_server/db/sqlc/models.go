@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type TemplateTable struct {
+type ExampleTable struct {
 	CoursePhaseID uuid.UUID `json:"course_phase_id"`
 	Name          string    `json:"name"`
 }

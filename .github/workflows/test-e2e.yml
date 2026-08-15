@@ -8,33 +8,186 @@ on:
 permissions:
   contents: read
 
+env:
+  # Base stack + the read-only layer-cache override, shared by every shard.
+  E2E_COMPOSE: >-
+    -f docker-compose.e2e.yml
+    -f docker-compose.e2e.cache.yml
+    --env-file e2e/.env.e2e
+
+  # Pinned so the pre-pull warms exactly the tag the bootstrap then uses.
+  BUILDKIT_IMAGE: moby/buildkit:buildx-stable-1
+
 jobs:
-  e2e:
+  # Verify e2e/shards.json claims every spec once, and emit the shard matrix.
+  partition:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.partition.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.19.0
+
+      - name: Verify the shard partition covers every spec exactly once
+        id: partition
+        working-directory: e2e
+        run: |
+          node scripts/shards.mjs check
+          echo "matrix=$(node scripts/shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+
+  # One shard per microservice, each on its own fresh stack; see e2e/README.md.
+  shard:
+    needs: partition
+    # Otherwise GitHub derives the job name from every matrix value.
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    # Whole job: build + boot + tests. Sits above PW_GLOBAL_TIMEOUT_MIN so
+    # Playwright fails first, with a clean message and a blob report.
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.partition.outputs.matrix) }}
+    env:
+      # Per-shard blob report, merged downstream by the `merge` job.
+      PW_BLOB: "1"
+      PW_SHARD_NAME: ${{ matrix.name }}
+      # Bounds the Playwright phase only (~2-3 min per shard today).
+      PW_GLOBAL_TIMEOUT_MIN: "20"
     steps:
       - uses: actions/checkout@v7
 
+      # Booting the builder pulls this from Docker Hub, once per shard; warming
+      # it with backoff lets the bootstrap fall back to the local copy.
+      - name: Pre-pull the buildkit builder image
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if docker pull "$BUILDKIT_IMAGE"; then exit 0; fi
+            echo "::warning::pull of $BUILDKIT_IMAGE failed (attempt $attempt/5), retrying"
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not pull $BUILDKIT_IMAGE after 5 attempts"
+          exit 1
+
+      - uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=${{ env.BUILDKIT_IMAGE }}
+
+      # Exports the ACTIONS_* credentials type=gha needs in a `run:` step.
+      - uses: crazy-max/ghaction-github-runtime@v4
+
       - name: Prepare report directories
-        run: mkdir -p e2e/playwright-report e2e/test-results
+        run: mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 
       - name: Build the e2e stack
+        env:
+          # Only the cacheWriter shard exports; the rest are readers.
+          CACHE_WRITE: ${{ matrix.cacheWriter && '-f docker-compose.e2e.cache-write.yml' || '' }}
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e build
+          # shellcheck disable=SC2086 # both hold multiple flags; splitting is the point
+          docker compose ${E2E_COMPOSE} ${CACHE_WRITE} build
 
-      - name: Run e2e suite (Playwright runner)
+      - name: Run e2e shard "${{ matrix.name }}"
+        env:
+          PW_PATHS: ${{ matrix.paths }}
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e run --rm e2e-runner
+          # Split PW_PATHS into args, but keep globbing off so the regexes survive.
+          set -f
+          # shellcheck disable=SC2086 # word splitting is intentional for both
+          docker compose ${E2E_COMPOSE} run --rm e2e-runner \
+            npx playwright test ${PW_PATHS}
 
       - name: Tear down
         if: always()
         run: |
-          docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e down -v
+          # shellcheck disable=SC2086 # E2E_COMPOSE holds multiple flags
+          docker compose ${E2E_COMPOSE} down -v
 
-      - name: Upload Playwright report
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.name }}
+          path: e2e/blob-report
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload failure artifacts (traces, videos, screenshots)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.name }}
+          path: e2e/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Merge the per-shard blob reports into a single HTML report.
+  merge:
+    needs: shard
+    # Report whether shards passed or failed, but skip when none ran:
+    # download-artifact errors on zero matches.
+    if: ${{ !cancelled() && needs.shard.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.19.0
+
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+
+      - name: Merge into a single HTML report
+        run: npm run merge-reports
+        working-directory: e2e
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      - name: Upload merged Playwright report
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: e2e/playwright-report
           retention-days: 14
+          if-no-files-found: ignore
+
+  # Stable name for the branch-protection required check (`e2e-tests / e2e`).
+  # The matrix job reports one check per shard, so its names track shards.json;
+  # this one does not, and so survives adding or renaming a suite.
+  e2e:
+    needs: [partition, shard, merge]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify every e2e job succeeded
+        env:
+          # A matrix job's result is the aggregate: success only if every
+          # shard succeeded.
+          PARTITION: ${{ needs.partition.result }}
+          SHARD: ${{ needs.shard.result }}
+          MERGE: ${{ needs.merge.result }}
+        run: |
+          # Not named `status`: that is a special parameter in zsh.
+          failed=0
+          for pair in "partition:$PARTITION" "shard:$SHARD" "merge:$MERGE"; do
+            name=${pair%%:*}
+            result=${pair#*:}
+            echo "$name = $result"
+            if [ "$result" != "success" ]; then
+              echo "::error::e2e job '$name' did not succeed ($result)"
+              failed=1
+            fi
+          done
+          exit $failed

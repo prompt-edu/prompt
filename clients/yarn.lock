@@ -1445,7 +1445,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@module-federation/runtime-tools@npm:^2.8.1":
+"@module-federation/runtime-tools@npm:^2.8.2":
   version: 2.8.2
   resolution: "@module-federation/runtime-tools@npm:2.8.2"
   dependencies:
@@ -5387,12 +5387,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:*":
+  version: 26.2.0
+  resolution: "@types/node@npm:26.2.0"
+  dependencies:
+    undici-types: "npm:~8.3.0"
+  checksum: 10c0/f8566d88162241eb55a46f7e4ea097188eab0aaafefea7a58e63adab8c4144eb98c08b7911452c846104c339a0f82282f5e1ed4b26b578d60709614fe2843f4d
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:^25.9.5":
   version: 25.9.5
   resolution: "@types/node@npm:25.9.5"
   dependencies:
     undici-types: "npm:>=7.24.0 <7.24.7"
   checksum: 10c0/addbfe55f14d6a7f149a8796c2fca68463ac6caf911c623f552d07385691d36c0669a9c38724350d0e958131827d59a63c18781e753dede8113a903dd62b7932
+  languageName: node
+  linkType: hard
+
+"@types/papaparse@npm:^5.5.2":
+  version: 5.5.2
+  resolution: "@types/papaparse@npm:5.5.2"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/27b097b6f8f204b20ade1f2cbf4798eb38caa5fbfa3180fd0faa5e3f9aea371c1786ae180d56f3287556463eefe3100c953e316ea6ee99d7ae1d04111cfc9e50
   languageName: node
   linkType: hard
 
@@ -6091,10 +6109,12 @@ __metadata:
     "@dagrejs/dagre": "npm:^3.1.0"
     "@rspack/cli": "npm:^2.1.8"
     "@rspack/core": "npm:^2.1.8"
+    "@types/papaparse": "npm:^5.5.2"
     "@xyflow/react": "npm:^12.11.2"
     compression-webpack-plugin: "npm:^12.0.0"
     date-fns-tz: "npm:^3.2.0"
     i18n-iso-countries: "npm:^7.14.0"
+    papaparse: "npm:^5.5.4"
     react-beautiful-dnd: "npm:^13.1.1"
     sha256: "npm:^0.2.0"
     typescript: "npm:^6.0.3"
@@ -7221,25 +7241,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:^12.43.0":
-  version: 12.43.0
-  resolution: "framer-motion@npm:12.43.0"
+"framer-motion@npm:^13.1.0":
+  version: 13.1.0
+  resolution: "framer-motion@npm:13.1.0"
   dependencies:
-    motion-dom: "npm:^12.43.0"
-    motion-utils: "npm:^12.39.0"
+    motion-dom: "npm:^13.0.0"
+    motion-utils: "npm:^13.0.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
-    "@emotion/is-prop-valid": "*"
     react: ^18.0.0 || ^19.0.0
     react-dom: ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
-    "@emotion/is-prop-valid":
-      optional: true
     react:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/cce3c1daf8f53da4d9299e6bdd2a1e9f08a30e13d84ce1e468cf25285f9ec2a900c812e0aa3dce79e7453a2a3cf328a717451beef9bf0a6175a3d3794116e36a
+  checksum: 10c0/0fa4c5d17369f288bfff434191fbd112d44ae06f7a99370e691128db1e302804332e5ec5e980c7a59ffcdb3248fe68f96bce5931d0c066eff55ec6d493fc197c
   languageName: node
   linkType: hard
 
@@ -8365,7 +8382,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.28.0":
+"lucide-react@npm:^1.29.0":
   version: 1.31.0
   resolution: "lucide-react@npm:1.31.0"
   peerDependencies:
@@ -8626,40 +8643,37 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion-dom@npm:^12.43.0":
-  version: 12.43.0
-  resolution: "motion-dom@npm:12.43.0"
+"motion-dom@npm:^13.0.0":
+  version: 13.0.0
+  resolution: "motion-dom@npm:13.0.0"
   dependencies:
-    motion-utils: "npm:^12.39.0"
-  checksum: 10c0/ef7d3f6eaa6cfeb1a939847a8b2581d119f2efc054948921ece0e2b1091f0969c15ca7707b87a46dddac7f156a714878f168e7b9f6ea189eeb7d5d9fbbb99d26
+    motion-utils: "npm:^13.0.0"
+  checksum: 10c0/3029e249515976f1eea67b26c88cfc6037e3ed3a821400e9e10a211dafad7b70f1d0e9243878dcc3011249e8fd84bc0c587a667fe750c74ad41418a85365f61e
   languageName: node
   linkType: hard
 
-"motion-utils@npm:^12.39.0":
-  version: 12.39.0
-  resolution: "motion-utils@npm:12.39.0"
-  checksum: 10c0/6d7a2a2cc0797b72410a666a9cc1c201c8e39bf9669670464e433fe1e72af5f0217154c869867b34fbadf3664cf222c0d022bbc4eed7927f201ae971918e7440
+"motion-utils@npm:^13.0.0":
+  version: 13.0.0
+  resolution: "motion-utils@npm:13.0.0"
+  checksum: 10c0/4b279ce85f71926d668ff5966feb898b174541d16952a61c7150982388553266602ecd2a76e057530076ff8f38d06672e585639ddc73c41dd1a67d04aaa3662d
   languageName: node
   linkType: hard
 
-"motion@npm:^12.43.0":
-  version: 12.43.0
-  resolution: "motion@npm:12.43.0"
+"motion@npm:^13.0.0":
+  version: 13.1.0
+  resolution: "motion@npm:13.1.0"
   dependencies:
-    framer-motion: "npm:^12.43.0"
+    framer-motion: "npm:^13.1.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
-    "@emotion/is-prop-valid": "*"
     react: ^18.0.0 || ^19.0.0
     react-dom: ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
-    "@emotion/is-prop-valid":
-      optional: true
     react:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/15544ecc71d356661a959c78c4f84b3ca91728f5d17265b68912d2bbcf86f20409ebf5acf2f6c82e0c0425d1024267b04abd5b786177a3694bf706f7a3a529d6
+  checksum: 10c0/2f974b22929945cf96d0164916fb04c470d993ab81ca9006bd590638edb35d04e202dc3f4e61fede4fd81bc9ef9d8a47555d73c776e428a357e09097e35b2750
   languageName: node
   linkType: hard
 
@@ -9951,7 +9965,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.5.25":
+"postcss@npm:^8.5.26":
   version: 8.5.26
   resolution: "postcss@npm:8.5.26"
   dependencies:
@@ -10023,7 +10037,7 @@ __metadata:
     "@biomejs/biome": "npm:2.5.7"
     "@hello-pangea/dnd": "npm:^18.0.1"
     "@hookform/resolvers": "npm:^5.7.1"
-    "@module-federation/runtime-tools": "npm:^2.8.1"
+    "@module-federation/runtime-tools": "npm:^2.8.2"
     "@radix-ui/react-icons": "npm:^1.3.2"
     "@radix-ui/react-toolbar": "npm:^1.1.19"
     "@rspack/cli": "npm:^2.1.8"
@@ -10068,9 +10082,9 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.0.0"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.28.0"
-    motion: "npm:^12.43.0"
-    postcss: "npm:^8.5.25"
+    lucide-react: "npm:^1.29.0"
+    motion: "npm:^13.0.0"
+    postcss: "npm:^8.5.26"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
@@ -11442,6 +11456,13 @@ __metadata:
   version: 7.24.6
   resolution: "undici-types@npm:7.24.6"
   checksum: 10c0/d9cd8befb643ac904615c280a095ba4240531f6bb4a5e75a22a7483630ca8d3f1016d2ab6ace6ceda1f63b3a2db2fe037fafe121d6917a0187573aa548ff78ca
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~8.3.0":
+  version: 8.3.0
+  resolution: "undici-types@npm:8.3.0"
+  checksum: 10c0/c8aa7e2fbebfce519654dafadc0ece59be888d2ccaf180fb4495da875e7b536d2456345c384069c7e6f3e9c9ab7435f074957da306f142343eee86ff8048855a
   languageName: node
   linkType: hard
 

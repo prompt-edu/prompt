@@ -1,0 +1,71 @@
+name: Generator Smoke Test
+
+# Scaffolds a throwaway course phase with scripts/new-course-phase.sh to catch
+# silent rot: the script depends on exact anchor strings in the core client,
+# docker-compose.yml, Makefile, and the CI matrices, and nothing else exercises it.
+
+on:
+  pull_request:
+    paths:
+      - "scripts/new-course-phase.sh"
+      - "clients/example_component/**"
+      - "servers/example_server/**"
+      - "clients/core/rspack.config.mjs"
+      - "clients/core/src/App.tsx"
+      - "clients/core/src/managementConsole/PhaseMapping/**"
+      - "clients/core/public/env.js"
+      - "clients/core/public/env.template.js"
+      - "clients/package.json"
+      - "clients/lerna.json"
+      - "docker-compose.yml"
+      - ".env.template"
+      - ".env.dev.template"
+      - "Makefile"
+      - ".github/workflows/quality-clients.yml"
+      - ".github/workflows/quality-servers.yml"
+      - ".github/workflows/test-servers.yml"
+      - ".github/workflows/generator-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: "servers/**/*.sum"
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.19.0"
+          cache: "yarn"
+          cache-dependency-path: ./clients/yarn.lock
+      - name: Scaffold a throwaway phase
+        env:
+          # the generator adds a workspace, so the lockfile must be writable
+          YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+        run: scripts/new-course-phase.sh ci_smoke 3990 8990 5490
+      - name: Validate docker-compose config
+        run: |
+          cp .env.template .env
+          docker compose config -q
+      - name: Check env/compose consistency
+        run: |
+          grep -q '^  server-ci-smoke:$' docker-compose.yml
+          grep -q '^  client-ci-smoke-component:$' docker-compose.yml
+          grep -q '^  db-ci-smoke-server:$' docker-compose.yml
+          grep -q '^DB_HOST_CI_SMOKE_SERVER=db-ci-smoke-server$' .env.template
+      - name: Check for leftover template tokens
+        run: |
+          # \b substitutions in rename_tokens do not fire inside compound
+          # identifiers, so any token missing from the list survives silently
+          ! grep -rin 'example' clients/ci_smoke_component servers/ci_smoke
+      - name: Boot the scaffolded database
+        run: |
+          docker compose up -d --wait db-ci-smoke-server
+          docker compose down

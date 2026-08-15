@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,6 +27,7 @@ type EvaluationRouterTestSuite struct {
 	router            *gin.Engine
 	suiteCtx          context.Context
 	cleanup           func()
+	mockCoreCleanup   func()
 	evaluationService EvaluationService
 	testCoursePhaseID uuid.UUID
 }
@@ -36,6 +38,9 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	if err != nil {
 		suite.T().Fatalf("Failed to setup test database: %v", err)
 	}
+
+	_, mockCleanup := testutils.SetupMockCoreService()
+	suite.mockCoreCleanup = mockCleanup
 
 	suite.cleanup = cleanup
 	suite.evaluationService = EvaluationService{
@@ -71,6 +76,9 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 func (suite *EvaluationRouterTestSuite) TearDownSuite() {
 	if suite.cleanup != nil {
 		suite.cleanup()
+	}
+	if suite.mockCoreCleanup != nil {
+		suite.mockCoreCleanup()
 	}
 }
 
@@ -214,6 +222,18 @@ func (suite *EvaluationRouterTestSuite) TestDeleteEvaluation() {
 
 	// Should return either 200 (if evaluation exists and was deleted) or 500 (if evaluation doesn't exist)
 	assert.True(suite.T(), w.Code == http.StatusOK || w.Code == http.StatusInternalServerError)
+}
+
+// Test that deleting a peer evaluation whose subject is no longer in the author's team answers
+// 403 rather than the generic 500 the delete path used to produce.
+func (suite *EvaluationRouterTestSuite) TestDeleteEvaluationRejectsTargetOutsideTeam() {
+	evaluationID := "e7234567-1234-1234-1234-123456789012"
+	req, _ := http.NewRequest(http.MethodDelete, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/"+evaluationID, nil)
+
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
 }
 
 func (suite *EvaluationRouterTestSuite) TestInvalidCoursePhaseID() {

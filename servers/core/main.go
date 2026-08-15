@@ -14,13 +14,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
+	"github.com/prompt-edu/prompt/servers/core/auditLog"
+	"github.com/prompt-edu/prompt/servers/core/auth"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
-	"github.com/prompt-edu/prompt/servers/core/auth"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
@@ -167,8 +168,18 @@ func main() {
 		})
 	})
 
+	// The audit auto-capture middleware must wrap every module's routes. Gin
+	// snapshots the middleware chain when a route/group is registered, so it has
+	// to be registered before initKeycloak and all other modules; otherwise
+	// their routes (e.g. Keycloak course-role grants) are never captured.
+	auditLog.InitAuditLogCapture(api, *query, conn)
+
 	initKeycloak(api, *query)
 	permissionValidation.InitValidationService(*query, conn)
+
+	// Mount the audit read/ingest endpoints and start the pruner now that the
+	// permission-validation singleton the read routes rely on is initialized.
+	auditLog.InitAuditLogRoutes(api)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")

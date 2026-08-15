@@ -213,8 +213,11 @@ const FeedbackWorkspacePage = () => {
           if (!controller.signal.aborted) setStreamStatus('offline')
         }
         if (!controller.signal.aborted) {
+          // Unmounting during the backoff has to end the wait as well, or this loop keeps
+          // its closure alive for good.
           await new Promise<void>((resolve) => {
             retryTimer = setTimeout(resolve, 1500)
+            controller.signal.addEventListener('abort', resolve, { once: true })
           })
         }
       }

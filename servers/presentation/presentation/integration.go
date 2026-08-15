@@ -75,11 +75,7 @@ func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseC
 	if err := tx.Commit(c); err != nil {
 		return fmt.Errorf("commit presentation copy: %w", err)
 	}
-	for _, storageKey := range targetStorageKeys {
-		if err := h.Service.storage.Delete(c, storageKey); err != nil {
-			return fmt.Errorf("delete replaced presentation material: %w", err)
-		}
-	}
+	h.Service.deleteStoredMaterials(c, targetStorageKeys)
 	return nil
 }
 

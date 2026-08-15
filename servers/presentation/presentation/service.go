@@ -1132,9 +1132,7 @@ func (s *Service) DeleteMaterial(
 	if deleted == 0 {
 		return apiError(404, "material_not_found", "Presentation material not found", nil)
 	}
-	if err := s.storage.Delete(ctx, material.StorageKey); err != nil {
-		return fmt.Errorf("delete stored presentation material: %w", err)
-	}
+	s.deleteStoredMaterials(ctx, []string{material.StorageKey})
 	return nil
 }
 

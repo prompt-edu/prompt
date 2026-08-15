@@ -22,15 +22,21 @@ The suite covers two layers with one framework:
 
 Two ways to run, both driven by `make` from the **repo root**.
 
-### 1. Full run in Docker (canonical — same locally and in CI)
+### 1. One shard in Docker (canonical — same runner as CI)
 
-Everything (app stack + the Playwright runner) runs in containers. This is what
-CI runs and what you should trust for a green/red verdict. Only Docker required.
+Everything (app stack + the Playwright runner) runs in containers. Run the shard
+that covers what you changed, the way CI does. Only Docker required.
 
 ```bash
-make test-e2e        # build the stack, run all specs, exit non-zero on failure
-make test-e2e-down   # stop the stack and remove volumes (also done automatically)
+make test-e2e-shard                  # list the available shards
+make test-e2e-shard SHARD=interview  # build the stack, run that shard, exit non-zero on failure
+make test-e2e-down                   # stop the stack and remove volumes (also done automatically)
 ```
+
+`make test-e2e` runs every spec in a single container. **Don't** reach for it:
+CI never runs the suite that way either (see [How CI shards the suite](#3-how-ci-shards-the-suite)),
+so a whole-suite local run costs a lot of wall-clock for a verdict CI already
+produces in parallel. Trust the shard plus CI.
 
 The HTML report lands in `e2e/playwright-report/` (open `index.html`, or
 `npx playwright show-report e2e/playwright-report`). On CI it's uploaded as the

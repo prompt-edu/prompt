@@ -937,10 +937,7 @@ func (s *Service) CreateUploadIntent(
 	if fileName == "" || fileName == "." {
 		return PresignMaterialResponse{}, apiError(400, "invalid_file_name", "Material file name is invalid", nil)
 	}
-	contentType := strings.TrimSpace(request.ContentType)
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	contentType := resolveContentType(fileName, request.ContentType)
 	config, err := s.GetConfig(ctx, coursePhaseID)
 	if err != nil {
 		return PresignMaterialResponse{}, err
@@ -1037,6 +1034,7 @@ func (s *Service) CompleteUpload(
 	if contentType == "" {
 		contentType = pending.ContentType
 	}
+	contentType = resolveContentType(pending.OriginalFilename, contentType)
 	// The stored object decides the type, not the presign request, so re-check it here.
 	if err := s.ensureContentTypeForMaterial(pending.MaterialType, contentType); err != nil {
 		_ = s.storage.Delete(ctx, pending.StorageKey)

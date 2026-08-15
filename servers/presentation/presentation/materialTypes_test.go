@@ -58,6 +58,39 @@ func TestEnsureMaterialTypeRequestedRejectsUnaskedType(t *testing.T) {
 	assert.Equal(t, "material_type_not_requested", apiErr.Code)
 }
 
+// A presenter picking exactly the requested file must not be blocked because their machine
+// has no handler registered for the extension and the browser sent nothing.
+func TestResolveContentTypeFallsBackToTheExtension(t *testing.T) {
+	service := &Service{allowedTypes: DefaultAllowedMaterialTypes()}
+
+	resolved := resolveContentType("Final deck.odp", "")
+	assert.Equal(t, "application/vnd.oasis.opendocument.presentation", resolved)
+	require.NoError(t, service.ensureContentTypeForMaterial(MaterialTypeSlides, resolved))
+
+	resolved = resolveContentType("REPORT.ODT", unknownContentType)
+	assert.Equal(t, "application/vnd.oasis.opendocument.text", resolved)
+	require.NoError(t, service.ensureContentTypeForMaterial(MaterialTypeSummary, resolved))
+
+	// A browser that knows the type keeps the last word, so a renamed file is still caught.
+	assert.Equal(t, "video/mp4", resolveContentType("clip.pdf", "video/mp4"))
+
+	// Nothing to go on stays unknown and is rejected as before.
+	resolved = resolveContentType("archive.rar", "")
+	assert.Equal(t, unknownContentType, resolved)
+	assert.Error(t, service.ensureContentTypeForMaterial(MaterialTypeCode, resolved))
+}
+
+// The fallback may only produce media types the catalog actually accepts, otherwise it
+// swaps one hard rejection for another.
+func TestExtensionFallbackStaysInsideTheCatalog(t *testing.T) {
+	allowed := DefaultAllowedMaterialTypes()
+
+	for extension, contentType := range mediaTypeByExtension {
+		assert.True(t, slices.Contains(allowed, contentType),
+			"%s resolves to %s, which no material type accepts", extension, contentType)
+	}
+}
+
 func TestEnsureContentTypeForMaterialRejectsMismatch(t *testing.T) {
 	service := &Service{allowedTypes: DefaultAllowedMaterialTypes()}
 

@@ -3,9 +3,12 @@ package presentation
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"slices"
 	"strings"
 )
+
+const unknownContentType = "application/octet-stream"
 
 // The material types students can be asked to upload. These keys are part of the API and
 // are mirrored by the client's label catalog in
@@ -69,6 +72,40 @@ var materialTypeCatalog = []materialTypeDefinition{
 // A phase that was never configured still has to accept the slide deck every presentation
 // needs, so the schema default and this fallback agree on it.
 var defaultRequiredMaterialTypes = []string{MaterialTypeSlides}
+
+// The file endings the catalog's media types are normally stored under, mirroring the
+// client's extension lists. Every value must appear in materialTypeCatalog.
+var mediaTypeByExtension = map[string]string{
+	".pdf":  "application/pdf",
+	".ppt":  "application/vnd.ms-powerpoint",
+	".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	".odp":  "application/vnd.oasis.opendocument.presentation",
+	".doc":  "application/msword",
+	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	".odt":  "application/vnd.oasis.opendocument.text",
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".zip":  "application/zip",
+	".mp4":  "video/mp4",
+}
+
+// Browsers send an empty file type whenever the machine has no handler registered for the
+// extension, which is the normal case for .odp or .odt without an office suite installed.
+// The file name is then the only signal left, and both are equally client-controlled.
+func resolveContentType(fileName, contentType string) string {
+	contentType = strings.TrimSpace(contentType)
+	if contentType != "" && !strings.EqualFold(mediaType(contentType), unknownContentType) {
+		return contentType
+	}
+	if resolved, exists := mediaTypeByExtension[strings.ToLower(filepath.Ext(fileName))]; exists {
+		return resolved
+	}
+	if contentType == "" {
+		return unknownContentType
+	}
+	return contentType
+}
 
 // DefaultAllowedMaterialTypes is the union of every catalog entry's media types. It is the
 // default for PRESENTATION_ALLOWED_FILE_TYPES, so the deployment-wide allow-list cannot

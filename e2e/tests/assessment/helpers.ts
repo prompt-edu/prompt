@@ -212,6 +212,45 @@ export async function gradeCompetency(
   )
 }
 
+// Must run as the student: evaluations are student-owned. Author equals
+// participant, which is what makes it a self evaluation.
+export async function submitSelfEvaluation(
+  api: APIRequestContext,
+  phaseId: string,
+  courseParticipationId: string,
+  competencyId: string,
+  scoreLevel: 'veryBad' | 'bad' | 'ok' | 'good' | 'veryGood',
+): Promise<void> {
+  await ok(
+    api.post(assessmentUrl(phaseId, 'evaluation'), {
+      data: {
+        courseParticipationID: courseParticipationId,
+        competencyID: competencyId,
+        scoreLevel,
+        authorCourseParticipationID: courseParticipationId,
+        type: 'self',
+      },
+    }),
+    'POST evaluation',
+  )
+}
+
+// Evaluations have no admin delete endpoint, so the student must remove their
+// own rows before resetAssessmentPhase can drop the categories they reference.
+export async function deleteOwnEvaluations(phaseId: string): Promise<void> {
+  const student = await apiContextFor('student')
+  try {
+    const res = await student.get(assessmentUrl(phaseId, 'evaluation/my-evaluations'))
+    if (!res.ok()) return
+    const evaluations = (await res.json()) as { id: string }[]
+    for (const evaluation of evaluations) {
+      await student.delete(assessmentUrl(phaseId, `evaluation/${evaluation.id}`))
+    }
+  } finally {
+    await student.dispose()
+  }
+}
+
 // Two steps like the UI: the completion row (remarks + grade suggestion) must
 // exist before mark-complete — that endpoint only flips an EXISTING row to
 // completed (and validates that no competency is left unassessed).

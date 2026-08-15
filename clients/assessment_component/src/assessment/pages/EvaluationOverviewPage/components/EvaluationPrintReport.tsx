@@ -1,4 +1,4 @@
-import { ScoreChip } from '../../components/AssessmentPrintReport/ScoreChip'
+import { ScoreChip } from '../../components/PrintReport/ScoreChip'
 import type { EvaluationResultCategory } from './EvaluationResultsSection'
 
 interface EvaluationPrintReportProps {

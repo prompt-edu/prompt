@@ -12,6 +12,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 )
 
@@ -24,6 +25,7 @@ type FeedbackItemServiceTestSuite struct {
 	testCourseParticipationID uuid.UUID
 	testAuthorID              uuid.UUID
 	testFeedbackItemID        uuid.UUID
+	testAuthHeader            string
 }
 
 func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
@@ -44,6 +46,7 @@ func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
 	suite.testCourseParticipationID = uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 	suite.testAuthorID = uuid.MustParse("da42e447-60f9-4fe0-b297-2dae3f924fd7")
 	suite.testFeedbackItemID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	suite.testAuthHeader = "Bearer feedback-item-service-test-token"
 }
 
 func (suite *FeedbackItemServiceTestSuite) TearDownSuite() {
@@ -52,34 +55,94 @@ func (suite *FeedbackItemServiceTestSuite) TearDownSuite() {
 	}
 }
 
+// seedFeedbackItem inserts a self feedback item authored by the given participation
+// so tests that mutate rows do not depend on each other's ordering.
+func (suite *FeedbackItemServiceTestSuite) seedFeedbackItem(authorID uuid.UUID) uuid.UUID {
+	feedbackItemID := uuid.New()
+
+	err := suite.feedbackItemService.queries.CreateFeedbackItem(suite.suiteCtx, db.CreateFeedbackItemParams{
+		ID:                          feedbackItemID,
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Original feedback text",
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               suite.testCoursePhaseID,
+		AuthorCourseParticipationID: authorID,
+		Type:                        db.AssessmentTypeSelf,
+	})
+	assert.NoError(suite.T(), err)
+	return feedbackItemID
+}
+
 func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItem() {
 	req := feedbackItemDTO.CreateFeedbackItemRequest{
 		FeedbackType:                db.FeedbackTypePositive,
 		FeedbackText:                "Great work on this task!",
-		CourseParticipationID:       suite.testCourseParticipationID,
+		CourseParticipationID:       suite.testAuthorID, // self feedback: subject is the author
 		CoursePhaseID:               suite.testCoursePhaseID,
 		AuthorCourseParticipationID: suite.testAuthorID,
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateFeedbackItem(suite.suiteCtx, req)
+	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
 	assert.NoError(suite.T(), err)
 }
 
-func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItem() {
-	// Use the second feedback item ID to avoid interfering with other tests
-	updateFeedbackItemID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	req := feedbackItemDTO.UpdateFeedbackItemRequest{
-		ID:                          updateFeedbackItemID,
-		FeedbackType:                db.FeedbackTypePositive, // Change from negative to positive
-		FeedbackText:                "Updated feedback text",
-		CourseParticipationID:       suite.testCourseParticipationID,
+func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItemRejectsForeignSelfTarget() {
+	req := feedbackItemDTO.CreateFeedbackItemRequest{
+		FeedbackType:                db.FeedbackTypePositive,
+		FeedbackText:                "Injected into a peer's self feedback",
+		CourseParticipationID:       suite.testCourseParticipationID, // not the author
 		CoursePhaseID:               suite.testCoursePhaseID,
 		AuthorCourseParticipationID: suite.testAuthorID,
+		Type:                        assessmentType.Self,
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, req)
+	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrSelfEvaluationTargetMismatch)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItem() {
+	updateFeedbackItemID := suite.seedFeedbackItem(suite.testAuthorID)
+	req := feedbackItemDTO.UpdateFeedbackItemRequest{
+		FeedbackType: db.FeedbackTypeNegative, // Change from positive to negative
+		FeedbackText: "Updated feedback text",
+	}
+
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
 	assert.NoError(suite.T(), err)
+
+	updated, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Updated feedback text", updated.FeedbackText)
+	assert.Equal(suite.T(), db.FeedbackTypeNegative, updated.FeedbackType)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsWrongPhase() {
+	updateFeedbackItemID := suite.seedFeedbackItem(suite.testAuthorID)
+	otherPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	req := feedbackItemDTO.UpdateFeedbackItemRequest{
+		FeedbackType: db.FeedbackTypeNegative,
+		FeedbackText: "Updated from another phase",
+	}
+
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, otherPhaseID, suite.testAuthorID, req)
+	assert.ErrorIs(suite.T(), err, ErrFeedbackItemNotFound)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsNonAuthor() {
+	// Feedback item 22222222 is authored by the lecturer, not testAuthorID
+	updateFeedbackItemID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	req := feedbackItemDTO.UpdateFeedbackItemRequest{
+		FeedbackType: db.FeedbackTypePositive,
+		FeedbackText: "Rewritten by a non-author",
+	}
+
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
+	assert.ErrorIs(suite.T(), err, ErrNotFeedbackItemAuthor)
+
+	unchanged, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Need to improve time management", unchanged.FeedbackText)
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestGetFeedbackItem() {

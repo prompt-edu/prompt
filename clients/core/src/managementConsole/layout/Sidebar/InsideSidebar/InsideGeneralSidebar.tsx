@@ -1,7 +1,7 @@
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { Role } from '@tumaet/prompt-shared-state'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Activity, Archive, File, FileText, Shield, Tag, Users } from 'lucide-react'
+import { Activity, Archive, File, FileText, ScrollText, Shield, Tag, Users } from 'lucide-react'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
@@ -61,6 +61,11 @@ export const InsideGeneralSidebar = () => {
                 icon={<Shield />}
                 goToPath={'/management/admin/privacy'}
                 title='Privacy'
+              />
+              <InsideSidebarMenuItem
+                icon={<ScrollText />}
+                goToPath={'/management/admin/audit-log'}
+                title='Audit Log'
               />
             </InsideSidebarVisualGroup>
           </ShowForRole>

@@ -13,4 +13,5 @@ func InitPrivacyModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *p
 		Conn:    conn,
 	}
 	promptTypes.RegisterPrivacyDataExportEndpoint(routerGroup, PrivacyDataExportHandler, []string{})
+	promptTypes.RegisterPrivacyDataDeletionEndpoint(routerGroup, PrivacyDataDeletionHandler)
 }

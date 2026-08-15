@@ -85,8 +85,11 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 	return true, nil
 }
 
-func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus) (mailingDTO.MailingReport, error) {
-	response := mailingDTO.MailingReport{}
+func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs []uuid.UUID) (mailingDTO.MailingReport, error) {
+	response := mailingDTO.MailingReport{
+		SuccessfulEmails: make([]string, 0),
+		FailedEmails:     make([]string, 0),
+	}
 	mailingInfo := mailingDTO.MailingInfo{}
 
 	// 1.) get mailing info for course phase
@@ -95,7 +98,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		infos, err := MailingServiceSingleton.queries.GetPassedMailingInformation(ctx, coursePhaseID)
 		if err != nil {
 			log.Error("failed to get mailing information: ", err)
-			return mailingDTO.MailingReport{}, fmt.Errorf("failed to retrieve passed status mailing information for course phase %s: %v", coursePhaseID, err)
+			return response, fmt.Errorf("failed to retrieve passed status mailing information for course phase %s: %v", coursePhaseID, err)
 		}
 		mailingInfo = mailingDTO.GetMailingInfoFromPassedMailingInformation(infos)
 
@@ -103,13 +106,13 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		infos, err := MailingServiceSingleton.queries.GetFailedMailingInformation(ctx, coursePhaseID)
 		if err != nil {
 			log.Error("failed to get mailing information: ", err)
-			return mailingDTO.MailingReport{}, fmt.Errorf("failed to retrieve failed status mailing information for course phase %s: %v", coursePhaseID, err)
+			return response, fmt.Errorf("failed to retrieve failed status mailing information for course phase %s: %v", coursePhaseID, err)
 		}
 		mailingInfo = mailingDTO.GetMailingInfoFromFailedMailingInformation(infos)
 
 	default:
 		log.Error("invalid status")
-		return mailingDTO.MailingReport{}, fmt.Errorf("invalid pass status '%s': expected 'passed' or 'failed'", status)
+		return response, fmt.Errorf("invalid pass status '%s': expected 'passed' or 'failed'", status)
 
 	}
 
@@ -117,45 +120,67 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	courseMailingSettings, err := getSenderInformation(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get sender information")
-		return mailingDTO.MailingReport{}, fmt.Errorf("failed to get course mailing settings: %v", err)
+		return response, fmt.Errorf("failed to get course mailing settings: %v", err)
 	}
 
 	// 2.) Check if mailing is configured -> return if not
 	if mailingInfo.MailSubject == "" || mailingInfo.MailContent == "" {
 		log.Error("mailing template is not correctly configured")
-		return mailingDTO.MailingReport{}, fmt.Errorf("mailing template incomplete: subject ('%s') or content ('%s') is empty", mailingInfo.MailSubject, mailingInfo.MailContent)
+		return response, fmt.Errorf("mailing template incomplete: subject ('%s') or content ('%s') is empty", mailingInfo.MailSubject, mailingInfo.MailContent)
 	}
 
-	// 3.) Get all participants that have not been accepted incl. information
-	participants, err := MailingServiceSingleton.queries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
-		ID:         coursePhaseID,
-		PassStatus: db.NullPassStatus{PassStatus: status, Valid: true},
+	// 3.) Claim the participants with the given status that have not been mailed for it yet, narrowed
+	// to the recipient list if one was given. Claiming before sending trades a mail lost to a crash
+	// for a duplicated one.
+	var recipientIDs []uuid.UUID
+	if recipientCourseParticipationIDs != nil {
+		recipientIDs = deduplicateUUIDList(recipientCourseParticipationIDs)
+	}
+
+	participants, err := MailingServiceSingleton.queries.ClaimStatusMailRecipients(ctx, db.ClaimStatusMailRecipientsParams{
+		CoursePhaseID:          coursePhaseID,
+		Status:                 string(status),
+		SentAt:                 nowFn().Format(time.RFC3339),
+		CourseParticipationIds: recipientIDs,
 	})
 	if err != nil {
-		log.Error("failed to get participant mailing information: ", err)
-		return mailingDTO.MailingReport{}, fmt.Errorf("failed to retrieve participant information for course phase %s with status %s: %v", coursePhaseID, status, err)
+		log.Error("failed to claim status mail recipients: ", err)
+		return response, fmt.Errorf("failed to retrieve participant information for course phase %s with status %s: %v", coursePhaseID, status, err)
 	}
 
-	// 4.) Send mail to all participants
+	// 4.) Send to every claimed participant, releasing the claim where the send failed so the next
+	// trigger picks the participant up again.
 	for _, participant := range participants {
-		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, participant)
+		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, db.GetParticipantMailingInformationByIDsRow(participant))
 		// replace values in subject
 		finalSubject := replacePlaceholders(mailingInfo.MailSubject, placeholderMap)
 
 		// replace values in content
 		finalMessage := replacePlaceholders(mailingInfo.MailContent, placeholderMap)
 
-		err = SendCourseMail(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
+		err = sendMailFn(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
-		} else {
-			log.Debug("Successfully sent status mail to: ", participant.Email.String)
-			response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
+			releaseStatusMailClaim(ctx, coursePhaseID, participant.CourseParticipationID, status)
+			continue
 		}
+
+		log.Debug("Successfully sent status mail to: ", participant.Email.String)
+		response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
 	}
 
 	return response, nil
+}
+
+func releaseStatusMailClaim(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, status db.PassStatus) {
+	if err := MailingServiceSingleton.queries.ReleaseStatusMailClaim(ctx, db.ReleaseStatusMailClaimParams{
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: courseParticipationID,
+		Status:                string(status),
+	}); err != nil {
+		log.Error("failed to release status mail claim for participant, it will not be retried: ", err)
+	}
 }
 
 // SendMail sends a transactional mail with no Reply-To, CC, or BCC. For mails

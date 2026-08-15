@@ -31,6 +31,9 @@ services:
       - DB_NAME=${DB_CORE_NAME}
       - SSL_MODE
       - SERVER_ADDRESS
+      - AUDIT_ENABLED
+      - AUDIT_RETENTION_DAYS
+      - AUDIT_INGEST_KEYS
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - KEYCLOAK_CLIENT_ID
@@ -329,13 +332,13 @@ services:
     depends_on:
       - clients-base
 
-  client-certificate:
+  client-certificate-component:
     build:
       context: ./clients/certificate_component
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-certificate
+    container_name: prompt-client-certificate-component
     ports:
       - "3009:80"
     depends_on:

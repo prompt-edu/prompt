@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
-import { ScoreChip } from '../../components/AssessmentPrintReport/ScoreChip'
+import { ScoreChip } from '../../components/PrintReport/ScoreChip'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'

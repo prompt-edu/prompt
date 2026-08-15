@@ -29,6 +29,20 @@ export class CoursesPage {
     return this.page.getByTestId(`course-card-${courseId}`)
   }
 
+  // ── Card-view search ─────────────────────────────────────────────────────
+
+  searchInput(): Locator {
+    return this.page.getByRole('searchbox', { name: 'Search courses' })
+  }
+
+  async search(query: string) {
+    await this.searchInput().fill(query)
+  }
+
+  noMatchesMessage(): Locator {
+    return this.page.getByText('No courses match your search.')
+  }
+
   // Clicks the "Go to course" action within a specific course's card.
   async openCourse(courseId: string) {
     await this.card(courseId)

@@ -3,14 +3,21 @@ package feedbackItem
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+var ErrFeedbackItemNotFound = errors.New("feedback item not found")
+var ErrNotFeedbackItemAuthor = errors.New("you are not the author of this feedback item")
 
 type FeedbackItemService struct {
 	queries db.Queries
@@ -73,8 +80,21 @@ func ListFeedbackItemsByAuthorInPhase(ctx context.Context, authorCourseParticipa
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func CreateFeedbackItem(ctx context.Context, req feedbackItemDTO.CreateFeedbackItemRequest) error {
-	err := FeedbackItemServiceSingleton.queries.CreateFeedbackItem(ctx, db.CreateFeedbackItemParams{
+func CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItemDTO.CreateFeedbackItemRequest) error {
+	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := FeedbackItemServiceSingleton.queries.WithTx(tx)
+
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+	if err != nil {
+		return err
+	}
+
+	err = qtx.CreateFeedbackItem(ctx, db.CreateFeedbackItemParams{
 		ID:                          uuid.New(),
 		FeedbackType:                req.FeedbackType,
 		FeedbackText:                req.FeedbackText,
@@ -87,23 +107,65 @@ func CreateFeedbackItem(ctx context.Context, req feedbackItemDTO.CreateFeedbackI
 		log.Error("could not create feedback item: ", err)
 		return errors.New("could not create feedback item")
 	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return nil
 }
 
-func UpdateFeedbackItem(ctx context.Context, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
-	err := FeedbackItemServiceSingleton.queries.UpdateFeedbackItem(ctx, db.UpdateFeedbackItemParams{
-		ID:                          req.ID,
+func UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
+	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := FeedbackItemServiceSingleton.queries.WithTx(tx)
+
+	existing, err := qtx.GetFeedbackItem(ctx, feedbackItemID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrFeedbackItemNotFound
+		}
+		log.Error("could not get feedback item: ", err)
+		return errors.New("could not get feedback item")
+	}
+
+	if existing.CoursePhaseID != coursePhaseID {
+		return ErrFeedbackItemNotFound
+	}
+	if existing.AuthorCourseParticipationID != authorCourseParticipationID {
+		return ErrNotFeedbackItemAuthor
+	}
+
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
+	if err != nil {
+		return err
+	}
+
+	rows, err := qtx.UpdateFeedbackItem(ctx, db.UpdateFeedbackItemParams{
+		ID:                          feedbackItemID,
+		CoursePhaseID:               coursePhaseID,
+		AuthorCourseParticipationID: authorCourseParticipationID,
 		FeedbackType:                req.FeedbackType,
 		FeedbackText:                req.FeedbackText,
-		CourseParticipationID:       req.CourseParticipationID,
-		CoursePhaseID:               req.CoursePhaseID,
-		AuthorCourseParticipationID: req.AuthorCourseParticipationID,
-		Type:                        assessmentType.MapDTOtoDBAssessmentType(req.Type),
 	})
 	if err != nil {
 		log.Error("could not update feedback item: ", err)
 		return errors.New("could not update feedback item")
 	}
+	if rows == 0 {
+		return ErrFeedbackItemNotFound
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
 	return nil
 }
 

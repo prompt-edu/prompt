@@ -1,3 +1,4 @@
+import { CourseAuditLogSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseAuditLogSidebar'
 import { CourseConfiguratorSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseConfiguratorSidebar'
 import { CourseSettingsSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseSettingsSidebar'
 import { CourseUserManagementSidebar } from '@managementConsole/PhaseMapping/ExternalSidebars/CourseUserManagementSidebar'
@@ -38,6 +39,7 @@ export const InsideCourseSidebar = () => {
           <CourseConfiguratorSidebar rootPath={rootPath} title='Course Configurator' />
           <CourseSettingsSidebar rootPath={rootPath} title='Settings' />
           <CourseUserManagementSidebar rootPath={rootPath} title='User Management' />
+          <CourseAuditLogSidebar rootPath={rootPath} title='Audit Log' />
         </SidebarGroupContent>
       </SidebarGroup>
 

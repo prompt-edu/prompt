@@ -16,9 +16,12 @@ export interface ApplicationRow {
   [key: string]: unknown
 }
 
+export const EXPORTED_ANSWER_COLUMN_PREFIX = 'exportedAnswer:'
+
 export function buildApplicationRows(
   participations: ApplicationParticipation[] | undefined,
   additionalScores?: { key: string }[],
+  exportedAnswersByParticipation?: Map<string, Map<string, string>>,
 ): ApplicationRow[] {
   if (!participations) return []
 
@@ -38,6 +41,12 @@ export function buildApplicationRows(
 
     ...Object.fromEntries(
       (additionalScores ?? []).map((s) => [s.key, app.restrictedData?.[s.key] ?? null]),
+    ),
+
+    ...Object.fromEntries(
+      Array.from(exportedAnswersByParticipation?.get(app.courseParticipationID) ?? []).map(
+        ([questionID, answer]) => [`${EXPORTED_ANSWER_COLUMN_PREFIX}${questionID}`, answer],
+      ),
     ),
   }))
 }

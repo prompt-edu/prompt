@@ -81,6 +81,74 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotInvalidTimes(
 	require.Equal(suite.T(), 400, serviceErr.StatusCode)
 }
 
+func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatch() {
+	location := "Batch Room"
+	start := time.Now().Add(48 * time.Hour)
+	req := interviewSlotDTO.CreateInterviewSlotsBatchRequest{
+		Slots: []interviewSlotDTO.CreateInterviewSlotRequest{
+			{StartTime: start, EndTime: start.Add(30 * time.Minute), Location: &location, Capacity: 1},
+			{StartTime: start.Add(30 * time.Minute), EndTime: start.Add(60 * time.Minute), Location: &location, Capacity: 1},
+			{StartTime: start.Add(60 * time.Minute), EndTime: start.Add(90 * time.Minute), Location: &location, Capacity: 1},
+		},
+	}
+
+	slots, err := CreateInterviewSlotsBatch(suite.ctx, suite.futurePhaseID, req)
+
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), slots, 3)
+	for _, slot := range slots {
+		require.Equal(suite.T(), suite.futurePhaseID, slot.CoursePhaseID)
+		dbSlot, err := suite.testDB.Queries.GetInterviewSlot(suite.ctx, slot.ID)
+		require.NoError(suite.T(), err)
+		require.Equal(suite.T(), slot.ID, dbSlot.ID)
+	}
+}
+
+func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejectsInvalidTimesWithoutCreating() {
+	before, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
+	require.NoError(suite.T(), err)
+
+	start := time.Now().Add(72 * time.Hour)
+	req := interviewSlotDTO.CreateInterviewSlotsBatchRequest{
+		Slots: []interviewSlotDTO.CreateInterviewSlotRequest{
+			{StartTime: start, EndTime: start.Add(30 * time.Minute), Capacity: 1},
+			{StartTime: start.Add(60 * time.Minute), EndTime: start.Add(30 * time.Minute), Capacity: 1}, // end before start
+		},
+	}
+
+	_, err = CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, req)
+
+	require.Error(suite.T(), err)
+	var serviceErr *ServiceError
+	require.ErrorAs(suite.T(), err, &serviceErr)
+	require.Equal(suite.T(), 400, serviceErr.StatusCode)
+
+	// The valid slot preceding the rejected one must not have been created either.
+	after, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), after, len(before))
+}
+
+func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejectsTooManySlots() {
+	start := time.Now().Add(96 * time.Hour)
+	slots := make([]interviewSlotDTO.CreateInterviewSlotRequest, interviewSlotDTO.MaxBatchInterviewSlots+1)
+	for i := range slots {
+		slotStart := start.Add(time.Duration(i) * time.Hour)
+		slots[i] = interviewSlotDTO.CreateInterviewSlotRequest{
+			StartTime: slotStart,
+			EndTime:   slotStart.Add(30 * time.Minute),
+			Capacity:  1,
+		}
+	}
+
+	_, err := CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, interviewSlotDTO.CreateInterviewSlotsBatchRequest{Slots: slots})
+
+	require.Error(suite.T(), err)
+	var serviceErr *ServiceError
+	require.ErrorAs(suite.T(), err, &serviceErr)
+	require.Equal(suite.T(), 400, serviceErr.StatusCode)
+}
+
 func (suite *InterviewSlotServiceTestSuite) TestGetAllInterviewSlots() {
 	slots, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
 

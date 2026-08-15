@@ -5,9 +5,9 @@
  */
 export function isRealMicroservice(baseUrl: string): boolean {
   try {
-    const parsed = new URL(baseUrl);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    const parsed = new URL(baseUrl)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
   } catch {
-    return false;
+    return false
   }
 }

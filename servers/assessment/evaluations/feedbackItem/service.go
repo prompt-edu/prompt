@@ -80,7 +80,7 @@ func ListFeedbackItemsByAuthorInPhase(ctx context.Context, authorCourseParticipa
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func CreateFeedbackItem(ctx context.Context, req feedbackItemDTO.CreateFeedbackItemRequest) error {
+func CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItemDTO.CreateFeedbackItemRequest) error {
 	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func CreateFeedbackItem(ctx context.Context, req feedbackItemDTO.CreateFeedbackI
 
 	qtx := FeedbackItemServiceSingleton.queries.WithTx(tx)
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func CreateFeedbackItem(ctx context.Context, req feedbackItemDTO.CreateFeedbackI
 	return nil
 }
 
-func UpdateFeedbackItem(ctx context.Context, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
+func UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
 	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func UpdateFeedbackItem(ctx context.Context, feedbackItemID, coursePhaseID, auth
 		return ErrNotFeedbackItemAuthor
 	}
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
+	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
 	if err != nil {
 		return err
 	}

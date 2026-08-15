@@ -142,7 +142,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigDo
 	assert.NoError(suite.T(), err, "An unconfigured phase should read as the column defaults")
 	assert.Equal(suite.T(), testID, config.CoursePhaseID)
 	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
+	assert.True(suite.T(), config.EvaluationResultsVisible, "EvaluationResultsVisible should default to TRUE")
+	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
+	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
 	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+	assert.False(suite.T(), config.GradingSheetVisible, "GradingSheetVisible should default to FALSE")
 
 	var rowCount int
 	err = suite.coursePhaseConfigService.conn.QueryRow(suite.suiteCtx,

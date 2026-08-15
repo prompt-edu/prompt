@@ -113,14 +113,17 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 }
 
 // GetStoredCoursePhaseConfig is the read-only counterpart of GetCoursePhaseConfig: it never creates
-// a row, so read paths stay reads. An unconfigured phase carries the column defaults, which is what
-// the returned config describes.
+// a row, so read paths stay reads. An unconfigured phase falls back to the boolean column defaults;
+// the timestamps stay zero because no row exists to supply them.
 func GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
 	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return coursePhaseConfigDTO.CoursePhaseConfig{
-			CoursePhaseID:     coursePhaseID,
-			AssessmentEnabled: true,
+			CoursePhaseID:            coursePhaseID,
+			AssessmentEnabled:        true,
+			EvaluationResultsVisible: true,
+			GradeSuggestionVisible:   true,
+			ActionItemsVisible:       true,
 		}, nil
 	}
 	if err != nil {

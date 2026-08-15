@@ -70,7 +70,7 @@ export const IncomingDataHandle = ({ phaseID, dto, type }: IncomingDataHandlePro
     ? 'success'
     : incomingDTOs.length === 1
       ? 'warning'
-      : dto.optional
+      : dto.optional && incomingDTOs.length === 0
         ? 'optional'
         : 'error'
 

@@ -6,14 +6,16 @@ paths:
 
 # shadcn/ui Components
 
-The design system is shadcn/ui + Radix on Tailwind CSS v4, owned centrally — not per component.
+The design system is shadcn/ui + Radix on Tailwind CSS v4, owned centrally by the
+`prompt-edu/prompt-lib` repository and consumed here as `@tumaet/prompt-ui-components`. It is not
+owned per component, and this repository holds no primitives of its own.
 
-- **Install primitives into the shared library only:** `cd clients/shared_library && yarn dlx shadcn add <name>`.
-  Components land in `shared_library/components/ui/` and are available to every micro-frontend.
-  Never run `shadcn add` inside an individual `*_component` or hand-copy a primitive into one.
+- **Never run `shadcn add` inside a `*_component`** and never hand-copy a primitive into one. New
+  primitives are added in `prompt-edu/prompt-lib` and arrive here as a published package version.
+  `clients/core/components.json` exists only so the shadcn CLI resolves every alias to
+  `@tumaet/prompt-ui-components`.
 - **Import from the published package**, not relative paths:
-  `import { Button, Dialog } from '@tumaet/prompt-ui-components'`. Within the shared library itself
-  use the `@/components/ui/*` alias.
+  `import { Button, Dialog } from '@tumaet/prompt-ui-components'`.
 - **Check before adding.** Most primitives already exist (Button, Card, Dialog, Table, Form, Select,
   Tabs, Tooltip, …) plus custom components (`PromptTable`, `ManagementPageHeader`, `MultiSelect`,
   `DatePicker`, `DeleteConfirmation`). See `shared-libraries.md`. Reuse before installing/building.

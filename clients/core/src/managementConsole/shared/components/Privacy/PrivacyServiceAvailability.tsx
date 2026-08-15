@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useGetCoursePhaseTypes } from '../../../pages/SystemStatusPage/hooks/useGetCoursePhaseTypes'
 import { getServiceInfo } from '../../../pages/SystemStatusPage/network/getServiceCapabilities'
+import { isRealMicroservice } from '../../../pages/SystemStatusPage/utils/isRealMicroservice'
 
 enum PSAStatus {
   Loading = 'loading',
@@ -56,19 +57,10 @@ interface PrivacyServiceAvailabilityProps {
   forSelf?: boolean
 }
 
-function hasOwnMicroservice(baseUrl: string): boolean {
-  try {
-    const parsed = new URL(baseUrl)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
 export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabilityProps = {}) {
   const { data: allCoursePhaseTypes = [], isPending: typesPending } =
     useGetCoursePhaseTypes(forSelf)
-  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => hasOwnMicroservice(cpt.baseUrl))
+  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => isRealMicroservice(cpt.baseUrl))
 
   const coreQuery = useQuery({
     queryKey: ['serviceInfo-core'],

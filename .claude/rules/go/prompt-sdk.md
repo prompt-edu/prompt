@@ -5,8 +5,8 @@ paths:
 
 # prompt-sdk API Catalog
 
-Go SDK shared across all microservices (source: `../Prompt-SDK/`). Always prefer these over custom
-implementations.
+Go SDK shared across all microservices (source: `github.com/prompt-edu/prompt-sdk`). Always prefer
+these over custom implementations.
 
 ```go
 import promptSDK "github.com/prompt-edu/prompt-sdk"

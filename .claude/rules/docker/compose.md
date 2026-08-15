@@ -6,7 +6,8 @@ paths:
 # docker-compose
 
 Local orchestration uses Docker Compose **v2** (`docker compose`, not `docker-compose`). Variants:
-`docker-compose.yml` (full local), `.minimal.yml`, `.prod.yml`, `.extern.prod.yml`.
+`docker-compose.yml` (full local), `.minimal.yml`, `.prod.yml`, `.extern.prod.yml`, and `.e2e.yml`
+(driven by the `make test-e2e*` targets, on its own host ports so it coexists with the dev stack).
 
 ## Per-phase services
 

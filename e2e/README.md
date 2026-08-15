@@ -38,6 +38,11 @@ CI never runs the suite that way either (see [How CI shards the suite](#3-how-ci
 so a whole-suite local run costs a lot of wall-clock for a verdict CI already
 produces in parallel. Trust the shard plus CI.
 
+Iterating on specs only? `SKIP_BUILD=1` reuses the images already on your machine
+and skips the build pass entirely. Only use it when nothing under `clients/`,
+`servers/`, or `e2e/` changed since your last build - otherwise you are testing
+stale images.
+
 The HTML report lands in `e2e/playwright-report/` (open `index.html`, or
 `npx playwright show-report e2e/playwright-report`). On CI it's uploaded as the
 `playwright-report` artifact.
@@ -120,6 +125,8 @@ locally (same containerized runner, no cache override needed):
 ```bash
 make test-e2e-shard SHARD=interview
 ```
+
+`SKIP_BUILD=1` works here too, under the same caveat as the full run.
 
 The `core` shard is the widest (all core-hosted modules); the per-microservice
 shards mirror the `tests/<module>/` layout plus that module's

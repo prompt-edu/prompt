@@ -89,7 +89,12 @@ const MaterialSlot = ({
               multiple
               accept={accept}
               className='hidden'
-              onChange={(event) => onUpload(event.target.files)}
+              onChange={(event) => {
+                onUpload(event.target.files)
+                // Without this the browser fires no change event when the same file name is
+                // picked again after a delete or a failed upload.
+                event.target.value = ''
+              }}
             />
             <Button
               size='sm'

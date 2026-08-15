@@ -1505,6 +1505,12 @@ func (s *Service) DeleteDraft(ctx context.Context, coursePhaseID, presentationID
 	if err != nil {
 		return err
 	}
+	// Shared mode has one form for the whole instructor group, so this deletes everyone's
+	// work rather than the caller's own draft.
+	if config.FeedbackMode == feedbackShared && !user.CanRelease {
+		return apiError(403, "shared_feedback_forbidden",
+			"Only lecturers can delete the shared evaluation", nil)
+	}
 	scope, _, _ := s.feedbackScope(config, user)
 	err = s.withFeedbackMutation(ctx, coursePhaseID, presentationID,
 		"Unrelease feedback before deleting drafts",

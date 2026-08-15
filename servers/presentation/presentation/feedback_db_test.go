@@ -11,16 +11,20 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/testutils"
 )
 
 var (
 	individualPhaseID = uuid.MustParse("10000000-0000-0000-0000-000000000001")
+	sharedPhaseID     = uuid.MustParse("10000000-0000-0000-0000-000000000002")
 	// Has categories but no presentations or feedback, so category mutations are unlocked.
 	categoryOnlyPhaseID = uuid.MustParse("10000000-0000-0000-0000-000000000003")
 	deliveryCategory    = uuid.MustParse("20000000-0000-0000-0000-000000000001")
 	contentCategory     = uuid.MustParse("20000000-0000-0000-0000-000000000002")
+	teamworkCategory    = uuid.MustParse("20000000-0000-0000-0000-000000000003")
 	adaPresentationID   = uuid.MustParse("40000000-0000-0000-0000-000000000001")
+	teamPresentationID  = uuid.MustParse("40000000-0000-0000-0000-000000000003")
 	freeSlotID          = uuid.MustParse("30000000-0000-0000-0000-000000000003")
 	assignedSlotID      = uuid.MustParse("30000000-0000-0000-0000-000000000001")
 )
@@ -190,6 +194,34 @@ func (s *FeedbackDBTestSuite) TestSubmitCannotLandAfterRelease() {
 	err = s.service.DeleteDraft(s.ctx, phaseID, presentationID, user)
 	require.True(s.T(), errors.As(err, &apiErr))
 	assert.Equal(s.T(), "feedback_released", apiErr.Code)
+}
+
+// The delete is scoped to the shared form in shared mode, so an instructor who means to
+// discard their own writing would take the whole group's evaluation with them.
+func (s *FeedbackDBTestSuite) TestSharedEvaluationDeleteIsLecturerOnly() {
+	author := instructor("shared-author")
+	_, err := s.service.PutFeedbackAnswer(
+		s.ctx, sharedPhaseID, teamPresentationID, teamworkCategory, author,
+		PutAnswerRequest{Value: "written by the group", ExpectedRevision: 0},
+	)
+	require.NoError(s.T(), err)
+
+	err = s.service.DeleteDraft(s.ctx, sharedPhaseID, teamPresentationID, instructor("shared-peer"))
+	var apiErr *APIError
+	require.True(s.T(), errors.As(err, &apiErr))
+	assert.Equal(s.T(), 403, apiErr.Status)
+	assert.Equal(s.T(), "shared_feedback_forbidden", apiErr.Code)
+
+	// The form the peer was not allowed to delete is still there.
+	_, err = s.service.queries.GetFeedbackFormByScope(s.ctx, db.GetFeedbackFormByScopeParams{
+		PresentationID: teamPresentationID,
+		ScopeKey:       "shared",
+	})
+	require.NoError(s.T(), err)
+
+	lecturer := instructor("shared-lecturer")
+	lecturer.CanRelease = true
+	require.NoError(s.T(), s.service.DeleteDraft(s.ctx, sharedPhaseID, teamPresentationID, lecturer))
 }
 
 func (s *FeedbackDBTestSuite) TestGetConfigReadsWithoutCreatingRow() {

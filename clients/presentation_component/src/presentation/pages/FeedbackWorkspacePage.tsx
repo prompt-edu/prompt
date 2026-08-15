@@ -357,6 +357,10 @@ const FeedbackWorkspacePage = () => {
   const released = Boolean(feedback.presentation.feedbackReleasedAt)
   const formSubmitted = editableForm?.status === 'submitted'
   const canWrite = feedback.canEdit && !formSubmitted && !released
+  const sharedForm = feedback.mode === 'shared'
+  // In shared mode the form belongs to every instructor at once, so discarding it is a
+  // lecturer decision rather than "delete my draft".
+  const canDeleteForm = !formSubmitted && (!sharedForm || isLecturer)
   const hasUnsavedAnswers =
     Object.values(dirty).some(Boolean) ||
     Object.values(saveStatuses).some((status) => status === 'saving' || status === 'conflict')
@@ -580,7 +584,7 @@ const FeedbackWorkspacePage = () => {
                   Reopen evaluation
                 </Button>
               )}
-              {!formSubmitted ? (
+              {canDeleteForm ? (
                 <Button
                   variant='ghost'
                   className='text-destructive hover:bg-destructive/10 hover:text-destructive'
@@ -588,7 +592,7 @@ const FeedbackWorkspacePage = () => {
                   onClick={() => setDeleteDraftOpen(true)}
                 >
                   <Trash2 className='mr-2 h-4 w-4' />
-                  Delete my draft
+                  {sharedForm ? 'Delete shared evaluation' : 'Delete my draft'}
                 </Button>
               ) : null}
             </div>
@@ -719,9 +723,13 @@ const FeedbackWorkspacePage = () => {
       <AlertDialog open={deleteDraftOpen} onOpenChange={setDeleteDraftOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete your feedback draft?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {sharedForm ? 'Delete the shared evaluation?' : 'Delete your feedback draft?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Your independent draft and all of its category answers will be permanently deleted.
+              {sharedForm
+                ? 'This deletes the evaluation every instructor has been writing into, together with all of its category answers.'
+                : 'Your independent draft and all of its category answers will be permanently deleted.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -730,7 +738,7 @@ const FeedbackWorkspacePage = () => {
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => actionMutation.mutate({ type: 'delete-draft' })}
             >
-              Delete draft
+              {sharedForm ? 'Delete evaluation' : 'Delete draft'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

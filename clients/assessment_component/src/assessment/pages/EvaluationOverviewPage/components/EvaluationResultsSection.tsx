@@ -6,12 +6,13 @@ import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
+import type { StudentEvaluationResults } from '../../../interfaces/evaluationResults'
 import { ScoreChip } from '../../components/PrintReport/ScoreChip'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { useGetMyEvaluationResults } from '../hooks/useGetMyEvaluationResults'
-import { EvaluationPrintReport } from './EvaluationPrintReport'
+import { EvaluationPrintReport, type EvaluationPrintSection } from './EvaluationPrintReport'
 
 interface EvaluationResultsSectionProps {
   onReadyChange?: (ready: boolean) => void
@@ -52,6 +53,28 @@ const buildCategories = (
       }),
     }))
     .filter((category) => category.rows.length > 0)
+
+const buildPrintSection = (
+  categories: CategoryWithCompetencies[],
+  levelByCompetency: Map<string, ScoreLevel>,
+  results: StudentEvaluationResults | null,
+): EvaluationPrintSection => ({
+  categories: categories
+    .map((category) => ({
+      ...category,
+      competencies: category.competencies.filter((competency) =>
+        levelByCompetency.has(competency.id),
+      ),
+    }))
+    .filter((category) => category.competencies.length > 0),
+  scores: [...levelByCompetency].map(([competencyID, scoreLevel]) => ({
+    id: competencyID,
+    courseParticipationID: results?.courseParticipationID ?? '',
+    coursePhaseID: results?.coursePhaseID ?? '',
+    competencyID,
+    scoreLevel,
+  })),
+})
 
 const ResultCategoryList = ({ categories }: { categories: EvaluationResultCategory[] }) => (
   <div className='space-y-4'>
@@ -106,27 +129,40 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
     shouldFetch && peerEvaluationEnabled,
   )
 
-  const selfSections = useMemo(
+  const selfLevels = useMemo(
+    () => new Map((results?.selfResults ?? []).map((r) => [r.competencyID, r.scoreLevel])),
+    [results],
+  )
+
+  const peerLevels = useMemo(
     () =>
-      buildCategories(
-        selfCategories,
-        new Map((results?.selfResults ?? []).map((r) => [r.competencyID, r.scoreLevel])),
+      new Map(
+        (results?.peerResults ?? []).map((r) => [
+          r.competencyID,
+          mapNumberToScoreLevel(r.averageScoreNumeric),
+        ]),
       ),
-    [selfCategories, results],
+    [results],
+  )
+
+  const selfSections = useMemo(
+    () => buildCategories(selfCategories, selfLevels),
+    [selfCategories, selfLevels],
   )
 
   const peerSections = useMemo(
-    () =>
-      buildCategories(
-        peerCategories,
-        new Map(
-          (results?.peerResults ?? []).map((r) => [
-            r.competencyID,
-            mapNumberToScoreLevel(r.averageScoreNumeric),
-          ]),
-        ),
-      ),
-    [peerCategories, results],
+    () => buildCategories(peerCategories, peerLevels),
+    [peerCategories, peerLevels],
+  )
+
+  const selfPrintSection = useMemo(
+    () => buildPrintSection(selfCategories, selfLevels, results),
+    [selfCategories, selfLevels, results],
+  )
+
+  const peerPrintSection = useMemo(
+    () => buildPrintSection(peerCategories, peerLevels, results),
+    [peerCategories, peerLevels, results],
   )
 
   const hasContent = selfSections.length > 0 || peerSections.length > 0
@@ -181,7 +217,7 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
         )}
       </div>
 
-      <EvaluationPrintReport selfSections={selfSections} peerSections={peerSections} />
+      <EvaluationPrintReport self={selfPrintSection} peer={peerPrintSection} />
     </>
   )
 }

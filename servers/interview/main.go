@@ -135,7 +135,7 @@ func main() {
 	), helloInterviewServer)
 
 	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	config.InitConfigModule(coursePhaseApi, *query, conn)
 

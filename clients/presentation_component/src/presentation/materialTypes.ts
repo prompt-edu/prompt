@@ -80,8 +80,11 @@ export const getMaterialTypeAccept = (definition: MaterialTypeDefinition): strin
   definition.extensions.length > 0 ? definition.extensions.join(',') : undefined
 
 // Sorts a stored requirement list into catalog order, so the slots always appear in the same
-// sequence no matter how the lecturer selected them.
-export const sortMaterialTypes = (types: MaterialType[]): MaterialType[] =>
-  MATERIAL_TYPE_CATALOG.filter((definition) => types.includes(definition.type)).map(
+// sequence no matter how the lecturer selected them. Types this bundle does not know keep
+// their stored order at the end, because the settings form saves this list back as a whole.
+export const sortMaterialTypes = (types: MaterialType[]): MaterialType[] => [
+  ...MATERIAL_TYPE_CATALOG.filter((definition) => types.includes(definition.type)).map(
     (definition) => definition.type,
-  )
+  ),
+  ...types.filter((type) => !definitionsByType.has(type)),
+]

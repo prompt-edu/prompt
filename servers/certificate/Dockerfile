@@ -18,12 +18,24 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     fi && \
     curl -L "https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-${TYPST_ARCH}.tar.xz" | tar xJ --strip-components=1 -C /usr/local/bin/
 
+# Pin the Go cache locations to the toolchain defaults, so the BuildKit cache
+# mounts below provably target the directories `go` actually writes to. The
+# mount IDs match servers/Dockerfile, so every Go service shares one cache.
+ENV GOMODCACHE=/go/pkg/mod
+ENV GOCACHE=/root/.cache/go-build
+
 WORKDIR /app
 COPY go.mod go.sum ./
-RUN go mod download
+# Requires BuildKit (Docker 23+).
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o certificate-service
+# The module cache mount has to be repeated here: cache mounts are not part of
+# the image, so without it `go build` would re-download.
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o certificate-service
 
 # Stage 2: Final (distroless)
 FROM gcr.io/distroless/static-debian12

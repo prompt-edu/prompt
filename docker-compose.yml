@@ -364,13 +364,13 @@ services:
     depends_on:
       - clients-base
 
-  client-certificate:
+  client-certificate-component:
     build:
       context: ./clients/certificate_component
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-certificate
+    container_name: prompt-client-certificate-component
     ports:
       - "3009:80"
     depends_on:

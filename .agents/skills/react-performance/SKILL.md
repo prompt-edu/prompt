@@ -9,12 +9,12 @@ metadata:
 Vendored from Everything Claude Code (ECC) — https://github.com/affaan-m/everything-claude-code
 License: MIT (adapts Vercel Labs `react-best-practices`, MIT). Adapted for PROMPT 2.0 — the
 Server Components / Server Actions / Next.js sections were removed. PROMPT is a client-rendered
-React 19 SPA on Webpack Module Federation (no RSC, no SSR, no Next.js runtime).
+React 19 SPA on Module Federation (no RSC, no SSR, no Next.js runtime).
 -->
 
 # React Performance
 
-Client-side performance patterns for PROMPT's React 19 micro-frontends (Webpack Module Federation,
+Client-side performance patterns for PROMPT's React 19 micro-frontends (Module Federation on rspack,
 Zustand via `@tumaet/prompt-shared-state`, TanStack Query). The `react-typescript/state-management.md`
 rule points here for waterfalls, bundle size on remotes, and re-render reduction.
 

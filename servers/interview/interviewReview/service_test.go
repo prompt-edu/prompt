@@ -60,7 +60,6 @@ func (suite *InterviewReviewServiceTestSuite) TestUpsertCreatesAndUpdatesReview(
 	require.Equal(suite.T(), "Ada Lovelace", created.Interviewer)
 	require.Len(suite.T(), created.InterviewAnswers, 1)
 
-	// Upsert again to update the same participation.
 	updatedScore := int32(5)
 	updated, err := UpsertInterviewReview(suite.ctx, suite.activePhaseID, participationID, interviewReviewDTO.UpdateInterviewReviewRequest{
 		Score:            &updatedScore,
@@ -73,7 +72,6 @@ func (suite *InterviewReviewServiceTestSuite) TestUpsertCreatesAndUpdatesReview(
 	require.Equal(suite.T(), "Alan Turing", updated.Interviewer)
 	require.Empty(suite.T(), updated.InterviewAnswers)
 
-	// Exactly one row must exist for the phase/participation combination.
 	all, err := GetInterviewReviews(suite.ctx, suite.activePhaseID)
 	require.NoError(suite.T(), err)
 	count := 0

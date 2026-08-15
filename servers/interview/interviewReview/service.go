@@ -19,7 +19,6 @@ type InterviewReviewService struct {
 
 var InterviewReviewServiceSingleton *InterviewReviewService
 
-// GetInterviewReviews returns all interview reviews for a course phase.
 func GetInterviewReviews(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.InterviewReview, error) {
 	reviews, err := InterviewReviewServiceSingleton.queries.GetInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
@@ -29,7 +28,6 @@ func GetInterviewReviews(ctx context.Context, coursePhaseID uuid.UUID) ([]interv
 	return interviewReviewDTO.GetInterviewReviewsFromDB(reviews), nil
 }
 
-// UpsertInterviewReview creates or updates the interview review for a single participation.
 func UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, req interviewReviewDTO.UpdateInterviewReviewRequest) (interviewReviewDTO.InterviewReview, error) {
 	answers, err := interviewReviewDTO.EncodeInterviewAnswers(req.InterviewAnswers)
 	if err != nil {
@@ -57,7 +55,6 @@ func UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipati
 	return interviewReviewDTO.GetInterviewReviewFromDB(review), nil
 }
 
-// GetScores returns the "score" data-graph output for all scored participations.
 func GetScores(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreWithParticipation, error) {
 	reviews, err := InterviewReviewServiceSingleton.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
@@ -78,8 +75,6 @@ func GetScores(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewD
 	return scores, nil
 }
 
-// GetScoreLevels returns the "scoreLevel" data-graph output for all scored
-// participations whose score maps to a valid level.
 func GetScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreLevelWithParticipation, error) {
 	reviews, err := InterviewReviewServiceSingleton.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {

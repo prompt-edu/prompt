@@ -18,6 +18,8 @@ interface ResolvedDto {
   valuesByParticipation: Record<string, unknown>
 }
 
+const RESOLUTION_TIMEOUT_MS = 10_000
+
 const buildResolutionURL = (resolution: DataResolution): string => {
   const base = resolution.baseURL.replace(/\/+$/, '')
   const endpointPath = resolution.endpointPath.replace(/^\/+|\/+$/g, '')
@@ -72,7 +74,7 @@ export const resolveParticipations = async (
       try {
         const response = await axios.get<Array<Record<string, unknown>>>(
           buildResolutionURL(resolution),
-          { headers: authHeaders() },
+          { headers: authHeaders(), timeout: RESOLUTION_TIMEOUT_MS },
         )
         for (const item of response.data ?? []) {
           const id = item.courseParticipationID

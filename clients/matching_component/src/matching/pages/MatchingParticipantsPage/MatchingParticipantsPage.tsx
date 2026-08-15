@@ -34,11 +34,11 @@ export const MatchingParticipantsPage = () => {
       cell: (info) => (info.getValue() as number | null) ?? 'N/A',
       enableSorting: true,
       extraData: (participations ?? []).map((participation) => {
-        const score = participation.prevData?.score as number | undefined
+        const score = participation.prevData?.score as number | null | undefined
         return {
           courseParticipationID: participation.courseParticipationID,
           value: score ?? null,
-          stringValue: score !== undefined ? String(score) : '',
+          stringValue: score !== undefined && score !== null ? String(score) : '',
         }
       }),
     }),

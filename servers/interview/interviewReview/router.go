@@ -16,7 +16,6 @@ func setupInterviewReviewRouter(routerGroup *gin.RouterGroup, authMiddleware fun
 	reviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllInterviewReviews)
 	reviewRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), upsertInterviewReview)
 
-	// Data-graph provided outputs consumed by downstream course phases.
 	reviewRouter.GET("/score", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getScores)
 	reviewRouter.GET("/scoreLevel", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getScoreLevels)
 }

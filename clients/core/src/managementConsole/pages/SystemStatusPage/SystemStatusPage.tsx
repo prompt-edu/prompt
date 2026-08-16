@@ -5,9 +5,13 @@ import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
 import type { CoursePhaseType } from './interfaces/coursePhaseType'
 import type { ServiceInfo } from './interfaces/serviceCapabilities'
 import { getServiceInfo } from './network/getServiceCapabilities'
+import { isRealMicroservice } from './utils/isRealMicroservice'
 
 export const SystemStatusPage = () => {
-  const { data: coursePhaseTypes = [] } = useGetCoursePhaseTypes()
+  const { data: allCoursePhaseTypes = [] } = useGetCoursePhaseTypes()
+  // Only phase types backed by their own microservice expose an `/info` endpoint to probe.
+  // Core-handled phase types (Application, Matching, DevOps Challenge) are not separate services.
+  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => isRealMicroservice(cpt.baseUrl))
 
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {

@@ -189,7 +189,7 @@ Steps 1 and 5 happen in CampusOnline; PROMPT is only involved in the middle.
 
 ### How Students Are Matched
 
-PROMPT matches each row of your file to a student of the phase by **registration number** (compared against the student's matriculation number, ignoring leading zeros). If a row has no usable registration number, PROMPT falls back to matching by **family name and first name**.
+PROMPT matches each row of your file to a student of the phase by **registration number** (compared against the student's matriculation number, ignoring leading zeros). Whenever the registration number matches nobody, whether the row has none or carries a number no student of the phase has, PROMPT falls back to matching by **family name and first name**.
 
 If a row could match more than one student, PROMPT leaves it empty rather than guessing. Rows matched by name only are flagged in the summary so you can spot-check them.
 

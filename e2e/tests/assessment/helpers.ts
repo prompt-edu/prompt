@@ -394,23 +394,55 @@ export function campusOnlineHeaderLine(): string {
 }
 
 // Semicolon-delimited with every field quoted and CRLF line endings, the way
-// CampusOnline writes it.
-export function buildCampusOnlineCsv(rows: CampusOnlineRow[]): string {
+// CampusOnline writes it. A `null` entry becomes a blank line, which real
+// exports contain and the download has to hand back unchanged.
+export function buildCampusOnlineCsv(rows: (CampusOnlineRow | null)[]): string {
   const lines = rows.map((row) =>
-    CAMPUS_ONLINE_HEADER.map((column) => quoteCsvField(row[column] ?? '')).join(';'),
+    row === null
+      ? ''
+      : CAMPUS_ONLINE_HEADER.map((column) => quoteCsvField(row[column] ?? '')).join(';'),
   )
   return `${[campusOnlineHeaderLine(), ...lines].join('\r\n')}\r\n`
 }
 
 // Windows-1252 is what CampusOnline exports in practice; the download has to
 // come back in the same encoding or umlauts in student names get corrupted.
+// It differs from Latin-1 only in 0x80-0x9F, where it places printable
+// characters such as the euro sign and the smart quotes.
+const WINDOWS_1252_DECODER = new TextDecoder('windows-1252')
+
+const WINDOWS_1252_C1_BYTES = new Map(
+  Array.from({ length: 0x20 }, (_, offset) => 0x80 + offset).map((byte) => [
+    WINDOWS_1252_DECODER.decode(Uint8Array.of(byte)),
+    byte,
+  ]),
+)
+
 export function encodeWindows1252(text: string): Buffer {
-  return Buffer.from(Uint8Array.from(text, (char) => char.charCodeAt(0)))
+  return Buffer.from(
+    Uint8Array.from(text, (char) => {
+      const codePoint = char.charCodeAt(0)
+      if (codePoint < 0x80 || (codePoint >= 0xa0 && codePoint <= 0xff)) {
+        return codePoint
+      }
+
+      const byte = WINDOWS_1252_C1_BYTES.get(char)
+      if (byte === undefined) {
+        throw new Error(`"${char}" cannot be encoded in Windows-1252`)
+      }
+      return byte
+    }),
+  )
+}
+
+export function decodeWindows1252(bytes: Buffer): string {
+  return WINDOWS_1252_DECODER.decode(bytes)
 }
 
 // Parses a downloaded CSV back into rows for assertions. Quote-aware, because
 // the fixtures deliberately put a semicolon inside a quoted field to prove the
-// export does not mangle it.
+// export does not mangle it. Blank lines are kept as blank rows so that a
+// dropped or added one shows up in the row assertions.
 export function parseCampusOnlineCsv(text: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
@@ -458,5 +490,5 @@ export function parseCampusOnlineCsv(text: string): string[][] {
 
   if (field !== '' || row.length > 0) endRow()
 
-  return rows.filter((entry) => entry.length > 1 || entry[0] !== '')
+  return rows
 }

@@ -15,6 +15,7 @@ import {
   createCategory,
   createCompetency,
   createSchema,
+  decodeWindows1252,
   encodeWindows1252,
   getAssessmentCategories,
   gradeCompetency,
@@ -32,6 +33,7 @@ const STAN_GRADE = 1.7
 const SELMA_GRADE = 2.3
 const UNKNOWN_REGISTRATION_NUMBER = '09999999'
 const EDITING_NOTE = 'do not touch me'
+const CP1252_ONLY_TITLE = '“iPraktikum” für 0 €'
 
 const GRADE_INDEX = CAMPUS_ONLINE_HEADER.indexOf('GRADE')
 const DATE_INDEX = CAMPUS_ONLINE_HEADER.indexOf('DATE_OF_ASSESSMENT')
@@ -90,21 +92,21 @@ test.describe('assessment: CampusOnline grade export', () => {
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/settings')
     await phase.expectSettingsLoaded()
 
-    const csv = buildCampusOnlineCsv([
-      {
-        // Padded with an extra leading zero: matching must tolerate that.
-        REGISTRATION_NUMBER: `0${FULL_COURSE_STUDENT.matriculationNumber}`,
-        FAMILY_NAME_OF_STUDENT: SEEDED_PHASE_STUDENTS.student.lastName,
-        FIRST_NAME_OF_STUDENT: SEEDED_PHASE_STUDENTS.student.firstName,
-        COURSE_TITLE: 'iPraktikum; "Advanced"',
-        EDITING_NOTES: EDITING_NOTE,
-      },
-      {
-        REGISTRATION_NUMBER: UNKNOWN_REGISTRATION_NUMBER,
-        FAMILY_NAME_OF_STUDENT: 'Nobody',
-        FIRST_NAME_OF_STUDENT: 'Nina',
-      },
-    ])
+    const stanFixtureRow = {
+      // Padded with an extra leading zero: matching must tolerate that.
+      REGISTRATION_NUMBER: `0${FULL_COURSE_STUDENT.matriculationNumber}`,
+      FAMILY_NAME_OF_STUDENT: SEEDED_PHASE_STUDENTS.student.lastName,
+      FIRST_NAME_OF_STUDENT: SEEDED_PHASE_STUDENTS.student.firstName,
+      COURSE_TITLE: 'iPraktikum; "Advanced"',
+      EDITING_NOTES: EDITING_NOTE,
+    }
+    const unknownFixtureRow = {
+      REGISTRATION_NUMBER: UNKNOWN_REGISTRATION_NUMBER,
+      FAMILY_NAME_OF_STUDENT: 'Nobody',
+      FIRST_NAME_OF_STUDENT: 'Nina',
+    }
+    // The `null` is a blank line between the two data rows.
+    const csv = buildCampusOnlineCsv([stanFixtureRow, null, unknownFixtureRow])
 
     await phase.uploadCampusCsv('exam-list.csv', Buffer.from(csv, 'utf-8'))
 
@@ -121,7 +123,7 @@ test.describe('assessment: CampusOnline grade export', () => {
     // The header must come back exactly as CampusOnline wrote it.
     expect(downloaded.split('\r\n')[0]).toBe(campusOnlineHeaderLine())
     expect(rows[0]).toEqual([...CAMPUS_ONLINE_HEADER])
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
 
     const stanRow = rows.find((row) =>
       row[REGISTRATION_INDEX].endsWith(FULL_COURSE_STUDENT.matriculationNumber),
@@ -142,6 +144,20 @@ test.describe('assessment: CampusOnline grade export', () => {
     expect(unknownRow, 'row of the unknown student').toBeDefined()
     expect(unknownRow![GRADE_INDEX]).toBe('')
     expect(unknownRow![DATE_INDEX]).toBe('')
+
+    // The whole file, byte for byte: only Stan's grade and assessment date may
+    // differ from what was uploaded, down to the blank line and trailing CRLF.
+    expect(downloaded).toBe(
+      buildCampusOnlineCsv([
+        {
+          ...stanFixtureRow,
+          GRADE: STAN_GRADE.toFixed(1),
+          DATE_OF_ASSESSMENT: stanRow![DATE_INDEX],
+        },
+        null,
+        unknownFixtureRow,
+      ]),
+    )
   })
 
   test('a Windows-1252 encoded CSV keeps its encoding and umlauts', async ({ page }) => {
@@ -159,6 +175,9 @@ test.describe('assessment: CampusOnline grade export', () => {
         REGISTRATION_NUMBER: UNKNOWN_REGISTRATION_NUMBER,
         FAMILY_NAME_OF_STUDENT: 'Müller',
         FIRST_NAME_OF_STUDENT: 'Jörg',
+        // Windows-1252 places these two outside Latin-1, so they only survive a
+        // real Windows-1252 round trip.
+        COURSE_TITLE: CP1252_ONLY_TITLE,
       },
     ])
 
@@ -171,8 +190,11 @@ test.describe('assessment: CampusOnline grade export', () => {
     // re-encoding as UTF-8 would corrupt every umlaut for the CampusOnline import.
     expect(bytes.includes(0xfc), 'windows-1252 encoded umlaut').toBe(true)
     expect(bytes.includes(Buffer.from([0xc3, 0xbc])), 'utf-8 encoded umlaut').toBe(false)
+    // 0x80 is "€" and 0x93 is "“" in Windows-1252 but undefined in Latin-1.
+    expect(bytes.includes(0x80), 'windows-1252 encoded euro sign').toBe(true)
+    expect(bytes.includes(0x93), 'windows-1252 encoded quotation mark').toBe(true)
 
-    const rows = parseCampusOnlineCsv(bytes.toString('latin1'))
+    const rows = parseCampusOnlineCsv(decodeWindows1252(bytes))
     const stanRow = rows.find(
       (row) => row[REGISTRATION_INDEX] === FULL_COURSE_STUDENT.matriculationNumber,
     )
@@ -181,6 +203,7 @@ test.describe('assessment: CampusOnline grade export', () => {
     const umlautRow = rows.find((row) => row[REGISTRATION_INDEX] === UNKNOWN_REGISTRATION_NUMBER)
     expect(umlautRow![CAMPUS_ONLINE_HEADER.indexOf('FAMILY_NAME_OF_STUDENT')]).toBe('Müller')
     expect(umlautRow![CAMPUS_ONLINE_HEADER.indexOf('FIRST_NAME_OF_STUDENT')]).toBe('Jörg')
+    expect(umlautRow![CAMPUS_ONLINE_HEADER.indexOf('COURSE_TITLE')]).toBe(CP1252_ONLY_TITLE)
   })
 
   test('a file that is not a CampusOnline export is rejected', async ({ page }) => {

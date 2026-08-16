@@ -16,6 +16,10 @@ repos:
       - id: check-merge-conflict
       - id: check-yaml
         args: [--allow-multiple-documents]
+        # Helm templates are Go templates, not YAML. `helm lint` and the render
+        # gate in quality-chart.yml validate those. values/Chart/ci files stay
+        # checked here because they are plain YAML.
+        exclude: '^charts/.*/templates/.*\.ya?ml$'
       - id: check-json
         # tsconfig files are JSONC (comments/trailing commas), not strict JSON.
         exclude: '(^|/)(tsconfig[^/]*\.json|.*\.jsonc)$'

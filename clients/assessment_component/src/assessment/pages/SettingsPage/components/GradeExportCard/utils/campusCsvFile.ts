@@ -37,7 +37,15 @@ export const parseCampusCsv = (file: DecodedCsvFile, fileName: string): ParsedCa
     throw new Error(`The CSV file could not be read: ${quoteError.message}`)
   }
 
+  const newline = result.meta.linebreak || DEFAULT_NEWLINE
+  const hasTrailingNewline = file.text.endsWith(newline)
+
   const rows = result.data
+  // Papa Parse turns a trailing newline into a final empty row; hasTrailingNewline already carries it.
+  if (hasTrailingNewline && rows.length > 0 && isBlankRow(rows[rows.length - 1])) {
+    rows.pop()
+  }
+
   if (rows.length === 0 || rows[0].length === 0) {
     throw new Error('The CSV file is empty.')
   }
@@ -48,15 +56,13 @@ export const parseCampusCsv = (file: DecodedCsvFile, fileName: string): ParsedCa
     throw new Error('The CSV file contains a header row but no students.')
   }
 
-  const newline = result.meta.linebreak || DEFAULT_NEWLINE
-
   return {
     fileName,
     rows,
     columnIndices,
     delimiter: result.meta.delimiter || ';',
     newline,
-    hasTrailingNewline: file.text.endsWith(newline),
+    hasTrailingNewline,
     encoding: file.encoding,
   }
 }

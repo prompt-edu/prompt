@@ -204,7 +204,11 @@ func getStudentEnrollments(c *gin.Context) {
 		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
 		return
 	}
-	userRoles := rolesVal.(map[string]bool)
+	userRoles, ok := rolesVal.(map[string]bool)
+	if !ok {
+		handleError(c, http.StatusInternalServerError, errors.New("invalid roles format in context"))
+		return
+	}
 
 	studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
 	if err != nil {

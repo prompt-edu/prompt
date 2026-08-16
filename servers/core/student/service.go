@@ -219,9 +219,9 @@ func FilterEnrollmentsToAccessibleCourses(enrollments studentDTO.StudentEnrollme
 
 	accessibleCourses := make([]studentDTO.CourseEnrollmentDTO, 0, len(enrollments.Courses))
 	for _, course := range enrollments.Courses {
-		courseIdentifier := course.SemesterTag + "-" + course.Name
-		if userRoles[courseIdentifier+"-"+permissionValidation.CourseLecturer] ||
-			userRoles[courseIdentifier+"-"+permissionValidation.CourseEditor] {
+		courseIdentifier := permissionValidation.CourseIdentifier(course.SemesterTag, course.Name)
+		if userRoles[permissionValidation.CourseRoleName(courseIdentifier, permissionValidation.CourseLecturer)] ||
+			userRoles[permissionValidation.CourseRoleName(courseIdentifier, permissionValidation.CourseEditor)] {
 			accessibleCourses = append(accessibleCourses, course)
 		}
 	}

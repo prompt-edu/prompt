@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
@@ -209,4 +210,21 @@ func GetStudentEnrollmentsByID(ctx context.Context, id uuid.UUID) (studentDTO.St
 	}
 
 	return studentDTO.GetStudentEnrollmentsDTOFromDB(studentWithEnrollments)
+}
+
+func FilterEnrollmentsToAccessibleCourses(enrollments studentDTO.StudentEnrollmentsDTO, userRoles map[string]bool) studentDTO.StudentEnrollmentsDTO {
+	if userRoles[permissionValidation.PromptAdmin] || userRoles[permissionValidation.PromptLecturer] {
+		return enrollments
+	}
+
+	accessibleCourses := make([]studentDTO.CourseEnrollmentDTO, 0, len(enrollments.Courses))
+	for _, course := range enrollments.Courses {
+		courseIdentifier := permissionValidation.CourseIdentifier(course.SemesterTag, course.Name)
+		if userRoles[permissionValidation.CourseRoleName(courseIdentifier, permissionValidation.CourseLecturer)] ||
+			userRoles[permissionValidation.CourseRoleName(courseIdentifier, permissionValidation.CourseEditor)] {
+			accessibleCourses = append(accessibleCourses, course)
+		}
+	}
+	enrollments.Courses = accessibleCourses
+	return enrollments
 }

@@ -138,15 +138,19 @@ E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 # which Compose ranks above --env-file. Unset the keys e2e/.env.e2e defines so it stays authoritative.
 E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e2e)
 
-test-e2e: ## Run the full e2e suite in Docker (builds stack + containerized runner)
+# Set SKIP_BUILD=1 to reuse the images already on the machine. Only safe when
+# nothing under clients/, servers/, or e2e/ changed since the last build.
+E2E_BUILD = $(if $(SKIP_BUILD),true,$(E2E_COMPOSE) build)
+
+test-e2e: ## Run the full e2e suite in Docker (SKIP_BUILD=1 reuses existing images)
 	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
-		$(E2E_COMPOSE) build; \
+		$(E2E_BUILD); \
 		$(E2E_COMPOSE) run --rm e2e-runner; status=$$?; \
 		$(E2E_COMPOSE) down -v; \
 		exit $$status
 
-test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHARD=interview (or PATHS="...")
+test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHARD=interview (SKIP_BUILD=1 reuses existing images)
 	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	@if [ -z "$(SHARD)$(PATHS)" ]; then \
 		echo "make test-e2e-shard: set SHARD=<name> (or PATHS=\"<patterns>\"), else this would run the whole suite."; \
@@ -158,7 +162,7 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
 		set -f; \
 		unset $(E2E_ENV_KEYS); \
-		$(E2E_COMPOSE) build; \
+		$(E2E_BUILD); \
 		set +e; \
 		$(E2E_COMPOSE) run --rm e2e-runner npx playwright test $$paths; status=$$?; \
 		$(E2E_COMPOSE) down -v; \

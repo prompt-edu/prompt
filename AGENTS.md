@@ -8,9 +8,10 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 
 **PROMPT 2.0** is a modular course management platform for project-based university teaching, originally developed for the iPraktikum at TU Munich. It uses a **micro-frontend + microservices architecture** with:
 
-- **Core System**: React frontend (Webpack Module Federation) + Go backend (Gin framework)
+- **Core System**: React frontend (Module Federation) + Go backend (Gin framework)
 - **Course Phase Modules**: Independent frontend components and backend services dynamically loaded based on course configuration
 - **Authentication**: Keycloak for identity management with RBAC
+- **Object Storage**: SeaweedFS (S3-compatible) for uploaded files, served through presigned URLs
 
 **Live Instance:** <https://prompt.aet.cit.tum.de/>
 
@@ -21,25 +22,26 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 ```text
 clients/
   core/                    # Main React app shell (port 3000)
-  shared_library/          # Shared UI components, hooks, network utilities
   *_component/             # Course phase micro-frontends:
+    - example_component (port 3001)
     - interview_component (port 3002)
     - matching_component (port 3003)
-    - example_component (port 3001)
+    - assessment_component (port 3007)
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
-    - assessment_component (port 3007)
+    - certificate_component (port 3010)
   external remotes:
-    - intro_course_developer_component (served by prompt-intro-course, typically port 3005 in local dev)
-    - devops_challenge_component (served by prompt-github-challenge)
+    - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
+    - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
 
 servers/
   core/                    # Main Go service (port 8080)
-  interview/               # Interview scheduling (port 8087)
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
   example_server/          # Example phase service (port 8086)
+  interview/               # Interview scheduling (port 8087)
+  certificate/             # Certificate generation (port 8088)
 
 docs/                      # Docusaurus documentation
 ```
@@ -55,6 +57,9 @@ make clients
 # Start core server (loads .env and .env.dev automatically)
 make server
 
+# Start every server (core + all microservices)
+make servers
+
 # Start database and Keycloak (detached)
 make db
 
@@ -67,9 +72,21 @@ make lint
 # Run tests
 make test
 
+# Regenerate sqlc code for every service (or make sqlc-<service>)
+make sqlc
+
+# Regenerate the core server's swagger docs
+make swagger
+
+# Install the pre-commit git hooks
+make install-hooks
+
 # Regenerate .claude/skills symlinks from .agents/skills
 make setup-skills
 ```
+
+`make help` lists every target, including the per-service `server-*`, `client-*`, `test-*`, and
+`sqlc-*` ones.
 
 **Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`). For auth/Keycloak setup and common failures, use the `keycloak-local-setup` skill.
 
@@ -77,7 +94,7 @@ make setup-skills
 
 ### Frontend
 
-- React 19, TypeScript 5.9, Webpack 5 (Module Federation)
+- React 19, TypeScript 6, rspack 2 (Module Federation)
 - Tailwind CSS v4, shadcn/ui + Radix UI
 - Zustand (state), TanStack React Query (data fetching)
 - React Hook Form, Axios, React Router DOM 7
@@ -108,7 +125,6 @@ Agent configuration is shared with the team and split by purpose:
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
-- Full rollout rationale and community-skill references: `AI_TOOLING_PLAN.md`.
 
 ## Creating New Course Phases
 
@@ -122,7 +138,8 @@ phases: see the external-phase section of the guide and `template-repository/`.
 ## Testing
 
 Run `make lint` and `make test` before completing a change. Go tests use `testcontainers-go`;
-end-to-end tests use Playwright (`e2e-testing` skill). Details: `.claude/rules/common/testing.md`.
+end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:
+`.claude/rules/common/testing.md`.
 
 ## Definition of Done
 
@@ -166,5 +183,6 @@ make test-e2e-down     # stop the stack and remove volumes
 
 - All microservices use separate PostgreSQL databases
 - Routes must be under `<server>/api/course_phase/:coursePhaseID` for SDK auth
-- Use `yarn dlx shadcn add <component>` in `shared_library` for new UI components
+- Shared UI lives in the `prompt-edu/prompt-lib` repository (`@tumaet/prompt-ui-components`), not in
+  this one; new primitives are added there and released as a package version
 - Course-specific roles are dynamically created with a naming convention including semester and course name

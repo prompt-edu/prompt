@@ -19,8 +19,9 @@ const budgetMin = Number(process.env.PW_GLOBAL_TIMEOUT_MIN ?? (isCI ? 20 : 0))
 
 export default defineConfig({
   testDir: './tests',
-  // Login flows mutate the shared Keycloak session, and seeded data is shared;
-  // keep within-file order deterministic but allow files to run in parallel.
+  // Seeded data is shared, so keep within-file order deterministic but allow
+  // files to run in parallel. (Logins no longer share a Keycloak session -
+  // global-setup writes one storageState per role.)
   fullyParallel: false,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

@@ -2,7 +2,6 @@ package keycloakRealmManager
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -20,7 +19,7 @@ func CreateCourseGroupsAndRoles(ctx context.Context, courseName, iterationName, 
 		return err
 	}
 
-	courseGroupName := fmt.Sprintf("%s-%s", iterationName, courseName)
+	courseGroupName := permissionValidation.CourseIdentifier(iterationName, courseName)
 	courseGroupID, err := CreateChildGroup(ctx, token.AccessToken, courseGroupName, promptGroupID)
 	if err != nil {
 		return err
@@ -29,7 +28,7 @@ func CreateCourseGroupsAndRoles(ctx context.Context, courseName, iterationName, 
 	subGroupNames := []string{permissionValidation.CourseLecturer, permissionValidation.CourseEditor}
 	for _, groupName := range subGroupNames {
 		// create role for the group
-		roleName := fmt.Sprintf("%s-%s-%s", iterationName, courseName, groupName)
+		roleName := permissionValidation.CourseRoleName(courseGroupName, groupName)
 		role, err := GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
 		if err != nil {
 			return err

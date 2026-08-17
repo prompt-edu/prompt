@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -106,4 +107,62 @@ func (suite *ServiceTestSuite) TestCreateStudent() {
 
 func TestServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
+}
+
+func TestFilterEnrollmentsToAccessibleCourses(t *testing.T) {
+	enrollments := studentDTO.StudentEnrollmentsDTO{
+		Courses: []studentDTO.CourseEnrollmentDTO{
+			{SemesterTag: "ss25", Name: "ios"},
+			{SemesterTag: "ws24", Name: "android"},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		userRoles     map[string]bool
+		expectedNames []string
+	}{
+		{
+			name:          "prompt admin sees all courses",
+			userRoles:     map[string]bool{permissionValidation.PromptAdmin: true},
+			expectedNames: []string{"ios", "android"},
+		},
+		{
+			name:          "prompt lecturer sees all courses",
+			userRoles:     map[string]bool{permissionValidation.PromptLecturer: true},
+			expectedNames: []string{"ios", "android"},
+		},
+		{
+			name:          "course lecturer sees only their course",
+			userRoles:     map[string]bool{"ss25-ios-" + permissionValidation.CourseLecturer: true},
+			expectedNames: []string{"ios"},
+		},
+		{
+			name:          "course editor sees only their course",
+			userRoles:     map[string]bool{"ws24-android-" + permissionValidation.CourseEditor: true},
+			expectedNames: []string{"android"},
+		},
+		{
+			name:          "course student role grants no access",
+			userRoles:     map[string]bool{"ss25-ios-" + permissionValidation.CourseStudent: true},
+			expectedNames: []string{},
+		},
+		{
+			name:          "no relevant roles sees nothing",
+			userRoles:     map[string]bool{},
+			expectedNames: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			filtered := FilterEnrollmentsToAccessibleCourses(enrollments, tc.userRoles)
+
+			actualNames := make([]string, 0, len(filtered.Courses))
+			for _, course := range filtered.Courses {
+				actualNames = append(actualNames, course.Name)
+			}
+			assert.ElementsMatch(t, tc.expectedNames, actualNames)
+		})
+	}
 }

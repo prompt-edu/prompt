@@ -217,7 +217,7 @@ const FeedbackWorkspacePage = () => {
           // its closure alive for good.
           await new Promise<void>((resolve) => {
             retryTimer = setTimeout(resolve, 1500)
-            controller.signal.addEventListener('abort', resolve, { once: true })
+            controller.signal.addEventListener('abort', () => resolve(), { once: true })
           })
         }
       }

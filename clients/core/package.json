@@ -12,7 +12,7 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^3.1.0",
+    "@dagrejs/dagre": "^3.1.1",
     "@xyflow/react": "^12.11.2",
     "date-fns-tz": "^3.2.0",
     "i18n-iso-countries": "^7.14.0",

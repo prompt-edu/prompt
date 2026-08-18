@@ -272,6 +272,19 @@ func (suite *CourseMailingServiceTestSuite) TestSendZeroRecipients() {
 	suite.Equal(db.MailCampaignStatusDraft, suite.statusOf(campaign.ID))
 }
 
+func (suite *CourseMailingServiceTestSuite) TestSendTimeoutStopsDispatchingNewSends() {
+	oldTimeout := campaignSendTimeout
+	campaignSendTimeout = -1 * time.Second // already expired by the time the dispatch loop runs
+	defer func() { campaignSendTimeout = oldTimeout }()
+
+	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
+	_, err := suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.Require().NoError(err)
+
+	suite.Empty(suite.captured, "no mail should be sent once the campaign send has already timed out")
+	suite.Equal(db.MailCampaignStatusFailed, suite.statusOf(campaign.ID))
+}
+
 func (suite *CourseMailingServiceTestSuite) TestConcurrentSendConflict() {
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
 	// Simulate an in-flight send by flipping the status to sending.

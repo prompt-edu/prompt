@@ -19,10 +19,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	campaignSendTimeout = 30 * time.Minute
-	maxConcurrentSends  = 8
-)
+const maxConcurrentSends = 8
+
+// campaignSendTimeout bounds how long a single campaign send may run before the
+// dispatch loop stops launching new sends. A var (not const) so tests can shrink it.
+var campaignSendTimeout = 30 * time.Minute
 
 // sendMailFn is the SMTP send entry point, swappable in tests.
 var sendMailFn = mailing.SendCourseMail
@@ -354,6 +355,10 @@ func (s *CourseMailingService) runCampaignSend(job campaignSendJob) {
 	sem := make(chan struct{}, maxConcurrentSends)
 	var wg sync.WaitGroup
 	for _, item := range job.items {
+		if ctx.Err() != nil {
+			log.WithField("campaignID", job.campaignID).Warn("campaign send timed out before all recipients were dispatched")
+			break
+		}
 		item := item
 		wg.Add(1)
 		sem <- struct{}{}

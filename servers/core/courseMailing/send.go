@@ -58,6 +58,10 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 	if err != nil {
 		return 0, err
 	}
+	switch base.Status {
+	case db.MailCampaignStatusSent, db.MailCampaignStatusPartiallyFailed, db.MailCampaignStatusFailed:
+		return 0, fmt.Errorf("%w: campaign has already been sent; use resend failed or copy the campaign to send again", ErrValidation)
+	}
 	if err := validateCampaignForSend(base); err != nil {
 		return 0, err
 	}

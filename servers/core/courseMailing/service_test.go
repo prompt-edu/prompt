@@ -281,6 +281,18 @@ func (suite *CourseMailingServiceTestSuite) TestConcurrentSendConflict() {
 	suite.ErrorIs(err, ErrSendInProgress)
 }
 
+func (suite *CourseMailingServiceTestSuite) TestSendRejectsAlreadySentCampaign() {
+	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
+	_, err := suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.Require().NoError(err)
+	suite.Equal(db.MailCampaignStatusSent, suite.statusOf(campaign.ID))
+
+	sentCount := len(suite.captured)
+	_, err = suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.ErrorIs(err, ErrValidation)
+	suite.Len(suite.captured, sentCount, "no additional mail must be sent for an already-sent campaign")
+}
+
 func (suite *CourseMailingServiceTestSuite) TestResendFailedRecovers() {
 	// First send fails for everyone.
 	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error {

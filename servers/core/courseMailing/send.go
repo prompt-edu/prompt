@@ -456,6 +456,9 @@ func (s *CourseMailingService) finalizeSend(ctx context.Context, job campaignSen
 
 func (s *CourseMailingService) resolveSettings(ctx context.Context, base db.MailCampaign, phaseID uuid.UUID) (mailingDTO.CourseMailingSettings, error) {
 	dbSettings, err := s.queries.GetCourseMailingSettingsForCoursePhaseID(ctx, phaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return mailingDTO.CourseMailingSettings{}, fmt.Errorf("%w: target course phase not found", ErrValidation)
+	}
 	if err != nil {
 		return mailingDTO.CourseMailingSettings{}, fmt.Errorf("failed to load course mailing settings: %w", err)
 	}

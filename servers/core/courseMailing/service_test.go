@@ -311,6 +311,38 @@ func (suite *CourseMailingServiceTestSuite) TestResendFailedRecovers() {
 	suite.Equal(db.MailCampaignStatusSent, suite.statusOf(campaign.ID))
 }
 
+func (suite *CourseMailingServiceTestSuite) TestResendFailedSkipsRecipientsNoLongerMatchingStatus() {
+	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error {
+		return errors.New("smtp down")
+	}
+	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
+	_, err := suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.Require().NoError(err)
+	suite.Equal(db.MailCampaignStatusFailed, suite.statusOf(campaign.ID))
+
+	// Bob (the only "failed" participant) is reassessed as "passed" before the resend.
+	// Other tests share this fixture DB, so restore his status once this test is done.
+	bobParticipation := uuid.MustParse("55555555-5555-5555-5555-555555555555")
+	_, err = suite.service.queries.UpdateCoursePhasePassStatus(suite.ctx, db.UpdateCoursePhasePassStatusParams{
+		PassStatus:            db.PassStatusPassed,
+		CourseParticipationID: []uuid.UUID{bobParticipation},
+		CoursePhaseID:         suite.phaseID,
+	})
+	suite.Require().NoError(err)
+	defer func() {
+		_, _ = suite.service.queries.UpdateCoursePhasePassStatus(suite.ctx, db.UpdateCoursePhasePassStatusParams{
+			PassStatus:            db.PassStatusFailed,
+			CourseParticipationID: []uuid.UUID{bobParticipation},
+			CoursePhaseID:         suite.phaseID,
+		})
+	}()
+
+	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error { return nil }
+	_, err = suite.service.ResendFailed(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.ErrorIs(err, ErrValidation)
+	suite.Empty(suite.captured, "no mail must be sent to a recipient outside the campaign's target statuses")
+}
+
 func (suite *CourseMailingServiceTestSuite) TestResendNoFailedRecipients() {
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
 	_, err := suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)

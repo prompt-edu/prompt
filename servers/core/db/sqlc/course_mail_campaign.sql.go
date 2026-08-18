@@ -150,11 +150,13 @@ JOIN student s ON cp.student_id = s.id
 WHERE
     p.id = $1
 AND cpp.course_participation_id = ANY($2::uuid[])
+AND cpp.pass_status::text = ANY($3::text[])
 `
 
 type GetCampaignRecipientMailingInfoByIDsParams struct {
 	ID      uuid.UUID   `json:"id"`
 	Column2 []uuid.UUID `json:"column_2"`
+	Column3 []string    `json:"column_3"`
 }
 
 type GetCampaignRecipientMailingInfoByIDsRow struct {
@@ -170,7 +172,7 @@ type GetCampaignRecipientMailingInfoByIDsRow struct {
 }
 
 func (q *Queries) GetCampaignRecipientMailingInfoByIDs(ctx context.Context, arg GetCampaignRecipientMailingInfoByIDsParams) ([]GetCampaignRecipientMailingInfoByIDsRow, error) {
-	rows, err := q.db.Query(ctx, getCampaignRecipientMailingInfoByIDs, arg.ID, arg.Column2)
+	rows, err := q.db.Query(ctx, getCampaignRecipientMailingInfoByIDs, arg.ID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}

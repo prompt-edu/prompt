@@ -149,4 +149,5 @@ JOIN course_participation cp ON cpp.course_participation_id = cp.id
 JOIN student s ON cp.student_id = s.id
 WHERE
     p.id = $1
-AND cpp.course_participation_id = ANY($2::uuid[]);
+AND cpp.course_participation_id = ANY($2::uuid[])
+AND cpp.pass_status::text = ANY($3::text[]);

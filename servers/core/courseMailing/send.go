@@ -183,13 +183,18 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 		return 0, fmt.Errorf("failed to load course mailing context: %w", err)
 	}
 
+	statuses, err := expandStatuses(base.TargetPassStatuses)
+	if err != nil {
+		return 0, err
+	}
+
 	cpIDs := make([]uuid.UUID, 0, len(failed))
 	failedRecipientID := make(map[uuid.UUID]uuid.UUID, len(failed))
 	for _, r := range failed {
 		cpIDs = append(cpIDs, r.CourseParticipationID)
 		failedRecipientID[r.CourseParticipationID] = r.ID
 	}
-	liveRows, err := s.queries.GetCampaignRecipientMailingInfoByIDs(ctx, db.GetCampaignRecipientMailingInfoByIDsParams{ID: phaseID, Column2: cpIDs})
+	liveRows, err := s.queries.GetCampaignRecipientMailingInfoByIDs(ctx, db.GetCampaignRecipientMailingInfoByIDsParams{ID: phaseID, Column2: cpIDs, Column3: statuses})
 	if err != nil {
 		return 0, fmt.Errorf("failed to re-resolve failed recipients: %w", err)
 	}

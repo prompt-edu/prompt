@@ -13,6 +13,14 @@ test.describe('assessment: evaluation-only phase', () => {
     // Also re-enables the assessment, so a previous run's disabled state never
     // makes the first assertion pass for the wrong reason.
     await resetAssessmentPhase(PHASE_ID)
+    // The participants table only carries an evaluation column for an enabled
+    // evaluation type, so the self evaluation is switched on for this phase.
+    const admin = await apiAsRole('admin')
+    try {
+      await putConfig(admin, PHASE_ID, { assessmentEnabled: true, selfEvaluationEnabled: true })
+    } finally {
+      await admin.dispose()
+    }
   })
 
   test.afterAll(async () => {

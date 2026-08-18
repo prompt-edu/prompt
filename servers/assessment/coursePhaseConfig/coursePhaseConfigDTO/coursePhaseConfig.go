@@ -9,6 +9,7 @@ import (
 
 type CoursePhaseConfig struct {
 	CoursePhaseID            uuid.UUID `json:"coursePhaseID"`
+	AssessmentEnabled        bool      `json:"assessmentEnabled"`
 	AssessmentSchemaID       uuid.UUID `json:"assessmentSchemaID"`
 	Start                    time.Time `json:"start"`
 	Deadline                 time.Time `json:"deadline"`
@@ -34,6 +35,7 @@ type CoursePhaseConfig struct {
 func MapDBCoursePhaseConfigToDTOCoursePhaseConfig(dbConfig db.CoursePhaseConfig) CoursePhaseConfig {
 	return CoursePhaseConfig{
 		CoursePhaseID:            dbConfig.CoursePhaseID,
+		AssessmentEnabled:        dbConfig.AssessmentEnabled,
 		AssessmentSchemaID:       dbConfig.AssessmentSchemaID,
 		Start:                    dbConfig.Start.Time,
 		Deadline:                 dbConfig.Deadline.Time,

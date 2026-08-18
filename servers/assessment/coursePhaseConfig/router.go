@@ -95,7 +95,7 @@ func createOrUpdateCoursePhaseConfig(c *gin.Context) {
 
 	err = CreateOrUpdateCoursePhaseConfig(c, coursePhaseID, request)
 	if err != nil {
-		if errors.Is(err, ErrCannotChangeSchemaWithData) {
+		if errors.Is(err, ErrCannotChangeSchemaWithData) || errors.Is(err, ErrCannotDisableAssessmentWithData) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}

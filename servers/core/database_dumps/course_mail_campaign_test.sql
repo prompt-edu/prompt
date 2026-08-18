@@ -38,7 +38,8 @@ CREATE TABLE public.course_phase (
     course_phase_type_id uuid NOT NULL,
     student_readable_data jsonb,
     CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES public.course(id),
-    CONSTRAINT fk_phase_type FOREIGN KEY (course_phase_type_id) REFERENCES public.course_phase_type(id)
+    CONSTRAINT fk_phase_type FOREIGN KEY (course_phase_type_id) REFERENCES public.course_phase_type(id),
+    UNIQUE (id, course_id)
 );
 
 CREATE TABLE public.student (
@@ -58,7 +59,8 @@ CREATE TABLE public.course_participation (
     course_id uuid NOT NULL,
     student_id uuid NOT NULL,
     CONSTRAINT fk_course_participation_course FOREIGN KEY (course_id) REFERENCES public.course(id),
-    CONSTRAINT fk_course_participation_student FOREIGN KEY (student_id) REFERENCES public.student(id)
+    CONSTRAINT fk_course_participation_student FOREIGN KEY (student_id) REFERENCES public.student(id),
+    UNIQUE (id, course_id)
 );
 
 CREATE TABLE public.course_phase_participation (
@@ -76,7 +78,7 @@ CREATE TABLE public.mail_campaign (
     name text NOT NULL,
     subject text NOT NULL DEFAULT '',
     body text NOT NULL DEFAULT '',
-    target_course_phase_id uuid REFERENCES public.course_phase(id) ON DELETE SET NULL,
+    target_course_phase_id uuid,
     target_pass_statuses text[] NOT NULL DEFAULT '{}',
     reply_to_override jsonb,
     cc_override jsonb,
@@ -93,18 +95,32 @@ CREATE TABLE public.mail_campaign (
     sent_at timestamptz,
     sent_by_id text,
     sent_by_email text,
-    sent_by_name text
+    sent_by_name text,
+    UNIQUE (id, course_id),
+    CONSTRAINT fk_mail_campaign_target_phase
+      FOREIGN KEY (target_course_phase_id, course_id)
+      REFERENCES public.course_phase(id, course_id)
+      ON DELETE SET NULL (target_course_phase_id)
 );
 
 CREATE TABLE public.mail_campaign_recipient (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    campaign_id uuid NOT NULL REFERENCES public.mail_campaign(id) ON DELETE CASCADE,
+    campaign_id uuid NOT NULL,
+    course_id uuid NOT NULL,
     course_participation_id uuid NOT NULL,
     email text NOT NULL,
     status public.mail_recipient_status NOT NULL DEFAULT 'pending',
     error_message text NOT NULL DEFAULT '',
     sent_at timestamptz,
-    UNIQUE (campaign_id, course_participation_id)
+    UNIQUE (campaign_id, course_participation_id),
+    CONSTRAINT fk_mail_campaign_recipient_campaign
+      FOREIGN KEY (campaign_id, course_id)
+      REFERENCES public.mail_campaign(id, course_id)
+      ON DELETE CASCADE,
+    CONSTRAINT fk_mail_campaign_recipient_participation
+      FOREIGN KEY (course_participation_id, course_id)
+      REFERENCES public.course_participation(id, course_id)
+      ON DELETE CASCADE
 );
 
 INSERT INTO public.course (id, name, start_date, end_date, restricted_data)

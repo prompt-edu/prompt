@@ -98,6 +98,7 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 		for _, row := range rows {
 			if err := q.InsertCampaignRecipient(ctx, db.InsertCampaignRecipientParams{
 				CampaignID:            campaignID,
+				CourseID:              courseID,
 				CourseParticipationID: row.CourseParticipationID,
 				Email:                 row.Email.String,
 			}); err != nil {
@@ -205,6 +206,7 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 		for _, row := range liveRows {
 			if err := q.InsertCampaignRecipient(ctx, db.InsertCampaignRecipientParams{
 				CampaignID:            campaignID,
+				CourseID:              courseID,
 				CourseParticipationID: row.CourseParticipationID,
 				Email:                 row.Email.String,
 			}); err != nil {

@@ -69,8 +69,8 @@ SELECT id FROM mail_campaign WHERE status = 'sending';
 DELETE FROM mail_campaign_recipient WHERE campaign_id = $1;
 
 -- name: InsertCampaignRecipient :exec
-INSERT INTO mail_campaign_recipient (campaign_id, course_participation_id, email, status)
-VALUES ($1, $2, $3, 'pending')
+INSERT INTO mail_campaign_recipient (campaign_id, course_id, course_participation_id, email, status)
+VALUES ($1, $2, $3, $4, 'pending')
 ON CONFLICT (campaign_id, course_participation_id) DO UPDATE
 SET email = EXCLUDED.email, status = 'pending', error_message = '', sent_at = NULL;
 

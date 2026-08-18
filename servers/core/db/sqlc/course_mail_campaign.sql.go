@@ -332,25 +332,31 @@ func (q *Queries) GetSendingCampaignIDs(ctx context.Context) ([]uuid.UUID, error
 }
 
 const insertCampaignRecipient = `-- name: InsertCampaignRecipient :exec
-INSERT INTO mail_campaign_recipient (campaign_id, course_participation_id, email, status)
-VALUES ($1, $2, $3, 'pending')
+INSERT INTO mail_campaign_recipient (campaign_id, course_id, course_participation_id, email, status)
+VALUES ($1, $2, $3, $4, 'pending')
 ON CONFLICT (campaign_id, course_participation_id) DO UPDATE
 SET email = EXCLUDED.email, status = 'pending', error_message = '', sent_at = NULL
 `
 
 type InsertCampaignRecipientParams struct {
 	CampaignID            uuid.UUID `json:"campaign_id"`
+	CourseID              uuid.UUID `json:"course_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`
 	Email                 string    `json:"email"`
 }
 
 func (q *Queries) InsertCampaignRecipient(ctx context.Context, arg InsertCampaignRecipientParams) error {
-	_, err := q.db.Exec(ctx, insertCampaignRecipient, arg.CampaignID, arg.CourseParticipationID, arg.Email)
+	_, err := q.db.Exec(ctx, insertCampaignRecipient,
+		arg.CampaignID,
+		arg.CourseID,
+		arg.CourseParticipationID,
+		arg.Email,
+	)
 	return err
 }
 
 const listCampaignRecipients = `-- name: ListCampaignRecipients :many
-SELECT id, campaign_id, course_participation_id, email, status, error_message, sent_at FROM mail_campaign_recipient WHERE campaign_id = $1 ORDER BY email ASC
+SELECT id, campaign_id, course_id, course_participation_id, email, status, error_message, sent_at FROM mail_campaign_recipient WHERE campaign_id = $1 ORDER BY email ASC
 `
 
 func (q *Queries) ListCampaignRecipients(ctx context.Context, campaignID uuid.UUID) ([]MailCampaignRecipient, error) {
@@ -365,6 +371,7 @@ func (q *Queries) ListCampaignRecipients(ctx context.Context, campaignID uuid.UU
 		if err := rows.Scan(
 			&i.ID,
 			&i.CampaignID,
+			&i.CourseID,
 			&i.CourseParticipationID,
 			&i.Email,
 			&i.Status,
@@ -439,7 +446,7 @@ func (q *Queries) ListCampaignRecipientsWithStudent(ctx context.Context, campaig
 }
 
 const listFailedCampaignRecipients = `-- name: ListFailedCampaignRecipients :many
-SELECT id, campaign_id, course_participation_id, email, status, error_message, sent_at FROM mail_campaign_recipient WHERE campaign_id = $1 AND status = 'failed' ORDER BY email ASC
+SELECT id, campaign_id, course_id, course_participation_id, email, status, error_message, sent_at FROM mail_campaign_recipient WHERE campaign_id = $1 AND status = 'failed' ORDER BY email ASC
 `
 
 func (q *Queries) ListFailedCampaignRecipients(ctx context.Context, campaignID uuid.UUID) ([]MailCampaignRecipient, error) {
@@ -454,6 +461,7 @@ func (q *Queries) ListFailedCampaignRecipients(ctx context.Context, campaignID u
 		if err := rows.Scan(
 			&i.ID,
 			&i.CampaignID,
+			&i.CourseID,
 			&i.CourseParticipationID,
 			&i.Email,
 			&i.Status,

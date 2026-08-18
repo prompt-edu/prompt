@@ -681,6 +681,7 @@ type MailCampaign struct {
 type MailCampaignRecipient struct {
 	ID                    uuid.UUID           `json:"id"`
 	CampaignID            uuid.UUID           `json:"campaign_id"`
+	CourseID              uuid.UUID           `json:"course_id"`
 	CourseParticipationID uuid.UUID           `json:"course_participation_id"`
 	Email                 string              `json:"email"`
 	Status                MailRecipientStatus `json:"status"`

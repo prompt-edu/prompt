@@ -60,7 +60,7 @@
     "dayjs": "^1.11.21",
     "dompurify": "^3.4.13",
     "file-saver": "^2.0.5",
-    "highlight.js": "^11.11.1",
+    "highlight.js": "^11.11.2",
     "jwt-decode": "^4.0.0",
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
@@ -93,7 +93,7 @@
     "js-yaml": "^5.2.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.7",
+    "@biomejs/biome": "2.5.8",
     "@module-federation/runtime-tools": "^2.8.2",
     "@rspack/cli": "^2.1.8",
     "@rspack/dev-server": "^2.2.0",

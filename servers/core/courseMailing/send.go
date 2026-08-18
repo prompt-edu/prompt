@@ -419,7 +419,7 @@ func (s *CourseMailingService) sendArchiveCopy(ctx context.Context, job campaign
 	if len(job.settings.CC) == 0 && len(job.settings.BCC) == 0 {
 		return
 	}
-	placeholders := mailing.StatusPlaceholderValues(job.courseInfo.CourseName, job.courseInfo.CourseStartDate, job.courseInfo.CourseEndDate, db.GetParticipantMailingInformationRow{})
+	placeholders := mailing.CoursePlaceholderValues(job.courseInfo.CourseName, job.courseInfo.CourseStartDate, job.courseInfo.CourseEndDate)
 	if job.link != "" {
 		placeholders["coursePhaseLink"] = job.link
 	}

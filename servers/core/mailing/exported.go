@@ -17,3 +17,15 @@ func ReplacePlaceholders(template string, values map[string]string) string {
 func StatusPlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date, participant db.GetParticipantMailingInformationRow) map[string]string {
 	return getStatusEmailPlaceholderValues(courseName, courseStartDate, courseEndDate, participant)
 }
+
+// CoursePlaceholderValues builds only the course-level placeholders, for mails with
+// no single recipient (e.g. an archive copy sent to a campaign's CC/BCC addresses).
+// Student placeholders are intentionally omitted rather than filled with fake values,
+// so they are left untouched in the rendered mail.
+func CoursePlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date) map[string]string {
+	return map[string]string{
+		"courseName":      courseName,
+		"courseStartDate": getPgtypeDateValue(courseStartDate),
+		"courseEndDate":   getPgtypeDateValue(courseEndDate),
+	}
+}

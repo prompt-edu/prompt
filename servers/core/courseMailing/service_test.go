@@ -387,6 +387,34 @@ func (suite *CourseMailingServiceTestSuite) TestCCBCCSentOnce() {
 	suite.Equal(1, archiveCalls)
 }
 
+func (suite *CourseMailingServiceTestSuite) TestArchiveCopyLeavesStudentPlaceholdersUntouched() {
+	campaign, err := suite.service.CreateCampaign(suite.ctx, suite.courseID, suite.actor, courseMailingDTO.MailCampaignRequest{
+		Name:                "CC Campaign",
+		Subject:             "Hi",
+		Body:                "Dear {{firstName}}, degree {{studyDegree}}",
+		TargetCoursePhaseID: &suite.phaseID,
+		TargetPassStatuses:  []string{"failed"}, // one student (Bob)
+		CcOverride:          []courseMailingDTO.MailItem{{Name: "Archive", Email: "archive@example.com"}},
+	})
+	suite.Require().NoError(err)
+
+	_, err = suite.service.SendCampaign(suite.ctx, suite.courseID, campaign.ID, suite.actor)
+	suite.Require().NoError(err)
+
+	var archiveBody, studentBody string
+	for _, c := range suite.captured {
+		if c.recipient == "bob@example.com" {
+			studentBody = c.body
+		} else {
+			archiveBody = c.body
+		}
+	}
+	suite.Contains(studentBody, "Dear Bob, degree Master")
+	suite.Contains(archiveBody, "{{firstName}}", "the archive copy has no single recipient, so student placeholders must stay unresolved")
+	suite.Contains(archiveBody, "{{studyDegree}}")
+	suite.NotContains(archiveBody, "Unknown")
+}
+
 func (suite *CourseMailingServiceTestSuite) TestCreateRejectsInvalidOverrideEmail() {
 	_, err := suite.service.CreateCampaign(suite.ctx, suite.courseID, suite.actor, courseMailingDTO.MailCampaignRequest{
 		Name:                "Bad CC",

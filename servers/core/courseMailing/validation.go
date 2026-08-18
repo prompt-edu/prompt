@@ -19,7 +19,7 @@ func validateCampaignRequest(req courseMailingDTO.MailCampaignRequest) error {
 		return err
 	}
 	if req.ReplyToOverride != nil {
-		if req.ReplyToOverride.Email == "" {
+		if strings.TrimSpace(req.ReplyToOverride.Email) == "" {
 			return fmt.Errorf("%w: reply-to override requires an email address", ErrValidation)
 		}
 		if err := validateOverrideAddress(req.ReplyToOverride.Email); err != nil {

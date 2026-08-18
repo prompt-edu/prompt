@@ -9,7 +9,7 @@ interface CampaignInput {
   replyToEmail: string
 }
 
-// /management/course/:id/mailing — campaign overview + composer.
+// /management/course/:id/mailing: campaign overview + composer.
 export class CourseMailingPage {
   readonly newMailButton: Locator
 

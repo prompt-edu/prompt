@@ -320,8 +320,7 @@ func resendFailedCampaign(c *gin.Context) {
 
 func bindCampaignRequest(c *gin.Context) (courseMailingDTO.MailCampaignRequest, error) {
 	var req courseMailingDTO.MailCampaignRequest
-	// ShouldBindJSON does not write a response on error, so the handler owns the
-	// error mapping (BindJSON would abort with its own 400 and double-write).
+	// ShouldBindJSON (unlike BindJSON) leaves error-response mapping to the caller.
 	if err := c.ShouldBindJSON(&req); err != nil {
 		return courseMailingDTO.MailCampaignRequest{}, err
 	}

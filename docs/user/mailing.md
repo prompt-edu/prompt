@@ -97,7 +97,7 @@ At the top of the Mailing page in each course phase, you’ll find toggles and a
 * Sends the **Rejection** or **Failed** email to **all students who did not pass** the course phase.
 * As with acceptance mails, the system does **not track** delivery status, so use this action with care.
 
-Students who do not have a status assigned, when sending out the mails, will not receive any email. 
+Students who do not have a status assigned, when sending out the mails, will not receive any email.
 
 ---
 
@@ -139,7 +139,7 @@ The overview lists every campaign with its **status** (`Draft`, `Sending`, `Sent
 can:
 
 * **Copy** a campaign into a new draft to reuse and re-send it.
-* **Resend to failed** — retry delivery to only the recipients whose previous send failed.
+* **Resend to failed**: retry delivery to only the recipients whose previous send failed.
 * **Delete** a campaign (not while it is sending).
 
 Each send is tracked per recipient, so failed addresses (e.g. students without an email) are clearly

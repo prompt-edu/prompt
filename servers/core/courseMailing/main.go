@@ -19,8 +19,9 @@ func InitCourseMailingModule(routerGroup *gin.RouterGroup, queries db.Queries, c
 	}
 	setupCourseMailingRouter(routerGroup, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
 
-	// Recover any campaigns left mid-send by a previous crash/restart.
-	CourseMailingServiceSingleton.ReconcileStuckCampaigns(context.Background())
+	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
+	// background so a slow/degraded database at boot doesn't delay server startup.
+	go CourseMailingServiceSingleton.ReconcileStuckCampaigns(context.Background())
 }
 
 // checkAccessControlByIDWrapper enforces course-level permissions on the :uuid param.

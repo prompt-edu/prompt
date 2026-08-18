@@ -139,7 +139,7 @@ export const CERTIFICATE_FOREIGN_PHASE_ID = 'd000000c-0000-0000-0000-00000000000
 
 // Standalone Presentation phase on fullCourse used to verify that the
 // presentation remote and same-origin API proxy load together.
-export const PRESENTATION_PHASE_ID = 'd0000011-0000-0000-0000-000000000011'
+export const PRESENTATION_PHASE_ID = 'd0000012-0000-0000-0000-000000000012'
 
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university

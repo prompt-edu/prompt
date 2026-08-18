@@ -389,10 +389,10 @@ func computeCampaignStatus(recipients []db.MailCampaignRecipient) db.MailCampaig
 		}
 	}
 	switch {
-	case failed == 0:
-		return db.MailCampaignStatusSent
 	case sent == 0:
 		return db.MailCampaignStatusFailed
+	case failed == 0:
+		return db.MailCampaignStatusSent
 	default:
 		return db.MailCampaignStatusPartiallyFailed
 	}

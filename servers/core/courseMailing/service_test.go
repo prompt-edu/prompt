@@ -18,6 +18,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -472,6 +473,34 @@ func addressEmails(addresses []mail.Address) []string {
 		out = append(out, a.Address)
 	}
 	return out
+}
+
+func TestComputeCampaignStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		recipients []db.MailCampaignRecipient
+		want       db.MailCampaignStatus
+	}{
+		{"no recipients", nil, db.MailCampaignStatusFailed},
+		{"all pending", []db.MailCampaignRecipient{
+			{Status: db.MailRecipientStatusPending},
+		}, db.MailCampaignStatusFailed},
+		{"all failed", []db.MailCampaignRecipient{
+			{Status: db.MailRecipientStatusFailed},
+		}, db.MailCampaignStatusFailed},
+		{"all sent", []db.MailCampaignRecipient{
+			{Status: db.MailRecipientStatusSent},
+		}, db.MailCampaignStatusSent},
+		{"mixed sent and failed", []db.MailCampaignRecipient{
+			{Status: db.MailRecipientStatusSent},
+			{Status: db.MailRecipientStatusFailed},
+		}, db.MailCampaignStatusPartiallyFailed},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, computeCampaignStatus(tt.recipients))
+		})
+	}
 }
 
 // --- HTTP role-gating tests -------------------------------------------------

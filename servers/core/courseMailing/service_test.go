@@ -285,6 +285,19 @@ func (suite *CourseMailingServiceTestSuite) TestSendTimeoutStopsDispatchingNewSe
 	suite.Equal(db.MailCampaignStatusFailed, suite.statusOf(campaign.ID))
 }
 
+func (suite *CourseMailingServiceTestSuite) TestTrySetCampaignSendingDistinguishesNotFoundFromConflict() {
+	deleted := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
+	suite.Require().NoError(suite.service.DeleteCampaign(suite.ctx, suite.courseID, deleted.ID))
+	err := suite.service.trySetCampaignSending(suite.ctx, &suite.service.queries, suite.courseID, deleted.ID)
+	suite.ErrorIs(err, ErrNotFound, "a deleted campaign must be reported as not found, not as a send conflict")
+
+	inProgress := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
+	_, err = suite.service.queries.TrySetMailCampaignSending(suite.ctx, db.TrySetMailCampaignSendingParams{ID: inProgress.ID, CourseID: suite.courseID})
+	suite.Require().NoError(err)
+	err = suite.service.trySetCampaignSending(suite.ctx, &suite.service.queries, suite.courseID, inProgress.ID)
+	suite.ErrorIs(err, ErrSendInProgress)
+}
+
 func (suite *CourseMailingServiceTestSuite) TestConcurrentSendConflict() {
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
 	// Simulate an in-flight send by flipping the status to sending.

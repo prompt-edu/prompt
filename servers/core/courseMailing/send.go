@@ -91,11 +91,8 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 	// Atomically flip to "sending" and snapshot recipients in one transaction, so a
 	// failed snapshot never leaves the campaign stuck in the sending state.
 	if err := s.withTx(ctx, func(q *db.Queries) error {
-		if _, err := q.TrySetMailCampaignSending(ctx, db.TrySetMailCampaignSendingParams{ID: campaignID, CourseID: courseID}); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrSendInProgress
-			}
-			return fmt.Errorf("failed to mark campaign as sending: %w", err)
+		if err := s.trySetCampaignSending(ctx, q, courseID, campaignID); err != nil {
+			return err
 		}
 		if err := q.DeleteCampaignRecipients(ctx, campaignID); err != nil {
 			return fmt.Errorf("failed to reset campaign recipients: %w", err)
@@ -207,11 +204,8 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 
 	// Atomically guard + reset the resolvable failed recipients to pending.
 	if err := s.withTx(ctx, func(q *db.Queries) error {
-		if _, err := q.TrySetMailCampaignSending(ctx, db.TrySetMailCampaignSendingParams{ID: campaignID, CourseID: courseID}); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return ErrSendInProgress
-			}
-			return fmt.Errorf("failed to mark campaign as sending: %w", err)
+		if err := s.trySetCampaignSending(ctx, q, courseID, campaignID); err != nil {
+			return err
 		}
 		for _, row := range liveRows {
 			if err := q.InsertCampaignRecipient(ctx, db.InsertCampaignRecipientParams{
@@ -329,6 +323,23 @@ func (s *CourseMailingService) buildSendItem(recipientID uuid.UUID, email string
 		subject:     mailing.ReplacePlaceholders(base.Subject, placeholders),
 		body:        mailing.ReplacePlaceholders(base.Body, placeholders),
 	}
+}
+
+// trySetCampaignSending atomically flips a campaign to "sending". A zero-row update
+// is ambiguous (already sending vs. no longer existing), so on that outcome it
+// re-checks existence within the same transaction to tell a genuine send-in-progress
+// conflict (409) apart from a campaign deleted concurrently (404).
+func (s *CourseMailingService) trySetCampaignSending(ctx context.Context, q *db.Queries, courseID, campaignID uuid.UUID) error {
+	if _, err := q.TrySetMailCampaignSending(ctx, db.TrySetMailCampaignSendingParams{ID: campaignID, CourseID: courseID}); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("failed to mark campaign as sending: %w", err)
+		}
+		if _, getErr := q.GetMailCampaignBase(ctx, db.GetMailCampaignBaseParams{ID: campaignID, CourseID: courseID}); errors.Is(getErr, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return ErrSendInProgress
+	}
+	return nil
 }
 
 func (s *CourseMailingService) recipientIDMap(ctx context.Context, campaignID uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {

@@ -234,6 +234,9 @@ func SendCourseMail(courseMailingSettings mailingDTO.CourseMailingSettings, reci
 }
 
 func validateMailInputs(recipientAddress, subject, htmlBody string) error {
+	if MailingServiceSingleton == nil {
+		return errors.New("mailing service is not initialized")
+	}
 	if MailingServiceSingleton.senderEmail.Address == "" {
 		return errors.New("mailing is not correctly configured: sender email address is empty")
 	}

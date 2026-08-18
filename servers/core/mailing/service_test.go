@@ -190,3 +190,12 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelec
 func TestStatusMailServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(StatusMailServiceTestSuite))
 }
+
+func TestValidateMailInputsRequiresInitializedSingleton(t *testing.T) {
+	old := MailingServiceSingleton
+	MailingServiceSingleton = nil
+	defer func() { MailingServiceSingleton = old }()
+
+	err := validateMailInputs("student@example.com", "subject", "body")
+	assert.ErrorContains(t, err, "not initialized")
+}

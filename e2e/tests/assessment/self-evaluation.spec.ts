@@ -125,7 +125,8 @@ test.describe('assessment: student self evaluation', () => {
 
     await scrollTo('top')
     await expect.poll(position).not.toBe('fixed')
-    expect(await placeholderHeight()).toBeCloseTo(undockedHeight, 0)
+    // Undocking animates the bar back to full size, so poll until the placeholder settles.
+    await expect.poll(placeholderHeight).toBeCloseTo(undockedHeight, 0)
   })
 
   test('a student fills in and finalizes the self evaluation', async ({ page }) => {

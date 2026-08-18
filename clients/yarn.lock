@@ -806,7 +806,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dagrejs/dagre@npm:^3.1.0":
+"@dagrejs/dagre@npm:^3.1.1":
   version: 3.1.1
   resolution: "@dagrejs/dagre@npm:3.1.1"
   dependencies:
@@ -6106,7 +6106,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "client@workspace:core"
   dependencies:
-    "@dagrejs/dagre": "npm:^3.1.0"
+    "@dagrejs/dagre": "npm:^3.1.1"
     "@rspack/cli": "npm:^2.1.8"
     "@rspack/core": "npm:^2.1.8"
     "@types/papaparse": "npm:^5.5.2"
@@ -8382,7 +8382,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.29.0":
+"lucide-react@npm:^1.31.0":
   version: 1.31.0
   resolution: "lucide-react@npm:1.31.0"
   peerDependencies:
@@ -8659,7 +8659,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion@npm:^13.0.0":
+"motion@npm:^13.1.0":
   version: 13.1.0
   resolution: "motion@npm:13.1.0"
   dependencies:
@@ -10073,17 +10073,17 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.0.0"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.29.0"
-    motion: "npm:^13.0.0"
+    lucide-react: "npm:^1.31.0"
+    motion: "npm:^13.1.0"
     postcss: "npm:^8.5.26"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
-    react-hook-form: "npm:^7.84.0"
+    react-hook-form: "npm:^7.85.0"
     react-medium-image-zoom: "npm:^5.4.8"
     react-router-dom: "npm:^7.18.2"
     sass-loader: "npm:^17.0.0"
-    sonner: "npm:^2.0.7"
+    sonner: "npm:^2.0.8"
     style-loader: "npm:^4.0.0"
     tailwind-merge: "npm:^3.6.0"
     tailwindcss: "npm:^4.3.3"
@@ -10411,7 +10411,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:^7.84.0":
+"react-hook-form@npm:^7.85.0":
   version: 7.85.0
   resolution: "react-hook-form@npm:7.85.0"
   peerDependencies:
@@ -11025,6 +11025,20 @@ __metadata:
     react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
   checksum: 10c0/6966ab5e892ed6aab579a175e4a24f3b48747f0fc21cb68c3e33cb41caa7a0eebeb098c210545395e47a18d585eb8734ae7dd12d2bd18c8a3294a1ee73f997d9
+  languageName: node
+  linkType: hard
+
+"sonner@npm:^2.0.8":
+  version: 2.0.8
+  resolution: "sonner@npm:2.0.8"
+  peerDependencies:
+    "@types/react": ^18.0.0 || ^19.0.0
+    react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+    react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/cc271f78dca7e7d7ce34a724883f3292ba671b5ed3d41732430df28c38a8f6a47e8e59da5fdd0b258ac07136db0cdaf02f8cda9afb9cc9f12d81b6c319b427f7
   languageName: node
   linkType: hard
 

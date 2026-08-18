@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MailCampaignRequest } from '../interfaces/mailCampaign'
+import { MailCampaignStatus } from '../interfaces/mailCampaign'
 import {
   copyMailCampaign,
   createMailCampaign,
@@ -13,6 +14,10 @@ import {
   updateMailCampaign,
 } from '../network/mailCampaignApi'
 
+// A send dispatches in the background and can run for a while, so poll while a
+// campaign is still "sending" instead of leaving the overview/detail view stale.
+const SENDING_POLL_INTERVAL_MS = 4000
+
 const campaignsKey = (courseID: string) => ['mailCampaigns', courseID]
 const campaignKey = (courseID: string, campaignID: string) => ['mailCampaign', courseID, campaignID]
 const recipientPreviewKey = (courseID: string, campaignID: string) => [
@@ -25,6 +30,10 @@ export const useGetMailCampaigns = (courseID: string) =>
   useQuery({
     queryKey: campaignsKey(courseID),
     queryFn: () => getMailCampaigns(courseID),
+    refetchInterval: (query) =>
+      query.state.data?.some((campaign) => campaign.status === MailCampaignStatus.Sending)
+        ? SENDING_POLL_INTERVAL_MS
+        : false,
   })
 
 export const useGetMailCampaign = (courseID: string, campaignID: string | undefined) =>
@@ -32,6 +41,8 @@ export const useGetMailCampaign = (courseID: string, campaignID: string | undefi
     queryKey: campaignKey(courseID, campaignID ?? ''),
     queryFn: () => getMailCampaign(courseID, campaignID ?? ''),
     enabled: !!campaignID,
+    refetchInterval: (query) =>
+      query.state.data?.status === MailCampaignStatus.Sending ? SENDING_POLL_INTERVAL_MS : false,
   })
 
 export const useGetRecipientPreview = (

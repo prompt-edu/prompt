@@ -98,7 +98,7 @@ export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
   print: 'd0000009-0000-0000-0000-000000000009',
-  gradeExport: 'd0000011-0000-0000-0000-000000000011',
+  gradeExport: 'd0000012-0000-0000-0000-000000000012',
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e

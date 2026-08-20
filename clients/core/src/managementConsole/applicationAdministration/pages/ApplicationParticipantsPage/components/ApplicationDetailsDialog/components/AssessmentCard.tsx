@@ -12,6 +12,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  getStudentName,
   Label,
   ScoreLevelSelector,
   Separator,
@@ -58,7 +59,7 @@ export const AssessmentCard = ({
   const [currentScore, setCurrentScore] = useState<number | null>(score)
   const comments = (restrictedData.comments as InstructorComment[]) ?? []
   const { user } = useAuthStore()
-  const author = `${user?.firstName} ${user?.lastName}`
+  const author = getStudentName(user ?? {})
 
   const { mutate: mutateAssessment, isPending } = useModifyAssessment(courseParticipationID)
 

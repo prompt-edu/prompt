@@ -1,6 +1,6 @@
 import { useCreateInstructorNote } from '@core/network/hooks/useInstructorNotes'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { ProfilePicture } from '@tumaet/prompt-ui-components'
+import { getStudentName, ProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteComposer } from './InstructorNoteComposer'
 
 interface InstructorNotesCreateFormProps {
@@ -26,9 +26,7 @@ export function InstructorNotesCreateForm({
       </div>
       <div className='flex-1 min-w-0'>
         <div className='text-sm font-medium'>
-          <span className='font-semibold'>
-            {user?.firstName} {user?.lastName}
-          </span>
+          <span className='font-semibold'>{getStudentName(user ?? {})}</span>
         </div>
         <NoteComposer
           onSubmit={async (content, tagIds) => {

@@ -1,16 +1,16 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { LECTURER_ROLES, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Puzzle } from 'lucide-react'
 
 const sidebarItems: SidebarMenuItemProps = {
   title: 'Matching',
   icon: <Puzzle />,
-  requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+  requiredPermissions: LECTURER_ROLES,
   goToPath: '',
   subitems: [
     {
       title: 'Participants',
       goToPath: '/participants',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
   ],
 }

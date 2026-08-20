@@ -1,4 +1,4 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { LECTURER_ROLES, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Users2 } from 'lucide-react'
 
 const sidebarItems: SidebarMenuItemProps = {
@@ -9,27 +9,27 @@ const sidebarItems: SidebarMenuItemProps = {
     {
       title: 'Participants',
       goToPath: '/participants',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Tease Configuration',
       goToPath: '/tease-config',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Allocations',
       goToPath: '/allocations',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Survey Statistics',
       goToPath: '/statistics',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Settings',
       goToPath: '/settings',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
   ],
 }

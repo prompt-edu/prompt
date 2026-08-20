@@ -14,6 +14,7 @@ import {
   CardContent,
   CardHeader,
   ErrorPage,
+  getStudentName,
   ManagementPageHeader,
   Separator,
 } from '@tumaet/prompt-ui-components'
@@ -163,9 +164,7 @@ export const TeamAllocationPage: React.FC = () => {
                               {tutor.lastName[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <span>
-                            {tutor.firstName} {tutor.lastName}
-                          </span>
+                          <span>{getStudentName(tutor)}</span>
                         </li>
                       ))}
                     </ul>
@@ -185,16 +184,14 @@ export const TeamAllocationPage: React.FC = () => {
                           <Avatar className='h-6 w-6'>
                             <AvatarImage
                               src={getGravatarUrl(member.email)}
-                              alt={`${member.firstName} ${member.lastName}`}
+                              alt={getStudentName(member)}
                             />
                             <AvatarFallback className='text-xs font-medium'>
                               {member.firstName[0]}
                               {member.lastName[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <span>
-                            {member.firstName} {member.lastName}
-                          </span>
+                          <span>{getStudentName(member)}</span>
                         </li>
                       ))}
                     </ul>

@@ -14,10 +14,11 @@ import {
   CardContent,
   CardHeader,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { Loader2, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import type React from 'react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -94,11 +95,7 @@ export const TeamAllocationPage: React.FC = () => {
   const isError = isTeamsError || isParticipationsError || isTeamAllocationsError
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   if (isError) {

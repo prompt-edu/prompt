@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, CardContent, ErrorPage } from '@tumaet/prompt-ui-components'
+import { Button, Card, CardContent, ErrorPage, getStudentName } from '@tumaet/prompt-ui-components'
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -147,7 +147,7 @@ export const EvaluationParticipantResultsPage = ({
     return <ErrorPage message='The requested participant could not be found.' />
   }
 
-  const studentName = `${participant.student.firstName} ${participant.student.lastName}`
+  const studentName = getStudentName(participant.student)
   const teamName = teams.find((team) =>
     team.members.some((member) => member.id === courseParticipationID),
   )?.name

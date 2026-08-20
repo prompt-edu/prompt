@@ -1,4 +1,4 @@
-import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, LECTURER_ROLES } from '@tumaet/prompt-shared-state'
 import { ParticipantsPage } from '../src/example_component/pages/ParticipantsPage'
 import { SettingsPage } from '../src/example_component/pages/SettingsPage'
 import { OverviewPage } from '../src/OverviewPage'
@@ -12,12 +12,12 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '/participants',
     element: <ParticipantsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/settings',
     element: <SettingsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   // Add more routes here as needed
 ]

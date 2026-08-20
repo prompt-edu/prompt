@@ -1,4 +1,4 @@
-import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, LECTURER_ROLES } from '@tumaet/prompt-shared-state'
 import { MatchingOverviewPage } from '../src/matching/MatchingOverviewPage'
 import { DataExportPage } from '../src/matching/pages/DataExport/DataExportPage'
 import { DataImportPage } from '../src/matching/pages/DataImport/DataImportPage'
@@ -8,22 +8,22 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '',
     element: <MatchingOverviewPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/export',
     element: <DataExportPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/re-import',
     element: <DataImportPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/participants',
     element: <MatchingParticipantsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   // Add more routes here as needed
 ]

@@ -158,7 +158,7 @@ find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
   -exec perl -0777 -pi -e 's/exampleServerConfig/'"${CAMEL}"'ServerConfig/g' {} + 2>/dev/null || true
 find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
   -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
-  | xargs -0 perl -pi -e "s/COMPONENT_DEV_PORT = 3001/COMPONENT_DEV_PORT = ${CLIENT_PORT}/"
+  | xargs -0 perl -pi -e "s/^(\s*)port: 3001,\$/\$1port: ${CLIENT_PORT},/"
 find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
   -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
   | while IFS= read -r -d '' f; do rename_tokens "$f"; done

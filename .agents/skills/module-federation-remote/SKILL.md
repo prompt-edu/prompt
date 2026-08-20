@@ -8,33 +8,37 @@ is the host; each `<name>_component` is a remote. All bundler config is in `rspa
 
 ## Expose from the remote component
 
-In `clients/<name>_component/rspack.config.mjs`, the `ModuleFederationPlugin`
-(`const { ModuleFederationPlugin } = rspack.container`):
+In-repo remotes do not write their own `ModuleFederationPlugin`. The whole config comes from
+`clients/shared/rspack/createRspackConfig.mjs`, so `clients/<name>_component/rspack.config.mjs` is:
 
 ```js
-new ModuleFederationPlugin({
-  name: COMPONENT_NAME,             // '<name>_component'; must equal the core remotes key
-  filename: 'remoteEntry.js',
-  exposes: {
-    './routes': './routes',         // default export: RouteObject[]
-    './sidebar': './sidebar',       // default export: SidebarMenuItemProps
-    './provide': './src/provide',   // optional; components other phases may render
-  },
-  shared: {
-    react: { singleton: true, requiredVersion: deps.react },
-    'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-    'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-    '@tanstack/react-query': { singleton: true, requiredVersion: deps['@tanstack/react-query'] },
-    '@tumaet/prompt-shared-state': {
-      singleton: true,
-      requiredVersion: deps['@tumaet/prompt-shared-state'],
-    },
-  },
+import { createRspackConfig } from '../shared/rspack/createRspackConfig.mjs'
+
+export default createRspackConfig({
+  name: 'your_component',           // '<name>_component'; must equal the core remotes key
+  port: 3011,                       // dev server port, unique per remote
+  configUrl: import.meta.url,       // resolves the component's own directory
 })
 ```
 
+The factory sets `filename: 'remoteEntry.js'`, the `exposes` map (`./routes` → `RouteObject[]`,
+`./sidebar` → `SidebarMenuItemProps`, `./provide` → components other phases may render), the
+loaders, the output settings, and the share scope. A remote needing extra module resolution
+(assessment's `@hookform/resolvers`) passes `resolveAlias: (componentDir) => ({ … })`; anything else
+that differs belongs in the factory as a new option, not in a forked config.
+
+The singleton share scope lives in `clients/shared/rspack/federatedDependencies.mjs` and is imported
+by the host and every remote, so host and remotes cannot drift apart.
+
 `routes/` and `sidebar/` are directories next to `src/`, each with an `index.tsx` default export.
 There is no `./App` expose — core mounts a phase through its routes, not through a root component.
+
+## Standalone dev page
+
+Each remote also builds as a standalone page that only renders a notice, since a phase is meant to
+run inside core. That is `src/bootstrap.tsx`, two lines using
+`clients/shared/runtime/mountRemote.tsx` and `clients/shared/runtime/StandaloneNotice.tsx`. The root
+element id must match the `<div id="…">` in the component's `public/template.html`.
 
 ## Register in core (host)
 
@@ -42,7 +46,7 @@ In `clients/core/rspack.config.mjs`, resolve the URL next to the other `*URL` co
 remote using the cache-busting query so a redeploy forces a reload:
 
 ```js
-const yourComponentURL = IS_DEV ? `http://localhost:<COMPONENT_DEV_PORT>` : `/your-component`
+const yourComponentURL = IS_DEV ? `http://localhost:3011` : `/your-component`
 
 remotes: {
   your_component: `your_component@${yourComponentURL}/remoteEntry.js?${Date.now()}`,

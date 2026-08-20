@@ -12,6 +12,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  getStudentName,
   Input,
   Label,
   MinimalTiptapEditor,
@@ -144,7 +145,7 @@ export const InterviewCard = () => {
 
   const setInterviewerAsSelf = () => {
     if (user) {
-      const nextInterviewer = `${user.firstName} ${user.lastName}`
+      const nextInterviewer = getStudentName(user)
       setInterviewer(nextInterviewer)
       saveChanges(undefined, { interviewer: nextInterviewer })
     }

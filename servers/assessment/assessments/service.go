@@ -313,8 +313,9 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	peerEvalResults := []assessmentDTO.AggregatedEvaluationResult{}
 	selfEvalResults := []assessmentDTO.AggregatedEvaluationResult{}
 	if config.GradingSheetVisible {
-		peerEvalResults = aggregateEvaluations(evals, assessmentType.Peer)
-		selfEvalResults = aggregateEvaluations(evals, assessmentType.Self)
+		peerEvalResults = evaluations.AggregateEvaluations(evals, assessmentType.Peer, evaluations.MinPeerRaters)
+		// A self-evaluation only ever has its own author, so it takes no anonymity floor
+		selfEvalResults = evaluations.AggregateEvaluations(evals, assessmentType.Self, 1)
 	}
 
 	if !config.GradeSuggestionVisible {
@@ -376,37 +377,4 @@ func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 	}
 
 	return nil
-}
-
-func aggregateEvaluations(evals []evaluationDTO.Evaluation, targetType assessmentType.AssessmentType) []assessmentDTO.AggregatedEvaluationResult {
-	type accumulator struct {
-		sum   float64
-		count int
-	}
-
-	aggregated := make(map[uuid.UUID]accumulator)
-	for _, eval := range evals {
-		if eval.Type != targetType {
-			continue
-		}
-		num := scoreLevelDTO.MapScoreLevelToNumber(eval.ScoreLevel)
-		current := aggregated[eval.CompetencyID]
-		current.sum += num
-		current.count++
-		aggregated[eval.CompetencyID] = current
-	}
-
-	results := make([]assessmentDTO.AggregatedEvaluationResult, 0, len(aggregated))
-	for competencyID, acc := range aggregated {
-		if acc.count == 0 {
-			continue
-		}
-		avg := acc.sum / float64(acc.count)
-		results = append(results, assessmentDTO.AggregatedEvaluationResult{
-			CompetencyID:        competencyID,
-			AverageScoreNumeric: avg,
-		})
-	}
-
-	return results
 }

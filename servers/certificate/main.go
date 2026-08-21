@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -21,7 +19,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	"github.com/prompt-edu/prompt/servers/certificate/privacy"
-	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,40 +34,6 @@ func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
 
-func sanitizeDatabaseURL(input string) string {
-	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-	if dbPassword == "" {
-		return input
-	}
-	return strings.ReplaceAll(input, dbPassword, "***")
-}
-
-func runMigrations(databaseURL string) {
-	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
-	output, err := cmd.CombinedOutput()
-	sanitized := sanitizeDatabaseURL(string(output))
-	if err != nil {
-		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
-	}
-	fmt.Print(sanitized)
-}
-
-func initKeycloak() {
-	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
-	if !strings.HasPrefix(baseURL, "http") {
-		log.Warn("Keycloak host does not start with http(s). Adding https:// as prefix.")
-		baseURL = "https://" + baseURL
-	}
-
-	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
-	coreURL := utils.GetCoreUrl()
-
-	err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL)
-	if err != nil {
-		log.Fatalf("Failed to initialize keycloak: %v", err)
-	}
-}
-
 func main() {
 	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
 	if sentryEnabled {
@@ -81,7 +44,9 @@ func main() {
 	databaseURL := getDatabaseURL()
 	log.Debug("Connecting to database")
 
-	runMigrations(databaseURL)
+	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	ctx := context.Background()
 	conn, err := pgxpool.New(ctx, databaseURL)
@@ -103,7 +68,9 @@ func main() {
 
 	api := router.Group("certificate/api")
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-	initKeycloak()
+	if err := promptSDK.InitPhaseKeycloak(); err != nil {
+		log.Fatalf("Failed to initialize keycloak: %v", err)
+	}
 
 	coursePhaseApi.GET("/hello", helloCertificate)
 

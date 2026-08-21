@@ -1,5 +1,6 @@
 export interface CoursePhaseConfig {
   coursePhaseID: string // UUID as string
+  assessmentEnabled: boolean
   assessmentSchemaID: string // UUID as string
   start: Date
   deadline: Date
@@ -23,6 +24,7 @@ export interface CoursePhaseConfig {
 }
 
 export interface CreateOrUpdateCoursePhaseConfigRequest {
+  assessmentEnabled: boolean
   assessmentSchemaId: string
   start?: Date
   deadline?: Date

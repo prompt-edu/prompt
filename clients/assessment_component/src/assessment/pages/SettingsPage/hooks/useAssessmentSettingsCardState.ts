@@ -32,6 +32,7 @@ interface UseAssessmentSettingsCardStateResult {
 
 export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardStateResult => {
   const [error, setError] = useState<string | undefined>(undefined)
+  const [assessmentEnabled, setAssessmentEnabled] = useState<boolean>(true)
   const [assessmentSchemaId, setAssessmentSchemaId] = useState<string>('')
   const [start, setStart] = useState<Date | undefined>(undefined)
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
@@ -43,6 +44,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
 
   useEffect(() => {
     if (originalConfig) {
+      setAssessmentEnabled(originalConfig.assessmentEnabled ?? true)
       setAssessmentSchemaId(originalConfig.assessmentSchemaID || '')
       setStart(originalConfig.start ? new Date(originalConfig.start) : undefined)
       setDeadline(originalConfig.deadline ? new Date(originalConfig.deadline) : undefined)
@@ -53,6 +55,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
       return
     }
 
+    setAssessmentEnabled(true)
     setAssessmentSchemaId('')
     setStart(undefined)
     setDeadline(undefined)
@@ -74,6 +77,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
     () =>
       hasAssessmentCardChanges(
         {
+          assessmentEnabled,
           assessmentSchemaId,
           start,
           deadline,
@@ -86,6 +90,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
       ),
     [
       actionItemsVisible,
+      assessmentEnabled,
       assessmentSchemaId,
       deadline,
       evaluationResultsVisible,
@@ -98,7 +103,8 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
 
   const assessmentCard: AssessmentCardModel = {
     assessmentType: AssessmentType.ASSESSMENT,
-    enabled: true,
+    enabled: assessmentEnabled,
+    onEnabledChange: setAssessmentEnabled,
     schemaId: assessmentSchemaId,
     onSchemaIdChange: setAssessmentSchemaId,
     startDate: start,
@@ -121,6 +127,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
 
       configMutation.mutate({
         ...baseRequest,
+        assessmentEnabled,
         assessmentSchemaId,
         start,
         deadline,
@@ -130,9 +137,8 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
         gradingSheetVisible,
       })
     },
-    canSave: Boolean(assessmentSchemaId && baseRequest),
+    canSave: (!assessmentEnabled || Boolean(assessmentSchemaId)) && Boolean(baseRequest),
     onCreateSchemaError: setError,
-    showToggle: false,
   }
 
   return {

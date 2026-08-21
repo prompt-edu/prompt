@@ -7,9 +7,10 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  DeleteConfirmation,
   Textarea,
 } from '@tumaet/prompt-ui-components'
-import { Lock, Unlock } from 'lucide-react'
+import { Lock, Trash2, Unlock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { ActionItem } from '../../../../interfaces/actionItem'
@@ -21,6 +22,7 @@ import { validateGrade } from '../../../utils/gradeConfig'
 import { ActionItemPanel } from './components/ActionItemPanel'
 import { GradeSuggestion } from './components/GradeSuggestion'
 import { useCreateOrUpdateAssessmentCompletion } from './hooks/useCreateOrUpdateAssessmentCompletion'
+import { useDeleteAssessmentCompletion } from './hooks/useDeleteAssessmentCompletion'
 import { useMarkAssessmentAsComplete } from './hooks/useMarkAssessmentAsComplete'
 import { useUnmarkAssessmentAsCompleted } from './hooks/useUnmarkAssessmentAsCompleted'
 
@@ -67,13 +69,17 @@ export const AssessmentCompletion = ({
   const { mutate: markAsComplete, isPending: isMarkPending } = useMarkAssessmentAsComplete(setError)
   const { mutate: unmarkAsCompleted, isPending: isUnmarkPending } =
     useUnmarkAssessmentAsCompleted(setError)
+  const { mutate: deleteCompletion, isPending: isDeletePending } =
+    useDeleteAssessmentCompletion(setError)
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const handleButtonClick = () => {
     setError(undefined)
     setDialogOpen(true)
   }
 
-  const isPending = isCreatePending || isMarkPending || isUnmarkPending
+  const isPending = isCreatePending || isMarkPending || isUnmarkPending || isDeletePending
 
   const isDeadlinePassed = deadline ? new Date() > new Date(deadline) : false
 
@@ -200,24 +206,56 @@ export const AssessmentCompletion = ({
           <div className='flex justify-between items-center mt-8'>
             <div className='flex flex-col'>{deadline && <DeadlineBadge deadline={deadline} />}</div>
 
-            <Button
-              size='sm'
-              disabled={isPending || (assessmentCompletion?.completed && isDeadlinePassed)}
-              onClick={handleButtonClick}
-            >
-              {assessmentCompletion?.completed ? (
-                <span className='flex items-center gap-1'>
-                  <Unlock className='h-3.5 w-3.5' />
-                  Unmark as Final
-                </span>
-              ) : (
-                <span className='flex items-center gap-1'>
-                  <Lock className='h-3.5 w-3.5' />
-                  Mark Assessment as Final
-                </span>
+            <div className='flex items-center gap-2'>
+              {assessmentCompletion?.completed && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  disabled={isPending}
+                  onClick={() => {
+                    setError(undefined)
+                    setDeleteDialogOpen(true)
+                  }}
+                >
+                  <span className='flex items-center gap-1'>
+                    <Trash2 className='h-3.5 w-3.5' />
+                    Delete Summary
+                  </span>
+                </Button>
               )}
-            </Button>
+
+              <Button
+                size='sm'
+                disabled={isPending || (assessmentCompletion?.completed && isDeadlinePassed)}
+                onClick={handleButtonClick}
+              >
+                {assessmentCompletion?.completed ? (
+                  <span className='flex items-center gap-1'>
+                    <Unlock className='h-3.5 w-3.5' />
+                    Unmark as Final
+                  </span>
+                ) : (
+                  <span className='flex items-center gap-1'>
+                    <Lock className='h-3.5 w-3.5' />
+                    Mark Assessment as Final
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
+
+          <DeleteConfirmation
+            isOpen={deleteDialogOpen}
+            setOpen={setDeleteDialogOpen}
+            deleteMessage='Are you sure you want to delete this assessment summary? This removes the grade suggestion, the general remarks and the final status.'
+            customWarning='Deleting the summary is the way to unlock an assessment after the deadline, for example before switching the phase to evaluations only.'
+            onClick={(confirmed) => {
+              if (confirmed) {
+                deleteCompletion(courseParticipationID ?? '')
+              }
+              setDeleteDialogOpen(false)
+            }}
+          />
 
           <AssessmentCompletionDialog
             completed={assessmentCompletion?.completed ?? false}

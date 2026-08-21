@@ -15,6 +15,7 @@ jobs:
           - assessment
           - certificate
           - core
+          - infrastructure_setup
           - interview
           - self_team_allocation
           - team_allocation

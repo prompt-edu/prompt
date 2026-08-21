@@ -56,4 +56,9 @@ func InitCoursePhaseTypeModule(routerGroup *gin.RouterGroup, authMiddleware func
 	if err != nil {
 		log.Fatal("failed to init certificate phase type: ", err)
 	}
+
+	err = initInfrastructureSetup()
+	if err != nil {
+		log.Fatal("failed to init infrastructure setup phase type: ", err)
+	}
 }

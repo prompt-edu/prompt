@@ -8,6 +8,7 @@ import {
   ASSESSMENT_API,
   BASE_URL,
   CERTIFICATE_API,
+  INFRASTRUCTURE_SETUP_API,
   CORE_API_URL,
   EXAMPLE_API,
   INTERVIEW_API,
@@ -95,6 +96,7 @@ export default async function globalSetup(_config: FullConfig) {
   await waitForServiceInfo(`${BASE_URL}${INTERVIEW_API}/info`, 'interview')
   await waitForServiceInfo(`${BASE_URL}${CERTIFICATE_API}/info`, 'certificate')
   await waitForServiceInfo(`${BASE_URL}${TEAM_ALLOCATION_API}/info`, 'team-allocation')
+  await waitForServiceInfo(`${BASE_URL}${INFRASTRUCTURE_SETUP_API}/info`, 'infrastructure-setup')
 
   const browser = await chromium.launch()
   try {

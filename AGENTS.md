@@ -30,6 +30,7 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - certificate_component (port 3010)
+    - infrastructure_setup_component (port 3011)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
     - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
@@ -42,6 +43,7 @@ servers/
   example_server/          # Example phase service (port 8086)
   interview/               # Interview scheduling (port 8087)
   certificate/             # Certificate generation (port 8088)
+  infrastructure_setup/    # External resource provisioning (port 8091)
 
 docs/                      # Docusaurus documentation
 ```

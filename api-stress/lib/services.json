@@ -17,6 +17,7 @@
     "assessment":           { "base_url": "http://localhost:18085", "health": "/assessment/api/course_phase/{coursePhaseID}/hello" },
     "example_server":      { "base_url": "http://localhost:18086", "health": "/example-service/api/course_phase/{coursePhaseID}/hello" },
     "interview":            { "base_url": "http://localhost:18087", "health": "/interview/api/course_phase/{coursePhaseID}/hello" },
-    "certificate":          { "base_url": "http://localhost:18088", "health": "/certificate/api/course_phase/{coursePhaseID}/hello" }
+    "certificate":          { "base_url": "http://localhost:18088", "health": "/certificate/api/course_phase/{coursePhaseID}/hello" },
+    "infrastructure_setup": { "base_url": "http://localhost:18091", "health": "/infrastructure-setup/api/info" }
   }
 }

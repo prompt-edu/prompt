@@ -11,21 +11,33 @@ remote. For the step-by-step wiring use the **`module-federation-remote`** skill
 
 ## Expose (remote component)
 
+Every in-repo remote gets its whole rspack config from the shared factory, so
+`clients/<name>_component/rspack.config.mjs` is only the two values that differ:
+
 ```js
-new ModuleFederationPlugin({
-  name: COMPONENT_NAME,             // must equal the core remotes key
-  filename: 'remoteEntry.js',
-  exposes: {
-    './routes': './routes',         // RouteObject[] default export
-    './sidebar': './sidebar',       // SidebarMenuItemProps default export
-    './provide': './src/provide',   // optional, for cross-phase components
-  },
+import { createRspackConfig } from '../shared/rspack/createRspackConfig.mjs'
+
+export default createRspackConfig({
+  name: 'your_component',           // must equal the core remotes key
+  port: 3011,                       // dev server port, unique per remote
+  configUrl: import.meta.url,       // resolves the component's own directory
 })
 ```
 
+The factory (`clients/shared/rspack/createRspackConfig.mjs`) owns `filename: 'remoteEntry.js'`, the
+`exposes` map (`./routes`, `./sidebar`, `./provide`), the loaders, the output settings, and the share
+scope. Do not fork it per component; add an option instead. A remote that needs extra resolution
+(assessment's `@hookform/resolvers`) passes `resolveAlias: (componentDir) => ({ … })`.
+
 A component exposes whole directories (`routes/`, `sidebar/`) that sit next to `src/`, not modules
-inside `src/`. It does not expose `./App`. The top of each component's `rspack.config.mjs` sets
-`COMPONENT_NAME` and `COMPONENT_DEV_PORT`.
+inside `src/`. It does not expose `./App`.
+
+## Share scope
+
+`clients/shared/rspack/federatedDependencies.mjs` is the single source of the singleton share scope
+(`react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`).
+Both the host and every remote import it, which is what keeps them from drifting apart. Changing the
+set changes it for host and remotes at once, which is the only safe way to change it.
 
 ## Register (core host)
 

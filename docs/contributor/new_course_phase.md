@@ -49,7 +49,8 @@ types remotes by that suffix):
 
 1. `cp -R clients/example_component clients/<name>_component`; rename the inner
    `src/example_component` directory.
-2. `rspack.config.mjs`: set `COMPONENT_NAME` and a unique `COMPONENT_DEV_PORT`.
+2. `rspack.config.mjs`: call `createRspackConfig` from `clients/shared/rspack/` with the
+   component `name` and a unique dev `port`.
 3. `package.json`: set `"name"`; keep `biome.json` extending the root (`"extends": "//"`).
 4. Register the workspace in `clients/package.json` (`workspaces.packages`) and
    `clients/lerna.json` (`packages`), then `cd clients && yarn install`.

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -46,36 +45,6 @@ func databaseURL() string {
 	query.Set("TimeZone", promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin"))
 	value.RawQuery = query.Encode()
 	return value.String()
-}
-
-func runMigrations(connectionURL string) {
-	command := exec.Command("migrate", "-path", "./db/migration", "-database", connectionURL, "up")
-	output, err := command.CombinedOutput()
-	sanitized := strings.ReplaceAll(
-		string(output),
-		promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres"),
-		"***",
-	)
-	if err != nil {
-		log.Fatalf("Failed to run presentation migrations: %v\n%s", err, sanitized)
-	}
-	if sanitized != "" {
-		log.Debug(sanitized)
-	}
-}
-
-func initAuthentication() {
-	keycloakURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
-	if !strings.HasPrefix(keycloakURL, "http") {
-		keycloakURL = "https://" + keycloakURL
-	}
-	if err := promptSDK.InitAuthenticationMiddleware(
-		keycloakURL,
-		promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt"),
-		sdkUtils.GetCoreUrl(),
-	); err != nil {
-		log.Fatalf("Failed to initialize Keycloak: %v", err)
-	}
 }
 
 func intEnv(key string, defaultValue int) int {
@@ -144,7 +113,9 @@ func main() {
 	}
 
 	connectionURL := databaseURL()
-	runMigrations(connectionURL)
+	if err := sdkUtils.RunMigrations(connectionURL, "./db/migration"); err != nil {
+		log.Fatalf("Failed to run presentation migrations: %v", err)
+	}
 	ctx := context.Background()
 	conn, err := pgxpool.New(ctx, connectionURL)
 	if err != nil {
@@ -166,7 +137,9 @@ func main() {
 		log.Fatalf("Unable to initialize presentation material storage: %v", err)
 	}
 
-	initAuthentication()
+	if err := promptSDK.InitPhaseKeycloak(); err != nil {
+		log.Fatalf("Failed to initialize Keycloak: %v", err)
+	}
 	queries := db.New(conn)
 	service := presentation.NewService(
 		queries,

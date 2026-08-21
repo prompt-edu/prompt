@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -38,32 +36,6 @@ var (
 func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s",
 		dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
-}
-
-func sanitizeDatabaseURL(input string) string {
-	return strings.ReplaceAll(input, dbPassword, "***")
-}
-
-func runMigrations(databaseURL string) {
-	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
-	output, err := cmd.CombinedOutput()
-	sanitized := sanitizeDatabaseURL(string(output))
-	if err != nil {
-		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
-	}
-	fmt.Print(sanitized)
-}
-
-func initKeycloak() {
-	baseURL := promptSDK.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
-	if !strings.HasPrefix(baseURL, "http") {
-		baseURL = "https://" + baseURL
-	}
-	realm := promptSDK.GetEnv("KEYCLOAK_REALM_NAME", "prompt")
-	coreURL := sdkUtils.GetCoreUrl()
-	if err := promptSDK.InitAuthenticationMiddleware(baseURL, realm, coreURL); err != nil {
-		log.Fatalf("Failed to initialize keycloak: %v", err)
-	}
 }
 
 // registerProviderFactories wires provider constructors into the execution registry.
@@ -100,7 +72,9 @@ func main() {
 	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s",
 		dbHost, dbPort, dbName, dbUser, sslMode)
 
-	runMigrations(databaseURL)
+	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	conn, err := pgxpool.New(context.Background(), databaseURL)
 	if err != nil {
@@ -118,7 +92,9 @@ func main() {
 		log.Fatalf("Invalid ENCRYPTION_KEY: %v", err)
 	}
 
-	initKeycloak()
+	if err := promptSDK.InitPhaseKeycloak(); err != nil {
+		log.Fatalf("Failed to initialize keycloak: %v", err)
+	}
 	registerProviderFactories()
 
 	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")

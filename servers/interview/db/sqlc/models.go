@@ -16,6 +16,16 @@ type InterviewAssignment struct {
 	AssignedAt            pgtype.Timestamptz `json:"assigned_at"`
 }
 
+type InterviewReview struct {
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	Score                 pgtype.Int4        `json:"score"`
+	Interviewer           pgtype.Text        `json:"interviewer"`
+	InterviewAnswers      []byte             `json:"interview_answers"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
 type InterviewSlot struct {
 	ID            uuid.UUID          `json:"id"`
 	CoursePhaseID uuid.UUID          `json:"course_phase_id"`

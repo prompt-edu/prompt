@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewAnswer } from '../interfaces/InterviewAnswer'
 import type { InterviewQuestion } from '../interfaces/InterviewQuestion'
+import { useUpdateInterviewReview } from '../network/hooks/useUpdateInterviewReview'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
@@ -50,48 +51,44 @@ const mapStoredScoreToScoreLevel = (score: number | undefined): ScoreLevel | und
 
 export const InterviewCard = () => {
   const { studentId } = useParams<{ studentId: string }>()
-  const { participations } = useParticipationStore()
+  const { participations, interviewReviews } = useParticipationStore()
   const participation = participations.find((p) => p.student.id === studentId)
-  const restrictedData = (participation?.restrictedData ?? {}) as Record<string, unknown>
+  const review = participation ? interviewReviews[participation.courseParticipationID] : undefined
 
   const { user } = useAuthStore()
   const { coursePhase } = useCoursePhaseStore()
   const interviewQuestions =
     (coursePhase?.restrictedData?.interviewQuestions as InterviewQuestion[]) ?? []
 
-  const [answers, setAnswers] = useState<InterviewAnswer[]>(
-    (participation?.restrictedData?.interviewAnswers as InterviewAnswer[]) ?? [],
-  )
-  const [score, setScore] = useState<number | undefined>(undefined)
-  const [interviewer, setInterviewer] = useState<string | undefined>(
-    participation?.restrictedData?.interviewer,
-  )
+  const [answers, setAnswers] = useState<InterviewAnswer[]>(review?.interviewAnswers ?? [])
+  const [score, setScore] = useState<number | undefined>(review?.score)
+  const [interviewer, setInterviewer] = useState<string | undefined>(review?.interviewer)
 
-  const { mutate, isPending } = useUpdateCoursePhaseParticipation()
+  const { mutate: mutatePassStatus, isPending: isPassStatusPending } =
+    useUpdateCoursePhaseParticipation()
+  const { mutate: mutateReview, isPending: isReviewPending } = useUpdateInterviewReview(
+    coursePhase?.id,
+  )
+  const isPending = isPassStatusPending || isReviewPending
 
   // Compare current state with original data
   const isModified =
     answers.some((a) => {
-      const originalAnswer = participation?.restrictedData?.interviewAnswers?.find(
+      const originalAnswer = review?.interviewAnswers?.find(
         (oa: InterviewAnswer) => oa.questionID === a.questionID,
       )
       return originalAnswer?.answer !== a.answer
     }) ||
-    score !== participation?.restrictedData?.score ||
-    interviewer !== participation?.restrictedData?.interviewer
+    score !== review?.score ||
+    (interviewer ?? '') !== (review?.interviewer ?? '')
 
   useEffect(() => {
     if (participation && coursePhase) {
-      const interviewAnswers = participation.restrictedData?.interviewAnswers as InterviewAnswer[]
-      setAnswers(interviewAnswers ?? [])
-
-      const interviewScore = participation.restrictedData?.score as number | undefined
-      setScore(interviewScore)
-
-      const newInterviewer = participation.restrictedData?.interviewer as string | undefined
-      setInterviewer(newInterviewer)
+      setAnswers(review?.interviewAnswers ?? [])
+      setScore(review?.score)
+      setInterviewer(review?.interviewer)
     }
-  }, [participation, coursePhase])
+  }, [participation, coursePhase, review])
 
   const setAnswer = (questionID: number, answer: string) => {
     setAnswers((prevAnswers) => {
@@ -106,38 +103,33 @@ export const InterviewCard = () => {
     })
   }
 
-  const saveChanges = (
-    passStatus?: PassStatus,
-    overrides?: {
-      answers?: InterviewAnswer[]
-      score?: number
-      interviewer?: string
-    },
-  ) => {
+  // The interview review (score, interviewer, answers) is stored in the interview
+  // microservice. The pass/fail resolution stays on the core participation.
+  const saveReview = (overrides?: {
+    answers?: InterviewAnswer[]
+    score?: number
+    interviewer?: string
+  }) => {
     if (participation && coursePhase) {
-      mutate({
-        coursePhaseID: coursePhase.id,
+      mutateReview({
         courseParticipationID: participation.courseParticipationID,
-        restrictedData: {
-          ...restrictedData,
+        review: {
           interviewAnswers: overrides?.answers ?? answers,
           score: overrides?.score ?? score,
-          interviewer: overrides?.interviewer ?? interviewer,
+          interviewer: overrides?.interviewer ?? interviewer ?? '',
         },
-        studentReadableData: {},
-        passStatus: passStatus ?? participation.passStatus,
       })
     }
   }
 
-  const saveRestrictedDataPatch = (patch: Record<string, unknown>) => {
+  const savePassStatus = (passStatus: PassStatus) => {
     if (participation && coursePhase) {
-      mutate({
+      mutatePassStatus({
         coursePhaseID: coursePhase.id,
         courseParticipationID: participation.courseParticipationID,
-        restrictedData: patch,
+        restrictedData: {},
         studentReadableData: {},
-        passStatus: participation.passStatus,
+        passStatus,
       })
     }
   }
@@ -146,14 +138,14 @@ export const InterviewCard = () => {
     if (user) {
       const nextInterviewer = `${user.firstName} ${user.lastName}`
       setInterviewer(nextInterviewer)
-      saveChanges(undefined, { interviewer: nextInterviewer })
+      saveReview({ interviewer: nextInterviewer })
     }
   }
 
   // When an input loses focus, save changes if any modifications exist.
   const handleBlur = () => {
     if (isModified) {
-      saveChanges()
+      saveReview()
     }
   }
 
@@ -181,7 +173,7 @@ export const InterviewCard = () => {
                 }
                 const nextScore = mapScoreLevelToNumber(value)
                 setScore(nextScore)
-                saveRestrictedDataPatch({ score: nextScore })
+                saveReview({ score: nextScore })
               }}
               completed={false}
               descriptionsByLevel={SCORE_LEVEL_DESCRIPTIONS}
@@ -204,7 +196,7 @@ export const InterviewCard = () => {
                 size='sm'
                 disabled={isPending}
                 aria-pressed={isRejected}
-                onClick={() => saveChanges(PassStatus.FAILED)}
+                onClick={() => savePassStatus(PassStatus.FAILED)}
               >
                 <X />
                 Reject
@@ -214,7 +206,7 @@ export const InterviewCard = () => {
                 size='sm'
                 disabled={isPending}
                 aria-pressed={isPassed}
-                onClick={() => saveChanges(PassStatus.PASSED)}
+                onClick={() => savePassStatus(PassStatus.PASSED)}
               >
                 <Check />
                 Accept

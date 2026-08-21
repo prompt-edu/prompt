@@ -1,8 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  type CoursePhaseParticipationsWithResolution,
-  getCoursePhaseParticipations,
-} from '@tumaet/prompt-shared-state'
+import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,
@@ -20,6 +17,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { UploadButton } from './components/UploadButton'
 import { useUploadAndParseCSV } from './hooks/useUploadAndParseCSV'
 import { useUploadAndParseXLSX } from './hooks/useUploadAndParseXLSX'
+import { getResolvedCoursePhaseParticipations } from './network/getResolvedCoursePhaseParticipations'
 import { useMatchingStore } from './zustand/useMatchingStore'
 
 export const MatchingOverviewPage = () => {
@@ -36,14 +34,14 @@ export const MatchingOverviewPage = () => {
     isPending: isCoursePhaseParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
+  } = useQuery<CoursePhaseParticipationWithStudent[]>({
     queryKey: ['participants', phaseId],
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
+    queryFn: () => getResolvedCoursePhaseParticipations(phaseId ?? ''),
   })
 
   useEffect(() => {
     if (coursePhaseParticipations) {
-      setParticipations(coursePhaseParticipations.participations)
+      setParticipations(coursePhaseParticipations)
     }
   }, [coursePhaseParticipations, setParticipations])
 

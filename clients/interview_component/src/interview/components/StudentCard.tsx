@@ -28,6 +28,7 @@ import {
   Mic,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewSlotData {
   id: string
@@ -42,12 +43,13 @@ interface StudentCardProps {
 }
 
 export function StudentCard({ participation, interviewSlot }: StudentCardProps) {
+  const { interviewReviews } = useParticipationStore()
   const navigate = useNavigate()
   const { courseId } = useParams<{ courseId: string }>()
   const { courses } = useCourseStore()
 
   const assessmentScore = participation.prevData?.score ?? 'N/A'
-  const interviewScore = participation.restrictedData?.score ?? 'N/A'
+  const interviewScore = interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'
 
   const applicationPhaseId = courses
     .find((c) => c.id === courseId)

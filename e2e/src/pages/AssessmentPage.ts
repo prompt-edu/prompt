@@ -44,6 +44,40 @@ export class AssessmentPage {
       .first()
   }
 
+  // The "Assessment enabled" toggle of the assessment settings card. Off means
+  // the phase runs evaluations only, which hides the schema/timeframe controls.
+  // SettingsSwitchField derives the switch id from its title.
+  assessmentEnabledSwitch(): Locator {
+    return this.settingsCard().locator('#assessment-enabled')
+  }
+
+  async setAssessmentEnabled(enabled: boolean) {
+    const toggle = this.assessmentEnabledSwitch()
+    await expect(toggle).toBeEnabled()
+    if ((await toggle.getAttribute('aria-checked')) === String(enabled)) return
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', String(enabled))
+  }
+
+  // The schema picker and timeframe range only render while the assessment is
+  // enabled, so their presence is the visible marker of the phase's mode.
+  async expectAssessmentControls(visible: boolean) {
+    const card = this.settingsCard()
+    const count = visible ? 1 : 0
+    await expect(card.getByText('Assessment schema', { exact: true })).toHaveCount(count)
+    await expect(card.getByText('Assessment timeframe', { exact: true })).toHaveCount(count)
+    await expect(card.getByText('Show assessment sheet', { exact: true })).toHaveCount(count)
+    await expect(this.gradeExportCard()).toHaveCount(count)
+  }
+
+  async expectAssessmentDisabledNotice() {
+    await expect(
+      this.page.getByText('Assessment is disabled for this phase. It collects evaluations only.', {
+        exact: false,
+      }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
   async createSchema(name: string, description: string) {
     await this.page.getByRole('button', { name: 'Create new assessment schema' }).click()
     const dialog = this.page.getByRole('dialog', { name: 'Create New Assessment Schema' })
@@ -142,6 +176,20 @@ export class AssessmentPage {
     return Buffer.concat(chunks)
   }
 
+  unreleaseButton(): Locator {
+    return this.page.getByRole('button', { name: 'Unrelease Results' })
+  }
+
+  // Confirms the release dialog. Its title names what is being released, which
+  // differs between assessment-enabled and evaluation-only phases.
+  async confirmRelease(dialogTitle: 'Assessment' | 'Evaluation') {
+    await this.releaseButton().click()
+    const dialog = this.page.getByRole('alertdialog')
+    await expect(dialog.getByText(`Release ${dialogTitle} Results?`)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Release Results' }).click()
+    await expect(this.unreleaseButton()).toBeVisible()
+  }
+
   // ── Schema configuration (rubric) ────────────────────────────────────────
 
   async addCategory(name: string, shortName: string, weight = 1) {
@@ -178,6 +226,18 @@ export class AssessmentPage {
     await expect(this.page.getByRole('heading', { name: 'Assessment Participants' })).toBeVisible({
       timeout: 15_000,
     })
+  }
+
+  // On an evaluation-only phase the same table renames itself and tracks
+  // evaluation progress instead of grading.
+  async expectEvaluationParticipantsLoaded() {
+    await expect(this.page.getByRole('heading', { name: 'Evaluation Participants' })).toBeVisible({
+      timeout: 15_000,
+    })
+  }
+
+  columnHeader(name: string): Locator {
+    return this.page.getByRole('columnheader', { name, exact: true })
   }
 
   async openParticipant(fullName: string) {

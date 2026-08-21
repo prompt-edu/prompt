@@ -19,7 +19,8 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
     summary:
       'Configure the final assessment that lecturers use to grade students in this course phase.',
     toggleLabel: 'Assessment enabled',
-    toggleHint: 'The main assessment is required for this phase and cannot be turned off.',
+    toggleHint:
+      'Turn this off to use the phase for evaluations only, without any lecturer grading. It locks once assessment data exists.',
     schemaLabel: 'Assessment schema',
     schemaHint:
       'Choose the schema used for the final assessment. Shared schemas are copied automatically before local edits.',

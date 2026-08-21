@@ -7,11 +7,13 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { printPage } from '../utils/printPage'
 
 import { AssessmentResultsSection } from './components/AssessmentResultsSection'
+import { EvaluationResultsSection } from './components/EvaluationResultsSection'
 
 export const EvaluationResultsPage = () => {
   const navigate = useNavigate()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
   const [reportReady, setReportReady] = useState(false)
 
   return (
@@ -23,16 +25,23 @@ export const EvaluationResultsPage = () => {
         </Button>
       </div>
       <div className='print:hidden'>
-        <ManagementPageHeader>Assessment Results</ManagementPageHeader>
+        <ManagementPageHeader>
+          {assessmentEnabled ? 'Assessment Results' : 'Evaluation Results'}
+        </ManagementPageHeader>
       </div>
 
       {resultsReleased ? (
-        <AssessmentResultsSection onReadyChange={setReportReady} />
+        assessmentEnabled ? (
+          <AssessmentResultsSection onReadyChange={setReportReady} />
+        ) : (
+          <EvaluationResultsSection onReadyChange={setReportReady} />
+        )
       ) : (
         <Card className='border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs'>
           <CardContent className='p-6'>
             <p className='text-gray-600 dark:text-gray-300 leading-relaxed'>
-              Assessment results have not been released yet.
+              {assessmentEnabled ? 'Assessment results' : 'Evaluation results'} have not been
+              released yet.
             </p>
           </CardContent>
         </Card>

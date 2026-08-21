@@ -55,6 +55,7 @@ CREATE TABLE public.course_phase_config (
     action_items_visible boolean NOT NULL DEFAULT true,
     results_released boolean NOT NULL DEFAULT false,
     grading_sheet_visible boolean NOT NULL DEFAULT false,
+    assessment_enabled boolean NOT NULL DEFAULT true,
     FOREIGN KEY (assessment_schema_id) REFERENCES assessment_schema (id) ON DELETE CASCADE,
     FOREIGN KEY (self_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,
     FOREIGN KEY (peer_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,
@@ -149,6 +150,26 @@ CREATE TABLE public.evaluation (
     created_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (competency_id) REFERENCES competency (id) ON DELETE RESTRICT
+);
+
+CREATE TABLE public.assessment_completion (
+    course_participation_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    completed_at timestamp WITH time zone NOT NULL,
+    author text NOT NULL,
+    comment text DEFAULT '' NOT NULL,
+    grade_suggestion numeric(2, 1) DEFAULT 4.0 NOT NULL,
+    completed boolean DEFAULT false NOT NULL,
+    CONSTRAINT assessment_completion_grade_suggestion_check CHECK (grade_suggestion >= 1.0 AND grade_suggestion <= 6.0)
+);
+
+CREATE TABLE public.action_item (
+    id uuid NOT NULL PRIMARY KEY,
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    action text NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    author text NOT NULL
 );
 
 --

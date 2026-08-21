@@ -92,13 +92,16 @@ export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-0000000
 // state and schema locking never leak between parallel Playwright files:
 // the graph-tail assessment phase above is used by the lecturer journey + smoke,
 // `visibility` by the student-visibility spec (Stan + Selma participate),
-// `selfEvaluation` by the self-evaluation spec (Stan participates), and
-// `print` by the print spec (Stan participates).
+// `selfEvaluation` by the self-evaluation spec (Stan participates),
+// `print` by the print spec (Stan participates), `gradeExport` by the grade
+// export spec (Stan participates), and `evaluationOnly` by the evaluation-only
+// spec (Stan participates), which flips assessment_enabled off.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
   print: 'd0000009-0000-0000-0000-000000000009',
   gradeExport: 'd0000012-0000-0000-0000-000000000012',
+  evaluationOnly: 'd0000013-0000-0000-0000-000000000013',
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e

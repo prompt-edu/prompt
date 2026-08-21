@@ -250,6 +250,7 @@ type CoursePhaseConfig struct {
 	ActionItemsVisible       bool               `json:"action_items_visible"`
 	ResultsReleased          bool               `json:"results_released"`
 	GradingSheetVisible      bool               `json:"grading_sheet_visible"`
+	AssessmentEnabled        bool               `json:"assessment_enabled"`
 }
 
 type Evaluation struct {

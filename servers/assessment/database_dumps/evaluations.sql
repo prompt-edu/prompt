@@ -135,6 +135,7 @@ CREATE TABLE public.course_phase_config (
     action_items_visible boolean NOT NULL DEFAULT true,
     results_released boolean NOT NULL DEFAULT false,
     grading_sheet_visible boolean NOT NULL DEFAULT false,
+    assessment_enabled boolean NOT NULL DEFAULT true,
     CONSTRAINT course_phase_config_pkey PRIMARY KEY (course_phase_id),
     CONSTRAINT course_phase_config_assessment_schema_id_fkey FOREIGN KEY (assessment_schema_id) REFERENCES public.assessment_schema(id) ON DELETE CASCADE,
     CONSTRAINT course_phase_config_self_evaluation_schema_fkey FOREIGN KEY (self_evaluation_schema) REFERENCES public.assessment_schema(id) ON DELETE RESTRICT,

@@ -1,10 +1,12 @@
 import type { GetApplication } from '@core/interfaces/application/getApplication'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 import { InstructorNotes } from '@core/managementConsole/shared/components/InstructorNote/InstructorNotes'
+import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { CourseEnrollments } from '@core/managementConsole/shared/components/StudentDetail/CourseEnrollmentList'
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { useQuery } from '@tanstack/react-query'
+import { Role } from '@tumaet/prompt-shared-state'
 import { Button, Card, ErrorPage, StudentProfile } from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
@@ -191,9 +193,11 @@ export const ApplicationDetailsPage = () => {
         }
         right={
           <>
-            <Card className='p-3'>
-              {studentId ? <InstructorNotes studentId={studentId} /> : null}
-            </Card>
+            <ShowForRole roles={[Role.PROMPT_ADMIN, Role.PROMPT_LECTURER]}>
+              <Card className='p-3'>
+                {studentId ? <InstructorNotes studentId={studentId} /> : null}
+              </Card>
+            </ShowForRole>
             <Card className='p-3'>
               {studentId ? <CourseEnrollments studentId={studentId} /> : null}
             </Card>

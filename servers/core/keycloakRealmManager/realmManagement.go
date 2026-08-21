@@ -9,6 +9,7 @@ import (
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,7 +93,7 @@ func GetCourseGroupName(ctx context.Context, courseID uuid.UUID) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("failed to get course: %w", err)
 	}
-	courseGroupName := course.SemesterTag.String + "-" + course.Name
+	courseGroupName := permissionValidation.CourseIdentifier(course.SemesterTag.String, course.Name)
 	return courseGroupName, nil
 }
 

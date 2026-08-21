@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,6 +20,8 @@ import (
 var ErrNotStarted = errors.New("assessment has not started yet")
 var ErrDeadlinePassed = errors.New("deadline has passed")
 var ErrCannotChangeSchemaWithData = errors.New("cannot change assessment schema when assessment or evaluation data exists")
+var ErrAssessmentDisabled = errors.New("assessment is disabled for this course phase")
+var ErrCannotDisableAssessmentWithData = errors.New("cannot disable assessment while assessment data exists")
 
 type CoursePhaseConfigService struct {
 	queries db.Queries
@@ -108,6 +112,28 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 	return coursePhaseConfigDTO.MapDBCoursePhaseConfigToDTOCoursePhaseConfig(config), nil
 }
 
+// GetStoredCoursePhaseConfig is the read-only counterpart of GetCoursePhaseConfig: it never creates
+// a row, so read paths stay reads. An unconfigured phase falls back to the boolean column defaults;
+// the timestamps stay zero because no row exists to supply them.
+func GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
+	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return coursePhaseConfigDTO.CoursePhaseConfig{
+			CoursePhaseID:            coursePhaseID,
+			AssessmentEnabled:        true,
+			EvaluationResultsVisible: true,
+			GradeSuggestionVisible:   true,
+			ActionItemsVisible:       true,
+		}, nil
+	}
+	if err != nil {
+		log.Error("could not get course phase config: ", err)
+		return coursePhaseConfigDTO.CoursePhaseConfig{}, errors.New("could not get course phase config")
+	}
+
+	return coursePhaseConfigDTO.MapDBCoursePhaseConfigToDTOCoursePhaseConfig(config), nil
+}
+
 func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, req coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest) error {
 	existingConfig, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -115,8 +141,10 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		return err
 	}
 
+	configExists := err == nil
+
 	// If config exists, validate schema changes
-	if err == nil {
+	if configExists {
 		schemasToValidate := []struct {
 			old, new   uuid.UUID
 			schemaType string
@@ -171,9 +199,17 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 
 	// Preserve existing ResultsReleased value on update, default to false for new creates
 	resultsReleased := pgtype.Bool{Bool: false, Valid: true}
-	if err == nil {
-		// Config exists - preserve the existing ResultsReleased value
+	if configExists {
 		resultsReleased = pgtype.Bool{Bool: existingConfig.ResultsReleased, Valid: true}
+	}
+
+	// An omitted AssessmentEnabled must never flip the phase's mode
+	assessmentEnabled := true
+	if configExists {
+		assessmentEnabled = existingConfig.AssessmentEnabled
+	}
+	if req.AssessmentEnabled != nil {
+		assessmentEnabled = *req.AssessmentEnabled
 	}
 
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
@@ -198,6 +234,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		ActionItemsVisible:       actionItemsVisible,
 		ResultsReleased:          resultsReleased,
 		GradingSheetVisible:      gradingSheetVisible,
+		AssessmentEnabled:        assessmentEnabled,
 	}
 
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)
@@ -206,7 +243,50 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		return err
 	}
 
+	// Checked after the write so the snapshot covers writes that committed while this request was in
+	// flight. This narrows the race, it does not close it: the UPDATE takes no lock on the assessment
+	// tables, so a write committing after the snapshot still lands on a now-disabled phase.
+	if !assessmentEnabled {
+		hasData, err := qtx.PhaseHasAssessmentData(ctx, coursePhaseID)
+		if err != nil {
+			log.WithError(err).Error("Failed to check for existing assessment data")
+			return err
+		}
+		if hasData.Bool {
+			return ErrCannotDisableAssessmentWithData
+		}
+	}
+
 	return tx.Commit(ctx)
+}
+
+// RequireAssessmentEnabled rejects assessment writes on evaluation-only phases. Without it, a stale
+// URL can create assessment rows that then lock the phase's schema.
+func RequireAssessmentEnabled() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+			return
+		}
+
+		// A guard must not lazily create rows, so this reads instead of calling
+		// GetCoursePhaseConfig. An unconfigured phase defaults to enabled, leaving the handler to
+		// validate the rest of the request itself.
+		config, err := GetStoredCoursePhaseConfig(c, coursePhaseID)
+		if err != nil {
+			log.WithError(err).Error("Failed to get course phase config")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})
+			return
+		}
+
+		if !config.AssessmentEnabled {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": ErrAssessmentDisabled.Error()})
+			return
+		}
+
+		c.Next()
+	}
 }
 
 func IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {

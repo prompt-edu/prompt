@@ -6,6 +6,7 @@ import { useReleaseResults } from '../../../hooks/useReleaseResults'
 import { useUnreleaseResults } from '../../../hooks/useUnreleaseResults'
 
 export interface ReleaseAssessmentResultsModel {
+  assessmentEnabled: boolean
   resultsReleased: boolean
   showReleaseDialog: boolean
   setShowReleaseDialog: (open: boolean) => void
@@ -30,14 +31,21 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
 
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
-  const { data: assessmentCompletions } = useGetAllAssessmentCompletions()
+  // Default to enabled while the config loads so an existing phase is never briefly
+  // treated as evaluation-only
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
+  const { data: assessmentCompletions } = useGetAllAssessmentCompletions({
+    enabled: assessmentEnabled,
+  })
   const { mutate: releaseResults, isPending: isReleasing } = useReleaseResults()
   const { mutate: unreleaseResults, isPending: isUnreleasing } = useUnreleaseResults()
 
   const totalAssessments = participations.length
   const completedAssessments =
     assessmentCompletions?.filter((completion) => completion.completed).length ?? 0
-  const allAssessmentsCompleted = totalAssessments > 0 && completedAssessments === totalAssessments
+  // Evaluation-only phases have no assessments to finalize, so nothing gates the release
+  const allAssessmentsCompleted =
+    !assessmentEnabled || (totalAssessments > 0 && completedAssessments === totalAssessments)
 
   const getErrorMessage = (error: unknown, fallback: string): string => {
     const responseError = (error as { response?: { data?: { error?: string } } })?.response?.data
@@ -65,6 +73,7 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
   }
 
   return {
+    assessmentEnabled,
     resultsReleased: Boolean(coursePhaseConfig?.resultsReleased),
     showReleaseDialog,
     setShowReleaseDialog,

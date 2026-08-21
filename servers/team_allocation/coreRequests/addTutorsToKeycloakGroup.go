@@ -2,17 +2,19 @@ package coreRequests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests/coreRequestDTO"
 	log "github.com/sirupsen/logrus"
 )
 
-func SendAddTutorsToKeycloakGroup(authHeader string, courseID uuid.UUID, tutorIDs []uuid.UUID, groupName string) error {
-	path := "/api/keycloak/" + courseID.String() + "/group/" + groupName + "/tutors"
+func SendAddTutorsToKeycloakGroup(ctx context.Context, authHeader string, courseID uuid.UUID, tutorIDs []uuid.UUID, groupName string) error {
+	url := sdkUtils.GetCoreUrl() + "/api/keycloak/" + courseID.String() + "/group/" + groupName + "/tutors"
 
 	// Create the payload
 	payload := coreRequestDTO.AddTutorsToGroup{
@@ -26,7 +28,7 @@ func SendAddTutorsToKeycloakGroup(authHeader string, courseID uuid.UUID, tutorID
 	}
 
 	// Send the request with the payload attached
-	resp, err := sendRequest("PUT", path, authHeader, bytes.NewBuffer(body))
+	resp, err := sdkUtils.SendCoreRequest(ctx, http.MethodPut, authHeader, bytes.NewBuffer(body), url)
 	if err != nil {
 		return err
 	}

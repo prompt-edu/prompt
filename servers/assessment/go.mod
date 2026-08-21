@@ -1,14 +1,14 @@
 module github.com/prompt-edu/prompt/servers/assessment
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/prompt-edu/prompt-sdk v1.2.3
-	github.com/sirupsen/logrus v1.9.4
+	github.com/prompt-edu/prompt-sdk v1.3.0
+	github.com/sirupsen/logrus v1.10.0
 	github.com/swaggo/swag v1.16.6
 )
 
@@ -101,7 +101,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.0
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	golang.org/x/arch v0.23.0 // indirect

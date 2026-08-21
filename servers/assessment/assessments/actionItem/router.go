@@ -29,9 +29,9 @@ func setupActionItemRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 
 	// action item management
 	actionItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getActionItemsForStudent)
-	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createActionItem)
-	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), updateActionItem)
-	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), deleteActionItem)
+	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), createActionItem)
+	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), updateActionItem)
+	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), deleteActionItem)
 
 	// student access to own action items
 	actionItemRouter.GET("/my-action-items", authMiddleware(promptSDK.CourseStudent), getMyActionItems)

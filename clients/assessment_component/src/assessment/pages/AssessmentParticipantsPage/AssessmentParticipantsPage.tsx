@@ -3,10 +3,10 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
+  LoadingPage,
   ManagementPageHeader,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -161,11 +161,7 @@ export const AssessmentParticipantsPage = () => {
     return <ErrorPage message='Error loading assessments' onRetry={refetch} />
   }
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (

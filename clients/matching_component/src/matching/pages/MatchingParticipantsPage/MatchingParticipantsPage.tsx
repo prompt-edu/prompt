@@ -2,9 +2,9 @@ import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 
 export const MatchingParticipantsPage = () => {
@@ -23,9 +23,7 @@ export const MatchingParticipantsPage = () => {
       {isError ? (
         <ErrorPage onRetry={refetch} />
       ) : isPending ? (
-        <div className='flex justify-center items-center h-64'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
+        <LoadingPage />
       ) : (
         <CoursePhaseParticipationsTable
           phaseId={phaseId!}

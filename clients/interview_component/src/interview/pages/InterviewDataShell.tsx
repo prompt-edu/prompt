@@ -5,8 +5,7 @@ import {
   getCoursePhase,
   getCoursePhaseParticipations,
 } from '@tumaet/prompt-shared-state'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
@@ -101,17 +100,5 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     }
   }, [interviewSlotsWithAssignments, setInterviewSlots])
 
-  return (
-    <>
-      {isError ? (
-        <ErrorPage onRetry={refetch} />
-      ) : isPending ? (
-        <div className='flex justify-center items-center h-64'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
-      ) : (
-        children
-      )}
-    </>
-  )
+  return <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : children}</>
 }

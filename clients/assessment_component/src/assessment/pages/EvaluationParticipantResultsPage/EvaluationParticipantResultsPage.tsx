@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, CardContent, ErrorPage } from '@tumaet/prompt-ui-components'
-import { Loader2, Printer } from 'lucide-react'
+import { Button, Card, CardContent, ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
+import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -136,11 +136,7 @@ export const EvaluationParticipantResultsPage = ({
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   if (!participant) {

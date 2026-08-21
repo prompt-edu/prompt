@@ -60,7 +60,7 @@ func getAllAllocations(c *gin.Context) {
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Param courseParticipationID path string true "Course Participation UUID"
-// @Success 200 {string} string "Assigned team UUID"
+// @Success 200 {object} allocationDTO.Allocation
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -95,7 +95,7 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, teamID)
+	c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: teamID})
 }
 
 func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipation, teamID uuid.UUID) []allocationDTO.AllocationWithParticipation {

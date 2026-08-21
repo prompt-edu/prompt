@@ -9982,8 +9982,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "presentation_component@workspace:presentation_component"
   dependencies:
-    "@rspack/cli": "npm:^2.1.8"
-    "@rspack/core": "npm:^2.1.8"
+    "@rspack/cli": "npm:^2.1.10"
+    "@rspack/core": "npm:^2.1.10"
   languageName: unknown
   linkType: soft
 

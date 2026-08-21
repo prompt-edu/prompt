@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/core
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/Nerzal/gocloak/v14 v14.0.4
@@ -14,7 +14,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/prompt-edu/prompt-sdk v1.3.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/stretchr/testify v1.12.0
 	github.com/swaggo/swag v1.16.6
 	github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4

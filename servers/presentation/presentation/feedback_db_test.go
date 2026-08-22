@@ -194,6 +194,18 @@ func (s *FeedbackDBTestSuite) TestSubmitCannotLandAfterRelease() {
 	err = s.service.DeleteDraft(s.ctx, phaseID, presentationID, user)
 	require.True(s.T(), errors.As(err, &apiErr))
 	assert.Equal(s.T(), "feedback_released", apiErr.Code)
+
+	// A second release used to answer 204 while quietly keeping the first name.
+	err = s.service.ReleaseFeedback(s.ctx, phaseID, presentationID, user, "Renamed")
+	require.True(s.T(), errors.As(err, &apiErr))
+	assert.Equal(s.T(), "feedback_already_released", apiErr.Code)
+
+	released, err := s.service.queries.GetPresentation(s.ctx, db.GetPresentationParams{
+		ID:            presentationID,
+		CoursePhaseID: phaseID,
+	})
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), "Final", released.FeedbackReleaseName.String)
 }
 
 // The delete is scoped to the shared form in shared mode, so an instructor who means to

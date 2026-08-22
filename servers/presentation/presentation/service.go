@@ -1585,7 +1585,8 @@ func (s *Service) ReleaseFeedback(
 		return fmt.Errorf("lock presentation: %w", err)
 	}
 	if presentation.FeedbackReleasedAt.Valid {
-		return nil
+		// Answering 204 here would have the caller believe their release name was stored.
+		return apiError(409, "feedback_already_released", "Feedback has already been released", nil)
 	}
 	draftCount, err := qtx.CountDraftFeedbackForms(ctx, presentationID)
 	if err != nil {

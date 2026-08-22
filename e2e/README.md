@@ -86,10 +86,13 @@ fans it out for wall-clock:
    `PW_BLOB=1` to emit a per-shard blob report. Each shard runs with **1 worker**
    (`workers: 1`); parallelism comes from the matrix, not from within a shard.
 3. A **merge** job downloads the blob reports and merges them into the single
-   `playwright-report` artifact (`npm run merge-reports`).
+   `playwright-report` artifact (`npm run merge-reports`). Artifact storage
+   occasionally drops a single blob mid-download, so the download gets one clean
+   retry; a second miss fails the job.
 4. An **e2e** job fails unless all of the above succeeded. It exists purely to
    give branch protection one required check (`e2e-tests / e2e`) whose name does
-   not change when a shard is added or renamed.
+   not change when a shard is added or renamed. `deploy-dev` waits on this
+   workflow, so a red suite stops the dev deployment.
 
 There is deliberately **no build-once job** in front of the shards. Serializing a
 full build ahead of shards that then rebuild anyway only adds wall-clock; what

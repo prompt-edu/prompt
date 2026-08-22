@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   type CoursePhaseParticipationWithStudent,
+  EDITOR_ROLES,
   getOwnCoursePhaseParticipation,
   getPermissionString,
-  Role,
   type Team,
   useAuthStore,
   useCourseStore,
@@ -27,7 +27,7 @@ export const SelfTeamAllocationPage = () => {
   const { permissions } = useAuthStore()
   const { courseId = '', phaseId = '' } = useParams<{ courseId: string; phaseId: string }>()
   const course = courses.find((c) => c.id === courseId)
-  const isManager = [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR].some((role) =>
+  const isManager = EDITOR_ROLES.some((role) =>
     permissions.includes(getPermissionString(role, course?.name, course?.semesterTag)),
   )
   const isStudent = isStudentOfCourse(courseId) && !isManager

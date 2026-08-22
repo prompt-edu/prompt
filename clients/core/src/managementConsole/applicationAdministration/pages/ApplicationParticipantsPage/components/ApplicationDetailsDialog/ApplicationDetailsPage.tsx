@@ -7,7 +7,13 @@ import { getApplicationAssessment } from '@core/network/queries/applicationAsses
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { useQuery } from '@tanstack/react-query'
 import { Role } from '@tumaet/prompt-shared-state'
-import { Button, Card, ErrorPage, StudentProfile } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  Card,
+  ErrorPage,
+  getStudentName,
+  StudentProfile,
+} from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -133,7 +139,7 @@ export const ApplicationDetailsPage = () => {
             onClick={() => navigateToParticipation(previousParticipation.courseParticipationID)}
           >
             <ChevronLeft className='h-4 w-4' />
-            {previousParticipation.student.firstName} {previousParticipation.student.lastName}
+            {getStudentName(previousParticipation.student)}
           </Button>
 
           <Button
@@ -141,7 +147,7 @@ export const ApplicationDetailsPage = () => {
             className={`gap-2 ${getApplicationNavigationButtonColorClass(nextParticipation.passStatus)}`}
             onClick={() => navigateToParticipation(nextParticipation.courseParticipationID)}
           >
-            {nextParticipation.student.firstName} {nextParticipation.student.lastName}
+            {getStudentName(nextParticipation.student)}
             <ChevronRight className='h-4 w-4' />
           </Button>
         </div>

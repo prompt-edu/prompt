@@ -1,5 +1,5 @@
 import { getGravatarUrl, useAuthStore } from '@tumaet/prompt-shared-state'
-import { Avatar, AvatarFallback, AvatarImage } from '@tumaet/prompt-ui-components'
+import { Avatar, AvatarFallback, AvatarImage, getStudentName } from '@tumaet/prompt-ui-components'
 
 interface NavAvatarProps {
   avatarOnly?: boolean
@@ -8,9 +8,13 @@ interface NavAvatarProps {
 export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
   const { user } = useAuthStore()
 
-  const userName = `${user?.firstName} ${user?.lastName}` || ' Unknown User'
+  const userName = getStudentName(user ?? {}) || 'Unknown User'
   const userEmail = user?.email || 'Unknown Email'
-  const initials = `${user?.firstName.charAt(0)}${user?.lastName.charAt(0)}` || '??'
+  const initials =
+    [user?.firstName, user?.lastName]
+      .map((part) => part?.trim().charAt(0))
+      .filter(Boolean)
+      .join('') || '??'
 
   return (
     <>

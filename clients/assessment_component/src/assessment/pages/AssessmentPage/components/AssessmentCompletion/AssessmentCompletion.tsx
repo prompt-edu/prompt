@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
   DeleteConfirmation,
+  getStudentName,
   Textarea,
 } from '@tumaet/prompt-ui-components'
 import { Lock, Trash2, Unlock } from 'lucide-react'
@@ -84,7 +85,7 @@ export const AssessmentCompletion = ({
   const isDeadlinePassed = deadline ? new Date() > new Date(deadline) : false
 
   const { user } = useAuthStore()
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
+  const userName = user ? getStudentName(user) : 'Unknown User'
 
   const handleConfirm = () => {
     if (readOnly) {

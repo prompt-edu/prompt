@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  getStudentName,
   Label,
   Select,
   SelectContent,
@@ -225,7 +226,7 @@ export function TutorImportDialog() {
                             htmlFor={`student-${student.id}`}
                             className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
                           >
-                            {student.firstName} {student.lastName}
+                            {getStudentName(student)}
                           </label>
                         </div>
                         {selectedStudents.includes(student.id!) && (

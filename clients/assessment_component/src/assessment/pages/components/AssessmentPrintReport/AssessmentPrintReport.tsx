@@ -1,4 +1,5 @@
 import { getStudyDegreeString } from '@tumaet/prompt-shared-state'
+import { getStudentName } from '@tumaet/prompt-ui-components'
 
 import type { ActionItem } from '../../../interfaces/actionItem'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
@@ -38,7 +39,7 @@ export const AssessmentPrintReport = ({
 
   return (
     <PrintReport
-      title={`${student.firstName} ${student.lastName}`}
+      title={getStudentName(student)}
       subtitle={`${student.studyProgram || 'N/A'} · ${degree} · Semester ${student.currentSemester || 'N/A'}`}
       meta={
         <>

@@ -1,5 +1,6 @@
 import {
   Button,
+  getStudentName,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -30,7 +31,7 @@ export const FeedbackItemRow = ({ feedbackItem }: FeedbackItemRowProps) => {
         (member) => member.id === feedbackItem.authorCourseParticipationID,
       )
       if (author) {
-        return `${author.firstName} ${author.lastName}`
+        return getStudentName(author)
       }
     }
     return 'Unknown Author'

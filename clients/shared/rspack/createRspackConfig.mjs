@@ -6,6 +6,12 @@ import { federatedDependencies } from './federatedDependencies.mjs'
 const { ModuleFederationPlugin } = rspack.container
 
 export const createRspackConfig = ({ name, port, configUrl, resolveAlias }) => {
+  for (const [option, value] of Object.entries({ name, port, configUrl })) {
+    if (!value) {
+      throw new Error(`createRspackConfig: missing required option "${option}"`)
+    }
+  }
+
   const componentDir = path.dirname(fileURLToPath(configUrl))
 
   return (env = {}) => {

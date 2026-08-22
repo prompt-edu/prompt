@@ -10,8 +10,11 @@ const SINGLETON_PACKAGES = [
 
 export const federatedDependencies = () =>
   Object.fromEntries(
-    SINGLETON_PACKAGES.map((name) => [
-      name,
-      { singleton: true, requiredVersion: packageJson.dependencies[name] },
-    ]),
+    SINGLETON_PACKAGES.map((name) => {
+      const requiredVersion = packageJson.dependencies[name]
+      if (!requiredVersion) {
+        throw new Error(`federatedDependencies: "${name}" is not listed in clients/package.json`)
+      }
+      return [name, { singleton: true, requiredVersion }]
+    }),
   )

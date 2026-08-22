@@ -241,6 +241,31 @@ func (s *FeedbackDBTestSuite) TestDeletingUnknownCategoryKeepsExistingFeedback()
 	assert.Positive(s.T(), remaining)
 }
 
+// The listing pages read their counts from one aggregate query rather than two extra round
+// trips per presentation, so both paths have to keep reporting the same numbers.
+func (s *FeedbackDBTestSuite) TestListedPresentationCountsMatchTheSingleReads() {
+	_, err := s.put(deliveryCategory, instructor("counted"), "counted", 0)
+	require.NoError(s.T(), err)
+
+	listed, err := s.service.ListPresentations(s.ctx, individualPhaseID)
+	require.NoError(s.T(), err)
+	require.NotEmpty(s.T(), listed)
+
+	counted := false
+	for _, presentation := range listed {
+		dependencies, err := s.service.queries.CountPresentationDependencies(s.ctx, presentation.ID)
+		require.NoError(s.T(), err)
+		submitted, err := s.service.queries.CountSubmittedFeedbackForms(s.ctx, presentation.ID)
+		require.NoError(s.T(), err)
+
+		assert.Equal(s.T(), dependencies.MaterialCount, presentation.MaterialCount)
+		assert.Equal(s.T(), dependencies.FeedbackCount, presentation.FeedbackCount)
+		assert.Equal(s.T(), submitted, presentation.SubmittedFeedbackCount)
+		counted = counted || presentation.FeedbackCount > 0
+	}
+	assert.True(s.T(), counted, "the comparison is meaningless if every count is zero")
+}
+
 func (s *FeedbackDBTestSuite) TestGetConfigReadsWithoutCreatingRow() {
 	unconfigured := uuid.New()
 

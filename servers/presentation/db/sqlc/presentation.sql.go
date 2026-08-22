@@ -1278,9 +1278,21 @@ func (q *Queries) ListPresentationSlots(ctx context.Context, coursePhaseID uuid.
 }
 
 const listPresentations = `-- name: ListPresentations :many
-SELECT p.id, p.course_phase_id, p.slot_id, p.target_type, p.target_id, p.target_name, p.feedback_release_name, p.feedback_released_at, p.feedback_released_by_user_id, p.feedback_released_by_name, p.created_at, p.updated_at, s.start_time, s.end_time, s.location
+SELECT p.id, p.course_phase_id, p.slot_id, p.target_type, p.target_id, p.target_name, p.feedback_release_name, p.feedback_released_at, p.feedback_released_by_user_id, p.feedback_released_by_name, p.created_at, p.updated_at, s.start_time, s.end_time, s.location,
+  coalesce(m.material_count, 0)::bigint AS material_count,
+  coalesce(f.feedback_count, 0)::bigint AS feedback_count,
+  coalesce(f.submitted_feedback_count, 0)::bigint AS submitted_feedback_count
 FROM presentation p
 JOIN presentation_slot s ON s.id = p.slot_id
+LEFT JOIN (
+  SELECT presentation_id, count(*) AS material_count
+  FROM presentation_material WHERE state = 'ready' GROUP BY presentation_id
+) m ON m.presentation_id = p.id
+LEFT JOIN (
+  SELECT presentation_id, count(*) AS feedback_count,
+         count(*) FILTER (WHERE status = 'submitted') AS submitted_feedback_count
+  FROM feedback_form GROUP BY presentation_id
+) f ON f.presentation_id = p.id
 WHERE p.course_phase_id = $1
 ORDER BY s.start_time, p.target_name
 `
@@ -1301,6 +1313,9 @@ type ListPresentationsRow struct {
 	StartTime                pgtype.Timestamptz `json:"start_time"`
 	EndTime                  pgtype.Timestamptz `json:"end_time"`
 	Location                 pgtype.Text        `json:"location"`
+	MaterialCount            int64              `json:"material_count"`
+	FeedbackCount            int64              `json:"feedback_count"`
+	SubmittedFeedbackCount   int64              `json:"submitted_feedback_count"`
 }
 
 func (q *Queries) ListPresentations(ctx context.Context, coursePhaseID uuid.UUID) ([]ListPresentationsRow, error) {
@@ -1328,6 +1343,9 @@ func (q *Queries) ListPresentations(ctx context.Context, coursePhaseID uuid.UUID
 			&i.StartTime,
 			&i.EndTime,
 			&i.Location,
+			&i.MaterialCount,
+			&i.FeedbackCount,
+			&i.SubmittedFeedbackCount,
 		); err != nil {
 			return nil, err
 		}

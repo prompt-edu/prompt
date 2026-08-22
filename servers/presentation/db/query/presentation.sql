@@ -111,9 +111,21 @@ SELECT * FROM presentation WHERE course_phase_id = $1 AND target_type = $2 AND t
 SELECT * FROM presentation WHERE course_phase_id = $1 AND slot_id = $2;
 
 -- name: ListPresentations :many
-SELECT p.*, s.start_time, s.end_time, s.location
+SELECT p.*, s.start_time, s.end_time, s.location,
+  coalesce(m.material_count, 0)::bigint AS material_count,
+  coalesce(f.feedback_count, 0)::bigint AS feedback_count,
+  coalesce(f.submitted_feedback_count, 0)::bigint AS submitted_feedback_count
 FROM presentation p
 JOIN presentation_slot s ON s.id = p.slot_id
+LEFT JOIN (
+  SELECT presentation_id, count(*) AS material_count
+  FROM presentation_material WHERE state = 'ready' GROUP BY presentation_id
+) m ON m.presentation_id = p.id
+LEFT JOIN (
+  SELECT presentation_id, count(*) AS feedback_count,
+         count(*) FILTER (WHERE status = 'submitted') AS submitted_feedback_count
+  FROM feedback_form GROUP BY presentation_id
+) f ON f.presentation_id = p.id
 WHERE p.course_phase_id = $1
 ORDER BY s.start_time, p.target_name;
 

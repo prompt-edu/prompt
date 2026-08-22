@@ -524,11 +524,7 @@ func (s *Service) ListSlots(ctx context.Context, coursePhaseID uuid.UUID) ([]Slo
 	}
 	bySlot := make(map[uuid.UUID]PresentationResponse, len(presentations))
 	for _, presentation := range presentations {
-		response, responseErr := s.listPresentationResponse(ctx, presentation)
-		if responseErr != nil {
-			return nil, responseErr
-		}
-		bySlot[presentation.SlotID] = response
+		bySlot[presentation.SlotID] = listPresentationResponse(presentation)
 	}
 	result := make([]SlotResponse, 0, len(slots))
 	for _, slot := range slots {
@@ -718,11 +714,7 @@ func (s *Service) ListPresentations(ctx context.Context, coursePhaseID uuid.UUID
 	}
 	result := make([]PresentationResponse, 0, len(presentations))
 	for _, presentation := range presentations {
-		response, responseErr := s.listPresentationResponse(ctx, presentation)
-		if responseErr != nil {
-			return nil, responseErr
-		}
-		result = append(result, response)
+		result = append(result, listPresentationResponse(presentation))
 	}
 	return result, nil
 }
@@ -807,6 +799,12 @@ func (s *Service) getPresentationAndAuthorize(
 	return presentation, slot, nil
 }
 
+type presentationCounts struct {
+	materials          int64
+	feedbackForms      int64
+	submittedFeedbacks int64
+}
+
 func (s *Service) presentationResponse(
 	ctx context.Context,
 	presentation db.Presentation,
@@ -820,6 +818,18 @@ func (s *Service) presentationResponse(
 	if err != nil {
 		return PresentationResponse{}, fmt.Errorf("count submitted feedback: %w", err)
 	}
+	return buildPresentationResponse(presentation, slot, presentationCounts{
+		materials:          dependencies.MaterialCount,
+		feedbackForms:      dependencies.FeedbackCount,
+		submittedFeedbacks: submittedCount,
+	}), nil
+}
+
+func buildPresentationResponse(
+	presentation db.Presentation,
+	slot db.PresentationSlot,
+	counts presentationCounts,
+) PresentationResponse {
 	location := ""
 	if slot.Location.Valid {
 		location = slot.Location.String
@@ -834,9 +844,9 @@ func (s *Service) presentationResponse(
 		StartTime:              slot.StartTime.Time,
 		EndTime:                slot.EndTime.Time,
 		Location:               location,
-		MaterialCount:          dependencies.MaterialCount,
-		FeedbackCount:          dependencies.FeedbackCount,
-		SubmittedFeedbackCount: submittedCount,
+		MaterialCount:          counts.materials,
+		FeedbackCount:          counts.feedbackForms,
+		SubmittedFeedbackCount: counts.submittedFeedbacks,
 	}
 	if presentation.FeedbackReleasedAt.Valid {
 		value := presentation.FeedbackReleasedAt.Time
@@ -850,13 +860,12 @@ func (s *Service) presentationResponse(
 		value := presentation.FeedbackReleasedByName.String
 		response.FeedbackReleasedByName = &value
 	}
-	return response, nil
+	return response
 }
 
-func (s *Service) listPresentationResponse(
-	ctx context.Context,
-	presentation db.ListPresentationsRow,
-) (PresentationResponse, error) {
+// ListPresentations already carries the counts, so the listing pages do not fall back to
+// two extra round trips per presentation.
+func listPresentationResponse(presentation db.ListPresentationsRow) PresentationResponse {
 	model := db.Presentation{
 		ID:                       presentation.ID,
 		CoursePhaseID:            presentation.CoursePhaseID,
@@ -878,7 +887,11 @@ func (s *Service) listPresentationResponse(
 		EndTime:       presentation.EndTime,
 		Location:      presentation.Location,
 	}
-	return s.presentationResponse(ctx, model, slot)
+	return buildPresentationResponse(model, slot, presentationCounts{
+		materials:          presentation.MaterialCount,
+		feedbackForms:      presentation.FeedbackCount,
+		submittedFeedbacks: presentation.SubmittedFeedbackCount,
+	})
 }
 
 func (s *Service) ensureMaterialMutationAllowed(user User, slot db.PresentationSlot) error {

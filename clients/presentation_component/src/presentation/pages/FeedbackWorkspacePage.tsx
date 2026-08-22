@@ -117,7 +117,7 @@ const SubmittedForm = ({ form, document }: SubmittedFormProps) => {
 const FeedbackWorkspacePage = () => {
   const coursePhaseId = useCoursePhaseId()
   const { presentationId = '' } = useParams<{ presentationId: string }>()
-  const { isLecturer, isStaff } = usePresentationAccess()
+  const { canManagePhase, isStaff } = usePresentationAccess()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [values, setValues] = useState<Record<string, string>>({})
@@ -132,10 +132,15 @@ const FeedbackWorkspacePage = () => {
   const [releaseName, setReleaseName] = useState('')
   const [resetOpen, setResetOpen] = useState(false)
   const dirtyRef = useRef(dirty)
+  const valuesRef = useRef(values)
 
   useEffect(() => {
     dirtyRef.current = dirty
   }, [dirty])
+
+  useEffect(() => {
+    valuesRef.current = values
+  }, [values])
 
   const feedbackQuery = useQuery({
     queryKey: ['presentation-feedback', coursePhaseId, presentationId],
@@ -311,9 +316,14 @@ const FeedbackWorkspacePage = () => {
         expectedRevision ?? revisions[categoryId] ?? 0,
       )
       setRevisions((current) => ({ ...current, [categoryId]: answer.revision }))
-      setDirty((current) => ({ ...current, [categoryId]: false }))
       setConflicts((current) => ({ ...current, [categoryId]: undefined }))
-      setSaveStatuses((current) => ({ ...current, [categoryId]: 'saved' }))
+      // Text typed while the save was in flight is not covered by it. Clearing the dirty
+      // flag anyway would let the refetch below replace it with what the server stored.
+      const stillEditing = (valuesRef.current[categoryId] ?? '') !== value
+      if (!stillEditing) {
+        setDirty((current) => ({ ...current, [categoryId]: false }))
+      }
+      setSaveStatuses((current) => ({ ...current, [categoryId]: stillEditing ? 'idle' : 'saved' }))
       void queryClient.invalidateQueries({
         queryKey: ['presentation-feedback', coursePhaseId, presentationId],
       })
@@ -363,7 +373,7 @@ const FeedbackWorkspacePage = () => {
   const sharedForm = feedback.mode === 'shared'
   // In shared mode the form belongs to every instructor at once, so discarding it is a
   // lecturer decision rather than "delete my draft".
-  const canDeleteForm = !formSubmitted && (!sharedForm || isLecturer)
+  const canDeleteForm = !formSubmitted && (!sharedForm || canManagePhase)
   const hasUnsavedAnswers =
     Object.values(dirty).some(Boolean) ||
     Object.values(saveStatuses).some((status) => status === 'saving' || status === 'conflict')
@@ -603,7 +613,7 @@ const FeedbackWorkspacePage = () => {
         </Card>
       ) : null}
 
-      {isStaff && (feedback.canRelease || (isLecturer && released)) ? (
+      {isStaff && (feedback.canRelease || (canManagePhase && released)) ? (
         <Card>
           <CardHeader>
             <CardTitle>Release feedback</CardTitle>

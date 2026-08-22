@@ -40,7 +40,7 @@ export const CourseCreationChoiceDialog = ({ children }: CourseCreationChoiceDia
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className='sm:max-w-[420px] p-6'>
+        <DialogContent className='max-w-[420px] p-6 [&>*]:min-w-0'>
           <DialogHeader className='text-center'>
             <DialogTitle className='text-2xl font-bold text-gray-900 dark:text-gray-50'>
               Select a Starting Point

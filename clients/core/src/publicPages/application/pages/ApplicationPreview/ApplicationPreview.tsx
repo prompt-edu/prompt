@@ -42,7 +42,7 @@ export const ApplicationPreview = ({
           Preview Application
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[900px] w-[90vw] h-[90vh]'>
+      <DialogContent className='w-[90vw] max-w-[900px] h-[90vh] [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Application Preview</DialogTitle>
         </DialogHeader>

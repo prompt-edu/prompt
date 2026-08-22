@@ -26,7 +26,7 @@ export function InstructorNotesCreateForm({
       </div>
       <div className='flex-1 min-w-0'>
         <div className='text-sm font-medium'>
-          <span className='font-semibold'>{getStudentName(user ?? {})}</span>
+          <span className='font-semibold'>{user ? getStudentName(user) : 'Unknown User'}</span>
         </div>
         <NoteComposer
           onSubmit={async (content, tagIds) => {

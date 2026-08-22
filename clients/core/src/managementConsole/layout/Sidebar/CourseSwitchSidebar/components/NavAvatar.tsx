@@ -10,7 +10,7 @@ export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
 
   const userName = getStudentName(user ?? {}) || 'Unknown User'
   const userEmail = user?.email || 'Unknown Email'
-  const initials = `${user?.firstName.charAt(0)}${user?.lastName.charAt(0)}` || '??'
+  const initials = `${user?.firstName?.charAt(0) ?? ''}${user?.lastName?.charAt(0) ?? ''}` || '??'
 
   return (
     <>

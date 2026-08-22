@@ -91,7 +91,7 @@ export function TutorImportDialog() {
           Import Tutors
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[525px]'>
+      <DialogContent className='max-w-[525px] [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>

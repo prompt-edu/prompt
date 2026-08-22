@@ -379,19 +379,16 @@ func computeCampaignStatus(recipients []db.MailCampaignRecipient) db.MailCampaig
 	if len(recipients) == 0 {
 		return db.MailCampaignStatusFailed
 	}
-	var sent, failed int
+	var sent int
 	for _, r := range recipients {
-		switch r.Status {
-		case db.MailRecipientStatusSent:
+		if r.Status == db.MailRecipientStatusSent {
 			sent++
-		case db.MailRecipientStatusFailed:
-			failed++
 		}
 	}
 	switch {
 	case sent == 0:
 		return db.MailCampaignStatusFailed
-	case failed == 0:
+	case sent == len(recipients):
 		return db.MailCampaignStatusSent
 	default:
 		return db.MailCampaignStatusPartiallyFailed

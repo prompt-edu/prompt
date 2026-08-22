@@ -521,6 +521,10 @@ func TestComputeCampaignStatus(t *testing.T) {
 			{Status: db.MailRecipientStatusSent},
 			{Status: db.MailRecipientStatusFailed},
 		}, db.MailCampaignStatusPartiallyFailed},
+		{"mixed sent and pending", []db.MailCampaignRecipient{
+			{Status: db.MailRecipientStatusSent},
+			{Status: db.MailRecipientStatusPending},
+		}, db.MailCampaignStatusPartiallyFailed},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

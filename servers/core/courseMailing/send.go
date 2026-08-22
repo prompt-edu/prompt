@@ -389,6 +389,7 @@ func (s *CourseMailingService) runCampaignSend(job campaignSendJob) {
 		ErrorMessage: "send did not complete",
 	}); err != nil {
 		log.WithError(err).WithField("campaignID", job.campaignID).Warn("failed to fail leftover pending recipients")
+		return
 	}
 
 	if err := s.finalizeSend(statusCtx, job); err != nil {

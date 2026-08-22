@@ -316,22 +316,21 @@ func (s *Service) DeleteCategory(
 	coursePhaseID, categoryID uuid.UUID,
 	resetExistingData bool,
 ) error {
-	var deleted int64
-	err := s.withCategoryMutation(ctx, coursePhaseID, resetExistingData, func(queries *db.Queries) error {
-		var mutationErr error
-		deleted, mutationErr = queries.DeleteFeedbackCategory(ctx, db.DeleteFeedbackCategoryParams{
+	// The 404 has to come out of the closure: reporting it afterwards would let the
+	// reset that withCategoryMutation performs commit for a category that never existed.
+	return s.withCategoryMutation(ctx, coursePhaseID, resetExistingData, func(queries *db.Queries) error {
+		deleted, mutationErr := queries.DeleteFeedbackCategory(ctx, db.DeleteFeedbackCategoryParams{
 			ID:            categoryID,
 			CoursePhaseID: coursePhaseID,
 		})
-		return mutationErr
+		if mutationErr != nil {
+			return fmt.Errorf("delete feedback category: %w", mutationErr)
+		}
+		if deleted == 0 {
+			return apiError(404, "category_not_found", "Feedback category not found", nil)
+		}
+		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("delete feedback category: %w", err)
-	}
-	if deleted == 0 {
-		return apiError(404, "category_not_found", "Feedback category not found", nil)
-	}
-	return nil
 }
 
 func (s *Service) withCategoryMutation(
@@ -340,37 +339,38 @@ func (s *Service) withCategoryMutation(
 	resetExistingData bool,
 	mutate func(*db.Queries) error,
 ) error {
-	count, err := s.queries.CountFeedbackFormsByPhase(ctx, coursePhaseID)
-	if err != nil {
-		return fmt.Errorf("count feedback forms: %w", err)
-	}
-	if count == 0 {
-		return mutate(s.queries)
-	}
-	if !resetExistingData {
-		return apiError(409, "categories_locked", "Feedback categories cannot change after feedback has been started", nil)
-	}
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("begin category reset: %w", err)
+		return fmt.Errorf("begin category mutation: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
-	// Presentation rows first, matching withFeedbackMutation's lock order.
+	// Presentation rows first, matching withFeedbackMutation's lock order. The lock is what
+	// makes the count below meaningful: without it feedback can arrive between the count and
+	// the category change, and the delete then fails the answer foreign key.
 	if _, err := qtx.LockPresentationsByPhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("lock phase presentations: %w", err)
 	}
-	if err := qtx.DeleteFeedbackFormsByPhase(ctx, coursePhaseID); err != nil {
-		return fmt.Errorf("delete phase feedback forms: %w", err)
+	count, err := qtx.CountFeedbackFormsByPhase(ctx, coursePhaseID)
+	if err != nil {
+		return fmt.Errorf("count feedback forms: %w", err)
 	}
-	if err := qtx.ClearFeedbackReleasesByPhase(ctx, coursePhaseID); err != nil {
-		return fmt.Errorf("clear phase feedback releases: %w", err)
+	if count > 0 {
+		if !resetExistingData {
+			return apiError(409, "categories_locked", "Feedback categories cannot change after feedback has been started", nil)
+		}
+		if err := qtx.DeleteFeedbackFormsByPhase(ctx, coursePhaseID); err != nil {
+			return fmt.Errorf("delete phase feedback forms: %w", err)
+		}
+		if err := qtx.ClearFeedbackReleasesByPhase(ctx, coursePhaseID); err != nil {
+			return fmt.Errorf("clear phase feedback releases: %w", err)
+		}
 	}
 	if err := mutate(qtx); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("commit category reset: %w", err)
+		return fmt.Errorf("commit category mutation: %w", err)
 	}
 	return nil
 }

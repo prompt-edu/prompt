@@ -224,6 +224,23 @@ func (s *FeedbackDBTestSuite) TestSharedEvaluationDeleteIsLecturerOnly() {
 	require.NoError(s.T(), s.service.DeleteDraft(s.ctx, sharedPhaseID, teamPresentationID, lecturer))
 }
 
+// The 404 used to be raised after the transaction had committed, so deleting a category
+// that another lecturer had already removed destroyed every evaluation in the phase.
+func (s *FeedbackDBTestSuite) TestDeletingUnknownCategoryKeepsExistingFeedback() {
+	_, err := s.put(deliveryCategory, instructor("category-delete"), "must survive", 0)
+	require.NoError(s.T(), err)
+
+	err = s.service.DeleteCategory(s.ctx, individualPhaseID, uuid.New(), true)
+	var apiErr *APIError
+	require.True(s.T(), errors.As(err, &apiErr))
+	assert.Equal(s.T(), 404, apiErr.Status)
+	assert.Equal(s.T(), "category_not_found", apiErr.Code)
+
+	remaining, err := s.service.queries.CountFeedbackFormsByPhase(s.ctx, individualPhaseID)
+	require.NoError(s.T(), err)
+	assert.Positive(s.T(), remaining)
+}
+
 func (s *FeedbackDBTestSuite) TestGetConfigReadsWithoutCreatingRow() {
 	unconfigured := uuid.New()
 

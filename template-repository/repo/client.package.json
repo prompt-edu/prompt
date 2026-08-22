@@ -4,8 +4,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "rspack serve --mode development",
-    "lint": "biome check src routes sidebar",
-    "lint:fix": "biome check src routes sidebar --fix",
+    "lint": "biome check src routes sidebar shared",
+    "lint:fix": "biome check src routes sidebar shared --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "build": "rspack --mode=production --env NODE_ENV=production"
   },

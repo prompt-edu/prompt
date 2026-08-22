@@ -33,6 +33,7 @@ clients/
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
     - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
+  shared/                  # Module Federation scaffolding shared by the remotes (not a workspace)
 
 servers/
   core/                    # Main Go service (port 8080)

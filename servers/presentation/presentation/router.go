@@ -11,7 +11,9 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier/keycloakCoreRequests"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
+	log "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(router *gin.RouterGroup, service *Service) {
@@ -59,11 +61,11 @@ func RegisterRoutes(router *gin.RouterGroup, service *Service) {
 	router.GET("/presentations/:presentationID/materials/:materialID/download", promptSDK.AuthenticationMiddleware(allRoles...), service.getMaterialDownload)
 	router.DELETE("/presentations/:presentationID/materials/:materialID", promptSDK.AuthenticationMiddleware(allRoles...), service.deleteMaterial)
 
-	router.GET("/presentations/:presentationID/feedback", promptSDK.AuthenticationMiddleware(allRoles...), service.getFeedback)
+	router.GET("/presentations/:presentationID/feedback", promptSDK.AuthenticationMiddleware(allRoles...), resolveCourseLecturer(), service.getFeedback)
 	router.PUT("/presentations/:presentationID/feedback/answers/:categoryID", promptSDK.AuthenticationMiddleware(staffRoles...), service.putFeedbackAnswer)
 	router.POST("/presentations/:presentationID/feedback/submit", promptSDK.AuthenticationMiddleware(staffRoles...), service.submitFeedback)
 	router.POST("/presentations/:presentationID/feedback/reopen", promptSDK.AuthenticationMiddleware(staffRoles...), service.reopenFeedback)
-	router.DELETE("/presentations/:presentationID/feedback/draft", promptSDK.AuthenticationMiddleware(staffRoles...), service.deleteDraft)
+	router.DELETE("/presentations/:presentationID/feedback/draft", promptSDK.AuthenticationMiddleware(staffRoles...), resolveCourseLecturer(), service.deleteDraft)
 	router.POST("/presentations/:presentationID/feedback/release", promptSDK.AuthenticationMiddleware(managerRoles...), service.releaseFeedback)
 	router.DELETE("/presentations/:presentationID/feedback/release", promptSDK.AuthenticationMiddleware(managerRoles...), service.unreleaseFeedback)
 	router.DELETE("/presentations/:presentationID/feedback", promptSDK.AuthenticationMiddleware(managerRoles...), service.resetFeedback)
@@ -84,6 +86,32 @@ func pathID(c *gin.Context, parameter, code, message string) (uuid.UUID, error) 
 		return uuid.Nil, apiError(http.StatusBadRequest, code, message, err)
 	}
 	return id, nil
+}
+
+// The SDK admits PROMPT lecturers without ever looking up their course roles, so IsLecturer
+// stays false on every route that allows them directly. Releasing feedback is a course
+// lecturer right, so the routes whose answer depends on it resolve the mapping themselves.
+func resolveCourseLecturer() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenUser, exists := keycloakTokenVerifier.GetTokenUser(c)
+		if !exists || tokenUser.IsLecturer || tokenUser.Roles[promptSDK.PromptAdmin] ||
+			!tokenUser.Roles[promptSDK.PromptLecturer] {
+			return
+		}
+		verifier := keycloakTokenVerifier.KeycloakTokenVerifierSingleton
+		phaseID, err := coursePhaseID(c)
+		if verifier == nil || err != nil {
+			return
+		}
+		mapping, err := keycloakCoreRequests.SendCoursePhaseRoleMappingRequest(
+			verifier.CoreURL, c.GetHeader("Authorization"), phaseID)
+		if err != nil {
+			log.WithError(err).Warn("Could not resolve the course roles of a PROMPT lecturer")
+			return
+		}
+		tokenUser.IsLecturer = tokenUser.Roles[mapping.CourseLecturerRole]
+		keycloakTokenVerifier.SetTokenUser(c, tokenUser)
+	}
 }
 
 func requestUser(c *gin.Context) (User, error) {

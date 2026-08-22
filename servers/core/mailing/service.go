@@ -129,17 +129,29 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		return response, fmt.Errorf("mailing template incomplete: subject ('%s') or content ('%s') is empty", mailingInfo.MailSubject, mailingInfo.MailContent)
 	}
 
-	// 3.) Get the participants to send the status mail to. A recipient list narrows the mail down to
-	// those participants; either way only participants with the given status are mailed.
-	participants, err := getStatusMailRecipients(ctx, coursePhaseID, status, recipientCourseParticipationIDs)
+	// 3.) Claim the participants with the given status that have not been mailed for it yet, narrowed
+	// to the recipient list if one was given. Claiming before sending trades a mail lost to a crash
+	// for a duplicated one.
+	var recipientIDs []uuid.UUID
+	if recipientCourseParticipationIDs != nil {
+		recipientIDs = deduplicateUUIDList(recipientCourseParticipationIDs)
+	}
+
+	participants, err := MailingServiceSingleton.queries.ClaimStatusMailRecipients(ctx, db.ClaimStatusMailRecipientsParams{
+		CoursePhaseID:          coursePhaseID,
+		Status:                 string(status),
+		SentAt:                 nowFn().Format(time.RFC3339),
+		CourseParticipationIds: recipientIDs,
+	})
 	if err != nil {
-		log.Error("failed to get participant mailing information: ", err)
+		log.Error("failed to claim status mail recipients: ", err)
 		return response, fmt.Errorf("failed to retrieve participant information for course phase %s with status %s: %v", coursePhaseID, status, err)
 	}
 
-	// 4.) Send mail to all participants
+	// 4.) Send to every claimed participant, releasing the claim where the send failed so the next
+	// trigger picks the participant up again.
 	for _, participant := range participants {
-		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, participant)
+		placeholderMap := getStatusEmailPlaceholderValues(mailingInfo.CourseName, mailingInfo.CourseStartDate, mailingInfo.CourseEndDate, db.GetParticipantMailingInformationByIDsRow(participant))
 		// replace values in subject
 		finalSubject := replacePlaceholders(mailingInfo.MailSubject, placeholderMap)
 
@@ -150,39 +162,25 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
-		} else {
-			log.Debug("Successfully sent status mail to: ", participant.Email.String)
-			response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
+			releaseStatusMailClaim(ctx, coursePhaseID, participant.CourseParticipationID, status)
+			continue
 		}
+
+		log.Debug("Successfully sent status mail to: ", participant.Email.String)
+		response.SuccessfulEmails = append(response.SuccessfulEmails, participant.Email.String)
 	}
 
 	return response, nil
 }
 
-func getStatusMailRecipients(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs []uuid.UUID) ([]db.GetParticipantMailingInformationRow, error) {
-	nullStatus := db.NullPassStatus{PassStatus: status, Valid: true}
-
-	if recipientCourseParticipationIDs == nil {
-		return MailingServiceSingleton.queries.GetParticipantMailingInformation(ctx, db.GetParticipantMailingInformationParams{
-			ID:         coursePhaseID,
-			PassStatus: nullStatus,
-		})
+func releaseStatusMailClaim(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, status db.PassStatus) {
+	if err := MailingServiceSingleton.queries.ReleaseStatusMailClaim(ctx, db.ReleaseStatusMailClaimParams{
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: courseParticipationID,
+		Status:                string(status),
+	}); err != nil {
+		log.Error("failed to release status mail claim for participant, it will not be retried: ", err)
 	}
-
-	selected, err := MailingServiceSingleton.queries.GetParticipantMailingInformationByIDsAndStatus(ctx, db.GetParticipantMailingInformationByIDsAndStatusParams{
-		ID:         coursePhaseID,
-		Column2:    deduplicateUUIDList(recipientCourseParticipationIDs),
-		PassStatus: nullStatus,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	participants := make([]db.GetParticipantMailingInformationRow, 0, len(selected))
-	for _, participant := range selected {
-		participants = append(participants, db.GetParticipantMailingInformationRow(participant))
-	}
-	return participants, nil
 }
 
 // SendMail sends a transactional mail with no Reply-To, CC, or BCC. For mails

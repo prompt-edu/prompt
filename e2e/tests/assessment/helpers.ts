@@ -30,6 +30,7 @@ export interface CategoryWithCompetencies {
 
 export interface CoursePhaseConfig {
   coursePhaseID: string
+  assessmentEnabled: boolean
   assessmentSchemaID: string
   selfEvaluationSchema: string
   peerEvaluationSchema: string
@@ -88,6 +89,7 @@ export async function getConfig(
 }
 
 export interface ConfigOverrides {
+  assessmentEnabled?: boolean
   assessmentSchemaId?: string
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
@@ -95,6 +97,8 @@ export interface ConfigOverrides {
 
 // PUT /config requires the full request body; start/deadline are set to a
 // generous open window so grading, completion, and (cleanup) unmarking work.
+// assessmentEnabled is only sent when overridden, because an omitted flag keeps
+// the phase's current mode (the behavior the settings card relies on).
 export async function putConfig(
   api: APIRequestContext,
   phaseId: string,
@@ -107,6 +111,9 @@ export async function putConfig(
     api.put(assessmentUrl(phaseId, 'config'), {
       data: {
         coursePhaseId: phaseId,
+        ...(overrides.assessmentEnabled === undefined
+          ? {}
+          : { assessmentEnabled: overrides.assessmentEnabled }),
         assessmentSchemaId: overrides.assessmentSchemaId ?? current.assessmentSchemaID,
         start: past,
         deadline: future,
@@ -288,7 +295,9 @@ export async function releaseResults(api: APIRequestContext, phaseId: string): P
 //    schema changes are both rejected while assessment/evaluation data exists,
 // 3. delete the configured schemas' categories (cascades competencies and any
 //    leftover evaluations),
-// 4. point the config back at the default template schemas,
+// 4. point the config back at the default template schemas and re-enable the
+//    assessment (the seeded mode; a spec may have switched the phase to
+//    evaluations only),
 // 5. delete the e2e-created schemas (only possible after step 4: the config's
 //    schema FKs are ON DELETE RESTRICT).
 // Student-authored evaluations cannot be deleted by admins — specs that create
@@ -332,6 +341,7 @@ export async function resetAssessmentPhase(
     }
     const schemas = await getSchemas(admin, phaseId)
     await putConfig(admin, phaseId, {
+      assessmentEnabled: true,
       assessmentSchemaId: schemas.find((s) => s.name === DEFAULT_SCHEMAS.assessment)?.id,
       selfEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.self)?.id,
     })

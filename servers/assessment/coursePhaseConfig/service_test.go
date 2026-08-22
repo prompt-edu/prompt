@@ -2,9 +2,12 @@ package coursePhaseConfig
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -86,7 +89,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) SetupSuite() {
 
 	// Insert a course phase config entry to enable updates
 	_, err = testDB.Conn.Exec(suite.suiteCtx,
-		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, self_evaluation_schema, peer_evaluation_schema) 
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, self_evaluation_schema, peer_evaluation_schema)
 		 VALUES ($1, $2, $3, $4)`,
 		schemaID, suite.testCoursePhaseID, selfSchemaID, peerSchemaID)
 	if err != nil {
@@ -130,6 +133,86 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfigCreatesD
 	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
 	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
 	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigDoesNotCreateARow() {
+	testID := uuid.New()
+
+	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err, "An unconfigured phase should read as the column defaults")
+	assert.Equal(suite.T(), testID, config.CoursePhaseID)
+	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
+	assert.True(suite.T(), config.EvaluationResultsVisible, "EvaluationResultsVisible should default to TRUE")
+	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
+	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
+	assert.False(suite.T(), config.ResultsReleased, "ResultsReleased should default to FALSE")
+	assert.False(suite.T(), config.GradingSheetVisible, "GradingSheetVisible should default to FALSE")
+
+	var rowCount int
+	err = suite.coursePhaseConfigService.conn.QueryRow(suite.suiteCtx,
+		"SELECT COUNT(*) FROM course_phase_config WHERE course_phase_id = $1", testID).Scan(&rowCount)
+	assert.NoError(suite.T(), err)
+	assert.Zero(suite.T(), rowCount, "Reading the config must not create a row")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestRequireAssessmentEnabled() {
+	router := gin.New()
+	router.POST("/api/course_phase/:coursePhaseID/write", RequireAssessmentEnabled(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	post := func(coursePhaseID string) int {
+		req := httptest.NewRequest(http.MethodPost, "/api/course_phase/"+coursePhaseID+"/write", nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+
+	assert.Equal(suite.T(), http.StatusBadRequest, post("not-a-uuid"))
+
+	unconfiguredID := uuid.New()
+	assert.Equal(suite.T(), http.StatusOK, post(unconfiguredID.String()),
+		"An unconfigured phase defaults to enabled")
+
+	var rowCount int
+	err := suite.coursePhaseConfigService.conn.QueryRow(suite.suiteCtx,
+		"SELECT COUNT(*) FROM course_phase_config WHERE course_phase_id = $1", unconfiguredID).Scan(&rowCount)
+	assert.NoError(suite.T(), err)
+	assert.Zero(suite.T(), rowCount, "The guard must not create a config row")
+
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	enabledID := uuid.New()
+	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled)
+		 VALUES ($1, $2, TRUE)`,
+		schemaID, enabledID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusOK, post(enabledID.String()))
+
+	disabledID := uuid.New()
+	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled)
+		 VALUES ($1, $2, FALSE)`,
+		schemaID, disabledID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusConflict, post(disabledID.String()),
+		"Assessment writes must be rejected on evaluation-only phases")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigReturnsTheStoredRow() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, assessment_enabled, results_released)
+		 VALUES ($1, $2, FALSE, TRUE)`,
+		schemaID, testID)
+	assert.NoError(suite.T(), err)
+
+	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.AssessmentEnabled)
+	assert.True(suite.T(), config.ResultsReleased)
 }
 
 func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_DefaultVisibilitySettings() {
@@ -313,7 +396,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	// Insert assessment data to block schema change
 	assessmentID := uuid.New()
 	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
-		`INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level) 
+		`INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
 		 VALUES ($1, $2, $3, $4, $5)`,
 		assessmentID, participationID, testID, competencyID, "good")
 	assert.NoError(suite.T(), err)
@@ -350,6 +433,148 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newSchemaID, config.AssessmentSchemaID, "Schema should have changed")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_AssessmentEnabledDefaultsToTrue() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	req := createTestCoursePhaseConfigRequest(schemaID, testID)
+	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	assert.NoError(suite.T(), err)
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_AssessmentEnabledPreservedWhenOmitted() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	req := createTestCoursePhaseConfigRequest(schemaID, testID)
+	disabled := false
+	req.AssessmentEnabled = &disabled
+	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+
+	// A client that omits the field must not silently re-enable the phase
+	omittedReq := createTestCoursePhaseConfigRequest(schemaID, testID)
+	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, omittedReq))
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.AssessmentEnabled, "Omitted AssessmentEnabled should preserve the stored value")
+}
+
+// seedAssessmentCompetency creates the category/competency pair assessment rows need.
+func (suite *CoursePhaseConfigServiceTestSuite) seedAssessmentCompetency(schemaID uuid.UUID) uuid.UUID {
+	categoryID := uuid.New()
+	competencyID := uuid.New()
+
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO category (id, name, assessment_schema_id) VALUES ($1, $2, $3)`,
+		categoryID, "Disable Guard Category", schemaID)
+	assert.NoError(suite.T(), err)
+
+	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO competency (id, category_id, name) VALUES ($1, $2, $3)`,
+		competencyID, categoryID, "Disable Guard Competency")
+	assert.NoError(suite.T(), err)
+
+	return competencyID
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_CannotDisableAssessmentWithData() {
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	competencyID := suite.seedAssessmentCompetency(schemaID)
+
+	dataClasses := []struct {
+		name string
+		seed func(phaseID uuid.UUID)
+	}{
+		{"assessment", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				uuid.New(), uuid.New(), phaseID, competencyID, "good")
+			assert.NoError(suite.T(), err)
+		}},
+		{"assessment completion", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author)
+				 VALUES ($1, $2, NOW(), $3)`,
+				uuid.New(), phaseID, "Tutor")
+			assert.NoError(suite.T(), err)
+		}},
+		{"category comment", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO category_assessment (id, category_id, course_phase_id, course_participation_id, comment)
+				 SELECT $1, c.category_id, $2, $3, $4 FROM competency c WHERE c.id = $5`,
+				uuid.New(), phaseID, uuid.New(), "Needs work", competencyID)
+			assert.NoError(suite.T(), err)
+		}},
+		{"action item", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO action_item (id, course_phase_id, course_participation_id, action, author)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				uuid.New(), phaseID, uuid.New(), "Pair up on testing", "Tutor")
+			assert.NoError(suite.T(), err)
+		}},
+	}
+
+	for _, dataClass := range dataClasses {
+		suite.Run(dataClass.name, func() {
+			testID := uuid.New()
+			assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
+				createTestCoursePhaseConfigRequest(schemaID, testID)))
+
+			dataClass.seed(testID)
+
+			req := createTestCoursePhaseConfigRequest(schemaID, testID)
+			disabled := false
+			req.AssessmentEnabled = &disabled
+			err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+			assert.Equal(suite.T(), ErrCannotDisableAssessmentWithData, err)
+
+			config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+			assert.NoError(suite.T(), err)
+			assert.True(suite.T(), config.AssessmentEnabled, "Assessment should stay enabled")
+		})
+	}
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_BlankArtifactsDoNotBlockDisabling() {
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	competencyID := suite.seedAssessmentCompetency(schemaID)
+	testID := uuid.New()
+
+	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
+		createTestCoursePhaseConfigRequest(schemaID, testID)))
+
+	// The UI creates blank action items on click and category comments have no delete route,
+	// so neither may lock the phase. Tabs and newlines count as blank too.
+	for _, blank := range []string{"", "   ", "\t", "\n"} {
+		_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+			`INSERT INTO action_item (id, course_phase_id, course_participation_id, action, author)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			uuid.New(), testID, uuid.New(), blank, "Tutor")
+		assert.NoError(suite.T(), err)
+
+		_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+			`INSERT INTO category_assessment (id, category_id, course_phase_id, course_participation_id, comment)
+			 SELECT $1, c.category_id, $2, $3, $4 FROM competency c WHERE c.id = $5`,
+			uuid.New(), testID, uuid.New(), blank, competencyID)
+		assert.NoError(suite.T(), err)
+	}
+
+	req := createTestCoursePhaseConfigRequest(schemaID, testID)
+	disabled := false
+	req.AssessmentEnabled = &disabled
+	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+
+	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.AssessmentEnabled, "Blank artifacts should not block disabling")
 }
 
 // Note: GetTeamsForCoursePhase testing is limited because it requires external HTTP calls

@@ -17,11 +17,12 @@ the SDK auth middleware depends on this path structure.
 ```go
 import (
     log "github.com/sirupsen/logrus"
-    promptSDK "github.com/ls1intum/prompt-sdk"
+    promptSDK "github.com/prompt-edu/prompt-sdk"
 )
 
-// once in main.go
-if err := promptSDK.InitAuthenticationMiddleware(keycloakURL, realm, coreURL); err != nil {
+// once in main.go — phase services use InitPhaseKeycloak, which reads the
+// KEYCLOAK_* / SERVER_CORE_HOST env vars itself
+if err := promptSDK.InitPhaseKeycloak(); err != nil {
     log.Fatalf("Failed to initialize keycloak: %v", err)
 }
 

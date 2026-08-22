@@ -159,6 +159,8 @@ find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
 find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
   -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
   | xargs -0 perl -pi -e "s/^(\s*)port: 3001,\$/\$1port: ${CLIENT_PORT},/"
+grep -q "port: ${CLIENT_PORT}," "$CLIENT_DIR/rspack.config.mjs" \
+  || die "dev port anchor not found in $CLIENT_DIR/rspack.config.mjs (expected a 'port: 3001,' line)"
 find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
   -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
   | while IFS= read -r -d '' f; do rename_tokens "$f"; done

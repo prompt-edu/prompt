@@ -1,5 +1,3 @@
-import '../src/loadStyles'
-
 import {
   EDITOR_ROLES,
   LECTURER_ROLES,

@@ -1,5 +1,3 @@
-import '../src/styles.css'
-
 import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Presentation } from 'lucide-react'
 

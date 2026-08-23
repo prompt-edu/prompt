@@ -144,6 +144,94 @@ func (ns NullGender) Value() (driver.Value, error) {
 	return string(ns.Gender), nil
 }
 
+type MailCampaignStatus string
+
+const (
+	MailCampaignStatusDraft           MailCampaignStatus = "draft"
+	MailCampaignStatusSending         MailCampaignStatus = "sending"
+	MailCampaignStatusSent            MailCampaignStatus = "sent"
+	MailCampaignStatusPartiallyFailed MailCampaignStatus = "partially_failed"
+	MailCampaignStatusFailed          MailCampaignStatus = "failed"
+)
+
+func (e *MailCampaignStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MailCampaignStatus(s)
+	case string:
+		*e = MailCampaignStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MailCampaignStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMailCampaignStatus struct {
+	MailCampaignStatus MailCampaignStatus `json:"mail_campaign_status"`
+	Valid              bool               `json:"valid"` // Valid is true if MailCampaignStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMailCampaignStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MailCampaignStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MailCampaignStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMailCampaignStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MailCampaignStatus), nil
+}
+
+type MailRecipientStatus string
+
+const (
+	MailRecipientStatusPending MailRecipientStatus = "pending"
+	MailRecipientStatusSent    MailRecipientStatus = "sent"
+	MailRecipientStatusFailed  MailRecipientStatus = "failed"
+)
+
+func (e *MailRecipientStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MailRecipientStatus(s)
+	case string:
+		*e = MailRecipientStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MailRecipientStatus: %T", src)
+	}
+	return nil
+}
+
+type NullMailRecipientStatus struct {
+	MailRecipientStatus MailRecipientStatus `json:"mail_recipient_status"`
+	Valid               bool                `json:"valid"` // Valid is true if MailRecipientStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMailRecipientStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.MailRecipientStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MailRecipientStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMailRecipientStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MailRecipientStatus), nil
+}
+
 type NoteTagColor string
 
 const (
@@ -564,6 +652,43 @@ type File struct {
 	CreatedAt        pgtype.Timestamp `json:"created_at"`
 	UpdatedAt        pgtype.Timestamp `json:"updated_at"`
 	DeletedAt        pgtype.Timestamp `json:"deleted_at"`
+}
+
+type MailCampaign struct {
+	ID                  uuid.UUID          `json:"id"`
+	CourseID            uuid.UUID          `json:"course_id"`
+	Name                string             `json:"name"`
+	Subject             string             `json:"subject"`
+	Body                string             `json:"body"`
+	TargetCoursePhaseID pgtype.UUID        `json:"target_course_phase_id"`
+	TargetPassStatuses  []string           `json:"target_pass_statuses"`
+	ReplyToOverride     []byte             `json:"reply_to_override"`
+	CcOverride          []byte             `json:"cc_override"`
+	BccOverride         []byte             `json:"bcc_override"`
+	Status              MailCampaignStatus `json:"status"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	CreatedByID         string             `json:"created_by_id"`
+	CreatedByEmail      string             `json:"created_by_email"`
+	CreatedByName       string             `json:"created_by_name"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	UpdatedByID         string             `json:"updated_by_id"`
+	UpdatedByEmail      string             `json:"updated_by_email"`
+	UpdatedByName       string             `json:"updated_by_name"`
+	SentAt              pgtype.Timestamptz `json:"sent_at"`
+	SentByID            pgtype.Text        `json:"sent_by_id"`
+	SentByEmail         pgtype.Text        `json:"sent_by_email"`
+	SentByName          pgtype.Text        `json:"sent_by_name"`
+}
+
+type MailCampaignRecipient struct {
+	ID                    uuid.UUID           `json:"id"`
+	CampaignID            uuid.UUID           `json:"campaign_id"`
+	CourseID              uuid.UUID           `json:"course_id"`
+	CourseParticipationID uuid.UUID           `json:"course_participation_id"`
+	Email                 string              `json:"email"`
+	Status                MailRecipientStatus `json:"status"`
+	ErrorMessage          string              `json:"error_message"`
+	SentAt                pgtype.Timestamptz  `json:"sent_at"`
 }
 
 type Note struct {

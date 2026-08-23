@@ -24,13 +24,14 @@ export const CourseCards = ({ courses }: CourseCardsProps) => {
     <div className='container mx-auto px-4 py-8'>
       <div className='relative mb-8 max-w-md'>
         <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+        {/* Remotes ship their own Tailwind build, so an unprefixed pl-9 loses to their .px-3 */}
         <Input
           type='search'
           aria-label='Search courses'
           placeholder='Search courses...'
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className='pl-9'
+          className='pl-9!'
         />
       </div>
 

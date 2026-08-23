@@ -160,6 +160,26 @@ services:
     networks:
       - prompt-network
 
+  client-presentation-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-presentation-component:${PRESENTATION_IMAGE_TAG}"
+    container_name: prompt-client-presentation-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.presentation.rule=Host(`${CORE_HOST}`) && PathPrefix(`/presentation`)"
+      - "traefik.http.routers.presentation.entrypoints=websecure"
+      - "traefik.http.routers.presentation.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.presentation-strip-prefix.stripPrefix.prefixes=/presentation"
+      - "traefik.http.routers.presentation.middlewares=presentation-strip-prefix,presentation-compress"
+      - "traefik.http.middlewares.presentation-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server
+    networks:
+      - prompt-network
+
   client-matching-component:
     image: "ghcr.io/prompt-edu/prompt/prompt-clients-matching-component:${MATCHING_IMAGE_TAG}"
     container_name: prompt-client-matching-component
@@ -202,6 +222,7 @@ services:
       - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
+      - PRESENTATION_HOST
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

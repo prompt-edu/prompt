@@ -57,6 +57,14 @@ services:
     build:
       cache_to:
         - type=gha,mode=max,scope=e2e-client-certificate
+  server-presentation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-server-presentation
+  client-presentation:
+    build:
+      cache_to:
+        - type=gha,mode=max,scope=e2e-client-presentation
   server-team-allocation:
     build:
       cache_to:

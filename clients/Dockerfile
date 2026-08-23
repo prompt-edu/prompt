@@ -31,6 +31,7 @@ COPY assessment_component/package.json           assessment_component/package.js
 COPY team_allocation_component/package.json      team_allocation_component/package.json
 COPY self_team_allocation_component/package.json self_team_allocation_component/package.json
 COPY certificate_component/package.json          certificate_component/package.json
+COPY presentation_component/package.json         presentation_component/package.json
 
 RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
     yarn install --immutable

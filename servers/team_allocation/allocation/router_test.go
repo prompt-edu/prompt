@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -113,10 +114,10 @@ func (suite *AllocationRouterTestSuite) TestGetAllocationByCourseParticipationID
 
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	var teamID string
-	err := json.Unmarshal(resp.Body.Bytes(), &teamID)
+	var allocation allocationDTO.Allocation
+	err := json.Unmarshal(resp.Body.Bytes(), &allocation)
 	assert.NoError(suite.T(), err)
-	assert.NotEmpty(suite.T(), teamID, "Should return a team ID")
+	assert.Equal(suite.T(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), allocation.TeamAllocation)
 }
 
 func (suite *AllocationRouterTestSuite) TestGetAllocationByCourseParticipationIDInvalidID() {

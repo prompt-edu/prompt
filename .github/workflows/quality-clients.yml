@@ -7,6 +7,13 @@ permissions:
   contents: read
 
 jobs:
+  single-tailwind-sheet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check that only core builds Tailwind
+        run: ./scripts/check-remote-styles.sh
+
   quality-client:
     runs-on: ubuntu-latest
     defaults:

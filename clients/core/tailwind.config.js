@@ -71,8 +71,13 @@ export default {
     },
   },
   plugins: [tailwindAnimate, typography],
+  // Core builds the only Tailwind stylesheet in the document, so it scans every
+  // micro-frontend as well: remotes ship no utilities of their own.
   content: [
     './src/**/*.{js,ts,jsx,tsx}',
+    '../*_component/src/**/*.{js,ts,jsx,tsx}',
+    '../*_component/routes/**/*.{js,ts,jsx,tsx}',
+    '../*_component/sidebar/**/*.{js,ts,jsx,tsx}',
     '../node_modules/@tumaet/prompt-ui-components/dist/**/*.{js,ts,jsx,tsx}',
   ],
 }

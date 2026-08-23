@@ -136,3 +136,13 @@ Generate and hand out course completion certificates.
 - **Certificate Template** - the layout and wording your certificates will use.
 - **Release Date** - the day students can first download their certificate.
 - **Download** - the action a student takes to get their certificate as a PDF.
+
+### Presentation
+
+Schedule individual or team presentations, collect supporting materials, and provide structured written feedback.
+
+- **Presentation Slot** - an assigned time window with an optional location.
+- **Feedback Category** - a predefined topic instructors respond to, such as content or delivery.
+- **Independent Feedback** - a separate evaluation owned by one instructor.
+- **Shared Feedback** - one evaluation edited collaboratively by multiple instructors.
+- **Feedback Release** - a named snapshot made visible to the presenting student or team.

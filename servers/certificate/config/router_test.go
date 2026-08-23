@@ -11,8 +11,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
-	"github.com/prompt-edu/prompt/servers/certificate/testutils"
+	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,7 +28,7 @@ type ConfigRouterTestSuite struct {
 
 func (s *ConfigRouterTestSuite) SetupSuite() {
 	s.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(s.suiteCtx, "../database_dumps/certificate.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(s.suiteCtx, "../database_dumps/certificate.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		s.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -40,7 +42,7 @@ func (s *ConfigRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	s.router = gin.Default()
 	api := s.router.Group("/api/course_phase/:coursePhaseID")
-	setupConfigRouter(api, testutils.MockPermissionMiddleware)
+	setupConfigRouter(api, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (s *ConfigRouterTestSuite) TearDownSuite() {

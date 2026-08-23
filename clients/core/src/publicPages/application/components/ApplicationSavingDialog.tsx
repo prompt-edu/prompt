@@ -100,7 +100,7 @@ export const ApplicationSavingDialog = ({
         }
       }}
     >
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent className='max-w-[425px] [&>*]:min-w-0'>
         <DialogHeader>
           <div className='flex flex-col items-center text-center'>
             <div

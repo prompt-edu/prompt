@@ -1,4 +1,4 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { LECTURER_ROLES, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { ScrollText } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
@@ -7,7 +7,7 @@ export const CourseAuditLogSidebar = ({ rootPath, title }: { rootPath: string; t
     title: 'Audit Log',
     icon: <ScrollText />,
     goToPath: '/audit-log',
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   }
   return (
     <ExternalSidebarComponent

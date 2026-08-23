@@ -8,6 +8,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,7 +20,7 @@ import (
 func setupCategoryAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	r := routerGroup.Group("/category-assessment")
 
-	r.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createOrUpdateCategoryAssessment)
+	r.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), createOrUpdateCategoryAssessment)
 }
 
 // createOrUpdateCategoryAssessment godoc

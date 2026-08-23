@@ -76,7 +76,7 @@ const isAssessmentTypeEnabled = (
     case AssessmentType.TUTOR:
       return config.tutorEvaluationEnabled
     default:
-      return true
+      return config.assessmentEnabled
   }
 }
 

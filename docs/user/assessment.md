@@ -50,11 +50,12 @@ This opens a dialog for setting the phase's behavior and schedule.
 
 You must define the following core settings:
 
-| Setting                 | Description                                                                |
-| ----------------------- | -------------------------------------------------------------------------- |
-| **Assessment Template** | Select which assessment template to use (defines the competency structure) |
-| **Start Date**          | When the assessment phase begins (using the timeframe selector)            |
-| **Deadline**            | When the assessment phase ends (using the timeframe selector)              |
+| Setting                 | Description                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Assessment Enabled**  | Turn off to run the phase for evaluations only, without any lecturer grading                                                 |
+| **Assessment Template** | Select which assessment template to use (defines the competency structure). Only required while **Assessment Enabled** is on |
+| **Start Date**          | When the assessment phase begins (using the timeframe selector)                                                              |
+| **Deadline**            | When the assessment phase ends (using the timeframe selector)                                                                |
 
 #### Visibility Settings
 
@@ -90,6 +91,32 @@ Each evaluation type has its own:
 - **Deadline**: When this evaluation closes
 
 > ⚠️ **Note**: All timestamps use **system time (Europe/Berlin) with deadlines ending at 23:59**.
+
+#### Evaluation-Only Phases
+
+Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the
+lecturer-facing grading workflow from the phase. When it is off:
+
+- The assessment schema, timeframe and visibility settings are hidden, and no assessment schema is required
+- The participants table drops the score and grade-suggestion columns and tracks evaluation progress only
+- Statistics, the per-participant assessment page and the assessment schema detail page are unavailable
+- The CampusOnline grade export is hidden, since the phase produces no grades
+- **Release Results** publishes evaluation results instead: each student sees their own self-evaluation
+  and the averaged scores their peers gave them, with a PDF export
+
+> 🔒 **Peer averages shown to students are anonymized**, here and in the assessment report alike. A
+> competency with fewer than two distinct peer raters is not shown at all, so an average can never
+> reveal a single teammate's score. Multiple ratings from the same peer do not satisfy that threshold.
+
+**Unlocking a phase whose toggle is greyed out:** the switch locks as soon as tutor-facing assessment
+data exists, so existing grades can never be hidden. To switch such a phase to evaluations only, remove
+that data first, in this order:
+
+1. Open the participant's assessment page and **Delete Summary** (removes the final status, grade
+   suggestion and general remarks; this also works after the deadline)
+2. Delete the individual competency assessments
+3. Delete the action items
+4. Clear the category comments (saving an empty comment is enough)
 
 ---
 
@@ -166,6 +193,46 @@ Competencies are individual skills within categories:
 Self and peer evaluation results appear in the assessment view automatically when the self/peer evaluation uses the **same schema** as the assessment. Because both then share the same competencies, each evaluation score lines up with its assessment competency without any extra configuration.
 
 If a **different schema** is configured for self or peer evaluation, those scores are not shown in the assessment view (feedback items are still shown).
+
+📺 **Video Tutorial**: Coming soon
+
+---
+
+## 🎓 Exporting Grades to CampusOnline
+
+The **CampusOnline Grade Export** card at the bottom of the assessment settings fills your PROMPT grades into the exam list from CampusOnline, so you do not have to retype them.
+
+The grades come from the **grade suggestion** of every assessment that is marked as final. Assessments that are not yet finalized are skipped.
+
+### The Workflow
+
+1. In CampusOnline, download the exam list for your course as a CSV file.
+2. In PROMPT, open **Settings** in the assessment phase and upload that file into the CampusOnline Grade Export card.
+3. Check the summary. PROMPT reports which rows it filled, which it skipped, and why.
+4. Click **Download Filled CSV**.
+5. Upload the downloaded file back into CampusOnline.
+
+Steps 1 and 5 happen in CampusOnline; PROMPT is only involved in the middle.
+
+### How Students Are Matched
+
+PROMPT matches each row of your file to a student of the phase by **registration number** (compared against the student's matriculation number, ignoring leading zeros). Whenever the registration number matches nobody, whether the row has none or carries a number no student of the phase has, PROMPT falls back to matching by **family name and first name**.
+
+If a row could match more than one student, PROMPT leaves it empty rather than guessing. Rows matched by name only are flagged in the summary so you can spot-check them.
+
+### What Gets Changed
+
+Only the **GRADE** and **DATE_OF_ASSESSMENT** columns are written. Every other column, the column order, the delimiter and the file's text encoding are handed back exactly as CampusOnline delivered them, so the file stays importable.
+
+### Warnings to Watch For
+
+| Warning                                      | What it means                                                                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Graded students missing from the CSV**      | These students are graded in PROMPT but have no row in your file, so their grade is not exported. Usually the wrong exam date or course group was downloaded. |
+| **No matching student in this phase**        | The row belongs to a student who does not participate in this assessment phase.                                            |
+| **Not graded in PROMPT yet**                 | The student was found, but their assessment is not marked as final. Finish grading and upload the file again.              |
+| **Matches more than one student**            | Two students share the same name, so the row was left empty. Add the registration number to the file to resolve it.        |
+| **Existing grades replaced**                 | The file already contained grades in those rows and PROMPT overwrote them.                                                |
 
 📺 **Video Tutorial**: Coming soon
 

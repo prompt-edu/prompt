@@ -94,7 +94,7 @@ export function EditCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent className='max-w-[425px] [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Edit Category</DialogTitle>
           <DialogDescription>Update the category details below.</DialogDescription>

@@ -2,6 +2,7 @@ import type { Student } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Checkbox,
+  getStudentName,
   Label,
   Select,
   SelectContent,
@@ -57,7 +58,7 @@ export const TutorSelection = ({
                   className='flex-1 cursor-pointer aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground'
                   aria-disabled={!hasLogin}
                 >
-                  {tutor.firstName} {tutor.lastName}
+                  {getStudentName(tutor)}
                   {!hasLogin && ' (no university login)'}
                 </Label>
               </div>

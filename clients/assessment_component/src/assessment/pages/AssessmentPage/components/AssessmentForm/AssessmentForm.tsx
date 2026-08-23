@@ -3,7 +3,7 @@ import {
   mapScoreLevelToNumber,
   type ScoreLevel,
 } from '@tumaet/prompt-shared-state'
-import { Form, FormMessage } from '@tumaet/prompt-ui-components'
+import { Form, FormMessage, getStudentName } from '@tumaet/prompt-ui-components'
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react/jsx-runtime'
 import { useForm } from 'react-hook-form'
@@ -168,7 +168,7 @@ export const AssessmentForm = ({
                   key={member.id}
                   competency={peerEvaluationCompetency}
                   scoreLevel={memberScoreLevel}
-                  name={`${member.firstName} ${member.lastName}`}
+                  name={getStudentName(member)}
                 />
               )
             : undefined

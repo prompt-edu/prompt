@@ -144,11 +144,12 @@ export default function AssessmentScoreUpload({ applications }: AssessmentScoreU
           Upload Scores
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[900px] w-[90vw]'>
+      <DialogContent className='w-[90vw] max-w-[900px] max-h-[90vh] flex flex-col [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Upload Assessment Scores</DialogTitle>
         </DialogHeader>
-        <div className='mt-4'>
+        {/* Scroll the body, not the dialog, so the close button stays pinned. */}
+        <div className='mt-4 min-h-0 overflow-y-auto'>
           <div style={{ display: state.page === 1 ? 'block' : 'none' }}>
             <AssessmentScoreUploadPage1 ref={page1Ref} />
           </div>

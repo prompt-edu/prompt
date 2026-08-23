@@ -1,3 +1,5 @@
+import { getStudentName } from '@tumaet/prompt-ui-components'
+
 export interface StaffMember {
   keycloakUserID: string
   username: string
@@ -18,5 +20,4 @@ export interface UserSearchResults {
 
 export type CourseGroupName = 'Lecturer' | 'Editor'
 
-export const staffMemberFullName = (m: StaffMember): string =>
-  [m.firstName, m.lastName].filter(Boolean).join(' ') || m.username
+export const staffMemberFullName = (m: StaffMember): string => getStudentName(m) || m.username

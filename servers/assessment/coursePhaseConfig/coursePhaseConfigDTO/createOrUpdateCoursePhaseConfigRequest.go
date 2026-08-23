@@ -7,6 +7,7 @@ import (
 )
 
 type CreateOrUpdateCoursePhaseConfigRequest struct {
+	AssessmentEnabled        *bool     `json:"assessmentEnabled,omitempty"`
 	AssessmentSchemaID       uuid.UUID `json:"assessmentSchemaId"`
 	CoursePhaseID            uuid.UUID `json:"coursePhaseId"`
 	Start                    time.Time `json:"start"`

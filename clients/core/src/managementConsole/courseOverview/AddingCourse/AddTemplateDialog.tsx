@@ -131,7 +131,7 @@ export const AddTemplateDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-[550px]'>
+      <DialogContent className='max-w-[550px] [&>*]:min-w-0'>
         {isPending ? (
           <DialogLoadingDisplay customMessage='Updating template data...' />
         ) : isError && (error as any)?.response?.status === 409 ? (

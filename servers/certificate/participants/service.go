@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/certificate/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,7 +33,7 @@ func NewParticipantsService(queries db.Queries) *ParticipantsService {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		coreURL: utils.GetCoreUrl(),
+		coreURL: sdkUtils.GetCoreUrl(),
 	}
 }
 

@@ -86,7 +86,7 @@ export function InstructorNote({ note, studentId }: NoteProps) {
       </NoteWrapper>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className='sm:max-w-[400px]'>
+        <DialogContent className='max-w-[400px] [&>*]:min-w-0'>
           <DialogHeader>
             <DialogTitle>Delete Note</DialogTitle>
             <DialogDescription>

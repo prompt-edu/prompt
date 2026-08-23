@@ -40,9 +40,9 @@ export const AssessmentScoreUploadPage3 = ({
       </div>
 
       {unmatchedApplications.length > 1 && (
-        <div className='mt-4 h-[300px] sm:max-w-[850px] w-[85vw] overflow-hidden flex flex-col'>
+        <div className='mt-4 h-[300px] min-w-0 overflow-hidden flex flex-col'>
           <h4 className='text-md font-medium mb-2'>Unmatched Applications</h4>
-          <div className='overflow-x-auto overflow-y-auto'>
+          <div className='overflow-x-auto overflow-y-auto grow'>
             <Table>
               <TableHeader className='min-w-[150px] bg-muted'>
                 <TableRow>
@@ -70,9 +70,9 @@ export const AssessmentScoreUploadPage3 = ({
       )}
 
       {rowsWithError.length > 1 && (
-        <div className='mt-4 h-[300px] sm:max-w-[850px] w-[85vw] overflow-hidden flex flex-col'>
+        <div className='mt-4 h-[300px] min-w-0 overflow-hidden flex flex-col'>
           <h4 className='text-md font-medium mb-2'>Rows with Errors</h4>
-          <div className='overflow-x-auto overflow-y-auto'>
+          <div className='overflow-x-auto overflow-y-auto grow'>
             <Table>
               <TableHeader>
                 <TableRow>

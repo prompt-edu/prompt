@@ -44,6 +44,40 @@ export class AssessmentPage {
       .first()
   }
 
+  // The "Assessment enabled" toggle of the assessment settings card. Off means
+  // the phase runs evaluations only, which hides the schema/timeframe controls.
+  // SettingsSwitchField derives the switch id from its title.
+  assessmentEnabledSwitch(): Locator {
+    return this.settingsCard().locator('#assessment-enabled')
+  }
+
+  async setAssessmentEnabled(enabled: boolean) {
+    const toggle = this.assessmentEnabledSwitch()
+    await expect(toggle).toBeEnabled()
+    if ((await toggle.getAttribute('aria-checked')) === String(enabled)) return
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', String(enabled))
+  }
+
+  // The schema picker and timeframe range only render while the assessment is
+  // enabled, so their presence is the visible marker of the phase's mode.
+  async expectAssessmentControls(visible: boolean) {
+    const card = this.settingsCard()
+    const count = visible ? 1 : 0
+    await expect(card.getByText('Assessment schema', { exact: true })).toHaveCount(count)
+    await expect(card.getByText('Assessment timeframe', { exact: true })).toHaveCount(count)
+    await expect(card.getByText('Show assessment sheet', { exact: true })).toHaveCount(count)
+    await expect(this.gradeExportCard()).toHaveCount(count)
+  }
+
+  async expectAssessmentDisabledNotice() {
+    await expect(
+      this.page.getByText('Assessment is disabled for this phase. It collects evaluations only.', {
+        exact: false,
+      }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
   async createSchema(name: string, description: string) {
     await this.page.getByRole('button', { name: 'Create new assessment schema' }).click()
     const dialog = this.page.getByRole('dialog', { name: 'Create New Assessment Schema' })
@@ -78,6 +112,82 @@ export class AssessmentPage {
 
   releaseButton(): Locator {
     return this.page.getByRole('button', { name: /Release Results/ })
+  }
+
+  // ── CampusOnline grade export (last card on the settings page) ────────────
+
+  gradeExportCard(): Locator {
+    return this.page
+      .locator('div.p-6')
+      .filter({
+        has: this.page.getByRole('heading', { name: 'CampusOnline Grade Export', exact: true }),
+      })
+      .first()
+  }
+
+  // The file input is scoped to the card so it never picks up the schema-import
+  // input elsewhere on the settings page.
+  async uploadCampusCsv(fileName: string, contents: Buffer) {
+    await this.gradeExportCard()
+      .locator('input[type="file"][accept=".csv"]')
+      .setInputFiles({ name: fileName, mimeType: 'text/csv', buffer: contents })
+  }
+
+  // Asserts a filled row by identity (registration number + grade), never by
+  // row index, so the summary's ordering is free to change.
+  async expectGradeFilled(registrationNumber: string, grade: string) {
+    await expect(
+      this.gradeExportCard()
+        .getByRole('row', { name: new RegExp(registrationNumber) })
+        .filter({ hasText: grade }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectSkippedForReason(heading: string | RegExp, registrationNumber: string) {
+    const section = this.gradeExportCard().locator('div.space-y-2').filter({ hasText: heading })
+    await expect(
+      section.getByRole('row', { name: new RegExp(registrationNumber) }).first(),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectGradedStudentMissingWarning(studentName: string) {
+    await expect(
+      this.gradeExportCard().getByText('Some grades will not reach CampusOnline'),
+    ).toBeVisible()
+    await expect(
+      this.gradeExportCard()
+        .getByRole('row', { name: new RegExp(studentName) })
+        .first(),
+    ).toBeVisible()
+  }
+
+  // Clicks the download button and returns the produced file's raw bytes, so
+  // the spec can assert on encoding as well as content.
+  async downloadFilledCampusCsv(): Promise<Buffer> {
+    const button = this.gradeExportCard().getByRole('button', { name: 'Download Filled CSV' })
+    await expect(button).toBeEnabled({ timeout: 15_000 })
+
+    const [download] = await Promise.all([this.page.waitForEvent('download'), button.click()])
+    const stream = await download.createReadStream()
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk))
+    }
+    return Buffer.concat(chunks)
+  }
+
+  unreleaseButton(): Locator {
+    return this.page.getByRole('button', { name: 'Unrelease Results' })
+  }
+
+  // Confirms the release dialog. Its title names what is being released, which
+  // differs between assessment-enabled and evaluation-only phases.
+  async confirmRelease(dialogTitle: 'Assessment' | 'Evaluation') {
+    await this.releaseButton().click()
+    const dialog = this.page.getByRole('alertdialog')
+    await expect(dialog.getByText(`Release ${dialogTitle} Results?`)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Release Results' }).click()
+    await expect(this.unreleaseButton()).toBeVisible()
   }
 
   // ── Schema configuration (rubric) ────────────────────────────────────────
@@ -116,6 +226,18 @@ export class AssessmentPage {
     await expect(this.page.getByRole('heading', { name: 'Assessment Participants' })).toBeVisible({
       timeout: 15_000,
     })
+  }
+
+  // On an evaluation-only phase the same table renames itself and tracks
+  // evaluation progress instead of grading.
+  async expectEvaluationParticipantsLoaded() {
+    await expect(this.page.getByRole('heading', { name: 'Evaluation Participants' })).toBeVisible({
+      timeout: 15_000,
+    })
+  }
+
+  columnHeader(name: string): Locator {
+    return this.page.getByRole('columnheader', { name, exact: true })
   }
 
   async openParticipant(fullName: string) {

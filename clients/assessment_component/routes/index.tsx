@@ -1,6 +1,11 @@
 import '../src/loadStyles'
 
-import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import {
+  EDITOR_ROLES,
+  type ExtendedRouteObject,
+  LECTURER_ROLES,
+  Role,
+} from '@tumaet/prompt-shared-state'
 import { AssessmentType } from '../src/assessment/interfaces/assessmentType'
 import { AssessmentDataShell } from '../src/assessment/pages/AssessmentDataShell'
 import { AssessmentPage } from '../src/assessment/pages/AssessmentPage/AssessmentPage'
@@ -97,7 +102,7 @@ const routes: ExtendedRouteObject[] = [
         <AssessmentParticipantsPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR],
+    requiredPermissions: EDITOR_ROLES,
   },
   {
     path: '/participants/:courseParticipationID',
@@ -106,7 +111,7 @@ const routes: ExtendedRouteObject[] = [
         <AssessmentPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR],
+    requiredPermissions: EDITOR_ROLES,
   },
   {
     path: '/statistics',
@@ -115,7 +120,7 @@ const routes: ExtendedRouteObject[] = [
         <AssessmentStatisticsPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/tutors',
@@ -124,7 +129,7 @@ const routes: ExtendedRouteObject[] = [
         <TutorOverviewPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/tutors/:tutorId',
@@ -133,7 +138,7 @@ const routes: ExtendedRouteObject[] = [
         <TutorEvaluationResultsPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/self-evaluations',
@@ -142,7 +147,7 @@ const routes: ExtendedRouteObject[] = [
         <EvaluationParticipantsOverviewPage assessmentType={AssessmentType.SELF} />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/self-evaluations/:courseParticipationID',
@@ -151,7 +156,7 @@ const routes: ExtendedRouteObject[] = [
         <EvaluationParticipantResultsPage assessmentType={AssessmentType.SELF} />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/peer-evaluations',
@@ -160,7 +165,7 @@ const routes: ExtendedRouteObject[] = [
         <EvaluationParticipantsOverviewPage assessmentType={AssessmentType.PEER} />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/peer-evaluations/:courseParticipationID',
@@ -169,7 +174,7 @@ const routes: ExtendedRouteObject[] = [
         <EvaluationParticipantResultsPage assessmentType={AssessmentType.PEER} />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/settings',
@@ -178,7 +183,7 @@ const routes: ExtendedRouteObject[] = [
         <SettingsPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/settings/schema/:schemaId',
@@ -187,7 +192,7 @@ const routes: ExtendedRouteObject[] = [
         <SchemaConfigurationPage />
       </AssessmentDataShell>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
 ]
 

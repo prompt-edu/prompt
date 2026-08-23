@@ -1,6 +1,6 @@
 {
   "name": "matching_component",
-  "version": "2.16.1",
+  "version": "2.16.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -12,12 +12,12 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "devDependencies": {
-    "@rspack/cli": "^2.1.8",
-    "@rspack/core": "^2.1.8"
+    "@rspack/cli": "^2.1.10",
+    "@rspack/core": "^2.1.10"
   },
   "packageManager": "yarn@4.18.0",
   "dependencies": {
-    "papaparse": "^5.5.4",
+    "papaparse": "^5.6.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

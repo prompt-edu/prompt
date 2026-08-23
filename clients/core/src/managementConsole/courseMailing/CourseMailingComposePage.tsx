@@ -97,6 +97,7 @@ export const CourseMailingComposePage = () => {
   const {
     data: recipientPreview,
     isLoading: isPreviewLoading,
+    isFetching: isPreviewFetching,
     isError: isPreviewError,
   } = useGetRecipientPreview(
     courseId ?? '',
@@ -199,8 +200,10 @@ export const CourseMailingComposePage = () => {
   const canSend = mailingConfigured || hasReplyToOverride
   // Course editors may edit drafts but not send; only lecturers/admins can send.
   const sendDisabled = !campaignId || isDirty || !canSend || !canSendRole
-  // The recipient count is only trustworthy once the preview query has resolved.
-  const isRecipientCountKnown = canPreview && !isPreviewLoading && !isPreviewError
+  // A cached preview stays readable while a targeting change refetches it, so gate
+  // on isFetching rather than isLoading to avoid confirming a stale recipient count.
+  const isRecipientCountKnown =
+    canPreview && !isPreviewFetching && !isPreviewError && !!recipientPreview
 
   if (campaignId && isError) {
     return <ErrorPage message='Failed to load the campaign' onRetry={refetchCampaign} />

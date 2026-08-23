@@ -59,5 +59,7 @@ CREATE TABLE mail_campaign_recipient (
     ON DELETE CASCADE
 );
 
-CREATE INDEX idx_mail_campaign_course_id          ON mail_campaign(course_id);
-CREATE INDEX idx_mail_campaign_recipient_campaign ON mail_campaign_recipient(campaign_id);
+-- The UNIQUE (campaign_id, course_participation_id) index already covers lookups and
+-- the cascade by campaign_id; the participation cascade needs its own index.
+CREATE INDEX idx_mail_campaign_course_id               ON mail_campaign(course_id);
+CREATE INDEX idx_mail_campaign_recipient_participation ON mail_campaign_recipient(course_participation_id, course_id);

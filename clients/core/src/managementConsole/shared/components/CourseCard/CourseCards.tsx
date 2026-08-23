@@ -30,7 +30,7 @@ export const CourseCards = ({ courses }: CourseCardsProps) => {
           placeholder='Search courses...'
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className='pl-9'
+          className='appearance-none pl-9'
         />
       </div>
 

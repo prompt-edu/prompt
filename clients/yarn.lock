@@ -5294,6 +5294,8 @@ __metadata:
   dependencies:
     "@rspack/cli": "npm:^2.1.10"
     "@rspack/core": "npm:^2.1.10"
+    "@types/papaparse": "npm:^5.5.2"
+    papaparse: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
 
@@ -8943,7 +8945,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"papaparse@npm:^5.6.0":
+"papaparse@npm:^5.5.4, papaparse@npm:^5.6.0":
   version: 5.6.0
   resolution: "papaparse@npm:5.6.0"
   checksum: 10c0/e7f338b86e4a37e828a75a3d5305aaa5132a460fa13cecc2157bfd8d3664a31fa86a52f012f945401180496d62d10c6dbd870b92a2b9abf6cf671793e406e670

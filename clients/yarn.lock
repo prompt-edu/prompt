@@ -5295,7 +5295,7 @@ __metadata:
     "@rspack/cli": "npm:^2.1.10"
     "@rspack/core": "npm:^2.1.10"
     "@types/papaparse": "npm:^5.5.2"
-    papaparse: "npm:^5.5.4"
+    papaparse: "npm:^5.6.0"
   languageName: unknown
   linkType: soft
 
@@ -6243,10 +6243,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dayjs@npm:^1.11.21":
-  version: 1.11.21
-  resolution: "dayjs@npm:1.11.21"
-  checksum: 10c0/bd97dfdc4bfea3c66268635690313828b386faa040fbc1f829ff42a2bd748b72c9d9b3c8f9616ce9e61fcb78923f1461a462c969c54b1084458ae1b715898fb0
+"dayjs@npm:^1.11.22":
+  version: 1.11.23
+  resolution: "dayjs@npm:1.11.23"
+  checksum: 10c0/69ab04bf19c676e44ab50cc2fca223d265f3dafd107151ef3b0f3ad74d360c37caa602abe62f87cb25d90bd9f6bee003698af47df5b0dbf10a998b7b5f3bb3f1
   languageName: node
   linkType: hard
 
@@ -8945,7 +8945,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"papaparse@npm:^5.5.4, papaparse@npm:^5.6.0":
+"papaparse@npm:^5.6.0":
   version: 5.6.0
   resolution: "papaparse@npm:5.6.0"
   checksum: 10c0/e7f338b86e4a37e828a75a3d5305aaa5132a460fa13cecc2157bfd8d3664a31fa86a52f012f945401180496d62d10c6dbd870b92a2b9abf6cf671793e406e670
@@ -9669,7 +9669,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     css-loader: "npm:^7.1.4"
     date-fns: "npm:^4.4.0"
-    dayjs: "npm:^1.11.21"
+    dayjs: "npm:^1.11.22"
     dompurify: "npm:^3.4.13"
     file-saver: "npm:^2.0.5"
     highlight.js: "npm:^11.12.0"

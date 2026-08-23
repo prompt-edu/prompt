@@ -58,7 +58,7 @@
     "clsx": "^2.1.1",
     "css-loader": "^7.1.4",
     "date-fns": "^4.4.0",
-    "dayjs": "^1.11.21",
+    "dayjs": "^1.11.22",
     "dompurify": "^3.4.13",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.12.0",

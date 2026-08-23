@@ -48,7 +48,7 @@ export const TemplateSelectionDialog = ({ open, onOpenChange }: TemplateSelectio
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className='sm:max-w-[600px] max-h-[80vh]'>
+        <DialogContent className='max-w-[600px] max-h-[80vh] [&>*]:min-w-0'>
           <DialogHeader>
             <DialogTitle className='text-2xl font-bold text-center'>Choose a Template</DialogTitle>
           </DialogHeader>

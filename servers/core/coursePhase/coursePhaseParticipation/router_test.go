@@ -45,6 +45,32 @@ func (suite *RouterTestSuite) SetupSuite() {
 	}
 	CoursePhaseParticipationServiceSingleton = &suite.coursePhaseParticipationService
 
+	fromCoursePhaseID := uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c")
+	toCoursePhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
+	providedOutputID := uuid.New()
+	requiredInputID := uuid.New()
+	requirements := []byte(`{"type":"string"}`)
+	suite.Require().NoError(testDB.Queries.CreateCoursePhaseTypeProvidedOutput(suite.ctx, db.CreateCoursePhaseTypeProvidedOutputParams{
+		ID:                providedOutputID,
+		CoursePhaseTypeID: uuid.MustParse("96fb1001-b21c-4527-8b6f-2fd5f4ba3abb"),
+		DtoName:           "teamAllocation",
+		VersionNumber:     1,
+		EndpointPath:      "/allocation",
+		Specification:     requirements,
+	}))
+	suite.Require().NoError(testDB.Queries.CreateCoursePhaseTypeRequiredInput(suite.ctx, db.CreateCoursePhaseTypeRequiredInputParams{
+		ID:                requiredInputID,
+		CoursePhaseTypeID: uuid.MustParse("48d22f19-6cc0-417b-ac25-415fb40f2030"),
+		DtoName:           "teamAllocation",
+		Specification:     requirements,
+	}))
+	suite.Require().NoError(testDB.Queries.CreateParticipationDataConnection(suite.ctx, db.CreateParticipationDataConnectionParams{
+		FromCoursePhaseID:    fromCoursePhaseID,
+		ToCoursePhaseID:      toCoursePhaseID,
+		FromCoursePhaseDtoID: providedOutputID,
+		ToCoursePhaseDtoID:   requiredInputID,
+	}))
+
 	resolution.InitResolutionModule("localhost:8080")
 
 	suite.router = setupRouter()
@@ -58,9 +84,27 @@ func setupRouter() *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
 	setupCoursePhaseParticipationRouter(api, func() gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "1234567", "ab12cde")
+		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "supertest@test.de", "08888889", "ab00hhh")
 	}, sdkTestUtils.MockPermissionMiddleware)
 	return router
+}
+
+func (suite *RouterTestSuite) TestGetOwnCoursePhaseParticipationIncludesResolutions() {
+	req := httptest.NewRequest(http.MethodGet, "/api/course_phases/4e736d05-c125-48f0-8fa0-848b03ca6908/participations/self", nil)
+	w := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+	var response coursePhaseParticipationDTO.CoursePhaseParticipationStudent
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse("6a49b717-a8ca-4d16-bcd0-0bb059525269"), response.CourseParticipationID)
+	suite.Require().Len(response.Resolutions, 1)
+	assert.Equal(suite.T(), "teamAllocation", response.Resolutions[0].DtoName)
+	assert.Equal(suite.T(), "core", response.Resolutions[0].BaseURL)
+	assert.Equal(suite.T(), "/allocation", response.Resolutions[0].EndpointPath)
+	assert.Equal(suite.T(), uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c"), response.Resolutions[0].CoursePhaseID)
 }
 
 func (suite *RouterTestSuite) TestGetParticipationsForCoursePhase() {

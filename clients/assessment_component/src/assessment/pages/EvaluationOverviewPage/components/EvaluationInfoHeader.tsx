@@ -29,12 +29,19 @@ export const EvaluationInfoHeader = ({
     !selfEvaluationStarted || (coursePhaseConfig?.peerEvaluationEnabled && !peerEvaluationStarted)
 
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
 
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true
   const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? true
   const bothVisible = gradeSuggestionVisible && actionItemsVisible
 
   const getResultsAvailableText = () => {
+    if (!assessmentEnabled) {
+      return (
+        'Your evaluation results have been released. ' +
+        'You can review your own self-evaluation and the averaged feedback from your peers below.'
+      )
+    }
     if (bothVisible) {
       return (
         'Assessment results have been released and are now available. ' +
@@ -75,7 +82,9 @@ export const EvaluationInfoHeader = ({
           <div className='flex-1'>
             <h2 className='text-base font-semibold mb-1'>
               {resultsReleased
-                ? 'Assessment Results Released'
+                ? assessmentEnabled
+                  ? 'Assessment Results Released'
+                  : 'Evaluation Results Released'
                 : allEvaluationsCompleted
                   ? 'All Evaluations Completed!'
                   : evaluationsNotStarted

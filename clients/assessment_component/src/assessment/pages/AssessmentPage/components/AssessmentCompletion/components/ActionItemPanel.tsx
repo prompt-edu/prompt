@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
+  getStudentName,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -54,7 +55,7 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
   const { mutate: deleteActionItem, isPending: isDeletePending } = useDeleteActionItem(setError)
 
   const { user } = useAuthStore()
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User'
+  const userName = user ? getStudentName(user) : 'Unknown User'
 
   const resolvedActionItems = readOnly ? (actionItems ?? []) : fetchedActionItems
 

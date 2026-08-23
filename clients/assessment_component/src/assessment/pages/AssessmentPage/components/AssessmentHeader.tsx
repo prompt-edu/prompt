@@ -1,4 +1,4 @@
-import { Button, cn } from '@tumaet/prompt-ui-components'
+import { Button, cn, getStudentName } from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -25,7 +25,7 @@ export const AssessmentHeader = ({
   const navigate = useNavigate()
   const { prevMember, nextMember } = useParticipantNavigation()
 
-  const studentName = `${participant.student.firstName} ${participant.student.lastName}`
+  const studentName = getStudentName(participant.student)
 
   return (
     <StickyHeader
@@ -43,13 +43,11 @@ export const AssessmentHeader = ({
             <Button
               variant='outline'
               className='h-10 shrink-0'
-              aria-label={`Navigate to previous participant: ${prevMember.firstName} ${prevMember.lastName}`}
+              aria-label={`Navigate to previous participant: ${getStudentName(prevMember)}`}
               onClick={() => navigate(`../${prevMember.id}`, { relative: 'path' })}
             >
               <ChevronLeft className='h-4 w-4' />
-              <span className='hidden md:inline'>
-                {prevMember.firstName} {prevMember.lastName}
-              </span>
+              <span className='hidden md:inline'>{getStudentName(prevMember)}</span>
             </Button>
           )}
 
@@ -79,12 +77,10 @@ export const AssessmentHeader = ({
             <Button
               variant='outline'
               className='h-10 shrink-0'
-              aria-label={`Navigate to next participant: ${nextMember.firstName} ${nextMember.lastName}`}
+              aria-label={`Navigate to next participant: ${getStudentName(nextMember)}`}
               onClick={() => navigate(`../${nextMember.id}`, { relative: 'path' })}
             >
-              <span className='hidden md:inline'>
-                {nextMember.firstName} {nextMember.lastName}
-              </span>
+              <span className='hidden md:inline'>{getStudentName(nextMember)}</span>
               <ChevronRight className='h-4 w-4' />
             </Button>
           )}

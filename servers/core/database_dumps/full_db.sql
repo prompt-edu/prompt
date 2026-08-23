@@ -263,7 +263,8 @@ CREATE TABLE course_phase_type_required_input_dto (
     id uuid NOT NULL,
     course_phase_type_id uuid NOT NULL,
     dto_name text NOT NULL,
-    specification jsonb NOT NULL
+    specification jsonb NOT NULL,
+    optional boolean DEFAULT false NOT NULL
 );
 
 

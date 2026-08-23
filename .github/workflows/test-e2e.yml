@@ -27,9 +27,9 @@ jobs:
       matrix: ${{ steps.partition.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24.18.0
+          node-version: 24.19.0
 
       - name: Verify the shard partition covers every spec exactly once
         id: partition
@@ -71,12 +71,12 @@ jobs:
           echo "::error::could not pull $BUILDKIT_IMAGE after 5 attempts"
           exit 1
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         with:
           driver-opts: image=${{ env.BUILDKIT_IMAGE }}
 
       # Exports the ACTIONS_* credentials type=gha needs in a `run:` step.
-      - uses: crazy-max/ghaction-github-runtime@v3
+      - uses: crazy-max/ghaction-github-runtime@v4
 
       - name: Prepare report directories
         run: mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
@@ -133,16 +133,34 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24.18.0
+          node-version: 24.19.0
 
       - name: Install e2e dependencies
         run: npm ci
         working-directory: e2e
 
       - name: Download all blob reports
-        uses: actions/download-artifact@v7
+        id: download
+        # Artifact storage occasionally drops one blob mid-download; retried below.
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+
+      # A failed download streams straight into the target directory, so a
+      # truncated report can survive and break the merge.
+      - name: Clear the partial download before retrying
+        if: ${{ steps.download.outcome == 'failure' }}
+        run: rm -rf e2e/all-blob-reports
+
+      # No continue-on-error: a second miss is a real failure and reddens the gate.
+      - name: Retry the blob report download
+        if: ${{ steps.download.outcome == 'failure' }}
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           path: e2e/all-blob-reports

@@ -16,10 +16,12 @@ make new-phase NAME=<snake_case_name> CLIENT_PORT=<port> SERVER_PORT=<port> [DB_
 `scripts/new-course-phase.sh` copies both parts, renames every identifier, registers the phase
 (workspaces, core remote + phase mappings + `App.tsx` route, docker-compose services, env
 templates, Makefile targets, CI matrices), and verifies with `go build`, `yarn install`, `tsc`,
-and biome. Run it on a clean working tree so a failed run can be reverted. Existing client dev
-ports: core 3000, example 3001, interview 3002, matching 3003, assessment 3007,
-team_allocation 3008, self_team_allocation 3009 — pick a free one; the script aborts on
-collisions.
+and biome. Run it on a clean working tree so a failed run can be reverted. Taken client dev
+ports: core 3000, example 3001, interview 3002, matching 3003, intro_course_developer 3005,
+github_challenge 3006, assessment 3007, team_allocation 3008, self_team_allocation 3009,
+certificate 3010. Taken server ports: core 8080, team_allocation 8083, self_team_allocation 8084,
+assessment 8085, example 8086, interview 8087, certificate 8088. Pick free ones; the script aborts
+on collisions.
 
 Afterwards, complete the steps the generator prints:
 
@@ -39,7 +41,7 @@ Afterwards, complete the steps the generator prints:
 
 If the generator can't be used, follow the manual checklist in
 `docs/contributor/new_course_phase.md` (it mirrors what the script does). Key files:
-`rspack.config.mjs` (`COMPONENT_NAME`, `COMPONENT_DEV_PORT`), `clients/package.json` +
+`rspack.config.mjs` (`createRspackConfig({ name, port })`), `clients/package.json` +
 `clients/lerna.json` workspaces, `clients/core/rspack.config.mjs` remotes (cache-busting pattern
 — `module-federation-remote` skill), the three `PhaseMapping` files, and the `*-example`
 docker-compose blocks.

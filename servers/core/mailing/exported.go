@@ -14,7 +14,7 @@ func ReplacePlaceholders(template string, values map[string]string) string {
 
 // StatusPlaceholderValues builds the standard student/course placeholder map used
 // for status and manual mails. Exported wrapper around getStatusEmailPlaceholderValues.
-func StatusPlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date, participant db.GetParticipantMailingInformationRow) map[string]string {
+func StatusPlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date, participant db.GetParticipantMailingInformationByIDsRow) map[string]string {
 	return getStatusEmailPlaceholderValues(courseName, courseStartDate, courseEndDate, participant)
 }
 

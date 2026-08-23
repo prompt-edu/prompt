@@ -35,7 +35,7 @@ export class CourseSettingsPage {
     const save = this.page.getByRole('button', { name: /save changes/i })
     await expect(save).toBeEnabled()
     await save.click()
-    await expect(this.page.getByText('Successfully Updated Course')).toBeVisible()
+    await expect(this.page.getByText('Successfully Updated Course', { exact: true })).toBeVisible()
   }
 
   async deleteCourse() {

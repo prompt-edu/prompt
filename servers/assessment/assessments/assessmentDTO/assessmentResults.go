@@ -6,13 +6,11 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 )
 
 // AggregatedEvaluationResult represents anonymized, averaged evaluation results for a competency.
-type AggregatedEvaluationResult struct {
-	CompetencyID        uuid.UUID `json:"competencyID"`
-	AverageScoreNumeric float64   `json:"averageScoreNumeric"`
-}
+type AggregatedEvaluationResult = evaluationDTO.AggregatedEvaluationResult
 
 // StudentAssessmentResults bundles all information a student may see once results are released.
 type StudentAssessmentResults struct {

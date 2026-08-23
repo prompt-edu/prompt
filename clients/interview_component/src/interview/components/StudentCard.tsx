@@ -14,6 +14,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  getStudentName,
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
@@ -75,9 +76,7 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
       </div>
 
       <CardHeader>
-        <CardTitle className='text-left'>
-          {participation.student.firstName} {participation.student.lastName}
-        </CardTitle>
+        <CardTitle className='text-left'>{getStudentName(participation.student)}</CardTitle>
         {interviewSlot && (
           <div className='mt-2 space-y-1'>
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>

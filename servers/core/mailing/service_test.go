@@ -24,6 +24,7 @@ type StatusMailServiceTestSuite struct {
 	suite.Suite
 	ctx         context.Context
 	cleanup     func()
+	conn        *pgxpool.Pool
 	phaseID     uuid.UUID
 	passed      uuid.UUID
 	failed      uuid.UUID
@@ -61,6 +62,7 @@ func (suite *StatusMailServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
+	suite.conn = testDB.Conn
 
 	MailingServiceSingleton = &MailingService{
 		senderEmail: mail.Address{
@@ -83,6 +85,21 @@ func (suite *StatusMailServiceTestSuite) TearDownSuite() {
 
 func (suite *StatusMailServiceTestSuite) SetupTest() {
 	sendMailFn = suite.oldSendMailFn
+	suite.clearStatusMailMarkers()
+}
+
+// clearStatusMailMarkers drops the dedup markers a previous test left behind, so each test starts
+// with participants that are still eligible for their status mail.
+func (suite *StatusMailServiceTestSuite) clearStatusMailMarkers() {
+	if suite.conn == nil {
+		return
+	}
+
+	_, err := suite.conn.Exec(suite.ctx,
+		`UPDATE course_phase_participation SET restricted_data = restricted_data - 'statusMailSentAt'
+		 WHERE course_phase_id = $1`,
+		suite.phaseID)
+	suite.Require().NoError(err)
 }
 
 func (suite *StatusMailServiceTestSuite) recordSentMails() *[]capturedMail {
@@ -184,6 +201,32 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelec
 	assert.NotNil(suite.T(), report.FailedEmails)
 	assert.Empty(suite.T(), report.SuccessfulEmails)
 	assert.Empty(suite.T(), report.FailedEmails)
+	assert.Empty(suite.T(), *sentMails)
+}
+
+func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipientsAlreadyMailed() {
+	firstMails := suite.recordSentMails()
+
+	_, err := SendStatusMailManualTrigger(
+		suite.ctx,
+		suite.phaseID,
+		db.PassStatusPassed,
+		[]uuid.UUID{suite.passed},
+	)
+	suite.Require().NoError(err)
+	suite.Require().Len(*firstMails, 1)
+
+	sentMails := suite.recordSentMails()
+
+	report, err := SendStatusMailManualTrigger(
+		suite.ctx,
+		suite.phaseID,
+		db.PassStatusPassed,
+		[]uuid.UUID{suite.passed},
+	)
+	suite.Require().NoError(err)
+
+	assert.Empty(suite.T(), report.SuccessfulEmails)
 	assert.Empty(suite.T(), *sentMails)
 }
 

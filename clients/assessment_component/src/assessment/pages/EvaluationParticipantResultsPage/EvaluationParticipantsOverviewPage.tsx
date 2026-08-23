@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Team } from '@tumaet/prompt-shared-state'
-import { Button, ErrorPage, ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  ErrorPage,
+  getStudentName,
+  ManagementPageHeader,
+  PromptTable,
+} from '@tumaet/prompt-ui-components'
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -132,7 +138,7 @@ export const EvaluationParticipantsOverviewPage = ({
       .sort((a, b) => a.student.lastName.localeCompare(b.student.lastName))
       .map((participation) => ({
         courseParticipationID: participation.courseParticipationID,
-        studentName: `${participation.student.firstName} ${participation.student.lastName}`,
+        studentName: getStudentName(participation.student),
         teamName: getTeamForParticipation(teams, participation.courseParticipationID)?.name,
         scores: evaluations
           .filter(

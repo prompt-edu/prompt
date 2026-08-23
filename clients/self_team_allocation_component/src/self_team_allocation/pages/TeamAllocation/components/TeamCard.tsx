@@ -8,6 +8,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  getStudentName,
 } from '@tumaet/prompt-ui-components'
 import { GraduationCap, LogOut, Trash2, UserPlus, Users } from 'lucide-react'
 import type React from 'react'
@@ -72,9 +73,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                   }`}
                 >
                   <Users size={14} className={isCurrent ? 'text-primary' : ''} />
-                  <span className='truncate'>
-                    {m.firstName} {m.lastName}
-                  </span>
+                  <span className='truncate'>{getStudentName(m)}</span>
                   {isCurrent && (
                     <Badge variant='outline' className='ml-auto text-xs'>
                       You
@@ -100,9 +99,7 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                 className='flex items-center gap-2 p-1 rounded-md text-sm text-muted-foreground'
               >
                 <GraduationCap size={14} />
-                <span className='truncate'>
-                  {tutor.firstName} {tutor.lastName}
-                </span>
+                <span className='truncate'>{getStudentName(tutor)}</span>
               </li>
             ))}
           </ul>

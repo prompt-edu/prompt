@@ -68,7 +68,7 @@ export const RenameSchemaDialog = ({ schema, onError }: RenameSchemaDialogProps)
           <Pencil className='h-4 w-4' />
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent className='max-w-md [&>*]:min-w-0'>
         <DialogHeader>
           <DialogTitle>Rename Assessment Schema</DialogTitle>
         </DialogHeader>

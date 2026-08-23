@@ -25,6 +25,7 @@ type FeedbackItemServiceTestSuite struct {
 	testCourseParticipationID uuid.UUID
 	testAuthorID              uuid.UUID
 	testFeedbackItemID        uuid.UUID
+	testAuthHeader            string
 }
 
 func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
@@ -45,6 +46,7 @@ func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
 	suite.testCourseParticipationID = uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 	suite.testAuthorID = uuid.MustParse("da42e447-60f9-4fe0-b297-2dae3f924fd7")
 	suite.testFeedbackItemID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	suite.testAuthHeader = "Bearer feedback-item-service-test-token"
 }
 
 func (suite *FeedbackItemServiceTestSuite) TearDownSuite() {
@@ -81,7 +83,7 @@ func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItem() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateFeedbackItem(suite.suiteCtx, req)
+	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
 	assert.NoError(suite.T(), err)
 }
 
@@ -95,7 +97,7 @@ func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItemRejectsForeignS
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateFeedbackItem(suite.suiteCtx, req)
+	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrSelfEvaluationTargetMismatch)
 }
 
@@ -106,7 +108,7 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItem() {
 		FeedbackText: "Updated feedback text",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
 	assert.NoError(suite.T(), err)
 
 	updated, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
@@ -123,7 +125,7 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsWrongPha
 		FeedbackText: "Updated from another phase",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, updateFeedbackItemID, otherPhaseID, suite.testAuthorID, req)
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, otherPhaseID, suite.testAuthorID, req)
 	assert.ErrorIs(suite.T(), err, ErrFeedbackItemNotFound)
 }
 
@@ -135,7 +137,7 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsNonAutho
 		FeedbackText: "Rewritten by a non-author",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
+	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
 	assert.ErrorIs(suite.T(), err, ErrNotFeedbackItemAuthor)
 
 	unchanged, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)

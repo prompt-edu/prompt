@@ -2,9 +2,11 @@ package coursePhaseType
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -309,14 +311,20 @@ func initAssessment() error {
 		}
 
 		// create the required phase input
-		err = qtx.InsertTeamRequiredInput(ctx, newAssessment.ID)
+		err = qtx.InsertTeamRequiredInput(ctx, db.InsertTeamRequiredInputParams{
+			CoursePhaseTypeID: newAssessment.ID,
+			Optional:          false,
+		})
 		if err != nil {
 			log.Error("failed to create required team input: ", err)
 			return err
 		}
 
 		// create the required participation input
-		err = qtx.InsertTeamAllocationRequiredInput(ctx, newAssessment.ID)
+		err = qtx.InsertTeamAllocationRequiredInput(ctx, db.InsertTeamAllocationRequiredInputParams{
+			CoursePhaseTypeID: newAssessment.ID,
+			Optional:          false,
+		})
 		if err != nil {
 			log.Error("failed to create required team allocation input: ", err)
 			return err
@@ -536,14 +544,20 @@ func initCertificate() error {
 
 		// 2.) Create required inputs - Certificate phase typically needs team and student data
 		// Team allocation input (to know which teams exist)
-		err = qtx.InsertTeamAllocationRequiredInput(ctx, newCertificate.ID)
+		err = qtx.InsertTeamAllocationRequiredInput(ctx, db.InsertTeamAllocationRequiredInputParams{
+			CoursePhaseTypeID: newCertificate.ID,
+			Optional:          false,
+		})
 		if err != nil {
 			log.Error("failed to create required team allocation input: ", err)
 			return err
 		}
 
 		// Team input (to get team information)
-		err = qtx.InsertTeamRequiredInput(ctx, newCertificate.ID)
+		err = qtx.InsertTeamRequiredInput(ctx, db.InsertTeamRequiredInputParams{
+			CoursePhaseTypeID: newCertificate.ID,
+			Optional:          false,
+		})
 		if err != nil {
 			log.Error("failed to create required team input: ", err)
 			return err
@@ -558,6 +572,66 @@ func initCertificate() error {
 
 	} else {
 		log.Debug("certificate phase type already exists")
+	}
+
+	return nil
+}
+
+func initPresentation() error {
+	ctx := context.Background()
+	tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer sdkUtils.DeferRollback(tx, ctx)
+	qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+
+	baseURL := "{CORE_HOST}/presentation/api"
+	if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		baseURL = "http://localhost:8089/presentation/api"
+	}
+
+	presentationPhaseID := uuid.New()
+	presentationPhase, err := qtx.GetCoursePhaseTypeByName(ctx, "Presentation")
+	switch {
+	case err == nil:
+		presentationPhaseID = presentationPhase.ID
+		log.Debug("presentation phase type already exists; ensuring its input descriptors")
+	case errors.Is(err, pgx.ErrNoRows):
+		newPresentationPhase := db.CreateCoursePhaseTypeParams{
+			ID:           presentationPhaseID,
+			Name:         "Presentation",
+			InitialPhase: false,
+			BaseUrl:      baseURL,
+			Description:  pgtype.Text{String: "Presentation scheduling, material submission, and instructor feedback.", Valid: true},
+		}
+		if err := qtx.CreateCoursePhaseType(ctx, newPresentationPhase); err != nil {
+			log.Error("failed to create presentation phase type: ", err)
+			return err
+		}
+	default:
+		log.Error("failed to get presentation phase type: ", err)
+		return err
+	}
+
+	if err := qtx.InsertTeamRequiredInput(ctx, db.InsertTeamRequiredInputParams{
+		CoursePhaseTypeID: presentationPhaseID,
+		Optional:          true,
+	}); err != nil {
+		log.Error("failed to create optional team input: ", err)
+		return err
+	}
+
+	if err := qtx.InsertTeamAllocationRequiredInput(ctx, db.InsertTeamAllocationRequiredInputParams{
+		CoursePhaseTypeID: presentationPhaseID,
+		Optional:          true,
+	}); err != nil {
+		log.Error("failed to create optional team allocation input: ", err)
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

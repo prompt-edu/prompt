@@ -1084,6 +1084,10 @@ definitions:
         type: string
       coursePhaseID:
         type: string
+      resolutions:
+        items:
+          $ref: '#/definitions/resolutionDTO.Resolution'
+        type: array
       student:
         $ref: '#/definitions/studentDTO.Student'
       studentReadableData:
@@ -1205,6 +1209,8 @@ definitions:
         type: string
       id:
         type: string
+      optional:
+        type: boolean
       specification:
         allOf:
         - $ref: '#/definitions/meta.MetaData'
@@ -1235,6 +1241,8 @@ definitions:
         type: string
       id:
         type: string
+      optional:
+        type: boolean
       specification:
         allOf:
         - $ref: '#/definitions/meta.MetaData'

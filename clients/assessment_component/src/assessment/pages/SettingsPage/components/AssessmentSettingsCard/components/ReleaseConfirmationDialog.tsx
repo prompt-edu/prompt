@@ -32,6 +32,7 @@ export function ReleaseConfirmationDialog({
 }: ReleaseConfirmationDialogProps) {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
 
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true
   const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? true
   const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
@@ -68,11 +69,23 @@ export function ReleaseConfirmationDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Release Assessment Results?</AlertDialogTitle>
+          <AlertDialogTitle>
+            Release {assessmentEnabled ? 'Assessment' : 'Evaluation'} Results?
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to release the assessment results to students? This will make{' '}
-            {getVisibilityDescription()} for all final assessments ({completedAssessments}/
-            {totalAssessments}) visible to students.
+            {assessmentEnabled ? (
+              <>
+                Are you sure you want to release the assessment results to students? This will make{' '}
+                {getVisibilityDescription()} for all final assessments ({completedAssessments}/
+                {totalAssessments}) visible to students.
+              </>
+            ) : (
+              <>
+                Are you sure you want to release the evaluation results to students? Each student
+                will see their own self-evaluation and the averaged scores their peers gave them.
+                Competencies rated by only one peer stay hidden.
+              </>
+            )}
           </AlertDialogDescription>
           {releaseError && (
             <p className='text-sm font-medium text-destructive' role='alert'>

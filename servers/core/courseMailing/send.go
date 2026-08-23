@@ -232,7 +232,7 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 		if !ok {
 			continue
 		}
-		mailingRow := db.GetParticipantMailingInformationRow{
+		mailingRow := db.GetParticipantMailingInformationByIDsRow{
 			FirstName:           row.FirstName,
 			LastName:            row.LastName,
 			Email:               row.Email,
@@ -288,7 +288,7 @@ func (s *CourseMailingService) TestSend(ctx context.Context, courseID, campaignI
 		return fmt.Errorf("failed to load course mailing context: %w", err)
 	}
 
-	sample := db.GetParticipantMailingInformationRow{}
+	sample := db.GetParticipantMailingInformationByIDsRow{}
 	if rows, err := s.resolveRecipients(ctx, base); err == nil && len(rows) > 0 {
 		sample = toMailingRow(rows[0])
 	}
@@ -312,7 +312,7 @@ func (s *CourseMailingService) TestSend(ctx context.Context, courseID, campaignI
 	return nil
 }
 
-func (s *CourseMailingService) buildSendItem(recipientID uuid.UUID, email string, base db.MailCampaign, courseInfo db.GetPassedMailingInformationRow, mailingRow db.GetParticipantMailingInformationRow, link string) campaignSendItem {
+func (s *CourseMailingService) buildSendItem(recipientID uuid.UUID, email string, base db.MailCampaign, courseInfo db.GetPassedMailingInformationRow, mailingRow db.GetParticipantMailingInformationByIDsRow, link string) campaignSendItem {
 	placeholders := mailing.StatusPlaceholderValues(courseInfo.CourseName, courseInfo.CourseStartDate, courseInfo.CourseEndDate, mailingRow)
 	if link != "" {
 		placeholders["coursePhaseLink"] = link
@@ -532,8 +532,8 @@ func (s *CourseMailingService) buildCoursePhaseLink(ctx context.Context, courseP
 	return fmt.Sprintf("%s/management/course/%s/%s", s.clientURL, courseID, coursePhaseID)
 }
 
-func toMailingRow(row db.GetParticipantMailingInformationForCampaignRow) db.GetParticipantMailingInformationRow {
-	return db.GetParticipantMailingInformationRow{
+func toMailingRow(row db.GetParticipantMailingInformationForCampaignRow) db.GetParticipantMailingInformationByIDsRow {
+	return db.GetParticipantMailingInformationByIDsRow{
 		FirstName:           row.FirstName,
 		LastName:            row.LastName,
 		Email:               row.Email,

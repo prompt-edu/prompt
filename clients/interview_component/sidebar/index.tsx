@@ -1,4 +1,4 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { LECTURER_ROLES, Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Mic } from 'lucide-react'
 
 const interviewSidebarItems: SidebarMenuItemProps = {
@@ -15,22 +15,22 @@ const interviewSidebarItems: SidebarMenuItemProps = {
     {
       title: 'Manage Interviews',
       goToPath: '/manage',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Participants',
       goToPath: '/participants',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Schedule',
       goToPath: '/schedule',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
     {
       title: 'Settings',
       goToPath: '/settings',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      requiredPermissions: LECTURER_ROLES,
     },
   ],
 }

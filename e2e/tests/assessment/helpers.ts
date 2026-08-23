@@ -30,6 +30,7 @@ export interface CategoryWithCompetencies {
 
 export interface CoursePhaseConfig {
   coursePhaseID: string
+  assessmentEnabled: boolean
   assessmentSchemaID: string
   selfEvaluationSchema: string
   peerEvaluationSchema: string
@@ -88,6 +89,7 @@ export async function getConfig(
 }
 
 export interface ConfigOverrides {
+  assessmentEnabled?: boolean
   assessmentSchemaId?: string
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
@@ -95,6 +97,8 @@ export interface ConfigOverrides {
 
 // PUT /config requires the full request body; start/deadline are set to a
 // generous open window so grading, completion, and (cleanup) unmarking work.
+// assessmentEnabled is only sent when overridden, because an omitted flag keeps
+// the phase's current mode (the behavior the settings card relies on).
 export async function putConfig(
   api: APIRequestContext,
   phaseId: string,
@@ -107,6 +111,9 @@ export async function putConfig(
     api.put(assessmentUrl(phaseId, 'config'), {
       data: {
         coursePhaseId: phaseId,
+        ...(overrides.assessmentEnabled === undefined
+          ? {}
+          : { assessmentEnabled: overrides.assessmentEnabled }),
         assessmentSchemaId: overrides.assessmentSchemaId ?? current.assessmentSchemaID,
         start: past,
         deadline: future,
@@ -288,7 +295,9 @@ export async function releaseResults(api: APIRequestContext, phaseId: string): P
 //    schema changes are both rejected while assessment/evaluation data exists,
 // 3. delete the configured schemas' categories (cascades competencies and any
 //    leftover evaluations),
-// 4. point the config back at the default template schemas,
+// 4. point the config back at the default template schemas and re-enable the
+//    assessment (the seeded mode; a spec may have switched the phase to
+//    evaluations only),
 // 5. delete the e2e-created schemas (only possible after step 4: the config's
 //    schema FKs are ON DELETE RESTRICT).
 // Student-authored evaluations cannot be deleted by admins — specs that create
@@ -332,6 +341,7 @@ export async function resetAssessmentPhase(
     }
     const schemas = await getSchemas(admin, phaseId)
     await putConfig(admin, phaseId, {
+      assessmentEnabled: true,
       assessmentSchemaId: schemas.find((s) => s.name === DEFAULT_SCHEMAS.assessment)?.id,
       selfEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.self)?.id,
     })
@@ -348,4 +358,147 @@ export async function resetAssessmentPhase(
 
 export async function apiAsRole(role: Role): Promise<APIRequestContext> {
   return apiContextFor(role)
+}
+
+// ── CampusOnline grade export ───────────────────────────────────────────────
+
+// The exact exam-result header CampusOnline produces, in its exact order. The
+// grade export must hand all 26 columns back untouched except GRADE and
+// DATE_OF_ASSESSMENT, so this list doubles as the round-trip assertion.
+export const CAMPUS_ONLINE_HEADER = [
+  'REGISTRATION_NUMBER',
+  'CODE_OF_STUDY_PROGRAMME',
+  'Studienplan_Version',
+  'FAMILY_NAME_OF_STUDENT',
+  'FIRST_NAME_OF_STUDENT',
+  'GESCHLECHT',
+  'GRADE',
+  'DATE_OF_ASSESSMENT',
+  'REMARK',
+  'FILE_REMARK',
+  'ECTS_GRADE',
+  'ANTRAGEINSICHT_BEANTRAGT',
+  'NUMBER_OF_ATTEMPTS',
+  'Number_Of_The_Course',
+  'SEMESTER_OF_The_COURSE',
+  'COURSE_TITLE',
+  'Examiner',
+  'Start_Time',
+  'TERMIN_ORT',
+  'DB_PRIMARY_Key_OF_STUDY',
+  'DB_Primary_Key_Of_Candidate',
+  'DB_Primary_Key_Of_Exam',
+  'COURSE_GROUP_NAME',
+  'TOTAL_POINTS',
+  'TOTAL_POINTS_LIMIT_REACHED',
+  'EDITING_NOTES',
+] as const
+
+export type CampusOnlineColumn = (typeof CAMPUS_ONLINE_HEADER)[number]
+export type CampusOnlineRow = Partial<Record<CampusOnlineColumn, string>>
+
+const quoteCsvField = (value: string): string => `"${value.replace(/"/g, '""')}"`
+
+export function campusOnlineHeaderLine(): string {
+  return CAMPUS_ONLINE_HEADER.map(quoteCsvField).join(';')
+}
+
+// Semicolon-delimited with every field quoted and CRLF line endings, the way
+// CampusOnline writes it. A `null` entry becomes a blank line, which real
+// exports contain and the download has to hand back unchanged.
+export function buildCampusOnlineCsv(rows: (CampusOnlineRow | null)[]): string {
+  const lines = rows.map((row) =>
+    row === null
+      ? ''
+      : CAMPUS_ONLINE_HEADER.map((column) => quoteCsvField(row[column] ?? '')).join(';'),
+  )
+  return `${[campusOnlineHeaderLine(), ...lines].join('\r\n')}\r\n`
+}
+
+// Windows-1252 is what CampusOnline exports in practice; the download has to
+// come back in the same encoding or umlauts in student names get corrupted.
+// It differs from Latin-1 only in 0x80-0x9F, where it places printable
+// characters such as the euro sign and the smart quotes.
+const WINDOWS_1252_DECODER = new TextDecoder('windows-1252')
+
+const WINDOWS_1252_C1_BYTES = new Map(
+  Array.from({ length: 0x20 }, (_, offset) => 0x80 + offset).map((byte) => [
+    WINDOWS_1252_DECODER.decode(Uint8Array.of(byte)),
+    byte,
+  ]),
+)
+
+export function encodeWindows1252(text: string): Buffer {
+  return Buffer.from(
+    Uint8Array.from(text, (char) => {
+      const codePoint = char.charCodeAt(0)
+      if (codePoint < 0x80 || (codePoint >= 0xa0 && codePoint <= 0xff)) {
+        return codePoint
+      }
+
+      const byte = WINDOWS_1252_C1_BYTES.get(char)
+      if (byte === undefined) {
+        throw new Error(`"${char}" cannot be encoded in Windows-1252`)
+      }
+      return byte
+    }),
+  )
+}
+
+export function decodeWindows1252(bytes: Buffer): string {
+  return WINDOWS_1252_DECODER.decode(bytes)
+}
+
+// Parses a downloaded CSV back into rows for assertions. Quote-aware, because
+// the fixtures deliberately put a semicolon inside a quoted field to prove the
+// export does not mangle it. Blank lines are kept as blank rows so that a
+// dropped or added one shows up in the row assertions.
+export function parseCampusOnlineCsv(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  const endField = () => {
+    row.push(field)
+    field = ''
+  }
+  const endRow = () => {
+    endField()
+    rows.push(row)
+    row = []
+  }
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index]
+
+    if (inQuotes) {
+      if (char !== '"') {
+        field += char
+      } else if (text[index + 1] === '"') {
+        field += '"'
+        index++
+      } else {
+        inQuotes = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inQuotes = true
+    } else if (char === ';') {
+      endField()
+    } else if (char === '\r' && text[index + 1] === '\n') {
+      endRow()
+      index++
+    } else if (char === '\n') {
+      endRow()
+    } else {
+      field += char
+    }
+  }
+
+  if (field !== '' || row.length > 0) endRow()
+
+  return rows
 }

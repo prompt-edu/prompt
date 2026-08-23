@@ -7,6 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  getStudentName,
   Input,
   ScrollArea,
   Select,
@@ -150,7 +151,7 @@ export const InterviewTimesDialog = () => {
                           key={participant.courseParticipationID}
                           value={participant.courseParticipationID}
                         >
-                          {participant.student.firstName} {participant.student.lastName}
+                          {getStudentName(participant.student)}
                         </SelectItem>
                       ))}
                     </SelectContent>

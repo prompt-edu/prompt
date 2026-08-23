@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Reusable UI Components
 
-The shared library provides a range of reusable UI components you can easily incorporate into your code.
+The shared library provides a range of reusable UI components you can easily incorporate into your code. It lives in the [`prompt-edu/prompt-lib`](https://github.com/prompt-edu/prompt-lib) repository and is consumed here as the `@tumaet/prompt-ui-components` package, so every component below is imported from that package.
 
 ---
 
@@ -72,7 +72,7 @@ Start by importing the essential components required for the page, including:
    - `useQuery` (from `@tanstack/react-query`): Handles data fetching and caching.
 
 4. **API Query Function**:
-   - `getCoursePhase`: Fetches course phase details using the `phaseId`. This function is part of the shared library and returns a `CoursePhaseWithMetaData` interface, defined in `@tumaet/prompt-shared-state`.
+   - `getCoursePhase`: Fetches course phase details using the `phaseId`. This function is exported from `@tumaet/prompt-shared-state` and returns a `CoursePhaseWithMetaData` interface, defined in the same package.
 
 ### 2. Retrieve Course Phase Data
 
@@ -96,63 +96,17 @@ Start by importing the essential components required for the page, including:
 
 ### 6. Ensure Styling
 
-To ensure proper styling for the `CoursePhaseMailing` component, you need to include the `index.css` file from the `minimal-tiptap` styles directory in the Webpack configuration (`webpack.config.mjs` of the component where the Mailing Page should be added).
+`CoursePhaseMailing` renders a `minimal-tiptap` rich-text editor, which needs the editor stylesheet
+in addition to your component's Tailwind entry. The stylesheet ships with the shared package and is
+exposed as its own export:
 
-#### Steps to Modify Webpack Configuration
+```javascript
+// in your component's style entry, e.g. src/loadStyles.ts
+import './styles.css'
+import '@tumaet/prompt-ui-components/minimal-tiptap/index.css'
+```
 
-1. Locate the CSS loader configuration within the `module.rules` section of your Webpack configuration file.
-2. Find the existing `include` array for the CSS loader. It should look something like this:
-
-   ```javascript
-   {
-     test: /\.css$/i,
-     include: [
-        path.resolve(__dirname, 'src'),
-        path.resolve(__dirname, '../shared_library/src'),
-     ],
-     use: [
-        'style-loader',
-        'css-loader',
-        'postcss-loader',
-     ],
-   },
-   ```
-
-3. Add the following line to the `include` array:
-
-   ```javascript
-   path.resolve(__dirname, '../shared_library/components/minimal-tiptap/styles/index.css'),
-   ```
-
-4. The updated configuration should look like this:
-
-   ```javascript
-   {
-     test: /\.css$/i,
-     include: [
-        path.resolve(__dirname, 'src'),
-        path.resolve(__dirname, '../shared_library/src'),
-        path.resolve(__dirname, '../shared_library/components/minimal-tiptap/styles/index.css'),
-     ],
-     use: [
-        'style-loader',
-        'css-loader',
-        'postcss-loader',
-     ],
-   },
-   ```
-
-#### Why This Change Is Necessary
-
-1. **Ensures Styles from `minimal-tiptap` are Included**:
-
-   - Without this change, Webpack may not process the CSS file inside `minimal-tiptap/styles`, leading to missing styles in the UI.
-
-2. **Explicitly Includes the Required CSS File**:
-
-   - The `include` option specifies which directories or files Webpack should process with the CSS loaders. Since `index.css` is outside the default `src` and `shared_library/src` paths, it must be explicitly included.
-
-3. **Fixes Potential Styling Issues in the `CoursePhaseMailing` Component**:
-   - If this component relies on `minimal-tiptap`, its styles will not be applied unless Webpack is configured to process them.
-
-By making this change, you ensure that the `minimal-tiptap` styles are correctly loaded, preventing broken or missing UI elements in your application.
+No bundler configuration is required. Earlier versions of this guide asked you to extend an
+`include` array in the CSS loader rule so it would pick up `shared_library/components/minimal-tiptap`.
+That no longer applies: the shared library is a published package rather than a folder in this
+repository, and the CSS rules in `rspack.config.mjs` no longer use `include` paths.

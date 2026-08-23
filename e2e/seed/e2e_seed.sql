@@ -706,11 +706,15 @@ INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 -- Standalone assessment fixture phases (see the course_phase inserts below):
 -- Stan + Selma in the visibility phase, Stan in the self-evaluation phase,
--- Stan in the print phase.
+-- Stan in the print phase, Stan + Selma in the grade export phase, Stan in the
+-- evaluation-only phase.
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000006-0000-0000-0000-000000000006', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000007-0000-0000-0000-000000000007', '{}', 'not_assessed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000009-0000-0000-0000-000000000009', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000012-0000-0000-0000-000000000012', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000012-0000-0000-0000-000000000012', '{}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000013-0000-0000-0000-000000000013', '{}', 'not_assessed', '{}');
 -- Standalone matching re-import phase (see the course_phase insert below):
 -- Stan + Selma participate, each carrying a matching score in restricted_data.
 -- pass_status starts 'not_assessed' so the lecturer re-import journey can flip
@@ -754,6 +758,7 @@ INSERT INTO public.course_phase_type VALUES ('b2222222-2222-2222-2222-2222222222
 INSERT INTO public.course_phase_type VALUES ('b3333333-3333-3333-3333-333333333333', 'Team Allocation', false, '{CORE_HOST}/team-allocation/api', 'A placeholder description for this course phase type. Detailed description will follow.');
 INSERT INTO public.course_phase_type VALUES ('b4444444-4444-4444-4444-444444444444', 'Assessment', false, '{CORE_HOST}/assessment/api', 'A placeholder description for this course phase type. Detailed description will follow.');
 INSERT INTO public.course_phase_type VALUES ('c5555555-5555-5555-5555-555555555555', 'Certificate', false, '{CORE_HOST}/certificate/api', 'Certificate of completion generation and distribution.');
+INSERT INTO public.course_phase_type VALUES ('c6666666-6666-6666-6666-666666666666', 'Presentation', false, '{CORE_HOST}/presentation/api', 'Presentation scheduling, material submission, and instructor feedback.');
 
 
 --
@@ -815,13 +820,17 @@ INSERT INTO public.course_phase VALUES ('b3000002-0000-0000-0000-000000000002', 
 -- d0000007 = self-evaluation spec (Stan participates),
 -- d0000008 = TestCourse negative-auth fixture (no participants; the e2e
 -- students are not enrolled in TestCourse),
--- d0000009 = print spec (Stan participates).
+-- d0000009 = print spec (Stan participates),
+-- d0000012 = CampusOnline grade export spec (Stan + Selma participate),
+-- d0000013 = evaluation-only spec (Stan participates).
 --
 
 INSERT INTO public.course_phase VALUES ('d0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', 'Assessment Visibility', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000007-0000-0000-0000-000000000007', 'c0000001-0000-0000-0000-000000000001', 'Assessment Self Evaluation', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000008-0000-0000-0000-000000000008', 'be780b32-a678-4b79-ae1c-80071771d254', 'Assessment', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 INSERT INTO public.course_phase VALUES ('d0000009-0000-0000-0000-000000000009', 'c0000001-0000-0000-0000-000000000001', 'Assessment Print', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+INSERT INTO public.course_phase VALUES ('d0000012-0000-0000-0000-000000000012', 'c0000001-0000-0000-0000-000000000001', 'Assessment Grade Export', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
+INSERT INTO public.course_phase VALUES ('d0000013-0000-0000-0000-000000000013', 'c0000001-0000-0000-0000-000000000001', 'Assessment Evaluation Only', '{}', false, 'b4444444-4444-4444-4444-444444444444', '{}');
 
 --
 -- Standalone Example phases (no graph edges, route by URL). The example phase is
@@ -862,6 +871,14 @@ INSERT INTO public.course_phase VALUES ('d000000d-0000-0000-0000-00000000000d', 
 INSERT INTO public.course_phase VALUES ('d000000a-0000-0000-0000-00000000000a', 'c0000001-0000-0000-0000-000000000001', 'Certificate Lecturer', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
+
+--
+-- Standalone Presentation phase on fullCourse for the Module Federation and
+-- API-proxy smoke test. It is intentionally not part of the graph so the
+-- existing course lifecycle fixtures remain unchanged.
+--
+
+INSERT INTO public.course_phase VALUES ('d0000014-0000-0000-0000-000000000014', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
 
 --
 -- Standalone interview fixture phase (no graph edge, see above):
@@ -1824,4 +1841,3 @@ ALTER TABLE ONLY public.privacy_export
 --
 
 \unrestrict uiXVLaqKXF7gSedZuy9c3H2gUqZa6VyxWQoZSShJpDmfp6Ju8Xhj14PSv45Sbb5
-

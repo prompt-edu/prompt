@@ -48,6 +48,12 @@ on:
       certificate_image_tag:
         required: true
         type: string
+      server_presentation_image_tag:
+        required: true
+        type: string
+      presentation_image_tag:
+        required: true
+        type: string
 
     secrets:
       VM_SSH_PRIVATE_KEY:
@@ -82,7 +88,7 @@ jobs:
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
             # Define services to stop/remove (all except reverse-proxy and maintenance)
-            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate client-core client-assessment-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-example-component client-certificate-component"
+            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate server-presentation client-core client-assessment-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-example-component client-certificate-component client-presentation-component"
             # Stop all services except reverse-proxy and maintenance (keep fallback active)
             docker compose -f docker-compose.prod.yml --env-file=.env.prod stop $SERVICES
             # Remove stopped containers
@@ -202,6 +208,7 @@ jobs:
             echo "EXAMPLE_HOST=${{ vars.EXAMPLE_HOST != '' && vars.EXAMPLE_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "INTERVIEW_HOST=${{ vars.INTERVIEW_HOST != '' && vars.INTERVIEW_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "CERTIFICATE_HOST=${{ vars.CERTIFICATE_HOST != '' && vars.CERTIFICATE_HOST || vars.CORE_HOST }}" >> .env.prod
+            echo "PRESENTATION_HOST=${{ vars.PRESENTATION_HOST != '' && vars.PRESENTATION_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "CHAIR_NAME_SHORT=${{ vars.CHAIR_NAME_SHORT }}" >> .env.prod
             echo "CHAIR_NAME_LONG=${{ vars.CHAIR_NAME_LONG }}" >> .env.prod
 
@@ -222,6 +229,8 @@ jobs:
             echo "DB_PORT_ASSESSMENT=${{ vars.DB_PORT_ASSESSMENT }}" >> .env.prod
             echo "DB_HOST_CERTIFICATE=${{ vars.DB_HOST_CERTIFICATE }}" >> .env.prod
             echo "DB_PORT_CERTIFICATE=${{ vars.DB_PORT_CERTIFICATE }}" >> .env.prod
+            echo "DB_HOST_PRESENTATION=${{ vars.DB_HOST_PRESENTATION }}" >> .env.prod
+            echo "DB_PORT_PRESENTATION=${{ vars.DB_PORT_PRESENTATION }}" >> .env.prod
 
             echo "KEYCLOAK_HOST=${{ vars.KEYCLOAK_HOST }}" >> .env.prod
             echo "KEYCLOAK_REALM_NAME=${{ vars.KEYCLOAK_REALM_NAME }}" >> .env.prod
@@ -238,6 +247,7 @@ jobs:
             echo "SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.server_self_team_allocation_image_tag }}" >> .env.prod
             echo "SERVER_INTERVIEW_IMAGE_TAG=${{ inputs.server_interview_image_tag }}" >> .env.prod
             echo "SERVER_CERTIFICATE_IMAGE_TAG=${{ inputs.server_certificate_image_tag }}" >> .env.prod
+            echo "SERVER_PRESENTATION_IMAGE_TAG=${{ inputs.server_presentation_image_tag }}" >> .env.prod
 
             echo "CORE_IMAGE_TAG=${{ inputs.core_image_tag }}" >> .env.prod
             echo "EXAMPLE_IMAGE_TAG=${{ inputs.example_image_tag }}" >> .env.prod
@@ -247,6 +257,7 @@ jobs:
             echo "TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.team_allocation_image_tag }}" >> .env.prod
             echo "SELF_TEAM_ALLOCATION_IMAGE_TAG=${{ inputs.self_team_allocation_image_tag }}" >> .env.prod
             echo "CERTIFICATE_IMAGE_TAG=${{ inputs.certificate_image_tag }}" >> .env.prod
+            echo "PRESENTATION_IMAGE_TAG=${{ inputs.presentation_image_tag }}" >> .env.prod
 
 
             echo "SENDER_EMAIL=${{ vars.SENDER_EMAIL_ADDRESS }}" >> .env.prod
@@ -264,6 +275,7 @@ jobs:
             echo "SENTRY_DSN_EXAMPLE_SERVER=${{ vars.SENTRY_DSN_EXAMPLE_SERVER }}" >> .env.prod
             echo "SENTRY_DSN_INTERVIEW=${{ vars.SENTRY_DSN_INTERVIEW }}" >> .env.prod
             echo "SENTRY_DSN_CERTIFICATE=${{ vars.SENTRY_DSN_CERTIFICATE }}" >> .env.prod
+            echo "SENTRY_DSN_PRESENTATION=${{ vars.SENTRY_DSN_PRESENTATION }}" >> .env.prod
 
             echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env.prod
 

@@ -1,5 +1,5 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { getStudentName, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { GraduationCap, User, Users } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
@@ -105,7 +105,11 @@ export const EvaluationOverviewPage = () => {
 
   return (
     <div className='px-4 py-6'>
-      <ManagementPageHeader>Assessment Results & Evaluation</ManagementPageHeader>
+      <ManagementPageHeader>
+        {(coursePhaseConfig?.assessmentEnabled ?? true)
+          ? 'Assessment Results & Evaluation'
+          : 'Evaluations'}
+      </ManagementPageHeader>
 
       <div className='space-y-4'>
         <EvaluationInfoHeader
@@ -144,7 +148,7 @@ export const EvaluationOverviewPage = () => {
               const memberId = member.id ?? `${member.firstName}-${member.lastName}`
               return {
                 id: memberId,
-                name: `${member.firstName} ${member.lastName}`,
+                name: getStudentName(member),
                 navigationPath: `${path}/peer-evaluation/${memberId}`,
                 completed:
                   peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)
@@ -169,7 +173,7 @@ export const EvaluationOverviewPage = () => {
               const tutorId = tutor.id ?? `${tutor.firstName}-${tutor.lastName}`
               return {
                 id: tutorId,
-                name: `${tutor.firstName} ${tutor.lastName}`,
+                name: getStudentName(tutor),
                 navigationPath: `${path}/tutor-evaluation/${tutorId}`,
                 completed:
                   tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)

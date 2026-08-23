@@ -31,6 +31,7 @@ func setupEvaluationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 
 	// Student endpoints - access to own evaluations only
 	evaluationRouter.GET("/my-evaluations", authMiddleware(promptSDK.CourseStudent), getMyEvaluations)
+	evaluationRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), getMyEvaluationResults)
 	evaluationRouter.POST("", authMiddleware(promptSDK.CourseStudent), createOrUpdateEvaluation)
 	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), deleteEvaluation)
 }
@@ -175,6 +176,51 @@ func getMyEvaluations(c *gin.Context) {
 	c.JSON(http.StatusOK, evaluations)
 }
 
+// getMyEvaluationResults godoc
+// @Summary Get own evaluation results
+// @Description Get released evaluation results for the current student. Only served on phases where the assessment is disabled; assessment-enabled phases expose results through the assessment report instead.
+// @Tags evaluations
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} evaluationDTO.StudentEvaluationResults
+// @Success 204 {string} string "No Content"
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/evaluation/my-results [get]
+func getMyEvaluationResults(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	config, err := coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if config.AssessmentEnabled || !config.ResultsReleased {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	if err != nil {
+		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		return
+	}
+
+	results, err := GetStudentEvaluationResults(c, coursePhaseID, courseParticipationID, config)
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, results)
+}
+
 // createOrUpdateEvaluation godoc
 // @Summary Create or update evaluation
 // @Description Create or update an evaluation for the current student.
@@ -208,7 +254,7 @@ func createOrUpdateEvaluation(c *gin.Context) {
 		return
 	}
 
-	err = CreateOrUpdateEvaluation(c, coursePhaseID, request)
+	err = CreateOrUpdateEvaluation(c, c.GetHeader("Authorization"), coursePhaseID, request)
 	if err != nil {
 		handleError(c, evaluationErrorStatus(err), err)
 		return
@@ -249,7 +295,7 @@ func deleteEvaluation(c *gin.Context) {
 		return
 	}
 
-	err = DeleteEvaluation(c, evaluationID)
+	err = DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
 	if err != nil {
 		handleError(c, evaluationErrorStatus(err), err)
 		return
@@ -259,7 +305,8 @@ func deleteEvaluation(c *gin.Context) {
 
 func evaluationErrorStatus(err error) int {
 	switch {
-	case errors.Is(err, coursePhaseConfig.ErrNotStarted):
+	case errors.Is(err, coursePhaseConfig.ErrNotStarted),
+		evaluationCompletion.IsTargetAuthorizationError(err):
 		return http.StatusForbidden
 	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
 		return http.StatusConflict

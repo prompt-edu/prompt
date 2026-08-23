@@ -21,6 +21,7 @@ Originally developed for the **iPraktikum** at the **Technical University of Mun
 PROMPT supports custom course phases as independently deployable modules:
 
 - 🗓 **Interview Phase** – Schedule and manage student interviews.
+- 🎤 **Presentation Phase** – Schedule presentations, collect materials, and provide structured multi-instructor feedback.
 - 🧑‍🤝‍🧑 **Team Phase** – Allocate students to projects and teams.
 - 📄 **TUM Matching Export** – Export data in TUM-compatible format.
 - 🧩 **Custom Phases** – Easily extend PROMPT with your own logic.
@@ -73,7 +74,7 @@ This section is for **developers and contributors** looking to run PROMPT locall
 
 #### Clients
 
-- Built with **React**, **TypeScript**, and **Webpack Module Federation**
+- Built with **React**, **TypeScript**, and **Module Federation** (rspack)
 - Micro-frontends for each course phase
 - Shared design system using [`shadcn/ui`](https://ui.shadcn.com/)
 
@@ -259,10 +260,12 @@ cd servers/<service> && go test ./...
 
 # Lint clients
 cd clients && yarn biome check "core"
-
-# Add shadcn/ui component
-cd clients/shared_library && yarn dlx shadcn add <component-name>
 ```
+
+Shared UI components are not kept in this repository. They live in
+[`prompt-edu/prompt-lib`](https://github.com/prompt-edu/prompt-lib) and are consumed here as
+`@tumaet/prompt-ui-components`, so new shadcn/ui primitives are added there and released as a new
+package version.
 
 ### Git Hooks (pre-commit)
 

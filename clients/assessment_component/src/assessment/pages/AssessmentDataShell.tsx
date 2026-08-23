@@ -25,23 +25,25 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
   } = useGetAllTeams()
 
   const {
-    isPending: isCategoriesPending,
-    isError: isCategoriesError,
-    refetch: refetchCategories,
-  } = useGetAllCategoriesWithCompetencies()
-
-  const {
-    isPending: isScoreLevelsPending,
-    isError: isScoreLevelsError,
-    refetch: refetchScoreLevels,
-  } = useGetAllScoreLevels()
-
-  const {
     data: coursePhaseConfig,
     isPending: isCoursePhaseConfigPending,
     isError: isCoursePhaseConfigError,
     refetch: refetchCoursePhaseConfig,
   } = useGetCoursePhaseConfig()
+
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
+
+  const {
+    isPending: isCategoriesPending,
+    isError: isCategoriesError,
+    refetch: refetchCategories,
+  } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
+
+  const {
+    isPending: isScoreLevelsPending,
+    isError: isScoreLevelsError,
+    refetch: refetchScoreLevels,
+  } = useGetAllScoreLevels({ enabled: assessmentEnabled })
 
   const {
     isPending: isSelfEvaluationCategoriesPending,
@@ -73,8 +75,8 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
   const isError =
     isParticipationsError ||
     isTeamsError ||
-    isCategoriesError ||
-    isScoreLevelsError ||
+    (assessmentEnabled && isCategoriesError) ||
+    (assessmentEnabled && isScoreLevelsError) ||
     isCoursePhaseConfigError ||
     (coursePhaseConfig?.selfEvaluationEnabled && isSelfEvaluationCategoriesError) ||
     (coursePhaseConfig?.peerEvaluationEnabled && isPeerEvaluationCategoriesError) ||
@@ -82,8 +84,8 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
   const isPending =
     isCoursePhaseParticipationsPending ||
     isTeamsPending ||
-    isCategoriesPending ||
-    isScoreLevelsPending ||
+    (assessmentEnabled && isCategoriesPending) ||
+    (assessmentEnabled && isScoreLevelsPending) ||
     isCoursePhaseConfigPending ||
     (coursePhaseConfig?.selfEvaluationEnabled && isSelfEvaluationCategoriesPending) ||
     (coursePhaseConfig?.peerEvaluationEnabled && isPeerEvaluationCategoriesPending) ||
@@ -92,9 +94,11 @@ export const AssessmentDataShell = ({ children }: AssessmentDataShellProps) => {
   const refetch = () => {
     refetchTeams()
     refetchCoursePhaseParticipations()
-    refetchCategories()
-    refetchScoreLevels()
     refetchCoursePhaseConfig()
+    if (assessmentEnabled) {
+      refetchCategories()
+      refetchScoreLevels()
+    }
     if (coursePhaseConfig?.selfEvaluationEnabled) {
       refetchSelfEvaluationCategories()
     }

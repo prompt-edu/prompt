@@ -616,6 +616,7 @@ type CoursePhaseTypeParticipationRequiredInputDto struct {
 	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
 	DtoName           string    `json:"dto_name"`
 	Specification     []byte    `json:"specification"`
+	Optional          bool      `json:"optional"`
 }
 
 type CoursePhaseTypePhaseProvidedOutputDto struct {
@@ -632,6 +633,7 @@ type CoursePhaseTypePhaseRequiredInputDto struct {
 	CoursePhaseTypeID uuid.UUID `json:"course_phase_type_id"`
 	DtoName           string    `json:"dto_name"`
 	Specification     []byte    `json:"specification"`
+	Optional          bool      `json:"optional"`
 }
 
 type File struct {

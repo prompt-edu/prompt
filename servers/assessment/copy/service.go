@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,6 +44,18 @@ func (h *AssessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.
 		return err
 	}
 
+	// Copying a disabled source must not hide grades a non-empty target already holds
+	if !sourceConfig.AssessmentEnabled {
+		hasData, err := qtx.PhaseHasAssessmentData(ctx, req.TargetCoursePhaseID)
+		if err != nil {
+			log.WithError(err).Error("Failed to check target course phase for assessment data")
+			return err
+		}
+		if hasData.Bool {
+			return coursePhaseConfig.ErrCannotDisableAssessmentWithData
+		}
+	}
+
 	// Create a new course phase config for the target course phase with the same parameters
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
 		AssessmentSchemaID:       sourceConfig.AssessmentSchemaID,
@@ -65,6 +78,7 @@ func (h *AssessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.
 		GradeSuggestionVisible:   pgtype.Bool{Bool: sourceConfig.GradeSuggestionVisible, Valid: true},
 		ActionItemsVisible:       pgtype.Bool{Bool: sourceConfig.ActionItemsVisible, Valid: true},
 		GradingSheetVisible:      pgtype.Bool{Bool: sourceConfig.GradingSheetVisible, Valid: true},
+		AssessmentEnabled:        sourceConfig.AssessmentEnabled,
 	}
 
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)

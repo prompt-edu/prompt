@@ -12,7 +12,7 @@ import { endOfDay, startOfDay } from 'date-fns'
 import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { AssessmentSchema } from '../../../interfaces/assessmentSchema'
-import { AssessmentType } from '../../../interfaces/assessmentType'
+import type { AssessmentType } from '../../../interfaces/assessmentType'
 import { schemaSectionContent } from '../../schemaSectionContent'
 import { CreateAssessmentSchemaDialog } from './CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from './ErrorDisplay'
@@ -72,10 +72,9 @@ export const SchemaConfigurationCard = ({
   children,
 }: SchemaConfigurationCardProps) => {
   const content = schemaSectionContent[assessmentType]
-  const isRequired = assessmentType === AssessmentType.ASSESSMENT
-  const isActive = isRequired || enabled
+  const isActive = enabled
   const controlsDisabled = disabled || isSaving
-  const enableSwitchDisabled = isRequired || controlsDisabled || hasAssessmentData
+  const enableSwitchDisabled = controlsDisabled || hasAssessmentData
   const schemaControlsDisabled = controlsDisabled || hasAssessmentData || !isActive
   const timeframeControlsDisabled = controlsDisabled || !isActive
   const saveDisabled = controlsDisabled || !hasChanges || !canSave

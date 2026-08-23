@@ -45,7 +45,7 @@ func getApplicationConfirmationPlaceholderValues(mailingInfo db.GetConfirmationM
 	}
 }
 
-func getStatusEmailPlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date, participant db.GetParticipantMailingInformationRow) map[string]string {
+func getStatusEmailPlaceholderValues(courseName string, courseStartDate, courseEndDate pgtype.Date, participant db.GetParticipantMailingInformationByIDsRow) map[string]string {
 	return map[string]string{
 		"firstName":           getPgtypeTextValue(participant.FirstName),
 		"lastName":            getPgtypeTextValue(participant.LastName),

@@ -1,4 +1,4 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { EDITOR_ROLES, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Mail } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
@@ -7,7 +7,7 @@ export const CourseMailingSidebar = ({ rootPath, title }: { rootPath: string; ti
     title: 'Mailing',
     icon: <Mail />,
     goToPath: '/mailing',
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR],
+    requiredPermissions: EDITOR_ROLES,
   }
   return (
     <ExternalSidebarComponent

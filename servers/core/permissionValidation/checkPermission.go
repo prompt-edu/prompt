@@ -2,7 +2,6 @@ package permissionValidation
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,7 +34,7 @@ func checkUserRole(c *gin.Context, courseIdentifier string, allowedUsers ...stri
 		case PromptLecturer:
 			desiredRole = PromptLecturer
 		default:
-			desiredRole = fmt.Sprintf("%s-%s", courseIdentifier, role)
+			desiredRole = CourseRoleName(courseIdentifier, role)
 		}
 
 		if userRoles[desiredRole] {

@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   ErrorPage,
+  getStudentName,
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { Award, BookOpen, Loader2 } from 'lucide-react'
@@ -90,9 +91,7 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
         <div className='flex flex-col h-full sm:max-w-[650px] max-h-[90vh] overflow-hidden'>
           <DialogHeader className='bg-background z-5 pb-2'>
             <DialogTitle className='text-xl flex items-center gap-2'>
-              <span className='font-semibold'>
-                {student.firstName} {student.lastName}
-              </span>
+              <span className='font-semibold'>{getStudentName(student)}</span>
               <Badge variant='outline' className='ml-2'>
                 {student.email}
               </Badge>
@@ -120,8 +119,8 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
                             <div className='w-auto'>
                               <Badge
                                 className={`
-                                  ${getLevelConfig(skill.proficiency).textColor} 
-                                  ${getLevelConfig(skill.proficiency).selectedBg} 
+                                  ${getLevelConfig(skill.proficiency).textColor}
+                                  ${getLevelConfig(skill.proficiency).selectedBg}
                                   hover:${getLevelConfig(skill.proficiency).selectedBg}
                                 `}
                               >

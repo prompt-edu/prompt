@@ -131,10 +131,8 @@ These are deliberate design choices worth preserving when you extend the suite:
 
 ## Troubleshooting
 
-- **Keycloak crash-loops on import** ("Duplicate resource error" /
-  `UK_J3RWUVD56ONTGSUHOGM184WW2`): the repo pins Keycloak `26.6.3`, which fails to
-  import the committed realm on a fresh DB. The override pins **`26.4.7`**, which
-  imports cleanly. If you wiped the keycloak volume, recreate it:
+- **All requests 401 right after a teardown:** you wiped the keycloak volume, so the
+  realm is gone. Recreate it with
   `docker compose -p prompt-stress up -d keycloak-db keycloak`.
 - **Everything 401 mid-run / IDOR count drops to 0:** tokens expired. `run.sh` raises
   the realm `accessTokenLifespan` to 1h at preflight and re-mints before fuzzing; if

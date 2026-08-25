@@ -11,7 +11,8 @@
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation \
-	swagger install-clients install-hooks setup-skills new-phase
+	swagger install-clients install-hooks setup-skills new-phase \
+	seed seed-check
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -90,11 +91,22 @@ client-interview: ## Start only the interview client
 client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
-db: ## Start database and Keycloak
-	docker compose up -d db keycloak
+DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
+	db-example-server db-interview db-certificate db-presentation
 
-db-down: ## Stop database and Keycloak
-	docker compose stop db keycloak
+db: ## Start every service database and Keycloak
+	docker compose up -d $(DB_SERVICES) keycloak
+
+db-down: ## Stop every service database and Keycloak
+	docker compose stop $(DB_SERVICES) keycloak
+
+# Runs in a container so no host psql is needed and the code path matches the
+# one the e2e stack uses. The servers own the schemas, so start them once first.
+seed: ## Load the demo course into every service database (re-runnable)
+	docker compose run --rm seed
+
+seed-check: ## Verify the cross-database references in seed/ resolve
+	./scripts/seed-check.sh
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

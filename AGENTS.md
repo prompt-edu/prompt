@@ -61,11 +61,14 @@ make server
 # Start every server (core + all microservices)
 make servers
 
-# Start database and Keycloak (detached)
+# Start every service database and Keycloak (detached)
 make db
 
-# Stop database and Keycloak
+# Stop every service database and Keycloak
 make db-down
+
+# Load the demo course into every service database (start the servers first)
+make seed
 
 # Run linting
 make lint
@@ -137,6 +140,11 @@ and `docs/contributor/new_course_phase.md` cover the remaining manual steps); th
 phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
+
+**Seed data:** `make seed` loads one fully populated demo course into all eight databases from
+`seed/` (see `docs/contributor/guide/seeding.md`). It is data only and runs after the servers have
+migrated; never insert `course_phase_type` rows, resolve them by name. `make seed-check` verifies
+the ids that cross service boundaries.
 
 Run `make lint` and `make test` before completing a change. Go tests use `testcontainers-go`;
 end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:

@@ -1,5 +1,7 @@
-// Known values from the seed dump (e2e/seed/e2e_seed.sql). When the seed
-// changes, update these. IDs survive the migrate-up upgrade applied on startup.
+// Known values from the shared seed (seed/core.sql, applied by the stack's
+// `seed` service once the servers have migrated). When the seed changes, update
+// these. Course phase TYPE ids are not listed: the core server creates those at
+// startup with random UUIDs, so they are resolved by name at runtime.
 
 export const SEEDED_COURSES = {
   iPraktikum: {
@@ -27,8 +29,10 @@ export const SEEDED_COURSES = {
   },
 }
 
-// Total non-template courses present in the seed.
-export const SEEDED_COURSE_COUNT = 4
+// Total non-template courses present in the seed: the four fixture courses below
+// plus `iPraktikumDemo`, the populated demo course the seed adds for local
+// development. No spec asserts against the demo course.
+export const SEEDED_COURSE_COUNT = 5
 
 // An open Application phase on iPraktikum (applicationEndDate in the far future),
 // so the application file-upload endpoints accept uploads.

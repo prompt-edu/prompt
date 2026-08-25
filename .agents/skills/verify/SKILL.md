@@ -6,9 +6,9 @@ description: Run PROMPT 2.0 and observe a change in the real UI or API. Boots th
 # Verify a change against a running PROMPT stack
 
 The `docker-compose.e2e.yml` stack is the fastest handle: it boots the core client, the
-core server, every phase service, Keycloak with an imported realm, and a fully seeded
-database (`e2e/seed/e2e_seed.sql`) on ports that coexist with a dev stack — client 4000,
-core API 18090, Keycloak 18081.
+core server, every phase service, Keycloak with an imported realm, and every database
+seeded from `seed/` (by the one-shot `seed` service, after the servers have migrated) on
+ports that coexist with a dev stack — client 4000, core API 18090, Keycloak 18081.
 
 ## Boot the app without running tests
 
@@ -77,11 +77,11 @@ const { access_token } = await (await fetch(
   page does not, so always enter through a management route.
 - The console logs a `[prompt-shared-state] Missing or invalid env keys` warning and
   404s for optional phase assets on every page — pre-existing noise, not your change.
-- The seed is a `pg_dump` file loaded by `initdb` with `ON_ERROR_STOP`: one duplicate key
-  aborts it and the whole stack fails to boot with `container prompt-e2e-db exited (3)`.
-  Validate a seed edit on its own before a full run:
-  `docker run --rm -e POSTGRES_PASSWORD=x -e POSTGRES_DB=prompt \
-   -v "$PWD/e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro" postgres:15.18-alpine`
+- The seed runs in the one-shot `seed` container with `--single-transaction` and
+  `ON_ERROR_STOP`: a bad statement rolls the whole file back, `seed` exits non-zero, and
+  `e2e-runner` never starts (it waits on `service_completed_successfully`). Read
+  `docker compose -f docker-compose.e2e.yml logs seed` first. `make seed-check` catches a
+  mistyped cross-database id without booting anything.
 - Reusing images with `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and
-  `e2e/tests`; the seed is a bind mount and updates without a rebuild. Edited constants
+  `e2e/tests`; `seed/` is a bind mount and updates without a rebuild. Edited constants
   therefore need a rebuild, or the browser navigates to stale ids.

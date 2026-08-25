@@ -686,9 +686,9 @@ services:
       - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
       - POSTGRES_DB=${DB_CORE_NAME}
       - TZ=Europe/Berlin
-    # Seed loaded on first init (db is ephemeral → always fresh each run).
-    volumes:
-      - ./e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro
+    # No init seed: the shared seed under seed/ is data only, so it has to be
+    # applied after server-core has migrated this database and created its
+    # course phase types. The `seed` service below does that.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${DB_CORE_NAME} -U ${DB_CORE_USER}"]
       interval: 5s
@@ -856,6 +856,58 @@ services:
   # The browser, the app's runtime config, the server, and Keycloak all address
   # each other by Docker service name on the compose network — so the realm's
   # redirect URIs (http://client-core/*) and the token issuer all line up.
+  # Applies the shared seed (seed/, the same files `make seed` uses) once every
+  # server has migrated its database. scripts/seed.sh waits per database until
+  # schema_migrations reaches the version the migration directory declares, so
+  # `service_started` is enough of a dependency here.
+  seed:
+    image: "postgres:15.19-alpine"
+    container_name: prompt-e2e-seed
+    entrypoint: ["/seed.sh"]
+    depends_on:
+      server-core:
+        condition: service_started
+      server-self-team-allocation:
+        condition: service_started
+      server-example:
+        condition: service_started
+      server-assessment:
+        condition: service_started
+      server-interview:
+        condition: service_started
+      server-certificate:
+        condition: service_started
+      server-presentation:
+        condition: service_started
+      server-team-allocation:
+        condition: service_started
+    volumes:
+      - ./seed:/seed:ro
+      - ./servers:/servers:ro
+      - ./scripts/seed.sh:/seed.sh:ro
+    environment:
+      - SEED_SQL_ROOT=/seed
+      - SEED_MIGRATIONS_ROOT=/servers
+      - SEED_DB_NAME=${DB_CORE_NAME}
+      - SEED_DB_USER=${DB_CORE_USER}
+      - SEED_DB_PASSWORD=${DB_CORE_PASSWORD}
+      - SEED_CORE_HOST=db
+      - SEED_CORE_PORT=5432
+      - SEED_TEAM_ALLOCATION_HOST=db-team-allocation
+      - SEED_TEAM_ALLOCATION_PORT=5432
+      - SEED_SELF_TEAM_ALLOCATION_HOST=db-self-team-allocation
+      - SEED_SELF_TEAM_ALLOCATION_PORT=5432
+      - SEED_ASSESSMENT_HOST=db-assessment
+      - SEED_ASSESSMENT_PORT=5432
+      - SEED_INTERVIEW_HOST=db-interview
+      - SEED_INTERVIEW_PORT=5432
+      - SEED_CERTIFICATE_HOST=db-certificate
+      - SEED_CERTIFICATE_PORT=5432
+      - SEED_PRESENTATION_HOST=db-presentation
+      - SEED_PRESENTATION_PORT=5432
+      - SEED_EXAMPLE_SERVER_HOST=db-example
+      - SEED_EXAMPLE_SERVER_PORT=5432
+
   e2e-runner:
     build:
       context: ./e2e
@@ -904,6 +956,8 @@ services:
       server-team-allocation:
         # distroless; global-setup polls /team-allocation/api/info.
         condition: service_started
+      seed:
+        condition: service_completed_successfully
     environment:
       - CI
       # Service-name URLs on the compose network. Chromium hard-codes

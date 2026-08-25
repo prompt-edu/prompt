@@ -168,7 +168,7 @@ make test-e2e-down                     # stop the stack and remove volumes
 - Playwright suite lives in `e2e/`; see **`e2e/README.md`** for how to run it
   (including interactive UI mode) and how to add tests
 - Boots core server + client + Keycloak + Postgres + SeaweedFS via `docker-compose.e2e.yml`
-- Uses the seeded Keycloak users and a fixed DB seed (`e2e/seed/e2e_seed.sql`)
+- Uses the seeded Keycloak users and the shared DB seed (`seed/`, see `make seed`)
 - Runs on non-default host ports (client 4000 / API 18090 / Keycloak 18081), so
   it coexists with a running dev stack
 

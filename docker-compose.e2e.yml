@@ -200,7 +200,7 @@ services:
       start_period: 10s
 
   db-self-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -271,7 +271,7 @@ services:
       start_period: 10s
 
   db-example:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-example
     environment:
       - POSTGRES_USER=${DB_EXAMPLE_USER}
@@ -339,7 +339,7 @@ services:
       start_period: 10s
 
   db-assessment:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -432,7 +432,7 @@ services:
       start_period: 10s
 
   db-interview:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER}
@@ -505,7 +505,7 @@ services:
       start_period: 10s
 
   db-certificate:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -579,7 +579,7 @@ services:
       start_period: 10s
 
   db-presentation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
@@ -648,7 +648,7 @@ services:
       start_period: 10s
 
   db-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -679,7 +679,7 @@ services:
     init: true
 
   db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -697,7 +697,7 @@ services:
     # No host port: only server-core talks to the DB, over the compose network.
 
   keycloak-db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -842,7 +842,7 @@ services:
   # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
   # the runner reads them back over the HTTP API (8025) to assert delivery.
   mailpit:
-    image: axllent/mailpit:v1.21.8
+    image: axllent/mailpit:v1.30.7
     container_name: prompt-e2e-mailpit
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true

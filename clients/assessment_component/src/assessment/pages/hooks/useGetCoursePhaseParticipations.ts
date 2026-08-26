@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
+import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
-import { getCoursePhaseParticipations } from '../../network/queries/getCoursePhaseParticipations'
 import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 
 const EMPTY_PARTICIPATIONS: AssessmentParticipationWithStudent[] = []
@@ -12,7 +12,7 @@ export const useGetCoursePhaseParticipations = () => {
 
   const { data, ...queryInfo } = useQuery<AssessmentParticipationWithStudent[]>({
     queryKey: assessmentKeys.participants(phaseId),
-    queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
+    queryFn: () => assessmentApi.config.participations(phaseId ?? ''),
     staleTime: SHELL_QUERY_STALE_TIME,
   })
 

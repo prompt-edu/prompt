@@ -3,12 +3,9 @@ import { Button, Card, CardContent, ErrorPage, getStudentName } from '@tumaet/pr
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
-import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
-import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
-import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
@@ -57,8 +54,8 @@ export const EvaluationParticipantResultsPage = ({
     ),
     queryFn: () =>
       assessmentType === AssessmentType.SELF
-        ? getSelfEvaluationsForParticipantInPhase(phaseId ?? '', courseParticipationID ?? '')
-        : getPeerEvaluationsForParticipantInPhase(phaseId ?? '', courseParticipationID ?? ''),
+        ? assessmentApi.evaluations.ofSelf(phaseId ?? '', courseParticipationID ?? '')
+        : assessmentApi.evaluations.ofPeers(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })
 
@@ -69,7 +66,8 @@ export const EvaluationParticipantResultsPage = ({
     refetch: refetchFeedbackItems,
   } = useQuery({
     queryKey: assessmentKeys.feedbackItems.ofStudent(phaseId, courseParticipationID),
-    queryFn: () => getFeedbackItemsForStudent(phaseId ?? '', courseParticipationID ?? ''),
+    queryFn: () =>
+      assessmentApi.feedbackItems.ofStudent(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })
 

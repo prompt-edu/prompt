@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { deleteAssessment } from '../../../../../network/mutations/deleteAssessment'
 
 export const useDeleteAssessment = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -9,7 +9,7 @@ export const useDeleteAssessment = (setError: (error: string | undefined) => voi
 
   return useMutation({
     mutationFn: (assessmentID: string) => {
-      return deleteAssessment(phaseId ?? '', assessmentID)
+      return assessmentApi.assessments.remove(phaseId ?? '', assessmentID)
     },
     onSuccess: () => {
       assessmentCache.assessmentWritten(queryClient, phaseId)

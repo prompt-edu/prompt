@@ -21,8 +21,8 @@ import type {
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
+import { assessmentApi } from '../../../../network/api'
 import { assessmentCache, assessmentKeys } from '../../../../network/cache'
-import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
@@ -86,7 +86,7 @@ export const AssessmentReminderCard = () => {
 
   const sendReminderMutation = useMutation({
     mutationFn: (type: EvaluationReminderType) =>
-      sendEvaluationReminder(phaseId ?? '', { evaluationType: type }),
+      assessmentApi.config.sendReminder(phaseId ?? '', { evaluationType: type }),
     onSuccess: (report) => {
       setLastReport(report)
       toast({

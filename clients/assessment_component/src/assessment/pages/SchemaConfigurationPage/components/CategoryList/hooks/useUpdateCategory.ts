@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateCategoryRequest } from '../../../../../interfaces/category'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { updateCategory } from '../../../../../network/mutations/updateCategory'
 
 export const useUpdateCategory = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (category: UpdateCategoryRequest) => updateCategory(phaseId ?? '', category),
+    mutationFn: (category: UpdateCategoryRequest) =>
+      assessmentApi.categories.update(phaseId ?? '', category),
     onSuccess: () => {
       assessmentCache.schemaChanged(queryClient, phaseId)
       setError(undefined)

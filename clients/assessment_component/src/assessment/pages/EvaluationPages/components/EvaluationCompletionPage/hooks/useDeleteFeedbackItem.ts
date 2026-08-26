@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-
-import { deleteFeedbackItem } from '../../../../../network/mutations/deleteFeedbackItem'
 
 export const useDeleteFeedbackItem = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +9,7 @@ export const useDeleteFeedbackItem = (setError: (error: string | undefined) => v
 
   return useMutation({
     mutationFn: (feedbackItemID: string) => {
-      return deleteFeedbackItem(phaseId ?? '', feedbackItemID)
+      return assessmentApi.feedbackItems.remove(phaseId ?? '', feedbackItemID)
     },
     onSuccess: () => {
       assessmentCache.myFeedbackItemsChanged(queryClient, phaseId)

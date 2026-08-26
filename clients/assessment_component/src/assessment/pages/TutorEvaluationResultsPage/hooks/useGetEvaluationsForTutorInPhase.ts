@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { Evaluation } from '../../../interfaces/evaluation'
+import { assessmentApi } from '../../../network/api'
 import { assessmentKeys } from '../../../network/cache'
-
-import { getEvaluationsForTutorInPhase } from '../../../network/queries/getEvaluationsForTutorInPhase'
 
 export const useGetEvaluationsForTutorInPhase = (
   tutorParticipationID: string,
@@ -13,7 +12,7 @@ export const useGetEvaluationsForTutorInPhase = (
 
   return useQuery<Evaluation[]>({
     queryKey: assessmentKeys.evaluations.ofTutor(phaseId, tutorParticipationID),
-    queryFn: () => getEvaluationsForTutorInPhase(phaseId ?? '', tutorParticipationID),
+    queryFn: () => assessmentApi.evaluations.ofTutor(phaseId ?? '', tutorParticipationID),
     enabled: options?.enabled && !!phaseId && !!tutorParticipationID,
   })
 }

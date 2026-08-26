@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { CreateOrUpdateAssessmentCompletionRequest } from '../../../../../interfaces/assessmentCompletion'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { markAssessmentAsComplete } from '../../../../../network/mutations/markAssessmentAsComplete'
 
 export const useMarkAssessmentAsComplete = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useMarkAssessmentAsComplete = (setError: (error: string | undefined
 
   return useMutation({
     mutationFn: (assessmentCompletion: CreateOrUpdateAssessmentCompletionRequest) => {
-      return markAssessmentAsComplete(phaseId ?? '', assessmentCompletion)
+      return assessmentApi.completions.markComplete(phaseId ?? '', assessmentCompletion)
     },
     onSuccess: () => {
       assessmentCache.assessmentCompletionChanged(queryClient, phaseId)

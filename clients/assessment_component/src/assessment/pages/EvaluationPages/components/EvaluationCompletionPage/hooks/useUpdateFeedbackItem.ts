@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateFeedbackItemRequest } from '../../../../../interfaces/feedbackItem'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { updateFeedbackItem } from '../../../../../network/mutations/updateFeedbackItem'
 
 export const useUpdateFeedbackItem = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useUpdateFeedbackItem = (setError: (error: string | undefined) => v
 
   return useMutation({
     mutationFn: (feedbackItem: UpdateFeedbackItemRequest) => {
-      return updateFeedbackItem(phaseId ?? '', feedbackItem.id, feedbackItem)
+      return assessmentApi.feedbackItems.update(phaseId ?? '', feedbackItem.id, feedbackItem)
     },
     onSuccess: () => {
       assessmentCache.myFeedbackItemsChanged(queryClient, phaseId)

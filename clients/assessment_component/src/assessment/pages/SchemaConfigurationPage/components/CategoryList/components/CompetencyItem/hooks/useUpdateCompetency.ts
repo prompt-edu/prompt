@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateCompetencyRequest } from '../../../../../../../interfaces/competency'
+import { assessmentApi } from '../../../../../../../network/api'
 import { assessmentCache } from '../../../../../../../network/cache'
-import { updateCompetency } from '../../../../../../../network/mutations/updateCompetency'
 
 export const useUpdateCompetency = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useUpdateCompetency = (setError: (error: string | undefined) => voi
 
   return useMutation({
     mutationFn: (competency: UpdateCompetencyRequest) =>
-      updateCompetency(phaseId ?? '', competency),
+      assessmentApi.competencies.update(phaseId ?? '', competency),
     onSuccess: () => {
       assessmentCache.schemaChanged(queryClient, phaseId)
       setError(undefined)

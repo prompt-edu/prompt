@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
 import type { CreateOrUpdateCoursePhaseConfigRequest } from '../../../interfaces/coursePhaseConfig'
+import { assessmentApi } from '../../../network/api'
 import { assessmentCache } from '../../../network/cache'
-import { createOrUpdateCoursePhaseConfig } from '../../../network/mutations/createOrUpdateCoursePhaseConfig'
 
 interface CreateOrUpdateCoursePhaseConfigResponseError {
   error?: string
@@ -29,7 +29,7 @@ export const useCreateOrUpdateCoursePhaseConfig = (
 
   return useMutation({
     mutationFn: (request: CreateOrUpdateCoursePhaseConfigRequest) =>
-      createOrUpdateCoursePhaseConfig(phaseId ?? '', request),
+      assessmentApi.config.save(phaseId ?? '', request),
     onSuccess: () => {
       assessmentCache.coursePhaseConfigChanged(queryClient, phaseId)
       options?.onSuccess?.()

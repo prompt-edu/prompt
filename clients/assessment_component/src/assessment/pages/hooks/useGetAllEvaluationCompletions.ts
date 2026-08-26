@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
+import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 
 const EMPTY_EVALUATION_COMPLETIONS: EvaluationCompletion[] = []
 
@@ -12,7 +11,7 @@ export const useGetAllEvaluationCompletions = () => {
 
   const { data, ...queryInfo } = useQuery<EvaluationCompletion[]>({
     queryKey: assessmentKeys.evaluationCompletions.inPhase(phaseId),
-    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
+    queryFn: () => assessmentApi.evaluationCompletions.listInPhase(phaseId ?? ''),
   })
 
   return { ...queryInfo, data: data ?? EMPTY_EVALUATION_COMPLETIONS }

@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { CreateOrUpdateEvaluationRequest } from '../../../../../interfaces/evaluation'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { createOrUpdateEvaluation } from '../../../../../network/mutations/createOrUpdateEvaluation'
 
 export const useCreateOrUpdateEvaluation = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useCreateOrUpdateEvaluation = (setError: (error: string | undefined
 
   return useMutation({
     mutationFn: (evaluation: CreateOrUpdateEvaluationRequest) => {
-      return createOrUpdateEvaluation(phaseId ?? '', evaluation)
+      return assessmentApi.evaluations.save(phaseId ?? '', evaluation)
     },
     onSuccess: () => {
       assessmentCache.myEvaluationWritten(queryClient, phaseId)

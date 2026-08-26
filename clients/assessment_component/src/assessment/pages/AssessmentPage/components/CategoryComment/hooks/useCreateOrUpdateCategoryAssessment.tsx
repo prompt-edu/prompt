@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
 import type { CreateOrUpdateCategoryAssessmentRequest } from '../../../../../interfaces/categoryAssessment'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { createOrUpdateCategoryAssessment } from '../../../../../network/mutations/createOrUpdateCategoryAssessment'
 
 export const useCreateOrUpdateCategoryAssessment = (
   setError: (error: string | undefined) => void,
@@ -13,7 +13,7 @@ export const useCreateOrUpdateCategoryAssessment = (
 
   return useMutation({
     mutationFn: (req: CreateOrUpdateCategoryAssessmentRequest) =>
-      createOrUpdateCategoryAssessment(phaseId ?? '', req),
+      assessmentApi.categoryAssessments.save(phaseId ?? '', req),
     onSuccess: () => {
       assessmentCache.assessmentWritten(queryClient, phaseId)
       setError(undefined)

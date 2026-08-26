@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { EvaluationCompletionRequest } from '../../../../../interfaces/evaluationCompletion'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { markMyEvaluationAsCompleted } from '../../../../../network/mutations/markMyEvaluationAsCompleted'
 
 export const useMarkMyEvaluationAsCompleted = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useMarkMyEvaluationAsCompleted = (setError: (error: string | undefi
 
   return useMutation({
     mutationFn: (evaluationCompletion: EvaluationCompletionRequest) => {
-      return markMyEvaluationAsCompleted(phaseId ?? '', evaluationCompletion)
+      return assessmentApi.evaluationCompletions.markMine(phaseId ?? '', evaluationCompletion)
     },
     onSuccess: () => {
       assessmentCache.myEvaluationCompletionChanged(queryClient, phaseId)

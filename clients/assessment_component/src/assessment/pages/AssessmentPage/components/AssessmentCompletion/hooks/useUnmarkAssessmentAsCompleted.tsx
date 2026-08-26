@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-
-import { unmarkAssessmentAsCompleted } from '../../../../../network/mutations/unmarkAssessmentAsCompleted'
 
 export const useUnmarkAssessmentAsCompleted = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +9,7 @@ export const useUnmarkAssessmentAsCompleted = (setError: (error: string | undefi
 
   return useMutation({
     mutationFn: (courseParticipationID: string) => {
-      return unmarkAssessmentAsCompleted(phaseId ?? '', courseParticipationID)
+      return assessmentApi.completions.unmark(phaseId ?? '', courseParticipationID)
     },
     onSuccess: () => {
       assessmentCache.assessmentCompletionChanged(queryClient, phaseId)

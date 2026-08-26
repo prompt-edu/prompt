@@ -11,11 +11,10 @@ import {
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
+import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
-import { getAllFeedbackItems } from '../../network/queries/getAllFeedbackItems'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
@@ -105,7 +104,7 @@ export const EvaluationParticipantsOverviewPage = ({
   const [printRequests, setPrintRequests] = useState(0)
   const { data: allFeedbackItems = [], isSuccess: feedbackReady } = useQuery({
     queryKey: assessmentKeys.feedbackItems.inPhase(phaseId),
-    queryFn: () => getAllFeedbackItems(phaseId ?? ''),
+    queryFn: () => assessmentApi.feedbackItems.listInPhase(phaseId ?? ''),
     enabled: printRequests > 0,
   })
 

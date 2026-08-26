@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateActionItemRequest } from '../../../../../interfaces/actionItem'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { updateActionItem } from '../../../../../network/mutations/updateActionItem'
 
 export const useUpdateActionItem = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,7 +10,7 @@ export const useUpdateActionItem = (setError: (error: string | undefined) => voi
 
   return useMutation({
     mutationFn: (actionItem: UpdateActionItemRequest) => {
-      return updateActionItem(phaseId ?? '', actionItem)
+      return assessmentApi.actionItems.update(phaseId ?? '', actionItem)
     },
     onSuccess: () => {
       assessmentCache.actionItemsChanged(queryClient, phaseId)

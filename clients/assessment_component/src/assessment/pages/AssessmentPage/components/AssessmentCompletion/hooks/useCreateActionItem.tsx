@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { CreateActionItemRequest } from '../../../../../interfaces/actionItem'
+import { assessmentApi } from '../../../../../network/api'
 import { assessmentCache } from '../../../../../network/cache'
-import { createActionItem } from '../../../../../network/mutations/createActionItem'
 
 export const useCreateActionItem = (setError: (error: string | undefined) => void) => {
   const queryClient = useQueryClient()
@@ -10,7 +10,7 @@ export const useCreateActionItem = (setError: (error: string | undefined) => voi
 
   return useMutation({
     mutationFn: (actionItem: CreateActionItemRequest) => {
-      return createActionItem(phaseId ?? '', actionItem)
+      return assessmentApi.actionItems.create(phaseId ?? '', actionItem)
     },
     onSuccess: () => {
       assessmentCache.actionItemsChanged(queryClient, phaseId)

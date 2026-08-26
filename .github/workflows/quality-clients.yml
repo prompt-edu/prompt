@@ -43,5 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
+      - run: yarn install
       - name: Run client unit tests
         run: yarn test

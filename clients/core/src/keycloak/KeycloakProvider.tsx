@@ -1,31 +1,168 @@
-import type Keycloak from 'keycloak-js'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
+import { jwtDecode } from 'jwt-decode'
+import Keycloak from 'keycloak-js'
 import type React from 'react'
-import { createContext, type ReactNode, useState } from 'react'
+import { createContext, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+
+const TOKEN_KEY = 'jwt_token'
+const REFRESH_TOKEN_KEY = 'refreshToken'
 
 interface KeycloakContextType {
-  keycloakUrl: string
-  keycloakRealmName: string
-  keycloakValue: Keycloak | undefined
-  setKeycloakValue: (keycloak: Keycloak) => void
+  isInitialized: boolean
+  isAuthenticated: boolean
+  login: (redirectUri?: string) => void
+  logout: () => Promise<void>
+  forceTokenRefresh: () => Promise<void>
 }
 
 export const KeycloakContext = createContext<KeycloakContextType>({
-  keycloakUrl: '',
-  keycloakRealmName: '',
-  keycloakValue: undefined,
-  setKeycloakValue: () => {},
+  isInitialized: false,
+  isAuthenticated: false,
+  login: () => {},
+  logout: async () => {},
+  forceTokenRefresh: async () => {},
 })
+
+const parseJwt = (token: string) => {
+  try {
+    return jwtDecode<{
+      given_name: string
+      family_name: string
+      email: string
+      preferred_username: string
+      matriculation_number: string
+      university_login: string
+    }>(token)
+  } catch {
+    return null
+  }
+}
 
 export const KeycloakProvider: React.FC<{
   keycloakUrl: string
   keycloakRealmName: string
   children: ReactNode
 }> = ({ keycloakUrl, keycloakRealmName, children }) => {
-  const [keycloakValue, setKeycloakValue] = useState<Keycloak>()
+  const keycloakRef = useRef<Keycloak | undefined>(undefined)
+  const initStarted = useRef(false)
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { setUser, setPermissions, clearUser, clearPermissions, setLogoutFunction } = useAuthStore()
+
+  const clearLocalSession = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    clearUser()
+    clearPermissions()
+    setIsAuthenticated(false)
+  }, [clearUser, clearPermissions])
+
+  const storeSession = useCallback(
+    (instance: Keycloak) => {
+      const token = instance.token
+      const decodedJwt = token ? parseJwt(token) : null
+      if (!token || !decodedJwt) {
+        clearLocalSession()
+        return
+      }
+
+      localStorage.setItem(TOKEN_KEY, token)
+      localStorage.setItem(REFRESH_TOKEN_KEY, instance.refreshToken ?? '')
+
+      setUser({
+        firstName: decodedJwt.given_name || '',
+        lastName: decodedJwt.family_name || '',
+        email: decodedJwt.email || '',
+        username: decodedJwt.preferred_username || '',
+        matriculationNumber: decodedJwt.matriculation_number || '',
+        universityLogin: decodedJwt.university_login || '',
+      })
+      setPermissions(instance.resourceAccess?.['prompt-server']?.roles || [])
+      setIsAuthenticated(true)
+    },
+    [setUser, setPermissions, clearLocalSession],
+  )
+
+  // Also drops the in-memory tokens, so the tab cannot silently refresh itself back
+  // into an authenticated state after a failed refresh or a logout in another tab.
+  const clearSession = useCallback(() => {
+    keycloakRef.current?.clearToken()
+    clearLocalSession()
+  }, [clearLocalSession])
+
+  useEffect(() => {
+    if (initStarted.current) return
+    initStarted.current = true
+
+    const instance = new Keycloak({
+      realm: keycloakRealmName,
+      url: keycloakUrl,
+      clientId: 'prompt-client',
+    })
+    keycloakRef.current = instance
+
+    instance.onAuthSuccess = () => storeSession(instance)
+    instance.onAuthRefreshSuccess = () => storeSession(instance)
+    instance.onAuthRefreshError = () => clearSession()
+    instance.onAuthLogout = () => clearLocalSession()
+    instance.onTokenExpired = () => {
+      void instance.updateToken(5).catch(() => undefined)
+    }
+
+    const storedToken = localStorage.getItem(TOKEN_KEY)
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+
+    instance
+      .init({
+        checkLoginIframe: false,
+        ...(storedToken && storedRefreshToken
+          ? { token: storedToken, refreshToken: storedRefreshToken }
+          : {}),
+      })
+      .catch(() => clearSession())
+      .finally(() => setIsInitialized(true))
+  }, [keycloakRealmName, keycloakUrl, storeSession, clearSession, clearLocalSession])
+
+  // Another tab logged out: the shared tokens are gone, so this tab must not keep
+  // rendering an authenticated UI (the shared axios reads localStorage per request).
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      const tokensCleared = event.key === null
+      const tokenRemoved =
+        (event.key === TOKEN_KEY || event.key === REFRESH_TOKEN_KEY) && event.newValue === null
+      if (tokensCleared || tokenRemoved) {
+        clearSession()
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [clearSession])
+
+  const login = useCallback((redirectUri?: string) => {
+    void keycloakRef.current?.login({ redirectUri: redirectUri ?? window.location.href })
+  }, [])
+
+  // Keeps the in-memory id token, which Keycloak needs as id_token_hint for the logout URL.
+  const logout = useCallback(async () => {
+    clearLocalSession()
+    await keycloakRef.current?.logout({ redirectUri: window.location.origin })
+  }, [clearLocalSession])
+
+  const forceTokenRefresh = useCallback(async () => {
+    const instance = keycloakRef.current
+    if (!instance) {
+      throw new Error('Keycloak instance is not initialized.')
+    }
+    await instance.updateToken(-1)
+  }, [])
+
+  useEffect(() => {
+    setLogoutFunction(logout)
+  }, [logout, setLogoutFunction])
 
   return (
     <KeycloakContext.Provider
-      value={{ keycloakUrl, keycloakRealmName, keycloakValue, setKeycloakValue }}
+      value={{ isInitialized, isAuthenticated, login, logout, forceTokenRefresh }}
     >
       {children}
     </KeycloakContext.Provider>

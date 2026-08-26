@@ -46,7 +46,7 @@ export const ApplicationAuthenticated = () => {
   } = useQuery<GetApplication>({
     queryKey: ['application', phaseId],
     queryFn: () => getApplication(phaseId ?? ''),
-    enabled: !!phaseId && !!localStorage.getItem('jwt_token'),
+    enabled: !!phaseId,
   })
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({

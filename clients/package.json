@@ -24,7 +24,8 @@
     "format": "biome format",
     "format:fix": "biome format --fix",
     "check": "biome check",
-    "check:fix": "biome check --fix"
+    "check:fix": "biome check --fix",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -106,6 +107,7 @@
     "lerna": "^10.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
     "webpack-bundle-analyzer": "^5.3.1"
   },
   "packageManager": "yarn@4.18.0"

@@ -135,8 +135,8 @@ INSERT INTO evaluation_completion (id, course_participation_id, course_phase_id,
            ('60000006-0000-0000-0000-000000000006', 'cd000006-0000-0000-0000-000000000006', 'f0000005-0000-0000-0000-000000000005', 'cd000006-0000-0000-0000-000000000006', true, '2026-06-29 18:50:00+02', 'self');
 
 INSERT INTO feedback_items (id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id, type)
-    VALUES ('6a000001-0000-0000-0000-000000000001', 'positive', 'Always available when the team needed a reviewer.', 'cd000001-0000-0000-0000-000000000001', 'f0000005-0000-0000-0000-000000000005', 'cd000002-0000-0000-0000-000000000002', 'self'),
-           ('6a000002-0000-0000-0000-000000000002', 'negative', 'Sometimes takes on too much instead of delegating.', 'cd000001-0000-0000-0000-000000000001', 'f0000005-0000-0000-0000-000000000005', 'cd000002-0000-0000-0000-000000000002', 'self');
+    VALUES ('6a000001-0000-0000-0000-000000000001', 'positive', 'I was always available when the team needed a reviewer.', 'cd000001-0000-0000-0000-000000000001', 'f0000005-0000-0000-0000-000000000005', 'cd000001-0000-0000-0000-000000000001', 'self'),
+           ('6a000002-0000-0000-0000-000000000002', 'negative', 'I sometimes take on too much instead of delegating.', 'cd000001-0000-0000-0000-000000000001', 'f0000005-0000-0000-0000-000000000005', 'cd000001-0000-0000-0000-000000000001', 'self');
 
 INSERT INTO action_item (id, course_phase_id, course_participation_id, action, author)
     VALUES ('6b000001-0000-0000-0000-000000000001', 'f0000005-0000-0000-0000-000000000005', 'cd000004-0000-0000-0000-000000000004', 'Pair with a Swift-experienced team member on the next feature.', 'Seeded Tutor'),

@@ -662,7 +662,7 @@ JOIN course_phase_type_phase_required_input_dto required
 INSERT INTO mail_campaign (id, course_id, name, subject, body, target_course_phase_id, target_pass_statuses, status, created_by_id, created_by_email, created_by_name)
     VALUES ('fe000001-0000-0000-0000-000000000001', 'c0000002-0000-0000-0000-000000000002',
             'Kickoff invitation', 'Welcome to the iPraktikum',
-            'Dear {{firstName}},\n\nyou have been accepted into the iPraktikum. The kickoff meeting takes place in the first week of the semester.\n\nBest regards,\nthe teaching team',
+            E'Dear {{firstName}},\n\nyou have been accepted into the iPraktikum. The kickoff meeting takes place in the first week of the semester.\n\nBest regards,\nthe teaching team',
             'f0000001-0000-0000-0000-000000000001', '{passed}', 'draft',
             'seed-lecturer', 'lecturer@example.com', 'Seeded Lecturer');
 

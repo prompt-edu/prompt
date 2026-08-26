@@ -23,6 +23,12 @@ export PGPASSWORD
 # InitApplicationAdministrationModule, both before the router starts serving.
 CORE_PHASE_TYPES="'Application','Interview','Matching','Team Allocation','Self Team Allocation','Assessment','Certificate','Presentation'"
 
+# Every phase seed points at core-owned ids (course phases f……, participations
+# cd……) that only seed/core.sql creates, and nothing enforces those links across
+# databases. core.sql applies in one transaction, so the demo course is present
+# exactly when the rest of what it owns is.
+DEMO_COURSE="c0000002-0000-0000-0000-000000000002"
+
 die() { echo "seed: error: $*" >&2; exit 1; }
 
 default_port() {
@@ -94,6 +100,14 @@ wait_for() {
      The servers own the schema - start them once (make servers) so their startup migrations run."
 }
 
+require_core_seeded() {
+    host="$(svc_host core)"
+    port="$(svc_port core)"
+    [ "$(query "$host" "$port" "SELECT count(*) FROM course WHERE id = '$DEMO_COURSE'")" = 1 ] ||
+        die "core at $host:$port does not hold the demo course.
+     A phase seed references core-owned ids - seed core first (make seed, or add core to the targets)."
+}
+
 apply() {
     file="$SEED_SQL_ROOT/$1.sql"
     [ -f "$file" ] || die "no seed file at $file"
@@ -106,12 +120,23 @@ for svc in $targets; do
     default_port "$svc" >/dev/null
 done
 
+# core.sql creates what every other file references, so it is applied first
+# whatever order the targets arrive in.
+core=""
+phases=""
+for svc in $targets; do
+    if [ "$svc" = core ]; then core="core"; else phases="$phases $svc"; fi
+done
+targets="$core$phases"
+
 # Preflight every database before touching any of them: each file runs in its own
 # transaction, so a late failure would leave some databases reseeded and others not.
 echo "seed: waiting for schemas"
 for svc in $targets; do
     wait_for "$svc" "$(svc_host "$svc")" "$(svc_port "$svc")"
 done
+
+[ -n "$core" ] || require_core_seeded
 
 for svc in $targets; do
     echo "seed: $svc"

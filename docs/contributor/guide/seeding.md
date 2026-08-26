@@ -110,6 +110,11 @@ as CI. The script itself is plain POSIX `sh` and runs on the host too if you hav
 SEED_CORE_PORT=55432 ./scripts/seed.sh core
 ```
 
+`core` is applied first whatever order you list the targets in, because every other
+file references ids only `seed/core.sql` creates. Seeding a phase database on its own
+therefore aborts unless core already holds the demo course - otherwise the phase rows
+would point at course phases that do not exist, and no foreign key would say so.
+
 Per service, `SEED_<SERVICE>_HOST` and `SEED_<SERVICE>_PORT` override the connection;
 `SEED_DB_NAME`, `SEED_DB_USER` and `SEED_DB_PASSWORD` apply to all of them.
 

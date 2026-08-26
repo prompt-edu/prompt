@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../interfaces/category'
+import { assessmentKeys } from '../../network/cache'
 
 import { getAllCategoriesWithCompetencies } from '../../network/queries/getAllCategoriesWithCompetencies'
 import { SHELL_QUERY_STALE_TIME } from './queryConfig'
@@ -14,7 +14,7 @@ export const useGetAllCategoriesWithCompetencies = (options?: { enabled?: boolea
   const enabled = options?.enabled ?? true
 
   const { data, ...queryInfo } = useQuery<CategoryWithCompetencies[]>({
-    queryKey: ['categories', phaseId],
+    queryKey: assessmentKeys.categories(phaseId),
     queryFn: () => getAllCategoriesWithCompetencies(phaseId ?? '', AssessmentType.ASSESSMENT),
     enabled,
     staleTime: SHELL_QUERY_STALE_TIME,

@@ -5,6 +5,7 @@ import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { assessmentKeys } from '../../network/cache'
 import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
 import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
 import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
@@ -49,7 +50,11 @@ export const EvaluationParticipantResultsPage = ({
     isError: isEvaluationsError,
     refetch: refetchEvaluations,
   } = useQuery({
-    queryKey: [assessmentType, 'evaluations', phaseId, courseParticipationID],
+    queryKey: assessmentKeys.evaluations.ofParticipant(
+      assessmentType,
+      phaseId,
+      courseParticipationID,
+    ),
     queryFn: () =>
       assessmentType === AssessmentType.SELF
         ? getSelfEvaluationsForParticipantInPhase(phaseId ?? '', courseParticipationID ?? '')
@@ -63,7 +68,7 @@ export const EvaluationParticipantResultsPage = ({
     isError: isFeedbackItemsError,
     refetch: refetchFeedbackItems,
   } = useQuery({
-    queryKey: ['student-feedback-items', phaseId, courseParticipationID],
+    queryKey: assessmentKeys.feedbackItems.ofStudent(phaseId, courseParticipationID),
     queryFn: () => getFeedbackItemsForStudent(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })

@@ -4,6 +4,7 @@ import type React from 'react'
 import { Link } from 'react-router-dom'
 import type { CoursePhaseConfig } from '../assessment/interfaces/coursePhaseConfig'
 import type { StudentAssessment } from '../assessment/interfaces/studentAssessment'
+import { assessmentKeys } from '../assessment/network/cache'
 import { getCoursePhaseConfig } from '../assessment/network/queries/getCoursePhaseConfig'
 import { getStudentAssessment } from '../assessment/network/queries/getStudentAssessment'
 import { GradeSuggestionBadge } from '../assessment/pages/components/badges'
@@ -16,14 +17,14 @@ export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
 }) => {
   // Core renders this remote outside the phase routes, so the phase comes from the prop
   const { data: coursePhaseConfig } = useQuery<CoursePhaseConfig>({
-    queryKey: ['coursePhaseConfig', coursePhaseId],
+    queryKey: assessmentKeys.coursePhaseConfig(coursePhaseId),
     queryFn: () => getCoursePhaseConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
 
   const { data: studentAssessment, isPending } = useQuery<StudentAssessment>({
-    queryKey: ['assessments', coursePhaseId, courseParticipationId],
+    queryKey: assessmentKeys.assessments.ofParticipant(coursePhaseId, courseParticipationId),
     queryFn: () => getStudentAssessment(coursePhaseId, courseParticipationId),
     enabled: Boolean(courseParticipationId) && assessmentEnabled,
   })

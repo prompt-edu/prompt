@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { StudentEvaluationResults } from '../../../interfaces/evaluationResults'
+import { assessmentKeys } from '../../../network/cache'
 import { getMyEvaluationResults } from '../../../network/queries/getMyEvaluationResults'
 
 export const useGetMyEvaluationResults = (options?: { enabled?: boolean }) => {
@@ -9,7 +9,7 @@ export const useGetMyEvaluationResults = (options?: { enabled?: boolean }) => {
   const enabled = (options?.enabled ?? true) && !!phaseId
 
   const { data, ...queryInfo } = useQuery<StudentEvaluationResults | null>({
-    queryKey: ['myEvaluationResults', phaseId],
+    queryKey: assessmentKeys.results.myEvaluation(phaseId),
     queryFn: () => getMyEvaluationResults(phaseId ?? ''),
     enabled,
   })

@@ -11,7 +11,7 @@ const PARTICIPATION = 'participation-1'
 
 let queryClient: QueryClient
 
-const seed = (...keys: readonly unknown[][]): void => {
+const seed = (...keys: readonly (readonly unknown[])[]): void => {
   for (const key of keys) {
     queryClient.setQueryData(key, 'seeded')
   }

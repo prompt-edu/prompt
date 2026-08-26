@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { ScoreLevelWithParticipation } from '../../interfaces/scoreLevelWithParticipation'
+import { assessmentKeys } from '../../network/cache'
 import { getAllScoreLevels } from '../../network/queries/getAllScoreLevels'
 import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 
@@ -11,7 +12,7 @@ export const useGetAllScoreLevels = (options?: { enabled?: boolean }) => {
   const enabled = options?.enabled ?? true
 
   const { data, ...queryInfo } = useQuery<ScoreLevelWithParticipation[]>({
-    queryKey: ['scoreLevels', phaseId],
+    queryKey: assessmentKeys.scoreLevels(phaseId),
     queryFn: () => getAllScoreLevels(phaseId ?? ''),
     enabled,
     staleTime: SHELL_QUERY_STALE_TIME,

@@ -16,12 +16,12 @@ import {
 import type { AxiosError } from 'axios'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-
 import type {
   AssessmentReminderMetaData,
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
+import { assessmentKeys } from '../../../../network/cache'
 import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
@@ -60,7 +60,7 @@ export const AssessmentReminderCard = () => {
     isPending: isCoursePhasePending,
     isError: isCoursePhaseError,
   } = useQuery<CoursePhaseWithMetaData>({
-    queryKey: ['course_phase', phaseId],
+    queryKey: assessmentKeys.coursePhase(phaseId),
     queryFn: () => getCoursePhase(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -73,7 +73,7 @@ export const AssessmentReminderCard = () => {
         lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
       })
       toast({ title: 'Assessment reminder template updated' })
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.coursePhase(phaseId) })
     },
     () => {
       toast({
@@ -95,7 +95,7 @@ export const AssessmentReminderCard = () => {
           report.successfulEmails.length === 1 ? 'email was' : 'emails were'
         } sent.`,
       })
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.coursePhase(phaseId) })
     },
     onError: (error: AxiosError<ErrorResponse>) => {
       const serverError = error.response?.data?.error ?? 'Failed to send reminder emails.'

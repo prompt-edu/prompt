@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentCache } from '../../../../../network/cache'
 import { deleteAssessment } from '../../../../../network/mutations/deleteAssessment'
 
 export const useDeleteAssessment = (setError: (error: string | undefined) => void) => {
@@ -11,7 +12,7 @@ export const useDeleteAssessment = (setError: (error: string | undefined) => voi
       return deleteAssessment(phaseId ?? '', assessmentID)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessments', phaseId] })
+      assessmentCache.assessmentWritten(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

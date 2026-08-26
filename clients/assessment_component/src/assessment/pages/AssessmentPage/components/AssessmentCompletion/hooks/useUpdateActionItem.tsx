@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateActionItemRequest } from '../../../../../interfaces/actionItem'
+import { assessmentCache } from '../../../../../network/cache'
 import { updateActionItem } from '../../../../../network/mutations/updateActionItem'
 
 export const useUpdateActionItem = (setError: (error: string | undefined) => void) => {
@@ -12,7 +13,7 @@ export const useUpdateActionItem = (setError: (error: string | undefined) => voi
       return updateActionItem(phaseId ?? '', actionItem)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['actionItems', phaseId] })
+      assessmentCache.actionItemsChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

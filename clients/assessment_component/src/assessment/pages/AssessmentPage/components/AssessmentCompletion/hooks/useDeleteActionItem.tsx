@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentCache } from '../../../../../network/cache'
 import { deleteActionItem } from '../../../../../network/mutations/deleteActionItem'
 
 export const useDeleteActionItem = (setError: (error: string | undefined) => void) => {
@@ -9,7 +10,7 @@ export const useDeleteActionItem = (setError: (error: string | undefined) => voi
   return useMutation({
     mutationFn: (actionItemId: string) => deleteActionItem(phaseId ?? '', actionItemId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['actionItems', phaseId] })
+      assessmentCache.actionItemsChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
+import { assessmentCache } from '../../../../../network/cache'
 
 import { deleteCategory } from '../../../../../network/mutations/deleteCategory'
 
@@ -10,12 +11,7 @@ export const useDeleteCategory = (setError: (error: string | undefined) => void)
   return useMutation({
     mutationFn: (categoryID: string) => deleteCategory(phaseId ?? '', categoryID),
     onSuccess: () => {
-      // Invalidate all category-related queries for the current phase
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessments'] })
+      assessmentCache.schemaChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

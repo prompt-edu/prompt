@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { CreateOrUpdateEvaluationRequest } from '../../../../../interfaces/evaluation'
+import { assessmentCache } from '../../../../../network/cache'
 import { createOrUpdateEvaluation } from '../../../../../network/mutations/createOrUpdateEvaluation'
 
 export const useCreateOrUpdateEvaluation = (setError: (error: string | undefined) => void) => {
@@ -13,7 +13,7 @@ export const useCreateOrUpdateEvaluation = (setError: (error: string | undefined
       return createOrUpdateEvaluation(phaseId ?? '', evaluation)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-evaluations', phaseId] })
+      assessmentCache.myEvaluationWritten(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

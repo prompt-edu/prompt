@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { UpdateCompetencyRequest } from '../../../../../../../interfaces/competency'
+import { assessmentCache } from '../../../../../../../network/cache'
 import { updateCompetency } from '../../../../../../../network/mutations/updateCompetency'
 
 export const useUpdateCompetency = (setError: (error: string | undefined) => void) => {
@@ -12,12 +12,7 @@ export const useUpdateCompetency = (setError: (error: string | undefined) => voi
     mutationFn: (competency: UpdateCompetencyRequest) =>
       updateCompetency(phaseId ?? '', competency),
     onSuccess: () => {
-      // Invalidate all category-related queries for the current phase
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessments'] })
+      assessmentCache.schemaChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

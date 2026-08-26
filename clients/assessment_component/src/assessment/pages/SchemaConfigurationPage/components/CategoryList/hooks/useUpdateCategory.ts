@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { UpdateCategoryRequest } from '../../../../../interfaces/category'
+import { assessmentCache } from '../../../../../network/cache'
 import { updateCategory } from '../../../../../network/mutations/updateCategory'
 
 export const useUpdateCategory = (setError: (error: string | undefined) => void) => {
@@ -10,12 +11,7 @@ export const useUpdateCategory = (setError: (error: string | undefined) => void)
   return useMutation({
     mutationFn: (category: UpdateCategoryRequest) => updateCategory(phaseId ?? '', category),
     onSuccess: () => {
-      // Invalidate all category-related queries for the current phase
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessments'] })
+      assessmentCache.schemaChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

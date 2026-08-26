@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
+import { assessmentCache } from '../../../../../network/cache'
 
 import { deleteAssessmentCompletion } from '../../../../../network/mutations/deleteAssessmentCompletion'
 
@@ -13,9 +14,7 @@ export const useDeleteAssessmentCompletion = (setError: (error: string | undefin
       return deleteAssessmentCompletion(phaseId ?? '', courseParticipationID)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessments', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['scoreLevels', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessmentCompletions', phaseId] })
+      assessmentCache.assessmentCompletionChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: unknown) => {

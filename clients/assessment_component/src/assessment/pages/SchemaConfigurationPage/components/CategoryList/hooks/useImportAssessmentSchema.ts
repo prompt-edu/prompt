@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { AssessmentType } from '../../../../../interfaces/assessmentType'
+import { assessmentCache } from '../../../../../network/cache'
 import { createCategory } from '../../../../../network/mutations/createCategory'
 import { createCompetency } from '../../../../../network/mutations/createCompetency'
 import { getAllCategoriesWithCompetencies } from '../../../../../network/queries/getAllCategoriesWithCompetencies'
@@ -67,11 +67,7 @@ export const useImportAssessmentSchema = (
       return { importedCategories, importedCompetencies, errors }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessments'] })
+      assessmentCache.schemaChanged(queryClient, phaseId)
     },
   })
 }

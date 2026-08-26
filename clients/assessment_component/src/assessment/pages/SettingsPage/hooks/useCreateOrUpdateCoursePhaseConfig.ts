@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
-
 import type { CreateOrUpdateCoursePhaseConfigRequest } from '../../../interfaces/coursePhaseConfig'
+import { assessmentCache } from '../../../network/cache'
 import { createOrUpdateCoursePhaseConfig } from '../../../network/mutations/createOrUpdateCoursePhaseConfig'
 
 interface CreateOrUpdateCoursePhaseConfigResponseError {
@@ -31,11 +31,7 @@ export const useCreateOrUpdateCoursePhaseConfig = (
     mutationFn: (request: CreateOrUpdateCoursePhaseConfigRequest) =>
       createOrUpdateCoursePhaseConfig(phaseId ?? '', request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coursePhaseConfig', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
+      assessmentCache.coursePhaseConfigChanged(queryClient, phaseId)
       options?.onSuccess?.()
     },
     onError: (error: unknown) => {

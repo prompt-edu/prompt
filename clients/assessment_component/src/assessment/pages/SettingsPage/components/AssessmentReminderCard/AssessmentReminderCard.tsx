@@ -21,7 +21,7 @@ import type {
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
-import { assessmentKeys } from '../../../../network/cache'
+import { assessmentCache, assessmentKeys } from '../../../../network/cache'
 import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
@@ -73,7 +73,7 @@ export const AssessmentReminderCard = () => {
         lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
       })
       toast({ title: 'Assessment reminder template updated' })
-      queryClient.invalidateQueries({ queryKey: assessmentKeys.coursePhase(phaseId) })
+      assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
     () => {
       toast({
@@ -95,7 +95,7 @@ export const AssessmentReminderCard = () => {
           report.successfulEmails.length === 1 ? 'email was' : 'emails were'
         } sent.`,
       })
-      queryClient.invalidateQueries({ queryKey: assessmentKeys.coursePhase(phaseId) })
+      assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
     onError: (error: AxiosError<ErrorResponse>) => {
       const serverError = error.response?.data?.error ?? 'Failed to send reminder emails.'

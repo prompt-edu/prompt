@@ -18,15 +18,17 @@ The Makefile exports `.env` / `.env.dev`, whose host-mode overrides outrank
 ```bash
 env -u DB_CORE_HOST -u DB_CORE_PORT -u DB_CORE_USER -u DB_CORE_PASSWORD -u DB_CORE_NAME \
     -u KEYCLOAK_HOST -u CORE_HOST -u SERVER_ADDRESS \
-  docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e up -d client-core server-core
+  docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e up -d client-core server-core seed
 ```
 
-`depends_on` pulls in the databases, Keycloak and SeaweedFS. A cold build is ~10 min;
-afterwards startup is under a minute. Readiness:
+`depends_on` pulls in the databases, Keycloak, SeaweedFS and every phase service. Name
+`seed` explicitly: only `e2e-runner` depends on it, so without it the stack boots against
+empty databases. A cold build is ~10 min; afterwards startup is under a minute. Readiness:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18090/api/hello   # core API
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4000              # core client
+docker compose -f docker-compose.e2e.yml logs seed | tail -1                # "seed: done"
 ```
 
 Tear down with `make test-e2e-down` (removes volumes, so the seed is fresh next boot).
@@ -82,6 +84,10 @@ const { access_token } = await (await fetch(
   `e2e-runner` never starts (it waits on `service_completed_successfully`). Read
   `docker compose -f docker-compose.e2e.yml logs seed` first. `make seed-check` catches a
   mistyped cross-database id without booting anything.
+- The driver command's `--no-deps` skips `seed` along with everything else, so the boot
+  step above is the only thing that seeds the databases. The seed is authoritative, so
+  `docker compose -f docker-compose.e2e.yml start seed` runs the one-shot container
+  again and resets a stack you have written into.
 - Reusing images with `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and
   `e2e/tests`; `seed/` is a bind mount and updates without a rebuild. Edited constants
   therefore need a rebuild, or the browser navigates to stale ids.

@@ -1,7 +1,7 @@
 -- PROMPT demo seed: assessment database.
 --
 -- The Assessment phase of iPraktikumDemo (f0000005-0000-0000-0000-000000000005):
--- a rubric, graded participants, and a completed self evaluation round.
+-- a rubric, graded participants, and a completed self-evaluation round.
 --
 -- The seed brings its own assessment_schema rows rather than reusing the four
 -- defaults the migrations create ('Assessment Template', 'Self/Peer/Tutor
@@ -44,8 +44,8 @@ INSERT INTO competency (id, category_id, name, description, weight, short_name, 
            ('5c000005-0000-0000-0000-000000000005', '5b000003-0000-0000-0000-000000000003', 'Own Contribution', 'How the student rates their own impact.', 1, 'OC',
             'I contributed nothing.', 'I contributed less than I wanted.', 'I contributed my share.', 'I contributed more than my share.', 'I drove the project.');
 
--- Assessment window closed, results released, self evaluation enabled and bound
--- to the seed's own self evaluation schema. peer_evaluation_schema and
+-- Assessment window closed, results released, self-evaluation enabled and bound
+-- to the seed's own self-evaluation schema. peer_evaluation_schema and
 -- tutor_evaluation_schema are omitted so their column DEFAULTs apply.
 INSERT INTO course_phase_config (course_phase_id, assessment_schema_id, self_evaluation_schema, start, deadline,
                                  self_evaluation_enabled, self_evaluation_start, self_evaluation_deadline,

@@ -82,4 +82,4 @@ Two things are intentionally absent:
   by a real object in SeaweedFS, which SQL alone cannot create. The upload *question*
   is seeded.
 - **Peer and tutor evaluations.** The config leaves those schema columns to their
-  migration-set defaults; only the self evaluation round is seeded.
+  migration-set defaults; only the self-evaluation round is seeded.

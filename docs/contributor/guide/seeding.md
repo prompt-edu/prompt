@@ -29,7 +29,7 @@ disposable - do not keep work there.
 | Interview | yes | four slots, six assignments, interview scores |
 | Matching | yes | the pass/fail funnel |
 | Team Allocation | yes | 3 skills, 2 teams, survey responses, a published allocation |
-| Assessment | yes | a rubric with 4 competencies, 6 graded participants, a self evaluation round |
+| Assessment | yes | a rubric with 4 competencies, 6 graded participants, a self-evaluation round |
 | Presentation | yes | a team presentation schedule and feedback categories |
 | Certificate | yes | a released Typst template |
 | Self Team Allocation | no | 2 student-formed teams |

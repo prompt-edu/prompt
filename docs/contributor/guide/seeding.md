@@ -90,7 +90,10 @@ seed uses. Two consequences worth knowing:
 - Never insert a `course_phase_type` row yourself. Core skips a type's provided and
   required DTO descriptors whenever the type row already exists, so pinning the type
   would silently cost you the inter-phase data dependency metadata. The one exception
-  is `example_component`, which core never creates.
+  is `example_component`: no service creates it, so `seed/core.sql` inserts it. That
+  is an ownership gap rather than a pattern to copy - its `base_url` is seed-owned
+  configuration nothing reconciles, so it points at core's gateway path and does not
+  reach a host-run example server on 8086.
 - `base_url` comes out right per environment (`http://localhost:8087/...` locally,
   `{CORE_HOST}/...` in Docker) instead of being frozen into the seed.
 

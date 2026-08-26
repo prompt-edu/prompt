@@ -14,7 +14,10 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
   already exists, so pinning a type quietly costs you the inter-phase data dependency
   metadata. Resolve types by name:
   `(SELECT id FROM course_phase_type WHERE name = 'Interview')`. The single exception
-  is `example_component`, which core never creates.
+  is `example_component`: no service creates it, so `core.sql` inserts it (with a
+  random id, like core does) purely so the rest of the file can resolve it by name.
+  That leaves its `base_url` seed-owned and unreconciled - correct where core fronts
+  the phase services, wrong for a host-run example server.
 - **The seed is authoritative.** Each file deletes the rows it owns and inserts them
   again, so `make seed` reconciles instead of failing. Scope every `DELETE` to pinned
   ids - never truncate.

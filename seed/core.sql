@@ -113,10 +113,16 @@ DELETE FROM student WHERE id IN (
     'e1000006-0000-0000-0000-000000000006'
 );
 
--- The only phase type core does not create itself. Inserted before any phase
--- that resolves it by name.
+-- The one phase type nothing owns: core creates the other eight at startup and
+-- the example server never registers itself, so the seed has to create it for
+-- the phases below to resolve it by name. Nothing reconciles the row
+-- afterwards, which makes `base_url` seed-owned configuration: it is right
+-- wherever core fronts the phase services (Docker, production), and wrong for a
+-- host-run example server, which core would otherwise address as
+-- http://localhost:8086/example-service/api. The id stays random like every
+-- core-created type - no seed file references it.
 INSERT INTO course_phase_type (id, name, initial_phase, base_url, description)
-    VALUES ('a2222222-2222-2222-2222-222222222222', 'example_component', false,
+    VALUES (gen_random_uuid(), 'example_component', false,
             '{CORE_HOST}/example-service/api', 'Example phase')
     ON CONFLICT (name) DO NOTHING;
 

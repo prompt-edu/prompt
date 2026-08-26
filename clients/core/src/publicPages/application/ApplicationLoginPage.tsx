@@ -3,12 +3,13 @@ import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/applic
 import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
+import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { postNewApplicationExtern } from '@core/network/mutations/postApplicationExtern'
 import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { Student } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { NonAuthenticatedPageWrapper } from '../shared/components/NonAuthenticatedPageWrapper'
 import { ApplicationHeader } from './components/ApplicationHeader'
 import { ApplicationLoginCard } from './components/ApplicationLoginCard'
@@ -20,6 +21,7 @@ import { ApplicationFormView } from './pages/ApplicationForm/ApplicationFormView
 export const ApplicationLoginPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const navigate = useNavigate()
+  const { isInitialized, isAuthenticated } = useKeycloak()
   const [selectedContinueAsExternal, setSelectedContinueAsExternal] = useState(false)
   const [selectedContinueWithoutLogin, setSelectedContinueWithoutLogin] = useState(false)
   const [showDialog, setShowDialog] = useState<'saving' | 'success' | 'error' | null>(null)
@@ -69,7 +71,7 @@ export const ApplicationLoginPage = () => {
     setShowDialog(null)
   }
 
-  if (isPending) {
+  if (isPending || !isInitialized) {
     return (
       <NonAuthenticatedPageWrapper withLoginButton={false}>
         <LoadingState />
@@ -88,6 +90,11 @@ export const ApplicationLoginPage = () => {
   const { applicationPhase } = applicationForm
   const externalStudentsAllowed = applicationPhase.externalStudentsAllowed
   const universityLoginAvailable = applicationPhase.universityLoginAvailable
+
+  // An already logged-in student has no reason to see the login card again.
+  if (isAuthenticated && universityLoginAvailable) {
+    return <Navigate to={`/apply/${phaseId}/authenticated`} replace />
+  }
 
   const continueWithOutLogin = (isExternalStudent: boolean) => {
     setSelectedContinueAsExternal(isExternalStudent)

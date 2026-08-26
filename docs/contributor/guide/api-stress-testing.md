@@ -81,8 +81,10 @@ api-stress/run.sh --smoke-only       # quick reachability + latency baseline
 api-stress/run.sh --no-exhaustion    # skip the host-stressing lane (good for repeats)
 api-stress/run.sh --intensity brutal # all-out
 
-# 4. teardown when done
-docker compose -p prompt-stress down -v
+# 4. teardown when done (same file set: -v only removes volumes the files declare)
+docker compose --env-file api-stress/stress.env \
+  -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
+  -p prompt-stress down -v
 ```
 
 Output lands in `api-stress/reports/<timestamp>/` (gitignored). Open `report.md` first.
@@ -132,8 +134,16 @@ These are deliberate design choices worth preserving when you extend the suite:
 ## Troubleshooting
 
 - **All requests 401 right after a teardown:** you wiped the keycloak volume, so the
-  realm is gone. Recreate it with
-  `docker compose -p prompt-stress up -d keycloak-db keycloak`.
+  realm is gone. Recreate it with the file set from step 2 - the override is what
+  publishes Keycloak on `18081`, pins the issuer port and gives `keycloak-db` its own
+  volume, so a bare `docker compose -p prompt-stress up` brings it back on the default
+  port with the dev stack's `keycloak_postgres_data` bind-mounted into it:
+
+  ```bash
+  docker compose --env-file api-stress/stress.env \
+    -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
+    -p prompt-stress up -d keycloak-db keycloak
+  ```
 - **Everything 401 mid-run / IDOR count drops to 0:** tokens expired. `run.sh` raises
   the realm `accessTokenLifespan` to 1h at preflight and re-mints before fuzzing; if
   you call the Python tools directly, mint fresh tokens first (`lib/auth.py`).

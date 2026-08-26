@@ -61,10 +61,13 @@ Output lands in `api-stress/reports/<timestamp>/` (`report.md` first).
 Host ports are offset by +10000 to avoid collisions: core `18089`, team-alloc
 `18083`, self-team `18084`, assessment `18085`, example `18086`, interview
 `18087`, certificate `18088`, Keycloak `18081`, S3 `18334`. Sentry is disabled.
-Teardown:
+Teardown takes the same file set, because `-v` only removes volumes the loaded files
+declare and the override is what renames them:
 
 ```bash
-docker compose -p prompt-stress down -v
+docker compose --env-file api-stress/stress.env \
+  -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
+  -p prompt-stress down -v
 ```
 
 ## Extending

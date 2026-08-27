@@ -204,7 +204,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 VERIFY_COMPOSE = docker compose -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
 
 verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 reuses existing images)
-	unset $(E2E_ENV_KEYS); \
+	set -e; unset $(E2E_ENV_KEYS); \
 		$(if $(SKIP_BUILD),true,$(VERIFY_COMPOSE) build); \
 		$(VERIFY_COMPOSE) up -d client-core server-core
 	@echo ""

@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/interview/interviewReview/interviewReviewDTO"
 	log "github.com/sirupsen/logrus"
@@ -14,7 +13,6 @@ import (
 
 type InterviewReviewService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
 var InterviewReviewServiceSingleton *InterviewReviewService

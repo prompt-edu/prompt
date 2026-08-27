@@ -123,7 +123,7 @@ func main() {
 
 	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
 	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
-	interview_review.InitInterviewReviewModule(coursePhaseApi, *query, conn)
+	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

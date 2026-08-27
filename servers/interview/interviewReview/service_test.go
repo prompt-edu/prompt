@@ -31,7 +31,6 @@ func (suite *InterviewReviewServiceTestSuite) SetupSuite() {
 
 	InterviewReviewServiceSingleton = &InterviewReviewService{
 		queries: *testDB.Queries,
-		conn:    testDB.Conn,
 	}
 }
 

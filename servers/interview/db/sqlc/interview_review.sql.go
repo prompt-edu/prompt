@@ -12,42 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const deleteInterviewReviewByParticipation = `-- name: DeleteInterviewReviewByParticipation :exec
-DELETE FROM interview_review
-WHERE course_participation_id = ANY($1::uuid[])
-`
-
-func (q *Queries) DeleteInterviewReviewByParticipation(ctx context.Context, courseParticipationIds []uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteInterviewReviewByParticipation, courseParticipationIds)
-	return err
-}
-
-const getInterviewReview = `-- name: GetInterviewReview :one
-SELECT course_phase_id, course_participation_id, score, interviewer, interview_answers, created_at, updated_at FROM interview_review
-WHERE course_phase_id = $1
-  AND course_participation_id = $2
-`
-
-type GetInterviewReviewParams struct {
-	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-}
-
-func (q *Queries) GetInterviewReview(ctx context.Context, arg GetInterviewReviewParams) (InterviewReview, error) {
-	row := q.db.QueryRow(ctx, getInterviewReview, arg.CoursePhaseID, arg.CourseParticipationID)
-	var i InterviewReview
-	err := row.Scan(
-		&i.CoursePhaseID,
-		&i.CourseParticipationID,
-		&i.Score,
-		&i.Interviewer,
-		&i.InterviewAnswers,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getInterviewReviewsByCoursePhase = `-- name: GetInterviewReviewsByCoursePhase :many
 SELECT course_phase_id, course_participation_id, score, interviewer, interview_answers, created_at, updated_at FROM interview_review
 WHERE course_phase_id = $1

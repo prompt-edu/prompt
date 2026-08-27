@@ -17,11 +17,6 @@ DO UPDATE SET
     updated_at = now()
 RETURNING *;
 
--- name: GetInterviewReview :one
-SELECT * FROM interview_review
-WHERE course_phase_id = $1
-  AND course_participation_id = $2;
-
 -- name: GetInterviewReviewsByCoursePhase :many
 SELECT * FROM interview_review
 WHERE course_phase_id = $1
@@ -32,7 +27,3 @@ SELECT * FROM interview_review
 WHERE course_phase_id = $1
   AND score IS NOT NULL
 ORDER BY course_participation_id ASC;
-
--- name: DeleteInterviewReviewByParticipation :exec
-DELETE FROM interview_review
-WHERE course_participation_id = ANY(@course_participation_ids::uuid[]);

@@ -34,3 +34,15 @@ jobs:
         run: yarn biome check "${{ matrix.module }}" shared
       - name: Build component ${{ matrix.module }}
         run: yarn --cwd "${{ matrix.module }}" build
+
+  test-client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./clients
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+      - run: yarn install
+      - name: Run client unit tests
+        run: yarn test

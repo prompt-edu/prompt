@@ -24,7 +24,7 @@ export const DeleteConfirmation = ({ isOpen, setOpen, onClick }: DeleteConfirmat
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setOpen}>
-      <AlertDialogContent className='sm:max-w-[425px]'>
+      <AlertDialogContent className='max-w-[425px] [&>*]:min-w-0'>
         <AlertDialogHeader>
           <AlertDialogTitle className='flex items-center gap-2 text-red-600'>
             <AlertTriangle className='h-5 w-5' />

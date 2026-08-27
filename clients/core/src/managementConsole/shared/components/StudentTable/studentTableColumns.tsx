@@ -10,7 +10,7 @@ import {
   getStudyDegreeString,
   type StudyDegree,
 } from '@tumaet/prompt-shared-state'
-import { ProfilePicture } from '@tumaet/prompt-ui-components'
+import { getStudentName, ProfilePicture } from '@tumaet/prompt-ui-components'
 import { format, subYears } from 'date-fns'
 import type { NoteTagColor } from '../../interfaces/InstructorNote'
 import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
@@ -42,7 +42,7 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
   {
     id: 'fullname',
     header: 'Full Name',
-    accessorFn: (row: StudentWithCourses) => `${row.firstName} ${row.lastName}`,
+    accessorFn: (row: StudentWithCourses) => getStudentName(row),
   },
   {
     accessorKey: 'email',

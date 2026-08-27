@@ -15,6 +15,8 @@ See the following pages:
 - Course Phases
 	- [Application Phase](application.md)
 	- [Assessment Phase](assessment.md)
+	- [Certificate Phase](certificate.md)
+	- [Presentation Phase](presentation.md)
 - [Mailing](mailing.md)
 - [Templates](templates.md)
 - [User Management](user_management.md)

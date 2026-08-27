@@ -1,11 +1,4 @@
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
+import { mountRemote } from '../../shared/runtime/mountRemote'
+import { StandaloneNotice } from '../../shared/runtime/StandaloneNotice'
 
-const remoteElement = document.getElementById('example-root') as unknown as HTMLElement
-const remote = createRoot(remoteElement)
-remote.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+mountRemote('example-root', <StandaloneNotice title='Prompt Example Component' />)

@@ -21,8 +21,8 @@ export const CourseCards = ({ courses }: CourseCardsProps) => {
   }, [courses, query])
 
   return (
-    <div className='container mx-auto px-4 py-8'>
-      <div className='relative mb-8 max-w-md'>
+    <div className='flex flex-col gap-6'>
+      <div className='relative max-w-md'>
         <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
         <Input
           type='search'

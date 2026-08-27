@@ -17,5 +17,5 @@
     "types": ["node"],
     "paths": {}
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js"]
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js"]
 }

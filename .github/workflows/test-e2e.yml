@@ -142,6 +142,24 @@ jobs:
         working-directory: e2e
 
       - name: Download all blob reports
+        id: download
+        # Artifact storage occasionally drops one blob mid-download; retried below.
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+
+      # A failed download streams straight into the target directory, so a
+      # truncated report can survive and break the merge.
+      - name: Clear the partial download before retrying
+        if: ${{ steps.download.outcome == 'failure' }}
+        run: rm -rf e2e/all-blob-reports
+
+      # No continue-on-error: a second miss is a real failure and reddens the gate.
+      - name: Retry the blob report download
+        if: ${{ steps.download.outcome == 'failure' }}
         uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*

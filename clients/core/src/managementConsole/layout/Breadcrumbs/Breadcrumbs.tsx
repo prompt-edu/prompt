@@ -8,6 +8,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  getStudentName,
 } from '@tumaet/prompt-ui-components'
 import React, { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -64,7 +65,7 @@ export const Breadcrumbs: React.FC = () => {
           if (studentsById[pathSegments[2]]) {
             const s = studentsById[pathSegments[2]]
             breadcrumbs.push({
-              title: `${s.firstName} ${s.lastName}`,
+              title: getStudentName(s),
               path: `/management/students/${pathSegments[2]}`,
             })
           } else {

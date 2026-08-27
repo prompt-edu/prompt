@@ -1,6 +1,6 @@
 {
   "name": "prompt-module-federation",
-  "version": "2.16.1",
+  "version": "2.16.2",
   "private": true,
   "workspaces": {
     "packages": [
@@ -11,7 +11,8 @@
       "assessment_component",
       "team_allocation_component",
       "self_team_allocation_component",
-      "certificate_component"
+      "certificate_component",
+      "presentation_component"
     ]
   },
   "scripts": {
@@ -23,41 +24,42 @@
     "format": "biome format",
     "format:fix": "biome format --fix",
     "check": "biome check",
-    "check:fix": "biome check --fix"
+    "check:fix": "biome check --fix",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
-    "@hookform/resolvers": "^5.7.1",
+    "@hookform/resolvers": "^5.9.0",
     "@radix-ui/react-icons": "^1.3.2",
     "@radix-ui/react-toolbar": "^1.1.19",
-    "@rspack/core": "^2.1.9",
+    "@rspack/core": "^2.1.10",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-table": "^8.21.3",
-    "@tiptap/core": "^3.30.0",
-    "@tiptap/extension-code-block": "^3.30.0",
-    "@tiptap/extension-code-block-lowlight": "^3.30.0",
-    "@tiptap/extension-color": "^3.30.0",
-    "@tiptap/extension-heading": "^3.30.0",
-    "@tiptap/extension-horizontal-rule": "^3.30.0",
-    "@tiptap/extension-image": "^3.30.0",
-    "@tiptap/extension-link": "^3.30.0",
-    "@tiptap/extension-placeholder": "^3.30.0",
-    "@tiptap/extension-text-style": "^3.30.0",
-    "@tiptap/extension-typography": "^3.30.0",
-    "@tiptap/extension-underline": "^3.30.0",
-    "@tiptap/extensions": "^3.30.0",
-    "@tiptap/pm": "^3.30.0",
-    "@tiptap/react": "^3.30.0",
-    "@tiptap/starter-kit": "^3.30.0",
-    "@tumaet/prompt-shared-state": "1.1.1",
-    "@tumaet/prompt-ui-components": "1.1.6",
+    "@tiptap/core": "^3.30.1",
+    "@tiptap/extension-code-block": "^3.30.1",
+    "@tiptap/extension-code-block-lowlight": "^3.30.1",
+    "@tiptap/extension-color": "^3.30.1",
+    "@tiptap/extension-heading": "^3.30.1",
+    "@tiptap/extension-horizontal-rule": "^3.30.1",
+    "@tiptap/extension-image": "^3.30.1",
+    "@tiptap/extension-link": "^3.30.1",
+    "@tiptap/extension-placeholder": "^3.30.1",
+    "@tiptap/extension-text-style": "^3.30.1",
+    "@tiptap/extension-typography": "^3.30.1",
+    "@tiptap/extension-underline": "^3.30.1",
+    "@tiptap/extensions": "^3.30.1",
+    "@tiptap/pm": "^3.30.1",
+    "@tiptap/react": "^3.30.1",
+    "@tiptap/starter-kit": "^3.30.1",
+    "@tumaet/prompt-shared-state": "1.2.0",
+    "@tumaet/prompt-ui-components": "1.2.0",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "css-loader": "^7.1.4",
     "date-fns": "^4.4.0",
-    "dayjs": "^1.11.21",
+    "dayjs": "^1.11.22",
     "dompurify": "^3.4.13",
     "file-saver": "^2.0.5",
     "highlight.js": "^11.12.0",
@@ -82,7 +84,7 @@
     "ts-node-register": "^1.0.0",
     "use-debounce": "^10.1.1",
     "zod": "^4.4.3",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.15"
   },
   "resolutions": {
     "diff": "^9.0.0",
@@ -90,12 +92,12 @@
     "tmp": "^0.2.7",
     "tar": "^7.5.22",
     "form-data": "^4.0.6",
-    "js-yaml": "^5.2.3"
+    "js-yaml": "^5.3.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
     "@module-federation/runtime-tools": "^2.8.2",
-    "@rspack/cli": "^2.1.9",
+    "@rspack/cli": "^2.1.10",
     "@rspack/dev-server": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^25.9.5",
@@ -105,6 +107,7 @@
     "lerna": "^10.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
     "webpack-bundle-analyzer": "^5.3.1"
   },
   "packageManager": "yarn@4.18.0"

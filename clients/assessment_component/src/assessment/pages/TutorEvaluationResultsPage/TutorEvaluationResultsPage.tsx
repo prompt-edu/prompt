@@ -1,4 +1,11 @@
-import { Button, Card, CardContent, ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  getStudentName,
+  LoadingPage,
+} from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -107,13 +114,11 @@ export const TutorEvaluationResultsPage = () => {
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to previous tutor: ${prevTutor.firstName} ${prevTutor.lastName}`}
+                aria-label={`Navigate to previous tutor: ${getStudentName(prevTutor)}`}
                 onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
               >
                 <ChevronLeft className='h-4 w-4' />
-                <span className='hidden md:inline'>
-                  {prevTutor.firstName} {prevTutor.lastName}
-                </span>
+                <span className='hidden md:inline'>{getStudentName(prevTutor)}</span>
               </Button>
             )
           }
@@ -122,18 +127,16 @@ export const TutorEvaluationResultsPage = () => {
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to next tutor: ${nextTutor.firstName} ${nextTutor.lastName}`}
+                aria-label={`Navigate to next tutor: ${getStudentName(nextTutor)}`}
                 onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
               >
-                <span className='hidden md:inline'>
-                  {nextTutor.firstName} {nextTutor.lastName}
-                </span>
+                <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
                 <ChevronRight className='h-4 w-4' />
               </Button>
             )
           }
         >
-          Tutor Evaluation Results for {tutor.firstName} {tutor.lastName}
+          Tutor Evaluation Results for {getStudentName(tutor)}
         </EvaluationHeader>
 
         {tutorEvaluationCategories.length === 0 ? (
@@ -188,7 +191,7 @@ export const TutorEvaluationResultsPage = () => {
       </div>
 
       <PrintReport
-        title={`Tutor Evaluation Results for ${tutor.firstName} ${tutor.lastName}`}
+        title={`Tutor Evaluation Results for ${getStudentName(tutor)}`}
         subtitle={tutor.teamName}
         meta={
           evaluatorCount > 1 ? (

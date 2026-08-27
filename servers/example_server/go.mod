@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/example_server
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/getsentry/sentry-go v0.48.0
@@ -9,7 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/prompt-edu/prompt-sdk v1.3.0
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/swaggo/swag v1.16.6
 )
 

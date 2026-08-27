@@ -4,6 +4,7 @@ import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
   ErrorPage,
+  getStudentName,
   LoadingPage,
   ManagementPageHeader,
   PromptTable,
@@ -138,7 +139,7 @@ export const EvaluationParticipantsOverviewPage = ({
       .sort((a, b) => a.student.lastName.localeCompare(b.student.lastName))
       .map((participation) => ({
         courseParticipationID: participation.courseParticipationID,
-        studentName: `${participation.student.firstName} ${participation.student.lastName}`,
+        studentName: getStudentName(participation.student),
         teamName: getTeamForParticipation(teams, participation.courseParticipationID)?.name,
         scores: evaluations
           .filter(

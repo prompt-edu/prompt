@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import rspack from '@rspack/core'
 import CompressionPlugin from 'compression-webpack-plugin'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
-import packageJson from '../package.json' with { type: 'json' }
+import { federatedDependencies } from '../shared/rspack/federatedDependencies.mjs'
 
 const { ModuleFederationPlugin } = rspack.container
 
@@ -13,7 +13,6 @@ const __dirname = path.dirname(__filename)
 const config = (env = {}) => {
   const IS_DEV = env.NODE_ENV !== 'production'
   const IS_PERF = env.BUNDLE_SIZE === 'true'
-  const deps = packageJson.dependencies
 
   const exampleURL = IS_DEV ? `http://localhost:3001` : `/example`
   const interviewURL = IS_DEV ? `http://localhost:3002` : `/interview`
@@ -24,6 +23,7 @@ const config = (env = {}) => {
   const teamAllocationURL = IS_DEV ? `http://localhost:3008` : `/team-allocation`
   const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
   const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
+  const presentationURL = IS_DEV ? `http://localhost:3011` : `/presentation`
 
   return {
     target: 'web',
@@ -95,20 +95,9 @@ const config = (env = {}) => {
           team_allocation_component: `team_allocation_component@${teamAllocationURL}/remoteEntry.js?${Date.now()}`,
           self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
           certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
+          presentation_component: `presentation_component@${presentationURL}/remoteEntry.js?${Date.now()}`,
         },
-        shared: {
-          react: { singleton: true, requiredVersion: deps.react },
-          'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
-          'react-router-dom': { singleton: true, requiredVersion: deps['react-router-dom'] },
-          '@tanstack/react-query': {
-            singleton: true,
-            requiredVersion: deps['@tanstack/react-query'],
-          },
-          '@tumaet/prompt-shared-state': {
-            singleton: true,
-            requiredVersion: deps['@tumaet/prompt-shared-state'],
-          },
-        },
+        shared: federatedDependencies(),
       }),
       new rspack.HtmlRspackPlugin({
         template: 'public/template.html',

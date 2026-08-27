@@ -1,12 +1,17 @@
 import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { AssessmentReminderCard } from './components/AssessmentReminderCard/AssessmentReminderCard'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { ReleaseResultsSection } from './components/AssessmentSettingsCard/components/ReleaseResultsSection'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
+import { GradeExportCard } from './components/GradeExportCard/GradeExportCard'
 
 export const SettingsPage = () => {
+  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
+
   return (
     <div className='space-y-6'>
       <ManagementPageHeader>Assessment Settings</ManagementPageHeader>
@@ -42,6 +47,8 @@ export const SettingsPage = () => {
       </Card>
 
       <AssessmentReminderCard />
+
+      {assessmentEnabled && <GradeExportCard />}
     </div>
   )
 }

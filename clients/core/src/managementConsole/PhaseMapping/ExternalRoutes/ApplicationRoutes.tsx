@@ -1,5 +1,5 @@
 import { ApplicationDetailsPage } from '@core/managementConsole/applicationAdministration/pages/ApplicationParticipantsPage/components/ApplicationDetailsDialog/ApplicationDetailsPage'
-import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { EDITOR_ROLES, type ExtendedRouteObject, LECTURER_ROLES } from '@tumaet/prompt-shared-state'
 import { ApplicationDataWrapper } from '../../applicationAdministration/components/ApplicationDataWrapper'
 import { ApplicationLandingPage } from '../../applicationAdministration/pages/ApplicationLandingPage/ApplicationLandingPage'
 import { ApplicationParticipantsPage } from '../../applicationAdministration/pages/ApplicationParticipantsPage/ApplicationParticipantsPage'
@@ -15,7 +15,7 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
         <ApplicationLandingPage />
       </ApplicationDataWrapper>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER, Role.COURSE_EDITOR], // empty means no permissions required
+    requiredPermissions: EDITOR_ROLES,
   },
   {
     path: '/settings',
@@ -24,7 +24,7 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
         <ApplicationConfiguration />
       </ApplicationDataWrapper>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/questions',
@@ -33,7 +33,7 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
         <ApplicationQuestionConfig />
       </ApplicationDataWrapper>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/participants',
@@ -42,7 +42,7 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
         <ApplicationParticipantsPage />
       </ApplicationDataWrapper>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/participants/:participationId',
@@ -51,7 +51,7 @@ const applicationRoutesObjects: ExtendedRouteObject[] = [
         <ApplicationDetailsPage />
       </ApplicationDataWrapper>
     ),
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
 ]
 

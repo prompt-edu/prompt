@@ -93,12 +93,14 @@ export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-0000000
 // the graph-tail assessment phase above is used by the lecturer journey + smoke,
 // `visibility` by the student-visibility spec (Stan + Selma participate),
 // `selfEvaluation` by the self-evaluation spec (Stan participates),
-// `print` by the print spec (Stan participates), and `evaluationOnly` by the
-// evaluation-only spec (Stan participates), which flips assessment_enabled off.
+// `print` by the print spec (Stan participates), `gradeExport` by the grade
+// export spec (Stan participates), and `evaluationOnly` by the evaluation-only
+// spec (Stan participates), which flips assessment_enabled off.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
   print: 'd0000009-0000-0000-0000-000000000009',
+  gradeExport: 'd0000012-0000-0000-0000-000000000012',
   evaluationOnly: 'd0000013-0000-0000-0000-000000000013',
 }
 
@@ -138,6 +140,10 @@ export const CERTIFICATE_FIXTURE_PHASES = {
 // Certificate phase on TestCourse with NO participants: requests by the e2e
 // students must be rejected (negative auth fixture).
 export const CERTIFICATE_FOREIGN_PHASE_ID = 'd000000c-0000-0000-0000-00000000000c'
+
+// Standalone Presentation phase on fullCourse used to verify that the
+// presentation remote and same-origin API proxy load together.
+export const PRESENTATION_PHASE_ID = 'd0000014-0000-0000-0000-000000000014'
 
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
@@ -207,3 +213,10 @@ export const FULL_COURSE_APPLICATION_QUESTION = {
 // endpoints must not serve it (GET 404) while the CSV import endpoint accepts batches. Owned by the
 // application-import API spec.
 export const IMPORT_APPLICATION_PHASE_ID = 'd0000011-0000-0000-0000-000000000011'
+
+export const CUSTOM_SCORES_APPLICATION = {
+  phaseId: 'd0000015-0000-0000-0000-000000000015',
+  scoreName: 'Exercise Score',
+  scoredApplicant: { email: 'pgdp_enjoyer@example.com', score: '87.5' },
+  unscoredApplicant: { email: 'second_student@example.com' },
+}

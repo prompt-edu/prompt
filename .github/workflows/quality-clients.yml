@@ -7,6 +7,13 @@ permissions:
   contents: read
 
 jobs:
+  single-tailwind-sheet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check that only core builds Tailwind
+        run: ./scripts/check-remote-styles.sh
+
   quality-client:
     runs-on: ubuntu-latest
     defaults:
@@ -23,6 +30,7 @@ jobs:
           - team_allocation_component
           - self_team_allocation_component
           - certificate_component
+          - presentation_component
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
@@ -30,6 +38,18 @@ jobs:
       - name: Type check ${{ matrix.module }}
         run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
       - name: Lint components in ${{ matrix.module }}
-        run: yarn biome check "${{ matrix.module }}"
+        run: yarn biome check "${{ matrix.module }}" shared
       - name: Build component ${{ matrix.module }}
         run: yarn --cwd "${{ matrix.module }}" build
+
+  test-client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./clients
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node
+      - run: yarn install
+      - name: Run client unit tests
+        run: yarn test

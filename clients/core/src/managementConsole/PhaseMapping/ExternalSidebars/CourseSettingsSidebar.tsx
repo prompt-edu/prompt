@@ -1,4 +1,4 @@
-import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
+import { LECTURER_ROLES, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Settings } from 'lucide-react'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
@@ -7,7 +7,7 @@ export const CourseSettingsSidebar = ({ rootPath, title }: { rootPath: string; t
     title: 'Settings',
     icon: <Settings />,
     goToPath: '/settings',
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   }
   return (
     <ExternalSidebarComponent

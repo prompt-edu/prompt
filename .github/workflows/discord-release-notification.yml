@@ -11,16 +11,33 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Discord Release Notification
-        uses: appleboy/discord-action@v1.2.0
-        with:
-          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
-          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
-          username: "PROMPT Release Bot"
-          avatar_url: "https://prompt.aet.cit.tum.de/img/prompt_logo.svg"
-          message: |
-            🎉 **PROMPT ${{ github.event.release.tag_name }} has been released!**
+      - name: Send Discord release notification
+        env:
+          WEBHOOK_ID: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          WEBHOOK_TOKEN: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
 
-            ${{ github.event.release.body }}
+          payload=$(jq -n \
+            --arg tag "$RELEASE_TAG" \
+            --arg url "$RELEASE_URL" \
+            --arg body "$RELEASE_BODY" \
+            '
+            def clip($max):
+              if length <= $max then .
+              else (.[0:$max] | sub("\n[^\n]*$"; "") | sub("\\s+$"; "")) + "\n\n_(truncated)_"
+              end;
+            {
+              username: "PROMPT Release Bot",
+              avatar_url: "https://prompt.aet.cit.tum.de/img/prompt_logo.svg",
+              content: "🎉 **PROMPT \($tag) has been released!**\n\n\($body | clip(1500))\n\n👉 **Full release notes:** \($url)"
+            }')
 
-            👉 **Full release notes:** ${{ github.event.release.html_url }}
+          curl "https://discord.com/api/webhooks/$WEBHOOK_ID/$WEBHOOK_TOKEN" \
+            --silent --show-error --fail-with-body \
+            --retry 3 --retry-delay 2 --retry-max-time 60 \
+            --header "Content-Type: application/json" \
+            --data-binary "$payload"

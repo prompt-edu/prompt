@@ -16,6 +16,7 @@ jobs:
           - certificate
           - core
           - interview
+          - presentation
           - self_team_allocation
           - team_allocation
           - example_server

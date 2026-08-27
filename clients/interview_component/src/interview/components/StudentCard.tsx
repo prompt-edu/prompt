@@ -14,6 +14,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  getStudentName,
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
@@ -28,6 +29,7 @@ import {
   Mic,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewSlotData {
   id: string
@@ -42,12 +44,13 @@ interface StudentCardProps {
 }
 
 export function StudentCard({ participation, interviewSlot }: StudentCardProps) {
+  const { interviewReviews } = useParticipationStore()
   const navigate = useNavigate()
   const { courseId } = useParams<{ courseId: string }>()
   const { courses } = useCourseStore()
 
   const assessmentScore = participation.prevData?.score ?? 'N/A'
-  const interviewScore = participation.restrictedData?.score ?? 'N/A'
+  const interviewScore = interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'
 
   const applicationPhaseId = courses
     .find((c) => c.id === courseId)
@@ -75,9 +78,7 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
       </div>
 
       <CardHeader>
-        <CardTitle className='text-left'>
-          {participation.student.firstName} {participation.student.lastName}
-        </CardTitle>
+        <CardTitle className='text-left'>{getStudentName(participation.student)}</CardTitle>
         {interviewSlot && (
           <div className='mt-2 space-y-1'>
             <div className='flex items-center gap-2 text-sm text-muted-foreground'>

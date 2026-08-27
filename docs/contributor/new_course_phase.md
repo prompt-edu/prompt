@@ -49,7 +49,8 @@ types remotes by that suffix):
 
 1. `cp -R clients/example_component clients/<name>_component`; rename the inner
    `src/example_component` directory.
-2. `rspack.config.mjs`: set `COMPONENT_NAME` and a unique `COMPONENT_DEV_PORT`.
+2. `rspack.config.mjs`: call `createRspackConfig` from `clients/shared/rspack/` with the
+   component `name` and a unique dev `port`.
 3. `package.json`: set `"name"`; keep `biome.json` extending the root (`"extends": "//"`).
 4. Register the workspace in `clients/package.json` (`workspaces.packages`) and
    `clients/lerna.json` (`packages`), then `cd clients && yarn install`.
@@ -84,8 +85,16 @@ types remotes by that suffix):
 Structure your repo like `prompt-github-challenge` (`client/` + `server/` + `docker-compose.yml`
 + own CI); the upcoming template repository gives you this out of the box. Your client is built
 and served by your own deployment; your server runs against its own database. You then need one
-small PR to this repo for core registration — exactly the steps in section 2, with your deployed
+small PR to this repo for core registration, exactly the steps in section 2, with your deployed
 URLs instead of localhost ones.
+
+**Styling.** In-repo phases get their utilities from core, which scans every component directory
+(see the styling section of `docs/contributor/guide/client.md`). Core cannot scan a repository it
+does not have, so an external phase has two constraints. Utilities it uses that no in-repo client
+uses will not be in core's stylesheet, so stay close to the shared UI library and to the utilities
+core already emits. And it must not inject a Tailwind build of its own into the host: that
+stylesheet lands in `<head>` after core's and overrides core's utilities at equal specificity,
+which is issue #2086.
 
 ---
 

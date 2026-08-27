@@ -21,6 +21,7 @@ Originally developed for the **iPraktikum** at the **Technical University of Mun
 PROMPT supports custom course phases as independently deployable modules:
 
 - 🗓 **Interview Phase** – Schedule and manage student interviews.
+- 🎤 **Presentation Phase** – Schedule presentations, collect materials, and provide structured multi-instructor feedback.
 - 🧑‍🤝‍🧑 **Team Phase** – Allocate students to projects and teams.
 - 📄 **TUM Matching Export** – Export data in TUM-compatible format.
 - 🧩 **Custom Phases** – Easily extend PROMPT with your own logic.

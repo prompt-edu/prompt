@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AxiosError } from 'axios'
+import { isAxiosError } from 'axios'
 import { useParams } from 'react-router-dom'
 
 import { deleteAssessmentCompletion } from '../../../../../network/mutations/deleteAssessmentCompletion'
@@ -19,10 +19,9 @@ export const useDeleteAssessmentCompletion = (setError: (error: string | undefin
       setError(undefined)
     },
     onError: (error: unknown) => {
-      const serverError =
-        error instanceof AxiosError
-          ? (error.response?.data as { error?: string } | undefined)?.error
-          : undefined
+      const serverError = isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error
+        : undefined
       setError(serverError ?? 'An unexpected error occurred. Please try again.')
     },
   })

@@ -9,6 +9,7 @@ on:
     paths:
       - "scripts/new-course-phase.sh"
       - "clients/example_component/**"
+      - "clients/shared/**"
       - "servers/example_server/**"
       - "clients/core/rspack.config.mjs"
       - "clients/core/src/App.tsx"

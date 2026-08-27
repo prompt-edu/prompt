@@ -1,4 +1,4 @@
-import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
+import { type ExtendedRouteObject, LECTURER_ROLES, Role } from '@tumaet/prompt-shared-state'
 import { StudentSurveyPage } from '../src/team_allocation/pages/StudentSurvey/StudentSurveyPage'
 import { SurveySettingsPage } from '../src/team_allocation/pages/SurveySettings/SurveySettingsPage'
 import { SurveyStatisticsPage } from '../src/team_allocation/pages/SurveyStatistics/SurveyStatisticsPage'
@@ -20,27 +20,27 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '/settings',
     element: <SurveySettingsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/tease-config',
     element: <TeaseConfigPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/allocations',
     element: <TeamAllocationPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/participants',
     element: <TeamAllocationParticipantsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
   {
     path: '/statistics',
     element: <SurveyStatisticsPage />,
-    requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+    requiredPermissions: LECTURER_ROLES,
   },
 ]
 

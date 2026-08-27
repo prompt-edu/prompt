@@ -1170,12 +1170,35 @@ ALTER TABLE course_phase_participation
   DROP COLUMN old_id;
 
 -- Rename existing DTO tables to use the "participation" prefix
-ALTER TABLE course_phase_type_provided_output_dto 
+ALTER TABLE course_phase_type_provided_output_dto
     RENAME TO course_phase_type_participation_provided_output_dto;
 
-ALTER TABLE course_phase_type_required_input_dto 
+ALTER TABLE course_phase_type_required_input_dto
     RENAME TO course_phase_type_participation_required_input_dto;
 
 -- Rename the dependency graph table to "participation_data_dependency_graph"
-ALTER TABLE meta_data_dependency_graph 
+ALTER TABLE meta_data_dependency_graph
     RENAME TO participation_data_dependency_graph;
+
+-------------------------------
+-- 6. Interview outputs are served by the interview microservice over REST
+--    (mirrors migration 0029_interview_rest_provided_outputs)
+-------------------------------
+UPDATE course_phase_type
+SET base_url = '{CORE_HOST}/interview/api'
+WHERE name = 'Interview'
+  AND base_url = 'core';
+
+UPDATE course_phase_type_participation_provided_output_dto po
+SET endpoint_path = '/interview-review/score'
+FROM course_phase_type cpt
+WHERE po.course_phase_type_id = cpt.id
+  AND cpt.name = 'Interview'
+  AND po.dto_name = 'score'
+  AND po.endpoint_path = 'core';
+
+-- Interview participants that passed, so the successor Matching phase has participants.
+-- The stale 'score' in restricted_data is deliberate: core must no longer inline it.
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES
+  ('6a49b717-a8ca-4d16-bcd0-0bb059525269', '2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1', '{"score": 2, "interviewer": "Ada Lovelace"}', 'passed', '{}'),
+  ('ca41772a-e06d-40eb-9c4b-ab44e06a890c', '2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1', '{"score": 4}', 'passed', '{}');

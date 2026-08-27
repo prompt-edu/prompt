@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
 export const useSorting = (sortBy: string | undefined) => {
-  const { participations, interviewSlots } = useParticipationStore()
+  const { participations, interviewSlots, interviewReviews } = useParticipationStore()
 
   return useMemo(() => {
     if (!sortBy) return participations
@@ -45,12 +45,12 @@ export const useSorting = (sortBy: string | undefined) => {
         }
         case 'Interview Score':
           return (
-            (a.restrictedData.score || Number.MAX_VALUE) -
-            (b.restrictedData.score || Number.MAX_VALUE)
+            (interviewReviews[a.courseParticipationID]?.score || Number.MAX_VALUE) -
+            (interviewReviews[b.courseParticipationID]?.score || Number.MAX_VALUE)
           )
         default:
           return 0
       }
     })
-  }, [participations, sortBy, interviewSlots])
+  }, [participations, sortBy, interviewSlots, interviewReviews])
 }

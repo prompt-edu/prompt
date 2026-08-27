@@ -78,7 +78,7 @@ func main() {
 	config.InitConfigModule(coursePhaseApi, *query, conn)
 	participants.InitParticipantsModule(coursePhaseApi, *query)
 	generator.InitGeneratorModule(coursePhaseApi, *query)
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacy.RegisterRoutes(api, privacy.NewPrivacyService(*query))
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "certificate",

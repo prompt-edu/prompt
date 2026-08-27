@@ -4,7 +4,7 @@
 	server-team-allocation server-self-team-allocation server-example \
 	server-certificate server-presentation \
 	lint lint-clients lint-servers \
-	test test-core test-assessment test-interview \
+	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-presentation \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
@@ -127,7 +127,10 @@ lint-servers: ## Run go vet on all servers
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation ## Run all server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation ## Run all client and server tests
+
+test-clients: ## Run all client unit tests
+	cd clients && yarn install && yarn test
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...

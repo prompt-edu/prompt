@@ -1,7 +1,7 @@
 # Keycloak Local Development Guide
 
 ## 1. Local Setup (Step-by-Step)
-1. **Launch Containers:** Use `docker-compose up -d keycloak keycloak-db`. 
+1. **Launch Containers:** Use `docker-compose up -d keycloak keycloak-db`.
 2. **Auto-Import:** The system is configured to import `keycloakConfig.json` automatically on startup.
 3. **Verify:** Access the UI at `http://localhost:8081`.
 
@@ -21,6 +21,7 @@ The following accounts are included in `keycloakConfig.json` to facilitate testi
 ## 3. Modifying Users and Roles
 - **Adding Users:** Go to `Users` -> `Add user`. Required fields: Username, Email, First/Last Name.
 - **Assigning Roles:** Go to `Users` -> pick user -> go to `Role Mapping` tab and `Assign role`.
+- **Editing `keycloakConfig.json` by hand:** every client role a user or group references must also be declared under `roles.client`. Keycloak creates undeclared roles implicitly, and since 26.6 two users referencing the same undeclared role abort the import with a duplicate-resource error on a fresh database.
 
 ## 4. Manual Client Mapper Configuration
 If you need to manually add mappers for `prompt-server`:

@@ -73,8 +73,11 @@ make seed
 # Run linting
 make lint
 
-# Run tests
+# Run tests (client unit tests + every server suite)
 make test
+
+# Run only the client unit tests
+make test-clients
 
 # Regenerate sqlc code for every service (or make sqlc-<service>)
 make sqlc
@@ -146,9 +149,9 @@ phases: see the external-phase section of the guide and `template-repository/`.
 migrated; never insert `course_phase_type` rows, resolve them by name. `make seed-check` verifies
 the ids that cross service boundaries.
 
-Run `make lint` and `make test` before completing a change. Go tests use `testcontainers-go`;
-end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:
-`.claude/rules/common/testing.md`.
+Run `make lint` and `make test` before completing a change. Client unit tests run on Vitest from
+`clients/` (`make test-clients`); Go tests use `testcontainers-go`; end-to-end tests use Playwright
+and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md`.
 
 ## Definition of Done
 

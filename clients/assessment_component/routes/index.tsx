@@ -1,4 +1,4 @@
-import '../src/loadStyles'
+import '../src/print.css'
 
 import {
   EDITOR_ROLES,

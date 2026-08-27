@@ -44,28 +44,26 @@ The application uses **Tailwind CSS** for styling and `shadcn/ui` for generating
         ```sh
         cd ../../prompt-lib
         ```
-  2. Add the `shadcn/ui` component you want to add 
+  2. Add the `shadcn/ui` component you want to add
         ```sh
         yarn dlx shadcn add <component-name>
         ```
 - **Using a `shadcn/ui` component**
-  
+
   `import { Button } from "@tumaet/prompt-ui-components"`
 - **Configuring Tailwind and `shadcn/ui`**
-  - Tailwind and `shadcn/ui` are centrally configured in `@tumaet/prompt-ui-components`, with the following files
-    - Global Tailwind config: `@tumaet/prompt-ui-components/tailwind-config` 
-      - `<your_component>/tailwind.config.js` imports the global tailwind config as default - overwrite rules only if necessary
-    - CSS Settings: `@tumaet/prompt-ui-components/index.css`
-      - **must** be imported in every `<your_component>/index.js`
-    - Shadcn/ui config: `prompt-lib/components.json` 
+  - `shadcn/ui` is centrally configured in `prompt-lib/components.json`.
+  - `clients/core/tailwind.config.js` is the only Tailwind config in this repository. It scans every
+    `<your_component>/{src,routes,sidebar}` directory, so your component needs no Tailwind setup of
+    its own, and must not add one. See the styling section of `docs/contributor/guide/client.md`.
 
 
 ### Installing dependencies
-All dependencies that are shared between the components should be installed in the root directory by 
+All dependencies that are shared between the components should be installed in the root directory by
 ```sh
     yarn add <component-name>
 ```
-Only dependencies specific to your component shall be added in the subfolder. 
+Only dependencies specific to your component shall be added in the subfolder.
 
 
 ### Webpack Module Federation
@@ -118,7 +116,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
 **Biome** is used for code linting and formatting to maintain consistent coding standards across all components:
 - The main configuration is located in the root directory: `biome.json`
 - Each component has its own `biome.json`, which extends the root config via `"extends": "//"` and allows for changes if necessary
-  - `<your_component>/biome.json` 
+  - `<your_component>/biome.json`
 
 ---
 

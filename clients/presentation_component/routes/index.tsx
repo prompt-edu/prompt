@@ -1,5 +1,3 @@
-import '../src/styles.css'
-
 import { type ExtendedRouteObject, Role } from '@tumaet/prompt-shared-state'
 import { lazy, Suspense } from 'react'
 

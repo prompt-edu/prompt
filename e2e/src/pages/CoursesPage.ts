@@ -13,6 +13,13 @@ export class CoursesPage {
     await this.page.goto('/management/courses')
   }
 
+  // Same-document navigation through the shell's sidebar. page.goto() reloads
+  // the document, which drops whatever stylesheet a remote injected - so any
+  // test about the cascade across remotes has to come back this way.
+  async gotoFromSidebar() {
+    await this.page.getByTestId('sidebar-home').click()
+  }
+
   async expectLoaded() {
     await expect(this.heading).toBeVisible()
   }

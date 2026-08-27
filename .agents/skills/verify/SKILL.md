@@ -60,7 +60,7 @@ seed when you need a state the fixtures don't have:
 TOKEN=$(curl -s -X POST http://localhost:18081/realms/prompt/protocol/openid-connect/token \
   -d client_id=prompt-client -d username=lecturer -d password=lecturer \
   -d grant_type=password | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:18090/api/courses | head -c 400
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:18090/api/courses/ | head -c 400
 ```
 
 ## Why host-browser mode exists

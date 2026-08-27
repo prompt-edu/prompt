@@ -31,7 +31,7 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
 | File | Database | Owns |
 | --- | --- | --- |
 | `core.sql` | core | courses, students, phases, the graph, participations, application form and answers, data dependency edges, mail campaign |
-| `interview.sql` | interview | slots, assignments |
+| `interview.sql` | interview | slots, assignments, reviews |
 | `team_allocation.sql` | team_allocation | skills, teams, survey, responses, allocation, tutors |
 | `self_team_allocation.sql` | self_team_allocation | teams, timeframe, assignments |
 | `assessment.sql` | assessment | schemas, categories, competencies, config, assessments, evaluations |

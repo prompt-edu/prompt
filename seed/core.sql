@@ -506,7 +506,8 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
             '{"applicationStartDate": "2026-01-01T00:00:00", "applicationEndDate": "2026-03-15T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true, "autoAccept": false, "additionalScores": [{"key": "devSkill", "name": "Development Skill", "threshold": 50}]}',
             true, (SELECT id FROM course_phase_type WHERE name = 'Application'), '{}'),
            ('f0000002-0000-0000-0000-000000000002', 'c0000002-0000-0000-0000-000000000002', 'Interview',
-            '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Interview'), '{}'),
+            '{"interviewQuestions": [{"id": 1, "question": "Which projects has the candidate built so far?", "orderNum": 0}, {"id": 2, "question": "How well would the candidate work in a team?", "orderNum": 1}]}',
+            false, (SELECT id FROM course_phase_type WHERE name = 'Interview'), '{}'),
            ('f0000003-0000-0000-0000-000000000003', 'c0000002-0000-0000-0000-000000000002', 'Matching',
             '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Matching'), '{}'),
            ('f0000004-0000-0000-0000-000000000004', 'c0000002-0000-0000-0000-000000000002', 'Team Allocation',
@@ -554,16 +555,16 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
            ('cd000007-0000-0000-0000-000000000007', 'f0000001-0000-0000-0000-000000000001', '{}', '{}', 'failed'),
            ('cd000008-0000-0000-0000-000000000008', 'f0000001-0000-0000-0000-000000000001', '{}', '{}', 'failed');
 
--- The interview module stores no scores of its own: core keeps them in the
--- participation's restricted_data, and the Matching phase reads them back
+-- The interview scores live in the interview service's own interview_review
+-- table (seed/interview.sql); the Matching phase resolves them over REST
 -- through the participation data dependency graph wired below.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)
-    VALUES ('cd000001-0000-0000-0000-000000000001', 'f0000002-0000-0000-0000-000000000002', '{"score": 5, "comments": "Strong iOS background."}', '{}', 'passed'),
-           ('cd000002-0000-0000-0000-000000000002', 'f0000002-0000-0000-0000-000000000002', '{"score": 4, "comments": "Solid all round."}', '{}', 'passed'),
-           ('cd000003-0000-0000-0000-000000000003', 'f0000002-0000-0000-0000-000000000002', '{"score": 4, "comments": "Good communicator."}', '{}', 'passed'),
-           ('cd000004-0000-0000-0000-000000000004', 'f0000002-0000-0000-0000-000000000002', '{"score": 3, "comments": "Limited Swift experience."}', '{}', 'passed'),
-           ('cd000005-0000-0000-0000-000000000005', 'f0000002-0000-0000-0000-000000000002', '{"score": 5, "comments": "Excellent portfolio."}', '{}', 'passed'),
-           ('cd000006-0000-0000-0000-000000000006', 'f0000002-0000-0000-0000-000000000002', '{"score": 3, "comments": "Motivated, needs mentoring."}', '{}', 'passed');
+    VALUES ('cd000001-0000-0000-0000-000000000001', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
+           ('cd000002-0000-0000-0000-000000000002', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
+           ('cd000003-0000-0000-0000-000000000003', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
+           ('cd000004-0000-0000-0000-000000000004', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
+           ('cd000005-0000-0000-0000-000000000005', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
+           ('cd000006-0000-0000-0000-000000000006', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed');
 
 -- Every later phase carries the same six participants.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)

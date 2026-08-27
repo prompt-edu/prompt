@@ -26,7 +26,7 @@ disposable - do not keep work there.
 | Phase | In the graph | Seeded with |
 | --- | --- | --- |
 | Application | yes (initial) | text, multi-select and file-upload questions, answers and scores for 8 applicants |
-| Interview | yes | four slots, six assignments, interview scores |
+| Interview | yes | two questions, four slots, six assignments, six scored reviews |
 | Matching | yes | the pass/fail funnel |
 | Team Allocation | yes | 3 skills, 2 teams, survey responses, a published allocation |
 | Assessment | yes | a rubric with 4 competencies, 6 graded participants, a self-evaluation round |

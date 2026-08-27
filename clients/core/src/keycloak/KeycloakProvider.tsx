@@ -10,6 +10,7 @@ const REFRESH_TOKEN_KEY = 'refreshToken'
 interface KeycloakContextType {
   isInitialized: boolean
   isAuthenticated: boolean
+  initError: Error | null
   login: (redirectUri?: string) => void
   logout: () => Promise<void>
   forceTokenRefresh: () => Promise<void>
@@ -18,6 +19,7 @@ interface KeycloakContextType {
 export const KeycloakContext = createContext<KeycloakContextType>({
   isInitialized: false,
   isAuthenticated: false,
+  initError: null,
   login: () => {},
   logout: async () => {},
   forceTokenRefresh: async () => {},
@@ -47,6 +49,7 @@ export const KeycloakProvider: React.FC<{
   const initStarted = useRef(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [initError, setInitError] = useState<Error | null>(null)
   const { setUser, setPermissions, clearUser, clearPermissions, setLogoutFunction } = useAuthStore()
 
   const clearLocalSession = useCallback(() => {
@@ -119,7 +122,13 @@ export const KeycloakProvider: React.FC<{
           ? { token: storedToken, refreshToken: storedRefreshToken }
           : {}),
       })
-      .catch(() => clearSession())
+      // A rejected or expired refresh token and an unreachable or misconfigured
+      // realm both end here, and only the first can be resolved by logging in
+      // again. Keeping the reason lets the caller show it once it stops retrying.
+      .catch((error: unknown) => {
+        setInitError(error instanceof Error ? error : new Error(String(error)))
+        clearSession()
+      })
       .finally(() => setIsInitialized(true))
   }, [keycloakRealmName, keycloakUrl, storeSession, clearSession, clearLocalSession])
 
@@ -162,7 +171,7 @@ export const KeycloakProvider: React.FC<{
 
   return (
     <KeycloakContext.Provider
-      value={{ isInitialized, isAuthenticated, login, logout, forceTokenRefresh }}
+      value={{ isInitialized, isAuthenticated, initError, login, logout, forceTokenRefresh }}
     >
       {children}
     </KeycloakContext.Provider>

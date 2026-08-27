@@ -40,6 +40,17 @@ const parseJwt = (token: string) => {
   }
 }
 
+// keycloak-js rejects with an Error for transport failures but with the raw OIDC
+// payload for a refused grant, so neither shape can be rendered on its own.
+const toInitError = (reason: unknown): Error => {
+  if (reason instanceof Error) return reason
+  if (typeof reason === 'string') return new Error(reason)
+
+  const payload = reason as { error?: string; error_description?: string } | null
+  const description = [payload?.error, payload?.error_description].filter(Boolean).join(': ')
+  return new Error(description || 'Keycloak could not be reached.')
+}
+
 export const KeycloakProvider: React.FC<{
   keycloakUrl: string
   keycloakRealmName: string
@@ -126,7 +137,7 @@ export const KeycloakProvider: React.FC<{
       // realm both end here, and only the first can be resolved by logging in
       // again. Keeping the reason lets the caller show it once it stops retrying.
       .catch((error: unknown) => {
-        setInitError(error instanceof Error ? error : new Error(String(error)))
+        setInitError(toInitError(error))
         clearSession()
       })
       .finally(() => setIsInitialized(true))

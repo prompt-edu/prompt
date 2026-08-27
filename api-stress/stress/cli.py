@@ -269,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
         "started": timestamp,
         "intensity": args.intensity,
         "scenarios": " ".join(scenarios),
-        "stack": "prompt-stress (isolated, keycloak 26.4.7)",
+        "stack": "prompt-stress (isolated)",
         "catalog_count": catalog_count(),
         "core_url": CORE_URL,
     }

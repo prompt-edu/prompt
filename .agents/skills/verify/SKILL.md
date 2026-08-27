@@ -116,9 +116,30 @@ from the repo when done — `e2e/` is checked in.
   All pre-existing noise, not your change.
 - The seed is a `pg_dump` file loaded by `initdb` with `ON_ERROR_STOP`: one duplicate key
   aborts it and the whole stack fails to boot with `container prompt-e2e-db exited (3)`.
-  Validate a seed edit on its own before a full run:
-  `docker run --rm -e POSTGRES_PASSWORD=x -e POSTGRES_DB=prompt \
-   -v "$PWD/e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro" postgres:15.18-alpine`
+  Validate a seed edit on its own before a full run. The image has no one-shot mode — on
+  success `postgres` goes on serving — so bound it on the init-complete line and tear the
+  container down either way:
+
+  ```bash
+  docker rm -f prompt-seed-check >/dev/null 2>&1
+  docker run -d --name prompt-seed-check \
+    -e POSTGRES_PASSWORD=x -e POSTGRES_DB=prompt \
+    -v "$PWD/e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro" \
+    postgres:15.18-alpine >/dev/null
+  for _ in $(seq 60); do
+    docker logs prompt-seed-check 2>&1 | grep -q 'init process complete' && break
+    [ "$(docker inspect -f '{{.State.Running}}' prompt-seed-check)" = true ] || break
+    sleep 2
+  done
+  docker logs prompt-seed-check 2>&1 | grep -Ei 'error|init process complete' | tail -5
+  docker rm -f prompt-seed-check >/dev/null
+  ```
+
+  `PostgreSQL init process complete` means the seed loaded; a `duplicate key value violates
+  unique constraint ...` line is the abort the stack would hit at boot. A clean seed
+  finishes in about five seconds, a broken one faster, and the loop caps the wait at two
+  minutes. Don't add `--rm` to the run: it deletes the container the moment initdb fails,
+  taking the error log with it. `timeout` is not used because macOS ships no such binary.
 - `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and `e2e/tests` in the runner
   image; the seed is a bind mount and updates without a rebuild. A client or server code
   change always needs the build.

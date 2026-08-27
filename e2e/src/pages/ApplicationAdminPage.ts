@@ -65,6 +65,20 @@ export class ApplicationAdminPage {
     await expect(this.acceptButton()).toBeVisible({ timeout: 15_000 })
   }
 
+  customScoresCard(): Locator {
+    return this.page.getByTestId('application-custom-scores')
+  }
+
+  async expectCustomScore(name: string, score: string) {
+    await expect(this.customScoresCard().locator(`dt:text-is("${name}") + dd`)).toHaveText(score)
+  }
+
+  async expectCustomScoreMissing(name: string) {
+    await expect(this.customScoresCard().locator(`dt:text-is("${name}") + dd`)).toHaveText(
+      'No score uploaded',
+    )
+  }
+
   async expectAnswerVisible(answer: string) {
     await expect(this.page.getByText(answer)).toBeVisible()
   }

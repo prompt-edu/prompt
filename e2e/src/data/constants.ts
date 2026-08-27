@@ -143,7 +143,7 @@ export const CERTIFICATE_FOREIGN_PHASE_ID = 'd000000c-0000-0000-0000-00000000000
 
 // Standalone Presentation phase on fullCourse used to verify that the
 // presentation remote and same-origin API proxy load together.
-export const PRESENTATION_PHASE_ID = 'd0000012-0000-0000-0000-000000000012'
+export const PRESENTATION_PHASE_ID = 'd0000014-0000-0000-0000-000000000014'
 
 // The student mapping to the Keycloak `student` role user (Stan); participates in
 // every phase of fullCourse. Course access is DB-derived (matriculation + university
@@ -213,3 +213,10 @@ export const FULL_COURSE_APPLICATION_QUESTION = {
 // endpoints must not serve it (GET 404) while the CSV import endpoint accepts batches. Owned by the
 // application-import API spec.
 export const IMPORT_APPLICATION_PHASE_ID = 'd0000011-0000-0000-0000-000000000011'
+
+export const CUSTOM_SCORES_APPLICATION = {
+  phaseId: 'd0000015-0000-0000-0000-000000000015',
+  scoreName: 'Exercise Score',
+  scoredApplicant: { email: 'pgdp_enjoyer@example.com', score: '87.5' },
+  unscoredApplicant: { email: 'second_student@example.com' },
+}

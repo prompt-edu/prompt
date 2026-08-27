@@ -70,7 +70,7 @@ services:
       - prompt-network
 
   db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -88,7 +88,7 @@ services:
       - prompt-network
 
   keycloak-db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}

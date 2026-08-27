@@ -29,6 +29,8 @@ services:
         condition: service_healthy
       seaweedfs-s3:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     # Alternate host port (18090) so the e2e stack can run alongside a dev stack.
     ports:
       - "18090:8080"
@@ -60,6 +62,11 @@ services:
       - S3_FORCE_PATH_STYLE
       - MAX_FILE_UPLOAD_SIZE_MB
       - ALLOWED_FILE_TYPES
+      # Campaign mails are submitted to the mailpit catcher over SMTP.
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SENDER_EMAIL=prompt-e2e@example.com
+      - SENDER_NAME=PROMPT E2E
     # No container healthcheck: the server image is distroless (no shell/wget).
     # Readiness is polled by the runner's global-setup against /api/hello instead.
 
@@ -193,7 +200,7 @@ services:
       start_period: 10s
 
   db-self-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -264,7 +271,7 @@ services:
       start_period: 10s
 
   db-example:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-example
     environment:
       - POSTGRES_USER=${DB_EXAMPLE_USER}
@@ -332,7 +339,7 @@ services:
       start_period: 10s
 
   db-assessment:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -425,7 +432,7 @@ services:
       start_period: 10s
 
   db-interview:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER}
@@ -498,7 +505,7 @@ services:
       start_period: 10s
 
   db-certificate:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -572,7 +579,7 @@ services:
       start_period: 10s
 
   db-presentation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
@@ -641,7 +648,7 @@ services:
       start_period: 10s
 
   db-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -672,7 +679,7 @@ services:
     init: true
 
   db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -690,7 +697,7 @@ services:
     # No host port: only server-core talks to the DB, over the compose network.
 
   keycloak-db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-e2e-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -832,6 +839,18 @@ services:
       timeout: 5s
       retries: 3
 
+  # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
+  # the runner reads them back over the HTTP API (8025) to assert delivery.
+  mailpit:
+    image: axllent/mailpit:v1.30.7
+    container_name: prompt-e2e-mailpit
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+    # HTTP UI/API published on 18025 so host-run Playwright can reach it too.
+    ports:
+      - "18025:8025"
+
   # Containerized Playwright runner. Waits for the app to be healthy, then runs
   # the suite. Its exit code is the suite result (read by `--exit-code-from`).
   # The browser, the app's runtime config, the server, and Keycloak all address
@@ -893,6 +912,7 @@ services:
       - BASE_URL=http://client-core
       - KEYCLOAK_URL=http://keycloak:8080
       - CORE_API_URL=http://server-core:8080
+      - MAILPIT_URL=http://mailpit:8025
       - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
       # Sharding knobs (forwarded from the CI job; empty/unset for a local run).
       # PW_BLOB + PW_SHARD_NAME select the per-shard blob report; PW_WORKERS and

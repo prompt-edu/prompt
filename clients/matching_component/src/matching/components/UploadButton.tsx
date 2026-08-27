@@ -10,6 +10,7 @@ interface UploadButtonProps {
   onUploadFinish: () => void
   onUploadFunction: (file: File) => Promise<void>
   acceptedFileTypes: string[]
+  disabled?: boolean
 }
 
 export const UploadButton = ({
@@ -19,6 +20,7 @@ export const UploadButton = ({
   onUploadFinish,
   onUploadFunction,
   acceptedFileTypes,
+  disabled = false,
 }: UploadButtonProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -60,7 +62,7 @@ export const UploadButton = ({
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    if (e.dataTransfer.files?.[0]) {
+    if (!disabled && e.dataTransfer.files?.[0]) {
       setIsUploading(true)
       handleUpload(e.dataTransfer.files[0])
     }
@@ -77,10 +79,10 @@ export const UploadButton = ({
   return (
     <Card
       className={`hover:shadow-lg transition-all duration-300 ${dragActive ? 'border-primary' : ''}`}
-      onDragEnter={isUploading ? undefined : handleDrag}
-      onDragLeave={isUploading ? undefined : handleDrag}
-      onDragOver={isUploading ? undefined : handleDrag}
-      onDrop={isUploading ? undefined : handleDrop}
+      onDragEnter={isUploading || disabled ? undefined : handleDrag}
+      onDragLeave={isUploading || disabled ? undefined : handleDrag}
+      onDragOver={isUploading || disabled ? undefined : handleDrag}
+      onDrop={isUploading || disabled ? undefined : handleDrop}
     >
       <CardHeader>
         <CardTitle className='flex items-center text-2xl'>
@@ -93,7 +95,7 @@ export const UploadButton = ({
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
             dragActive ? 'border-primary bg-primary/10' : 'border-muted-foreground'
-          } ${isUploading ? 'opacity-50' : ''}`}
+          } ${isUploading || disabled ? 'opacity-50' : ''}`}
         >
           <UploadCloud className='mx-auto h-12 w-12 text-muted-foreground mb-4 mt-4' />
           <p className='text-sm text-muted-foreground mb-2'>
@@ -105,7 +107,7 @@ export const UploadButton = ({
           <Button
             onClick={() => fileInputRef.current?.click()}
             className='text-lg py-6 mb-4'
-            disabled={isUploading}
+            disabled={isUploading || disabled}
           >
             {isUploading ? (
               <>

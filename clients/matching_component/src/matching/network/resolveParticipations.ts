@@ -18,6 +18,15 @@ interface ResolvedDto {
   valuesByParticipation: Record<string, unknown>
 }
 
+interface ResolutionResult extends ResolvedDto {
+  failed: boolean
+}
+
+export interface ResolvedParticipations {
+  participations: CoursePhaseParticipationWithStudent[]
+  failedResolutions: string[]
+}
+
 const RESOLUTION_TIMEOUT_MS = 10_000
 
 const buildResolutionURL = (resolution: DataResolution): string => {
@@ -56,20 +65,21 @@ export const mergeResolutions = (
 }
 
 /**
- * Fetch every resolution and merge the results into the participations. Resolutions
- * that fail to load are skipped so a single unavailable provider does not blank out
- * the whole page.
+ * Fetch every resolution and merge the results into the participations. A resolution that
+ * fails to load is skipped so a single unavailable provider does not blank out the whole
+ * page, but its `dtoName` is reported back so callers can tell "this student has no score"
+ * apart from "we could not load the scores" before exporting anything.
  */
 export const resolveParticipations = async (
   participations: CoursePhaseParticipationWithStudent[],
   resolutions: DataResolution[],
-): Promise<CoursePhaseParticipationWithStudent[]> => {
+): Promise<ResolvedParticipations> => {
   if (!resolutions || resolutions.length === 0) {
-    return participations
+    return { participations, failedResolutions: [] }
   }
 
-  const resolvedDtos = await Promise.all(
-    resolutions.map(async (resolution): Promise<ResolvedDto> => {
+  const results = await Promise.all(
+    resolutions.map(async (resolution): Promise<ResolutionResult> => {
       const valuesByParticipation: Record<string, unknown> = {}
       try {
         const response = await axios.get<Array<Record<string, unknown>>>(
@@ -84,10 +94,14 @@ export const resolveParticipations = async (
         }
       } catch (err) {
         console.error(`Failed to resolve "${resolution.dtoName}" from ${resolution.baseURL}`, err)
+        return { dtoName: resolution.dtoName, valuesByParticipation, failed: true }
       }
-      return { dtoName: resolution.dtoName, valuesByParticipation }
+      return { dtoName: resolution.dtoName, valuesByParticipation, failed: false }
     }),
   )
 
-  return mergeResolutions(participations, resolvedDtos)
+  return {
+    participations: mergeResolutions(participations, results),
+    failedResolutions: results.filter((result) => result.failed).map((result) => result.dtoName),
+  }
 }

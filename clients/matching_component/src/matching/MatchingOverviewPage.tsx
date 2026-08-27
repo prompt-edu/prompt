@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   Card,
   CardContent,
@@ -11,13 +13,14 @@ import {
   ManagementPageHeader,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { ClipboardList, FileUp, Loader2, UserRoundCheck } from 'lucide-react'
+import { ClipboardList, FileUp, Loader2, TriangleAlert, UserRoundCheck } from 'lucide-react'
 import { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { UploadButton } from './components/UploadButton'
 import { useUploadAndParseCSV } from './hooks/useUploadAndParseCSV'
 import { useUploadAndParseXLSX } from './hooks/useUploadAndParseXLSX'
 import { getResolvedCoursePhaseParticipations } from './network/getResolvedCoursePhaseParticipations'
+import type { ResolvedParticipations } from './network/resolveParticipations'
 import { useMatchingStore } from './zustand/useMatchingStore'
 
 export const MatchingOverviewPage = () => {
@@ -30,20 +33,22 @@ export const MatchingOverviewPage = () => {
   const { parseFileCSV } = useUploadAndParseCSV()
 
   const {
-    data: coursePhaseParticipations,
+    data: resolvedParticipations,
     isPending: isCoursePhaseParticipationsPending,
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationWithStudent[]>({
+  } = useQuery<ResolvedParticipations>({
     queryKey: ['participants', phaseId],
     queryFn: () => getResolvedCoursePhaseParticipations(phaseId ?? ''),
   })
 
+  const failedResolutions = resolvedParticipations?.failedResolutions ?? []
+
   useEffect(() => {
-    if (coursePhaseParticipations) {
-      setParticipations(coursePhaseParticipations)
+    if (resolvedParticipations) {
+      setParticipations(resolvedParticipations.participations)
     }
-  }, [coursePhaseParticipations, setParticipations])
+  }, [resolvedParticipations, setParticipations])
 
   return (
     <div>
@@ -56,6 +61,17 @@ export const MatchingOverviewPage = () => {
         </div>
       ) : (
         <div>
+          {failedResolutions.length > 0 && (
+            <Alert variant='destructive' className='mb-8'>
+              <TriangleAlert className='h-4 w-4' />
+              <AlertTitle>Predecessor data could not be loaded</AlertTitle>
+              <AlertDescription>
+                {failedResolutions.join(', ')} could not be fetched from the providing phase, so the
+                export would contain no ranks. The export is disabled until the data loads. Retry in
+                a moment, and check that the providing phase is reachable if it keeps failing.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className='grid md:grid-cols-2 gap-8'>
             <section className='space-y-4'>
               <h2 className='text-2xl font-bold flex items-center'>
@@ -73,6 +89,7 @@ export const MatchingOverviewPage = () => {
                 }}
                 onUploadFunction={parseFileXLSX}
                 acceptedFileTypes={['.xlsx', '.xls']}
+                disabled={failedResolutions.length > 0}
               />
             </section>
             <section className='space-y-4'>

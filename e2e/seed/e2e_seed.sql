@@ -704,6 +704,8 @@ INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000015-0000-0000-0000-000000000015', '{"exercisescore": 87.5}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000015-0000-0000-0000-000000000015', '{}', 'not_assessed', '{}');
 -- Standalone assessment fixture phases (see the course_phase inserts below):
 -- Stan + Selma in the visibility phase, Stan in the self-evaluation phase,
 -- Stan in the print phase, Stan + Selma in the grade export phase, Stan in the
@@ -792,6 +794,7 @@ INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 
 -- the import endpoint keys off the phase type, not is_initial_phase. applicationMode=import closes
 -- the public apply flow and enables the CSV import endpoint. Owned by the application-import API spec.
 INSERT INTO public.course_phase VALUES ('d0000011-0000-0000-0000-000000000011', 'c0000001-0000-0000-0000-000000000001', 'CSV Import Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": true, "applicationMode": "import"}', false, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000015-0000-0000-0000-000000000015', 'c0000001-0000-0000-0000-000000000001', 'Custom Scores Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": true, "useCustomScores": true, "additionalScores": [{"key": "exercisescore", "name": "Exercise Score"}]}', false, 'a1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', 'Interview', '{}', false, 'b1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Matching', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
 INSERT INTO public.course_phase VALUES ('d0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');

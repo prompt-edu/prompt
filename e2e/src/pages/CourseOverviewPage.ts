@@ -33,6 +33,10 @@ export class CourseOverviewPage {
     await expect(this.phaseItem(name)).toBeVisible()
   }
 
+  async openPhase(name: string) {
+    await this.phaseItem(name).click()
+  }
+
   // The phase sidebars are Module Federation remotes behind React.lazy, so an
   // "entry is absent" assertion has to outlive their loading: a pending remote
   // renders a disabled "Loading..." placeholder, and any rendered menu item

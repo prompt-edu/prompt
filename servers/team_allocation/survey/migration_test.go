@@ -1,4 +1,4 @@
-package timeframe
+package survey
 
 import (
 	"context"
@@ -10,21 +10,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
-const timeframeTimestamptzMigration = "0003_timeframe_timestamptz.up.sql"
+const surveyTimestamptzMigration = "0010_survey_timeframe_timestamptz.up.sql"
 
-type TimeframeMigrationTestSuite struct {
+type SurveyMigrationTestSuite struct {
 	suite.Suite
 	ctx     context.Context
 	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 }
 
-func (suite *TimeframeMigrationTestSuite) SetupSuite() {
+func (suite *SurveyMigrationTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../db/migration/0001_schema.up.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(suite.T(), err)
@@ -33,13 +33,13 @@ func (suite *TimeframeMigrationTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 }
 
-func (suite *TimeframeMigrationTestSuite) TearDownSuite() {
+func (suite *SurveyMigrationTestSuite) TearDownSuite() {
 	if suite.cleanup != nil {
 		suite.cleanup()
 	}
 }
 
-func (suite *TimeframeMigrationTestSuite) TestTimestamptzMigrationKeepsStoredInstants() {
+func (suite *SurveyMigrationTestSuite) TestTimestamptzMigrationKeepsStoredInstants() {
 	t := suite.T()
 
 	conn, err := suite.testDB.Conn.Acquire(suite.ctx)
@@ -49,37 +49,37 @@ func (suite *TimeframeMigrationTestSuite) TestTimestamptzMigrationKeepsStoredIns
 	_, err = conn.Exec(suite.ctx, "SET TIME ZONE 'Europe/Berlin'")
 	require.NoError(t, err)
 
-	for _, path := range migrationsBetweenSchemaAnd(t, timeframeTimestamptzMigration) {
+	for _, path := range migrationsBetweenSchemaAnd(t, surveyTimestamptzMigration) {
 		applyMigration(t, suite.ctx, conn, path)
 	}
 
 	coursePhaseID := uuid.New()
 	_, err = conn.Exec(suite.ctx,
-		"INSERT INTO timeframe (course_phase_id, starttime, endtime) VALUES ($1, '2026-01-15 12:34:56.123456', '2026-06-15 12:34:56.123456')",
+		"INSERT INTO survey_timeframe (course_phase_id, survey_start, survey_deadline) VALUES ($1, '2026-01-15 12:34:56.123456', '2026-06-15 12:34:56.123456')",
 		coursePhaseID)
 	require.NoError(t, err)
 
-	applyMigration(t, suite.ctx, conn, filepath.Join("../db/migration", timeframeTimestamptzMigration))
+	applyMigration(t, suite.ctx, conn, filepath.Join("../db/migration", surveyTimestamptzMigration))
 
-	var startType, endType string
+	var startType, deadlineType string
 	err = conn.QueryRow(suite.ctx,
 		`SELECT
-			(SELECT data_type FROM information_schema.columns WHERE table_name = 'timeframe' AND column_name = 'starttime'),
-			(SELECT data_type FROM information_schema.columns WHERE table_name = 'timeframe' AND column_name = 'endtime')`).
-		Scan(&startType, &endType)
+			(SELECT data_type FROM information_schema.columns WHERE table_name = 'survey_timeframe' AND column_name = 'survey_start'),
+			(SELECT data_type FROM information_schema.columns WHERE table_name = 'survey_timeframe' AND column_name = 'survey_deadline')`).
+		Scan(&startType, &deadlineType)
 	require.NoError(t, err)
 	require.Equal(t, "timestamp with time zone", startType)
-	require.Equal(t, "timestamp with time zone", endType)
+	require.Equal(t, "timestamp with time zone", deadlineType)
 
-	var startMatches, endMatches bool
+	var startMatches, deadlineMatches bool
 	err = conn.QueryRow(suite.ctx,
-		`SELECT starttime = TIMESTAMPTZ '2026-01-15 12:34:56.123456+00',
-		        endtime = TIMESTAMPTZ '2026-06-15 12:34:56.123456+00'
-		 FROM timeframe WHERE course_phase_id = $1`, coursePhaseID).
-		Scan(&startMatches, &endMatches)
+		`SELECT survey_start = TIMESTAMPTZ '2026-01-15 12:34:56.123456+00',
+		        survey_deadline = TIMESTAMPTZ '2026-06-15 12:34:56.123456+00'
+		 FROM survey_timeframe WHERE course_phase_id = $1`, coursePhaseID).
+		Scan(&startMatches, &deadlineMatches)
 	require.NoError(t, err)
 	require.True(t, startMatches)
-	require.True(t, endMatches)
+	require.True(t, deadlineMatches)
 }
 
 // The initial schema is applied by the suite's test database setup.
@@ -111,6 +111,6 @@ func applyMigration(t *testing.T, ctx context.Context, conn *pgxpool.Conn, path 
 	require.NoError(t, err)
 }
 
-func TestTimeframeMigrationTestSuite(t *testing.T) {
-	suite.Run(t, new(TimeframeMigrationTestSuite))
+func TestSurveyMigrationTestSuite(t *testing.T) {
+	suite.Run(t, new(SurveyMigrationTestSuite))
 }

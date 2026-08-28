@@ -34,7 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: yarn install
       - name: Type check ${{ matrix.module }}
         run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
       - name: Lint components in ${{ matrix.module }}
@@ -50,7 +49,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: yarn install
       - name: Run client unit tests
         run: yarn test --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=TestResults-clients.xml
       - name: Upload client test results

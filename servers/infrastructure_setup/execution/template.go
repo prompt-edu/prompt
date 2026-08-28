@@ -113,3 +113,37 @@ func ParseExtraConfig(raw json.RawMessage) (map[string]interface{}, error) {
 	}
 	return m, nil
 }
+
+// ResolveTemplatedExtraConfig resolves placeholders in the extra-config values a
+// provider declares as templates, leaving every other value literal so an ordinary
+// provider setting can still contain braces.
+func ResolveTemplatedExtraConfig(extra map[string]interface{}, keys []string, data TemplateData) (map[string]interface{}, error) {
+	if len(extra) == 0 || len(keys) == 0 {
+		return extra, nil
+	}
+
+	resolved := make(map[string]interface{}, len(extra))
+	for key, value := range extra {
+		resolved[key] = value
+	}
+
+	for _, key := range keys {
+		raw, ok := resolved[key]
+		if !ok {
+			continue
+		}
+		text, isString := raw.(string)
+		if !isString {
+			return nil, fmt.Errorf("extra config %q must be a string", key)
+		}
+		if strings.TrimSpace(text) == "" {
+			continue
+		}
+		value, err := ResolveName(text, data)
+		if err != nil {
+			return nil, fmt.Errorf("extra config %q: %w", key, err)
+		}
+		resolved[key] = value
+	}
+	return resolved, nil
+}

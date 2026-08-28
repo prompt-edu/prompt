@@ -49,6 +49,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 
 func (p *Provider) SupportedResourceTypes() []string { return []string{"collection"} }
 
+func (p *Provider) TemplatedExtraConfigKeys() []string { return []string{"group_name_template"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK   bool `json:"ok"`
@@ -247,7 +249,7 @@ func (p *Provider) call(ctx context.Context, method string, params map[string]in
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("outline %s: HTTP %d: %s", method, resp.StatusCode, body)
+		return provider.HTTPError("outline", http.MethodPost, method, resp.StatusCode, body)
 	}
 
 	return json.Unmarshal(body, result)

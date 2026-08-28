@@ -26,6 +26,7 @@ func (f *fakeProvider) GetType() string                           { return "gitl
 func (f *fakeProvider) GetAuthFields() []provider.AuthField       { return nil }
 func (f *fakeProvider) SupportedResourceTypes() []string          { return []string{"group"} }
 func (f *fakeProvider) ValidateCredentials(context.Context) error { return nil }
+func (f *fakeProvider) TemplatedExtraConfigKeys() []string        { return nil }
 
 func (f *fakeProvider) CreateResource(_ context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	call := f.calls.Add(1)

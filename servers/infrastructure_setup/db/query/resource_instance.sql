@@ -50,6 +50,13 @@ WHERE id = $1;
 DELETE FROM resource_instance
 WHERE id = $1 AND course_phase_id = $2;
 
+-- name: CountLiveInstancesForConfig :one
+-- Counts the instances of one config that still describe a live external resource.
+-- A failed instance never created anything, so it does not pin the config's identity.
+SELECT COUNT(*)
+FROM resource_instance
+WHERE resource_config_id = $1 AND status != 'failed';
+
 -- name: CountNonTerminalInstances :one
 SELECT COUNT(*)
 FROM resource_instance

@@ -221,13 +221,19 @@ func (w *Worker) processInstance(
 	if err != nil {
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("parse extra config: %v", err))
 	}
+	extraConfig, err = ResolveTemplatedExtraConfig(extraConfig, prov.TemplatedExtraConfigKeys(), target.TemplateData)
+	if err != nil {
+		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve extra config: %v", err))
+	}
 
 	input := provider.CreateResourceInput{
-		Name:              resolvedName,
-		ResourceType:      config.ResourceType,
-		Members:           target.Members,
-		PermissionMapping: permissionMap,
-		ExtraConfig:       extraConfig,
+		Name:               resolvedName,
+		ResourceType:       config.ResourceType,
+		Members:            target.Members,
+		PermissionMapping:  permissionMap,
+		ExtraConfig:        extraConfig,
+		StableKey:          StableKey(inst),
+		ExistingExternalID: stringValue(inst.ExternalID),
 	}
 
 	resource, err := w.createWithRetry(ctx, prov, input, inst.ID)
@@ -285,4 +291,25 @@ func (w *Worker) failInstance(ctx context.Context, id uuid.UUID, msg string) err
 		ID:           id,
 		ErrorMessage: &msg,
 	})
+}
+
+// StableKey identifies a (resource config, target) pair independently of any display
+// name or name template, so a provider can pair an external object with PROMPT and
+// prove ownership before adopting a resource by name.
+func StableKey(inst db.ResourceInstance) string {
+	target := "unknown"
+	switch {
+	case inst.TeamID != nil:
+		target = inst.TeamID.String()
+	case inst.CourseParticipationID != nil:
+		target = inst.CourseParticipationID.String()
+	}
+	return fmt.Sprintf("prompt:%s:%s:%s", inst.CoursePhaseID, inst.ResourceConfigID, target)
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }

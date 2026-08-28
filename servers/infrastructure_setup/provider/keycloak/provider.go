@@ -67,6 +67,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 
 func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
 
+func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	token, err := p.getAccessToken(ctx)
 	if err != nil {
@@ -94,7 +96,7 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 		return nil
 	}
 	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("keycloak validate: HTTP %d: %s", resp.StatusCode, body)
+	return provider.HTTPError("keycloak", http.MethodGet, "validate realm", resp.StatusCode, body)
 }
 
 // CreateResource creates a Keycloak group and adds members.
@@ -175,7 +177,7 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (s
 
 	if resp.StatusCode != http.StatusCreated {
 		respBody, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("keycloak create group: HTTP %d: %s", resp.StatusCode, respBody)
+		return "", provider.HTTPError("keycloak", http.MethodPost, createPath, resp.StatusCode, respBody)
 	}
 
 	// Keycloak returns the group location in the Location header.
@@ -249,7 +251,7 @@ func (p *Provider) addMemberToGroup(ctx context.Context, token, userID, groupID 
 		return nil
 	}
 	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("keycloak add user to group: HTTP %d: %s", resp.StatusCode, body)
+	return provider.HTTPError("keycloak", http.MethodPut, "add user to group", resp.StatusCode, body)
 }
 
 // lookupUserByEmail finds a Keycloak user by email address.
@@ -308,7 +310,7 @@ func (p *Provider) getAccessToken(ctx context.Context) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("keycloak token request failed: HTTP %d: %s", resp.StatusCode, body)
+		return "", provider.HTTPError("keycloak", http.MethodPost, "token", resp.StatusCode, body)
 	}
 
 	var tokenResp struct {
@@ -345,7 +347,7 @@ func (p *Provider) get(ctx context.Context, token, path string) ([]byte, error) 
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("keycloak GET %s: HTTP %d: %s", path, resp.StatusCode, body)
+		return nil, provider.HTTPError("keycloak", http.MethodGet, path, resp.StatusCode, body)
 	}
 	return body, nil
 }

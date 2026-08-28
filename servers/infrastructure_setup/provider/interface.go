@@ -31,7 +31,17 @@ type CreateResourceInput struct {
 	// permission level (e.g. "developer" for GitLab, "member" for Slack).
 	PermissionMapping map[string]string
 	// ExtraConfig holds provider-specific configuration (e.g. Rancher's roleTemplateId).
+	// Only the keys a provider declares through TemplatedExtraConfigKeys have their
+	// placeholders resolved; every other value reaches the provider verbatim.
 	ExtraConfig map[string]interface{}
+	// StableKey identifies this (resource config, target) pair independently of any
+	// display name or name template. Providers use it to pair an external object with
+	// PROMPT and to prove ownership before adopting a resource by name.
+	StableKey string
+	// ExistingExternalID is the ID already recorded for this instance, set when a
+	// partial or failed instance is retried. When present a provider must re-attach by
+	// ID rather than looking the resource up by name.
+	ExistingExternalID string
 }
 
 // AuthField describes a single credential field required by a provider.
@@ -53,6 +63,10 @@ type Provider interface {
 	ValidateCredentials(ctx context.Context) error
 	// SupportedResourceTypes returns the resource kinds this provider can create.
 	SupportedResourceTypes() []string
+	// TemplatedExtraConfigKeys returns the extra-config keys whose values are name
+	// templates. Only these have their placeholders resolved and validated; every other
+	// extra-config value stays literal, so a provider setting can still contain braces.
+	TemplatedExtraConfigKeys() []string
 	// CreateResource creates the external resource and returns its ID and URL.
 	// Implementations must be idempotent: if the resource already exists, return it.
 	// A member that cannot be granted access is reported through Resource.Warnings,

@@ -47,6 +47,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 
 func (p *Provider) SupportedResourceTypes() []string { return []string{"channel"} }
 
+func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK    bool   `json:"ok"`
@@ -251,7 +253,7 @@ func (p *Provider) callAPI(ctx context.Context, method string, params map[string
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("slack %s: HTTP %d: %s", method, resp.StatusCode, body)
+		return provider.HTTPError("slack", http.MethodPost, method, resp.StatusCode, body)
 	}
 
 	return json.Unmarshal(body, result)

@@ -51,6 +51,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 
 func (p *Provider) SupportedResourceTypes() []string { return []string{"project"} }
 
+func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	_, err := p.get(ctx, "/v3")
 	return err
@@ -221,7 +223,7 @@ func (p *Provider) get(ctx context.Context, path string) ([]byte, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("rancher GET %s: HTTP %d: %s", path, resp.StatusCode, body)
+		return nil, provider.HTTPError("rancher", http.MethodGet, path, resp.StatusCode, body)
 	}
 	return body, nil
 }
@@ -252,7 +254,7 @@ func (p *Provider) post(ctx context.Context, path string, payload interface{}) (
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("rancher POST %s: HTTP %d: %s", path, resp.StatusCode, body)
+		return nil, provider.HTTPError("rancher", http.MethodPost, path, resp.StatusCode, body)
 	}
 	return body, nil
 }

@@ -55,6 +55,8 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 
 func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
 
+func (p *Provider) TemplatedExtraConfigKeys() []string { return []string{"parent_group_template"} }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	if _, _, err := p.parentGroupID(); err != nil {
 		return err
@@ -278,7 +280,7 @@ func (p *Provider) get(ctx context.Context, path string) ([]byte, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("gitlab GET %s: HTTP %d: %s", path, resp.StatusCode, body)
+		return nil, provider.HTTPError("gitlab", http.MethodGet, path, resp.StatusCode, body)
 	}
 	return body, nil
 }
@@ -309,7 +311,7 @@ func (p *Provider) post(ctx context.Context, path string, payload interface{}) (
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("gitlab POST %s: HTTP %d: %s", path, resp.StatusCode, body)
+		return nil, provider.HTTPError("gitlab", http.MethodPost, path, resp.StatusCode, body)
 	}
 	return body, nil
 }

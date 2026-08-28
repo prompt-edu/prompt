@@ -64,6 +64,16 @@ func SupportedResourceTypes(providerType string) ([]string, error) {
 	return descriptor.SupportedResourceTypes(), nil
 }
 
+// TemplatedExtraConfigKeys returns the extra-config keys a provider treats as name
+// templates, so they can be validated before they are stored.
+func TemplatedExtraConfigKeys(providerType string) ([]string, error) {
+	descriptor, err := descriptorFor(providerType)
+	if err != nil {
+		return nil, err
+	}
+	return descriptor.TemplatedExtraConfigKeys(), nil
+}
+
 // UpsertProviderConfig encrypts and stores the provider credentials.
 func (s *Service) UpsertProviderConfig(ctx context.Context, coursePhaseID uuid.UUID, req providerconfigDTO.UpsertRequest) (providerconfigDTO.ProviderConfigResponse, error) {
 	if err := validateUpsertRequest(req); err != nil {

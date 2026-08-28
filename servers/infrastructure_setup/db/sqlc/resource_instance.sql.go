@@ -57,6 +57,21 @@ func (q *Queries) ClaimPendingInstances(ctx context.Context, coursePhaseID uuid.
 	return items, nil
 }
 
+const countLiveInstancesForConfig = `-- name: CountLiveInstancesForConfig :one
+SELECT COUNT(*)
+FROM resource_instance
+WHERE resource_config_id = $1 AND status != 'failed'
+`
+
+// Counts the instances of one config that still describe a live external resource.
+// A failed instance never created anything, so it does not pin the config's identity.
+func (q *Queries) CountLiveInstancesForConfig(ctx context.Context, resourceConfigID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countLiveInstancesForConfig, resourceConfigID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countNonTerminalInstances = `-- name: CountNonTerminalInstances :one
 SELECT COUNT(*)
 FROM resource_instance

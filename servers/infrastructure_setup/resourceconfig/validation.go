@@ -48,7 +48,10 @@ func validateCreateResourceConfig(req resourceconfigDTO.CreateRequest) error {
 	if err := validateScope(req.Scope); err != nil {
 		return err
 	}
-	return validateNameTemplate(req.NameTemplate)
+	if err := validateNameTemplate(req.NameTemplate); err != nil {
+		return err
+	}
+	return validateTemplatedExtraConfig(req.ProviderType, req.ResourceExtraConfig)
 }
 
 // validateUpdateResourceConfig checks the update request beyond the Gin binding tags.
@@ -63,7 +66,40 @@ func validateUpdateResourceConfig(providerType string, req resourceconfigDTO.Upd
 	if err := validateScope(req.Scope); err != nil {
 		return err
 	}
-	return validateNameTemplate(req.NameTemplate)
+	if err := validateNameTemplate(req.NameTemplate); err != nil {
+		return err
+	}
+	return validateTemplatedExtraConfig(providerType, req.ResourceExtraConfig)
+}
+
+// validateTemplatedExtraConfig applies the name-template rules to the extra-config keys
+// the provider declares as templates, so an unresolvable placeholder is rejected here
+// rather than reaching a real resource name during a run.
+func validateTemplatedExtraConfig(providerType string, extra map[string]interface{}) error {
+	if len(extra) == 0 {
+		return nil
+	}
+	keys, err := providerconfig.TemplatedExtraConfigKeys(providerType)
+	if err != nil {
+		return logAndReturnError(err.Error())
+	}
+	for _, key := range keys {
+		raw, ok := extra[key]
+		if !ok {
+			continue
+		}
+		text, isString := raw.(string)
+		if !isString {
+			return logAndReturnError(fmt.Sprintf("extra config %q must be a string", key))
+		}
+		if strings.TrimSpace(text) == "" {
+			continue
+		}
+		if err := validateTemplate(key, text); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func validateScope(scope string) error {
@@ -79,19 +115,22 @@ func validateScope(scope string) error {
 // An unknown placeholder would otherwise only surface as a failed instance once
 // provisioning runs.
 func validateNameTemplate(nameTemplate string) error {
-	trimmed := strings.TrimSpace(nameTemplate)
-	if trimmed == "" {
+	if strings.TrimSpace(nameTemplate) == "" {
 		return logAndReturnError("nameTemplate is required")
 	}
-	if len(nameTemplate) > maxNameTemplateLength {
-		return logAndReturnError("nameTemplate is too long")
+	return validateTemplate("nameTemplate", nameTemplate)
+}
+
+func validateTemplate(field, template string) error {
+	if len(template) > maxNameTemplateLength {
+		return logAndReturnError(field + " is too long")
 	}
-	if strings.Count(nameTemplate, "{{") != strings.Count(nameTemplate, "}}") {
-		return logAndReturnError("invalid nameTemplate: unbalanced {{ }} delimiters")
+	if strings.Count(template, "{{") != strings.Count(template, "}}") {
+		return logAndReturnError("invalid " + field + ": unbalanced {{ }} delimiters")
 	}
-	if _, err := execution.ResolveName(nameTemplate, execution.TemplateData{}); err != nil {
-		return logAndReturnError(fmt.Sprintf("%v (supported: %s)",
-			err, strings.Join(execution.SupportedPlaceholders(), ", ")))
+	if _, err := execution.ResolveName(template, execution.TemplateData{}); err != nil {
+		return logAndReturnError(fmt.Sprintf("invalid %s: %v (supported: %s)",
+			field, err, strings.Join(execution.SupportedPlaceholders(), ", ")))
 	}
 	return nil
 }

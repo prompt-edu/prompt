@@ -116,6 +116,9 @@ func (s *Service) UpdateResourceConfig(ctx context.Context, coursePhaseID, id uu
 	if err := s.assertProviderConfigured(ctx, coursePhaseID, existing.ProviderType); err != nil {
 		return resourceconfigDTO.ResourceConfigResponse{}, err
 	}
+	if err := s.assertNoLiveInstances(ctx, id); err != nil {
+		return resourceconfigDTO.ResourceConfigResponse{}, err
+	}
 
 	permJSON, err := json.Marshal(req.PermissionMapping)
 	if err != nil {
@@ -139,6 +142,25 @@ func (s *Service) UpdateResourceConfig(ctx context.Context, coursePhaseID, id uu
 		return resourceconfigDTO.ResourceConfigResponse{}, err
 	}
 	return resourceconfigDTO.GetResourceConfigDTOFromDBModel(rc), nil
+}
+
+// assertNoLiveInstances refuses to edit a config that has already provisioned something.
+//
+// A non-failed instance blocks a second instance for the same target, so an edited
+// config would never re-provision: the row would describe one resource while a
+// differently named one existed externally, with no way to tell from the UI. Changing
+// the permission mapping is refused for the same reason, since it would not reach the
+// memberships already granted.
+func (s *Service) assertNoLiveInstances(ctx context.Context, resourceConfigID uuid.UUID) error {
+	live, err := s.queries.CountLiveInstancesForConfig(ctx, resourceConfigID)
+	if err != nil {
+		return err
+	}
+	if live > 0 {
+		return fmt.Errorf("%w: this configuration has %d provisioned instance(s); delete them before editing it",
+			ErrValidation, live)
+	}
+	return nil
 }
 
 // DeleteResourceConfig removes a resource configuration.

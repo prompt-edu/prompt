@@ -28,11 +28,7 @@ func (s *ConfigServiceTestSuite) SetupSuite() {
 		s.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	s.cleanup = cleanup
-	s.configService = &ConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	ConfigServiceSingleton = s.configService
+	s.configService = NewConfigService(*testDB.Queries)
 }
 
 func (s *ConfigServiceTestSuite) TearDownSuite() {
@@ -44,7 +40,7 @@ func (s *ConfigServiceTestSuite) TearDownSuite() {
 func (s *ConfigServiceTestSuite) TestGetCoursePhaseConfig_Existing() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	cfg, err := GetCoursePhaseConfig(s.suiteCtx, coursePhaseID)
+	cfg, err := s.configService.GetCoursePhaseConfig(s.suiteCtx, coursePhaseID)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), coursePhaseID, cfg.CoursePhaseID)
 	assert.True(s.T(), cfg.HasTemplate)
@@ -55,7 +51,7 @@ func (s *ConfigServiceTestSuite) TestGetCoursePhaseConfig_Existing() {
 func (s *ConfigServiceTestSuite) TestGetCoursePhaseConfig_ExistingWithoutTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
 
-	cfg, err := GetCoursePhaseConfig(s.suiteCtx, coursePhaseID)
+	cfg, err := s.configService.GetCoursePhaseConfig(s.suiteCtx, coursePhaseID)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), coursePhaseID, cfg.CoursePhaseID)
 	assert.False(s.T(), cfg.HasTemplate)
@@ -65,7 +61,7 @@ func (s *ConfigServiceTestSuite) TestGetCoursePhaseConfig_ExistingWithoutTemplat
 func (s *ConfigServiceTestSuite) TestGetCoursePhaseConfig_AutoCreate() {
 	newID := uuid.New()
 
-	cfg, err := GetCoursePhaseConfig(s.suiteCtx, newID)
+	cfg, err := s.configService.GetCoursePhaseConfig(s.suiteCtx, newID)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), newID, cfg.CoursePhaseID)
 	assert.False(s.T(), cfg.HasTemplate)
@@ -76,7 +72,7 @@ func (s *ConfigServiceTestSuite) TestUpdateCoursePhaseConfig() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
 	template := "= Updated Template\nHello World"
 
-	cfg, err := UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, template, "Test User")
+	cfg, err := s.configService.UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, template, "Test User")
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), coursePhaseID, cfg.CoursePhaseID)
 	assert.True(s.T(), cfg.HasTemplate)
@@ -90,7 +86,7 @@ func (s *ConfigServiceTestSuite) TestUpdateCoursePhaseConfig_Upsert() {
 	newID := uuid.New()
 	template := "= New Template"
 
-	cfg, err := UpdateCoursePhaseConfig(s.suiteCtx, newID, template, "Another User")
+	cfg, err := s.configService.UpdateCoursePhaseConfig(s.suiteCtx, newID, template, "Another User")
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), newID, cfg.CoursePhaseID)
 	assert.True(s.T(), cfg.HasTemplate)
@@ -100,7 +96,7 @@ func (s *ConfigServiceTestSuite) TestUpdateCoursePhaseConfig_Upsert() {
 func (s *ConfigServiceTestSuite) TestGetTemplateContent_WithTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	content, err := GetTemplateContent(s.suiteCtx, coursePhaseID)
+	content, err := s.configService.GetTemplateContent(s.suiteCtx, coursePhaseID)
 	assert.NoError(s.T(), err)
 	assert.NotEmpty(s.T(), content)
 	assert.Contains(s.T(), content, "Certificate of Completion")
@@ -112,7 +108,7 @@ func (s *ConfigServiceTestSuite) TestGetTemplateContent_WithoutTemplate() {
 	_, err := s.configService.queries.CreateCoursePhaseConfig(s.suiteCtx, resetID)
 	assert.NoError(s.T(), err)
 
-	content, err := GetTemplateContent(s.suiteCtx, resetID)
+	content, err := s.configService.GetTemplateContent(s.suiteCtx, resetID)
 	assert.Error(s.T(), err)
 	assert.Empty(s.T(), content)
 	assert.Contains(s.T(), err.Error(), "no template configured")
@@ -121,7 +117,7 @@ func (s *ConfigServiceTestSuite) TestGetTemplateContent_WithoutTemplate() {
 func (s *ConfigServiceTestSuite) TestGetTemplateContent_NonExistent() {
 	nonExistentID := uuid.New()
 
-	content, err := GetTemplateContent(s.suiteCtx, nonExistentID)
+	content, err := s.configService.GetTemplateContent(s.suiteCtx, nonExistentID)
 	assert.Error(s.T(), err)
 	assert.Empty(s.T(), content)
 }

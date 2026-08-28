@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,17 +22,13 @@ type ParticipantsService struct {
 	coreURL    string
 }
 
-var ErrServiceNotInitialized = errors.New("participants service not initialized")
-
-var ParticipantsServiceSingleton *ParticipantsService
-
-func NewParticipantsService(queries db.Queries) *ParticipantsService {
+func NewParticipantsService(queries db.Queries, coreURL string) *ParticipantsService {
 	return &ParticipantsService{
 		queries: queries,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		coreURL: sdkUtils.GetCoreUrl(),
+		coreURL: coreURL,
 	}
 }
 
@@ -54,12 +49,7 @@ func (s *ParticipantsService) makeAuthenticatedRequest(ctx context.Context, meth
 	return resp, nil
 }
 
-func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]ParticipantWithDownloadStatus, error) {
-	s := ParticipantsServiceSingleton
-	if s == nil {
-		return nil, ErrServiceNotInitialized
-	}
-
+func (s *ParticipantsService) GetParticipationsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]ParticipantWithDownloadStatus, error) {
 	url := fmt.Sprintf("%s/api/course_phases/%s/participations", s.coreURL, coursePhaseID.String())
 	log.WithField("url", url).Debug("Fetching participations from core service")
 
@@ -126,12 +116,7 @@ func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, cou
 	return result, nil
 }
 
-func GetCoursePhaseWithCourse(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*CoursePhaseWithCourse, error) {
-	s := ParticipantsServiceSingleton
-	if s == nil {
-		return nil, ErrServiceNotInitialized
-	}
-
+func (s *ParticipantsService) GetCoursePhaseWithCourse(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*CoursePhaseWithCourse, error) {
 	url := fmt.Sprintf("%s/api/course_phases/%s", s.coreURL, coursePhaseID.String())
 	log.WithField("url", url).Debug("Fetching course phase info from core service")
 
@@ -160,12 +145,7 @@ func GetCoursePhaseWithCourse(ctx context.Context, authHeader string, coursePhas
 	return &coursePhase, nil
 }
 
-func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (*promptTypes.Student, error) {
-	s := ParticipantsServiceSingleton
-	if s == nil {
-		return nil, ErrServiceNotInitialized
-	}
-
+func (s *ParticipantsService) GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (*promptTypes.Student, error) {
 	// Use the /participations/students endpoint which returns students by their core student ID
 	url := fmt.Sprintf("%s/api/course_phases/%s/participations/students", s.coreURL, coursePhaseID.String())
 	log.WithField("url", url).Debug("Fetching students from core service")
@@ -204,12 +184,7 @@ func GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, stude
 // GetOwnStudentInfo fetches the current student's info from the core's /self endpoint.
 // This returns the core student ID (not the Keycloak UUID), which is needed for
 // correctly recording certificate downloads.
-func GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*promptTypes.Student, error) {
-	s := ParticipantsServiceSingleton
-	if s == nil {
-		return nil, ErrServiceNotInitialized
-	}
-
+func (s *ParticipantsService) GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*promptTypes.Student, error) {
 	url := fmt.Sprintf("%s/api/course_phases/%s/participations/self", s.coreURL, coursePhaseID.String())
 	log.WithField("url", url).Debug("Fetching own student info from core service")
 
@@ -244,11 +219,7 @@ func GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uui
 // 2. The student's team allocation UUID from participation resolutions
 // Then matches them to return the team name.
 // Returns empty string (no error) if no team is allocated.
-func GetStudentTeamName(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (string, error) {
-	s := ParticipantsServiceSingleton
-	if s == nil {
-		return "", ErrServiceNotInitialized
-	}
+func (s *ParticipantsService) GetStudentTeamName(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (string, error) {
 	coreURL := s.coreURL
 
 	// Fetch teams from course phase data resolutions

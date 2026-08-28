@@ -6,7 +6,7 @@ import packageJson from '../package.json' with { type: 'json' }
 const { ModuleFederationPlugin } = rspack.container
 
 const COMPONENT_NAME = 'infrastructure_setup_component'
-const COMPONENT_DEV_PORT = 3011
+const COMPONENT_DEV_PORT = 3012
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

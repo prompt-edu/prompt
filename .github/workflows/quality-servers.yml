@@ -17,6 +17,7 @@ jobs:
           - core
           - infrastructure_setup
           - interview
+          - presentation
           - self_team_allocation
           - team_allocation
           - example_server

@@ -1,16 +1,16 @@
-.PHONY: help server servers client-core client-certificate client-assessment \
+.PHONY: help server servers client-core client-certificate client-presentation client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate server-infrastructure-setup \
+	server-certificate server-presentation server-infrastructure-setup \
 	lint lint-clients lint-servers \
-	test test-core test-assessment test-interview \
+	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate test-infrastructure-setup \
+	test-certificate test-presentation test-infrastructure-setup \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate sqlc-infrastructure-setup \
+	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seaweed seaweed-down deps deps-down
 
@@ -42,6 +42,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-self-team-allocation &
 	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
+	@$(MAKE) server-presentation &
 	@$(MAKE) server-infrastructure-setup &
 	@wait
 	@echo "All servers started."
@@ -67,6 +68,9 @@ server-example: ## Start example server (port 8086)
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
 
+server-presentation: ## Start presentation server (port 8089)
+	cd servers/presentation && go run main.go
+
 server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
 	cd servers/infrastructure_setup && go run main.go
 
@@ -78,6 +82,9 @@ client-core: ## Start only the core client
 
 client-certificate: ## Start only the certificate client
 	cd clients/certificate_component && yarn dev
+
+client-presentation: ## Start only the presentation client
+	cd clients/presentation_component && yarn dev
 
 client-assessment: ## Start only the assessment client
 	cd clients/assessment_component && yarn dev
@@ -121,11 +128,15 @@ lint-servers: ## Run go vet on all servers
 	cd servers/self_team_allocation && go vet ./...
 	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
+	cd servers/presentation && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-infrastructure-setup ## Run all server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup ## Run all client and server tests
+
+test-clients: ## Run all client unit tests
+	cd clients && yarn install && yarn test
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...
@@ -148,6 +159,9 @@ test-example: ## Run example server tests
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
 
+test-presentation: ## Run presentation server tests
+	cd servers/presentation && go test ./...
+
 test-infrastructure-setup: ## Run infrastructure setup server tests
 	cd servers/infrastructure_setup && go test ./...
 
@@ -163,7 +177,7 @@ E2E_ENV_KEYS := $(shell sed -nE 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' e2e/.env.e
 # nothing under clients/, servers/, or e2e/ changed since the last build.
 E2E_BUILD = $(if $(SKIP_BUILD),true,$(E2E_COMPOSE) build)
 
-test-e2e: ## Run the full e2e suite in Docker (SKIP_BUILD=1 reuses existing images)
+test-e2e: ## Whole suite in one container - CI-only, use test-e2e-shard SHARD=<name> locally
 	@mkdir -p e2e/playwright-report e2e/test-results e2e/blob-report
 	unset $(E2E_ENV_KEYS); \
 		$(E2E_BUILD); \
@@ -206,7 +220,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-infrastructure-setup ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -228,6 +242,9 @@ sqlc-example: ## Generate sqlc code for example server
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate
+
+sqlc-presentation: ## Generate sqlc code for presentation server
+	cd servers/presentation && sqlc generate
 
 sqlc-infrastructure-setup: ## Generate sqlc code for infrastructure setup server
 	cd servers/infrastructure_setup && sqlc generate

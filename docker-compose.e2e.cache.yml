@@ -57,6 +57,14 @@ services:
     build:
       cache_from:
         - type=gha,scope=e2e-client-certificate
+  server-presentation:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-server-presentation
+  client-presentation:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-client-presentation
   server-infrastructure-setup:
     build:
       cache_from:

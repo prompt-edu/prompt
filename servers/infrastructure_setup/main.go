@@ -27,7 +27,7 @@ var (
 	dbUser     = promptSDK.GetEnv("DB_USER", "prompt-postgres")
 	dbPassword = promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
 	dbHost     = promptSDK.GetEnv("DB_HOST_INFRASTRUCTURE_SETUP", "localhost")
-	dbPort     = promptSDK.GetEnv("DB_PORT_INFRASTRUCTURE_SETUP", "5440")
+	dbPort     = promptSDK.GetEnv("DB_PORT_INFRASTRUCTURE_SETUP", "5441")
 	dbName     = promptSDK.GetEnv("DB_NAME", "prompt")
 	sslMode    = promptSDK.GetEnv("SSL_MODE", "disable")
 	timeZone   = promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin")

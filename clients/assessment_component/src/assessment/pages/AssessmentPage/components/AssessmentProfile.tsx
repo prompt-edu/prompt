@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from '@tumaet/prompt-ui-components'
+import { Card, CardContent, CardHeader, getStudentName } from '@tumaet/prompt-ui-components'
 import { Book, Calendar, GraduationCap } from 'lucide-react'
 
 import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
@@ -22,7 +22,7 @@ export const AssessmentProfile = ({
       <CardHeader>
         <div className='flex flex-wrap items-center gap-2'>
           <h1 className='text-2xl font-bold w-full text-center sm:w-auto sm:text-left'>
-            {participant.student.firstName} {participant.student.lastName}
+            {getStudentName(participant.student)}
           </h1>
 
           <StudentAssessmentBadges

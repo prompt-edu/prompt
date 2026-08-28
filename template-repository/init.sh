@@ -79,7 +79,9 @@ find client -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' -o -name '
   -o -name '*.json' -o -name '*.html' -o -name 'Dockerfile' -o -name '*.conf' \) \
   -not -path '*/node_modules/*' -not -path '*/build/*' -print0 \
   | while IFS= read -r -d '' f; do rename_tokens "$f"; done
-perl -pi -e "s/COMPONENT_DEV_PORT = 3001/COMPONENT_DEV_PORT = ${CLIENT_PORT}/" client/rspack.config.mjs
+perl -pi -e "s/^(\s*)port: 3001,\$/\$1port: ${CLIENT_PORT},/" client/rspack.config.mjs
+grep -q "port: ${CLIENT_PORT}," client/rspack.config.mjs \
+  || die "dev port anchor not found in client/rspack.config.mjs (expected a 'port: 3001,' line)"
 
 # Server
 mv server/example "server/${NAME}"

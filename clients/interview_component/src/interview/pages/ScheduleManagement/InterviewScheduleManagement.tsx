@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  getStudentName,
   Input,
   Label,
   ManagementPageHeader,
@@ -787,7 +788,7 @@ export const InterviewScheduleManagement = () => {
                           <div className='flex flex-wrap gap-1'>
                             {slot.assignments.map((assignment) => {
                               const studentName = assignment.student
-                                ? `${assignment.student.firstName} ${assignment.student.lastName}`
+                                ? getStudentName(assignment.student)
                                 : assignment.courseParticipationId
                               return (
                                 <Badge
@@ -907,7 +908,7 @@ export const InterviewScheduleManagement = () => {
                         key={participation.courseParticipationID}
                         value={participation.courseParticipationID}
                       >
-                        {participation.student.firstName} {participation.student.lastName}
+                        {getStudentName(participation.student)}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -45,7 +45,7 @@ servers/infrastructure_setup/
 └── copy/                              # PhaseCopyHandler and the SDK config endpoint
 ```
 
-### Frontend: `clients/infrastructure_setup_component/` (React, TypeScript, port 3011)
+### Frontend: `clients/infrastructure_setup_component/` (React, TypeScript, port 3012)
 
 - **SetupConfigPage** — the phase's semester tag.
 - **ProvidersPage** — configure and validate credentials per provider. A provider without
@@ -291,7 +291,7 @@ Two routes are not phase-scoped:
 |---|---|---|
 | `ENCRYPTION_KEY` | Yes | Base64-encoded 32-byte AES key. Validated at startup. |
 | `DB_INFRASTRUCTURE_SETUP_HOST` / `DB_HOST_INFRASTRUCTURE_SETUP` | Yes | PostgreSQL host (the compose file maps the first onto the second) |
-| `DB_PORT_INFRASTRUCTURE_SETUP` | Yes | PostgreSQL port (5440 on the host in local dev) |
+| `DB_PORT_INFRASTRUCTURE_SETUP` | Yes | PostgreSQL port (5441 on the host in local dev) |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Yes | Database credentials |
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM_NAME` | Yes | Auth middleware configuration |
 | `CORE_HOST` | Yes | Client origin, used for CORS |
@@ -336,7 +336,7 @@ End-to-end coverage lives in `e2e/tests/infrastructure-setup/`.
 ## Infrastructure
 
 Compose (`docker-compose.yml`) adds `server-infrastructure-setup` (host port 8091),
-`client-infrastructure-setup` and `db-infrastructure-setup` (host port 5440). The server waits for
+`client-infrastructure-setup-component` and `db-infrastructure-setup` (host port 5441). The server waits for
 both its database and Keycloak to become healthy, since it performs OIDC discovery at startup.
 
 Core registers the phase in `servers/core/coursePhaseType/initializeTypes.go` as

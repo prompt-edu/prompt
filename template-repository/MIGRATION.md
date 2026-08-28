@@ -49,6 +49,13 @@ Then make the client standalone:
   the internal import paths (`servers/example_server/...` → `.../server/...`).
 - `client/`: remove `.yarnrc.yml` remnants of the workspace if present; run `yarn install` to
   produce a fresh `yarn.lock`; check `yarn typecheck && yarn build`.
+- Vendor the Module Federation scaffolding, which the monorepo shares between its remotes and
+  cannot be imported from outside it: copy `clients/shared/` to `client/shared/`, then shorten both
+  imports by one level. `../shared/rspack/createRspackConfig.mjs` becomes `./shared/...` in
+  `client/rspack.config.mjs`, and `../../shared/runtime/...` becomes `../shared/runtime/...` in
+  `client/src/bootstrap.tsx`. The `../../package.json` import inside
+  `shared/rspack/federatedDependencies.mjs` needs no change: it lands on `client/package.json`,
+  which is where the standalone client keeps its dependency versions.
 - `cd server && go build ./... && go test ./...`.
 
 ## 4. Validate the template flow

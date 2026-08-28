@@ -30,10 +30,11 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - certificate_component (port 3010)
-    - infrastructure_setup_component (port 3011)
+    - infrastructure_setup_component (port 3012)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
     - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
+  shared/                  # Module Federation scaffolding shared by the remotes (not a workspace)
 
 servers/
   core/                    # Main Go service (port 8080)
@@ -71,8 +72,11 @@ make db-down
 # Run linting
 make lint
 
-# Run tests
+# Run tests (client unit tests + every server suite)
 make test
+
+# Run only the client unit tests
+make test-clients
 
 # Regenerate sqlc code for every service (or make sqlc-<service>)
 make sqlc
@@ -139,9 +143,9 @@ phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
 
-Run `make lint` and `make test` before completing a change. Go tests use `testcontainers-go`;
-end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:
-`.claude/rules/common/testing.md`.
+Run `make lint` and `make test` before completing a change. Client unit tests run on Vitest from
+`clients/` (`make test-clients`); Go tests use `testcontainers-go`; end-to-end tests use Playwright
+and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md`.
 
 ## Definition of Done
 
@@ -154,12 +158,18 @@ end-to-end tests use Playwright and are documented in `e2e/README.md`. Details:
 
 **End-to-End Tests (core server + client):**
 
+Run **one shard at a time**, never the whole suite:
+
 ```bash
-make test-e2e          # full Dockerized stack + Playwright runner (CI-identical)
-make test-e2e-ui       # interactive Playwright UI in Docker (open http://127.0.0.1:8123)
-make test-e2e-down     # stop the stack and remove volumes
+make test-e2e-shard                    # list the available shards
+make test-e2e-shard SHARD=interview    # run one CI module shard
+make test-e2e-shard PATHS="tests/..."  # run a narrower slice
+make test-e2e-ui                       # interactive Playwright UI in Docker (open http://127.0.0.1:8123)
+make test-e2e-down                     # stop the stack and remove volumes
 ```
 
+- `make test-e2e` runs every spec in one container. Do not use it: CI splits the suite by
+  `e2e/shards.json` (one shard per microservice plus `core`) and never runs it whole either
 - Playwright suite lives in `e2e/`; see **`e2e/README.md`** for how to run it
   (including interactive UI mode) and how to add tests
 - Boots core server + client + Keycloak + Postgres + SeaweedFS via `docker-compose.e2e.yml`

@@ -21,6 +21,7 @@ Originally developed for the **iPraktikum** at the **Technical University of Mun
 PROMPT supports custom course phases as independently deployable modules:
 
 - 🗓 **Interview Phase** – Schedule and manage student interviews.
+- 🎤 **Presentation Phase** – Schedule presentations, collect materials, and provide structured multi-instructor feedback.
 - 🧑‍🤝‍🧑 **Team Phase** – Allocate students to projects and teams.
 - 📄 **TUM Matching Export** – Export data in TUM-compatible format.
 - 🧩 **Custom Phases** – Easily extend PROMPT with your own logic.
@@ -306,7 +307,7 @@ hooks for a single commit, use `git commit --no-verify`.
 | Service                          | Port |
 | -------------------------------- | ---- |
 | Core Client                      | 3000 |
-| Infrastructure Setup Client      | 3011 |
+| Infrastructure Setup Client      | 3012 |
 | Keycloak                         | 8081 |
 | Core Server                      | 8080 |
 | Interview Server                 | 8087 |
@@ -317,7 +318,7 @@ hooks for a single commit, use `git commit --no-verify`.
 | Certificate Server               | 8088 |
 | Infrastructure Setup Server      | 8091 |
 | PostgreSQL (core)                | 5432 |
-| PostgreSQL (infrastructure setup)| 5440 |
+| PostgreSQL (infrastructure setup)| 5441 |
 | SeaweedFS Master                 | 9333 |
 | SeaweedFS Volume                 | 8888 |
 | SeaweedFS S3 Gateway             | 8333 |

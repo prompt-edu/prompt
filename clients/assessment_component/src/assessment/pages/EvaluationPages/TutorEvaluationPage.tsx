@@ -1,4 +1,5 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { getStudentName } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -41,7 +42,7 @@ export const TutorEvaluationPage = () => {
 
   const tutor = teams.flatMap((team) => team.tutors).find((t) => t.id === courseParticipationID)
 
-  const tutorName = tutor ? `${tutor.firstName} ${tutor.lastName}` : undefined
+  const tutorName = tutor ? getStudentName(tutor) : undefined
 
   useEffect(() => {
     if (tutorName) {

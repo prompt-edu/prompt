@@ -282,6 +282,51 @@ services:
     networks:
       - prompt-network
 
+  server-presentation:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-presentation:${SERVER_PRESENTATION_IMAGE_TAG}"
+    container_name: prompt-server-presentation
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-presentation.rule=Host(`${CORE_HOST}`) && PathPrefix(`/presentation/api`)"
+      - "traefik.http.services.server-presentation.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-presentation.entrypoints=websecure"
+      - "traefik.http.routers.server-presentation.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.server-presentation.middlewares=api-ratelimit"
+    depends_on:
+      db-presentation:
+        condition: service_healthy
+      seaweedfs-s3:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - DB_HOST_PRESENTATION=db-presentation
+      - DB_PORT_PRESENTATION=5432
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - SENTRY_DSN_PRESENTATION
+      - SENTRY_ENABLED
+      - GITHUB_SHA
+      - S3_BUCKET
+      - S3_REGION
+      - S3_ENDPOINT
+      - S3_PUBLIC_ENDPOINT
+      - S3_ACCESS_KEY
+      - S3_SECRET_KEY
+      - S3_FORCE_PATH_STYLE
+      - S3_PRESIGN_UPLOAD_TTL_SECONDS
+      - S3_PRESIGN_DOWNLOAD_TTL_SECONDS
+      - MAX_FILE_UPLOAD_SIZE_MB
+      - PRESENTATION_ALLOWED_FILE_TYPES
+    networks:
+      - prompt-network
+
   server-infrastructure-setup:
     image: "ghcr.io/prompt-edu/prompt/prompt-server-infrastructure-setup:${SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG}"
     container_name: prompt-server-infrastructure-setup
@@ -316,7 +361,7 @@ services:
       - prompt-network
 
   db:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -336,7 +381,7 @@ services:
       - prompt-network
 
   db-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -356,7 +401,7 @@ services:
       - prompt-network
 
   db-self-team-allocation:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -376,7 +421,7 @@ services:
       - prompt-network
 
   db-interview:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-interview
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -396,7 +441,7 @@ services:
       - prompt-network
 
   db-assessment:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-assessment
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -416,7 +461,7 @@ services:
       - prompt-network
 
   db-certificate:
-    image: "postgres:15.18-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-certificate
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -435,8 +480,28 @@ services:
     networks:
       - prompt-network
 
+  db-presentation:
+    image: "postgres:15.19-alpine"
+    container_name: prompt-db-presentation
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_presentation_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5440:5432"
+    networks:
+      - prompt-network
+
   db-infrastructure-setup:
-    image: "postgres:15.17-alpine"
+    image: "postgres:15.19-alpine"
     container_name: prompt-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -451,7 +516,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "127.0.0.1:5440:5432"
+      - "127.0.0.1:5441:5432"
     networks:
       - prompt-network
 
@@ -597,6 +662,27 @@ services:
     networks:
       - prompt-network
 
+  client-presentation-component:
+    image: "ghcr.io/prompt-edu/prompt/prompt-clients-presentation-component:${PRESENTATION_IMAGE_TAG}"
+    container_name: prompt-client-presentation-component
+    environment:
+      - TZ=Europe/Berlin
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.presentation.rule=Host(`${CORE_HOST}`) && PathPrefix(`/presentation`)"
+      - "traefik.http.routers.presentation.entrypoints=websecure"
+      - "traefik.http.routers.presentation.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.presentation-strip-prefix.stripPrefix.prefixes=/presentation"
+      - "traefik.http.routers.presentation.middlewares=presentation-strip-prefix,presentation-compress"
+      - "traefik.http.middlewares.presentation-compress.compress=true"
+    expose:
+      - "80"
+    depends_on:
+      - server-core
+      - server-presentation
+    networks:
+      - prompt-network
+
   client-infrastructure-setup-component:
     image: "ghcr.io/prompt-edu/prompt/prompt-clients-infrastructure-setup-component:${INFRASTRUCTURE_SETUP_IMAGE_TAG}"
     container_name: prompt-client-infrastructure-setup-component
@@ -640,6 +726,7 @@ services:
       - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
+      - PRESENTATION_HOST
       - INFRASTRUCTURE_SETUP_HOST
     labels:
       - "traefik.enable=true"

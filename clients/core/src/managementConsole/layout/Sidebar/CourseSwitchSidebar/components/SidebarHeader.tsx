@@ -23,6 +23,7 @@ const SidebarHeaderComponent = () => {
           <SidebarMenuButton
             size='lg'
             asChild
+            data-testid='sidebar-home'
             className='min-w-12 min-h-12 p-0'
             tooltip={{
               children: 'Home',
@@ -43,7 +44,7 @@ const SidebarHeaderComponent = () => {
             >
               <div
                 className={`
-                  flex aspect-square items-center justify-center rounded-lg bg-sidebar-secondary text-sidebar-primary-foreground 
+                  flex aspect-square items-center justify-center rounded-lg bg-sidebar-secondary text-sidebar-primary-foreground
                   ${isActive ? 'size-12' : 'size-10'}
                   `}
               >

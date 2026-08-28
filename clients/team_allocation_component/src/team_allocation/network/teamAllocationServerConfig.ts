@@ -1,25 +1,5 @@
-import { env, parseURL } from '@tumaet/prompt-shared-state'
-import axios from 'axios'
+import { createAuthenticatedAxiosInstance, env } from '@tumaet/prompt-shared-state'
 
-const introCourseServer = env.TEAM_ALLOCATION_HOST || ''
+const teamAllocationAxiosInstance = createAuthenticatedAxiosInstance(env.TEAM_ALLOCATION_HOST)
 
-const serverBaseUrl = parseURL(introCourseServer)
-
-export interface Patch {
-  op: 'replace' | 'add' | 'remove' | 'copy'
-  path: string
-  value: string
-}
-
-const authenticatedAxiosInstance = axios.create({
-  baseURL: serverBaseUrl,
-})
-
-authenticatedAxiosInstance.interceptors.request.use((config) => {
-  if (localStorage.getItem('jwt_token') && localStorage.getItem('jwt_token') !== '') {
-    config.headers.Authorization = `Bearer ${localStorage.getItem('jwt_token') ?? ''}`
-  }
-  return config
-})
-
-export { authenticatedAxiosInstance as teamAllocationAxiosInstance }
+export { teamAllocationAxiosInstance }

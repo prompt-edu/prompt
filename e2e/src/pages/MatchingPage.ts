@@ -29,7 +29,7 @@ export class MatchingPage {
   }
 
   async expectMatchedStudent(matriculationNumber: string) {
-    await expect(this.page.getByText('Successfully Matched Students')).toBeVisible()
+    await expect(this.page.getByText('Successfully Matched Students', { exact: true })).toBeVisible()
     await expect(this.page.getByRole('cell', { name: matriculationNumber })).toBeVisible()
   }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/interview/copy"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interview_assignment "github.com/prompt-edu/prompt/servers/interview/interviewAssignment"
+	interview_review "github.com/prompt-edu/prompt/servers/interview/interviewReview"
 	interview_slot "github.com/prompt-edu/prompt/servers/interview/interviewSlot"
 	"github.com/prompt-edu/prompt/servers/interview/privacy"
 	log "github.com/sirupsen/logrus"
@@ -101,7 +102,7 @@ func main() {
 	), helloInterviewServer)
 
 	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query)
+	privacy.InitPrivacyModule(api, *query, conn)
 
 	config.InitConfigModule(coursePhaseApi, *query, conn)
 
@@ -122,6 +123,7 @@ func main() {
 
 	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
 	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
+	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

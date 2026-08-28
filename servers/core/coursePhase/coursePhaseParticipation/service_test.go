@@ -10,6 +10,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	log "github.com/sirupsen/logrus"
@@ -69,6 +70,32 @@ func (suite *CoursePhaseParticipationTestSuite) TestGetParticipationsWithPrevDat
 		assert.NotNil(suite.T(), participation.PrevData, "Expected prev data to be present")
 		assert.NotNil(suite.T(), participation.PrevData["score"], "Expected score to be present")
 	}
+}
+
+func (suite *CoursePhaseParticipationTestSuite) TestInterviewScoreIsResolvedNotInlined() {
+	matchingPhaseID := uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c")
+	interviewPhaseID := uuid.MustParse("2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1")
+
+	participationsWithResolution, err := GetAllParticipationsForCoursePhase(suite.ctx, matchingPhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Greater(suite.T(), len(participationsWithResolution.Participations), 0, "Expected participations for the matching phase")
+
+	// The interview service owns the score now, so core must not copy it out of the
+	// interview participation's restricted_data into the successor's prev data.
+	for _, participation := range participationsWithResolution.Participations {
+		assert.NotContains(suite.T(), participation.PrevData, "score", "Interview score must not be inlined into prev data")
+	}
+
+	var scoreResolution *resolutionDTO.Resolution
+	for i, res := range participationsWithResolution.Resolutions {
+		if res.DtoName == "score" && res.CoursePhaseID == interviewPhaseID {
+			scoreResolution = &participationsWithResolution.Resolutions[i]
+			break
+		}
+	}
+	assert.NotNil(suite.T(), scoreResolution, "Expected a REST resolution for the interview score")
+	assert.Equal(suite.T(), "/interview-review/score", scoreResolution.EndpointPath)
+	assert.Equal(suite.T(), "https://localhost:8080/interview/api", scoreResolution.BaseURL, "{CORE_HOST} must be replaced with the core host")
 }
 
 func (suite *CoursePhaseParticipationTestSuite) TestCreateCoursePhaseParticipation() {

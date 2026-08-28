@@ -41,7 +41,7 @@ Afterwards, complete the steps the generator prints:
 
 If the generator can't be used, follow the manual checklist in
 `docs/contributor/new_course_phase.md` (it mirrors what the script does). Key files:
-`rspack.config.mjs` (`COMPONENT_NAME`, `COMPONENT_DEV_PORT`), `clients/package.json` +
+`rspack.config.mjs` (`createRspackConfig({ name, port })`), `clients/package.json` +
 `clients/lerna.json` workspaces, `clients/core/rspack.config.mjs` remotes (cache-busting pattern
 — `module-federation-remote` skill), the three `PhaseMapping` files, and the `*-example`
 docker-compose blocks.

@@ -69,6 +69,13 @@
       ]
     },
     {
+      "name": "presentation",
+      "cacheWriter": false,
+      "paths": [
+        "/tests/presentation/.*\\.spec\\.ts$"
+      ]
+    },
+    {
       "name": "infrastructure-setup",
       "cacheWriter": false,
       "paths": [

@@ -121,8 +121,9 @@ export async function getAllocations(
   return (await res.json()) as ParticipationAllocation[]
 }
 
-// GET /allocation/:courseParticipationID returns the allocated team's UUID as a
-// bare JSON string (not an object), or 404 when the student has no allocation.
+// GET /allocation/:courseParticipationID returns the allocated team's UUID inside a
+// `teamAllocation` envelope, or 404 when the student has no allocation. The envelope is
+// required by the SDK's participation resolution, which looks the value up by DTO name.
 export async function getAllocatedTeamId(
   api: APIRequestContext,
   phaseId: string,
@@ -133,7 +134,8 @@ export async function getAllocatedTeamId(
   if (!res.ok()) {
     throw new Error(`GET allocation failed: ${res.status()} ${await res.text()}`)
   }
-  return (await res.json()) as string
+  const body = (await res.json()) as { teamAllocation: string }
+  return body.teamAllocation
 }
 
 // Removes a test-created team so specs stay independent and UI-watch re-runs

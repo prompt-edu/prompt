@@ -12,7 +12,8 @@ console. Its backend counterpart is [`servers/example_server`](../../servers/exa
 
 PROMPT's core client (`clients/core`) is a Webpack Module Federation host. Each course phase is a
 **remote** that core loads at runtime based on the course configuration. A phase remote must expose
-exactly three modules (see `rspack.config.mjs` → `exposes`):
+exactly three modules (`exposes` in `clients/shared/rspack/createRspackConfig.mjs`, which is where
+this component's entire rspack config comes from):
 
 | Exposed module | File           | Consumed by core as                               |
 | -------------- | -------------- | ------------------------------------------------- |
@@ -36,7 +37,7 @@ src/
     pages/              ParticipantsPage (shared participations table), SettingsPage
   bootstrap.tsx         Standalone entry (running the component on its own, rare)
   index.js              Async boundary required by Module Federation
-rspack.config.mjs       COMPONENT_NAME + COMPONENT_DEV_PORT constants, MF exposes/shared
+rspack.config.mjs       Component name + dev port passed to the shared config factory
 Dockerfile              Production build served by nginx (used by docker-compose)
 ```
 
@@ -67,8 +68,8 @@ Prefer `make new-phase` (see above). To do it manually:
 
 1. `cp -R clients/example_component clients/<name>_component` and rename the inner
    `src/example_component` directory.
-2. Update `COMPONENT_NAME` and `COMPONENT_DEV_PORT` in `rspack.config.mjs`, and `"name"` in
-   `package.json`.
+2. Update `name` and `port` in `rspack.config.mjs`, `"name"` in `package.json`, and the root
+   element id in `public/template.html` + `src/bootstrap.tsx`.
 3. Register the workspace in `clients/package.json` and `clients/lerna.json`.
 4. Register the remote + phase mappings in core and the services in docker-compose — the full
    checklist lives in `docs/contributor/new_course_phase.md`.

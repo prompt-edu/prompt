@@ -7,6 +7,7 @@ import { InfrastructureSetupSidebar } from './ExternalSidebars/InfrastructureSet
 import { InterviewSidebar } from './ExternalSidebars/InterviewSidebar'
 import { IntroCourseDeveloperSidebar } from './ExternalSidebars/IntroCourseDeveloperSidebar'
 import { MatchingSidebar } from './ExternalSidebars/MatchingSidebar'
+import { PresentationSidebar } from './ExternalSidebars/PresentationSidebar'
 import { SelfTeamAllocationSidebar } from './ExternalSidebars/SelfTeamAllocationSidebar'
 import { TeamAllocationSidebar } from './ExternalSidebars/TeamAllocationSidebar'
 
@@ -23,5 +24,6 @@ export const PhaseSidebarMapping: {
   'Team Allocation': TeamAllocationSidebar,
   'Self Team Allocation': SelfTeamAllocationSidebar,
   Certificate: CertificateSidebar,
+  Presentation: PresentationSidebar,
   'Infrastructure Setup': InfrastructureSetupSidebar,
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { env, Role } from '@tumaet/prompt-shared-state'
+import { EDITOR_ROLES, env, LECTURER_ROLES, Role } from '@tumaet/prompt-shared-state'
 import { Toaster } from '@tumaet/prompt-ui-components'
 import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
@@ -7,6 +7,8 @@ import { KeycloakProvider } from './keycloak/KeycloakProvider'
 import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
 import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
+import { CourseMailingComposePage } from './managementConsole/courseMailing/CourseMailingComposePage'
+import { CourseMailingOverviewPage } from './managementConsole/courseMailing/CourseMailingOverviewPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
@@ -179,13 +181,7 @@ export const App = () => {
               path='/management/course/:courseId/configurator'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[
-                      Role.PROMPT_ADMIN,
-                      Role.COURSE_LECTURER,
-                      Role.COURSE_EDITOR,
-                    ]}
-                  >
+                  <PermissionRestriction requiredPermissions={EDITOR_ROLES}>
                     <CourseConfiguratorPage />
                   </PermissionRestriction>
                 </ManagementRoot>
@@ -195,9 +191,7 @@ export const App = () => {
               path='/management/course/:courseId/settings'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
-                  >
+                  <PermissionRestriction requiredPermissions={LECTURER_ROLES}>
                     <CourseSettingsPage />
                   </PermissionRestriction>
                 </ManagementRoot>
@@ -207,9 +201,7 @@ export const App = () => {
               path='/management/course/:courseId/audit-log'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
-                  >
+                  <PermissionRestriction requiredPermissions={LECTURER_ROLES}>
                     <CourseAuditLogPage />
                   </PermissionRestriction>
                 </ManagementRoot>
@@ -219,10 +211,56 @@ export const App = () => {
               path='/management/course/:courseId/user-management'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction
-                    requiredPermissions={[Role.PROMPT_ADMIN, Role.COURSE_LECTURER]}
-                  >
+                  <PermissionRestriction requiredPermissions={LECTURER_ROLES}>
                     <CourseUserManagementPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingOverviewPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/new'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/:campaignId'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

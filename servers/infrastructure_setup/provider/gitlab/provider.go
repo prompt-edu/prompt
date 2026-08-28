@@ -11,16 +11,22 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
 
+// gitlabPageSize is GitLab's maximum per_page value.
+const gitlabPageSize = 100
+
 // Config holds the credentials for the GitLab provider.
 type Config struct {
-	BaseURL       string `json:"base_url"`
-	PrivateToken  string `json:"private_token"`
-	ParentGroupID *int   `json:"parent_group_id,omitempty"`
+	BaseURL      string `json:"base_url"`
+	PrivateToken string `json:"private_token"`
+	// Credential values are stored and validated as strings, so a numeric ID has to
+	// be decoded as a string and parsed on use.
+	ParentGroupID string `json:"parent_group_id,omitempty"`
 }
 
 // Provider implements provider.Provider for GitLab.
@@ -50,8 +56,25 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
 
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
+	if _, _, err := p.parentGroupID(); err != nil {
+		return err
+	}
 	_, err := p.get(ctx, "/api/v4/user")
 	return err
+}
+
+// parentGroupID parses the configured parent group ID. The second return value is
+// false when no parent is configured.
+func (p *Provider) parentGroupID() (int, bool, error) {
+	raw := strings.TrimSpace(p.cfg.ParentGroupID)
+	if raw == "" {
+		return 0, false, nil
+	}
+	id, err := strconv.Atoi(raw)
+	if err != nil || id <= 0 {
+		return 0, false, fmt.Errorf("gitlab: parent_group_id must be a positive integer, got %q", raw)
+	}
+	return id, true, nil
 }
 
 // CreateResource creates a GitLab group with the given name and adds members.
@@ -72,9 +95,15 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
 		if !ok {
-			permission = "guest"
+			warnings = append(warnings, fmt.Sprintf("%s: no permission mapped for role %q", member.Email, member.Role))
+			continue
 		}
-		if err := p.addMember(ctx, groupID, member.Email, permission); err != nil {
+		accessLevel, err := gitlabAccessLevel(permission)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			continue
+		}
+		if err := p.addMember(ctx, groupID, member.Email, accessLevel); err != nil {
 			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
@@ -92,33 +121,15 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 // exactly. Matching on a full_path suffix across all visible groups would also match
 // another course's group of the same name and add students to it.
 func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (int, string, error) {
-	searchPath := fmt.Sprintf("/api/v4/groups?search=%s", url.QueryEscape(slug))
-	if p.cfg.ParentGroupID != nil {
-		searchPath = fmt.Sprintf("/api/v4/groups/%d/subgroups?search=%s", *p.cfg.ParentGroupID, url.QueryEscape(slug))
-	}
-	body, err := p.get(ctx, searchPath)
+	parentID, hasParent, err := p.parentGroupID()
 	if err != nil {
 		return 0, "", err
 	}
 
-	var groups []struct {
-		ID       int    `json:"id"`
-		Path     string `json:"path"`
-		FullPath string `json:"full_path"`
-		WebURL   string `json:"web_url"`
-	}
-	if err := json.Unmarshal(body, &groups); err != nil {
+	if id, webURL, found, err := p.findGroup(ctx, slug, parentID, hasParent); err != nil {
 		return 0, "", err
-	}
-
-	for _, g := range groups {
-		if p.cfg.ParentGroupID != nil {
-			if g.Path == slug {
-				return g.ID, g.WebURL, nil
-			}
-		} else if g.FullPath == slug {
-			return g.ID, g.WebURL, nil
-		}
+	} else if found {
+		return id, webURL, nil
 	}
 
 	// Create the group.
@@ -126,12 +137,17 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (in
 		"name": name,
 		"path": slug,
 	}
-	if p.cfg.ParentGroupID != nil {
-		payload["parent_id"] = *p.cfg.ParentGroupID
+	if hasParent {
+		payload["parent_id"] = parentID
 	}
 
 	createBody, err := p.post(ctx, "/api/v4/groups", payload)
 	if err != nil {
+		// A concurrent run, or a group the search could not see, may have taken the
+		// path already. Re-resolve instead of failing the instance.
+		if id, webURL, found, findErr := p.findGroup(ctx, slug, parentID, hasParent); findErr == nil && found {
+			return id, webURL, nil
+		}
 		return 0, "", err
 	}
 
@@ -146,16 +162,63 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (in
 	return created.ID, created.WebURL, nil
 }
 
+// findGroup looks for a group whose path matches slug exactly.
+//
+// GitLab's search is a substring match, so "ios-team-1" also matches "ios-team-10".
+// The result is paginated to make sure an exact match on a later page is still found;
+// concluding "absent" would make the create fail on a taken path.
+func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, hasParent bool) (int, string, bool, error) {
+	for page := 1; ; page++ {
+		var searchPath string
+		if hasParent {
+			searchPath = fmt.Sprintf("/api/v4/groups/%d/subgroups?search=%s&per_page=%d&page=%d",
+				parentID, url.QueryEscape(slug), gitlabPageSize, page)
+		} else {
+			searchPath = fmt.Sprintf("/api/v4/groups?search=%s&per_page=%d&page=%d",
+				url.QueryEscape(slug), gitlabPageSize, page)
+		}
+
+		body, err := p.get(ctx, searchPath)
+		if err != nil {
+			return 0, "", false, err
+		}
+
+		var groups []struct {
+			ID       int    `json:"id"`
+			Path     string `json:"path"`
+			FullPath string `json:"full_path"`
+			WebURL   string `json:"web_url"`
+		}
+		if err := json.Unmarshal(body, &groups); err != nil {
+			return 0, "", false, err
+		}
+
+		for _, g := range groups {
+			if hasParent {
+				if g.Path == slug {
+					return g.ID, g.WebURL, true, nil
+				}
+			} else if g.FullPath == slug {
+				return g.ID, g.WebURL, true, nil
+			}
+		}
+
+		if len(groups) < gitlabPageSize {
+			return 0, "", false, nil
+		}
+	}
+}
+
 // addMember invites a user to a GitLab group by email.
 //
 // The invitations endpoint is used rather than a user lookup followed by /members:
 // /users?search=<email> only returns the email field to admin tokens, so resolving a
 // user ID fails for the personal access token a course would normally use. Invitations
 // also cover students who have not signed in to the GitLab instance yet.
-func (p *Provider) addMember(ctx context.Context, groupID int, email, permission string) error {
+func (p *Provider) addMember(ctx context.Context, groupID int, email string, accessLevel int) error {
 	payload := map[string]interface{}{
 		"email":        email,
-		"access_level": gitlabAccessLevel(permission),
+		"access_level": accessLevel,
 	}
 
 	path := fmt.Sprintf("/api/v4/groups/%d/invitations", groupID)
@@ -271,19 +334,19 @@ func toSlug(name string) string {
 }
 
 // gitlabAccessLevel maps a permission string to a GitLab numeric access level.
-func gitlabAccessLevel(permission string) int {
-	switch strings.ToLower(permission) {
+func gitlabAccessLevel(permission string) (int, error) {
+	switch strings.ToLower(strings.TrimSpace(permission)) {
 	case "guest":
-		return 10
+		return 10, nil
 	case "reporter":
-		return 20
+		return 20, nil
 	case "developer":
-		return 30
+		return 30, nil
 	case "maintainer":
-		return 40
+		return 40, nil
 	case "owner":
-		return 50
+		return 50, nil
 	default:
-		return 10 // guest as safe default
+		return 0, fmt.Errorf("gitlab: unknown permission %q (expected guest, reporter, developer, maintainer or owner)", permission)
 	}
 }

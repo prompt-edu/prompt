@@ -20,6 +20,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
 
+// keycloakPageSize bounds each page of the admin group listing.
+const keycloakPageSize = 100
+
 // Config holds credentials for the Keycloak provider.
 type Config struct {
 	KeycloakURL  string `json:"keycloak_url"`
@@ -123,7 +126,9 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		}
 	}
 
-	groupURL := fmt.Sprintf("%s/admin/realms/%s/groups/%s", p.cfg.KeycloakURL, p.cfg.Realm, groupID)
+	// The admin console URL, not the admin REST path: the UI renders this as a link,
+	// and the REST path answers 401 JSON in a browser.
+	groupURL := fmt.Sprintf("%s/admin/%s/console/#/%s/groups/%s", p.cfg.KeycloakURL, p.cfg.Realm, p.cfg.Realm, groupID)
 	return &provider.Resource{ExternalID: groupID, ExternalURL: groupURL, Warnings: warnings}, nil
 }
 
@@ -156,6 +161,18 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (s
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusConflict {
+		// Another run created it, or it exists somewhere the search did not surface.
+		id, findErr := p.searchGroupByName(ctx, token, name)
+		if findErr != nil {
+			return "", findErr
+		}
+		if id == "" {
+			return "", fmt.Errorf("keycloak group %q reported as conflicting but could not be found", name)
+		}
+		return id, nil
+	}
+
 	if resp.StatusCode != http.StatusCreated {
 		respBody, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("keycloak create group: HTTP %d: %s", resp.StatusCode, respBody)
@@ -180,27 +197,37 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, token, name string) (s
 	return parts[len(parts)-1], nil
 }
 
-// searchGroupByName returns the ID of the group with an exact name match, or "" if none matches.
+// searchGroupByName returns the ID of the group with an exact name match, or "" if
+// none matches.
+//
+// exact=true is requested so Keycloak filters server-side; its default search is a
+// substring match whose result window can push the exact match out of the response.
+// The listing is paged anyway, for Keycloak versions that ignore exact.
 func (p *Provider) searchGroupByName(ctx context.Context, token, name string) (string, error) {
-	path := fmt.Sprintf("/admin/realms/%s/groups?search=%s", p.cfg.Realm, url.QueryEscape(name))
-	body, err := p.get(ctx, token, path)
-	if err != nil {
-		return "", err
-	}
+	for first := 0; ; first += keycloakPageSize {
+		path := fmt.Sprintf("/admin/realms/%s/groups?search=%s&exact=true&first=%d&max=%d",
+			p.cfg.Realm, url.QueryEscape(name), first, keycloakPageSize)
+		body, err := p.get(ctx, token, path)
+		if err != nil {
+			return "", err
+		}
 
-	var groups []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	if err := json.Unmarshal(body, &groups); err != nil {
-		return "", err
-	}
-	for _, g := range groups {
-		if g.Name == name {
-			return g.ID, nil
+		var groups []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(body, &groups); err != nil {
+			return "", err
+		}
+		for _, g := range groups {
+			if g.Name == name {
+				return g.ID, nil
+			}
+		}
+		if len(groups) < keycloakPageSize {
+			return "", nil
 		}
 	}
-	return "", nil
 }
 
 // addMemberToGroup adds a user to a Keycloak group.

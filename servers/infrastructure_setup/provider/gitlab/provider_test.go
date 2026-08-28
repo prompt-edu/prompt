@@ -30,12 +30,23 @@ func TestGitLabAccessLevel(t *testing.T) {
 		"developer":  30,
 		"maintainer": 40,
 		"owner":      50,
-		"unknown":    10,
 	}
 	for permission, expected := range tests {
-		if got := gitlabAccessLevel(permission); got != expected {
+		got, err := gitlabAccessLevel(permission)
+		if err != nil {
+			t.Fatalf("gitlabAccessLevel(%q): %v", permission, err)
+		}
+		if got != expected {
 			t.Fatalf("gitlabAccessLevel(%q) = %d, want %d", permission, got, expected)
 		}
+	}
+}
+
+// An unknown permission must not silently become Guest: a GitLab Guest cannot read
+// code, so the team would be reported as provisioned with no repository access.
+func TestGitLabAccessLevelRejectsUnknownPermission(t *testing.T) {
+	if _, err := gitlabAccessLevel("contributor"); err == nil {
+		t.Fatal("gitlabAccessLevel(\"contributor\") = nil error, want a rejection")
 	}
 }
 
@@ -70,7 +81,7 @@ func newGitLabServer(t *testing.T, rec *requestRecorder, handler func(w http.Res
 // A group under a different parent must not be adopted: matching on a full_path
 // suffix would have added the students to another course's group.
 func TestGitLabDoesNotAdoptGroupUnderAnotherParent(t *testing.T) {
-	parentID := 42
+	parentID := "42"
 	rec := &requestRecorder{}
 	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -83,7 +94,7 @@ func TestGitLabDoesNotAdoptGroupUnderAnotherParent(t *testing.T) {
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
 		}
 	})
-	provider.cfg.ParentGroupID = &parentID
+	provider.cfg.ParentGroupID = parentID
 
 	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
 		Name:         "Team A",
@@ -103,7 +114,7 @@ func TestGitLabDoesNotAdoptGroupUnderAnotherParent(t *testing.T) {
 
 // An existing subgroup of the configured parent is reused rather than recreated.
 func TestGitLabReusesExistingSubgroup(t *testing.T) {
-	parentID := 42
+	parentID := "42"
 	rec := &requestRecorder{}
 	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -111,7 +122,7 @@ func TestGitLabReusesExistingSubgroup(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(`[{"id":9,"path":"team-a","full_path":"my-course/team-a","web_url":"https://gitlab.test/groups/my-course/team-a"}]`))
 	})
-	provider.cfg.ParentGroupID = &parentID
+	provider.cfg.ParentGroupID = parentID
 
 	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "Team A"})
 	if err != nil {
@@ -220,14 +231,75 @@ func TestGitLabTreatsExistingMemberAsSuccess(t *testing.T) {
 	})
 
 	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
-		Name:    "Team A",
-		Members: []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "developer"},
 	})
 	if err != nil {
 		t.Fatalf("CreateResource: %v", err)
 	}
 	if len(resource.Warnings) != 0 {
 		t.Fatalf("warnings = %v, want none for an existing member", resource.Warnings)
+	}
+}
+
+// A role with no mapped permission is reported, not quietly granted Guest.
+func TestGitLabReportsUnmappedRole(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/invitations") {
+			t.Errorf("no invitation expected for an unmapped role: %s", r.URL)
+		}
+		if r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`[{"id":3,"path":"team-a","full_path":"team-a","web_url":"https://gitlab.test/groups/team-a"}]`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"status":"success"}`))
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:    "Team A",
+		Members: []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 1 {
+		t.Fatalf("warnings = %v, want one for the unmapped role", resource.Warnings)
+	}
+}
+
+// A parent group ID arrives as a string credential and must still scope the search.
+func TestGitLabParsesStringParentGroupID(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"id":9,"path":"team-a","full_path":"my-course/team-a","web_url":"https://gitlab.test/groups/my-course/team-a"}]`))
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "Team A"})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if resource.ExternalID != "9" {
+		t.Fatalf("externalID = %q, want the adopted subgroup", resource.ExternalID)
+	}
+	if !strings.Contains(rec.paths[0], "/api/v4/groups/42/subgroups") {
+		t.Fatalf("first request = %q, want a subgroups lookup on parent 42", rec.paths[0])
+	}
+}
+
+// A non-numeric parent group ID must be rejected when the credentials are validated,
+// not silently ignored until a provisioning run fails.
+func TestGitLabRejectsNonNumericParentGroupID(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request expected for an invalid parent group ID: %s", r.URL)
+	})
+	provider.cfg.ParentGroupID = "my-course"
+
+	if err := provider.ValidateCredentials(context.Background()); err == nil {
+		t.Fatal("ValidateCredentials = nil error, want a rejection")
 	}
 }
 

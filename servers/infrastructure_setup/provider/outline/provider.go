@@ -187,9 +187,6 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 			ID    string `json:"id"`
 			Email string `json:"email"`
 		} `json:"data"`
-		Pagination struct {
-			NextPath string `json:"nextPath"`
-		} `json:"pagination"`
 	}
 
 	offset := 0
@@ -199,6 +196,13 @@ func (p *Provider) lookupUserByEmail(ctx context.Context, email string) (string,
 			"limit":  outlinePageSize,
 		}, &listResp); err != nil {
 			return "", err
+		}
+
+		// Without this check a workspace-wide permission or rate-limit failure returns
+		// HTTP 200 with ok=false and an empty page, which would be reported as "this
+		// student does not exist".
+		if !listResp.OK {
+			return "", fmt.Errorf("outline users.list returned ok=false")
 		}
 
 		for _, u := range listResp.Data {

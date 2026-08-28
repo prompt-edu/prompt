@@ -13,6 +13,7 @@
         "/tests/courses/.*\\.spec\\.ts$",
         "/tests/students/.*\\.spec\\.ts$",
         "/tests/permissions/.*\\.spec\\.ts$",
+        "/tests/api/client-static\\.api\\.spec\\.ts$",
         "/tests/api/courses\\.api\\.spec\\.ts$",
         "/tests/api/application-apply\\.api\\.spec\\.ts$",
         "/tests/api/application-files\\.api\\.spec\\.ts$",

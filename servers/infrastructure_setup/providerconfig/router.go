@@ -142,6 +142,11 @@ func validateProviderConfig(svc *Service) gin.HandlerFunc {
 
 		providerType := c.Param("providerType")
 		if err := svc.ValidateProviderConfig(c.Request.Context(), coursePhaseID, providerType); err != nil {
+			// 400 either way: from the lecturer's side an unreachable provider and a bad
+			// token both mean "these credentials do not work yet". The log is what tells
+			// the two apart.
+			log.WithError(err).WithField("providerType", providerType).
+				Warn("provider credential validation failed")
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

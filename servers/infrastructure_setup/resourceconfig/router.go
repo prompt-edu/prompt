@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -107,7 +108,12 @@ func getResourceConfig(svc *Service) gin.HandlerFunc {
 		}
 		resp, err := svc.GetResourceConfig(c.Request.Context(), coursePhaseID, id)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "resource config not found"})
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "resource config not found"})
+				return
+			}
+			log.WithError(err).Error("failed to get resource config")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get resource config"})
 			return
 		}
 		c.JSON(http.StatusOK, resp)

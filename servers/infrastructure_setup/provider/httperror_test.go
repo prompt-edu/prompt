@@ -21,3 +21,21 @@ func TestHTTPErrorOmitsResponseBody(t *testing.T) {
 		}
 	}
 }
+
+// A per-item reason is worth showing, but it is upstream-controlled text landing in a
+// persisted, UI-rendered field, so it must be flattened and bounded.
+func TestUpstreamReasonIsSanitised(t *testing.T) {
+	if got := UpstreamReason("Invite email\nis   invalid\r\n"); got != "Invite email is invalid" {
+		t.Fatalf("UpstreamReason = %q, want the reason collapsed onto one line", got)
+	}
+	if got := UpstreamReason("bad\x00\x07value"); got != "badvalue" {
+		t.Fatalf("UpstreamReason = %q, want control characters removed", got)
+	}
+	long := UpstreamReason(strings.Repeat("x", 500))
+	if len(long) > maxUpstreamReasonLength+3 {
+		t.Fatalf("UpstreamReason length = %d, want it truncated", len(long))
+	}
+	if !strings.HasSuffix(long, "...") {
+		t.Fatalf("UpstreamReason = %q, want a truncation marker", long[len(long)-10:])
+	}
+}

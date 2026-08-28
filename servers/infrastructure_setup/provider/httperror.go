@@ -2,6 +2,8 @@ package provider
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -29,4 +31,31 @@ func HTTPError(providerType, method, path string, status int, body []byte) error
 	}).Debug("upstream request failed")
 
 	return fmt.Errorf("%s %s %s: HTTP %d", providerType, method, path, status)
+}
+
+// maxUpstreamReasonLength bounds a reason quoted from an upstream payload.
+const maxUpstreamReasonLength = 200
+
+// UpstreamReason sanitises a per-item failure reason taken from a response payload so it
+// can be shown to a lecturer.
+//
+// Some endpoints report a per-member outcome only in the body, and that reason is worth
+// surfacing. It is still upstream-controlled text landing in a persisted, UI-rendered
+// field, so it is stripped of control characters, collapsed onto one line and truncated.
+func UpstreamReason(reason string) string {
+	cleaned := strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, reason)
+	cleaned = strings.Join(strings.Fields(cleaned), " ")
+
+	if len(cleaned) > maxUpstreamReasonLength {
+		return cleaned[:maxUpstreamReasonLength] + "..."
+	}
+	return cleaned
 }

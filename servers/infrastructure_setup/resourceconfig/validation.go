@@ -135,7 +135,9 @@ func validateTemplate(field, template string) error {
 	return nil
 }
 
+// logAndReturnError records a rejected request. These are ordinary bad requests answered
+// with 400, so they are logged at warn level and do not raise error-level alerts.
 func logAndReturnError(msg string) error {
-	log.Error(msg)
+	log.Warn(msg)
 	return fmt.Errorf("%w: %s", ErrValidation, msg)
 }

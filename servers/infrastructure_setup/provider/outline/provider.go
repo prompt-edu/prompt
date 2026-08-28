@@ -381,7 +381,7 @@ func (p *Provider) addUserToGroup(ctx context.Context, groupID, userID string) e
 		return err
 	}
 	if !resp.OK {
-		return fmt.Errorf("outline groups.add_user failed: %s", resp.Error)
+		return fmt.Errorf("outline groups.add_user failed: %s", provider.UpstreamReason(resp.Error))
 	}
 	return nil
 }
@@ -402,7 +402,7 @@ func (p *Provider) addGroupToCollection(ctx context.Context, collectionID, group
 		return err
 	}
 	if !resp.OK {
-		return fmt.Errorf("outline collections.add_group failed: %s", resp.Error)
+		return fmt.Errorf("outline collections.add_group failed: %s", provider.UpstreamReason(resp.Error))
 	}
 	return nil
 }

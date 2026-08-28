@@ -25,18 +25,31 @@ export const ResourceConfigPage = () => {
     enabled: !!coursePhaseID,
   })
 
-  const { data: providers } = useQuery({
+  const {
+    data: providers,
+    isLoading: providersLoading,
+    isError: providersError,
+    refetch: refetchProviders,
+  } = useQuery({
     queryKey: ['provider-configs', coursePhaseID],
     queryFn: () => getProviderConfigs(coursePhaseID!),
     enabled: !!coursePhaseID,
   })
 
-  if (isLoading) {
+  if (isLoading || providersLoading) {
     return <LoadingPage />
   }
-  if (isError) {
+  if (isError || providersError) {
+    // Both are needed before the page can say anything true: without the providers the
+    // banner would claim none are configured and the create button would stay disabled.
     return (
-      <ErrorPage description='Failed to load resource configurations.' onRetry={() => refetch()} />
+      <ErrorPage
+        description='Failed to load resource configurations.'
+        onRetry={() => {
+          refetch()
+          refetchProviders()
+        }}
+      />
     )
   }
 

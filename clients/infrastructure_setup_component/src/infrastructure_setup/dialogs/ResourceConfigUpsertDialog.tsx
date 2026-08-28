@@ -98,12 +98,15 @@ export const ResourceConfigUpsertDialog = ({
     enabled: open && !!providerType,
   })
 
-  // Preselect the first kind so a provider offering only one needs no interaction.
+  // Preselect the first kind so a provider offering only one needs no interaction. An
+  // existing config keeps whatever it was saved with, so a resource type the provider no
+  // longer advertises is shown rather than silently rewritten to a different one.
   useEffect(() => {
+    if (existing) return
     if (resourceTypes.length > 0 && !resourceTypes.includes(resourceType)) {
       setResourceType(resourceTypes[0])
     }
-  }, [resourceTypes, resourceType])
+  }, [resourceTypes, resourceType, existing])
 
   useEffect(() => {
     if (!open) return

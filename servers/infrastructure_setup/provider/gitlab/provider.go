@@ -422,7 +422,7 @@ func (p *Provider) addMember(ctx context.Context, groupID int, email string, acc
 		if isAlreadyMember(reason) {
 			return nil
 		}
-		return fmt.Errorf("gitlab invitation for %s rejected: %s", email, reason)
+		return fmt.Errorf("gitlab invitation for %s rejected: %s", email, provider.UpstreamReason(reason))
 	}
 	return nil
 }

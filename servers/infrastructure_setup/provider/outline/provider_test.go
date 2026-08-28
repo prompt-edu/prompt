@@ -114,8 +114,8 @@ func TestOutlineCreatesPrivateCollectionAndBindsGroup(t *testing.T) {
 	}
 
 	// The group is keyed on the stable ID, not on the display name.
-	if rec.payloads["groups.create"]["externalId"] != stableKey {
-		t.Fatalf("groups.create externalId = %v, want %q", rec.payloads["groups.create"]["externalId"], stableKey)
+	if rec.payloads["groups.create"]["externalId"] != stableKey+":read" {
+		t.Fatalf("groups.create externalId = %v, want %q", rec.payloads["groups.create"]["externalId"], stableKey+":read")
 	}
 
 	// The binding permission must be explicit: Outline defaults add_group to read_write.
@@ -155,7 +155,7 @@ func TestOutlineAdoptsOwnCollection(t *testing.T) {
 	provider := newRecordingProvider(t, rec, map[string]string{
 		"collections.list": fmt.Sprintf(
 			`{"ok":true,"data":[{"id":"col-7","name":"Team A","url":"/c/team-a","description":"Provisioned by PROMPT.\n\nprompt-key: %s"}]}`, stableKey),
-		"groups.list":           `{"ok":true,"data":{"groups":[{"id":"grp-7","externalId":"` + stableKey + `"}]}}`,
+		"groups.list":           `{"ok":true,"data":{"groups":[{"id":"grp-7","externalId":"` + stableKey + `:read"}]}}`,
 		"users.list":            `{"ok":true,"data":[]}`,
 		"groups.add_user":       `{"ok":true}`,
 		"collections.add_group": `{"ok":true}`,
@@ -357,7 +357,7 @@ func TestOutlineFindsCollectionOnLaterPage(t *testing.T) {
 			_, _ = w.Write([]byte(fmt.Sprintf(
 				`{"ok":true,"data":[{"id":"col-42","name":"Team A","url":"/c/team-a","description":"prompt-key: %s"}]}`, stableKey)))
 		case "groups.list":
-			_, _ = w.Write([]byte(`{"ok":true,"data":{"groups":[{"id":"grp-42","externalId":"` + stableKey + `"}]}}`))
+			_, _ = w.Write([]byte(`{"ok":true,"data":{"groups":[{"id":"grp-42","externalId":"` + stableKey + `:read"}]}}`))
 		case "users.list":
 			_, _ = w.Write([]byte(`{"ok":true,"data":[]}`))
 		case "collections.add_group":
@@ -392,5 +392,42 @@ func TestOutlineRejectsEmptyName(t *testing.T) {
 
 	if _, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "   "}); err == nil {
 		t.Fatal("CreateResource = nil error, want a rejection for an empty name")
+	}
+}
+
+// The group key must not depend on how many permissions a team happens to have. If the
+// lone group were keyed on the bare stable key, adding a second permission later would
+// change the key and orphan the existing group.
+func TestOutlineGroupKeyAlwaysCarriesThePermission(t *testing.T) {
+	rec := newRecorder()
+	provider := newRecordingProvider(t, rec, map[string]string{
+		"collections.list":      `{"ok":true,"data":[]}`,
+		"collections.create":    `{"ok":true,"data":{"collection":{"id":"col-1","url":"/c/1"}}}`,
+		"groups.list":           `{"ok":true,"data":{"groups":[{"id":"grp-1","externalId":"` + stableKey + `:read"}]}}`,
+		"users.list":            `{"ok":true,"data":[{"id":"usr-1","email":"student@example.com"}]}`,
+		"groups.add_user":       `{"ok":true}`,
+		"collections.add_group": `{"ok":true}`,
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "read"},
+		StableKey:         stableKey,
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none", resource.Warnings)
+	}
+	// A single-permission team must still look the group up under the suffixed key, and
+	// therefore adopt the existing one rather than creating a second.
+	if rec.payloads["groups.list"]["externalId"] != stableKey+":read" {
+		t.Fatalf("groups.list externalId = %v, want the permission-suffixed key",
+			rec.payloads["groups.list"]["externalId"])
+	}
+	if slices.Contains(rec.methods, "groups.create") {
+		t.Fatal("the existing group was not adopted under the suffixed key")
 	}
 }

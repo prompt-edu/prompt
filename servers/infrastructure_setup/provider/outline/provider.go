@@ -162,13 +162,16 @@ func (p *Provider) bindGroups(ctx context.Context, collectionID string, input pr
 	}
 
 	for _, permission := range slices.Sorted(maps.Keys(buckets)) {
+		// The key always carries the permission, even for a single group. Keying the
+		// lone group on the bare stable key would orphan it as soon as a second
+		// permission appeared and the key gained a suffix.
+		externalID := input.StableKey + ":" + permission
+
 		groupName := baseName
-		externalID := input.StableKey
 		if split {
 			// A distinguishable display name, so Outline's group list stays readable
 			// when one collection is served by several groups.
 			groupName = fmt.Sprintf("%s (%s)", baseName, permission)
-			externalID = input.StableKey + ":" + permission
 		}
 
 		groupID, err := p.findOrCreateGroup(ctx, groupName, externalID)

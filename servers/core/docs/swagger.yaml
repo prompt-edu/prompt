@@ -2867,7 +2867,7 @@ paths:
         in: query
         name: actorRole
         type: string
-      - description: Filter by outcome (success|denied)
+      - description: Filter by outcome (success|denied|error)
         in: query
         name: outcome
         type: string
@@ -3598,7 +3598,7 @@ paths:
         in: query
         name: actorRole
         type: string
-      - description: Filter by outcome (success|denied)
+      - description: Filter by outcome (success|denied|error)
         in: query
         name: outcome
         type: string

@@ -32,8 +32,13 @@ var AuditLogServiceSingleton *AuditLogService
 // filters, plus the cursor for the next (older) page.
 func (s *AuditLogService) ListAuditLog(ctx context.Context, f auditLogDTO.ListFilters) (auditLogDTO.AuditLogPage, error) {
 	limit := f.Limit
-	if limit <= 0 || limit > maxPageLimit {
+	if limit <= 0 {
 		limit = defaultPageLimit
+	}
+	// Clamp rather than fall back to the default, so an oversized request still
+	// gets the documented maximum instead of silently shrinking to 50.
+	if limit > maxPageLimit {
+		limit = maxPageLimit
 	}
 
 	rows, err := s.queries.ListAuditLog(ctx, db.ListAuditLogParams{

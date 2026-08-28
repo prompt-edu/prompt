@@ -1279,7 +1279,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },
@@ -2485,7 +2485,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },

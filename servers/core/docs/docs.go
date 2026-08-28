@@ -1285,7 +1285,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },
@@ -2491,7 +2491,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },

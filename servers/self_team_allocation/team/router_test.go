@@ -341,8 +341,8 @@ func (suite *TeamRouterTestSuite) ensureTimeframePhase() uuid.UUID {
 	coursePhaseID := uuid.New()
 	err := suite.testDB.Queries.SetTimeframe(suite.ctx, db.SetTimeframeParams{
 		CoursePhaseID: coursePhaseID,
-		Starttime:     pgtype.Timestamp{Time: time.Now().Add(-time.Hour), Valid: true},
-		Endtime:       pgtype.Timestamp{Time: time.Now().Add(time.Hour), Valid: true},
+		Starttime:     pgtype.Timestamptz{Time: time.Now().Add(-time.Hour), Valid: true},
+		Endtime:       pgtype.Timestamptz{Time: time.Now().Add(time.Hour), Valid: true},
 	})
 	require.NoError(suite.T(), err)
 	return coursePhaseID

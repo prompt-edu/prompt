@@ -18,9 +18,9 @@ FROM survey_timeframe
 WHERE course_phase_id = $1
 `
 
-func (q *Queries) GetSurveyDeadline(ctx context.Context, coursePhaseID uuid.UUID) (pgtype.Timestamp, error) {
+func (q *Queries) GetSurveyDeadline(ctx context.Context, coursePhaseID uuid.UUID) (pgtype.Timestamptz, error) {
 	row := q.db.QueryRow(ctx, getSurveyDeadline, coursePhaseID)
-	var survey_deadline pgtype.Timestamp
+	var survey_deadline pgtype.Timestamptz
 	err := row.Scan(&survey_deadline)
 	return survey_deadline, err
 }

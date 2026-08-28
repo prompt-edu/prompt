@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -78,9 +79,13 @@ func GetTeamAllocationCoursePhases(
 		}
 
 		teasePhases = append(teasePhases, teaseDTO.TeasePhase{
-			CoursePhaseID:              coursePhase.CoursePhaseID,
-			SemesterName:               coursePhase.SemesterName,
-			KickoffSubmissionPeriodEnd: deadline,
+			CoursePhaseID: coursePhase.CoursePhaseID,
+			SemesterName:  coursePhase.SemesterName,
+			KickoffSubmissionPeriodEnd: pgtype.Timestamp{
+				Time:             deadline.Time.UTC(),
+				InfinityModifier: deadline.InfinityModifier,
+				Valid:            deadline.Valid,
+			},
 		})
 	}
 
@@ -216,4 +221,3 @@ func GetAllocationsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (
 
 	return teaseAllocations, nil
 }
-

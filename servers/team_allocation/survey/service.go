@@ -153,9 +153,8 @@ func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStar
 		return errors.New("survey start must be before survey deadline")
 	}
 
-	var startTimestamp, deadlineTimestamp pgtype.Timestamp
-	startTimestamp = pgtype.Timestamp{Time: surveyStart, Valid: true}
-	deadlineTimestamp = pgtype.Timestamp{Time: surveyDeadline, Valid: true}
+	startTimestamp := pgtype.Timestamptz{Time: surveyStart, Valid: true}
+	deadlineTimestamp := pgtype.Timestamptz{Time: surveyDeadline, Valid: true}
 
 	err := SurveyServiceSingleton.queries.SetSurveyTimeframe(ctx, db.SetSurveyTimeframeParams{
 		CoursePhaseID:  coursePhaseID,

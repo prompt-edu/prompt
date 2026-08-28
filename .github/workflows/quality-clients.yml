@@ -52,7 +52,13 @@ jobs:
       - uses: ./.github/actions/setup-node
       - run: yarn install
       - name: Run client unit tests
-        run: yarn test
+        run: yarn test --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=TestResults-clients.xml
+      - name: Upload client test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Vitest-results-clients
+          path: ./clients/TestResults-clients.xml
 
   nginx-config:
     runs-on: ubuntu-latest

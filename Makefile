@@ -119,17 +119,27 @@ lint: lint-clients lint-servers ## Lint all code
 
 lint-clients: ## Lint all clients
 	cd clients && yarn biome check
+	./scripts/check-remote-styles.sh
 
-lint-servers: ## Run go vet on all servers
-	cd servers/core && go vet ./...
-	cd servers/assessment && go vet ./...
-	cd servers/interview && go vet ./...
-	cd servers/team_allocation && go vet ./...
-	cd servers/self_team_allocation && go vet ./...
-	cd servers/example_server && go vet ./...
-	cd servers/certificate && go vet ./...
-	cd servers/presentation && go vet ./...
-	cd servers/infrastructure_setup && go vet ./...
+# CI runs golangci-lint, which catches far more than go vet. It is run here too when
+# installed, so `make lint` matches the pipeline instead of passing locally and failing
+# in CI. Install it with: brew install golangci-lint
+lint-servers: ## Run go vet and golangci-lint on all servers
+	@for s in core assessment interview team_allocation self_team_allocation \
+	          example_server certificate presentation infrastructure_setup; do \
+	  echo "==> $$s"; \
+	  (cd servers/$$s && go vet ./...) || exit 1; \
+	done
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+	  for s in core assessment interview team_allocation self_team_allocation \
+	           example_server certificate presentation infrastructure_setup; do \
+	    echo "==> golangci-lint $$s"; \
+	    (cd servers/$$s && golangci-lint run --timeout 5m) || exit 1; \
+	  done; \
+	else \
+	  echo "golangci-lint not installed - skipping (CI will still run it)."; \
+	  echo "Install with: brew install golangci-lint"; \
+	fi
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 

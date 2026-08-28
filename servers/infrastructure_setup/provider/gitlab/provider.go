@@ -28,7 +28,8 @@ const (
 	extraKeyParentGroupTemplate = "parent_group_template"
 	// extraKeyVisibility overrides the visibility of a created project.
 	extraKeyVisibility = "visibility"
-	// extraKeyInitializeWithReadme controls whether a created project gets a first commit.
+	// extraKeyInitializeWithReadme opts a created project into a first commit. Off by
+	// default: teams push their own repository.
 	extraKeyInitializeWithReadme = "initialize_with_readme"
 
 	// defaultProjectVisibility is set explicitly rather than relying on the instance's
@@ -376,13 +377,12 @@ func projectVisibility(extra map[string]interface{}) string {
 	return defaultProjectVisibility
 }
 
-// initializeWithReadme defaults to true so the repository is usable straight away;
-// GitLab's own default leaves it without a branch.
+// initializeWithReadme defaults to false: the phase creates the project, and the team
+// pushes the repository itself. An initial commit made here would give the project a
+// default branch and a history the team's first push has to reconcile with.
 func initializeWithReadme(extra map[string]interface{}) bool {
-	if value, ok := extra[extraKeyInitializeWithReadme].(bool); ok {
-		return value
-	}
-	return true
+	value, ok := extra[extraKeyInitializeWithReadme].(bool)
+	return ok && value
 }
 
 // addMember invites a user to a GitLab group by email.

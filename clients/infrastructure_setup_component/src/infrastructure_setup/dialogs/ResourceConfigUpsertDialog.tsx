@@ -380,9 +380,10 @@ export const ResourceConfigUpsertDialog = ({
                 <p className='text-xs text-muted-foreground'>
                   <code>parent_group_template</code> (required) names the team subgroup the project
                   is created in, e.g. <code>{`{{semesterTag}}-{{teamName}}`}</code>. Members are
-                  added to that subgroup and inherit access to every project in it. Optional:{' '}
+                  added to that subgroup and inherit access to every project in it. The project is
+                  created with an empty repository, which the team pushes itself. Optional:{' '}
                   <code>visibility</code> (defaults to <code>private</code>) and{' '}
-                  <code>initialize_with_readme</code> (defaults to <code>true</code>). The
+                  <code>initialize_with_readme</code> (defaults to <code>false</code>). The
                   provider&apos;s <code>parent_group_id</code> must be set.
                 </p>
               )}

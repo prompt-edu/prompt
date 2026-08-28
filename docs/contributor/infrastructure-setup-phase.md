@@ -85,6 +85,13 @@ saved:
 | GitLab | `parent_group_template` | **Required for `project`.** Names the team subgroup the project is created in. |
 | Outline | `group_name_template` | Optional. Display name of the group bound to the collection; defaults to the collection name. |
 
+Non-templated extra-config keys, passed through verbatim:
+
+| Provider | Key | Meaning |
+|---|---|---|
+| GitLab | `visibility` | Project visibility. Defaults to `private`. |
+| GitLab | `initialize_with_readme` | Create a first commit. Defaults to `false`; teams push their own repository. |
+
 Every other key stays literal, so a value such as Rancher's `roleTemplateId` can contain braces.
 
 ### GitLab groups and projects
@@ -108,10 +115,14 @@ exact path under the same parent, so a group config and a project config for the
 on one subgroup.
 
 Members are added to the **subgroup only**. GitLab group members inherit access to every project in
-the group, so per-project invitations would add nothing. Projects are created `private` explicitly
-(the instance-wide `default_project_visibility` may be public) and with
-`initialize_with_readme`, overridable through `visibility` and `initialize_with_readme` in extra
-config.
+the group, so per-project invitations would add nothing.
+
+Projects are created `private` explicitly, because the instance-wide
+`default_project_visibility` may be public, and with an **empty repository**: the phase provisions
+the project, the team pushes its own repository. An initial commit made here would give the project a
+default branch and a history the team's first push has to reconcile with. Set
+`initialize_with_readme: true` in extra config for a course that wants a starting commit, and
+`visibility` to override the default.
 
 ### Keycloak service account
 

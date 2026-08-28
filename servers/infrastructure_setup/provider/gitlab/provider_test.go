@@ -365,8 +365,12 @@ func TestGitLabCreatesProjectInTeamSubgroup(t *testing.T) {
 	if projectPayload["visibility"] != "private" {
 		t.Fatalf("visibility = %v, want private", projectPayload["visibility"])
 	}
-	if projectPayload["initialize_with_readme"] != true {
-		t.Fatalf("initialize_with_readme = %v, want true", projectPayload["initialize_with_readme"])
+	// The team pushes its own repository, so the project must be created empty: an
+	// initial commit here would give the project a history the first push has to
+	// reconcile with.
+	if _, present := projectPayload["initialize_with_readme"]; present {
+		t.Fatalf("initialize_with_readme = %v, want it absent so the repository stays empty",
+			projectPayload["initialize_with_readme"])
 	}
 	// The invitation must target the group, not the project.
 	for _, path := range rec.paths {
@@ -465,5 +469,41 @@ func TestGitLabRejectsUnknownResourceType(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("CreateResource = nil error, want an unsupported-resource-type rejection")
+	}
+}
+
+// A course that does want a starting commit can opt in through extra config.
+func TestGitLabInitializesProjectWhenAsked(t *testing.T) {
+	rec := &requestRecorder{}
+	var projectPayload map[string]interface{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			_, _ = w.Write([]byte(`[{"id":50,"path":"team-1","full_path":"c/team-1","web_url":"https://gitlab.test/g"}]`))
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/api/v4/projects/"):
+			w.WriteHeader(http.StatusNotFound)
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/projects":
+			_ = json.NewDecoder(r.Body).Decode(&projectPayload)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":77,"web_url":"https://gitlab.test/c/team-1/app"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:         "app",
+		ResourceType: "project",
+		ExtraConfig: map[string]interface{}{
+			"parent_group_template":  "team-1",
+			"initialize_with_readme": true,
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if projectPayload["initialize_with_readme"] != true {
+		t.Fatalf("initialize_with_readme = %v, want true when opted in", projectPayload["initialize_with_readme"])
 	}
 }

@@ -235,7 +235,7 @@ func TestOutlineSplitsGroupsPerPermission(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ok":true,"data":{"groups":[]}}`))
 		case "groups.create":
 			groupNames = append(groupNames, fmt.Sprint(payload["name"]))
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"ok":true,"data":{"id":"grp-%d"}}`, len(groupNames))))
+			_, _ = fmt.Fprintf(w, `{"ok":true,"data":{"id":"grp-%d"}}`, len(groupNames))
 		case "groups.add_user":
 			_, _ = w.Write([]byte(`{"ok":true}`))
 		case "collections.add_group":
@@ -354,8 +354,8 @@ func TestOutlineFindsCollectionOnLaterPage(t *testing.T) {
 				_, _ = w.Write([]byte(`{"ok":true,"data":[` + strings.Join(entries, ",") + `]}`))
 				return
 			}
-			_, _ = w.Write([]byte(fmt.Sprintf(
-				`{"ok":true,"data":[{"id":"col-42","name":"Team A","url":"/c/team-a","description":"prompt-key: %s"}]}`, stableKey)))
+			_, _ = fmt.Fprintf(w,
+				`{"ok":true,"data":[{"id":"col-42","name":"Team A","url":"/c/team-a","description":"prompt-key: %s"}]}`, stableKey)
 		case "groups.list":
 			_, _ = w.Write([]byte(`{"ok":true,"data":{"groups":[{"id":"grp-42","externalId":"` + stableKey + `:read"}]}}`))
 		case "users.list":

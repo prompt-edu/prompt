@@ -56,6 +56,12 @@ export const ResourceConfigPage = () => {
     .filter((p) => p.configured)
     .map((p) => p.providerType)
 
+  const outlineConfigs = (resourceConfigs ?? []).filter((c) => c.providerType === 'outline')
+  const keycloakScopes = new Set(
+    (resourceConfigs ?? []).filter((c) => c.providerType === 'keycloak').map((c) => c.scope),
+  )
+  const outlineWithoutKeycloak = outlineConfigs.filter((c) => !keycloakScopes.has(c.scope))
+
   return (
     <div className='space-y-4 p-6'>
       <div className='flex items-center justify-between'>
@@ -74,6 +80,29 @@ export const ResourceConfigPage = () => {
           {(providers ?? []).length === 0
             ? 'Add at least one provider before creating resource configurations.'
             : 'The providers on this phase have no credentials. Enter them on the Providers page before creating resource configurations.'}
+        </div>
+      )}
+
+      {outlineConfigs.length > 0 && (
+        <div className='rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900'>
+          <p className='font-medium'>How Outline access works</p>
+          <p className='mt-1'>
+            Keycloak signs the student in. Outline decides what they can see from its own group
+            membership, not from the login token, because Outline has no group synchronisation. On
+            each run PROMPT puts the same team members into the Keycloak group and into an Outline
+            group, and grants that group access to the collection. Nothing is synchronised
+            afterwards and no member is ever removed, so settle your teams before you provision.
+          </p>
+          {outlineWithoutKeycloak.length > 0 && (
+            <p className='mt-2'>
+              {outlineWithoutKeycloak.length === 1
+                ? 'One Outline configuration has'
+                : `${outlineWithoutKeycloak.length} Outline configurations have`}{' '}
+              no Keycloak group configuration at the same scope. The collections will still be
+              created and access granted through their Outline groups, but no matching Keycloak
+              group is provisioned.
+            </p>
+          )}
         </div>
       )}
 

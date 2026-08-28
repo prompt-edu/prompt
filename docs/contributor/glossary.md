@@ -168,8 +168,8 @@ Schedules individual or team presentations, stores slot-scoped materials, and co
 - Code: client `clients/presentation_component/`, server `servers/presentation/`
 ### Infrastructure Setup
 
-Provisions external resources for each team or student: GitLab groups, Slack channels,
-Outline collections, Rancher projects and Keycloak groups.
+Provisions external resources for each team or student: GitLab groups and projects, Slack
+channels, Outline collections, Rancher projects and Keycloak groups.
 
 - Provider Config (encrypted credentials), Resource Config (what to create), Resource
   Instance (one provisioned resource and its status)

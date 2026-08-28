@@ -98,8 +98,7 @@ export const ResourceConfigUpsertDialog = ({
     enabled: open && !!providerType,
   })
 
-  // Providers support exactly one kind today, so preselect it rather than making the
-  // lecturer open a single-entry dropdown.
+  // Preselect the first kind so a provider offering only one needs no interaction.
   useEffect(() => {
     if (resourceTypes.length > 0 && !resourceTypes.includes(resourceType)) {
       setResourceType(resourceTypes[0])
@@ -370,9 +369,27 @@ export const ResourceConfigUpsertDialog = ({
                 <p className='text-sm text-red-600'>JSON error: {extraConfigError}</p>
               )}
               <p className='text-xs text-muted-foreground'>
-                Provider-specific settings (e.g. Rancher <code>roleTemplateId</code>). Leave as{' '}
-                <code>{`{}`}</code> if not needed.
+                Provider-specific settings. Leave as <code>{`{}`}</code> if not needed. Most values
+                are literal; only the keys listed below are name templates and accept the same
+                variables as the name template.
               </p>
+              {providerType === 'gitlab' && resourceType === 'project' && (
+                <p className='text-xs text-muted-foreground'>
+                  <code>parent_group_template</code> (required) names the team subgroup the project
+                  is created in, e.g. <code>{`{{semesterTag}}-{{teamName}}`}</code>. Members are
+                  added to that subgroup and inherit access to every project in it. Optional:{' '}
+                  <code>visibility</code> (defaults to <code>private</code>) and{' '}
+                  <code>initialize_with_readme</code> (defaults to <code>true</code>). The
+                  provider&apos;s <code>parent_group_id</code> must be set.
+                </p>
+              )}
+              {providerType === 'outline' && (
+                <p className='text-xs text-muted-foreground'>
+                  <code>group_name_template</code> (optional) names the Outline group bound to the
+                  collection; it defaults to the collection name. Set it to the same template as
+                  your Keycloak group so both systems use one name.
+                </p>
+              )}
             </div>
           </div>
 

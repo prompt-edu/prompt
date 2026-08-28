@@ -69,6 +69,23 @@ func (suite *TimeframeServiceTestSuite) TestSetTimeframePersists() {
 	require.Equal(suite.T(), end.UTC().Truncate(time.Second), record.Endtime.Time.UTC().Truncate(time.Second))
 }
 
+func (suite *TimeframeServiceTestSuite) TestSetTimeframePreservesInstantForNonUTCZone() {
+	berlin, err := time.LoadLocation("Europe/Berlin")
+	require.NoError(suite.T(), err)
+
+	coursePhaseID := uuid.New()
+	start := time.Date(2026, 1, 15, 12, 34, 56, 123456000, berlin)
+	end := start.Add(2 * time.Hour)
+
+	err = SetTimeframe(suite.ctx, coursePhaseID, start, end)
+	require.NoError(suite.T(), err)
+
+	result, err := GetTimeframe(suite.ctx, coursePhaseID)
+	require.NoError(suite.T(), err)
+	require.True(suite.T(), start.Equal(result.StartTime))
+	require.True(suite.T(), end.Equal(result.EndTime))
+}
+
 func (suite *TimeframeServiceTestSuite) TestSetTimeframeValidatesRange() {
 	err := SetTimeframe(suite.ctx, uuid.New(), time.Now().UTC(), time.Now().UTC().Add(-time.Hour))
 	require.Error(suite.T(), err)

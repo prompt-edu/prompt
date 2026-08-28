@@ -70,7 +70,9 @@ func newGitLabServer(t *testing.T, rec *requestRecorder, handler func(w http.Res
 	t.Helper()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rec.paths = append(rec.paths, r.URL.Path+"?"+r.URL.RawQuery)
+		// RequestURI, not URL.Path: the server decodes %2F back to "/", which would hide
+		// whether a namespaced project path was encoded as GitLab requires.
+		rec.paths = append(rec.paths, r.RequestURI)
 		handler(w, r)
 	}))
 	t.Cleanup(server.Close)
@@ -312,5 +314,156 @@ func TestGitLabRejectsNameThatSanitizesToEmpty(t *testing.T) {
 
 	if _, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "---"}); err == nil {
 		t.Fatal("CreateResource returned no error for a name that sanitizes to an empty slug")
+	}
+}
+
+// A project is created inside the team subgroup named by parent_group_template, and the
+// members land on that subgroup rather than on the project: GitLab group members inherit
+// project access.
+func TestGitLabCreatesProjectInTeamSubgroup(t *testing.T) {
+	rec := &requestRecorder{}
+	var projectPayload map[string]interface{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			_, _ = w.Write([]byte(`[{"id":50,"path":"ios2526-team-1","full_path":"ios2526/ios2526-team-1","web_url":"https://gitlab.test/groups/ios2526/ios2526-team-1"}]`))
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/api/v4/projects/"):
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"404 Project Not Found"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/invitations"):
+			_, _ = w.Write([]byte(`{"status":"success"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/projects":
+			_ = json.NewDecoder(r.Body).Decode(&projectPayload)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":77,"web_url":"https://gitlab.test/ios2526/ios2526-team-1/app"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "app",
+		ResourceType:      "project",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "developer"},
+		ExtraConfig:       map[string]interface{}{"parent_group_template": "ios2526-team-1"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if resource.ExternalID != "77" {
+		t.Fatalf("externalID = %q, want the created project 77", resource.ExternalID)
+	}
+	if len(resource.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none", resource.Warnings)
+	}
+	if projectPayload["namespace_id"] != float64(50) {
+		t.Fatalf("namespace_id = %v, want the team subgroup 50", projectPayload["namespace_id"])
+	}
+	// Visibility must be explicit: the instance default may be public.
+	if projectPayload["visibility"] != "private" {
+		t.Fatalf("visibility = %v, want private", projectPayload["visibility"])
+	}
+	if projectPayload["initialize_with_readme"] != true {
+		t.Fatalf("initialize_with_readme = %v, want true", projectPayload["initialize_with_readme"])
+	}
+	// The invitation must target the group, not the project.
+	for _, path := range rec.paths {
+		if strings.Contains(path, "/api/v4/projects/77/invitations") {
+			t.Fatalf("members were invited per project (%q); group members already inherit access", path)
+		}
+	}
+}
+
+// An existing project is adopted, so a second run converges instead of failing on a
+// taken path.
+func TestGitLabAdoptsExistingProject(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/projects":
+			t.Errorf("unexpected project create: %s", r.URL)
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			_, _ = w.Write([]byte(`[{"id":50,"path":"ios2526-team-1","full_path":"ios2526/ios2526-team-1","web_url":"https://gitlab.test/g"}]`))
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/api/v4/projects/"):
+			_, _ = w.Write([]byte(`{"id":88,"web_url":"https://gitlab.test/ios2526/ios2526-team-1/app"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:         "app",
+		ResourceType: "project",
+		ExtraConfig:  map[string]interface{}{"parent_group_template": "ios2526-team-1"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if resource.ExternalID != "88" {
+		t.Fatalf("externalID = %q, want the adopted project 88", resource.ExternalID)
+	}
+	// The lookup must use the URL-encoded namespaced path as a single segment.
+	var looked string
+	for _, path := range rec.paths {
+		if strings.Contains(path, "/api/v4/projects/") {
+			looked = path
+		}
+	}
+	if !strings.Contains(looked, "ios2526-team-1%2Fapp") {
+		t.Fatalf("project lookup = %q, want the namespaced path URL-encoded", looked)
+	}
+}
+
+// Without a configured root parent group the project would land in the token owner's
+// personal namespace.
+func TestGitLabRejectsProjectWithoutParentGroup(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request expected: %s %s", r.Method, r.URL)
+	})
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:         "app",
+		ResourceType: "project",
+		ExtraConfig:  map[string]interface{}{"parent_group_template": "ios2526-team-1"},
+	})
+	if err == nil {
+		t.Fatal("CreateResource = nil error, want a rejection without parent_group_id")
+	}
+}
+
+// Without a team subgroup the project has no owning namespace, so the config is refused.
+func TestGitLabRejectsProjectWithoutParentGroupTemplate(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request expected: %s %s", r.Method, r.URL)
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:         "app",
+		ResourceType: "project",
+	})
+	if err == nil {
+		t.Fatal("CreateResource = nil error, want a rejection without parent_group_template")
+	}
+}
+
+// An unknown resource type must be refused, never silently treated as a group.
+func TestGitLabRejectsUnknownResourceType(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("no request expected for an unknown resource type: %s %s", r.Method, r.URL)
+	})
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:         "team-a",
+		ResourceType: "repository",
+	})
+	if err == nil {
+		t.Fatal("CreateResource = nil error, want an unsupported-resource-type rejection")
 	}
 }

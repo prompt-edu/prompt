@@ -1,5 +1,5 @@
-// Package gitlab implements the Provider interface for GitLab group management.
-// It uses the GitLab REST API v4 with a personal access token.
+// Package gitlab implements the Provider interface for GitLab group and project
+// management. It uses the GitLab REST API v4 with a personal access token.
 package gitlab
 
 import (
@@ -19,6 +19,22 @@ import (
 
 // gitlabPageSize is GitLab's maximum per_page value.
 const gitlabPageSize = 100
+
+const (
+	resourceTypeGroup   = "group"
+	resourceTypeProject = "project"
+
+	// extraKeyParentGroupTemplate names the team subgroup a project is created in.
+	extraKeyParentGroupTemplate = "parent_group_template"
+	// extraKeyVisibility overrides the visibility of a created project.
+	extraKeyVisibility = "visibility"
+	// extraKeyInitializeWithReadme controls whether a created project gets a first commit.
+	extraKeyInitializeWithReadme = "initialize_with_readme"
+
+	// defaultProjectVisibility is set explicitly rather than relying on the instance's
+	// default_project_visibility setting, which an administrator may have set to public.
+	defaultProjectVisibility = "private"
+)
 
 // Config holds the credentials for the GitLab provider.
 type Config struct {
@@ -53,7 +69,7 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 	}
 }
 
-func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} }
+func (p *Provider) SupportedResourceTypes() []string { return []string{"group", "project"} }
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return []string{"parent_group_template"} }
 
@@ -79,20 +95,104 @@ func (p *Provider) parentGroupID() (int, bool, error) {
 	return id, true, nil
 }
 
-// CreateResource creates a GitLab group with the given name and adds members.
-// It is idempotent: if a group with the same full_path already exists, it is reused.
+// CreateResource creates the requested GitLab resource and adds members.
+// It is idempotent: an existing resource of the same path is reused.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
+	switch input.ResourceType {
+	case "", resourceTypeGroup:
+		return p.createGroup(ctx, input)
+	case resourceTypeProject:
+		return p.createProject(ctx, input)
+	default:
+		// Never fall through to group creation: a mis-typed resource type would create a
+		// group named after the project template and report it as a success.
+		return nil, fmt.Errorf("gitlab: unsupported resource type %q (supported: %s, %s)",
+			input.ResourceType, resourceTypeGroup, resourceTypeProject)
+	}
+}
+
+func (p *Provider) createGroup(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	name := sanitizeName(input.Name)
 	slug := toSlug(name)
 	if slug == "" {
 		return nil, fmt.Errorf("gitlab: resource name %q sanitizes to an empty group path", input.Name)
 	}
 
-	groupID, groupURL, err := p.findOrCreateGroup(ctx, name, slug)
+	parentID, hasParent, err := p.parentGroupID()
 	if err != nil {
 		return nil, err
 	}
 
+	groupID, groupURL, err := p.findOrCreateGroup(ctx, name, slug, parentID, hasParent)
+	if err != nil {
+		return nil, err
+	}
+
+	return &provider.Resource{
+		ExternalID:  strconv.Itoa(groupID),
+		ExternalURL: groupURL,
+		Warnings:    p.addMembers(ctx, groupID, input),
+	}, nil
+}
+
+// createProject creates the team's subgroup and a project inside it.
+//
+// The subgroup is an explicit side effect of a project resource rather than a tracked
+// dependency: instances carry no ordering, so a project cannot wait for a separately
+// configured group row. Both paths adopt by exact path under the same parent, so a
+// project config and a group config for the same team converge on one subgroup.
+//
+// Members are granted access on the subgroup only. GitLab group members inherit access
+// to every project in the group, so per-project invitations would add nothing.
+func (p *Provider) createProject(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
+	projectName := sanitizeName(input.Name)
+	projectSlug := toSlug(projectName)
+	if projectSlug == "" {
+		return nil, fmt.Errorf("gitlab: resource name %q sanitizes to an empty project path", input.Name)
+	}
+
+	parentID, hasParent, err := p.parentGroupID()
+	if err != nil {
+		return nil, err
+	}
+	// Without a configured root group the project would land in the token owner's
+	// personal namespace, or create a top-level group most instances forbid.
+	if !hasParent {
+		return nil, fmt.Errorf("gitlab: a project resource requires the provider's parent_group_id to be set")
+	}
+
+	groupTemplate, _ := input.ExtraConfig[extraKeyParentGroupTemplate].(string)
+	groupName := sanitizeName(groupTemplate)
+	groupSlug := toSlug(groupName)
+	if groupSlug == "" {
+		return nil, fmt.Errorf("gitlab: a project resource requires extra config %q, naming the team subgroup to create the project in",
+			extraKeyParentGroupTemplate)
+	}
+
+	groupID, _, err := p.findOrCreateGroup(ctx, groupName, groupSlug, parentID, hasParent)
+	if err != nil {
+		return nil, err
+	}
+
+	// Everything below happens after the subgroup exists, so a failure is reported as a
+	// warning and the instance stays retryable rather than losing the group.
+	warnings := p.addMembers(ctx, groupID, input)
+
+	projectID, projectURL, err := p.findOrCreateProject(ctx, groupID, groupSlug, projectName, projectSlug, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &provider.Resource{
+		ExternalID:  strconv.Itoa(projectID),
+		ExternalURL: projectURL,
+		Warnings:    warnings,
+	}, nil
+}
+
+// addMembers grants every member access to a group, reporting per-member failures as
+// warnings so the instance becomes partial rather than failing outright.
+func (p *Provider) addMembers(ctx context.Context, groupID int, input provider.CreateResourceInput) []string {
 	var warnings []string
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
@@ -109,12 +209,7 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
 		}
 	}
-
-	return &provider.Resource{
-		ExternalID:  fmt.Sprintf("%d", groupID),
-		ExternalURL: groupURL,
-		Warnings:    warnings,
-	}, nil
+	return warnings
 }
 
 // findOrCreateGroup returns the group ID and URL for a group, creating it if necessary.
@@ -122,12 +217,7 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 // With a parent configured we search that parent's subgroups and compare the path
 // exactly. Matching on a full_path suffix across all visible groups would also match
 // another course's group of the same name and add students to it.
-func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string) (int, string, error) {
-	parentID, hasParent, err := p.parentGroupID()
-	if err != nil {
-		return 0, "", err
-	}
-
+func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, parentID int, hasParent bool) (int, string, error) {
 	if id, webURL, found, err := p.findGroup(ctx, slug, parentID, hasParent); err != nil {
 		return 0, "", err
 	} else if found {
@@ -209,6 +299,90 @@ func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, has
 			return 0, "", false, nil
 		}
 	}
+}
+
+// findOrCreateProject returns the project ID and web URL, creating the project if it
+// does not exist yet.
+//
+// Existence is decided by an exact lookup on the namespaced path rather than by parsing
+// the create error. GitLab's duplicate-path response is the least specified part of the
+// surface: create answers 400 with a field-keyed message map, while the fork endpoint
+// answers 409 with a flat array of sentences. The create error is only used as a signal
+// to re-run the exact lookup.
+func (p *Provider) findOrCreateProject(ctx context.Context, groupID int, groupSlug, projectName, projectSlug string, input provider.CreateResourceInput) (int, string, error) {
+	fullPath := groupSlug + "/" + projectSlug
+
+	if id, webURL, found, err := p.findProject(ctx, fullPath); err != nil {
+		return 0, "", err
+	} else if found {
+		return id, webURL, nil
+	}
+
+	payload := map[string]interface{}{
+		"name":         projectName,
+		"path":         projectSlug,
+		"namespace_id": groupID,
+		"visibility":   projectVisibility(input.ExtraConfig),
+	}
+	if initializeWithReadme(input.ExtraConfig) {
+		payload["initialize_with_readme"] = true
+	}
+
+	body, err := p.post(ctx, "/api/v4/projects", payload)
+	if err != nil {
+		// A concurrent run may have taken the path. Re-resolve rather than reporting a
+		// failure the retry would only repeat.
+		if id, webURL, found, findErr := p.findProject(ctx, fullPath); findErr == nil && found {
+			return id, webURL, nil
+		}
+		return 0, "", err
+	}
+
+	var created struct {
+		ID     int    `json:"id"`
+		WebURL string `json:"web_url"`
+	}
+	if err := json.Unmarshal(body, &created); err != nil {
+		return 0, "", err
+	}
+	return created.ID, created.WebURL, nil
+}
+
+// findProject resolves a project by its namespaced path. The path has to be URL-encoded
+// as a single segment, so every "/" becomes "%2F".
+func (p *Provider) findProject(ctx context.Context, fullPath string) (int, string, bool, error) {
+	body, err := p.get(ctx, "/api/v4/projects/"+url.PathEscape(fullPath))
+	if err != nil {
+		if strings.Contains(err.Error(), "HTTP 404") {
+			return 0, "", false, nil
+		}
+		return 0, "", false, err
+	}
+
+	var found struct {
+		ID     int    `json:"id"`
+		WebURL string `json:"web_url"`
+	}
+	if err := json.Unmarshal(body, &found); err != nil {
+		return 0, "", false, err
+	}
+	return found.ID, found.WebURL, true, nil
+}
+
+func projectVisibility(extra map[string]interface{}) string {
+	if value, ok := extra[extraKeyVisibility].(string); ok && strings.TrimSpace(value) != "" {
+		return strings.TrimSpace(value)
+	}
+	return defaultProjectVisibility
+}
+
+// initializeWithReadme defaults to true so the repository is usable straight away;
+// GitLab's own default leaves it without a branch.
+func initializeWithReadme(extra map[string]interface{}) bool {
+	if value, ok := extra[extraKeyInitializeWithReadme].(bool); ok {
+		return value
+	}
+	return true
 }
 
 // addMember invites a user to a GitLab group by email.

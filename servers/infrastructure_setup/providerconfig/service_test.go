@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
@@ -169,23 +170,43 @@ func TestValidateUpsertRequestAcceptsValidCredentials(t *testing.T) {
 }
 
 func TestSupportedResourceTypes(t *testing.T) {
-	for providerType, want := range map[string]string{
-		"gitlab":   "group",
-		"slack":    "channel",
-		"outline":  "collection",
-		"rancher":  "project",
-		"keycloak": "group",
+	for providerType, want := range map[string][]string{
+		"gitlab":   {"group", "project"},
+		"slack":    {"channel"},
+		"outline":  {"collection"},
+		"rancher":  {"project"},
+		"keycloak": {"group"},
 	} {
 		got, err := SupportedResourceTypes(providerType)
 		if err != nil {
 			t.Fatalf("SupportedResourceTypes(%q): %v", providerType, err)
 		}
-		if len(got) != 1 || got[0] != want {
-			t.Fatalf("SupportedResourceTypes(%q) = %v, want [%s]", providerType, got, want)
+		if !slices.Equal(got, want) {
+			t.Fatalf("SupportedResourceTypes(%q) = %v, want %v", providerType, got, want)
 		}
 	}
 
 	if _, err := SupportedResourceTypes("unknown"); err == nil {
 		t.Fatal("SupportedResourceTypes returned no error for an unknown provider")
+	}
+}
+
+// Only the keys a provider actually treats as templates may be resolved; anything else
+// would change the meaning of a literal provider setting.
+func TestTemplatedExtraConfigKeys(t *testing.T) {
+	for providerType, want := range map[string][]string{
+		"gitlab":   {"parent_group_template"},
+		"outline":  {"group_name_template"},
+		"slack":    nil,
+		"rancher":  nil,
+		"keycloak": nil,
+	} {
+		got, err := TemplatedExtraConfigKeys(providerType)
+		if err != nil {
+			t.Fatalf("TemplatedExtraConfigKeys(%q): %v", providerType, err)
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("TemplatedExtraConfigKeys(%q) = %v, want %v", providerType, got, want)
+		}
 	}
 }

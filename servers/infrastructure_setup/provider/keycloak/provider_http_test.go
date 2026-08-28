@@ -171,3 +171,46 @@ func TestKeycloakReportsUnknownUserAsWarning(t *testing.T) {
 		t.Fatalf("warnings = %v, want one for the unknown user", resource.Warnings)
 	}
 }
+
+// A service account that can sign in but cannot create groups must be rejected during
+// validation. Neither a realm read nor a group read proves the write permission, so this
+// used to validate cleanly and then fail every instance with 403 at provisioning time.
+func TestKeycloakValidationRejectsServiceAccountThatCannotManageGroups(t *testing.T) {
+	// resource_access.realm-management.roles = ["view-users"]
+	readOnly := "h.eyJyZXNvdXJjZV9hY2Nlc3MiOiB7InJlYWxtLW1hbmFnZW1lbnQiOiB7InJvbGVzIjogWyJ2aWV3LXVzZXJzIl19fX0.s"
+
+	err := checkGroupPermissions(readOnly)
+	if err == nil {
+		t.Fatal("checkGroupPermissions = nil, want a rejection for a token without manage-users")
+	}
+	if !strings.Contains(err.Error(), "manage-users") {
+		t.Fatalf("error = %v, want it to name the role to grant", err)
+	}
+}
+
+func TestKeycloakValidationAcceptsSufficientRoles(t *testing.T) {
+	tokens := map[string]string{
+		// ["manage-users","view-users"]
+		"manage-users": "h.eyJyZXNvdXJjZV9hY2Nlc3MiOiB7InJlYWxtLW1hbmFnZW1lbnQiOiB7InJvbGVzIjogWyJtYW5hZ2UtdXNlcnMiLCAidmlldy11c2VycyJdfX19.s",
+		// ["realm-admin"]
+		"realm-admin": "h.eyJyZXNvdXJjZV9hY2Nlc3MiOiB7InJlYWxtLW1hbmFnZW1lbnQiOiB7InJvbGVzIjogWyJyZWFsbS1hZG1pbiJdfX19.s",
+	}
+	for name, token := range tokens {
+		if err := checkGroupPermissions(token); err != nil {
+			t.Fatalf("checkGroupPermissions with %s: %v", name, err)
+		}
+	}
+}
+
+// A Keycloak that does not put client roles in the token must not be reported as
+// misconfigured: absence of the claim is not evidence of a missing role.
+func TestKeycloakValidationAcceptsTokenWithoutRoleClaim(t *testing.T) {
+	for _, token := range []string{
+		"h.eyJzdWIiOiAiYWJjIn0.s", // no resource_access at all
+		"not-a-jwt",
+	} {
+		if err := checkGroupPermissions(token); err != nil {
+			t.Fatalf("checkGroupPermissions(%q) = %v, want no error", token, err)
+		}
+	}
+}

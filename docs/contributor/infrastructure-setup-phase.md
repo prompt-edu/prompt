@@ -66,7 +66,7 @@ servers/infrastructure_setup/
 | Slack | `channel` | `bot_token` | Creates private channels. Requests are form-encoded, which is what the Web API documents for its read methods. |
 | Outline | `collection` | `api_key`, optional `base_url` | Creates a **private** collection and grants access through a bound group. See [Outline access](#outline-access). |
 | Rancher | `project` | `rancher_url`, `access_key`, `secret_key`, `cluster_id` | Users are resolved through the principals search endpoint and confirmed against the requested address; the returned principal ID is used as-is. |
-| Keycloak | `group` | `keycloak_url`, `realm`, `client_id`, `client_secret` | The service account needs `manage-groups` and `view-users`, not `realm-admin`. Realm users only exist after their first sign-in, so a fresh cohort commonly lands `partial` until the students have logged in once. |
+| Keycloak | `group` | `keycloak_url`, `realm`, `client_id`, `client_secret` | The service account needs the `realm-management` roles **`manage-users`** and **`view-users`**, not `realm-admin`. Realm users only exist after their first sign-in, so a fresh cohort commonly lands `partial` until the students have logged in once. |
 
 All providers are **idempotent**: a re-run adopts what already exists rather than creating a
 duplicate. Adoption is by exact name or path within a scope the course owns, except for Outline,
@@ -112,6 +112,24 @@ the group, so per-project invitations would add nothing. Projects are created `p
 (the instance-wide `default_project_visibility` may be public) and with
 `initialize_with_readme`, overridable through `visibility` and `initialize_with_readme` in extra
 config.
+
+### Keycloak service account
+
+Create a confidential client in the realm with **Service accounts** enabled, then grant its
+service-account user these `realm-management` client roles:
+
+| Role | Why |
+|---|---|
+| `manage-users` | Creating a group and adding a member to it. There is **no** `manage-groups` role; group writes sit under `manage-users`. |
+| `view-users` | Resolving a member's email to a user ID. |
+
+`realm-admin` also works but grants far more than the phase needs.
+
+Validating the credentials checks both that the client can obtain a token and that the token
+carries one of those roles, so a service account that can sign in but cannot create groups is
+reported when the credentials are saved rather than as a 403 on every instance during a run.
+
+Verified against Keycloak 26.6.3: with `view-users` alone, group creation answers 403.
 
 ### Outline access
 

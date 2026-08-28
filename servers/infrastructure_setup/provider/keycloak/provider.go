@@ -2,12 +2,14 @@
 // It uses the Keycloak Admin REST API with client_credentials authentication.
 //
 // Security note: The service account client must be granted ONLY the
-// manage-groups and view-users realm roles — NOT realm-admin.
+// manage-users and view-users realm-management roles, NOT realm-admin. There is no
+// manage-groups role: group writes sit under manage-users.
 package keycloak
 
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -59,7 +61,7 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 		{Name: "realm", Label: "Realm", Type: "text", Required: true,
 			Description: "Keycloak realm name"},
 		{Name: "client_id", Label: "Client ID", Type: "text", Required: true,
-			Description: "Service account client ID with manage-groups and view-users roles"},
+			Description: "Service account client ID with the manage-users and view-users realm-management roles"},
 		{Name: "client_secret", Label: "Client Secret", Type: "password", Required: true,
 			Description: "Service account client secret"},
 	}
@@ -88,15 +90,63 @@ func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == http.StatusOK {
+	// 403 means the token is valid but lacks realm-admin, which is expected and fine.
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusForbidden {
+		body, _ := io.ReadAll(resp.Body)
+		return provider.HTTPError("keycloak", http.MethodGet, "validate realm", resp.StatusCode, body)
+	}
+
+	return checkGroupPermissions(token)
+}
+
+// checkGroupPermissions reports a service account that can authenticate but cannot manage
+// groups.
+//
+// Neither a realm read nor a group read proves the account can create a group, so
+// validation used to pass for a token that then answered 403 on every instance. The
+// granted client roles are in the token itself, so the check costs no request. It only
+// fails when the claim is present and lacks a sufficient role: a Keycloak that does not
+// put client roles in the token must not be reported as misconfigured.
+func checkGroupPermissions(token string) error {
+	roles, ok := realmManagementRoles(token)
+	if !ok {
 		return nil
 	}
-	if resp.StatusCode == http.StatusForbidden {
-		// Token is valid but lacks realm-admin; that is expected and acceptable.
-		return nil
+	for _, role := range roles {
+		if role == "manage-users" || role == "realm-admin" {
+			return nil
+		}
 	}
-	body, _ := io.ReadAll(resp.Body)
-	return provider.HTTPError("keycloak", http.MethodGet, "validate realm", resp.StatusCode, body)
+	return fmt.Errorf(
+		"keycloak: the service account can sign in but has none of the realm-management roles needed to create groups; grant manage-users (and view-users, to resolve members by email)")
+}
+
+// realmManagementRoles extracts resource_access["realm-management"].roles from the access
+// token. The token was just issued by Keycloak over the configured connection and is only
+// read for a capability hint, so the signature is not re-verified here.
+func realmManagementRoles(token string) ([]string, bool) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, false
+	}
+
+	var claims struct {
+		ResourceAccess map[string]struct {
+			Roles []string `json:"roles"`
+		} `json:"resource_access"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, false
+	}
+	access, present := claims.ResourceAccess["realm-management"]
+	if !present {
+		return nil, false
+	}
+	return access.Roles, true
 }
 
 // CreateResource creates a Keycloak group and adds members.

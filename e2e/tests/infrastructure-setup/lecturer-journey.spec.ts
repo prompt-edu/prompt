@@ -86,6 +86,30 @@ test.describe('infrastructure setup: lecturer journey', () => {
     })
     expect(badResourceType.status).toBe(400)
 
+    // A templated extra-config value is validated like a name template, so an
+    // unresolvable placeholder cannot reach a real GitLab namespace during a run.
+    const badParentGroupTemplate = await createResourceConfigRaw(PHASE_ID, {
+      providerType: 'gitlab',
+      resourceType: 'project',
+      scope: 'per_student',
+      nameTemplate: '{{semesterTag}}-{{studentLogin}}-app',
+      permissionMapping: { student: 'developer' },
+      resourceExtraConfig: { parent_group_template: '{{unknownPlaceholder}}' },
+    })
+    expect(badParentGroupTemplate.status).toBe(400)
+
+    // GitLab projects are a supported kind now, so a well-formed project config is
+    // accepted alongside the group one.
+    const projectConfig = await createResourceConfigRaw(PHASE_ID, {
+      providerType: 'gitlab',
+      resourceType: 'project',
+      scope: 'per_student',
+      nameTemplate: '{{semesterTag}}-{{studentLogin}}-app',
+      permissionMapping: { student: 'developer' },
+      resourceExtraConfig: { parent_group_template: '{{semesterTag}}-{{studentLogin}}' },
+    })
+    expect(projectConfig.status).toBe(201)
+
     await createStudentResourceConfig(PHASE_ID, '{{semesterTag}}-{{studentLogin}}')
 
     // 5. The phase now reports itself ready.

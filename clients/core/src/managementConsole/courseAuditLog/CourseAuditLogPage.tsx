@@ -1,25 +1,24 @@
 import { useCourseAuditLog } from '@core/network/hooks/useAuditLog'
 import { AuditLogView } from '@managementConsole/auditLog/AuditLogView'
-import type { AuditLogFilters } from '@managementConsole/auditLog/interfaces/auditLog'
-import { useState } from 'react'
+import { AUDIT_PAGE_SIZE } from '@managementConsole/auditLog/auditLogPaging'
+import { useAuditLogBrowser } from '@managementConsole/auditLog/useAuditLogBrowser'
 import { useParams } from 'react-router-dom'
 
 export const CourseAuditLogPage = () => {
   const { courseId } = useParams<{ courseId: string }>()
-  const [filters, setFilters] = useState<AuditLogFilters>({})
-  const query = useCourseAuditLog(courseId, filters)
+  const { filters, cursor, onFiltersChange, navigation } = useAuditLogBrowser()
+  const query = useCourseAuditLog(courseId, filters, AUDIT_PAGE_SIZE, cursor)
 
   return (
     <AuditLogView
       title='Audit Log'
-      pages={query.data?.pages}
+      page={query.data}
       isLoading={query.isLoading}
       isError={query.isError}
-      hasNextPage={!!query.hasNextPage}
-      isFetchingNextPage={query.isFetchingNextPage}
-      onLoadMore={() => query.fetchNextPage()}
+      isFetching={query.isFetching}
       filters={filters}
-      onFiltersChange={setFilters}
+      onFiltersChange={onFiltersChange}
+      {...navigation(query.data?.nextCursor)}
     />
   )
 }

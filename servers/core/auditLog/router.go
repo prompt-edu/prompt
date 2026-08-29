@@ -32,6 +32,7 @@ func setupAuditLogStatusRoute(api *gin.RouterGroup) {
 // @Summary Audit log status
 // @Description Reports whether audit logging is enabled for this deployment.
 // @Tags auditLog
+// @Security BearerAuth
 // @Produce json
 // @Success 200 {object} auditLogDTO.AuditLogStatus
 // @Router /audit-log/status [get]

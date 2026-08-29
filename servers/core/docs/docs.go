@@ -1374,6 +1374,11 @@ const docTemplate = `{
         },
         "/audit-log/status": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Reports whether audit logging is enabled for this deployment.",
                 "produces": [
                     "application/json"

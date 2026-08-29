@@ -5,7 +5,7 @@ import { AUDIT_PAGE_SIZE } from '@managementConsole/auditLog/auditLogPaging'
 import { useAuditLogBrowser } from '@managementConsole/auditLog/useAuditLogBrowser'
 
 export const AdminAuditLogPage = () => {
-  const { data: status, isPending: isStatusPending } = useAuditLogStatus()
+  const { data: status, isPending: isStatusPending, isError: isStatusError } = useAuditLogStatus()
   const auditLogEnabled = status?.enabled ?? false
   const { filters, cursor, onFiltersChange, navigation } = useAuditLogBrowser()
   const query = useGlobalAuditLog(filters, AUDIT_PAGE_SIZE, cursor, auditLogEnabled)
@@ -14,9 +14,9 @@ export const AdminAuditLogPage = () => {
     <AuditLogView
       title='Audit Log'
       page={query.data}
-      isDisabled={!isStatusPending && !auditLogEnabled}
+      isDisabled={status?.enabled === false}
       isLoading={isStatusPending || query.isLoading}
-      isError={query.isError}
+      isError={isStatusError || query.isError}
       isFetching={query.isFetching}
       filters={filters}
       onFiltersChange={onFiltersChange}

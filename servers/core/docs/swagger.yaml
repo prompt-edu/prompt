@@ -2944,6 +2944,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/auditLogDTO.AuditLogStatus'
+      security:
+      - BearerAuth: []
       summary: Audit log status
       tags:
       - auditLog

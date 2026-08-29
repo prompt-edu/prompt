@@ -7,7 +7,7 @@ import { useParams } from 'react-router-dom'
 
 export const CourseAuditLogPage = () => {
   const { courseId } = useParams<{ courseId: string }>()
-  const { data: status, isPending: isStatusPending } = useAuditLogStatus()
+  const { data: status, isPending: isStatusPending, isError: isStatusError } = useAuditLogStatus()
   const auditLogEnabled = status?.enabled ?? false
   const { filters, cursor, onFiltersChange, navigation } = useAuditLogBrowser()
   const query = useCourseAuditLog(courseId, filters, AUDIT_PAGE_SIZE, cursor, auditLogEnabled)
@@ -16,9 +16,9 @@ export const CourseAuditLogPage = () => {
     <AuditLogView
       title='Audit Log'
       page={query.data}
-      isDisabled={!isStatusPending && !auditLogEnabled}
+      isDisabled={status?.enabled === false}
       isLoading={isStatusPending || query.isLoading}
-      isError={query.isError}
+      isError={isStatusError || query.isError}
       isFetching={query.isFetching}
       filters={filters}
       onFiltersChange={onFiltersChange}

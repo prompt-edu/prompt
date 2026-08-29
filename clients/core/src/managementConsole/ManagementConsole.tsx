@@ -14,6 +14,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import React, { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { RequireAuth } from '../keycloak/RequireAuth'
 import { useKeycloak } from '../keycloak/useKeycloak'
 import { getAllCourses } from '../network/queries/course'
 import { Breadcrumbs } from './layout/Breadcrumbs/Breadcrumbs'
@@ -22,8 +23,14 @@ import { NavUserMenu } from './layout/Sidebar/CourseSwitchSidebar/components/Nav
 import CourseNotFound from './shared/components/CourseNotFound'
 import { EmptyPage } from './shared/components/EmptyPage'
 
-export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => {
-  const { keycloak, logout } = useKeycloak()
+export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => (
+  <RequireAuth>
+    <ManagementConsole>{children}</ManagementConsole>
+  </RequireAuth>
+)
+
+const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
+  const { logout } = useKeycloak()
   const { user, permissions } = useAuthStore()
   const { courseId } = useParams<{ courseId: string }>()
   const hasChildren = React.Children.count(children) > 0
@@ -47,7 +54,6 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
   } = useQuery<Course[]>({
     queryKey: ['courses'],
     queryFn: () => getAllCourses(),
-    enabled: !!keycloak,
   })
 
   // getting the course ids of the course a user is enrolled in
@@ -59,14 +65,13 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
   } = useQuery<string[]>({
     queryKey: ['own_courses'],
     queryFn: () => getOwnCourseIDs(),
-    enabled: !!keycloak,
   })
 
   const refetch = () => {
     refetchOwnCourseIds()
     refetchCourses()
   }
-  const isLoading = !(keycloak && user) || isPending || isOwnCourseIdPending
+  const isLoading = !user || isPending || isOwnCourseIdPending
   const isError = isCourseError || isOwnCourseIdError
   const courseExists = fetchedCourses?.some((course) => course.id === courseId)
 
@@ -126,7 +131,7 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
     return <ErrorPage onRetry={() => refetch()} onLogout={() => logout()} />
   }
 
-  if (isLoading || !keycloak) {
+  if (isLoading) {
     return (
       <DarkModeProvider>
         <LoadingPage />

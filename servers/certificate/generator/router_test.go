@@ -18,6 +18,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	"github.com/prompt-edu/prompt/servers/certificate/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -29,6 +30,7 @@ type GeneratorRouterTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
+	service         *GeneratorService
 }
 
 func (s *GeneratorRouterTestSuite) SetupSuite() {
@@ -42,17 +44,18 @@ func (s *GeneratorRouterTestSuite) SetupSuite() {
 	_, mockCoreCleanup := testutils.SetupMockCoreService()
 	s.mockCoreCleanup = mockCoreCleanup
 
-	// Initialize config service singleton (needed by generator)
-	config.ConfigServiceSingleton = config.NewConfigService(*testDB.Queries, testDB.Conn)
-
-	GeneratorServiceSingleton = &GeneratorService{
-		queries: *testDB.Queries,
+	coreURL := "http://localhost:8080"
+	if val, ok := os.LookupEnv("SERVER_CORE_HOST"); ok {
+		coreURL = val
 	}
+
+	participantsService := participants.NewParticipantsService(*testDB.Queries, coreURL)
+	s.service = NewGeneratorService(*testDB.Queries, config.NewConfigService(*testDB.Queries), participantsService, participantsService)
 
 	gin.SetMode(gin.TestMode)
 	s.router = gin.Default()
 	api := s.router.Group("/api/course_phase/:coursePhaseID")
-	setupGeneratorRouter(api, sdkTestUtils.MockPermissionMiddleware)
+	RegisterRoutes(api, s.service, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (s *GeneratorRouterTestSuite) TearDownSuite() {
@@ -98,7 +101,7 @@ func (s *GeneratorRouterTestSuite) TestGetCertificateStatus_InvalidCoursePhaseID
 func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	config, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
+	config, err := s.service.getTemplateConfig(s.newGinContext(), coursePhaseID)
 	assert.NoError(s.T(), err)
 	assert.True(s.T(), config.TemplateContent.Valid)
 	assert.NotEmpty(s.T(), config.TemplateContent.String)
@@ -108,7 +111,7 @@ func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithoutTemplate() {
 	// Phase 2 exists but has NULL template
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
 
-	_, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
+	_, err := s.service.getTemplateConfig(s.newGinContext(), coursePhaseID)
 	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
@@ -116,7 +119,7 @@ func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_NonExistent() {
 	// A missing config row is "not configured", not a genuine query error
 	nonExistentID := uuid.New()
 
-	_, err := getTemplateConfig(s.newGinContext(), nonExistentID)
+	_, err := s.service.getTemplateConfig(s.newGinContext(), nonExistentID)
 	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
@@ -125,7 +128,7 @@ func (s *GeneratorRouterTestSuite) TestRecordCertificateDownload_Upsert() {
 	studentID := uuid.New()
 
 	// First download
-	d1, err := GeneratorServiceSingleton.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
+	d1, err := s.service.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -133,7 +136,7 @@ func (s *GeneratorRouterTestSuite) TestRecordCertificateDownload_Upsert() {
 	assert.Equal(s.T(), int32(1), d1.DownloadCount)
 
 	// Second download increments
-	d2, err := GeneratorServiceSingleton.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
+	d2, err := s.service.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -145,7 +148,7 @@ func (s *GeneratorRouterTestSuite) TestGetCertificateDownload_ExistingRecord() {
 	studentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	download, err := GeneratorServiceSingleton.queries.GetCertificateDownload(s.suiteCtx, db.GetCertificateDownloadParams{
+	download, err := s.service.queries.GetCertificateDownload(s.suiteCtx, db.GetCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})

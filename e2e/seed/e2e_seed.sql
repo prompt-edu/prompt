@@ -788,7 +788,7 @@ INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 
 -- formed there never collide with the student journey's phase when Playwright
 -- runs the two spec files in parallel workers.
 INSERT INTO public.course_phase VALUES ('aaaa4444-0000-0000-0000-0000000000a4', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation Overview', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
-INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 -- Standalone import-mode Application phase on fullCourse (no graph edge, reach by API). Non-initial
 -- because fullCourse already has an initial Application phase (unique_initial_phase_per_course), and
 -- the import endpoint keys off the phase type, not is_initial_phase. applicationMode=import closes

@@ -19,4 +19,15 @@ const TEST_ENV = {
   SENTRY_DSN_CLIENT: 'http://sentry.test',
 }
 
-Object.assign(globalThis, { window: { env: TEST_ENV } })
+const memoryStorage = new Map<string, string>()
+
+// Node exposes localStorage behind a flag, and reading the global warns; the shared axios instance
+// checks for it on every request
+const localStorageStub = {
+  getItem: (key: string) => memoryStorage.get(key) ?? null,
+  setItem: (key: string, value: string) => memoryStorage.set(key, value),
+  removeItem: (key: string) => memoryStorage.delete(key),
+  clear: () => memoryStorage.clear(),
+}
+
+Object.assign(globalThis, { window: { env: TEST_ENV }, localStorage: localStorageStub })

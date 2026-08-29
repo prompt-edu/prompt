@@ -9,13 +9,11 @@ import {
 import { Download } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import type { AssessmentExportFormat } from '../../../network/api'
+import { assessmentApi } from '../../../network/api'
 
-import {
-  type AssessmentExportFormat,
-  exportStudentAssessment,
-  triggerTextDownload,
-} from '../../../network/queries/exportStudentAssessment'
 import { printPage } from '../../utils/printPage'
+import { triggerTextDownload } from '../../utils/triggerTextDownload'
 
 interface ExportType {
   label: string
@@ -48,7 +46,7 @@ export const AssessmentExportMenu = () => {
 
     setIsExporting(true)
     try {
-      const exportData = await exportStudentAssessment(
+      const exportData = await assessmentApi.assessments.export(
         phaseId,
         courseParticipationID,
         exportType.format,

@@ -21,4 +21,7 @@ owned per component, and this repository holds no primitives of its own.
   `DatePicker`, `DeleteConfirmation`). See `shared-libraries.md`. Reuse before installing/building.
 - **Styling:** compose classes with `cn` (clsx + tailwind-merge); use Tailwind v4 tokens, not
   hard-coded colors. Keep Radix accessibility props intact; don't strip `aria-*`/`role`.
+- **One Tailwind build.** `clients/core` compiles the only stylesheet and scans every component
+  directory; a `*_component` never declares a Tailwind entry point. See the styling section of
+  `../module-federation/remotes.md`.
 - For the full workflow use the `add-shared-ui-component` skill.

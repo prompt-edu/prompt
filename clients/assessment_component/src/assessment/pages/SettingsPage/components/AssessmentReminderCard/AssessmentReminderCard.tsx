@@ -16,13 +16,13 @@ import {
 import type { AxiosError } from 'axios'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-
 import type {
   AssessmentReminderMetaData,
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
-import { sendEvaluationReminder } from '../../../../network/mutations/sendEvaluationReminder'
+import { assessmentApi } from '../../../../network/api'
+import { assessmentCache, assessmentKeys } from '../../../../network/cache'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
@@ -60,7 +60,7 @@ export const AssessmentReminderCard = () => {
     isPending: isCoursePhasePending,
     isError: isCoursePhaseError,
   } = useQuery<CoursePhaseWithMetaData>({
-    queryKey: ['course_phase', phaseId],
+    queryKey: assessmentKeys.coursePhase(phaseId),
     queryFn: () => getCoursePhase(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -73,7 +73,7 @@ export const AssessmentReminderCard = () => {
         lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
       })
       toast({ title: 'Assessment reminder template updated' })
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
     () => {
       toast({
@@ -86,7 +86,7 @@ export const AssessmentReminderCard = () => {
 
   const sendReminderMutation = useMutation({
     mutationFn: (type: EvaluationReminderType) =>
-      sendEvaluationReminder(phaseId ?? '', { evaluationType: type }),
+      assessmentApi.config.sendReminder(phaseId ?? '', { evaluationType: type }),
     onSuccess: (report) => {
       setLastReport(report)
       toast({
@@ -95,7 +95,7 @@ export const AssessmentReminderCard = () => {
           report.successfulEmails.length === 1 ? 'email was' : 'emails were'
         } sent.`,
       })
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
     onError: (error: AxiosError<ErrorResponse>) => {
       const serverError = error.response?.data?.error ?? 'Failed to send reminder emails.'

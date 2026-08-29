@@ -146,8 +146,7 @@ export const AssessmentCompletion = ({
         })
 
         setError(undefined)
-      } catch (err) {
-        console.error('Failed to save form data:', err)
+      } catch {
         setError('Failed to save form data. Please try again.')
       }
     }

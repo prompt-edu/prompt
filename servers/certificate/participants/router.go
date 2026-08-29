@@ -9,13 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupParticipantsRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ParticipantsService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	participantsRouter := routerGroup.Group("/participants")
 
-	participantsRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getParticipants)
+	participantsRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getParticipants)
 }
 
-func getParticipants(c *gin.Context) {
+func (s *ParticipantsService) getParticipants(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -24,7 +24,7 @@ func getParticipants(c *gin.Context) {
 	}
 
 	authHeader := c.GetHeader("Authorization")
-	participants, err := GetParticipationsForCoursePhase(c, authHeader, coursePhaseID)
+	participants, err := s.GetParticipationsForCoursePhase(c, authHeader, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get participants")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve participants"})

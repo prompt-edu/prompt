@@ -75,8 +75,9 @@ const { access_token } = await (await fetch(
 
 ## Gotchas
 
-- `/management/**` mounts Keycloak with `onLoad: 'login-required'`; the public landing
-  page does not, so always enter through a management route.
+- `/management/**` and `/apply/:id/authenticated` sit behind `RequireAuth`, which asks
+  Keycloak for a login when no session can be restored; the public pages never redirect,
+  so enter through a management route when you need to log in.
 - The console logs a `[prompt-shared-state] Missing or invalid env keys` warning and
   404s for optional phase assets on every page — pre-existing noise, not your change.
 - The seed runs in the one-shot `seed` container with `--single-transaction` and

@@ -10,5 +10,9 @@ and TypeScript setup.
 - `runtime/mountRemote.tsx` - React root mount for the standalone dev page.
 - `runtime/StandaloneNotice.tsx` - the notice that standalone page renders.
 
+Styling is not part of this scaffolding: `clients/core` builds the single Tailwind stylesheet for
+the whole shell and scans every component directory for it. Remotes ship no Tailwind build of their
+own. See the styling section of `.claude/rules/module-federation/remotes.md`.
+
 External phases live in their own repositories and cannot import from here; keep
 `template-repository/` in sync by hand.

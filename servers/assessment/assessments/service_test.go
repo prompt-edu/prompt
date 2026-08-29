@@ -21,6 +21,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
@@ -33,6 +35,7 @@ func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool) *Assessmen
 		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService),
 		actionItem.NewActionItemService(queries, completionService),
 		scoreLevel.NewScoreLevelService(queries),
+		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase)),
 	)
 }
 

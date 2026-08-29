@@ -26,6 +26,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	log "github.com/sirupsen/logrus"
 )
@@ -109,18 +111,24 @@ func main() {
 	categories.InitCategoryModule(coursePhaseApi, *query, conn)
 	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
 	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
+	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService)
+	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
+
 	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn)
 	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
 	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService)
 	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
-	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService)
 
 	assessments.RegisterRoutes(coursePhaseApi, assessmentService, promptSDK.AuthenticationMiddleware)
 	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, promptSDK.AuthenticationMiddleware)
 	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, promptSDK.AuthenticationMiddleware)
 	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, promptSDK.AuthenticationMiddleware)
 	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, promptSDK.AuthenticationMiddleware)
-	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
+	evaluations.RegisterRoutes(coursePhaseApi, evaluationService, promptSDK.AuthenticationMiddleware)
+	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, promptSDK.AuthenticationMiddleware)
+	feedbackItem.RegisterRoutes(coursePhaseApi, feedbackItemService, promptSDK.AuthenticationMiddleware)
 
 	copyService := copy.NewCopyService(*query, conn)
 	privacyService := privacy.NewPrivacyService(*query, conn)

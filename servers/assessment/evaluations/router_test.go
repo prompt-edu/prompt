@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ type EvaluationRouterTestSuite struct {
 	suiteCtx          context.Context
 	cleanup           func()
 	mockCoreCleanup   func()
-	evaluationService EvaluationService
+	evaluationService *EvaluationService
 	testCoursePhaseID uuid.UUID
 }
 
@@ -43,12 +44,8 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	suite.mockCoreCleanup = mockCleanup
 
 	suite.cleanup = cleanup
-	suite.evaluationService = EvaluationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	EvaluationServiceSingleton = &suite.evaluationService
+	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
+		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase))
 
 	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
@@ -70,7 +67,7 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupEvaluationRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.evaluationService, testMiddleware)
 }
 
 func (suite *EvaluationRouterTestSuite) TearDownSuite() {

@@ -43,6 +43,10 @@ type scoreLevelProvider interface {
 	GetStudentScore(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (scoreLevelDTO.StudentScore, error)
 }
 
+type evaluationProvider interface {
+	GetEvaluationsForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]evaluationDTO.Evaluation, error)
+}
+
 type AssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
@@ -50,6 +54,7 @@ type AssessmentService struct {
 	categoryAssessment   categoryAssessmentProvider
 	actionItem           actionItemProvider
 	scoreLevel           scoreLevelProvider
+	evaluations          evaluationProvider
 }
 
 func NewAssessmentService(
@@ -59,6 +64,7 @@ func NewAssessmentService(
 	categoryAssessment categoryAssessmentProvider,
 	actionItem actionItemProvider,
 	scoreLevel scoreLevelProvider,
+	evaluations evaluationProvider,
 ) *AssessmentService {
 	return &AssessmentService{
 		queries:              queries,
@@ -67,6 +73,7 @@ func NewAssessmentService(
 		categoryAssessment:   categoryAssessment,
 		actionItem:           actionItem,
 		scoreLevel:           scoreLevel,
+		evaluations:          evaluations,
 	}
 }
 
@@ -186,7 +193,7 @@ func (s *AssessmentService) GetStudentAssessment(ctx context.Context, coursePhas
 		}
 	}
 
-	evaluations, err := evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
+	evaluations, err := s.evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get evaluations: ", err)
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get evaluations")
@@ -329,7 +336,7 @@ func (s *AssessmentService) GetStudentAssessmentResults(ctx context.Context, cou
 
 	var evals []evaluationDTO.Evaluation
 	if config.GradingSheetVisible {
-		evals, err = evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
+		evals, err = s.evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get evaluations for participant in phase: ", err)
 			return results, errors.New("could not get evaluations for participant in phase")

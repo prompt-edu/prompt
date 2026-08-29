@@ -45,6 +45,8 @@ func NewS3Adapter(ctx context.Context, bucket, region, endpoint, publicEndpoint,
 		if presignEndpoint != "" {
 			options.BaseEndpoint = aws.String(presignEndpoint)
 		}
+		// Browsers consume these URLs and cannot send the x-amz-checksum-mode header the SDK would otherwise sign.
+		options.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
 	}))
 	if _, err := client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(bucket)}); err != nil {
 		// Only a genuine "not found" justifies creating it. Reporting a 403 or a timeout

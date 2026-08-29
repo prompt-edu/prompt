@@ -22,10 +22,15 @@ type CompetencyService struct {
 	conn    *pgxpool.Pool
 }
 
-var CompetencyServiceSingleton *CompetencyService
+func NewCompetencyService(queries db.Queries, conn *pgxpool.Pool) *CompetencyService {
+	return &CompetencyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-func CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competencyDTO.CreateCompetencyRequest) error {
-	category, err := CompetencyServiceSingleton.queries.GetCategory(ctx, req.CategoryID)
+func (s *CompetencyService) CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competencyDTO.CreateCompetencyRequest) error {
+	category, err := s.queries.GetCategory(ctx, req.CategoryID)
 	if err != nil {
 		log.Error("could not get category: ", err)
 		return errors.New("could not get category")
@@ -45,7 +50,7 @@ func CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competen
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CompetencyServiceSingleton.queries,
+		s.queries,
 		category.AssessmentSchemaID,
 		req.CategoryID, // Pass category ID to get it mapped if schema is copied
 		coursePhaseID,
@@ -54,12 +59,12 @@ func CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competen
 		return err
 	}
 
-	tx, err := CompetencyServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := CompetencyServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.CreateCompetency(ctx, db.CreateCompetencyParams{
 		ID:                  uuid.New(),
@@ -87,8 +92,8 @@ func CreateCompetency(ctx context.Context, coursePhaseID uuid.UUID, req competen
 	return nil
 }
 
-func GetCompetency(ctx context.Context, id uuid.UUID) (db.Competency, error) {
-	competency, err := CompetencyServiceSingleton.queries.GetCompetency(ctx, id)
+func (s *CompetencyService) GetCompetency(ctx context.Context, id uuid.UUID) (db.Competency, error) {
+	competency, err := s.queries.GetCompetency(ctx, id)
 	if err != nil {
 		log.Error("could not get competency: ", err)
 		return db.Competency{}, errors.New("could not get competency")
@@ -96,8 +101,8 @@ func GetCompetency(ctx context.Context, id uuid.UUID) (db.Competency, error) {
 	return competency, nil
 }
 
-func ListCompetencies(ctx context.Context) ([]db.Competency, error) {
-	competencies, err := CompetencyServiceSingleton.queries.ListCompetencies(ctx)
+func (s *CompetencyService) ListCompetencies(ctx context.Context) ([]db.Competency, error) {
+	competencies, err := s.queries.ListCompetencies(ctx)
 	if err != nil {
 		log.Error("could not list competencies: ", err)
 		return nil, errors.New("could not list competencies")
@@ -105,8 +110,8 @@ func ListCompetencies(ctx context.Context) ([]db.Competency, error) {
 	return competencies, nil
 }
 
-func ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Competency, error) {
-	competencies, err := CompetencyServiceSingleton.queries.ListCompetenciesForCoursePhase(
+func (s *CompetencyService) ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Competency, error) {
+	competencies, err := s.queries.ListCompetenciesForCoursePhase(
 		ctx,
 		pgtype.UUID{Bytes: coursePhaseID, Valid: true},
 	)
@@ -117,8 +122,8 @@ func ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID
 	return competencies, nil
 }
 
-func ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db.Competency, error) {
-	competencies, err := CompetencyServiceSingleton.queries.ListCompetenciesByCategory(ctx, categoryID)
+func (s *CompetencyService) ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db.Competency, error) {
+	competencies, err := s.queries.ListCompetenciesByCategory(ctx, categoryID)
 	if err != nil {
 		log.Error("could not list competencies by category: ", err)
 		return nil, errors.New("could not list competencies by category")
@@ -126,8 +131,8 @@ func ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]db
 	return competencies, nil
 }
 
-func GetCompetencyForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, id uuid.UUID) (db.Competency, error) {
-	schemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
+func (s *CompetencyService) GetCompetencyForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, id uuid.UUID) (db.Competency, error) {
+	schemaID, err := s.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
 	if err != nil {
 		return db.Competency{}, err
 	}
@@ -140,15 +145,15 @@ func GetCompetencyForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, i
 		return db.Competency{}, assessmentSchemas.ErrSchemaNotAccessible
 	}
 
-	return GetCompetency(ctx, id)
+	return s.GetCompetency(ctx, id)
 }
 
-func ListCompetenciesByCategoryForCoursePhase(
+func (s *CompetencyService) ListCompetenciesByCategoryForCoursePhase(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	categoryID uuid.UUID,
 ) ([]db.Competency, error) {
-	category, err := CompetencyServiceSingleton.queries.GetCategory(ctx, categoryID)
+	category, err := s.queries.GetCategory(ctx, categoryID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +170,11 @@ func ListCompetenciesByCategoryForCoursePhase(
 		return nil, assessmentSchemas.ErrSchemaNotAccessible
 	}
 
-	return ListCompetenciesByCategory(ctx, categoryID)
+	return s.ListCompetenciesByCategory(ctx, categoryID)
 }
 
-func UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req competencyDTO.UpdateCompetencyRequest) error {
-	currentSchemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
+func (s *CompetencyService) UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req competencyDTO.UpdateCompetencyRequest) error {
+	currentSchemaID, err := s.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
 	if err != nil {
 		log.WithError(err).Error("Failed to get assessment schema ID for competency")
 		return errors.New("failed to get assessment schema ID for competency")
@@ -185,7 +190,7 @@ func UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CompetencyServiceSingleton.queries,
+		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,
@@ -194,7 +199,7 @@ func UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 		return err
 	}
 
-	err = CompetencyServiceSingleton.queries.UpdateCompetency(ctx, db.UpdateCompetencyParams{
+	err = s.queries.UpdateCompetency(ctx, db.UpdateCompetencyParams{
 		ID:                  result.TargetEntityID,
 		CategoryID:          req.CategoryID,
 		Name:                req.Name,
@@ -215,8 +220,8 @@ func UpdateCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 	return nil
 }
 
-func DeleteCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) error {
-	currentSchemaID, err := CompetencyServiceSingleton.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
+func (s *CompetencyService) DeleteCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) error {
+	currentSchemaID, err := s.queries.GetAssessmentSchemaIDByCompetency(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -235,7 +240,7 @@ func DeleteCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CompetencyServiceSingleton.queries,
+		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,
@@ -244,7 +249,7 @@ func DeleteCompetency(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID
 		return err
 	}
 
-	err = CompetencyServiceSingleton.queries.DeleteCompetency(ctx, result.TargetEntityID)
+	err = s.queries.DeleteCompetency(ctx, result.TargetEntityID)
 	if err != nil {
 		log.Error("could not delete competency: ", err)
 		return errors.New("could not delete competency")

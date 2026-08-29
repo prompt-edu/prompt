@@ -107,8 +107,12 @@ func main() {
 
 	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
-	categories.InitCategoryModule(coursePhaseApi, *query, conn)
+	competencyService := competencies.NewCompetencyService(*query, conn)
+	categoryService := categories.NewCategoryService(*query, conn)
+
+	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
+	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)
+
 	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
 	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
 	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase)

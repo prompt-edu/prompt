@@ -23,7 +23,7 @@ type CompetencyServiceTestSuite struct {
 	ctx               context.Context
 	cleanup           func()
 	mockCoreCleanup   func()
-	competencyService CompetencyService
+	competencyService *CompetencyService
 }
 
 func (suite *CompetencyServiceTestSuite) SetupTest() {
@@ -40,12 +40,7 @@ func (suite *CompetencyServiceTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.competencyService = CompetencyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	CompetencyServiceSingleton = &suite.competencyService
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn)
 
 	// Initialize other service modules needed for schema copy logic
 	router := gin.New()
@@ -66,7 +61,7 @@ func (suite *CompetencyServiceTestSuite) TearDownTest() {
 }
 
 func (suite *CompetencyServiceTestSuite) TestListCompetencies() {
-	competencies, err := ListCompetencies(suite.ctx)
+	competencies, err := suite.competencyService.ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(competencies), 0, "Expected at least one competency")
 
@@ -81,11 +76,11 @@ func (suite *CompetencyServiceTestSuite) TestListCompetencies() {
 func (suite *CompetencyServiceTestSuite) TestListCompetenciesForCoursePhase() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02") // Dev Application phase from test data
 
-	competencies, err := ListCompetenciesForCoursePhase(suite.ctx, coursePhaseID)
+	competencies, err := suite.competencyService.ListCompetenciesForCoursePhase(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(competencies), 0, "Expected at least one accessible competency")
 
-	all, err := ListCompetencies(suite.ctx)
+	all, err := suite.competencyService.ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
 
 	expected := make(map[uuid.UUID]bool)
@@ -112,7 +107,7 @@ func (suite *CompetencyServiceTestSuite) TestGetCompetency() {
 	// Test with a known competency ID from the test data
 	competencyID := uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3")
 
-	competency, err := GetCompetency(suite.ctx, competencyID)
+	competency, err := suite.competencyService.GetCompetency(suite.ctx, competencyID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), competencyID, competency.ID, "Competency ID should match")
 	assert.Equal(suite.T(), "GitLab Project Management", competency.Name, "Competency name should match")
@@ -127,7 +122,7 @@ func (suite *CompetencyServiceTestSuite) TestGetCompetencyNotFound() {
 	// Test with a non-existent competency ID
 	nonExistentID := uuid.New()
 
-	_, err := GetCompetency(suite.ctx, nonExistentID)
+	_, err := suite.competencyService.GetCompetency(suite.ctx, nonExistentID)
 	assert.Error(suite.T(), err, "Expected error for non-existent competency")
 }
 
@@ -135,7 +130,7 @@ func (suite *CompetencyServiceTestSuite) TestListCompetenciesByCategory() {
 	// Test with a known category ID from the test data
 	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e") // Version Control category
 
-	competencies, err := ListCompetenciesByCategory(suite.ctx, categoryID)
+	competencies, err := suite.competencyService.ListCompetenciesByCategory(suite.ctx, categoryID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(competencies), 0, "Expected at least one competency for Version Control category")
 
@@ -149,7 +144,7 @@ func (suite *CompetencyServiceTestSuite) TestListCompetenciesByCategoryEmpty() {
 	// Test with a non-existent category ID
 	nonExistentCategoryID := uuid.New()
 
-	competencies, err := ListCompetenciesByCategory(suite.ctx, nonExistentCategoryID)
+	competencies, err := suite.competencyService.ListCompetenciesByCategory(suite.ctx, nonExistentCategoryID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, len(competencies), "Expected no competencies for non-existent category")
 }
@@ -171,11 +166,11 @@ func (suite *CompetencyServiceTestSuite) TestCreateCompetency() {
 		Weight:              5,
 	}
 
-	err := CreateCompetency(suite.ctx, coursePhaseID, newCompetency)
+	err := suite.competencyService.CreateCompetency(suite.ctx, coursePhaseID, newCompetency)
 	assert.NoError(suite.T(), err, "Creating competency should not produce an error")
 
 	// Verify the competency was created by listing all competencies and checking if our new one exists
-	competencies, err := ListCompetencies(suite.ctx)
+	competencies, err := suite.competencyService.ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
 
 	found := false
@@ -212,11 +207,11 @@ func (suite *CompetencyServiceTestSuite) TestUpdateCompetency() {
 		Weight:              3,
 	}
 
-	err := CreateCompetency(suite.ctx, coursePhaseID, createRequest)
+	err := suite.competencyService.CreateCompetency(suite.ctx, coursePhaseID, createRequest)
 	assert.NoError(suite.T(), err)
 
 	// Find the created competency
-	competencies, err := ListCompetencies(suite.ctx)
+	competencies, err := suite.competencyService.ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
 
 	var createdCompetency db.Competency
@@ -244,12 +239,12 @@ func (suite *CompetencyServiceTestSuite) TestUpdateCompetency() {
 	}
 
 	// Use the same course phase ID for updating
-	err = UpdateCompetency(suite.ctx, createdCompetency.ID, coursePhaseID, updateRequest)
+	err = suite.competencyService.UpdateCompetency(suite.ctx, createdCompetency.ID, coursePhaseID, updateRequest)
 	assert.NoError(suite.T(), err, "Updating competency should not produce an error")
 
 	// Verify the update
 	var updatedCompetency db.Competency
-	updatedCompetency, err = GetCompetency(suite.ctx, createdCompetency.ID)
+	updatedCompetency, err = suite.competencyService.GetCompetency(suite.ctx, createdCompetency.ID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), updateRequest.Name, updatedCompetency.Name)
 	assert.Equal(suite.T(), updateRequest.Description, updatedCompetency.Description.String)
@@ -279,7 +274,7 @@ func (suite *CompetencyServiceTestSuite) TestUpdateNonExistentCompetency() {
 
 	// Use a mock course phase ID for testing
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	err := UpdateCompetency(suite.ctx, nonExistentID, coursePhaseID, updateRequest)
+	err := suite.competencyService.UpdateCompetency(suite.ctx, nonExistentID, coursePhaseID, updateRequest)
 	assert.Error(suite.T(), err, "Updating non-existent competency should produce an error")
 }
 
@@ -300,11 +295,11 @@ func (suite *CompetencyServiceTestSuite) TestDeleteCompetency() {
 		Weight:              2,
 	}
 
-	err := CreateCompetency(suite.ctx, coursePhaseID, createRequest)
+	err := suite.competencyService.CreateCompetency(suite.ctx, coursePhaseID, createRequest)
 	assert.NoError(suite.T(), err)
 
 	// Find the created competency
-	competencies, err := ListCompetencies(suite.ctx)
+	competencies, err := suite.competencyService.ListCompetencies(suite.ctx)
 	assert.NoError(suite.T(), err)
 
 	var competencyToDelete db.Competency
@@ -319,11 +314,11 @@ func (suite *CompetencyServiceTestSuite) TestDeleteCompetency() {
 	assert.True(suite.T(), found, "Created competency should be found")
 
 	// Delete the competency
-	err = DeleteCompetency(suite.ctx, competencyToDelete.ID, coursePhaseID)
+	err = suite.competencyService.DeleteCompetency(suite.ctx, competencyToDelete.ID, coursePhaseID)
 	assert.NoError(suite.T(), err, "Deleting competency should not produce an error")
 
 	// Verify the competency was deleted
-	_, err = GetCompetency(suite.ctx, competencyToDelete.ID)
+	_, err = suite.competencyService.GetCompetency(suite.ctx, competencyToDelete.ID)
 	assert.Error(suite.T(), err, "Getting deleted competency should produce an error")
 }
 
@@ -331,7 +326,7 @@ func (suite *CompetencyServiceTestSuite) TestDeleteNonExistentCompetency() {
 	nonExistentID := uuid.New()
 
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	err := DeleteCompetency(suite.ctx, nonExistentID, coursePhaseID)
+	err := suite.competencyService.DeleteCompetency(suite.ctx, nonExistentID, coursePhaseID)
 	assert.NoError(suite.T(), err, "Deleting non-existent competency should not produce an error (affects 0 rows)")
 }
 
@@ -351,7 +346,7 @@ func (suite *CompetencyServiceTestSuite) TestCreateCompetencyWithInvalidCategory
 	}
 
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	err := CreateCompetency(suite.ctx, coursePhaseID, invalidCompetency)
+	err := suite.competencyService.CreateCompetency(suite.ctx, coursePhaseID, invalidCompetency)
 	assert.Error(suite.T(), err, "Creating competency with invalid category should produce an error")
 }
 

@@ -23,7 +23,7 @@ type SchemaCopyTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
-	categoryService CategoryService
+	categoryService *CategoryService
 }
 
 func (suite *SchemaCopyTestSuite) SetupTest() {
@@ -38,12 +38,7 @@ func (suite *SchemaCopyTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	// Initialize category service (we're in the same package so we can access unexported fields)
-	suite.categoryService = CategoryService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CategoryServiceSingleton = &suite.categoryService
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn)
 
 	// Initialize other service modules
 	suite.initializeServiceSingletons(testDB)
@@ -89,7 +84,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 		AssessmentSchemaID: originalSchemaID,
 	}
 
-	err = UpdateCategory(suite.suiteCtx, categoryID, coursePhaseID, req)
+	err = suite.categoryService.UpdateCategory(suite.suiteCtx, categoryID, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Updating category should not produce an error")
 
 	// Count schemas after update - should have one additional copied schema
@@ -101,7 +96,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 		"A consumer phase should get a copied schema before modifying shared/global schema data")
 
 	// Original category should remain unchanged in the original schema.
-	originalCategory, err := GetCategory(suite.suiteCtx, categoryID)
+	originalCategory, err := suite.categoryService.GetCategory(suite.suiteCtx, categoryID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Test Category 1", originalCategory.Name, "Original category should remain unchanged")
 	assert.Equal(suite.T(), int32(1), originalCategory.Weight, "Original category weight should remain unchanged")
@@ -113,7 +108,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 		"Course phase config should point to the copied schema")
 
 	// Verify the updated category exists in the copied schema.
-	allCategories, err := ListCategories(suite.suiteCtx)
+	allCategories, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 
 	updatedFound := false
@@ -142,7 +137,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 	schemasCountBefore := len(schemasBefore)
 
 	// Count categories before update
-	categoriesBefore, err := ListCategories(suite.suiteCtx)
+	categoriesBefore, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	categoriesCountBefore := len(categoriesBefore)
 
@@ -155,7 +150,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		AssessmentSchemaID: originalSchemaID,
 	}
 
-	err = UpdateCategory(suite.suiteCtx, categoryID, currentPhaseID, req)
+	err = suite.categoryService.UpdateCategory(suite.suiteCtx, categoryID, currentPhaseID, req)
 	assert.NoError(suite.T(), err, "Updating category from owner phase should not produce an error")
 
 	// Count schemas after update - should have one more (copied for Phase 4)
@@ -167,7 +162,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"A new schema should be created for the consumer phase with assessment data")
 
 	// Count categories after update - should have original count + copies from new schema
-	categoriesAfter, err := ListCategories(suite.suiteCtx)
+	categoriesAfter, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	categoriesCountAfter := len(categoriesAfter)
 
@@ -182,7 +177,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"Owner's course phase config should still point to original schema")
 
 	// Verify the original category was updated with new values (owner modifies original)
-	originalCategory, err := GetCategory(suite.suiteCtx, categoryID)
+	originalCategory, err := suite.categoryService.GetCategory(suite.suiteCtx, categoryID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), req.Name, originalCategory.Name,
 		"Original category should be updated with new name")
@@ -206,7 +201,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"Copied schema name should be based on original schema")
 
 	// Verify categories in the copied schema have the OLD values (snapshot before update)
-	allCategories, err := ListCategories(suite.suiteCtx)
+	allCategories, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 
 	// Filter categories in copied schema
@@ -260,7 +255,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 		AssessmentSchemaID: originalSchemaID,
 	}
 
-	err = UpdateCategory(suite.suiteCtx, categoryID, coursePhaseID, req)
+	err = suite.categoryService.UpdateCategory(suite.suiteCtx, categoryID, coursePhaseID, req)
 	assert.Error(suite.T(), err, "Updating category should produce an error when assessment data exists")
 	assert.Contains(suite.T(), err.Error(), "modifications are not allowed",
 		"Error should indicate modifications are not allowed")
@@ -274,7 +269,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 		"No new schema should be created when update is blocked")
 
 	// Verify the category was NOT updated
-	unchangedCategory, err := GetCategory(suite.suiteCtx, categoryID)
+	unchangedCategory, err := suite.categoryService.GetCategory(suite.suiteCtx, categoryID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Test Category 3", unchangedCategory.Name,
 		"Category name should remain unchanged")

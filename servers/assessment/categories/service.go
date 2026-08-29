@@ -22,7 +22,12 @@ type CategoryService struct {
 	conn    *pgxpool.Pool
 }
 
-var CategoryServiceSingleton *CategoryService
+func NewCategoryService(queries db.Queries, conn *pgxpool.Pool) *CategoryService {
+	return &CategoryService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 func ensureSchemaAccessible(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID) error {
 	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
@@ -36,14 +41,14 @@ func ensureSchemaAccessible(ctx context.Context, coursePhaseID uuid.UUID, schema
 	return nil
 }
 
-func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.CreateCategoryRequest) (categoryDTO.Category, error) {
+func (s *CategoryService) CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.CreateCategoryRequest) (categoryDTO.Category, error) {
 	if err := ensureSchemaAccessible(ctx, coursePhaseID, req.AssessmentSchemaID); err != nil {
 		return categoryDTO.Category{}, err
 	}
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CategoryServiceSingleton.queries,
+		s.queries,
 		req.AssessmentSchemaID,
 		uuid.Nil, // No entity ID for create operations
 		coursePhaseID,
@@ -52,13 +57,13 @@ func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDT
 		return categoryDTO.Category{}, err
 	}
 
-	tx, err := CategoryServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return categoryDTO.Category{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CategoryServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	categoryID := uuid.New()
 	err = qtx.CreateCategory(ctx, db.CreateCategoryParams{
@@ -89,8 +94,8 @@ func CreateCategory(ctx context.Context, coursePhaseID uuid.UUID, req categoryDT
 	}, nil
 }
 
-func GetCategory(ctx context.Context, id uuid.UUID) (db.Category, error) {
-	category, err := CategoryServiceSingleton.queries.GetCategory(ctx, id)
+func (s *CategoryService) GetCategory(ctx context.Context, id uuid.UUID) (db.Category, error) {
+	category, err := s.queries.GetCategory(ctx, id)
 	if err != nil {
 		log.Error("could not get category: ", err)
 		return db.Category{}, errors.New("could not get category")
@@ -98,8 +103,8 @@ func GetCategory(ctx context.Context, id uuid.UUID) (db.Category, error) {
 	return category, nil
 }
 
-func ListCategories(ctx context.Context) ([]db.Category, error) {
-	categories, err := CategoryServiceSingleton.queries.ListCategories(ctx)
+func (s *CategoryService) ListCategories(ctx context.Context) ([]db.Category, error) {
+	categories, err := s.queries.ListCategories(ctx)
 	if err != nil {
 		log.Error("could not list categories: ", err)
 		return nil, errors.New("could not list categories")
@@ -107,8 +112,8 @@ func ListCategories(ctx context.Context) ([]db.Category, error) {
 	return categories, nil
 }
 
-func ListCategoriesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Category, error) {
-	categories, err := CategoryServiceSingleton.queries.ListCategories(ctx)
+func (s *CategoryService) ListCategoriesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Category, error) {
+	categories, err := s.queries.ListCategories(ctx)
 	if err != nil {
 		log.Error("could not list categories: ", err)
 		return nil, errors.New("could not list categories")
@@ -134,8 +139,8 @@ func ListCategoriesForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) 
 	return filtered, nil
 }
 
-func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req categoryDTO.UpdateCategoryRequest) error {
-	currentCategory, err := CategoryServiceSingleton.queries.GetCategory(ctx, id)
+func (s *CategoryService) UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, req categoryDTO.UpdateCategoryRequest) error {
+	currentCategory, err := s.queries.GetCategory(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -151,7 +156,7 @@ func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, 
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CategoryServiceSingleton.queries,
+		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,
@@ -160,14 +165,14 @@ func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, 
 		return err
 	}
 
-	tx, err := CategoryServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.WithError(err).Error("Failed to begin transaction")
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CategoryServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.UpdateCategory(ctx, db.UpdateCategoryParams{
 		ID:                 result.TargetEntityID,
@@ -190,8 +195,8 @@ func UpdateCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID, 
 	return nil
 }
 
-func DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) error {
-	currentCategory, err := CategoryServiceSingleton.queries.GetCategory(ctx, id)
+func (s *CategoryService) DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) error {
+	currentCategory, err := s.queries.GetCategory(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
@@ -207,7 +212,7 @@ func DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) 
 
 	result, err := schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		CategoryServiceSingleton.queries,
+		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,
@@ -216,14 +221,14 @@ func DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) 
 		return err
 	}
 
-	tx, err := CategoryServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.WithError(err).Error("Failed to begin transaction")
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CategoryServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.DeleteCategory(ctx, result.TargetEntityID)
 	if err != nil {
@@ -239,8 +244,8 @@ func DeleteCategory(ctx context.Context, id uuid.UUID, coursePhaseID uuid.UUID) 
 	return nil
 }
 
-func GetCategoriesWithCompetencies(ctx context.Context, assessmentSchemaID uuid.UUID) ([]categoryDTO.CategoryWithCompetencies, error) {
-	dbRows, err := CategoryServiceSingleton.queries.GetCategoriesWithCompetencies(ctx, assessmentSchemaID)
+func (s *CategoryService) GetCategoriesWithCompetencies(ctx context.Context, assessmentSchemaID uuid.UUID) ([]categoryDTO.CategoryWithCompetencies, error) {
+	dbRows, err := s.queries.GetCategoriesWithCompetencies(ctx, assessmentSchemaID)
 	if err != nil {
 		log.Error("could not get categories with competencies: ", err)
 		return nil, errors.New("could not get categories with competencies")

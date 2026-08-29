@@ -27,7 +27,7 @@ type CompetencyRouterTestSuite struct {
 	ctx               context.Context
 	cleanup           func()
 	mockCoreCleanup   func()
-	competencyService CompetencyService
+	competencyService *CompetencyService
 }
 
 const testCoursePhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
@@ -45,12 +45,7 @@ func (suite *CompetencyRouterTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.competencyService = CompetencyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	CompetencyServiceSingleton = &suite.competencyService
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn)
 
 	// Initialize service modules needed for schema copy logic
 	group := gin.New().Group("")
@@ -62,7 +57,7 @@ func (suite *CompetencyRouterTestSuite) SetupTest() {
 	testMiddleWare := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupCompetencyRouter(api, testMiddleWare)
+	RegisterRoutes(api, suite.competencyService, testMiddleWare)
 }
 
 func (suite *CompetencyRouterTestSuite) TearDownTest() {

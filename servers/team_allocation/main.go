@@ -94,6 +94,8 @@ func main() {
 	allocationService := allocation.NewAllocationService(*query)
 	teaseService := tease.NewTeaseService(*query, conn)
 	configService := config.NewConfigService(*query, surveyService)
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewTeamsPrivacyService(*query, conn)
 
 	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
 	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
@@ -103,11 +105,11 @@ func main() {
 	tease.RegisterRoutes(router.Group("team-allocation/api"), teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
 
 	copyApi := router.Group("team-allocation/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.RegisterRoutes(copyApi, copyService, promptSDK.AuthenticationMiddleware)
 
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",

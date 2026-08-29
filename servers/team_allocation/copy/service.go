@@ -17,24 +17,31 @@ type CopyService struct {
 	conn    *pgxpool.Pool
 }
 
-var CopyServiceSingleton *CopyService
+func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
+	return &CopyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-type TeamAllocationCopyHandler struct{}
+type teamAllocationCopyHandler struct {
+	service *CopyService
+}
 
-func (h *TeamAllocationCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+func (h *teamAllocationCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	if req.SourceCoursePhaseID == req.TargetCoursePhaseID {
 		return nil
 	}
 
 	ctx := c.Request.Context()
 
-	tx, err := CopyServiceSingleton.conn.Begin(ctx)
+	tx, err := h.service.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CopyServiceSingleton.queries.WithTx(tx)
+	qtx := h.service.queries.WithTx(tx)
 
 	skills, err := qtx.GetSkillsByCoursePhase(ctx, req.SourceCoursePhaseID)
 	if err != nil {

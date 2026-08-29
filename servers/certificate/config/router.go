@@ -11,16 +11,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupConfigRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	configRouter := routerGroup.Group("/config")
 
-	configRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getConfig)
-	configRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateConfig)
-	configRouter.PUT("/release-date", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateReleaseDate)
-	configRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTemplate)
+	configRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getConfig)
+	configRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
+	configRouter.PUT("/release-date", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
+	configRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
 }
 
-func getConfig(c *gin.Context) {
+func (s *ConfigService) getConfig(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -28,7 +28,7 @@ func getConfig(c *gin.Context) {
 		return
 	}
 
-	config, err := GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get course phase config")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})
@@ -38,7 +38,7 @@ func getConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, config)
 }
 
-func updateConfig(c *gin.Context) {
+func (s *ConfigService) updateConfig(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -59,7 +59,7 @@ func updateConfig(c *gin.Context) {
 		updatedBy = user.FirstName + " " + user.LastName
 	}
 
-	config, err := UpdateCoursePhaseConfig(c, coursePhaseID, request.TemplateContent, updatedBy)
+	config, err := s.UpdateCoursePhaseConfig(c, coursePhaseID, request.TemplateContent, updatedBy)
 	if err != nil {
 		log.WithError(err).Error("Failed to update course phase config")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update course phase config"})
@@ -69,7 +69,7 @@ func updateConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, config)
 }
 
-func updateReleaseDate(c *gin.Context) {
+func (s *ConfigService) updateReleaseDate(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -90,7 +90,7 @@ func updateReleaseDate(c *gin.Context) {
 		updatedBy = user.FirstName + " " + user.LastName
 	}
 
-	config, err := UpdateReleaseDate(c, coursePhaseID, request.ReleaseDate, updatedBy)
+	config, err := s.UpdateReleaseDate(c, coursePhaseID, request.ReleaseDate, updatedBy)
 	if err != nil {
 		log.WithError(err).Error("Failed to update release date")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update release date"})
@@ -100,7 +100,7 @@ func updateReleaseDate(c *gin.Context) {
 	c.JSON(http.StatusOK, config)
 }
 
-func getTemplate(c *gin.Context) {
+func (s *ConfigService) getTemplate(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -108,7 +108,7 @@ func getTemplate(c *gin.Context) {
 		return
 	}
 
-	templateContent, err := GetTemplateContent(c, coursePhaseID)
+	templateContent, err := s.GetTemplateContent(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get template content")
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

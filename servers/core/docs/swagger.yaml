@@ -607,6 +607,11 @@ definitions:
       nextCursor:
         $ref: '#/definitions/auditLogDTO.Cursor'
     type: object
+  auditLogDTO.AuditLogStatus:
+    properties:
+      enabled:
+        type: boolean
+    type: object
   auditLogDTO.Cursor:
     properties:
       createdAt:
@@ -2867,7 +2872,7 @@ paths:
         in: query
         name: actorRole
         type: string
-      - description: Filter by outcome (success|denied)
+      - description: Filter by outcome (success|denied|error)
         in: query
         name: outcome
         type: string
@@ -2927,6 +2932,21 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Global audit log
+      tags:
+      - auditLog
+  /audit-log/status:
+    get:
+      description: Reports whether audit logging is enabled for this deployment.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auditLogDTO.AuditLogStatus'
+      security:
+      - BearerAuth: []
+      summary: Audit log status
       tags:
       - auditLog
   /auth/course_phase/{coursePhaseID}/is_student:
@@ -3598,7 +3618,7 @@ paths:
         in: query
         name: actorRole
         type: string
-      - description: Filter by outcome (success|denied)
+      - description: Filter by outcome (success|denied|error)
         in: query
         name: outcome
         type: string

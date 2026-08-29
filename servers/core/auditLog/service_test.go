@@ -236,3 +236,42 @@ func (s *AuditLogTestSuite) TestListAuditLog_KeysetPagination() {
 	require.Len(s.T(), seen, 5)
 	require.Equal(s.T(), 3, pages) // 2 + 2 + 1
 }
+
+func (s *AuditLogTestSuite) TestListAuditLog_ClampsLimitToMaximum() {
+	now := time.Now()
+	for i := 0; i < maxPageLimit+1; i++ {
+		s.insertRaw(now.Add(-time.Duration(i)*time.Second), seededCourseID, "Lecturer", "success", "row")
+	}
+
+	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Limit: 1000})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), page.Entries, maxPageLimit)
+	require.NotNil(s.T(), page.NextCursor)
+}
+
+func (s *AuditLogTestSuite) TestListAuditLog_KeysetHandlesIdenticalTimestamps() {
+	// created_at alone is not unique, so the cursor has to carry the id too:
+	// paging through rows that share a timestamp must neither repeat nor skip.
+	sameInstant := time.Now().Truncate(time.Second)
+	for i := 0; i < 5; i++ {
+		s.insertRaw(sameInstant, seededCourseID, "Lecturer", "success", "tie")
+	}
+
+	seen := map[string]bool{}
+	filters := auditLogDTO.ListFilters{CourseID: seededCourseID, Limit: 2}
+	for pages := 0; ; pages++ {
+		require.LessOrEqual(s.T(), pages, 5)
+		page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, filters)
+		require.NoError(s.T(), err)
+		for _, e := range page.Entries {
+			require.False(s.T(), seen[e.ID], "entry appeared on two pages")
+			seen[e.ID] = true
+		}
+		if page.NextCursor == nil {
+			break
+		}
+		filters.CursorCreatedAt = &page.NextCursor.CreatedAt
+		filters.CursorID = page.NextCursor.ID
+	}
+	require.Len(s.T(), seen, 5)
+}

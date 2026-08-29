@@ -1285,7 +1285,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },
@@ -1367,6 +1367,31 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/audit-log/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reports whether audit logging is enabled for this deployment.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Audit log status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogStatus"
                         }
                     }
                 }
@@ -2491,7 +2516,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by outcome (success|denied)",
+                        "description": "Filter by outcome (success|denied|error)",
                         "name": "outcome",
                         "in": "query"
                     },
@@ -6410,6 +6435,14 @@ const docTemplate = `{
                 },
                 "nextCursor": {
                     "$ref": "#/definitions/auditLogDTO.Cursor"
+                }
+            }
+        },
+        "auditLogDTO.AuditLogStatus": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
                 }
             }
         },

@@ -17,15 +17,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CompetencyService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type schemaProvider interface {
+	CheckSchemaAccessibleForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID) (bool, error)
 }
 
-func NewCompetencyService(queries db.Queries, conn *pgxpool.Pool) *CompetencyService {
+type schemaModifier interface {
+	GetOrCopySchemaForWrite(ctx context.Context, schemaID uuid.UUID, entityID uuid.UUID, coursePhaseID uuid.UUID) (*schemaModification.PrepareSchemaModificationResult, error)
+}
+
+type CompetencyService struct {
+	queries            db.Queries
+	conn               *pgxpool.Pool
+	schemas            schemaProvider
+	schemaModification schemaModifier
+}
+
+func NewCompetencyService(queries db.Queries, conn *pgxpool.Pool, schemas schemaProvider, schemaModification schemaModifier) *CompetencyService {
 	return &CompetencyService{
-		queries: queries,
-		conn:    conn,
+		queries:            queries,
+		conn:               conn,
+		schemas:            schemas,
+		schemaModification: schemaModification,
 	}
 }
 
@@ -36,7 +48,7 @@ func (s *CompetencyService) CreateCompetency(ctx context.Context, coursePhaseID 
 		return errors.New("could not get category")
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(
 		ctx,
 		coursePhaseID,
 		category.AssessmentSchemaID,
@@ -48,9 +60,8 @@ func (s *CompetencyService) CreateCompetency(ctx context.Context, coursePhaseID 
 		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
-	result, err := schemaModification.GetOrCopySchemaForWrite(
+	result, err := s.schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		s.queries,
 		category.AssessmentSchemaID,
 		req.CategoryID, // Pass category ID to get it mapped if schema is copied
 		coursePhaseID,
@@ -137,7 +148,7 @@ func (s *CompetencyService) GetCompetencyForCoursePhase(ctx context.Context, cou
 		return db.Competency{}, err
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
 	if err != nil {
 		return db.Competency{}, err
 	}
@@ -158,7 +169,7 @@ func (s *CompetencyService) ListCompetenciesByCategoryForCoursePhase(
 		return nil, err
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(
 		ctx,
 		coursePhaseID,
 		category.AssessmentSchemaID,
@@ -180,7 +191,7 @@ func (s *CompetencyService) UpdateCompetency(ctx context.Context, id uuid.UUID, 
 		return errors.New("failed to get assessment schema ID for competency")
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
 	if err != nil {
 		return err
 	}
@@ -188,9 +199,8 @@ func (s *CompetencyService) UpdateCompetency(ctx context.Context, id uuid.UUID, 
 		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
-	result, err := schemaModification.GetOrCopySchemaForWrite(
+	result, err := s.schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,
@@ -230,7 +240,7 @@ func (s *CompetencyService) DeleteCompetency(ctx context.Context, id uuid.UUID, 
 		return errors.New("failed to get assessment schema ID for competency")
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, currentSchemaID)
 	if err != nil {
 		return err
 	}
@@ -238,9 +248,8 @@ func (s *CompetencyService) DeleteCompetency(ctx context.Context, id uuid.UUID, 
 		return assessmentSchemas.ErrSchemaNotAccessible
 	}
 
-	result, err := schemaModification.GetOrCopySchemaForWrite(
+	result, err := s.schemaModification.GetOrCopySchemaForWrite(
 		ctx,
-		s.queries,
 		currentSchemaID,
 		id,
 		coursePhaseID,

@@ -23,9 +23,15 @@ var ErrCannotChangeSchemaWithData = errors.New("cannot change assessment schema 
 var ErrAssessmentDisabled = errors.New("assessment is disabled for this course phase")
 var ErrCannotDisableAssessmentWithData = errors.New("cannot disable assessment while assessment data exists")
 
+type schemaProvider interface {
+	CheckPhaseHasAssessmentData(ctx context.Context, phaseID uuid.UUID, schemaID uuid.UUID) (bool, error)
+	CheckSchemaAccessibleForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID) (bool, error)
+}
+
 type CoursePhaseConfigService struct {
 	queries db.Queries
 	conn    *pgxpool.Pool
+	schemas schemaProvider
 }
 
 var CoursePhaseConfigSingleton *CoursePhaseConfigService
@@ -37,12 +43,12 @@ func NewCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool) *Course
 	}
 }
 
-func validateSchemaChange(ctx context.Context, coursePhaseID, oldSchemaID, newSchemaID uuid.UUID, schemaType string) error {
+func (s *CoursePhaseConfigService) validateSchemaChange(ctx context.Context, coursePhaseID, oldSchemaID, newSchemaID uuid.UUID, schemaType string) error {
 	if oldSchemaID == newSchemaID {
 		return nil // No change, no validation needed
 	}
 
-	hasData, err := assessmentSchemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
+	hasData, err := s.schemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
 	if err != nil {
 		return err
 	}
@@ -60,12 +66,12 @@ func validateSchemaChange(ctx context.Context, coursePhaseID, oldSchemaID, newSc
 	return nil
 }
 
-func validateSchemaAccessibility(ctx context.Context, coursePhaseID, schemaID uuid.UUID) error {
+func (s *CoursePhaseConfigService) validateSchemaAccessibility(ctx context.Context, coursePhaseID, schemaID uuid.UUID) error {
 	if schemaID == uuid.Nil {
 		return nil
 	}
 
-	isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	isAccessible, err := s.schemas.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
 	if err != nil {
 		return err
 	}
@@ -156,7 +162,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		}
 
 		for _, schema := range schemasToValidate {
-			if err := validateSchemaChange(ctx, coursePhaseID, schema.old, schema.new, schema.schemaType); err != nil {
+			if err := CoursePhaseConfigSingleton.validateSchemaChange(ctx, coursePhaseID, schema.old, schema.new, schema.schemaType); err != nil {
 				return err
 			}
 		}
@@ -169,7 +175,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		req.TutorEvaluationSchema,
 	}
 	for _, schemaID := range schemaIDsToValidate {
-		if err := validateSchemaAccessibility(ctx, coursePhaseID, schemaID); err != nil {
+		if err := CoursePhaseConfigSingleton.validateSchemaAccessibility(ctx, coursePhaseID, schemaID); err != nil {
 			return err
 		}
 	}
@@ -368,7 +374,7 @@ func setResultsReleased(ctx context.Context, coursePhaseID uuid.UUID, released b
 }
 
 func UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, oldSchemaID uuid.UUID, newSchemaID uuid.UUID) error {
-	hasData, err := assessmentSchemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
+	hasData, err := CoursePhaseConfigSingleton.schemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
 	if err != nil {
 		return err
 	}

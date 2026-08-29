@@ -25,7 +25,7 @@ type AssessmentSchemaRouterTestSuite struct {
 	router                  *gin.Engine
 	suiteCtx                context.Context
 	cleanup                 func()
-	assessmentSchemaService AssessmentSchemaService
+	assessmentSchemaService *AssessmentSchemaService
 }
 
 const testCoursePhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
@@ -37,11 +37,7 @@ func (suite *AssessmentSchemaRouterTestSuite) SetupTest() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.assessmentSchemaService = AssessmentSchemaService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentSchemaServiceSingleton = &suite.assessmentSchemaService
+	suite.assessmentSchemaService = NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
@@ -55,7 +51,7 @@ func (suite *AssessmentSchemaRouterTestSuite) SetupTest() {
 			mock(c)
 		}
 	}
-	SetupAssessmentSchemaRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.assessmentSchemaService, testMiddleware)
 }
 
 func (suite *AssessmentSchemaRouterTestSuite) TearDownTest() {
@@ -121,7 +117,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestGetAssessmentSchema() {
 		Name:        "Test Schema for Get",
 		Description: "Schema to test GET endpoint",
 	}
-	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test GET endpoint
@@ -167,7 +163,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchema() {
 		Name:        "Original Schema",
 		Description: "Original description",
 	}
-	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test update
@@ -216,7 +212,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaInvalidJ
 func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaForbiddenForNonOwner() {
 	// Schema owned by a different phase; the requesting lecturer is not an admin.
 	otherPhaseID := uuid.New()
-	schema, err := CreateAssessmentSchemaForCoursePhase(
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchemaForCoursePhase(
 		suite.suiteCtx,
 		otherPhaseID,
 		assessmentSchemaDTO.CreateAssessmentSchemaRequest{Name: "Other Phase Schema", Description: ""},
@@ -233,7 +229,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestUpdateAssessmentSchemaForbidde
 			c.Next()
 		}
 	}
-	SetupAssessmentSchemaRouter(api, lecturerMiddleware)
+	RegisterRoutes(api, suite.assessmentSchemaService, lecturerMiddleware)
 
 	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Renamed", Description: ""}
 	body, _ := json.Marshal(updateReq)
@@ -265,7 +261,7 @@ func (suite *AssessmentSchemaRouterTestSuite) TestDeleteAssessmentSchema() {
 		Name:        "Schema to Delete",
 		Description: "This schema will be deleted",
 	}
-	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, uuid.MustParse(testCoursePhaseID), createReq)
 	assert.NoError(suite.T(), err)
 
 	// Now test delete

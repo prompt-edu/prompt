@@ -15,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -38,7 +39,7 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.service = newTestAssessmentService(*testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")

@@ -75,11 +75,9 @@ func (suite *CoursePhaseConfigServiceTestSuite) SetupSuite() {
 	suite.coursePhaseConfigService = CoursePhaseConfigService{
 		queries: *testDB.Queries,
 		conn:    testDB.Conn,
+		schemas: assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn),
 	}
 	CoursePhaseConfigSingleton = &suite.coursePhaseConfigService
-
-	// Initialize assessmentSchemas singleton for validation (needed for CheckPhaseHasAssessmentData)
-	assessmentSchemas.AssessmentSchemaServiceSingleton = assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
 
 	// Generate a test course phase ID and insert it with a schema
 	suite.testCoursePhaseID = uuid.New()

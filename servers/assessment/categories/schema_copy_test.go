@@ -15,6 +15,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
@@ -24,6 +25,7 @@ type SchemaCopyTestSuite struct {
 	cleanup         func()
 	mockCoreCleanup func()
 	categoryService *CategoryService
+	schemaService   *assessmentSchemas.AssessmentSchemaService
 }
 
 func (suite *SchemaCopyTestSuite) SetupTest() {
@@ -38,19 +40,10 @@ func (suite *SchemaCopyTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn)
+	suite.schemaService = assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, suite.schemaService, schemaModification.NewSchemaModificationService(suite.schemaService, *testDB.Queries))
 
-	// Initialize other service modules
-	suite.initializeServiceSingletons(testDB)
-}
-
-// initializeServiceSingletons is a helper to set up service singletons for testing
-func (suite *SchemaCopyTestSuite) initializeServiceSingletons(testDB *sdkTestUtils.TestDB[*db.Queries]) {
-	// Create temporary minimal router for init
-	router := gin.New()
-	group := router.Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, suite.schemaService)
 }
 
 func (suite *SchemaCopyTestSuite) TearDownTest() {
@@ -71,7 +64,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 	originalSchemaID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	// Count schemas before update
-	schemasBefore, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasBefore, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountBefore := len(schemasBefore)
 
@@ -88,7 +81,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 	assert.NoError(suite.T(), err, "Updating category should not produce an error")
 
 	// Count schemas after update - should have one additional copied schema
-	schemasAfter, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasAfter, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountAfter := len(schemasAfter)
 
@@ -132,7 +125,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 	originalSchemaID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
 	// Count schemas before update
-	schemasBefore, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasBefore, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountBefore := len(schemasBefore)
 
@@ -154,7 +147,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 	assert.NoError(suite.T(), err, "Updating category from owner phase should not produce an error")
 
 	// Count schemas after update - should have one more (copied for Phase 4)
-	schemasAfter, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasAfter, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountAfter := len(schemasAfter)
 
@@ -195,7 +188,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"Consumer phase should now use a copied schema")
 
 	// Verify the copied schema exists and has a proper name
-	copiedSchema, err := assessmentSchemas.GetAssessmentSchema(suite.suiteCtx, copiedSchemaID)
+	copiedSchema, err := suite.schemaService.GetAssessmentSchema(suite.suiteCtx, copiedSchemaID)
 	assert.NoError(suite.T(), err)
 	assert.Contains(suite.T(), copiedSchema.Name, "Test Schema 2",
 		"Copied schema name should be based on original schema")
@@ -242,7 +235,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 	originalSchemaID := uuid.MustParse("00000000-0000-0000-0000-000000000003") // Schema 3
 
 	// Count schemas before update
-	schemasBefore, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasBefore, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountBefore := len(schemasBefore)
 
@@ -261,7 +254,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 		"Error should indicate modifications are not allowed")
 
 	// Count schemas after failed update - should be the same
-	schemasAfter, err := assessmentSchemas.ListAssessmentSchemas(suite.suiteCtx)
+	schemasAfter, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	schemasCountAfter := len(schemasAfter)
 

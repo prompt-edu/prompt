@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -45,12 +46,10 @@ func (suite *CompetencyRouterTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn)
+	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, *testDB.Queries))
 
-	// Initialize service modules needed for schema copy logic
-	group := gin.New().Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, schemaService)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")

@@ -12,6 +12,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -24,6 +25,7 @@ type CompetencyServiceTestSuite struct {
 	cleanup           func()
 	mockCoreCleanup   func()
 	competencyService *CompetencyService
+	schemaService     *assessmentSchemas.AssessmentSchemaService
 }
 
 func (suite *CompetencyServiceTestSuite) SetupTest() {
@@ -40,13 +42,10 @@ func (suite *CompetencyServiceTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn)
+	suite.schemaService = assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn, suite.schemaService, schemaModification.NewSchemaModificationService(suite.schemaService, *testDB.Queries))
 
-	// Initialize other service modules needed for schema copy logic
-	router := gin.New()
-	group := router.Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, suite.schemaService)
 
 	suite.router = gin.Default()
 }
@@ -88,7 +87,7 @@ func (suite *CompetencyServiceTestSuite) TestListCompetenciesForCoursePhase() {
 		schemaID, err := suite.competencyService.queries.GetAssessmentSchemaIDByCompetency(suite.ctx, competency.ID)
 		assert.NoError(suite.T(), err)
 
-		isAccessible, err := assessmentSchemas.CheckSchemaAccessibleForCoursePhase(suite.ctx, coursePhaseID, schemaID)
+		isAccessible, err := suite.schemaService.CheckSchemaAccessibleForCoursePhase(suite.ctx, coursePhaseID, schemaID)
 		assert.NoError(suite.T(), err)
 		if isAccessible {
 			expected[competency.ID] = true

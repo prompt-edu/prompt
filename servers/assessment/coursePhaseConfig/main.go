@@ -7,10 +7,11 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
-func InitCoursePhaseConfigModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
+func InitCoursePhaseConfigModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool, schemas schemaProvider) {
 	setupCoursePhaseRouter(routerGroup, promptSDK.AuthenticationMiddleware)
 	CoursePhaseConfigSingleton = &CoursePhaseConfigService{
 		queries: queries,
 		conn:    conn,
+		schemas: schemas,
 	}
 }

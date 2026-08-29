@@ -29,6 +29,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -107,14 +108,17 @@ func main() {
 
 	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencyService := competencies.NewCompetencyService(*query, conn)
-	categoryService := categories.NewCategoryService(*query, conn)
+	assessmentSchemaService := assessmentSchemas.NewAssessmentSchemaService(*query, conn)
+	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, *query)
+
+	competencyService := competencies.NewCompetencyService(*query, conn, assessmentSchemaService, schemaModificationService)
+	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService)
 
 	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
 	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)
 
-	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
+	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn, assessmentSchemaService)
+	assessmentSchemas.RegisterRoutes(coursePhaseApi, assessmentSchemaService, promptSDK.AuthenticationMiddleware)
 	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase)
 	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService)
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)

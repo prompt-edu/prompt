@@ -94,14 +94,16 @@ func main() {
 	teamsService := teams.NewTeamsService(*query, conn, timeframeService)
 	assignmentService := teams.NewAssignmentService(*query)
 	allocationService := allocation.NewAllocationService(*query)
+	configService := config.NewConfigService(*query)
+	privacyService := privacy.NewPrivacyService(*query, conn)
 
 	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)
 	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, promptSDK.AuthenticationMiddleware)
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "self-team-allocation",

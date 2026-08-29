@@ -83,3 +83,28 @@ Two things are intentionally absent:
   is seeded.
 - **Peer and tutor evaluations.** The config leaves those schema columns to their
   migration-set defaults; only the self-evaluation round is seeded.
+
+## The demo timeline
+
+Every date in the seed is absolute and belongs to one semester, `ios2526`
+(`2026-04-01` to `2026-09-30`). The phases are dated in the order the course runs
+them, so the demo reads as a semester that has been played through end to end:
+
+| Phase | Dated | State |
+| --- | --- | --- |
+| Application | open 2026-01-01 to 2026-03-15 | eight applications answered |
+| Interview | slots 2026-03-20 and 2026-03-21 | assigned and reviewed |
+| Team Allocation | survey 2026-04-01 to 2026-04-06 | responses in, teams allocated |
+| Self Team Allocation | timeframe 2026-04-07 to 2026-04-14 | teams filled |
+| Assessment | 2026-07-01 to 2026-09-20, self-evaluation 2026-06-15 to 2026-06-30 | graded, results released |
+| Presentation | slots 2026-09-24 | scheduled, feedback recorded |
+| Certificate | template released 2026-09-30 | one download recorded |
+
+The dates are pinned rather than derived from `NOW()`, for the same reason the ids
+are: a reseed has to reproduce the same course, and a relative timeline would
+disagree with the semester tag and the course's own start and end date. The trade is
+that the demo ages. Once summer 2026 is behind us every window is closed, and the
+phases that gate on one (the self-evaluation, both allocation timeframes, the
+application) will refuse new input. To act against a live deadline, move that one
+window in the phase's configuration screen after seeding, or edit the row in the
+seed file before loading it.

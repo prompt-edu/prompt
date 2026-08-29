@@ -44,9 +44,11 @@ INSERT INTO competency (id, category_id, name, description, weight, short_name, 
            ('5c000005-0000-0000-0000-000000000005', '5b000003-0000-0000-0000-000000000003', 'Own Contribution', 'How the student rates their own impact.', 1, 'OC',
             'I contributed nothing.', 'I contributed less than I wanted.', 'I contributed my share.', 'I contributed more than my share.', 'I drove the project.');
 
--- Assessment window closed, results released, self-evaluation enabled and bound
--- to the seed's own self-evaluation schema. peer_evaluation_schema and
--- tutor_evaluation_schema are omitted so their column DEFAULTs apply.
+-- Results released, self-evaluation enabled and bound to the seed's own
+-- self-evaluation schema. peer_evaluation_schema and tutor_evaluation_schema are
+-- omitted so their column DEFAULTs apply. The windows below sit on the ios2526
+-- semester like every other date in the seed (see seed/README.md), so they close
+-- for good once that semester is past.
 INSERT INTO course_phase_config (course_phase_id, assessment_schema_id, self_evaluation_schema, start, deadline,
                                  self_evaluation_enabled, self_evaluation_start, self_evaluation_deadline,
                                  evaluation_results_visible, grade_suggestion_visible, action_items_visible,

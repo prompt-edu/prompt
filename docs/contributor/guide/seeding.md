@@ -118,8 +118,11 @@ file references ids only `seed/core.sql` creates. Seeding a phase database on it
 therefore aborts unless core already holds the demo course - otherwise the phase rows
 would point at course phases that do not exist, and no foreign key would say so.
 
-Per service, `SEED_<SERVICE>_HOST` and `SEED_<SERVICE>_PORT` override the connection;
-`SEED_DB_NAME`, `SEED_DB_USER` and `SEED_DB_PASSWORD` apply to all of them.
+Every connection setting is per service: `SEED_<SERVICE>_HOST`, `_PORT`, `_NAME`,
+`_USER` and `_PASSWORD`. Each falls back to `SEED_DB_NAME`, `SEED_DB_USER` and
+`SEED_DB_PASSWORD` (localhost and the default port for host and port), so the split
+only matters once a database uses credentials of its own - which is how
+`docker-compose.yml` passes each service its `DB_<SERVICE>_*` values.
 
 ## Changing the seed
 

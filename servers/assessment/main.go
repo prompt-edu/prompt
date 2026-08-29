@@ -16,6 +16,10 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/categories"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
@@ -105,7 +109,17 @@ func main() {
 	categories.InitCategoryModule(coursePhaseApi, *query, conn)
 	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
 	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
-	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
+	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService)
+	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService)
+
+	assessments.RegisterRoutes(coursePhaseApi, assessmentService, promptSDK.AuthenticationMiddleware)
+	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, promptSDK.AuthenticationMiddleware)
+	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, promptSDK.AuthenticationMiddleware)
+	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, promptSDK.AuthenticationMiddleware)
+	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, promptSDK.AuthenticationMiddleware)
 	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
 	copyService := copy.NewCopyService(*query, conn)

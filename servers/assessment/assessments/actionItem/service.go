@@ -5,22 +5,31 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
-type ActionItemService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type assessmentCompletionProvider interface {
+	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
+	CheckAssessmentCompletionExists(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (bool, error)
+	GetAssessmentCompletion(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (db.AssessmentCompletion, error)
 }
 
-var ActionItemServiceSingleton *ActionItemService
+type ActionItemService struct {
+	queries              db.Queries
+	assessmentCompletion assessmentCompletionProvider
+}
 
-func GetActionItem(ctx context.Context, actionItemID uuid.UUID) (*actionItemDTO.ActionItem, error) {
-	actionItem, err := ActionItemServiceSingleton.queries.GetActionItem(ctx, actionItemID)
+func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider) *ActionItemService {
+	return &ActionItemService{
+		queries:              queries,
+		assessmentCompletion: assessmentCompletion,
+	}
+}
+
+func (s *ActionItemService) GetActionItem(ctx context.Context, actionItemID uuid.UUID) (*actionItemDTO.ActionItem, error) {
+	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
 	if err != nil {
 		log.Error("could not get action item: ", err)
 		return nil, errors.New("could not get action item")
@@ -29,8 +38,8 @@ func GetActionItem(ctx context.Context, actionItemID uuid.UUID) (*actionItemDTO.
 	return &dto, nil
 }
 
-func ListActionItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
-	actionItems, err := ActionItemServiceSingleton.queries.ListActionItemsForCoursePhase(ctx, coursePhaseID)
+func (s *ActionItemService) ListActionItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
+	actionItems, err := s.queries.ListActionItemsForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not list action items for course phase: ", err)
 		return nil, errors.New("could not list action items for course phase")
@@ -38,8 +47,8 @@ func ListActionItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID)
 	return actionItemDTO.GetActionItemDTOsFromDBModels(actionItems), nil
 }
 
-func GetAllActionItemsForCoursePhaseCommunication(ctx context.Context, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItemWithParticipation, error) {
-	actionItems, err := ActionItemServiceSingleton.queries.GetAllActionItemsForCoursePhaseCommunication(ctx, coursePhaseID)
+func (s *ActionItemService) GetAllActionItemsForCoursePhaseCommunication(ctx context.Context, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItemWithParticipation, error) {
+	actionItems, err := s.queries.GetAllActionItemsForCoursePhaseCommunication(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not list action items for course phase: ", err)
 		return nil, errors.New("could not list action items for course phase")
@@ -47,8 +56,8 @@ func GetAllActionItemsForCoursePhaseCommunication(ctx context.Context, coursePha
 	return actionItemDTO.GetActionItemsFromDBActionItemsWithParticipation(actionItems), nil
 }
 
-func GetStudentActionItemsForCoursePhaseCommunication(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]string, error) {
-	actionItems, err := ActionItemServiceSingleton.queries.GetStudentActionItemsForCoursePhaseCommunication(ctx, db.GetStudentActionItemsForCoursePhaseCommunicationParams{
+func (s *ActionItemService) GetStudentActionItemsForCoursePhaseCommunication(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]string, error) {
+	actionItems, err := s.queries.GetStudentActionItemsForCoursePhaseCommunication(ctx, db.GetStudentActionItemsForCoursePhaseCommunicationParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -59,12 +68,12 @@ func GetStudentActionItemsForCoursePhaseCommunication(ctx context.Context, cours
 	return actionItems, nil
 }
 
-func CreateActionItem(ctx context.Context, req actionItemDTO.CreateActionItemRequest) error {
-	err := assessmentCompletion.CheckAssessmentIsEditable(ctx, &ActionItemServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID)
+func (s *ActionItemService) CreateActionItem(ctx context.Context, req actionItemDTO.CreateActionItemRequest) error {
+	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		return err
 	}
-	err = ActionItemServiceSingleton.queries.CreateActionItem(ctx, req.GetDBModel())
+	err = s.queries.CreateActionItem(ctx, req.GetDBModel())
 	if err != nil {
 		log.Error("could not create action item: ", err)
 		return errors.New("could not create action item")
@@ -72,12 +81,12 @@ func CreateActionItem(ctx context.Context, req actionItemDTO.CreateActionItemReq
 	return nil
 }
 
-func UpdateActionItem(ctx context.Context, req actionItemDTO.UpdateActionItemRequest) error {
-	err := assessmentCompletion.CheckAssessmentIsEditable(ctx, &ActionItemServiceSingleton.queries, req.CourseParticipationID, req.CoursePhaseID)
+func (s *ActionItemService) UpdateActionItem(ctx context.Context, req actionItemDTO.UpdateActionItemRequest) error {
+	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		return err
 	}
-	err = ActionItemServiceSingleton.queries.UpdateActionItem(ctx, req.GetDBModel())
+	err = s.queries.UpdateActionItem(ctx, req.GetDBModel())
 	if err != nil {
 		log.Error("could not update action item: ", err)
 		return errors.New("could not update action item")
@@ -85,19 +94,19 @@ func UpdateActionItem(ctx context.Context, req actionItemDTO.UpdateActionItemReq
 	return nil
 }
 
-func DeleteActionItem(ctx context.Context, actionItemID uuid.UUID) error {
-	actionItem, err := ActionItemServiceSingleton.queries.GetActionItem(ctx, actionItemID)
+func (s *ActionItemService) DeleteActionItem(ctx context.Context, actionItemID uuid.UUID) error {
+	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
 	if err != nil {
 		log.Error("could not get action item: ", err)
 		return errors.New("could not get action item")
 	}
 
-	err = assessmentCompletion.CheckAssessmentIsEditable(ctx, &ActionItemServiceSingleton.queries, actionItem.CourseParticipationID, actionItem.CoursePhaseID)
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, actionItem.CourseParticipationID, actionItem.CoursePhaseID)
 	if err != nil {
 		return err
 	}
 
-	err = ActionItemServiceSingleton.queries.DeleteActionItem(ctx, actionItemID)
+	err = s.queries.DeleteActionItem(ctx, actionItemID)
 	if err != nil {
 		log.Error("could not delete action item: ", err)
 		return errors.New("could not delete action item")
@@ -105,8 +114,8 @@ func DeleteActionItem(ctx context.Context, actionItemID uuid.UUID) error {
 	return nil
 }
 
-func ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
-	actionItems, err := ActionItemServiceSingleton.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
+func (s *ActionItemService) ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
+	actionItems, err := s.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -117,8 +126,8 @@ func ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID
 	return actionItemDTO.GetActionItemDTOsFromDBModels(actionItems), nil
 }
 
-func CountActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (int64, error) {
-	count, err := ActionItemServiceSingleton.queries.CountActionItemsForStudentInPhase(ctx, db.CountActionItemsForStudentInPhaseParams{
+func (s *ActionItemService) CountActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (int64, error) {
+	count, err := s.queries.CountActionItemsForStudentInPhase(ctx, db.CountActionItemsForStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})

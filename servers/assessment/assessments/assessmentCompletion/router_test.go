@@ -28,7 +28,7 @@ type AssessmentCompletionRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
-	service  AssessmentCompletionService
+	service  *AssessmentCompletionService
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
@@ -39,11 +39,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = AssessmentCompletionService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentCompletionServiceSingleton = &suite.service
+	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn)
 
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
 
@@ -53,7 +49,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
-	setupAssessmentCompletionRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TearDownSuite() {
@@ -360,7 +356,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentAsComplete
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
 	// Verify the assessment completion was unmarked (not deleted, just unmarked)
-	completion, err := GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), completion.Completed, "Expected completion to be unmarked")
 	assert.Equal(suite.T(), "Test Author", completion.Author) // Other fields should remain
@@ -576,7 +572,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenVi
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupAssessmentCompletionRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()
@@ -601,7 +597,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenNo
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupAssessmentCompletionRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()
@@ -626,7 +622,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionBefore
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupAssessmentCompletionRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()

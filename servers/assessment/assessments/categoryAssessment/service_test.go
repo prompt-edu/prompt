@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -18,7 +19,7 @@ type CategoryAssessmentServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
-	service  CategoryAssessmentService
+	service  *CategoryAssessmentService
 }
 
 func (suite *CategoryAssessmentServiceTestSuite) SetupSuite() {
@@ -28,11 +29,7 @@ func (suite *CategoryAssessmentServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = CategoryAssessmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CategoryAssessmentServiceSingleton = &suite.service
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn))
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
 }
 
@@ -52,10 +49,10 @@ func (suite *CategoryAssessmentServiceTestSuite) TestCreateOrUpdateCategoryAsses
 		AuthorID:              "test-author-id",
 	}
 
-	err := CreateOrUpdateCategoryAssessment(suite.suiteCtx, req)
+	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, req)
 	assert.NoError(suite.T(), err)
 
-	items, err := ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, req.CoursePhaseID)
+	items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, req.CoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), items, 1)
 	assert.Equal(suite.T(), req.CategoryID, items[0].CategoryID)
@@ -74,10 +71,10 @@ func (suite *CategoryAssessmentServiceTestSuite) TestListCategoryAssessmentsBySt
 		AuthorID:              "test-author-id",
 	}
 
-	err := CreateOrUpdateCategoryAssessment(suite.suiteCtx, req)
+	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, req)
 	assert.NoError(suite.T(), err)
 
-	items, err := ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, req.CoursePhaseID)
+	items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, req.CoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), items, 1)
 	assert.Equal(suite.T(), req.CourseParticipationID, items[0].CourseParticipationID)

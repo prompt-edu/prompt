@@ -20,7 +20,7 @@ type ActionItemServiceTestSuite struct {
 	suite.Suite
 	suiteCtx                  context.Context
 	cleanup                   func()
-	actionItemService         ActionItemService
+	actionItemService         *ActionItemService
 	testCoursePhaseID         uuid.UUID
 	testCourseParticipationID uuid.UUID
 	testActionItemID          uuid.UUID
@@ -33,14 +33,8 @@ func (suite *ActionItemServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.actionItemService = ActionItemService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	ActionItemServiceSingleton = &suite.actionItemService
+	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn))
 
-	// Initialize required singletons
-	assessmentCompletion.AssessmentCompletionServiceSingleton = &assessmentCompletion.AssessmentCompletionService{}
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
 
 	// Use predefined test UUIDs from the database dump
@@ -65,7 +59,7 @@ func (suite *ActionItemServiceTestSuite) TestCreateActionItem() {
 		Author:                "test.author@example.com",
 	}
 
-	err := CreateActionItem(suite.suiteCtx, createRequest)
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, createRequest)
 	assert.NoError(suite.T(), err, "Should be able to create action item")
 }
 
@@ -73,7 +67,7 @@ func (suite *ActionItemServiceTestSuite) TestGetActionItemNonExistent() {
 	// Test getting a non-existent action item
 	nonExistentID := uuid.New()
 
-	_, err := GetActionItem(suite.suiteCtx, nonExistentID)
+	_, err := suite.actionItemService.GetActionItem(suite.suiteCtx, nonExistentID)
 	assert.Error(suite.T(), err, "Should return error for non-existent action item")
 	assert.Contains(suite.T(), err.Error(), "could not get action item")
 }
@@ -87,11 +81,11 @@ func (suite *ActionItemServiceTestSuite) TestUpdateActionItem() {
 		Author:                "original.author@example.com",
 	}
 
-	err := CreateActionItem(suite.suiteCtx, createRequest)
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, createRequest)
 	assert.NoError(suite.T(), err)
 
 	// Get the created action item by listing items for the student in this phase
-	actionItems, err := ListActionItemsForStudentInPhase(suite.suiteCtx, suite.testCourseParticipationID, suite.testCoursePhaseID)
+	actionItems, err := suite.actionItemService.ListActionItemsForStudentInPhase(suite.suiteCtx, suite.testCourseParticipationID, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to list action items to find created item")
 	assert.Greater(suite.T(), len(actionItems), 0, "Should have at least one action item")
 
@@ -116,7 +110,7 @@ func (suite *ActionItemServiceTestSuite) TestUpdateActionItem() {
 
 	// Test the update operation with proper error handling
 	assert.NotPanics(suite.T(), func() {
-		err := UpdateActionItem(suite.suiteCtx, updateRequest)
+		err := suite.actionItemService.UpdateActionItem(suite.suiteCtx, updateRequest)
 		assert.NoError(suite.T(), err, "Should be able to update existing action item")
 	}, "Should not panic when updating action item")
 }
@@ -128,7 +122,7 @@ func (suite *ActionItemServiceTestSuite) TestDeleteActionItem() {
 	// This might fail if the ID doesn't exist, which is expected
 	// The test verifies the function doesn't panic
 	assert.NotPanics(suite.T(), func() {
-		_ = DeleteActionItem(suite.suiteCtx, testID)
+		_ = suite.actionItemService.DeleteActionItem(suite.suiteCtx, testID)
 	}, "Should not panic when deleting action item")
 }
 
@@ -140,7 +134,7 @@ func (suite *ActionItemServiceTestSuite) TestDeleteActionItemNonExistent() {
 	// This is because DELETE operations are idempotent in SQL
 	// We just verify it doesn't panic
 	assert.NotPanics(suite.T(), func() {
-		_ = DeleteActionItem(suite.suiteCtx, nonExistentID)
+		_ = suite.actionItemService.DeleteActionItem(suite.suiteCtx, nonExistentID)
 	}, "Should not panic when deleting non-existent action item")
 }
 
@@ -165,12 +159,12 @@ func (suite *ActionItemServiceTestSuite) TestListActionItemsForCoursePhase() {
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := CreateActionItem(suite.suiteCtx, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, item)
 		assert.NoError(suite.T(), err)
 	}
 
 	// List action items for the course phase
-	retrievedItems, err := ListActionItemsForCoursePhase(suite.suiteCtx, testCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.ListActionItemsForCoursePhase(suite.suiteCtx, testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to list action items for course phase")
 	assert.GreaterOrEqual(suite.T(), len(retrievedItems), 2, "Should return at least 2 action items")
 
@@ -208,12 +202,12 @@ func (suite *ActionItemServiceTestSuite) TestListActionItemsForStudentInPhase() 
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := CreateActionItem(suite.suiteCtx, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, item)
 		assert.NoError(suite.T(), err)
 	}
 
 	// List action items for the specific student
-	retrievedItems, err := ListActionItemsForStudentInPhase(suite.suiteCtx, testStudentID, testCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.ListActionItemsForStudentInPhase(suite.suiteCtx, testStudentID, testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to list action items for student in phase")
 	assert.GreaterOrEqual(suite.T(), len(retrievedItems), 2, "Should return at least 2 action items for the student")
 
@@ -252,12 +246,12 @@ func (suite *ActionItemServiceTestSuite) TestCountActionItemsForStudentInPhase()
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := CreateActionItem(suite.suiteCtx, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, item)
 		assert.NoError(suite.T(), err)
 	}
 
 	// Count action items for the specific student
-	count, err := CountActionItemsForStudentInPhase(suite.suiteCtx, testStudentID, testCoursePhaseID)
+	count, err := suite.actionItemService.CountActionItemsForStudentInPhase(suite.suiteCtx, testStudentID, testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to count action items for student in phase")
 	assert.GreaterOrEqual(suite.T(), count, int64(3), "Should return count of at least 3 action items")
 }
@@ -267,7 +261,7 @@ func (suite *ActionItemServiceTestSuite) TestCountActionItemsForStudentInPhaseEm
 	nonExistentStudentID := uuid.New()
 	nonExistentCoursePhaseID := uuid.New()
 
-	count, err := CountActionItemsForStudentInPhase(suite.suiteCtx, nonExistentStudentID, nonExistentCoursePhaseID)
+	count, err := suite.actionItemService.CountActionItemsForStudentInPhase(suite.suiteCtx, nonExistentStudentID, nonExistentCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to count action items even when none exist")
 	assert.Equal(suite.T(), int64(0), count, "Should return count of 0 for non-existent student/phase")
 }
@@ -301,12 +295,12 @@ func (suite *ActionItemServiceTestSuite) TestGetAllActionItemsForCoursePhaseComm
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := CreateActionItem(suite.suiteCtx, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, item)
 		assert.NoError(suite.T(), err)
 	}
 
 	// Get all action items grouped by course participation ID
-	retrievedItems, err := GetAllActionItemsForCoursePhaseCommunication(suite.suiteCtx, testCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.GetAllActionItemsForCoursePhaseCommunication(suite.suiteCtx, testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to get all action items for course phase communication")
 	assert.GreaterOrEqual(suite.T(), len(retrievedItems), 2, "Should return at least 2 course participation groups")
 
@@ -331,7 +325,7 @@ func (suite *ActionItemServiceTestSuite) TestGetAllActionItemsForCoursePhaseComm
 	// Test getting action items for a course phase with no action items
 	nonExistentCoursePhaseID := uuid.New()
 
-	retrievedItems, err := GetAllActionItemsForCoursePhaseCommunication(suite.suiteCtx, nonExistentCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.GetAllActionItemsForCoursePhaseCommunication(suite.suiteCtx, nonExistentCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should not return error for non-existent course phase")
 	assert.Equal(suite.T(), 0, len(retrievedItems), "Should return empty array for non-existent course phase")
 }
@@ -358,12 +352,12 @@ func (suite *ActionItemServiceTestSuite) TestGetStudentActionItemsForCoursePhase
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := CreateActionItem(suite.suiteCtx, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, item)
 		assert.NoError(suite.T(), err)
 	}
 
 	// Get action items for the specific student
-	retrievedItems, err := GetStudentActionItemsForCoursePhaseCommunication(suite.suiteCtx, testStudentID, testCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.GetStudentActionItemsForCoursePhaseCommunication(suite.suiteCtx, testStudentID, testCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should be able to get student action items for course phase communication")
 	assert.GreaterOrEqual(suite.T(), len(retrievedItems), 2, "Should return at least 2 action items")
 
@@ -386,7 +380,7 @@ func (suite *ActionItemServiceTestSuite) TestGetStudentActionItemsForCoursePhase
 	nonExistentStudentID := uuid.New()
 	nonExistentCoursePhaseID := uuid.New()
 
-	retrievedItems, err := GetStudentActionItemsForCoursePhaseCommunication(suite.suiteCtx, nonExistentStudentID, nonExistentCoursePhaseID)
+	retrievedItems, err := suite.actionItemService.GetStudentActionItemsForCoursePhaseCommunication(suite.suiteCtx, nonExistentStudentID, nonExistentCoursePhaseID)
 	assert.NoError(suite.T(), err, "Should not return error for non-existent student/phase")
 	assert.Equal(suite.T(), 0, len(retrievedItems), "Should return empty array for non-existent student/phase")
 }

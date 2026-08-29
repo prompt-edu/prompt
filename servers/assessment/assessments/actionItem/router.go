@@ -15,26 +15,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupActionItemRouter sets up action item endpoints.
+// RegisterRoutes sets up action item endpoints.
 // @Summary Action Item Endpoints
 // @Description Manage action items for assessments.
 // @Tags action_items
 // @Security BearerAuth
-func setupActionItemRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ActionItemService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	actionItemRouter := routerGroup.Group("student-assessment/action-item")
 
 	// course phase communication
-	actionItemRouter.GET("/action", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllActionItemsForCoursePhaseCommunication)
-	actionItemRouter.GET("/action/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getStudentActionItemsForCoursePhaseCommunication)
+	actionItemRouter.GET("/action", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllActionItemsForCoursePhaseCommunication)
+	actionItemRouter.GET("/action/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentActionItemsForCoursePhaseCommunication)
 
 	// action item management
-	actionItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getActionItemsForStudent)
-	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), createActionItem)
-	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), updateActionItem)
-	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), deleteActionItem)
+	actionItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getActionItemsForStudent)
+	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createActionItem)
+	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.updateActionItem)
+	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.deleteActionItem)
 
 	// student access to own action items
-	actionItemRouter.GET("/my-action-items", authMiddleware(promptSDK.CourseStudent), getMyActionItems)
+	actionItemRouter.GET("/my-action-items", authMiddleware(promptSDK.CourseStudent), service.getMyActionItems)
 }
 
 // getAllActionItemsForCoursePhaseCommunication godoc
@@ -47,13 +47,13 @@ func setupActionItemRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/action [get]
-func getAllActionItemsForCoursePhaseCommunication(c *gin.Context) {
+func (s *ActionItemService) getAllActionItemsForCoursePhaseCommunication(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	actionItems, err := GetAllActionItemsForCoursePhaseCommunication(c, coursePhaseID)
+	actionItems, err := s.GetAllActionItemsForCoursePhaseCommunication(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -72,7 +72,7 @@ func getAllActionItemsForCoursePhaseCommunication(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/action/course-participation/{courseParticipationID} [get]
-func getStudentActionItemsForCoursePhaseCommunication(c *gin.Context) {
+func (s *ActionItemService) getStudentActionItemsForCoursePhaseCommunication(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -84,7 +84,7 @@ func getStudentActionItemsForCoursePhaseCommunication(c *gin.Context) {
 		return
 	}
 
-	actionItems, err := GetStudentActionItemsForCoursePhaseCommunication(c, courseParticipationID, coursePhaseID)
+	actionItems, err := s.GetStudentActionItemsForCoursePhaseCommunication(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -105,13 +105,13 @@ func getStudentActionItemsForCoursePhaseCommunication(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item [post]
-func createActionItem(c *gin.Context) {
+func (s *ActionItemService) createActionItem(c *gin.Context) {
 	var req actionItemDTO.CreateActionItemRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	err := CreateActionItem(c, req)
+	err := s.CreateActionItem(c, req)
 	if err != nil {
 		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) || errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
@@ -137,7 +137,7 @@ func createActionItem(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/{id} [put]
-func updateActionItem(c *gin.Context) {
+func (s *ActionItemService) updateActionItem(c *gin.Context) {
 	actionItemID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -153,7 +153,7 @@ func updateActionItem(c *gin.Context) {
 	// Ensure the ID from URL matches the one in the request
 	req.ID = actionItemID
 
-	err = UpdateActionItem(c, req)
+	err = s.UpdateActionItem(c, req)
 	if err != nil {
 		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) || errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
@@ -176,14 +176,14 @@ func updateActionItem(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/{id} [delete]
-func deleteActionItem(c *gin.Context) {
+func (s *ActionItemService) deleteActionItem(c *gin.Context) {
 	actionItemID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = DeleteActionItem(c, actionItemID)
+	err = s.DeleteActionItem(c, actionItemID)
 	if err != nil {
 		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) || errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
@@ -206,7 +206,7 @@ func deleteActionItem(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/course-participation/{courseParticipationID} [get]
-func getActionItemsForStudent(c *gin.Context) {
+func (s *ActionItemService) getActionItemsForStudent(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -218,7 +218,7 @@ func getActionItemsForStudent(c *gin.Context) {
 		return
 	}
 
-	actionItems, err := ListActionItemsForStudentInPhase(c, courseParticipationID, coursePhaseID)
+	actionItems, err := s.ListActionItemsForStudentInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -238,7 +238,7 @@ func getActionItemsForStudent(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item/my-action-items [get]
-func getMyActionItems(c *gin.Context) {
+func (s *ActionItemService) getMyActionItems(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -266,13 +266,13 @@ func getMyActionItems(c *gin.Context) {
 		return
 	}
 
-	exists, err := assessmentCompletion.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
+	exists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	if exists {
-		completion, err := assessmentCompletion.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
+		completion, err := s.assessmentCompletion.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
 		if err != nil {
 			handleError(c, http.StatusInternalServerError, err)
 			return
@@ -283,7 +283,7 @@ func getMyActionItems(c *gin.Context) {
 		}
 	}
 
-	actionItems, err := ListActionItemsForStudentInPhase(c, courseParticipationID, coursePhaseID)
+	actionItems, err := s.ListActionItemsForStudentInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

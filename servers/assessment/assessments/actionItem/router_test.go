@@ -26,7 +26,7 @@ type ActionItemRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
-	service  ActionItemService
+	service  *ActionItemService
 }
 
 func (suite *ActionItemRouterTestSuite) SetupSuite() {
@@ -37,17 +37,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = ActionItemService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	ActionItemServiceSingleton = &suite.service
-
-	// Initialize the assessment completion module with the test database
-	// This creates a dummy router group just to initialize the singleton
-	dummyRouter := gin.Default()
-	dummyGroup := dummyRouter.Group("/dummy")
-	assessmentCompletion.InitAssessmentCompletionModule(dummyGroup, *testDB.Queries, testDB.Conn)
+	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn))
 
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
 
@@ -57,7 +47,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
-	setupActionItemRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 }
 
 func (suite *ActionItemRouterTestSuite) TearDownSuite() {
@@ -222,7 +212,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsWhenVisible() {
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupActionItemRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item/my-action-items", nil)
 	resp := httptest.NewRecorder()
@@ -247,7 +237,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsWhenNotVisible() {
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupActionItemRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item/my-action-items", nil)
 	resp := httptest.NewRecorder()
@@ -272,7 +262,7 @@ func (suite *ActionItemRouterTestSuite) TestGetMyActionItemsBeforeDeadline() {
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	setupActionItemRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item/my-action-items", nil)
 	resp := httptest.NewRecorder()

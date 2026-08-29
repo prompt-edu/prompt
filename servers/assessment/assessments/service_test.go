@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
@@ -24,11 +24,23 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
+func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool) *AssessmentService {
+	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn)
+	return NewAssessmentService(
+		queries,
+		conn,
+		completionService,
+		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService),
+		actionItem.NewActionItemService(queries, completionService),
+		scoreLevel.NewScoreLevelService(queries),
+	)
+}
+
 type AssessmentServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
-	service  AssessmentService
+	service  *AssessmentService
 }
 
 func (suite *AssessmentServiceTestSuite) SetupSuite() {
@@ -39,14 +51,7 @@ func (suite *AssessmentServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = AssessmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentServiceSingleton = &suite.service
-	assessmentCompletion.InitAssessmentCompletionModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
-	scoreLevel.InitScoreLevelModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
-	categoryAssessment.InitCategoryAssessmentModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	suite.service = newTestAssessmentService(*testDB.Queries, testDB.Conn)
 
 	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
 	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
@@ -60,28 +65,28 @@ func (suite *AssessmentServiceTestSuite) TearDownSuite() {
 
 func (suite *AssessmentServiceTestSuite) TestListAssessmentsByCoursePhase() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	items, err := ListAssessmentsByCoursePhase(suite.suiteCtx, phaseID)
+	items, err := suite.service.ListAssessmentsByCoursePhase(suite.suiteCtx, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(items), 0, "Expected at least one assessment for phase")
 }
 
 func (suite *AssessmentServiceTestSuite) TestGetAssessment() {
 	id := uuid.MustParse("1950fdb7-d736-4fe6-81f9-b8b1cf7c85df")
-	a, err := GetAssessment(suite.suiteCtx, id)
+	a, err := suite.service.GetAssessment(suite.suiteCtx, id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), id, a.ID, "Assessment ID should match")
 }
 
 func (suite *AssessmentServiceTestSuite) TestGetAssessmentNotFound() {
 	id := uuid.New()
-	_, err := GetAssessment(suite.suiteCtx, id)
+	_, err := suite.service.GetAssessment(suite.suiteCtx, id)
 	assert.Error(suite.T(), err, "Expected error for non-existent assessment")
 }
 
 func (suite *AssessmentServiceTestSuite) TestListAssessmentsByStudentInPhase() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
-	items, err := ListAssessmentsByStudentInPhase(suite.suiteCtx, partID, phaseID)
+	items, err := suite.service.ListAssessmentsByStudentInPhase(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(items), 0, "Expected at least one assessment for student in phase")
 }
@@ -89,7 +94,7 @@ func (suite *AssessmentServiceTestSuite) TestListAssessmentsByStudentInPhase() {
 func (suite *AssessmentServiceTestSuite) TestDeleteAssessmentNonExisting() {
 	id := uuid.New()
 	coursePhaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	err := DeleteAssessment(suite.suiteCtx, id, coursePhaseID)
+	err := suite.service.DeleteAssessment(suite.suiteCtx, id, coursePhaseID)
 	assert.ErrorIs(suite.T(), err, ErrAssessmentNotFound, "Deleting non-existent assessment should return not-found")
 }
 
@@ -102,7 +107,7 @@ func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentWithEmptySc
 		Author:                "Test Author",
 	}
 
-	err := CreateOrUpdateAssessment(suite.suiteCtx, req)
+	err := suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req)
 	assert.Error(suite.T(), err, "Expected error for empty scoreLevel")
 	assert.Equal(suite.T(), ErrInvalidScoreLevel, err, "Expected ErrInvalidScoreLevel")
 }
@@ -131,7 +136,7 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONIncludes
 	})
 	assert.NoError(suite.T(), err)
 
-	export, err := ExportStudentAssessment(suite.suiteCtx, phaseID, partID, AssessmentExportFormatJSON)
+	export, err := suite.service.ExportStudentAssessment(suite.suiteCtx, phaseID, partID, AssessmentExportFormatJSON)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), phaseID, export.CoursePhaseID)
 	assert.Equal(suite.T(), partID, export.CourseParticipationID)
@@ -155,7 +160,7 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentJSONWithoutO
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New()
 
-	export, err := ExportStudentAssessment(suite.suiteCtx, phaseID, partID, AssessmentExportFormatJSON)
+	export, err := suite.service.ExportStudentAssessment(suite.suiteCtx, phaseID, partID, AssessmentExportFormatJSON)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), phaseID, export.CoursePhaseID)
 	assert.Equal(suite.T(), partID, export.CourseParticipationID)
@@ -171,7 +176,7 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentUnsupportedF
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 
-	_, err := ExportStudentAssessment(suite.suiteCtx, phaseID, partID, "pdf")
+	_, err := suite.service.ExportStudentAssessment(suite.suiteCtx, phaseID, partID, "pdf")
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), errors.Is(err, ErrUnsupportedAssessmentExportFormat))
 }

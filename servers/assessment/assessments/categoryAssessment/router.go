@@ -12,15 +12,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupCategoryAssessmentRouter sets up category-assessment endpoints.
+// RegisterRoutes sets up category-assessment endpoints.
 // @Summary Category Assessment Endpoints
 // @Description Manage per-category free-text comments for student assessments.
 // @Tags categoryAssessments
 // @Security BearerAuth
-func setupCategoryAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryAssessmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	r := routerGroup.Group("/category-assessment")
 
-	r.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), createOrUpdateCategoryAssessment)
+	r.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createOrUpdateCategoryAssessment)
 }
 
 // createOrUpdateCategoryAssessment godoc
@@ -36,7 +36,7 @@ func setupCategoryAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware 
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category-assessment [post]
-func createOrUpdateCategoryAssessment(c *gin.Context) {
+func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Context) {
 	var req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -52,7 +52,7 @@ func createOrUpdateCategoryAssessment(c *gin.Context) {
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
 	req.AuthorID = tokenUser.ID
 
-	if err := CreateOrUpdateCategoryAssessment(c, req); err != nil {
+	if err := s.CreateOrUpdateCategoryAssessment(c, req); err != nil {
 		if errors.Is(err, ErrNotEditable) {
 			handleError(c, http.StatusForbidden, err)
 			return

@@ -10,14 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupSkillRouter creates a router group for skill endpoints.
-func setupSkillRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+// RegisterRoutes creates a router group for skill endpoints.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *SkillsService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	skillRouter := routerGroup.Group("/skill")
 
-	skillRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getAllSkills)
-	skillRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createSkills)
-	skillRouter.PUT("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateSkill)
-	skillRouter.DELETE("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteSkill)
+	skillRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getAllSkills)
+	skillRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createSkills)
+	skillRouter.PUT("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateSkill)
+	skillRouter.DELETE("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteSkill)
 }
 
 // getAllSkills godoc
@@ -31,7 +31,7 @@ func setupSkillRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedR
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/skill [get]
-func getAllSkills(c *gin.Context) {
+func (s *SkillsService) getAllSkills(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -39,7 +39,7 @@ func getAllSkills(c *gin.Context) {
 		return
 	}
 
-	skills, err := GetAllSkills(c, coursePhaseID)
+	skills, err := s.GetAllSkills(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -60,7 +60,7 @@ func getAllSkills(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/skill [post]
-func createSkills(c *gin.Context) {
+func (s *SkillsService) createSkills(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -74,7 +74,7 @@ func createSkills(c *gin.Context) {
 		return
 	}
 
-	err = CreateNewSkills(c, request.SkillNames, coursePhaseID)
+	err = s.CreateNewSkills(c, request.SkillNames, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -96,7 +96,7 @@ func createSkills(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/skill/{skillID} [put]
-func updateSkill(c *gin.Context) {
+func (s *SkillsService) updateSkill(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -117,7 +117,7 @@ func updateSkill(c *gin.Context) {
 		return
 	}
 
-	err = UpdateSkill(c, coursePhaseID, skillID, request.NewSkillName)
+	err = s.UpdateSkill(c, coursePhaseID, skillID, request.NewSkillName)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -137,7 +137,7 @@ func updateSkill(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/skill/{skillID} [delete]
-func deleteSkill(c *gin.Context) {
+func (s *SkillsService) deleteSkill(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -152,7 +152,7 @@ func deleteSkill(c *gin.Context) {
 		return
 	}
 
-	err = DeleteSkill(c, coursePhaseID, skillID)
+	err = s.DeleteSkill(c, coursePhaseID, skillID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

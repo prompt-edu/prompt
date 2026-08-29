@@ -44,7 +44,7 @@ func tutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerF
 func (suite *TeamRouterTestSuite) routerAs(login string) *gin.Engine {
 	router := gin.New()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupTeamRouter(api, tutorAuthMiddleware(login), suite.teamService.queries)
+	RegisterRoutes(api, suite.teamService, tutorAuthMiddleware(login))
 	return router
 }
 
@@ -53,7 +53,7 @@ type TeamRouterTestSuite struct {
 	router      *gin.Engine
 	suiteCtx    context.Context
 	cleanup     func()
-	teamService TeamsService
+	teamService *TeamsService
 }
 
 func (suite *TeamRouterTestSuite) SetupSuite() {
@@ -63,17 +63,13 @@ func (suite *TeamRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.teamService = TeamsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	TeamsServiceSingleton = &suite.teamService
+	suite.teamService = NewTeamsService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
-	setupTeamRouter(api, testMiddleware, *testDB.Queries)
+	RegisterRoutes(api, suite.teamService, testMiddleware)
 }
 
 func (suite *TeamRouterTestSuite) TearDownSuite() {

@@ -88,10 +88,14 @@ func main() {
 
 	// No health endpoint; health checks are handled externally.
 
-	skills.InitSkillModule(coursePhaseApi, *query, conn)
-	teams.InitTeamModule(coursePhaseApi, *query, conn)
+	skillsService := skills.NewSkillsService(*query, conn)
+	teamsService := teams.NewTeamsService(*query, conn)
+	allocationService := allocation.NewAllocationService(*query)
+
+	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
 	survey.InitSurveyModule(coursePhaseApi, *query, conn)
-	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 
 	tease.InitTeaseModule(router.Group("team-allocation/api"), *query, conn) // some tease endpoint are coursePhase independent
 

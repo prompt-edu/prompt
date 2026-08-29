@@ -15,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -39,7 +40,12 @@ func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.service = NewFeedbackItemService(*testDB.Queries, testDB.Conn,
-		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase))
+		evaluationCompletion.NewEvaluationCompletionService(
+			*testDB.Queries,
+			testDB.Conn,
+			coursePhaseConfig.GetTeamsForCoursePhase,
+			coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		))
 
 	suite.router = gin.Default()
 

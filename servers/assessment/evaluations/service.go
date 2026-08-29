@@ -10,6 +10,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	log "github.com/sirupsen/logrus"
@@ -19,17 +20,23 @@ type evaluationCompletionProvider interface {
 	CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error
 }
 
+type coursePhaseConfigProvider interface {
+	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+}
+
 type EvaluationService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
 	evaluationCompletion evaluationCompletionProvider
+	coursePhaseConfig    coursePhaseConfigProvider
 }
 
-func NewEvaluationService(queries db.Queries, conn *pgxpool.Pool, evaluationCompletion evaluationCompletionProvider) *EvaluationService {
+func NewEvaluationService(queries db.Queries, conn *pgxpool.Pool, evaluationCompletion evaluationCompletionProvider, coursePhaseConfig coursePhaseConfigProvider) *EvaluationService {
 	return &EvaluationService{
 		queries:              queries,
 		conn:                 conn,
 		evaluationCompletion: evaluationCompletion,
+		coursePhaseConfig:    coursePhaseConfig,
 	}
 }
 

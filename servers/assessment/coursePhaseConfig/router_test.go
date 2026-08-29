@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -27,7 +28,7 @@ type CoursePhaseConfigRouterTestSuite struct {
 	router                   *gin.Engine
 	suiteCtx                 context.Context
 	cleanup                  func()
-	coursePhaseConfigService CoursePhaseConfigService
+	coursePhaseConfigService *CoursePhaseConfigService
 	testCoursePhaseID        uuid.UUID
 }
 
@@ -47,11 +48,11 @@ func (suite *CoursePhaseConfigRouterTestSuite) SetupSuite() {
 		suite.T().Skipf("skipping db-backed course phase config router tests: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.coursePhaseConfigService = CoursePhaseConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseConfigSingleton = &suite.coursePhaseConfigService
+	suite.coursePhaseConfigService = NewCoursePhaseConfigService(
+		*testDB.Queries,
+		testDB.Conn,
+		assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn),
+	)
 
 	suite.testCoursePhaseID = uuid.New()
 	templateID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000") // From our test data
@@ -69,7 +70,7 @@ func (suite *CoursePhaseConfigRouterTestSuite) SetupSuite() {
 	testMiddleWare := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "12345", "lecturer")
 	}
-	setupCoursePhaseRouter(api, testMiddleWare)
+	RegisterRoutes(api, suite.coursePhaseConfigService, testMiddleWare)
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) TearDownSuite() {
@@ -198,11 +199,13 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipien
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipientsSuccess() {
-	oldGetEvaluationReminderRecipientsFn := getEvaluationReminderRecipientsFn
-	suite.T().Cleanup(func() { getEvaluationReminderRecipientsFn = oldGetEvaluationReminderRecipientsFn })
+	oldGetEvaluationReminderRecipients := suite.coursePhaseConfigService.getEvaluationReminderRecipients
+	suite.T().Cleanup(func() {
+		suite.coursePhaseConfigService.getEvaluationReminderRecipients = oldGetEvaluationReminderRecipients
+	})
 
 	deadline := time.Now().Add(-1 * time.Hour)
-	getEvaluationReminderRecipientsFn = func(
+	suite.coursePhaseConfigService.getEvaluationReminderRecipients = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -237,10 +240,12 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipien
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipientsDisabled() {
-	oldGetEvaluationReminderRecipientsFn := getEvaluationReminderRecipientsFn
-	suite.T().Cleanup(func() { getEvaluationReminderRecipientsFn = oldGetEvaluationReminderRecipientsFn })
+	oldGetEvaluationReminderRecipients := suite.coursePhaseConfigService.getEvaluationReminderRecipients
+	suite.T().Cleanup(func() {
+		suite.coursePhaseConfigService.getEvaluationReminderRecipients = oldGetEvaluationReminderRecipients
+	})
 
-	getEvaluationReminderRecipientsFn = func(
+	suite.coursePhaseConfigService.getEvaluationReminderRecipients = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -269,11 +274,13 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipien
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) TestGetIncompleteReminderRecipientsDeadlineNotPassed() {
-	oldGetEvaluationReminderRecipientsFn := getEvaluationReminderRecipientsFn
-	suite.T().Cleanup(func() { getEvaluationReminderRecipientsFn = oldGetEvaluationReminderRecipientsFn })
+	oldGetEvaluationReminderRecipients := suite.coursePhaseConfigService.getEvaluationReminderRecipients
+	suite.T().Cleanup(func() {
+		suite.coursePhaseConfigService.getEvaluationReminderRecipients = oldGetEvaluationReminderRecipients
+	})
 
 	deadline := time.Now().Add(2 * time.Hour)
-	getEvaluationReminderRecipientsFn = func(
+	suite.coursePhaseConfigService.getEvaluationReminderRecipients = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -324,11 +331,13 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderInvalid
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess() {
-	oldFn := sendEvaluationReminderManualTriggerFn
-	suite.T().Cleanup(func() { sendEvaluationReminderManualTriggerFn = oldFn })
+	oldSendEvaluationReminderManualTrigger := suite.coursePhaseConfigService.sendEvaluationReminderManualTrigger
+	suite.T().Cleanup(func() {
+		suite.coursePhaseConfigService.sendEvaluationReminderManualTrigger = oldSendEvaluationReminderManualTrigger
+	})
 
 	fixedNow := time.Date(2026, time.January, 12, 10, 0, 0, 0, time.UTC)
-	sendEvaluationReminderManualTriggerFn = func(
+	suite.coursePhaseConfigService.sendEvaluationReminderManualTrigger = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -372,7 +381,7 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResults() {
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), config.ResultsReleased)
 }
@@ -399,7 +408,7 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestUnreleaseResults() {
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.ResultsReleased)
 }

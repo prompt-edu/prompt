@@ -19,7 +19,11 @@ import (
 // @Description Manage assessment completion and grades.
 // @Tags assessment_completions
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+type assessmentGuard interface {
+	RequireAssessmentEnabled() gin.HandlerFunc
+}
+
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assessmentCompletionRouter := routerGroup.Group("/student-assessment/completed")
 
 	// course phase communication
@@ -27,12 +31,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionS
 	assessmentCompletionRouter.GET("grade/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentGrade)
 
 	assessmentCompletionRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentCompletionsByCoursePhase)
-	assessmentCompletionRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
-	assessmentCompletionRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
-	assessmentCompletionRouter.POST("/mark-complete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.markAssessmentAsCompleted)
+	assessmentCompletionRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
+	assessmentCompletionRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
+	assessmentCompletionRouter.POST("/mark-complete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentAsCompleted)
 	assessmentCompletionRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentCompletion)
-	assessmentCompletionRouter.PUT("/course-participation/:courseParticipationID/unmark", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.unmarkAssessmentAsCompleted)
-	assessmentCompletionRouter.DELETE("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.deleteAssessmentCompletion)
+	assessmentCompletionRouter.PUT("/course-participation/:courseParticipationID/unmark", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentAsCompleted)
+	assessmentCompletionRouter.DELETE("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteAssessmentCompletion)
 
 	assessmentCompletionRouter.GET("/my-grade-suggestion", authMiddleware(promptSDK.CourseStudent), service.getMyGradeSuggestion)
 }
@@ -319,7 +323,7 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

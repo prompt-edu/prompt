@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -33,9 +34,8 @@ func (suite *ActionItemServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn))
-
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
+	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), coursePhaseConfigService)
 
 	// Use predefined test UUIDs from the database dump
 	// This phase has assessment open (start in past, deadline in future)

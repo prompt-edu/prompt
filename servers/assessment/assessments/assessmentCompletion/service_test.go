@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -32,9 +33,11 @@ func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn)
-
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	suite.service = NewAssessmentCompletionService(
+		*testDB.Queries,
+		testDB.Conn,
+		coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+	)
 }
 
 func (suite *AssessmentCompletionServiceTestSuite) TearDownSuite() {

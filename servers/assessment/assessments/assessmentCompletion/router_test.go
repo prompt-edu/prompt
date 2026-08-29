@@ -17,6 +17,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -25,10 +26,11 @@ import (
 
 type AssessmentCompletionRouterTestSuite struct {
 	suite.Suite
-	router   *gin.Engine
-	suiteCtx context.Context
-	cleanup  func()
-	service  *AssessmentCompletionService
+	router                   *gin.Engine
+	suiteCtx                 context.Context
+	cleanup                  func()
+	service                  *AssessmentCompletionService
+	coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
@@ -39,9 +41,8 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn)
-
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
+	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -49,7 +50,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
-	RegisterRoutes(api, suite.service, testMiddleware)
+	RegisterRoutes(api, suite.service, suite.coursePhaseConfigService, testMiddleware)
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TearDownSuite() {
@@ -572,7 +573,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenVi
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	RegisterRoutes(api, suite.service, testMiddleware)
+	RegisterRoutes(api, suite.service, suite.coursePhaseConfigService, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()
@@ -597,7 +598,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionWhenNo
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	RegisterRoutes(api, suite.service, testMiddleware)
+	RegisterRoutes(api, suite.service, suite.coursePhaseConfigService, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()
@@ -622,7 +623,7 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionBefore
 			sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")(c)
 		}
 	}
-	RegisterRoutes(api, suite.service, testMiddleware)
+	RegisterRoutes(api, suite.service, suite.coursePhaseConfigService, testMiddleware)
 
 	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/my-grade-suggestion", nil)
 	resp := httptest.NewRecorder()

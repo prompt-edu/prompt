@@ -47,9 +47,8 @@ func (suite *CompetencyRouterTestSuite) SetupTest() {
 	suite.mockCoreCleanup = mockCleanup
 
 	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
-	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, *testDB.Queries))
-
-	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, schemaService)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, schemaService)
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, coursePhaseConfigService, *testDB.Queries))
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")

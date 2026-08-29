@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
@@ -26,16 +27,21 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
-func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool) *AssessmentService {
-	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn)
+func newTestCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool) *coursePhaseConfig.CoursePhaseConfigService {
+	return coursePhaseConfig.NewCoursePhaseConfigService(queries, conn, assessmentSchemas.NewAssessmentSchemaService(queries, conn))
+}
+
+func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService) *AssessmentService {
+	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn, coursePhaseConfigService)
 	return NewAssessmentService(
 		queries,
 		conn,
 		completionService,
 		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService),
-		actionItem.NewActionItemService(queries, completionService),
+		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService),
 		scoreLevel.NewScoreLevelService(queries),
-		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase)),
+		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService), coursePhaseConfigService),
+		coursePhaseConfigService,
 	)
 }
 
@@ -54,10 +60,7 @@ func (suite *AssessmentServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = newTestAssessmentService(*testDB.Queries, testDB.Conn)
-
-	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	suite.service = newTestAssessmentService(*testDB.Queries, testDB.Conn, newTestCoursePhaseConfigService(*testDB.Queries, testDB.Conn))
 }
 
 func (suite *AssessmentServiceTestSuite) TearDownSuite() {

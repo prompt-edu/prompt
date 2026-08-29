@@ -20,7 +20,11 @@ import (
 // @Description Manage action items for assessments.
 // @Tags action_items
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *ActionItemService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+type assessmentGuard interface {
+	RequireAssessmentEnabled() gin.HandlerFunc
+}
+
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ActionItemService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	actionItemRouter := routerGroup.Group("student-assessment/action-item")
 
 	// course phase communication
@@ -29,9 +33,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ActionItemService, au
 
 	// action item management
 	actionItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getActionItemsForStudent)
-	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createActionItem)
-	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.updateActionItem)
-	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.deleteActionItem)
+	actionItemRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createActionItem)
+	actionItemRouter.PUT("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.updateActionItem)
+	actionItemRouter.DELETE("/:id", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteActionItem)
 
 	// student access to own action items
 	actionItemRouter.GET("/my-action-items", authMiddleware(promptSDK.CourseStudent), service.getMyActionItems)
@@ -245,7 +249,7 @@ func (s *ActionItemService) getMyActionItems(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

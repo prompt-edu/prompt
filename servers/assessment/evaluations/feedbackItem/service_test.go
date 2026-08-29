@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -37,7 +38,12 @@ func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	suite.feedbackItemService = NewFeedbackItemService(*testDB.Queries, testDB.Conn,
-		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase))
+		evaluationCompletion.NewEvaluationCompletionService(
+			*testDB.Queries,
+			testDB.Conn,
+			coursePhaseConfig.GetTeamsForCoursePhase,
+			coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		))
 
 	// Use predefined test UUIDs from the test data that match feedbackItems.sql
 	suite.testCoursePhaseID = uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")

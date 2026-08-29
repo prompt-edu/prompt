@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -40,9 +39,8 @@ func (suite *CategoryServiceTestSuite) SetupTest() {
 	suite.mockCoreCleanup = mockCleanup
 
 	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
-	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, *testDB.Queries))
-
-	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, schemaService)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, schemaService)
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, coursePhaseConfigService, *testDB.Queries), coursePhaseConfigService)
 }
 
 func (suite *CategoryServiceTestSuite) TearDownTest() {

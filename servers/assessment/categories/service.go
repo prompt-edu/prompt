@@ -13,6 +13,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	log "github.com/sirupsen/logrus"
@@ -27,19 +28,25 @@ type schemaModifier interface {
 	GetOrCopySchemaForWrite(ctx context.Context, schemaID uuid.UUID, entityID uuid.UUID, coursePhaseID uuid.UUID) (*schemaModification.PrepareSchemaModificationResult, error)
 }
 
+type coursePhaseConfigProvider interface {
+	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+}
+
 type CategoryService struct {
 	queries            db.Queries
 	conn               *pgxpool.Pool
 	schemas            schemaProvider
 	schemaModification schemaModifier
+	coursePhaseConfig  coursePhaseConfigProvider
 }
 
-func NewCategoryService(queries db.Queries, conn *pgxpool.Pool, schemas schemaProvider, schemaModification schemaModifier) *CategoryService {
+func NewCategoryService(queries db.Queries, conn *pgxpool.Pool, schemas schemaProvider, schemaModification schemaModifier, coursePhaseConfig coursePhaseConfigProvider) *CategoryService {
 	return &CategoryService{
 		queries:            queries,
 		conn:               conn,
 		schemas:            schemas,
 		schemaModification: schemaModification,
+		coursePhaseConfig:  coursePhaseConfig,
 	}
 }
 

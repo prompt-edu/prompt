@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
@@ -22,15 +21,21 @@ type schemaProvider interface {
 	UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseID uuid.UUID, oldCompetencyID uuid.UUID, newCompetencyID uuid.UUID) error
 }
 
-type SchemaModificationService struct {
-	schemas schemaProvider
-	queries db.Queries
+type coursePhaseConfigProvider interface {
+	UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, oldSchemaID uuid.UUID, newSchemaID uuid.UUID) error
 }
 
-func NewSchemaModificationService(schemas schemaProvider, queries db.Queries) *SchemaModificationService {
+type SchemaModificationService struct {
+	schemas           schemaProvider
+	coursePhaseConfig coursePhaseConfigProvider
+	queries           db.Queries
+}
+
+func NewSchemaModificationService(schemas schemaProvider, coursePhaseConfig coursePhaseConfigProvider, queries db.Queries) *SchemaModificationService {
 	return &SchemaModificationService{
-		schemas: schemas,
-		queries: queries,
+		schemas:           schemas,
+		coursePhaseConfig: coursePhaseConfig,
+		queries:           queries,
 	}
 }
 
@@ -193,7 +198,7 @@ func (s *SchemaModificationService) copySchemaForConsumer(ctx context.Context, o
 		}
 	}
 
-	err = coursePhaseConfig.UpdateCoursePhaseConfigAssessmentSchema(ctx, coursePhaseID, oldSchemaID, copiedSchema.ID)
+	err = s.coursePhaseConfig.UpdateCoursePhaseConfigAssessmentSchema(ctx, coursePhaseID, oldSchemaID, copiedSchema.ID)
 	if err != nil {
 		log.Error("Failed to update course phase config with new schema")
 		return uuid.Nil, errors.New("failed to update course phase config")

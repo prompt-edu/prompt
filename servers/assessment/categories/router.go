@@ -10,7 +10,6 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -191,7 +190,7 @@ func (s *CategoryService) getCategoriesWithCompetencies(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -229,7 +228,7 @@ func (s *CategoryService) getSelfEvaluationCategoriesWithCompetencies(c *gin.Con
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -262,7 +261,7 @@ func (s *CategoryService) getPeerEvaluationCategoriesWithCompetencies(c *gin.Con
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -295,7 +294,7 @@ func (s *CategoryService) getTutorEvaluationCategoriesWithCompetencies(c *gin.Co
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)

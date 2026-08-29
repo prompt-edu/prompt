@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -28,19 +29,28 @@ type schemaProvider interface {
 	CheckSchemaAccessibleForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID) (bool, error)
 }
 
+type reminderRecipientsResolver func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, evaluationType assessmentType.AssessmentType) (coursePhaseConfigDTO.EvaluationReminderRecipients, error)
+
+type reminderSender func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, evaluationType assessmentType.AssessmentType) (coursePhaseConfigDTO.EvaluationReminderSendReport, error)
+
 type CoursePhaseConfigService struct {
 	queries db.Queries
 	conn    *pgxpool.Pool
 	schemas schemaProvider
+
+	getEvaluationReminderRecipients     reminderRecipientsResolver
+	sendEvaluationReminderManualTrigger reminderSender
 }
 
-var CoursePhaseConfigSingleton *CoursePhaseConfigService
-
-func NewCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool) *CoursePhaseConfigService {
-	return &CoursePhaseConfigService{
+func NewCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool, schemas schemaProvider) *CoursePhaseConfigService {
+	service := &CoursePhaseConfigService{
 		queries: queries,
 		conn:    conn,
+		schemas: schemas,
 	}
+	service.getEvaluationReminderRecipients = service.GetEvaluationReminderRecipients
+	service.sendEvaluationReminderManualTrigger = service.SendEvaluationReminderManualTrigger
+	return service
 }
 
 func (s *CoursePhaseConfigService) validateSchemaChange(ctx context.Context, coursePhaseID, oldSchemaID, newSchemaID uuid.UUID, schemaType string) error {
@@ -82,16 +92,16 @@ func (s *CoursePhaseConfigService) validateSchemaAccessibility(ctx context.Conte
 	return nil
 }
 
-func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
-	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		tx, err := CoursePhaseConfigSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return coursePhaseConfigDTO.CoursePhaseConfig{}, err
 		}
 		defer promptSDK.DeferDBRollback(tx, ctx)
 
-		qtx := CoursePhaseConfigSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		err = qtx.CreateDefaultCoursePhaseConfig(ctx, coursePhaseID)
 		if err != nil {
@@ -105,7 +115,7 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 			return coursePhaseConfigDTO.CoursePhaseConfig{}, err
 		}
 
-		config, err = CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+		config, err = s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 		if err != nil {
 			log.Error("could not get course phase config after creating defaults: ", err)
 			return coursePhaseConfigDTO.CoursePhaseConfig{}, errors.New("could not get course phase config")
@@ -121,8 +131,8 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (courseP
 // GetStoredCoursePhaseConfig is the read-only counterpart of GetCoursePhaseConfig: it never creates
 // a row, so read paths stay reads. An unconfigured phase falls back to the boolean column defaults;
 // the timestamps stay zero because no row exists to supply them.
-func GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
-	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error) {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return coursePhaseConfigDTO.CoursePhaseConfig{
 			CoursePhaseID:            coursePhaseID,
@@ -140,8 +150,8 @@ func GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (c
 	return coursePhaseConfigDTO.MapDBCoursePhaseConfigToDTOCoursePhaseConfig(config), nil
 }
 
-func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, req coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest) error {
-	existingConfig, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, req coursePhaseConfigDTO.CreateOrUpdateCoursePhaseConfigRequest) error {
+	existingConfig, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Error("Failed to get existing course phase config")
 		return err
@@ -162,7 +172,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		}
 
 		for _, schema := range schemasToValidate {
-			if err := CoursePhaseConfigSingleton.validateSchemaChange(ctx, coursePhaseID, schema.old, schema.new, schema.schemaType); err != nil {
+			if err := s.validateSchemaChange(ctx, coursePhaseID, schema.old, schema.new, schema.schemaType); err != nil {
 				return err
 			}
 		}
@@ -175,18 +185,18 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 		req.TutorEvaluationSchema,
 	}
 	for _, schemaID := range schemaIDsToValidate {
-		if err := CoursePhaseConfigSingleton.validateSchemaAccessibility(ctx, coursePhaseID, schemaID); err != nil {
+		if err := s.validateSchemaAccessibility(ctx, coursePhaseID, schemaID); err != nil {
 			return err
 		}
 	}
 
-	tx, err := CoursePhaseConfigSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CoursePhaseConfigSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	gradeSuggestionVisible := pgtype.Bool{}
 	if req.GradeSuggestionVisible != nil {
@@ -268,7 +278,7 @@ func CreateOrUpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUI
 
 // RequireAssessmentEnabled rejects assessment writes on evaluation-only phases. Without it, a stale
 // URL can create assessment rows that then lock the phase's schema.
-func RequireAssessmentEnabled() gin.HandlerFunc {
+func (s *CoursePhaseConfigService) RequireAssessmentEnabled() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 		if err != nil {
@@ -279,7 +289,7 @@ func RequireAssessmentEnabled() gin.HandlerFunc {
 		// A guard must not lazily create rows, so this reads instead of calling
 		// GetCoursePhaseConfig. An unconfigured phase defaults to enabled, leaving the handler to
 		// validate the rest of the request itself.
-		config, err := GetStoredCoursePhaseConfig(c, coursePhaseID)
+		config, err := s.GetStoredCoursePhaseConfig(c, coursePhaseID)
 		if err != nil {
 			log.WithError(err).Error("Failed to get course phase config")
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})
@@ -295,8 +305,8 @@ func RequireAssessmentEnabled() gin.HandlerFunc {
 	}
 }
 
-func IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
-	deadlinePassed, err := CoursePhaseConfigSingleton.queries.IsAssessmentDeadlinePassed(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	deadlinePassed, err := s.queries.IsAssessmentDeadlinePassed(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not check if assessment deadline has passed: ", err)
 		return false, errors.New("could not check if assessment deadline has passed")
@@ -304,8 +314,8 @@ func IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (b
 	return deadlinePassed, nil
 }
 
-func IsSelfEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
-	deadlinePassed, err := CoursePhaseConfigSingleton.queries.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) IsSelfEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	deadlinePassed, err := s.queries.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not check if self evaluation deadline has passed: ", err)
 		return false, errors.New("could not check if self evaluation deadline has passed")
@@ -313,8 +323,8 @@ func IsSelfEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID
 	return deadlinePassed, nil
 }
 
-func IsPeerEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
-	deadlinePassed, err := CoursePhaseConfigSingleton.queries.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) IsPeerEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	deadlinePassed, err := s.queries.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not check if peer evaluation deadline has passed: ", err)
 		return false, errors.New("could not check if peer evaluation deadline has passed")
@@ -322,8 +332,8 @@ func IsPeerEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID
 	return deadlinePassed, nil
 }
 
-func IsTutorEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
-	deadlinePassed, err := CoursePhaseConfigSingleton.queries.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) IsTutorEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	deadlinePassed, err := s.queries.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not check if tutor evaluation deadline has passed: ", err)
 		return false, errors.New("could not check if tutor evaluation deadline has passed")
@@ -331,16 +341,16 @@ func IsTutorEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUI
 	return deadlinePassed, nil
 }
 
-func ReleaseResults(ctx context.Context, coursePhaseID uuid.UUID) error {
-	return setResultsReleased(ctx, coursePhaseID, true)
+func (s *CoursePhaseConfigService) ReleaseResults(ctx context.Context, coursePhaseID uuid.UUID) error {
+	return s.setResultsReleased(ctx, coursePhaseID, true)
 }
 
-func UnreleaseResults(ctx context.Context, coursePhaseID uuid.UUID) error {
-	return setResultsReleased(ctx, coursePhaseID, false)
+func (s *CoursePhaseConfigService) UnreleaseResults(ctx context.Context, coursePhaseID uuid.UUID) error {
+	return s.setResultsReleased(ctx, coursePhaseID, false)
 }
 
-func setResultsReleased(ctx context.Context, coursePhaseID uuid.UUID, released bool) error {
-	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *CoursePhaseConfigService) setResultsReleased(ctx context.Context, coursePhaseID uuid.UUID, released bool) error {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get course phase config")
 		return errors.New("failed to get course phase config")
@@ -354,7 +364,7 @@ func setResultsReleased(ctx context.Context, coursePhaseID uuid.UUID, released b
 		return nil
 	}
 
-	err = CoursePhaseConfigSingleton.queries.UpdateCoursePhaseConfigResultsReleased(
+	err = s.queries.UpdateCoursePhaseConfigResultsReleased(
 		ctx,
 		db.UpdateCoursePhaseConfigResultsReleasedParams{
 			CoursePhaseID:   coursePhaseID,
@@ -373,8 +383,8 @@ func setResultsReleased(ctx context.Context, coursePhaseID uuid.UUID, released b
 	return nil
 }
 
-func UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, oldSchemaID uuid.UUID, newSchemaID uuid.UUID) error {
-	hasData, err := CoursePhaseConfigSingleton.schemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
+func (s *CoursePhaseConfigService) UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, oldSchemaID uuid.UUID, newSchemaID uuid.UUID) error {
+	hasData, err := s.schemas.CheckPhaseHasAssessmentData(ctx, coursePhaseID, oldSchemaID)
 	if err != nil {
 		return err
 	}
@@ -387,13 +397,13 @@ func UpdateCoursePhaseConfigAssessmentSchema(ctx context.Context, coursePhaseID 
 		return ErrCannotChangeSchemaWithData
 	}
 
-	tx, err := CoursePhaseConfigSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CoursePhaseConfigSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// Get current config to determine which schema field to update
 	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)

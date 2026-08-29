@@ -47,6 +47,10 @@ type evaluationProvider interface {
 	GetEvaluationsForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]evaluationDTO.Evaluation, error)
 }
 
+type coursePhaseConfigProvider interface {
+	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+}
+
 type AssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
@@ -55,6 +59,7 @@ type AssessmentService struct {
 	actionItem           actionItemProvider
 	scoreLevel           scoreLevelProvider
 	evaluations          evaluationProvider
+	coursePhaseConfig    coursePhaseConfigProvider
 }
 
 func NewAssessmentService(
@@ -65,6 +70,7 @@ func NewAssessmentService(
 	actionItem actionItemProvider,
 	scoreLevel scoreLevelProvider,
 	evaluations evaluationProvider,
+	coursePhaseConfig coursePhaseConfigProvider,
 ) *AssessmentService {
 	return &AssessmentService{
 		queries:              queries,
@@ -74,6 +80,7 @@ func NewAssessmentService(
 		actionItem:           actionItem,
 		scoreLevel:           scoreLevel,
 		evaluations:          evaluations,
+		coursePhaseConfig:    coursePhaseConfig,
 	}
 }
 

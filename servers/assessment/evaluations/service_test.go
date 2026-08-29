@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -51,11 +52,10 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 	suite.testAuthHeader = "Bearer evaluation-service-test-token"
 
 	suite.cleanup = cleanup
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
 	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
-		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase))
-
-	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService),
+		coursePhaseConfigService)
 
 	// Test data IDs matching the evaluations.sql dump
 	suite.testCoursePhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")

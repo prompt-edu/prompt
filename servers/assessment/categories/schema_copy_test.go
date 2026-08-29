@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -21,11 +20,12 @@ import (
 
 type SchemaCopyTestSuite struct {
 	suite.Suite
-	suiteCtx        context.Context
-	cleanup         func()
-	mockCoreCleanup func()
-	categoryService *CategoryService
-	schemaService   *assessmentSchemas.AssessmentSchemaService
+	suiteCtx                 context.Context
+	cleanup                  func()
+	mockCoreCleanup          func()
+	categoryService          *CategoryService
+	schemaService            *assessmentSchemas.AssessmentSchemaService
+	coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService
 }
 
 func (suite *SchemaCopyTestSuite) SetupTest() {
@@ -41,9 +41,8 @@ func (suite *SchemaCopyTestSuite) SetupTest() {
 	suite.mockCoreCleanup = mockCleanup
 
 	suite.schemaService = assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
-	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, suite.schemaService, schemaModification.NewSchemaModificationService(suite.schemaService, *testDB.Queries))
-
-	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group(""), *testDB.Queries, testDB.Conn, suite.schemaService)
+	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, suite.schemaService)
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, suite.schemaService, schemaModification.NewSchemaModificationService(suite.schemaService, suite.coursePhaseConfigService, *testDB.Queries), suite.coursePhaseConfigService)
 }
 
 func (suite *SchemaCopyTestSuite) TearDownTest() {
@@ -95,7 +94,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_NoAssessments() {
 	assert.Equal(suite.T(), int32(1), originalCategory.Weight, "Original category weight should remain unchanged")
 
 	// Verify course phase config now points to a copied schema.
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotEqual(suite.T(), originalSchemaID, config.AssessmentSchemaID,
 		"Course phase config should point to the copied schema")
@@ -164,7 +163,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"New schema should have copies of all categories from original")
 
 	// Verify the owner's course phase config still points to the ORIGINAL schema
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(suite.suiteCtx, currentPhaseID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, currentPhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), originalSchemaID, config.AssessmentSchemaID,
 		"Owner's course phase config should still point to original schema")
@@ -181,7 +180,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 
 	// Verify the consumer phase (Phase 4) got a NEW copied schema
 	otherPhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
-	otherPhaseConfig, err := coursePhaseConfig.GetCoursePhaseConfig(suite.suiteCtx, otherPhaseID)
+	otherPhaseConfig, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, otherPhaseID)
 	assert.NoError(suite.T(), err)
 	copiedSchemaID := otherPhaseConfig.AssessmentSchemaID
 	assert.NotEqual(suite.T(), originalSchemaID, copiedSchemaID,
@@ -274,7 +273,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 		"Category should still belong to the original schema")
 
 	// Verify course phase config still points to original schema
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), originalSchemaID, config.AssessmentSchemaID,
 		"Course phase config should still point to original schema")

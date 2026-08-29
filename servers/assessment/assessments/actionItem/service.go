@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,15 +17,21 @@ type assessmentCompletionProvider interface {
 	GetAssessmentCompletion(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (db.AssessmentCompletion, error)
 }
 
+type coursePhaseConfigProvider interface {
+	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+}
+
 type ActionItemService struct {
 	queries              db.Queries
 	assessmentCompletion assessmentCompletionProvider
+	coursePhaseConfig    coursePhaseConfigProvider
 }
 
-func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider) *ActionItemService {
+func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider, coursePhaseConfig coursePhaseConfigProvider) *ActionItemService {
 	return &ActionItemService{
 		queries:              queries,
 		assessmentCompletion: assessmentCompletion,
+		coursePhaseConfig:    coursePhaseConfig,
 	}
 }
 

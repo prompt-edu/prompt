@@ -13,20 +13,28 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-type AssessmentCompletionService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type coursePhaseConfigProvider interface {
+	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+	IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
 }
 
-func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool) *AssessmentCompletionService {
+type AssessmentCompletionService struct {
+	queries           db.Queries
+	conn              *pgxpool.Pool
+	coursePhaseConfig coursePhaseConfigProvider
+}
+
+func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfig coursePhaseConfigProvider) *AssessmentCompletionService {
 	return &AssessmentCompletionService{
-		queries: queries,
-		conn:    conn,
+		queries:           queries,
+		conn:              conn,
+		coursePhaseConfig: coursePhaseConfig,
 	}
 }
 
@@ -230,7 +238,7 @@ func (s *AssessmentCompletionService) MarkAssessmentAsCompleted(ctx context.Cont
 }
 
 func (s *AssessmentCompletionService) UnmarkAssessmentAsCompleted(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) error {
-	deadlinePassed, err := coursePhaseConfig.IsAssessmentDeadlinePassed(ctx, coursePhaseID)
+	deadlinePassed, err := s.coursePhaseConfig.IsAssessmentDeadlinePassed(ctx, coursePhaseID)
 	if err != nil {
 		return err
 	}

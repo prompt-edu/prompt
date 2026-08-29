@@ -20,17 +20,25 @@ import (
 
 type teamsResolver func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]promptTypes.Team, error)
 
+type coursePhaseConfigProvider interface {
+	IsSelfEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
+	IsPeerEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
+	IsTutorEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
+}
+
 type EvaluationCompletionService struct {
 	queries                db.Queries
 	conn                   *pgxpool.Pool
 	getTeamsForCoursePhase teamsResolver
+	coursePhaseConfig      coursePhaseConfigProvider
 }
 
-func NewEvaluationCompletionService(queries db.Queries, conn *pgxpool.Pool, getTeamsForCoursePhase teamsResolver) *EvaluationCompletionService {
+func NewEvaluationCompletionService(queries db.Queries, conn *pgxpool.Pool, getTeamsForCoursePhase teamsResolver, coursePhaseConfig coursePhaseConfigProvider) *EvaluationCompletionService {
 	return &EvaluationCompletionService{
 		queries:                queries,
 		conn:                   conn,
 		getTeamsForCoursePhase: getTeamsForCoursePhase,
+		coursePhaseConfig:      coursePhaseConfig,
 	}
 }
 
@@ -266,7 +274,7 @@ func (s *EvaluationCompletionService) UnmarkEvaluationAsCompleted(ctx context.Co
 	completion := evaluationCompletionDTO.MapDBEvaluationCompletionToEvaluationCompletionDTO(dbCompletion)
 	switch completion.Type {
 	case assessmentType.Self:
-		deadlinePassed, err := coursePhaseConfig.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -274,7 +282,7 @@ func (s *EvaluationCompletionService) UnmarkEvaluationAsCompleted(ctx context.Co
 			return coursePhaseConfig.ErrDeadlinePassed
 		}
 	case assessmentType.Peer:
-		deadlinePassed, err := coursePhaseConfig.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -282,7 +290,7 @@ func (s *EvaluationCompletionService) UnmarkEvaluationAsCompleted(ctx context.Co
 			return coursePhaseConfig.ErrDeadlinePassed
 		}
 	case assessmentType.Tutor:
-		deadlinePassed, err := coursePhaseConfig.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}

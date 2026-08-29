@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -29,8 +30,8 @@ func (suite *CategoryAssessmentServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn))
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService))
 }
 
 func (suite *CategoryAssessmentServiceTestSuite) TearDownSuite() {

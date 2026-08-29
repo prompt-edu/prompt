@@ -9,7 +9,6 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,15 +18,19 @@ import (
 // @Description Manage assessments for course participation.
 // @Tags assessments
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+type assessmentGuard interface {
+	RequireAssessmentEnabled() gin.HandlerFunc
+}
+
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assessmentRouter := routerGroup.Group("/student-assessment")
 
 	assessmentRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByCoursePhase)
-	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
+	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
 	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.exportStudentAssessment)
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)
-	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), coursePhaseConfig.RequireAssessmentEnabled(), service.deleteAssessment)
+	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), guard.RequireAssessmentEnabled(), service.deleteAssessment)
 
 	assessmentRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyAssessmentResults)
 }
@@ -192,7 +195,7 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

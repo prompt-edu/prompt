@@ -109,30 +109,32 @@ func main() {
 	coursePhaseApi.GET("/hello", helloAssessment)
 
 	assessmentSchemaService := assessmentSchemas.NewAssessmentSchemaService(*query, conn)
-	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, *query)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*query, conn, assessmentSchemaService)
+	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, coursePhaseConfigService, *query)
 
 	competencyService := competencies.NewCompetencyService(*query, conn, assessmentSchemaService, schemaModificationService)
-	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService)
+	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
+
+	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
+	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
+
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
+	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService, coursePhaseConfigService)
+	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
 
 	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
 	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)
 
-	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn, assessmentSchemaService)
+	coursePhaseConfig.RegisterRoutes(coursePhaseApi, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
 	assessmentSchemas.RegisterRoutes(coursePhaseApi, assessmentSchemaService, promptSDK.AuthenticationMiddleware)
-	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase)
-	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService)
-	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
 
-	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn)
-	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
-	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService)
-	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
-	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService)
-
-	assessments.RegisterRoutes(coursePhaseApi, assessmentService, promptSDK.AuthenticationMiddleware)
-	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, promptSDK.AuthenticationMiddleware)
-	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, promptSDK.AuthenticationMiddleware)
-	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, promptSDK.AuthenticationMiddleware)
+	assessments.RegisterRoutes(coursePhaseApi, assessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
 	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, promptSDK.AuthenticationMiddleware)
 	evaluations.RegisterRoutes(coursePhaseApi, evaluationService, promptSDK.AuthenticationMiddleware)
 	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, promptSDK.AuthenticationMiddleware)

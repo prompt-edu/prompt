@@ -52,7 +52,7 @@ type CoursePhaseConfigServiceTestSuite struct {
 	suite.Suite
 	suiteCtx                 context.Context
 	cleanup                  func()
-	coursePhaseConfigService CoursePhaseConfigService
+	coursePhaseConfigService *CoursePhaseConfigService
 	testCoursePhaseID        uuid.UUID
 }
 
@@ -72,12 +72,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) SetupSuite() {
 		suite.T().Skipf("skipping db-backed course phase config service tests: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.coursePhaseConfigService = CoursePhaseConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-		schemas: assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn),
-	}
-	CoursePhaseConfigSingleton = &suite.coursePhaseConfigService
+	suite.coursePhaseConfigService = NewCoursePhaseConfigService(
+		*testDB.Queries,
+		testDB.Conn,
+		assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn),
+	)
 
 	// Generate a test course phase ID and insert it with a schema
 	suite.testCoursePhaseID = uuid.New()
@@ -112,7 +111,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfig() {
 		schemaID, testID)
 	assert.NoError(suite.T(), err)
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "Should be able to get course phase config")
 	assert.NotNil(suite.T(), config, "Config should not be nil")
 }
@@ -120,7 +119,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfig() {
 func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfigCreatesDefaultsOnFirstGet() {
 	testID := uuid.New()
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "Should lazily create and return the default config")
 	assert.Equal(suite.T(), testID, config.CoursePhaseID)
 	assert.NotEqual(suite.T(), uuid.Nil, config.AssessmentSchemaID, "Default assessment schema should be set")
@@ -136,7 +135,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetCoursePhaseConfigCreatesD
 func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigDoesNotCreateARow() {
 	testID := uuid.New()
 
-	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "An unconfigured phase should read as the column defaults")
 	assert.Equal(suite.T(), testID, config.CoursePhaseID)
 	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
@@ -155,7 +154,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigDo
 
 func (suite *CoursePhaseConfigServiceTestSuite) TestRequireAssessmentEnabled() {
 	router := gin.New()
-	router.POST("/api/course_phase/:coursePhaseID/write", RequireAssessmentEnabled(), func(c *gin.Context) {
+	router.POST("/api/course_phase/:coursePhaseID/write", suite.coursePhaseConfigService.RequireAssessmentEnabled(), func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 
@@ -207,7 +206,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestGetStoredCoursePhaseConfigRe
 		schemaID, testID)
 	assert.NoError(suite.T(), err)
 
-	config, err := GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetStoredCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.AssessmentEnabled)
 	assert.True(suite.T(), config.ResultsReleased)
@@ -223,11 +222,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
 	// Both fields are nil by default in the test helper
 
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err, "Should successfully create config with nil visibility settings")
 
 	// Verify the config was created with TRUE defaults
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "Should be able to get the created config")
 	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should default to TRUE")
 	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should default to TRUE")
@@ -245,11 +244,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	req.GradeSuggestionVisible = &falseValue
 	req.ActionItemsVisible = &falseValue
 
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err, "Should successfully create config with explicit false values")
 
 	// Verify the config was created with FALSE values
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "Should be able to get the created config")
 	assert.False(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should be FALSE")
 	assert.False(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should be FALSE")
@@ -267,11 +266,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	req.GradeSuggestionVisible = &trueValue
 	req.ActionItemsVisible = &trueValue
 
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err, "Should successfully create config with explicit true values")
 
 	// Verify the config was created with TRUE values
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err, "Should be able to get the created config")
 	assert.True(suite.T(), config.GradeSuggestionVisible, "GradeSuggestionVisible should be TRUE")
 	assert.True(suite.T(), config.ActionItemsVisible, "ActionItemsVisible should be TRUE")
@@ -284,22 +283,22 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestUpdateCoursePhaseConfig_Pres
 
 	// First, create with defaults
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err)
 
 	// Verify initial defaults
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), config.GradeSuggestionVisible)
 	assert.True(suite.T(), config.ActionItemsVisible)
 
 	// Update with nil values (should preserve TRUE)
 	updateReq := createTestCoursePhaseConfigRequest(schemaID, testID)
-	err = CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
+	err = suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
 	assert.NoError(suite.T(), err, "Should successfully update config")
 
 	// Verify values are still TRUE (preserved by COALESCE)
-	updatedConfig, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	updatedConfig, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedConfig.GradeSuggestionVisible, "GradeSuggestionVisible should remain TRUE")
 	assert.True(suite.T(), updatedConfig.ActionItemsVisible, "ActionItemsVisible should remain TRUE")
@@ -315,11 +314,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestUpdateCoursePhaseConfig_CanT
 	falseValue := false
 	req.GradeSuggestionVisible = &falseValue
 	req.ActionItemsVisible = &falseValue
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err)
 
 	// Verify initial values are FALSE
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.GradeSuggestionVisible)
 	assert.False(suite.T(), config.ActionItemsVisible)
@@ -329,11 +328,11 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestUpdateCoursePhaseConfig_CanT
 	trueValue := true
 	updateReq.GradeSuggestionVisible = &trueValue
 	updateReq.ActionItemsVisible = &trueValue
-	err = CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
+	err = suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
 	assert.NoError(suite.T(), err)
 
 	// Verify values are now TRUE
-	updatedConfig, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	updatedConfig, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedConfig.GradeSuggestionVisible, "GradeSuggestionVisible should be TRUE")
 	assert.True(suite.T(), updatedConfig.ActionItemsVisible, "ActionItemsVisible should be TRUE")
@@ -348,17 +347,17 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestReleaseAndUnreleaseResults()
 		schemaID, testID, false)
 	assert.NoError(suite.T(), err)
 
-	err = ReleaseResults(suite.suiteCtx, testID)
+	err = suite.coursePhaseConfigService.ReleaseResults(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), config.ResultsReleased)
 
-	err = UnreleaseResults(suite.suiteCtx, testID)
+	err = suite.coursePhaseConfigService.UnreleaseResults(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 
-	config, err = GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err = suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.ResultsReleased)
 }
@@ -371,7 +370,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 
 	// Create initial config
 	req := createTestCoursePhaseConfigRequest(oldSchemaID, testID)
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err, "Should successfully create initial config")
 
 	// Create test data structure: category -> competency -> assessment
@@ -401,12 +400,12 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 
 	// Try to update config with new schema - should fail
 	updateReq := createTestCoursePhaseConfigRequest(newSchemaID, testID)
-	err = CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
+	err = suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
 	assert.Error(suite.T(), err, "Should fail to change schema when assessment data exists")
 	assert.Equal(suite.T(), ErrCannotChangeSchemaWithData, err, "Should return correct error type")
 
 	// Verify schema was not changed
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), oldSchemaID, config.AssessmentSchemaID, "Schema should not have changed")
 }
@@ -419,16 +418,16 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 
 	// Create initial config
 	req := createTestCoursePhaseConfigRequest(oldSchemaID, testID)
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err, "Should successfully create initial config")
 
 	// Update config with new schema - should succeed since no data exists
 	updateReq := createTestCoursePhaseConfigRequest(newSchemaID, testID)
-	err = CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
+	err = suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, updateReq)
 	assert.NoError(suite.T(), err, "Should successfully change schema when no assessment data exists")
 
 	// Verify schema was changed
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newSchemaID, config.AssessmentSchemaID, "Schema should have changed")
 }
@@ -438,10 +437,10 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
-	err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+	err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 	assert.NoError(suite.T(), err)
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), config.AssessmentEnabled, "AssessmentEnabled should default to TRUE")
 }
@@ -453,13 +452,13 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
 	disabled := false
 	req.AssessmentEnabled = &disabled
-	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+	assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
 
 	// A client that omits the field must not silently re-enable the phase
 	omittedReq := createTestCoursePhaseConfigRequest(schemaID, testID)
-	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, omittedReq))
+	assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, omittedReq))
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.AssessmentEnabled, "Omitted AssessmentEnabled should preserve the stored value")
 }
@@ -523,7 +522,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	for _, dataClass := range dataClasses {
 		suite.Run(dataClass.name, func() {
 			testID := uuid.New()
-			assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
+			assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
 				createTestCoursePhaseConfigRequest(schemaID, testID)))
 
 			dataClass.seed(testID)
@@ -531,10 +530,10 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 			req := createTestCoursePhaseConfigRequest(schemaID, testID)
 			disabled := false
 			req.AssessmentEnabled = &disabled
-			err := CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
+			err := suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req)
 			assert.Equal(suite.T(), ErrCannotDisableAssessmentWithData, err)
 
-			config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+			config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 			assert.NoError(suite.T(), err)
 			assert.True(suite.T(), config.AssessmentEnabled, "Assessment should stay enabled")
 		})
@@ -546,7 +545,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	competencyID := suite.seedAssessmentCompetency(schemaID)
 	testID := uuid.New()
 
-	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
+	assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID,
 		createTestCoursePhaseConfigRequest(schemaID, testID)))
 
 	// The UI creates blank action items on click and category comments have no delete route,
@@ -568,9 +567,9 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	req := createTestCoursePhaseConfigRequest(schemaID, testID)
 	disabled := false
 	req.AssessmentEnabled = &disabled
-	assert.NoError(suite.T(), CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+	assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
 
-	config, err := GetCoursePhaseConfig(suite.suiteCtx, testID)
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), config.AssessmentEnabled, "Blank artifacts should not block disabling")
 }

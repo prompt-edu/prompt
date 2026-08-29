@@ -1,4 +1,3 @@
-import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -9,7 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  LoadingPage,
 } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { Footer } from './Footer'
@@ -25,20 +23,12 @@ export const AuthenticatedPageWrapper = ({
   children,
   withLoginButton = true,
 }: NonAuthenticatedPageWrapper) => {
-  const { keycloak } = useKeycloak()
   const { logout } = useAuthStore()
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
 
   const openLogoutDialog = () => setIsLogoutDialogOpen(true)
   const closeLogoutDialog = () => setIsLogoutDialogOpen(false)
 
-  if (!keycloak) {
-    return (
-      <DarkModeProvider>
-        <LoadingPage />
-      </DarkModeProvider>
-    )
-  }
   return (
     <DarkModeProvider>
       <div className='min-h-screen bg-background text-foreground flex flex-col'>

@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { Evaluation } from '../../interfaces/evaluation'
-import { getAllEvaluations } from '../../network/queries/getAllEvaluations'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 
 const EMPTY_EVALUATIONS: Evaluation[] = []
 
@@ -9,8 +10,8 @@ export const useGetAllEvaluations = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const { data, ...queryInfo } = useQuery<Evaluation[]>({
-    queryKey: ['evaluations', phaseId],
-    queryFn: () => getAllEvaluations(phaseId ?? ''),
+    queryKey: assessmentKeys.evaluations.inPhase(phaseId),
+    queryFn: () => assessmentApi.evaluations.listInPhase(phaseId ?? ''),
     enabled: !!phaseId,
   })
 

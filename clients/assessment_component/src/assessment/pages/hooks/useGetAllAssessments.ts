@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { Assessment } from '../../interfaces/assessment'
-import { getAllAssessmentsInPhase } from '../../network/queries/getAllAssessmentsInPhase'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 
 const EMPTY_ASSESSMENTS: Assessment[] = []
 
@@ -10,8 +11,8 @@ export const useGetAllAssessments = (options?: { enabled?: boolean }) => {
   const enabled = options?.enabled ?? true
 
   const { data, ...queryInfo } = useQuery<Assessment[]>({
-    queryKey: ['assessments', phaseId],
-    queryFn: () => getAllAssessmentsInPhase(phaseId ?? ''),
+    queryKey: assessmentKeys.assessments.inPhase(phaseId),
+    queryFn: () => assessmentApi.assessments.listInPhase(phaseId ?? ''),
     enabled,
   })
 

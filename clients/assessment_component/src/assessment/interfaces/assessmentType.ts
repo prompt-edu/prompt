@@ -4,3 +4,5 @@ export enum AssessmentType {
   TUTOR = 'tutor',
   ASSESSMENT = 'assessment',
 }
+
+export type EvaluationType = AssessmentType.SELF | AssessmentType.PEER | AssessmentType.TUTOR

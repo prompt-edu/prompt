@@ -1,12 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -28,10 +27,7 @@ export const TutorOverviewPage = (): ReactNode => {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: evaluations } = useGetAllEvaluations()
 
-  const { data: evaluationCompletions = [] } = useQuery({
-    queryKey: ['evaluationCompletions', phaseId],
-    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
-  })
+  const { data: evaluationCompletions } = useGetAllEvaluationCompletions()
 
   const data: TutorRow[] = useMemo(() => {
     return teams.flatMap((team) =>

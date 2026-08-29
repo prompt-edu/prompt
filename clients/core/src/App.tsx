@@ -4,6 +4,7 @@ import { Toaster } from '@tumaet/prompt-ui-components'
 import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
+import { RequireAuth } from './keycloak/RequireAuth'
 import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
 import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
@@ -57,7 +58,14 @@ export const App = () => {
             <Route path='/imprint' element={<ImprintPage />} />
             <Route path='/' element={<LandingPage />} />
             <Route path='/apply/:phaseId' element={<ApplicationLoginPage />} />
-            <Route path='/apply/:phaseId/authenticated' element={<ApplicationAuthenticated />} />
+            <Route
+              path='/apply/:phaseId/authenticated'
+              element={
+                <RequireAuth>
+                  <ApplicationAuthenticated />
+                </RequireAuth>
+              }
+            />
             <Route path='/management' element={<ManagementRoot />} />
             <Route
               path='/management/courses'

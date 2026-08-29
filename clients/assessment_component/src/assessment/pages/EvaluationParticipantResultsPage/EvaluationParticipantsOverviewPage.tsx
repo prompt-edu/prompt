@@ -12,11 +12,10 @@ import {
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
-import { getAllFeedbackItems } from '../../network/queries/getAllFeedbackItems'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 import {
   createEvaluationLookup,
   getEvaluationCounts,
@@ -25,6 +24,7 @@ import { PeerEvaluationCompletionBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { PrintReport } from '../components/PrintReport/PrintReport'
+import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -96,10 +96,7 @@ export const EvaluationParticipantsOverviewPage = ({
     isPending,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ['evaluationCompletions', phaseId],
-    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
-  })
+  } = useGetAllEvaluationCompletions()
 
   // Feedback items are only needed for the bulk report, so they are fetched on
   // demand. A counter rather than a boolean: React Query reports isSuccess for
@@ -107,8 +104,8 @@ export const EvaluationParticipantsOverviewPage = ({
   // second click.
   const [printRequests, setPrintRequests] = useState(0)
   const { data: allFeedbackItems = [], isSuccess: feedbackReady } = useQuery({
-    queryKey: ['all-feedback-items', phaseId],
-    queryFn: () => getAllFeedbackItems(phaseId ?? ''),
+    queryKey: assessmentKeys.feedbackItems.inPhase(phaseId),
+    queryFn: () => assessmentApi.feedbackItems.listInPhase(phaseId ?? ''),
     enabled: printRequests > 0,
   })
 

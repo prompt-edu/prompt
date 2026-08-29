@@ -1,16 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
-import { releaseResults } from '../../../network/mutations/releaseResults'
+import { assessmentApi } from '../../../network/api'
+import { assessmentCache } from '../../../network/cache'
 
 export const useReleaseResults = () => {
   const queryClient = useQueryClient()
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const mutation = useMutation({
-    mutationFn: () => releaseResults(phaseId ?? ''),
+    mutationFn: () => assessmentApi.config.releaseResults(phaseId ?? ''),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coursePhaseConfig', phaseId] })
+      assessmentCache.resultsReleaseChanged(queryClient, phaseId)
     },
   })
 

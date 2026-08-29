@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
@@ -10,11 +9,11 @@ import {
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
+import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -67,10 +66,7 @@ export const AssessmentParticipantsPage = () => {
     isPending: isEvaluationCompletionsPending,
     isError: isEvaluationCompletionsError,
     refetch: refetchEvaluationCompletions,
-  } = useQuery({
-    queryKey: ['evaluationCompletions', phaseId],
-    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
-  })
+  } = useGetAllEvaluationCompletions()
 
   const isError =
     isCoursePhaseConfigError ||

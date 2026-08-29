@@ -1,17 +1,21 @@
 import { useGlobalAuditLog } from '@core/network/hooks/useAuditLog'
+import { useAuditLogStatus } from '@core/network/hooks/useAuditLogStatus'
 import { AuditLogView } from '@managementConsole/auditLog/AuditLogView'
 import { AUDIT_PAGE_SIZE } from '@managementConsole/auditLog/auditLogPaging'
 import { useAuditLogBrowser } from '@managementConsole/auditLog/useAuditLogBrowser'
 
 export const AdminAuditLogPage = () => {
+  const { data: status, isPending: isStatusPending } = useAuditLogStatus()
+  const auditLogEnabled = status?.enabled ?? false
   const { filters, cursor, onFiltersChange, navigation } = useAuditLogBrowser()
-  const query = useGlobalAuditLog(filters, AUDIT_PAGE_SIZE, cursor)
+  const query = useGlobalAuditLog(filters, AUDIT_PAGE_SIZE, cursor, auditLogEnabled)
 
   return (
     <AuditLogView
       title='Audit Log'
       page={query.data}
-      isLoading={query.isLoading}
+      isDisabled={!isStatusPending && !auditLogEnabled}
+      isLoading={isStatusPending || query.isLoading}
       isError={query.isError}
       isFetching={query.isFetching}
       filters={filters}

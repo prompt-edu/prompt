@@ -15,6 +15,7 @@ import type { AuditLogFilters, AuditLogPage } from './interfaces/auditLog'
 interface AuditLogViewProps {
   title: string
   page?: AuditLogPage
+  isDisabled: boolean
   isLoading: boolean
   isError: boolean
   isFetching: boolean
@@ -29,6 +30,7 @@ interface AuditLogViewProps {
 export const AuditLogView = ({
   title,
   page,
+  isDisabled,
   isLoading,
   isError,
   isFetching,
@@ -41,6 +43,15 @@ export const AuditLogView = ({
 }: AuditLogViewProps) => {
   const entries = page?.entries ?? []
   const columns = useMemo(() => getAuditLogColumns(), [])
+
+  if (isDisabled) {
+    return (
+      <div className='space-y-6'>
+        <ManagementPageHeader>{title}</ManagementPageHeader>
+        <p className='text-muted-foreground'>Audit logging is turned off for this deployment.</p>
+      </div>
+    )
+  }
 
   return (
     <div className='space-y-6'>

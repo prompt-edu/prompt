@@ -58,3 +58,8 @@ type ListFilters struct {
 	CursorID        string
 	Limit           int
 }
+
+// AuditLogStatus reports whether audit logging is turned on for this deployment.
+type AuditLogStatus struct {
+	Enabled bool `json:"enabled"`
+}

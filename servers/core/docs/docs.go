@@ -1372,6 +1372,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/audit-log/status": {
+            "get": {
+                "description": "Reports whether audit logging is enabled for this deployment.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auditLog"
+                ],
+                "summary": "Audit log status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auditLogDTO.AuditLogStatus"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/course_phase/{coursePhaseID}/is_student": {
             "get": {
                 "description": "Check if the user is a student of the course phase",
@@ -6410,6 +6430,14 @@ const docTemplate = `{
                 },
                 "nextCursor": {
                     "$ref": "#/definitions/auditLogDTO.Cursor"
+                }
+            }
+        },
+        "auditLogDTO.AuditLogStatus": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
                 }
             }
         },

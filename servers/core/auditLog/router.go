@@ -21,6 +21,24 @@ import (
 
 const ingestServiceContextKey = "auditServiceName"
 
+// setupAuditLogStatusRoute mounts the feature-toggle probe. It is registered
+// even when audit logging is off, so the client can hide the UI instead of
+// requesting routes that do not exist.
+func setupAuditLogStatusRoute(api *gin.RouterGroup) {
+	api.GET("/audit-log/status", keycloakTokenVerifier.KeycloakMiddleware(), getAuditLogStatus)
+}
+
+// getAuditLogStatus godoc
+// @Summary Audit log status
+// @Description Reports whether audit logging is enabled for this deployment.
+// @Tags auditLog
+// @Produce json
+// @Success 200 {object} auditLogDTO.AuditLogStatus
+// @Router /audit-log/status [get]
+func getAuditLogStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, auditLogDTO.AuditLogStatus{Enabled: audit.Enabled()})
+}
+
 func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
 	authMiddleware := keycloakTokenVerifier.KeycloakMiddleware
 

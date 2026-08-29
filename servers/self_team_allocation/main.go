@@ -90,10 +90,13 @@ func main() {
 			"message": "Hello from team self assignment service"})
 	})
 
+	timeframeService := timeframe.NewTimeframeService(*query)
+	teamsService := teams.NewTeamsService(*query, conn, timeframeService)
+	assignmentService := teams.NewAssignmentService(*query)
 	allocationService := allocation.NewAllocationService(*query)
 
-	teams.InitTeamModule(coursePhaseApi, *query, conn)
-	timeframe.InitTimeframeModule(coursePhaseApi, *query, conn)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)
+	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, promptSDK.AuthenticationMiddleware)
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 	copy.InitCopyModule(api, *query, conn)
 	privacy.InitPrivacyModule(api, *query, conn)

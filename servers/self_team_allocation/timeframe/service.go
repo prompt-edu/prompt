@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe/timeframeDTO"
 	log "github.com/sirupsen/logrus"
@@ -16,20 +15,16 @@ import (
 
 type TimeframeService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var TimeframeServiceSingleton *TimeframeService
-
-func NewTimeframeService(queries db.Queries, conn *pgxpool.Pool) *TimeframeService {
+func NewTimeframeService(queries db.Queries) *TimeframeService {
 	return &TimeframeService{
 		queries: queries,
-		conn:    conn,
 	}
 }
 
-func GetTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (timeframeDTO.Timeframe, error) {
-	timeframe, err := TimeframeServiceSingleton.queries.GetTimeframe(ctx, coursePhaseID)
+func (s *TimeframeService) GetTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (timeframeDTO.Timeframe, error) {
+	timeframe, err := s.queries.GetTimeframe(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return timeframeDTO.Timeframe{TimeframeSet: false}, nil
 	} else if err != nil {
@@ -39,7 +34,7 @@ func GetTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (timeframeDTO.Ti
 	return timeframeDTO.GetTimeframeDTOFromDBModel(timeframe), nil
 }
 
-func SetTimeframe(ctx context.Context, coursePhaseID uuid.UUID, startTime, endTime time.Time) error {
+func (s *TimeframeService) SetTimeframe(ctx context.Context, coursePhaseID uuid.UUID, startTime, endTime time.Time) error {
 	if !startTime.Before(endTime) {
 		return errors.New("team allocation end date must be before start date")
 	}
@@ -48,7 +43,7 @@ func SetTimeframe(ctx context.Context, coursePhaseID uuid.UUID, startTime, endTi
 	startTimestamp = pgtype.Timestamp{Time: startTime, Valid: true}
 	deadlineTimestamp = pgtype.Timestamp{Time: endTime, Valid: true}
 
-	err := TimeframeServiceSingleton.queries.SetTimeframe(ctx, db.SetTimeframeParams{
+	err := s.queries.SetTimeframe(ctx, db.SetTimeframeParams{
 		CoursePhaseID: coursePhaseID,
 		Starttime:     startTimestamp,
 		Endtime:       deadlineTimestamp,

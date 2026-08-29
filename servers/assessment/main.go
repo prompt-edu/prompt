@@ -108,8 +108,11 @@ func main() {
 	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
 	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
 
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+
+	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "assessment",

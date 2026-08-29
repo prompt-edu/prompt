@@ -18,24 +18,31 @@ type CopyService struct {
 	conn    *pgxpool.Pool
 }
 
-var CopyServiceSingleton *CopyService
+func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
+	return &CopyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-type AssessmentCopyHandler struct{}
+type assessmentCopyHandler struct {
+	service *CopyService
+}
 
-func (h *AssessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+func (h *assessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	if req.SourceCoursePhaseID == req.TargetCoursePhaseID {
 		return nil
 	}
 
 	ctx := c.Request.Context()
 
-	tx, err := CopyServiceSingleton.conn.Begin(ctx)
+	tx, err := h.service.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CopyServiceSingleton.queries.WithTx(tx)
+	qtx := h.service.queries.WithTx(tx)
 
 	// Get the course phase config from the source course phase
 	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, req.SourceCoursePhaseID)

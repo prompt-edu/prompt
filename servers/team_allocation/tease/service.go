@@ -21,9 +21,14 @@ type TeaseService struct {
 	conn    *pgxpool.Pool
 }
 
-var TeaseServiceSingleton *TeaseService
+func NewTeaseService(queries db.Queries, conn *pgxpool.Pool) *TeaseService {
+	return &TeaseService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-func GetTeamAllocationCoursePhases(
+func (s *TeaseService) GetTeamAllocationCoursePhases(
 	ctx context.Context,
 	authHeader string,
 	userPermissions map[string]bool,
@@ -64,7 +69,7 @@ func GetTeamAllocationCoursePhases(
 
 	teasePhases := make([]teaseDTO.TeasePhase, 0, len(relevantCoursePhases))
 	for _, coursePhase := range relevantCoursePhases {
-		deadline, err := TeaseServiceSingleton.queries.GetSurveyDeadline(ctxWithTimeout, coursePhase.CoursePhaseID)
+		deadline, err := s.queries.GetSurveyDeadline(ctxWithTimeout, coursePhase.CoursePhaseID)
 		if err != nil {
 			// Allow missing deadlines but fail for other errors
 			if errors.Is(err, sql.ErrNoRows) {
@@ -99,7 +104,7 @@ func hasCoursePhasePermission(userPermissions map[string]bool, semesterTag, cour
 	return userPermissions[requiredPermission]
 }
 
-func GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]teaseDTO.Student, error) {
+func (s *TeaseService) GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]teaseDTO.Student, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -112,13 +117,13 @@ func GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, cour
 
 	mappedStudents := make([]teaseDTO.Student, 0, len(coursePhaseParticipations))
 	for _, cp := range coursePhaseParticipations {
-		projectPreferences, err := getTeaseProjectPreferences(ctxWithTimeout, coursePhaseID, cp.CourseParticipationID)
+		projectPreferences, err := s.getTeaseProjectPreferences(ctxWithTimeout, coursePhaseID, cp.CourseParticipationID)
 		if err != nil {
 			log.Error("could not get project preferences for course participation: ", err)
 			return nil, err
 		}
 
-		skillResponses, err := getTeaseSkillLevel(ctxWithTimeout, coursePhaseID, cp.CourseParticipationID)
+		skillResponses, err := s.getTeaseSkillLevel(ctxWithTimeout, coursePhaseID, cp.CourseParticipationID)
 		if err != nil {
 			log.Error("could not get skill responses for course participation: ", err)
 			return nil, err
@@ -135,8 +140,8 @@ func GetTeaseStudentsForCoursePhase(ctx context.Context, authHeader string, cour
 	return mappedStudents, nil
 }
 
-func getTeaseProjectPreferences(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.ProjectPreference, error) {
-	teamPreferences, err := TeaseServiceSingleton.queries.GetStudentTeamPreferences(ctx, db.GetStudentTeamPreferencesParams{
+func (s *TeaseService) getTeaseProjectPreferences(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.ProjectPreference, error) {
+	teamPreferences, err := s.queries.GetStudentTeamPreferences(ctx, db.GetStudentTeamPreferencesParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -154,8 +159,8 @@ func getTeaseProjectPreferences(ctx context.Context, coursePhaseID uuid.UUID, co
 	return teaseDTO.GetProjectPreferenceFromDBModel(teamPreferences), nil
 }
 
-func getTeaseSkillLevel(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.StudentSkillResponse, error) {
-	skills, err := TeaseServiceSingleton.queries.GetStudentSkillResponses(ctx, db.GetStudentSkillResponsesParams{
+func (s *TeaseService) getTeaseSkillLevel(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) ([]teaseDTO.StudentSkillResponse, error) {
+	skills, err := s.queries.GetStudentSkillResponses(ctx, db.GetStudentSkillResponsesParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -173,11 +178,11 @@ func getTeaseSkillLevel(ctx context.Context, coursePhaseID uuid.UUID, coursePart
 	return teaseDTO.GetTeaseStudentSkillResponseFromDBModel(skills), nil
 }
 
-func GetTeaseSkillsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.Skill, error) {
+func (s *TeaseService) GetTeaseSkillsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.Skill, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	skills, err := TeaseServiceSingleton.queries.GetSkillsByCoursePhase(ctxWithTimeout, coursePhaseID)
+	skills, err := s.queries.GetSkillsByCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get skills for course phase: ", err)
 		return nil, err
@@ -186,11 +191,11 @@ func GetTeaseSkillsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (
 	return teaseDTO.GetTeaseSkillFromDBModel(skills), nil
 }
 
-func GetTeaseTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.TeaseTeam, error) {
+func (s *TeaseService) GetTeaseTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.TeaseTeam, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	teams, err := TeaseServiceSingleton.queries.GetTeamsByCoursePhase(ctxWithTimeout, coursePhaseID)
+	teams, err := s.queries.GetTeamsByCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get teams for course phase: ", err)
 		return nil, err
@@ -199,8 +204,8 @@ func GetTeaseTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([
 	return teaseDTO.GetTeaseTeamResponseFromDBModel(teams), nil
 }
 
-func GetAllocationsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.Allocation, error) {
-	rows, err := TeaseServiceSingleton.queries.GetAggregatedAllocationsByCoursePhase(ctx, coursePhaseID)
+func (s *TeaseService) GetAllocationsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]teaseDTO.Allocation, error) {
+	rows, err := s.queries.GetAggregatedAllocationsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get the allocations from the database: ", err)
 		return nil, fmt.Errorf("could not get the allocations from the database: %w", err)
@@ -216,4 +221,3 @@ func GetAllocationsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (
 
 	return teaseAllocations, nil
 }
-

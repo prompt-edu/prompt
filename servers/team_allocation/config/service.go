@@ -1,41 +1,56 @@
 package config
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
+	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 )
+
+type surveyTimeframeProvider interface {
+	GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error)
+}
 
 type ConfigService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
+	survey  surveyTimeframeProvider
 }
 
-var ConfigServiceSingleton *ConfigService
+func NewConfigService(queries db.Queries, survey surveyTimeframeProvider) *ConfigService {
+	return &ConfigService{
+		queries: queries,
+		survey:  survey,
+	}
+}
 
-type ConfigHandler struct{}
+type configHandler struct {
+	service *ConfigService
+}
 
-func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (config map[string]bool, err error) {
+func (h *configHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := c.Request.Context()
-	surveyTimeframe, err := survey.GetSurveyTimeframe(ctx, coursePhaseID)
+	return h.service.GetPhaseConfig(c.Request.Context(), coursePhaseID)
+}
+
+func (s *ConfigService) GetPhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (map[string]bool, error) {
+	surveyTimeframe, err := s.survey.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
 
-	teams, err := ConfigServiceSingleton.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
+	teams, err := s.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
 	teamsExist := len(teams) > 0
 
-	skills, err := ConfigServiceSingleton.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
+	skills, err := s.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}

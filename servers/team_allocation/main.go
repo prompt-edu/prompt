@@ -90,19 +90,22 @@ func main() {
 
 	skillsService := skills.NewSkillsService(*query, conn)
 	teamsService := teams.NewTeamsService(*query, conn)
+	surveyService := survey.NewSurveyService(*query, conn)
 	allocationService := allocation.NewAllocationService(*query)
+	teaseService := tease.NewTeaseService(*query, conn)
+	configService := config.NewConfigService(*query, surveyService)
 
 	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
 	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
-	survey.InitSurveyModule(coursePhaseApi, *query, conn)
+	survey.RegisterRoutes(coursePhaseApi, surveyService, promptSDK.AuthenticationMiddleware)
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 
-	tease.InitTeaseModule(router.Group("team-allocation/api"), *query, conn) // some tease endpoint are coursePhase independent
+	tease.RegisterRoutes(router.Group("team-allocation/api"), teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
 
 	copyApi := router.Group("team-allocation/api")
 	copy.InitCopyModule(copyApi, *query, conn)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
 	privacy.InitPrivacyModule(api, *query, conn)
 

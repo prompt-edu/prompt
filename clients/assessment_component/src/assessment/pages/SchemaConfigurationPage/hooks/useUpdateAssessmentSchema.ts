@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { UpdateAssessmentSchemaRequest } from '../../../interfaces/assessmentSchema'
-import { updateAssessmentSchema } from '../../../network/mutations/updateAssessmentSchema'
+import { assessmentApi } from '../../../network/api'
+import { assessmentCache } from '../../../network/cache'
 
 export const useUpdateAssessmentSchema = (
   schemaID: string,
@@ -13,9 +13,9 @@ export const useUpdateAssessmentSchema = (
 
   return useMutation({
     mutationFn: (request: UpdateAssessmentSchemaRequest) =>
-      updateAssessmentSchema(phaseId ?? '', schemaID, request),
+      assessmentApi.schemas.update(phaseId ?? '', schemaID, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessmentSchemas', phaseId] })
+      assessmentCache.schemaListChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

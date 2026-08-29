@@ -1,18 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { EvaluationCompletion } from '../../interfaces/evaluationCompletion'
-import { getMyEvaluationCompletions } from '../../network/queries/getMyEvaluationCompletions'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 
 export const useGetMyEvaluationCompletions = (options: { enabled: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const { data, ...queryInfo } = useQuery<EvaluationCompletion[]>({
-    queryKey: ['my-evaluation-completions', phaseId],
-    queryFn: () => getMyEvaluationCompletions(phaseId ?? ''),
+    queryKey: assessmentKeys.evaluationCompletions.mine(phaseId),
+    queryFn: () => assessmentApi.evaluationCompletions.listMine(phaseId ?? ''),
     enabled: options.enabled,
     staleTime: SHELL_QUERY_STALE_TIME,
   })

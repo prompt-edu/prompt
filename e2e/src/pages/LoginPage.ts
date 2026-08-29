@@ -2,14 +2,15 @@ import { Page, expect } from '@playwright/test'
 import { BASE_URL } from '../env'
 import { RoleAccount } from '../data/roles'
 
-// Drives the real Keycloak login form. The app uses keycloak-js with
-// `onLoad: 'login-required'`, so visiting the app redirects to this form.
+// Drives the real Keycloak login form. Protected routes are wrapped in
+// `RequireAuth`, which calls `keycloak.login()` when there is no session, so
+// visiting one without a stored session redirects to this form.
 export class LoginPage {
   constructor(private readonly page: Page) {}
 
   // Navigate to a protected route. The public landing page ("/") does not
-  // require auth; the management console mounts Keycloak with
-  // `onLoad: 'login-required'`, so visiting it redirects to the login form.
+  // require auth; the management console sits behind `RequireAuth`, so visiting
+  // it without a session redirects to the login form.
   async goto() {
     await this.page.goto(`${BASE_URL}/management`)
   }

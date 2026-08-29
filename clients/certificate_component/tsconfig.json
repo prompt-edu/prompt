@@ -19,5 +19,5 @@
       "react-hook-form": ["../node_modules/react-hook-form"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/index.js", "tailwind.config.js"]
+  "include": ["**/*.ts", "**/*.tsx", "src/index.js"]
 }

@@ -20,7 +20,7 @@ export class CourseOverviewPage {
   }
 
   phaseItem(name: string): Locator {
-    return this.page.getByRole('button', { name })
+    return this.page.getByRole('button', { name, exact: true })
   }
 
   // The enrolled phases show up under the "Course Phases" sidebar group; a
@@ -31,5 +31,21 @@ export class CourseOverviewPage {
     // match two elements and trip Playwright strict mode.
     await expect(this.page.getByText('Course Phases', { exact: true })).toBeVisible()
     await expect(this.phaseItem(name)).toBeVisible()
+  }
+
+  async openPhase(name: string) {
+    await this.phaseItem(name).click()
+  }
+
+  // The phase sidebars are Module Federation remotes behind React.lazy, so an
+  // "entry is absent" assertion has to outlive their loading: a pending remote
+  // renders a disabled "Loading..." placeholder, and any rendered menu item
+  // CSS-hides the empty state. Waiting for both rules out a pass that only
+  // means the remote had not loaded yet.
+  async expectNoPhaseListed(name: string) {
+    await expect(this.page.getByText('Course Phases', { exact: true })).toBeVisible()
+    await expect(this.page.getByRole('button', { name: 'Loading...', exact: true })).toHaveCount(0)
+    await expect(this.page.getByText('No course phases yet.')).toBeVisible()
+    await expect(this.phaseItem(name)).toHaveCount(0)
   }
 }

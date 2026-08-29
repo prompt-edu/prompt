@@ -25,6 +25,7 @@ type ParticipantsRouterTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
+	service         *ParticipantsService
 }
 
 func (s *ParticipantsRouterTestSuite) SetupSuite() {
@@ -44,16 +45,12 @@ func (s *ParticipantsRouterTestSuite) SetupSuite() {
 		coreURL = val
 	}
 
-	ParticipantsServiceSingleton = &ParticipantsService{
-		queries:    *testDB.Queries,
-		httpClient: http.DefaultClient,
-		coreURL:    coreURL,
-	}
+	s.service = NewParticipantsService(*testDB.Queries, coreURL)
 
 	gin.SetMode(gin.TestMode)
 	s.router = gin.Default()
 	api := s.router.Group("/api/course_phase/:coursePhaseID")
-	setupParticipantsRouter(api, sdkTestUtils.MockPermissionMiddleware)
+	RegisterRoutes(api, s.service, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (s *ParticipantsRouterTestSuite) TearDownSuite() {
@@ -114,7 +111,7 @@ func (s *ParticipantsRouterTestSuite) TestGetStudentTeamName() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 	studentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
 
-	teamName, err := GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, studentID)
+	teamName, err := s.service.GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, studentID)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "BMW", teamName)
 }
@@ -123,7 +120,7 @@ func (s *ParticipantsRouterTestSuite) TestGetStudentTeamName_SecondStudent() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 	studentID := uuid.MustParse("30000000-0000-0000-0000-000000000002")
 
-	teamName, err := GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, studentID)
+	teamName, err := s.service.GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, studentID)
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "Siemens", teamName)
 }
@@ -132,7 +129,7 @@ func (s *ParticipantsRouterTestSuite) TestGetStudentTeamName_UnknownStudent() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 	unknownStudentID := uuid.New()
 
-	teamName, err := GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, unknownStudentID)
+	teamName, err := s.service.GetStudentTeamName(s.suiteCtx, "Bearer mock-token", coursePhaseID, unknownStudentID)
 	assert.NoError(s.T(), err)
 	assert.Empty(s.T(), teamName)
 }

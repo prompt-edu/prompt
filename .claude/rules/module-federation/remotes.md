@@ -63,6 +63,20 @@ export const YourRoutes = React.lazy(() => import('your_component/routes').then(
 The `*_component/routes`, `*_component/sidebar`, and `*_component/provide` module shapes are typed
 once in `clients/core/src/declaration.d.ts`.
 
+## Styling
+
+`clients/core` builds the only Tailwind stylesheet in the document. Its `content` globs cover
+`clients/*_component/{src,routes,sidebar}` plus the shared UI library, so a remote's utilities are
+emitted by core and a remote ships none of its own.
+
+A remote must not declare a Tailwind entry point of its own: no `tailwind.config.*`, and no
+`@tailwind`, `@config`, `@source`, `@apply`, or `tailwindcss` import in its CSS. `scripts/check-remote-styles.sh`
+enforces this in CI. Plain CSS is still fine (`assessment_component/src/print.css`).
+
+Two Tailwind builds in one document cannot both be right: the sheets carry the same globally named
+utilities, so the later-injected `.px-3` beats the earlier `.pl-9` on a shared component that the
+host overrode, and reversing the order just moves the breakage to the remote (issue #2086).
+
 ## Rules
 
 - `react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, and

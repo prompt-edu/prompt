@@ -1,3 +1,4 @@
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { Alert, AlertDescription, Button } from '@tumaet/prompt-ui-components'
 import { Info, Lock, Unlock } from 'lucide-react'
 import { useState } from 'react'
@@ -31,7 +32,9 @@ export const EvaluationCompletionPage = ({
   completed = false,
   completedAt,
 }: EvaluationCompletionPageProps) => {
-  const { phaseId } = useParams<{ phaseId: string }>()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
+  const { isStudentOfCourse } = useCourseStore()
+  const isStudent = isStudentOfCourse(courseId ?? '')
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [error, setError] = useState<string | undefined>(undefined)
@@ -101,6 +104,7 @@ export const EvaluationCompletionPage = ({
           feedbackType='negative'
           courseParticipationID={courseParticipationID}
           authorCourseParticipationID={authorCourseParticipationID}
+          isStudent={isStudent}
           completed={completed}
         />
         <FeedbackItemPanel
@@ -108,6 +112,7 @@ export const EvaluationCompletionPage = ({
           feedbackType='positive'
           courseParticipationID={courseParticipationID}
           authorCourseParticipationID={authorCourseParticipationID}
+          isStudent={isStudent}
           completed={completed}
         />
       </div>
@@ -134,7 +139,7 @@ export const EvaluationCompletionPage = ({
 
         <Button
           size='sm'
-          disabled={isPending || (completed && isDeadlinePassed)}
+          disabled={isPending || !isStudent || (completed && isDeadlinePassed)}
           onClick={handleButtonClick}
         >
           {completed ? (

@@ -20,6 +20,11 @@ Audit logging is controlled by environment variables. Set them on the **core** s
 
 Enabling requires setting `AUDIT_ENABLED=true`. Missing configuration fails safe (feature stays off).
 
+On a GitHub Actions deployment, these reach the container through the deploy workflow: set
+`AUDIT_ENABLED` and `AUDIT_RETENTION_DAYS` as environment *variables* and `AUDIT_INGEST_KEYS` as an
+environment *secret*. While the feature is off, the management console hides the audit log pages
+instead of linking to endpoints that are not mounted.
+
 ## Phase services (reporting from course phases)
 
 Phase microservices report their events to core over an authenticated HTTP endpoint. There is **no

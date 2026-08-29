@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import type { CreateOrUpdateAssessmentCompletionRequest } from '../../../../../interfaces/assessmentCompletion'
-import { createOrUpdateAssessmentCompletion } from '../../../../../network/mutations/createAssessmentCompletion'
+import { assessmentApi } from '../../../../../network/api'
+import { assessmentCache } from '../../../../../network/cache'
 
 export const useCreateOrUpdateAssessmentCompletion = (
   setError: (error: string | undefined) => void,
@@ -11,12 +12,10 @@ export const useCreateOrUpdateAssessmentCompletion = (
 
   return useMutation({
     mutationFn: (assessmentCompletion: CreateOrUpdateAssessmentCompletionRequest) => {
-      return createOrUpdateAssessmentCompletion(phaseId ?? '', assessmentCompletion)
+      return assessmentApi.completions.save(phaseId ?? '', assessmentCompletion)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['assessments', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['scoreLevels', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessmentCompletions', phaseId] })
+      assessmentCache.assessmentCompletionChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

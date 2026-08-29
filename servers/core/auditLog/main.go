@@ -31,9 +31,11 @@ func InitAuditLogCapture(api *gin.RouterGroup, queries db.Queries, conn *pgxpool
 
 // InitAuditLogRoutes mounts the audit read and ingest endpoints and starts the
 // retention pruner. Call it after permissionValidation is initialized (the read
-// routes use its access-control middleware). It is a no-op unless AUDIT_ENABLED
-// is set, and pairs with InitAuditLogCapture.
+// routes use its access-control middleware). Only the status probe is mounted
+// unless AUDIT_ENABLED is set; it pairs with InitAuditLogCapture.
 func InitAuditLogRoutes(api *gin.RouterGroup) {
+	setupAuditLogStatusRoute(api)
+
 	if !audit.Enabled() {
 		return
 	}

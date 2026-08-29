@@ -309,6 +309,15 @@ export class AssessmentPage {
     ).toBeVisible()
   }
 
+  // Direct route, so a preview by staff does not depend on the overview's
+  // student affordances.
+  async gotoSelfEvaluation(courseId: string, phaseId: string) {
+    await this.goto(courseId, phaseId, '/self-evaluation')
+    await expect(
+      this.page.getByText('Please fill out the self-evaluation below', { exact: false }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
   async markEvaluationAsFinal() {
     await this.page.getByRole('button', { name: 'Mark as Final' }).click()
     await this.page.getByRole('button', { name: 'Yes, Mark as Final' }).click()

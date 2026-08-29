@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## 0. General
 
-**Project Context:**  
+**Project Context:**
 This project is a React project. Please adhere to the React style guide and rules as described in [React Rules](https://react.dev/reference/rules).
 
 ## 1. Naming Conventions
@@ -41,12 +41,12 @@ For each (sub-)component, use the following folder structure:
 
 When adding packages, follow these guidelines:
 
-1. **Installation Location:**  
+1. **Installation Location:**
    - The project utilizes micro-frontends in a mono-repo style.
    - Before installing a package, verify if any other micro-frontend already uses it. If so, move the dependency to `clients/package.json` to ensure consistent package versions.
    - If the package is specific to your micro-frontend, install it within your micro-frontend's subfolder.
 
-2. **Package Maintenance:**  
+2. **Package Maintenance:**
    - Be cautious of recommendations, especially when working with LLMs, that suggest outdated or unmaintained packages, as they can introduce security issues.
    - Before installing a dependency, check its status on [npmjs.org](https://npmjs.org). Verify the last published date and download counts. If a package was last published several years ago, consider alternative options.
 
@@ -88,3 +88,20 @@ When adding packages, follow these guidelines:
   // Correct: This will throw a type error during compilation because '4' is not a string
   const application: Application = { id: 4, applicationAnswers: [] };
   ```
+
+## 5. Styling
+
+- Tailwind CSS v4, composed with `cn` from `@tumaet/prompt-ui-components`.
+- **`clients/core` builds the only Tailwind stylesheet in the document.** Its `content` globs cover
+  `clients/*_component/{src,routes,sidebar}` and the shared UI library, so the utilities a phase
+  component uses are emitted by core.
+- A phase component must not declare a Tailwind entry point of its own: no `tailwind.config.*`, and
+  no `@tailwind`, `@config`, `@source`, `@apply`, or `tailwindcss` import in its CSS.
+  `scripts/check-remote-styles.sh` enforces this in CI. Plain CSS is fine, as in
+  `clients/assessment_component/src/print.css`.
+- The reason is the cascade: two Tailwind builds in one document carry the same globally named
+  utilities, so whichever stylesheet is injected last wins every equal-specificity duel. A remote's
+  `.px-3` then beats core's `.pl-9` on a shared component the host overrode, and flipping the order
+  only moves the breakage to the remote.
+- Because core scans its siblings, the in-repo clients have to be released together. A deployment
+  that mixes image tags across clients can leave utilities out of core's stylesheet.

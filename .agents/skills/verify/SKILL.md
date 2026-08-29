@@ -108,12 +108,12 @@ from the repo when done — `e2e/` is checked in.
 
 ## Gotchas
 
-- `/management/**` mounts Keycloak with `onLoad: 'login-required'`; the public landing
-  page does not, so always enter through a management route.
-- Every page logs a `[prompt-shared-state] Missing or invalid env keys` warning and a pair
-  of `Unexpected token '<'` errors (404 HTML served where an optional phase asset was
-  expected). Offline you also get `ERR_NAME_NOT_RESOLVED` for the `gravatar.com` avatar.
-  All pre-existing noise, not your change.
+- `/management/**` and `/apply/:id/authenticated` sit behind `RequireAuth`, which asks
+  Keycloak for a login when no session can be restored; the public pages never redirect,
+  so enter through a management route when you need to log in.
+- The console logs a `[prompt-shared-state] Missing or invalid env keys` warning and
+  404s for optional phase assets on every page — pre-existing noise, not your change.
+  Offline you also get `ERR_NAME_NOT_RESOLVED` for the `gravatar.com` avatar.
 - The seed is a `pg_dump` file loaded by `initdb` with `ON_ERROR_STOP`: one duplicate key
   aborts it and the whole stack fails to boot with `container prompt-e2e-db exited (3)`.
   Validate a seed edit on its own before a full run. The image has no one-shot mode — on

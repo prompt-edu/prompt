@@ -3,35 +3,37 @@ package privacy
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 )
 
 type PrivacyService struct {
-	Queries db.Queries
-	Conn    *pgxpool.Pool
+	queries db.Queries
 }
 
-var PrivacyServiceSingleton *PrivacyService
+func NewPrivacyService(queries db.Queries) *PrivacyService {
+	return &PrivacyService{
+		queries: queries,
+	}
+}
 
-func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
+func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
 	if subject.StudentID == uuid.Nil {
 		return nil
 	}
 
 	exp.AddJSON("Certificate Downloads", "certificate_downloads.json", func() (any, error) {
-		return PrivacyServiceSingleton.Queries.GetCertificateDownloadsByStudentID(c, subject.StudentID)
+		return s.queries.GetCertificateDownloadsByStudentID(c, subject.StudentID)
 	})
 
 	return nil
 }
 
-func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
 	if subject.StudentID == uuid.Nil {
 		return nil
 	}
 
-	return PrivacyServiceSingleton.Queries.DeleteCertificateDownloadsByStudentID(c, subject.StudentID)
+	return s.queries.DeleteCertificateDownloadsByStudentID(c, subject.StudentID)
 }

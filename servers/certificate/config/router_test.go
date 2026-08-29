@@ -24,6 +24,7 @@ type ConfigRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
+	service  *ConfigService
 }
 
 func (s *ConfigRouterTestSuite) SetupSuite() {
@@ -34,15 +35,12 @@ func (s *ConfigRouterTestSuite) SetupSuite() {
 	}
 	s.cleanup = cleanup
 
-	ConfigServiceSingleton = &ConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	s.service = NewConfigService(*testDB.Queries)
 
 	gin.SetMode(gin.TestMode)
 	s.router = gin.Default()
 	api := s.router.Group("/api/course_phase/:coursePhaseID")
-	setupConfigRouter(api, sdkTestUtils.MockPermissionMiddleware)
+	RegisterRoutes(api, s.service, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (s *ConfigRouterTestSuite) TearDownSuite() {
@@ -162,7 +160,7 @@ func (s *ConfigRouterTestSuite) TestGetTemplate() {
 func (s *ConfigRouterTestSuite) TestGetTemplate_NoTemplate() {
 	// Create a config without template
 	noTemplateID := uuid.New()
-	_, err := ConfigServiceSingleton.queries.CreateCoursePhaseConfig(s.suiteCtx, noTemplateID)
+	_, err := s.service.queries.CreateCoursePhaseConfig(s.suiteCtx, noTemplateID)
 	assert.NoError(s.T(), err)
 
 	url := fmt.Sprintf("/api/course_phase/%s/config/template", noTemplateID)

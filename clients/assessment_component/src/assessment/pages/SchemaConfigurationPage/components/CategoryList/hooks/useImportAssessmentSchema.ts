@@ -1,10 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { AssessmentType } from '../../../../../interfaces/assessmentType'
-import { createCategory } from '../../../../../network/mutations/createCategory'
-import { createCompetency } from '../../../../../network/mutations/createCompetency'
-import { getAllCategoriesWithCompetencies } from '../../../../../network/queries/getAllCategoriesWithCompetencies'
+import { assessmentApi } from '../../../../../network/api'
+import { assessmentCache } from '../../../../../network/cache'
 import type { AssessmentSchemaTemplate } from '../../../utils/assessmentSchemaTemplate'
 
 export interface ImportSchemaResult {
@@ -27,7 +25,10 @@ export const useImportAssessmentSchema = (
       let importedCategories = 0
       let importedCompetencies = 0
 
-      const existing = await getAllCategoriesWithCompetencies(coursePhaseID, assessmentType)
+      const existing = await assessmentApi.categories.listWithCompetencies(
+        coursePhaseID,
+        assessmentType,
+      )
       const existingNames = new Set(existing.map((category) => category.name))
 
       for (const category of template.categories) {
@@ -36,9 +37,9 @@ export const useImportAssessmentSchema = (
           continue
         }
 
-        let created: Awaited<ReturnType<typeof createCategory>>
+        let created: Awaited<ReturnType<typeof assessmentApi.categories.create>>
         try {
-          created = await createCategory(coursePhaseID, {
+          created = await assessmentApi.categories.create(coursePhaseID, {
             name: category.name,
             shortName: category.shortName,
             description: category.description,
@@ -54,7 +55,10 @@ export const useImportAssessmentSchema = (
 
         for (const competency of category.competencies) {
           try {
-            await createCompetency(coursePhaseID, { ...competency, categoryID: created.id })
+            await assessmentApi.competencies.create(coursePhaseID, {
+              ...competency,
+              categoryID: created.id,
+            })
             importedCompetencies += 1
           } catch {
             errors.push(
@@ -67,11 +71,7 @@ export const useImportAssessmentSchema = (
       return { importedCategories, importedCompetencies, errors }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['selfEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['peerEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['tutorEvaluationCategories', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['assessments'] })
+      assessmentCache.schemaChanged(queryClient, phaseId)
     },
   })
 }

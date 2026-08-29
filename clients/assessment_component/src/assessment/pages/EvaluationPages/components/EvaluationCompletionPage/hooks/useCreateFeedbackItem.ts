@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { CreateFeedbackItemRequest } from '../../../../../interfaces/feedbackItem'
-import { createFeedbackItem } from '../../../../../network/mutations/createFeedbackItem'
+import { assessmentApi } from '../../../../../network/api'
+import { assessmentCache } from '../../../../../network/cache'
 
 export const useCreateFeedbackItem = (setError: (error: string | undefined) => void) => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -10,10 +10,10 @@ export const useCreateFeedbackItem = (setError: (error: string | undefined) => v
 
   return useMutation({
     mutationFn: (feedbackItem: CreateFeedbackItemRequest) => {
-      return createFeedbackItem(phaseId ?? '', feedbackItem)
+      return assessmentApi.feedbackItems.create(phaseId ?? '', feedbackItem)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-feedback-items', phaseId] })
+      assessmentCache.myFeedbackItemsChanged(queryClient, phaseId)
       setError(undefined)
     },
     onError: (error: any) => {

@@ -42,3 +42,7 @@ export interface AuditLogFilters {
   from?: string
   to?: string
 }
+
+export interface AuditLogStatus {
+  enabled: boolean
+}

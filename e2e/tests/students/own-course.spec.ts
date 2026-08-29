@@ -1,4 +1,4 @@
-import { test } from '../../src/fixtures/auth'
+import { test, expect } from '../../src/fixtures/auth'
 import { CourseOverviewPage } from '../../src/pages/CourseOverviewPage'
 import { FULL_COURSE_PHASES, SEEDED_COURSES } from '../../src/data/constants'
 
@@ -11,6 +11,38 @@ test.describe('students: own course view', () => {
     await overview.goto(SEEDED_COURSES.fullCourse.id)
     await overview.expectLoaded(SEEDED_COURSES.fullCourse.name)
     await overview.expectPhaseListed(FULL_COURSE_PHASES.interview.type)
+    await overview.expectPhaseListed(FULL_COURSE_PHASES.teamAllocation.type)
     await overview.expectPhaseListed(FULL_COURSE_PHASES.assessment.type)
+  })
+
+  // The entry has no student-visible subitems, so it is a plain menu item that
+  // must route to the phase root. What that root then renders depends on the
+  // team allocation service's own fixtures and is covered by its journey spec.
+  test('a student opens a phase from the sidebar', async ({ page }) => {
+    const overview = new CourseOverviewPage(page)
+
+    await overview.goto(SEEDED_COURSES.fullCourse.id)
+    await overview.expectLoaded(SEEDED_COURSES.fullCourse.name)
+    await overview.openPhase(FULL_COURSE_PHASES.teamAllocation.type)
+
+    await expect(page).toHaveURL(
+      `/management/course/${SEEDED_COURSES.fullCourse.id}/${FULL_COURSE_PHASES.teamAllocation.id}`,
+    )
+  })
+})
+
+// `student2` (Selma) is enrolled in iPraktikumFull but active in none of its graph
+// phases, and holds no course-scoped Keycloak role for it, so no phase sidebar
+// entry may show: a top-level entry without `requiredPermissions` used to render
+// for every course member regardless of phase membership.
+test.describe('students: a course whose phases they are not in', () => {
+  test.use({ role: 'student2' })
+
+  test('a student does not see a phase they are not part of', async ({ page }) => {
+    const overview = new CourseOverviewPage(page)
+
+    await overview.goto(SEEDED_COURSES.fullCourse.id)
+    await overview.expectLoaded(SEEDED_COURSES.fullCourse.name)
+    await overview.expectNoPhaseListed(FULL_COURSE_PHASES.teamAllocation.type)
   })
 })

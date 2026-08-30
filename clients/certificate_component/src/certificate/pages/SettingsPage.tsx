@@ -10,12 +10,14 @@ import {
   CardHeader,
   CardTitle,
   DatePicker,
+  DescriptionMinimalTiptapEditor,
   ErrorPage,
   ManagementPageHeader,
   Popover,
   PopoverContent,
   PopoverTrigger,
   Textarea,
+  TooltipProvider,
   useToast,
 } from '@tumaet/prompt-ui-components'
 import {
@@ -32,7 +34,12 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
-import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
+import {
+  getConfig,
+  updateConfig,
+  updateReleaseDate,
+  updateStudentPageText,
+} from '../network/queries/getConfig'
 import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
 /**
@@ -49,11 +56,21 @@ const formatEuropeanDate = (dateString: string): string => {
   })
 }
 
+// An emptied rich text editor still emits markup like `<p></p>`, which must count
+// as no text at all. Elements that render on their own carry no text, so they have
+// to be recognised before the tags are stripped.
+const CONTENT_WITHOUT_TEXT = /<(img|hr|br|iframe|video|audio|table)\b/i
+
+const normalizeHtml = (html: string) =>
+  !CONTENT_WITHOUT_TEXT.test(html) && html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html
+
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [templateContent, setTemplateContent] = useState('')
+  const [studentPageText, setStudentPageText] = useState('')
+  const [savedStudentPageText, setSavedStudentPageText] = useState('')
   const [hasChanges, setHasChanges] = useState(false)
   const [isPreviewing, setIsPreviewing] = useState(false)
   const [compilerError, setCompilerError] = useState<string | null>(null)
@@ -104,6 +121,25 @@ export const SettingsPage = () => {
       toast({
         title: 'Error',
         description: 'Failed to update release date',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const studentPageTextMutation = useMutation({
+    mutationFn: (text: string | null) => updateStudentPageText(phaseId ?? '', text),
+    onSuccess: (_, text) => {
+      setSavedStudentPageText(text ?? '')
+      queryClient.invalidateQueries({ queryKey: ['config', phaseId] })
+      toast({
+        title: 'Success',
+        description: 'Student page text updated successfully',
+      })
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update student page text',
         variant: 'destructive',
       })
     },
@@ -215,6 +251,15 @@ export const SettingsPage = () => {
     releaseDateMutation.mutate(null)
   }
 
+  const normalizedStudentPageText = normalizeHtml(studentPageText)
+  const studentPageTextHasChanges = normalizedStudentPageText !== savedStudentPageText
+
+  const handleSaveStudentPageText = () => {
+    studentPageTextMutation.mutate(
+      normalizedStudentPageText === '' ? null : normalizedStudentPageText,
+    )
+  }
+
   // Initialize template content from config
   const initialized = useRef(false)
   useEffect(() => {
@@ -223,6 +268,11 @@ export const SettingsPage = () => {
       initialized.current = true
     }
   }, [config?.templateContent])
+
+  useEffect(() => {
+    setStudentPageText(config?.studentPageText ?? '')
+    setSavedStudentPageText(config?.studentPageText ?? '')
+  }, [config?.studentPageText])
 
   if (isError) {
     return <ErrorPage message='Error loading configuration' onRetry={refetch} />
@@ -397,6 +447,47 @@ export const SettingsPage = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      <Card data-testid='certificate-student-page-text-settings'>
+        <CardHeader>
+          <CardTitle>Student Download Page Text</CardTitle>
+          <CardDescription>
+            An optional message shown to students on their certificate page, for example how to add
+            the certificate to a profile or who to contact with questions. Leave it empty to show
+            nothing extra.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <TooltipProvider>
+            <DescriptionMinimalTiptapEditor
+              // The editor reads its content once, on create, so it has to be
+              // remounted whenever the stored text changes underneath it.
+              key={savedStudentPageText}
+              value={studentPageText}
+              onChange={(value) => setStudentPageText(typeof value === 'string' ? value : '')}
+              className='w-full'
+              editorContentClassName='p-3'
+              output='html'
+              placeholder='Type the message students should see...'
+              autofocus={false}
+              editable={true}
+              editorClassName='focus:outline-hidden'
+            />
+          </TooltipProvider>
+          <div className='flex justify-end'>
+            <Button
+              data-testid='certificate-student-page-text-save'
+              onClick={handleSaveStudentPageText}
+              disabled={studentPageTextMutation.isPending || !studentPageTextHasChanges}
+            >
+              {studentPageTextMutation.isPending && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
+              Save Student Page Text
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -9,7 +9,7 @@ import {
   TooltipProvider,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
 
@@ -29,6 +29,12 @@ export function ApplicationSettingsWelcomeText({
 
   const [welcomeText, setWelcomeText] = useState(initialData.welcomeText ?? '')
   const [savedWelcomeText, setSavedWelcomeText] = useState(initialData.welcomeText ?? '')
+
+  // The metadata is parsed asynchronously, so the first render can precede it.
+  useEffect(() => {
+    setWelcomeText(initialData.welcomeText ?? '')
+    setSavedWelcomeText(initialData.welcomeText ?? '')
+  }, [initialData])
 
   const normalizedWelcomeText = normalizeHtml(welcomeText)
   const hasChanges = normalizedWelcomeText !== savedWelcomeText
@@ -71,6 +77,9 @@ export function ApplicationSettingsWelcomeText({
 
           <TooltipProvider>
             <DescriptionMinimalTiptapEditor
+              // The editor reads its content once, on create, so it has to be
+              // remounted whenever the stored text changes underneath it.
+              key={savedWelcomeText}
               value={welcomeText}
               onChange={(value) => setWelcomeText(typeof value === 'string' ? value : '')}
               className='w-full'

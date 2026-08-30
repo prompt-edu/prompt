@@ -20,12 +20,21 @@ interface StudentPageTextCardProps {
 }
 
 // An emptied rich text editor still emits markup like `<p></p>`, which must count
-// as no text at all. Elements that render on their own carry no text, so they
-// have to be recognised before the tags are stripped.
-const CONTENT_WITHOUT_TEXT = /<(img|hr|iframe|video|audio|table)\b/i
+// as no text at all. The value is parsed rather than stripped with a regex: this
+// only decides emptiness (sanitizing happens where the HTML is rendered), and a
+// regex tag-strip reads like - and gets flagged as - a broken sanitizer.
+const RENDERS_WITHOUT_TEXT = 'img, hr, iframe, video, audio, table'
 
-const normalizeHtml = (html: string) =>
-  !CONTENT_WITHOUT_TEXT.test(html) && html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html
+const isEmptyRichText = (html: string) => {
+  if (typeof DOMParser === 'undefined') {
+    return html.trim() === ''
+  }
+  // A parsed document is inert: nothing in it loads or runs.
+  const { body } = new DOMParser().parseFromString(html, 'text/html')
+  return body.textContent?.trim() === '' && body.querySelector(RENDERS_WITHOUT_TEXT) === null
+}
+
+const normalizeHtml = (html: string) => (isEmptyRichText(html) ? '' : html)
 
 const errorMessage = (error: unknown): string | undefined => {
   const response = (error as { response?: { data?: { error?: unknown } } })?.response

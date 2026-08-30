@@ -67,6 +67,30 @@ func lecturerAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
+// promptLecturerTutorAuthMiddleware mocks a tutor who also holds the global
+// PROMPT_Lecturer role. The write routes do not admit that role directly, so the
+// user arrives as a course editor and must stay scoped to their team.
+func promptLecturerTutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles:           map[string]bool{keycloakTokenVerifier.PromptLecturer: true},
+				IsEditor:        true,
+				IsLecturer:      false,
+				UniversityLogin: login,
+			})
+			c.Next()
+		}
+	}
+}
+
+// anonymousAuthMiddleware leaves no token user in the context.
+func anonymousAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) { c.Next() }
+	}
+}
+
 // stubParticipants replaces the core lookup with a fixed membership set.
 func stubParticipants(courseParticipationIDs ...string) participantResolver {
 	return func(authHeader string, coursePhaseID uuid.UUID) (map[uuid.UUID]coreRequests.Participant, error) {
@@ -389,6 +413,34 @@ func (suite *AllocationRouterTestSuite) TestUpdateAllocationRejectsInvalidIDs() 
 
 	nilParticipation := suite.putAllocation(suite.router, writePhase, uuid.Nil.String(), `{"teamID":"`+teamDelta+`"}`)
 	assert.Equal(suite.T(), http.StatusBadRequest, nilParticipation.Code)
+}
+
+func (suite *AllocationRouterTestSuite) routerWith(authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	setupAllocationRouter(api, authMiddleware, suite.allocationService.queries)
+	return router
+}
+
+func (suite *AllocationRouterTestSuite) TestPromptLecturerTutorStaysScoped() {
+	router := suite.routerWith(promptLecturerTutorAuthMiddleware(scopedTutorLogin))
+
+	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code, "the global lecturer role must not unscope a tutor's writes")
+
+	teamID, err := suite.storedTeam(epsilonParticip)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID)
+}
+
+func (suite *AllocationRouterTestSuite) TestWriteWithoutTokenUserIsUnauthorized() {
+	router := suite.routerWith(anonymousAuthMiddleware())
+
+	resp := suite.putAllocation(router, writePhase, staffFreeParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusUnauthorized, resp.Code)
+
+	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
+	assert.Equal(suite.T(), http.StatusUnauthorized, deleteResp.Code)
 }
 
 func TestAllocationRouterTestSuite(t *testing.T) {

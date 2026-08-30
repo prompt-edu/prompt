@@ -127,6 +127,7 @@ func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipa
 // @Param request body allocationDTO.UpdateAllocationRequest true "Target team"
 // @Success 200 {object} allocationDTO.Allocation
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 413 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -150,7 +151,6 @@ func updateAllocation(c *gin.Context) {
 
 	expectedTeamID, allowed := authorizeAllocationWrite(c)
 	if !allowed {
-		denyAllocationWrite(c)
 		return
 	}
 	if expectedTeamID.Valid && request.TeamID != uuid.UUID(expectedTeamID.Bytes) {
@@ -182,6 +182,7 @@ func updateAllocation(c *gin.Context) {
 // @Param courseParticipationID path string true "Course Participation UUID"
 // @Success 204
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -195,7 +196,6 @@ func deleteAllocation(c *gin.Context) {
 
 	expectedTeamID, allowed := authorizeAllocationWrite(c)
 	if !allowed {
-		denyAllocationWrite(c)
 		return
 	}
 
@@ -234,22 +234,29 @@ func parseAllocationParams(c *gin.Context) (coursePhaseID, courseParticipationID
 // for a tutor, which source team the write is confined to. Reads deliberately fail
 // open for editors the scoping middleware cannot resolve; writes fail closed.
 // Authorization is decided from the team resolved at the start of the request.
+// It answers the request itself when the write is refused.
 func authorizeAllocationWrite(c *gin.Context) (pgtype.UUID, bool) {
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
+		handleError(c, http.StatusUnauthorized, keycloakTokenVerifier.ErrUserNotInContext)
 		return pgtype.UUID{}, false
 	}
 
-	if tokenUser.Roles[promptSDK.PromptAdmin] || tokenUser.Roles[promptSDK.PromptLecturer] || tokenUser.IsLecturer {
+	// PromptLecturer is deliberately absent: the routes do not admit it directly, so
+	// such a user arrives as a course editor and their reads are tutor-scoped. Writes
+	// must be scoped with them.
+	if tokenUser.Roles[promptSDK.PromptAdmin] || tokenUser.IsLecturer {
 		return pgtype.UUID{}, true
 	}
 
 	if !tokenUser.IsEditor {
+		denyAllocationWrite(c)
 		return pgtype.UUID{}, false
 	}
 
 	tutorTeamID, scoped := promptSDK.GetTutorTeamID(c)
 	if !scoped {
+		denyAllocationWrite(c)
 		return pgtype.UUID{}, false
 	}
 

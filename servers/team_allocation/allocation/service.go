@@ -65,7 +65,10 @@ func GetAllocationByCourseParticipationID(ctx context.Context, courseParticipati
 		CoursePhaseID:         coursePhaseID,
 	})
 	if err != nil {
-		log.Error("Error fetching allocation from database: ", err)
+		// A participant without an allocation is an expected answer, not a failure.
+		if !errors.Is(err, pgx.ErrNoRows) {
+			log.Error("Error fetching allocation from database: ", err)
+		}
 		return uuid.Nil, err
 	}
 

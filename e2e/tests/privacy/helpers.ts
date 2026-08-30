@@ -1,13 +1,54 @@
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, APIResponse } from '@playwright/test'
+import type { Role } from '../../src/data/roles'
+import { apiContextFor } from '../../src/fixtures/api'
+
+// The `prompt-client` Keycloak client sets access.token.lifespan to 60 seconds, so
+// a context minted once in beforeAll starts answering 401 partway through any wait
+// that outlives a minute. This re-mints on 401 instead.
+export class RoleApi {
+  private context?: APIRequestContext
+
+  constructor(private readonly role: Role) {}
+
+  get(path: string): Promise<APIResponse> {
+    return this.send((context) => context.get(path))
+  }
+
+  post(path: string, options?: { data?: unknown }): Promise<APIResponse> {
+    return this.send((context) => context.post(path, options))
+  }
+
+  delete(path: string): Promise<APIResponse> {
+    return this.send((context) => context.delete(path))
+  }
+
+  async dispose(): Promise<void> {
+    await this.context?.dispose()
+    this.context = undefined
+  }
+
+  private async send(run: (context: APIRequestContext) => Promise<APIResponse>) {
+    const response = await run(await this.current())
+    if (response.status() !== 401) return response
+
+    await this.dispose()
+    return run(await this.current())
+  }
+
+  private async current(): Promise<APIRequestContext> {
+    if (!this.context) this.context = await apiContextFor(this.role)
+    return this.context
+  }
+}
 
 // The server allows a deletion or export run up to 30 minutes, but on this stack
-// it is normally seconds. Three minutes keeps failure diagnostics useful without
-// eating the shard's 20-minute global budget.
-export const PRIVACY_WAIT_MS = 3 * 60 * 1000
+// it is normally seconds. 90s keeps failure diagnostics useful while leaving the
+// core shard's 20-minute budget intact even when a test is retried twice.
+export const PRIVACY_WAIT_MS = 90 * 1000
 
 // Each spec that waits on one of these runs needs more than Playwright's 60s
 // default, or the test is preempted before the helper's own deadline.
-export const PRIVACY_TEST_TIMEOUT_MS = 4 * 60 * 1000
+export const PRIVACY_TEST_TIMEOUT_MS = 150 * 1000
 
 export interface DeletionRequest {
   id: string
@@ -28,30 +69,40 @@ export type LatestExport =
   | { status: 'rate_limited'; retry_after: string }
   | { status: 'exists'; export: PrivacyExport }
 
-async function readJson<T>(api: APIRequestContext, path: string): Promise<T | undefined> {
+async function readJson<T>(api: RoleApi, path: string): Promise<T | undefined> {
   const res = await api.get(path)
   if (res.status() === 204) return undefined
   if (!res.ok()) throw new Error(`GET ${path} failed: ${res.status()} ${await res.text()}`)
   return (await res.json()) as T
 }
 
-export async function latestDeletion(api: APIRequestContext): Promise<LatestDeletion> {
+export async function latestDeletion(api: RoleApi): Promise<LatestDeletion> {
   return (await readJson<LatestDeletion>(api, '/api/privacy/data-deletion')) ?? { status: 'ready' }
 }
 
-export async function latestExport(api: APIRequestContext): Promise<LatestExport> {
+export async function latestExport(api: RoleApi): Promise<LatestExport> {
   return (await readJson<LatestExport>(api, '/api/privacy/data-export')) ?? { status: 'ready' }
 }
 
-export async function getDeletion(api: APIRequestContext, id: string): Promise<DeletionRequest> {
-  return (await readJson<DeletionRequest>(
-    api,
-    `/api/privacy/data-deletion/${id}`,
-  )) as DeletionRequest
+export async function getExport(api: RoleApi, id: string): Promise<PrivacyExport> {
+  const found = await readJson<PrivacyExport>(api, `/api/privacy/data-export/${id}`)
+  if (!found) throw new Error(`export ${id} answered 204 instead of a record`)
+  return found
 }
 
-export async function getExport(api: APIRequestContext, id: string): Promise<PrivacyExport> {
-  return (await readJson<PrivacyExport>(api, `/api/privacy/data-export/${id}`)) as PrivacyExport
+// Returns the presigned URL the UI would navigate to. Read through the API rather
+// than off the page: the page assigns window.location as soon as it has the URL,
+// and the navigation can outrun reading the response body.
+export async function downloadUrlFor(
+  api: RoleApi,
+  exportID: string,
+  docID: string,
+): Promise<string> {
+  const res = await api.get(`/api/privacy/data-export/${exportID}/docs/${docID}/download-url`)
+  if (!res.ok()) {
+    throw new Error(`download-url for ${docID} failed: ${res.status()} ${await res.text()}`)
+  }
+  return ((await res.json()) as { downloadUrl: string }).downloadUrl
 }
 
 interface WaitOptions<T> {
@@ -81,7 +132,7 @@ export async function waitFor<T>({
     if (Date.now() > deadline) {
       throw new Error(`${describe} did not settle within ${timeoutMs}ms: ${JSON.stringify(last)}`)
     }
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 }
 
@@ -99,7 +150,7 @@ export function isDeletionTerminal(status: string): boolean {
 // The owner-scoped GET /data-deletion/:id rejects anyone but the requester, so an
 // admin watching a run reads it from the console listing instead.
 export async function adminDeletion(
-  admin: APIRequestContext,
+  admin: RoleApi,
   id: string,
 ): Promise<DeletionRequest> {
   const res = await admin.get('/api/privacy/admin/data-deletions')
@@ -114,13 +165,21 @@ export async function adminDeletion(
 
 // Leaves no export behind and frees the subject's 30-day rate limit, which is
 // otherwise one export per user for the lifetime of the stack.
-export async function archiveExports(admin: APIRequestContext, userEmail: string): Promise<void> {
+export async function archiveExports(admin: RoleApi, userEmail: string): Promise<void> {
   const res = await admin.get('/api/privacy/admin/data-exports')
-  if (!res.ok()) return
+  if (!res.ok()) {
+    throw new Error(`GET admin/data-exports failed: ${res.status()} ${await res.text()}`)
+  }
   const exports = (await res.json()) as { id: string; student_email?: string; status: string }[]
   for (const record of exports) {
-    if (record.student_email === userEmail) {
-      await admin.delete(`/api/privacy/admin/data-exports/${record.id}?reset_rate_limit=true`)
+    if (record.student_email !== userEmail || record.status === 'archived') continue
+    const deleted = await admin.delete(
+      `/api/privacy/admin/data-exports/${record.id}?reset_rate_limit=true`,
+    )
+    if (!deleted.ok()) {
+      // Left unarchived, the 30-day rate limit makes the next request 429 and the
+      // failure surfaces far from its cause.
+      throw new Error(`archiving export ${record.id} failed: ${deleted.status()}`)
     }
   }
 }

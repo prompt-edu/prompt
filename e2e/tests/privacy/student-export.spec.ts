@@ -1,12 +1,13 @@
-import { type APIRequestContext, request } from '@playwright/test'
-import { apiContextFor } from '../../src/fixtures/api'
+import { request } from '@playwright/test'
 import { authFile, expect, test } from '../../src/fixtures/auth'
 import { SEEDED_PHASE_STUDENTS } from '../../src/data/constants'
 import { ROLES } from '../../src/data/roles'
 import { AdminPrivacyPage } from '../../src/pages/AdminPrivacyPage'
 import { PrivacyPage } from '../../src/pages/PrivacyPage'
 import {
+  RoleApi,
   archiveExports,
+  downloadUrlFor,
   getExport,
   isExportTerminal,
   latestExport,
@@ -27,12 +28,10 @@ const CORE_DOCUMENT = 'Core'
 test.describe('privacy: student data export', () => {
   test.use({ role: 'student' })
 
-  let student: APIRequestContext
-  let admin: APIRequestContext
+  const student = new RoleApi('student')
+  const admin = new RoleApi('admin')
 
   test.beforeAll(async () => {
-    student = await apiContextFor('student')
-    admin = await apiContextFor('admin')
     // An export is rate limited for 30 days, so a previous run or a failed
     // teardown would otherwise make this spec unrunnable for the whole stack.
     await archiveExports(admin, SUBJECT_EMAIL)
@@ -74,19 +73,21 @@ test.describe('privacy: student data export', () => {
     expect(coreDoc, `no Core document in ${JSON.stringify(produced.documents)}`).toBeTruthy()
     expect(coreDoc!.status).toBe('complete')
 
-    // The page navigates to a presigned URL rather than emitting a download
-    // event, so assert the request it issues and then fetch that URL directly.
-    const urlResponse = page.waitForResponse(
-      (response) => response.url().includes('/download-url') && response.ok(),
+    // The button navigates to a presigned URL rather than emitting a download
+    // event, and that navigation can outrun reading the response body, so assert
+    // the request the page issues and resolve the URL through the API instead.
+    const issued = page.waitForRequest(
+      (req) => req.url().includes(`/docs/${coreDoc!.id}/download-url`),
       { timeout: 30_000 },
     )
     await privacy.documentDownloadButton(CORE_DOCUMENT).click()
-    const { downloadUrl } = (await (await urlResponse).json()) as { downloadUrl: string }
+    await issued
 
+    const downloadUrl = await downloadUrlFor(student, latest.export.id, coreDoc!.id)
     const anonymous = await request.newContext()
     try {
       const file = await anonymous.get(downloadUrl)
-      expect(file.status(), await file.text()).toBe(200)
+      expect(file.status(), file.statusText()).toBe(200)
       expect(file.headers()['content-type']).toContain('zip')
       expect((await file.body()).length).toBeGreaterThan(0)
     } finally {
@@ -95,6 +96,8 @@ test.describe('privacy: student data export', () => {
   })
 
   test('an admin archives the export and frees the rate limit', async ({ browser }) => {
+    test.setTimeout(PRIVACY_TEST_TIMEOUT_MS)
+
     const adminContext = await browser.newContext({ storageState: authFile('admin') })
     try {
       const adminConsole = new AdminPrivacyPage(await adminContext.newPage())
@@ -102,7 +105,9 @@ test.describe('privacy: student data export', () => {
       await adminConsole.expectLoaded()
       await adminConsole.openExportTab()
 
-      await expect(adminConsole.rowFor(SUBJECT_NAME)).toHaveCount(1, { timeout: 15_000 })
+      await expect(adminConsole.liveExportRowFor(SUBJECT_NAME).first()).toBeVisible({
+        timeout: 15_000,
+      })
       await adminConsole.archiveExportAndResetRateLimit(SUBJECT_NAME)
 
       await waitFor({

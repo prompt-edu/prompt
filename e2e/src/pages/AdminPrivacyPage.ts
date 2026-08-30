@@ -37,15 +37,26 @@ export class AdminPrivacyPage {
     return this.page.locator('table tbody tr')
   }
 
-  // The requester column renders a StudentAvatar, which shows "First Last" and
-  // no email, so rows are found by name.
-  rowFor(requesterName: string): Locator {
-    return this.rows.filter({ hasText: requesterName })
+  // The requester column renders a StudentAvatar, which shows "First Last" and no
+  // email, so rows are found by name. Terminal rows are never removed - a rejected
+  // request and an archived export both stay listed - so a retry would otherwise
+  // match the previous attempt's row too; callers narrow by status.
+  rowFor(requesterName: string, status?: string): Locator {
+    const byName = this.rows.filter({ hasText: requesterName })
+    return status ? byName.filter({ hasText: status }) : byName
+  }
+
+  pendingRowFor(requesterName: string): Locator {
+    return this.rowFor(requesterName, 'Pending approval')
+  }
+
+  liveExportRowFor(requesterName: string): Locator {
+    return this.rowFor(requesterName).filter({ hasNotText: 'Archived' })
   }
 
   // The review dialog only opens for a request still awaiting approval.
-  async openReview(requester: string) {
-    await this.rowFor(requester).click()
+  async openReview(requesterName: string) {
+    await this.pendingRowFor(requesterName).first().click()
     await expect(this.reviewDialog).toBeVisible({ timeout: 15_000 })
   }
 
@@ -78,7 +89,7 @@ export class AdminPrivacyPage {
     await this.page.getByRole('menuitem', { name: action }).click()
   }
 
-  async archiveExportAndResetRateLimit(requester: string) {
-    await this.runRowAction(this.rowFor(requester), 'Archive + reset rate limit')
+  async archiveExportAndResetRateLimit(requesterName: string) {
+    await this.runRowAction(this.liveExportRowFor(requesterName).first(), 'Archive + reset rate limit')
   }
 }

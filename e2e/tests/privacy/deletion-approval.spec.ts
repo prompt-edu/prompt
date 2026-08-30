@@ -1,10 +1,9 @@
-import type { APIRequestContext } from '@playwright/test'
 import { PRIVACY_SUBJECTS } from '../../src/data/constants'
-import { apiContextFor } from '../../src/fixtures/api'
 import { authFile, expect, test } from '../../src/fixtures/auth'
 import { AdminPrivacyPage } from '../../src/pages/AdminPrivacyPage'
 import { PrivacyPage } from '../../src/pages/PrivacyPage'
 import {
+  RoleApi,
   adminDeletion,
   isDeletionTerminal,
   latestDeletion,
@@ -14,7 +13,7 @@ import {
 
 const SUBJECT = PRIVACY_SUBJECTS.deletionApproval
 
-async function studentExists(admin: APIRequestContext): Promise<boolean> {
+async function studentExists(admin: RoleApi): Promise<boolean> {
   const res = await admin.get('/api/students/')
   if (!res.ok()) throw new Error(`GET /api/students/ failed: ${res.status()}`)
   const students = (await res.json()) as { id: string }[]
@@ -28,13 +27,8 @@ async function studentExists(admin: APIRequestContext): Promise<boolean> {
 test.describe('privacy: student deletion request approved by an admin', () => {
   test.use({ role: 'privacy-student' })
 
-  let subject: APIRequestContext
-  let admin: APIRequestContext
-
-  test.beforeAll(async () => {
-    subject = await apiContextFor('privacy-student')
-    admin = await apiContextFor('admin')
-  })
+  const subject = new RoleApi('privacy-student')
+  const admin = new RoleApi('admin')
 
   test.afterAll(async () => {
     await subject.dispose()
@@ -74,9 +68,8 @@ test.describe('privacy: student deletion request approved by an admin', () => {
         await adminConsole.expectLoaded()
         await adminConsole.openDeletionTab()
 
-        const row = adminConsole.rowFor(SUBJECT.name)
+        const row = adminConsole.pendingRowFor(SUBJECT.name)
         await expect(row).toHaveCount(1, { timeout: 15_000 })
-        await expect(row).toContainText('Pending approval')
 
         // The server sorts pending requests first. Which pending request leads is
         // not this spec's business: another spec may legitimately have a newer one.

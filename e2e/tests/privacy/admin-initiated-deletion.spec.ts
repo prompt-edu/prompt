@@ -1,13 +1,11 @@
-import type { APIRequestContext } from '@playwright/test'
 import { PRIVACY_SUBJECTS } from '../../src/data/constants'
-import { apiContextFor } from '../../src/fixtures/api'
 import { expect, test } from '../../src/fixtures/auth'
 import { StudentsPage } from '../../src/pages/StudentsPage'
-import { PRIVACY_TEST_TIMEOUT_MS, waitFor } from './helpers'
+import { PRIVACY_TEST_TIMEOUT_MS, RoleApi, waitFor } from './helpers'
 
 const SUBJECT = PRIVACY_SUBJECTS.inactive
 
-async function studentExists(admin: APIRequestContext): Promise<boolean> {
+async function studentExists(admin: RoleApi): Promise<boolean> {
   const res = await admin.get('/api/students/')
   if (!res.ok()) throw new Error(`GET /api/students/ failed: ${res.status()}`)
   const students = (await res.json()) as { id: string }[]
@@ -21,11 +19,7 @@ async function studentExists(admin: APIRequestContext): Promise<boolean> {
 test.describe('privacy: admin-initiated deletion of an inactive student', () => {
   test.use({ role: 'admin' })
 
-  let admin: APIRequestContext
-
-  test.beforeAll(async () => {
-    admin = await apiContextFor('admin')
-  })
+  const admin = new RoleApi('admin')
 
   test.afterAll(async () => {
     await admin.dispose()
@@ -35,9 +29,16 @@ test.describe('privacy: admin-initiated deletion of an inactive student', () => 
     test.setTimeout(PRIVACY_TEST_TIMEOUT_MS)
 
     if (!(await studentExists(admin))) {
-      // A previous attempt already deleted the subject; that is the outcome
-      // under test, so assert it rather than re-running a destructive flow.
-      expect(await studentExists(admin)).toBe(false)
+      // A previous attempt already deleted the subject. Assert the deletion that
+      // did it actually succeeded, rather than that the subject is missing - which
+      // a half-finished run would also satisfy.
+      const requests = await admin.get('/api/privacy/admin/data-deletions')
+      expect(requests.ok(), await requests.text()).toBeTruthy()
+      const all = (await requests.json()) as { status: string; student_id: string | null }[]
+      expect(
+        all.some((request) => request.status === 'succeeded'),
+        'the subject is gone but no deletion succeeded',
+      ).toBe(true)
       return
     }
 
@@ -57,7 +58,9 @@ test.describe('privacy: admin-initiated deletion of an inactive student', () => 
       done: (exists) => !exists,
     })
 
-    await expect(students.deletionDialog).toContainText(/Close|completed|done/i, {
+    // "Deletion failed" and the in-progress "N of M done" line both sit next to a
+    // Close button, so the dialog's own success wording is the only safe assertion.
+    await expect(students.deletionDialog).toContainText('Deletion complete', {
       timeout: 60_000,
     })
   })

@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
-	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
@@ -29,7 +28,7 @@ func (s *AuthService) GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdenti
 		return sdk.SubjectIdentifiers{}, errStudentUUID
 	}
 
-	courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
+	courseParticipationIDs, errCourseParts := s.getCourseParticipations(ctx, studentID)
 	if errCourseParts != nil {
 		return sdk.SubjectIdentifiers{}, errCourseParts
 	}
@@ -48,7 +47,7 @@ func (s *AuthService) AssembleSubjectIdentifiers(ctx context.Context, userID uui
 	}
 	identifiers.StudentID = *studentID
 
-	cpIDs, err := getCourseParticipations(ctx, *studentID)
+	cpIDs, err := s.getCourseParticipations(ctx, *studentID)
 	if err != nil {
 		return sdk.SubjectIdentifiers{}, err
 	}
@@ -68,8 +67,8 @@ func (s *AuthService) getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	return student.ID, nil
 }
 
-func getCourseParticipations(ctx context.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
-	cps, err := courseParticipation.GetAllCourseParticipationsForStudent(ctx, studentID)
+func (s *AuthService) getCourseParticipations(ctx context.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
+	cps, err := s.courseParticipations.GetAllCourseParticipationsForStudent(ctx, studentID)
 	if err != nil {
 		return []uuid.UUID{}, err
 	}

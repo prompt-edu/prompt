@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/require"
@@ -74,7 +75,7 @@ func (suite *CourseMailingServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = NewCourseMailingService(*testDB.Queries, testDB.Conn, "https://prompt.example.com")
+	suite.service = NewCourseMailingService(*testDB.Queries, testDB.Conn, "https://prompt.example.com", mailing.NewMailingService(*testDB.Queries, "", "", "", "", "Course Mailing Test", "noreply@example.com", "").SendCourseMail)
 }
 
 func (suite *CourseMailingServiceTestSuite) TearDownSuite() {

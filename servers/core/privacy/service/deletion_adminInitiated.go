@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
-	"github.com/prompt-edu/prompt/servers/core/student"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,7 +26,7 @@ func (s *PrivacyService) CreateAdminInitiatedDeletionRequests(c *gin.Context, st
 	records := make([]privacyDTO.PrivacyDeletionRequest, 0, len(studentIDs))
 	for _, sid := range studentIDs {
 		recipientEmail := ""
-		stud, err := student.GetStudentByID(c, sid)
+		stud, err := s.students.GetStudentByID(c, sid)
 		if err != nil {
 			log.WithError(err).WithField("studentID", sid).Warn("failed to load student for confirmation email; proceeding without")
 		} else {

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 )
 
 func (s *PrivacyService) GetDownloadURLForDoc(c context.Context, docID uuid.UUID) (string, error) {
@@ -13,7 +12,7 @@ func (s *PrivacyService) GetDownloadURLForDoc(c context.Context, docID uuid.UUID
 		return "", err
 	}
 
-	url, err := privacyexport.GetDownloadURL(c, objectKey)
+	url, err := s.exportStorage.GetDownloadURL(c, objectKey)
 	if err != nil {
 		return "", err
 	}

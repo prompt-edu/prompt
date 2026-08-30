@@ -9,7 +9,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
-	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -42,7 +41,7 @@ func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, auth
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationManual)
 	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationImport)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteApplications)
-	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
+	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationFileDownloadURL)
 
 	application.GET("/:coursePhaseID/:courseParticipationID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationByCPID)
 	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationAssessment)
@@ -242,7 +241,7 @@ func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 			applicationForm.Student.FirstName = firstName
 			applicationForm.Student.LastName = lastName
 		}
-		if err := SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
+		if err := s.SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
 			applicationForm.Student.Email = storedEmail
 			log.Warn("could not sync student details from token: ", err)
 		}
@@ -300,7 +299,7 @@ func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
@@ -359,7 +358,7 @@ func (s *ApplicationService) postApplicationExtern(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
@@ -437,7 +436,7 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))

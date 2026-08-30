@@ -6,20 +6,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func setupStudentRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+// RegisterRoutes mounts the student endpoints on the given router group.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *StudentService) {
+	setupStudentRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+}
+
+func setupStudentRouter(router *gin.RouterGroup, s *StudentService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	student := router.Group("/students", authMiddleware())
-	student.GET("/with-courses", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudentsWithCourses)
-	student.GET("/search/:searchString", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), searchStudents)
-	student.GET("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getStudentByID)
-	student.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllStudents)
-	student.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), createStudent)
-	student.PUT("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), updateStudent)
-	student.GET("/:uuid/enrollments", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getStudentEnrollments)
+	student.GET("/with-courses", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getAllStudentsWithCourses)
+	student.GET("/search/:searchString", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.searchStudents)
+	student.GET("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getStudentByID)
+	student.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getAllStudents)
+	student.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.createStudent)
+	student.PUT("/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.updateStudent)
+	student.GET("/:uuid/enrollments", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getStudentEnrollments)
 }
 
 // getAllStudents godoc
@@ -30,8 +36,8 @@ func setupStudentRouter(router *gin.RouterGroup, authMiddleware func() gin.Handl
 // @Success 200 {array} studentDTO.Student
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/ [get]
-func getAllStudents(c *gin.Context) {
-	students, err := GetAllStudents(c)
+func (s *StudentService) getAllStudents(c *gin.Context) {
+	students, err := s.GetAllStudents(c)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -48,8 +54,8 @@ func getAllStudents(c *gin.Context) {
 // @Success 200 {array} studentDTO.StudentWithCourseParticipationsDTO
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/with-courses [get]
-func getAllStudentsWithCourses(c *gin.Context) {
-	studentsWithCourses, err := GetAllStudentsWithCourses(c)
+func (s *StudentService) getAllStudentsWithCourses(c *gin.Context) {
+	studentsWithCourses, err := s.GetAllStudentsWithCourses(c)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -68,14 +74,14 @@ func getAllStudentsWithCourses(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/{uuid} [get]
-func getStudentByID(c *gin.Context) {
+func (s *StudentService) getStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	student, err := GetStudentByID(c, id)
+	student, err := s.GetStudentByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -94,7 +100,7 @@ func getStudentByID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/ [post]
-func createStudent(c *gin.Context) {
+func (s *StudentService) createStudent(c *gin.Context) {
 	var newStudent studentDTO.CreateStudent
 	if err := c.BindJSON(&newStudent); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -107,7 +113,7 @@ func createStudent(c *gin.Context) {
 		return
 	}
 
-	student, err := CreateStudent(c, nil, newStudent)
+	student, err := s.CreateStudent(c, nil, newStudent)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -128,7 +134,7 @@ func createStudent(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/{uuid} [put]
-func updateStudent(c *gin.Context) {
+func (s *StudentService) updateStudent(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -153,7 +159,7 @@ func updateStudent(c *gin.Context) {
 		return
 	}
 
-	student, err := UpdateStudent(c, nil, id, updateStudent)
+	student, err := s.UpdateStudent(c, nil, id, updateStudent)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -171,10 +177,10 @@ func updateStudent(c *gin.Context) {
 // @Success 200 {array} studentDTO.Student
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/search/{searchString} [get]
-func searchStudents(c *gin.Context) {
+func (s *StudentService) searchStudents(c *gin.Context) {
 	searchString := c.Param("searchString")
 
-	students, err := SearchStudents(c, searchString)
+	students, err := s.SearchStudents(c, searchString)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -192,7 +198,7 @@ func searchStudents(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /students/{uuid}/enrollments [get]
-func getStudentEnrollments(c *gin.Context) {
+func (s *StudentService) getStudentEnrollments(c *gin.Context) {
 	id, parseErr := uuid.Parse(c.Param("uuid"))
 	if parseErr != nil {
 		handleError(c, http.StatusBadRequest, parseErr)
@@ -210,7 +216,7 @@ func getStudentEnrollments(c *gin.Context) {
 		return
 	}
 
-	studentEnrollments, err := GetStudentEnrollmentsByID(c, id)
+	studentEnrollments, err := s.GetStudentEnrollmentsByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

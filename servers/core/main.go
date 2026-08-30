@@ -69,7 +69,7 @@ func runMigrations(databaseURL string) {
 	fmt.Print(sanitized)
 }
 
-func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
+func initKeycloak(router *gin.RouterGroup, queries db.Queries) *keycloakRealmManager.KeycloakRealmService {
 	baseURL := sdkUtils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
 		baseURL = "https://" + baseURL
@@ -86,13 +86,19 @@ func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
 	// first we initialize the keycloak token verfier
 	keycloakTokenVerifier.InitKeycloakTokenVerifier(context.Background(), baseURL, realm, clientID, expectedAuthorizedParty, queries)
 
-	err := keycloakRealmManager.InitKeycloak(context.Background(), router, baseURL, realm, clientID, clientSecret, idOfClient, expectedAuthorizedParty, queries)
-	if err != nil {
+	keycloakRealmService := keycloakRealmManager.NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient, queries)
+
+	// Test Login connection
+	if _, err := keycloakRealmService.LoginClient(context.Background()); err != nil {
 		log.Error("Failed to initialize keycloak: ", err)
 	}
+
+	keycloakRealmManager.RegisterRoutes(router, keycloakRealmService)
+
+	return keycloakRealmService
 }
 
-func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
+func initMailing(router *gin.RouterGroup, queries db.Queries) *mailing.MailingService {
 	log.Debug("Reading mailing environment variables...")
 
 	clientURL := sdkUtils.GetEnv("CORE_HOST", "localhost:3000") // required for application link in mails
@@ -114,7 +120,10 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool
 
 	log.Info("Initializing mailing service with SMTP host: ", smtpHost, " port: ", smtpPort, " sender email: ", senderEmail)
 
-	mailing.InitMailingModule(router, queries, conn, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL)
+	mailingService := mailing.NewMailingService(queries, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL)
+	mailing.RegisterRoutes(router, mailingService)
+
+	return mailingService
 }
 
 // @title           PROMPT Core API
@@ -178,7 +187,7 @@ func main() {
 	auditLogService := auditLog.NewAuditLogService(*query)
 	auditLog.RegisterCapture(api, auditLogService)
 
-	initKeycloak(api, *query)
+	keycloakRealmService := initKeycloak(api, *query)
 	permissionValidation.InitValidationService(*query, conn)
 
 	// Mount the audit read/ingest endpoints and start the pruner now that the
@@ -188,7 +197,8 @@ func main() {
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
 	isDevEnvironment := environment == "development"
-	authService := coreAuth.NewAuthService(*query)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*query)
+	authService := coreAuth.NewAuthService(*query, courseParticipationService)
 	coursePhaseTypeService := coursePhaseType.NewCoursePhaseTypeService(*query, conn, isDevEnvironment)
 	coursePhaseType.RegisterRoutes(api, coursePhaseTypeService, authService, keycloakTokenVerifier.KeycloakMiddleware)
 	coursePhaseTypeService.InitializePhaseTypes()
@@ -200,36 +210,41 @@ func main() {
 	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
 	auth.RegisterRoutes(api, authService)
-	initMailing(api, *query, conn)
-	student.InitStudentModule(api, *query, conn)
-	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmManager.CreateCourseGroupsAndRoles, keycloakRealmManager.DeleteCourseGroupsAndRoles)
+	mailingService := initMailing(api, *query)
+	studentService := student.NewStudentService(*query)
+	student.RegisterRoutes(api, studentService)
+	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles, keycloakRealmService.DeleteCourseGroupsAndRoles)
 	course.RegisterRoutes(api, courseService)
-	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"))
+	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"), mailingService.SendCourseMail)
 	courseMailing.RegisterRoutes(api, courseMailingService)
 	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
 	// background so a slow/degraded database at boot doesn't delay server startup.
 	go courseMailingService.ReconcileStuckCampaigns(context.Background())
-	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmManager.CreateCourseGroupsAndRoles)
+	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles)
 	copy.RegisterRoutes(api, courseCopyService)
 	coursePhase.RegisterRoutes(api, coursePhaseService)
-	courseParticipation.InitCourseParticipationModule(api, *query, conn)
+	courseParticipation.RegisterRoutes(api, courseParticipationService)
 	coursePhaseParticipation.RegisterRoutes(api, coursePhaseParticipationService)
-	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService)
+
+	fileStorageService, err := files.NewStorageServiceFromEnv(*query, conn)
+	if err != nil {
+		log.Fatalf("Failed to initialize prompt file storage: %v", err)
+	}
+
+	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 	applicationAdministration.RegisterRoutes(api, applicationService)
 	if err := applicationService.InitializeApplicationCoursePhaseType(context.Background()); err != nil {
 		log.Fatal("failed to init application phase type: ", err)
 	}
-	instructorNote.InitInstructorNoteModule(api, *query, conn)
+	instructorNoteService := instructorNote.NewInstructorNoteService(*query, conn)
+	instructorNote.RegisterRoutes(api, instructorNoteService)
 
-	if err := files.Init(*query, conn); err != nil {
-		log.Fatalf("Failed to initialize prompt file storage: %v", err)
-	}
-
-	if err := privacyexport.Init(); err != nil {
+	exportStorage, err := privacyexport.NewExportStorageFromEnv()
+	if err != nil {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService)
 	privacy.RegisterRoutes(api, privacyService, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 	privacyService.StartExportDeletionRoutine(context.Background())
 

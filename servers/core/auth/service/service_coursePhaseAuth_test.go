@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
@@ -29,7 +30,7 @@ func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.authService = NewAuthService(*testDB.Queries)
+	suite.authService = NewAuthService(*testDB.Queries, courseParticipation.NewCourseParticipationService(*testDB.Queries))
 }
 
 func (suite *CoursePhaseAuthTestSuite) TearDownSuite() {

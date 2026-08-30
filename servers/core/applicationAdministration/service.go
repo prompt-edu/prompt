@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
-	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation/courseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -38,19 +38,62 @@ type CoursePhaseParticipationProvider interface {
 	BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, passStatus db.PassStatus) ([]uuid.UUID, error)
 }
 
-type ApplicationService struct {
-	queries        db.Queries
-	conn           *pgxpool.Pool
-	coursePhases   CoursePhaseProvider
-	participations CoursePhaseParticipationProvider
+// StudentProvider writes the student records an application creates or updates.
+type StudentProvider interface {
+	CreateStudent(ctx context.Context, transactionQueries *db.Queries, student studentDTO.CreateStudent) (studentDTO.Student, error)
+	UpdateStudent(ctx context.Context, transactionQueries *db.Queries, id uuid.UUID, student studentDTO.CreateStudent) (studentDTO.Student, error)
+	CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, studentInput studentDTO.CreateStudent) (studentDTO.Student, error)
+	GetStudentByCourseParticipationID(ctx context.Context, courseParticipationID uuid.UUID) (studentDTO.Student, error)
 }
 
-func NewApplicationService(queries db.Queries, conn *pgxpool.Pool, coursePhases CoursePhaseProvider, participations CoursePhaseParticipationProvider) *ApplicationService {
+// CourseParticipationProvider enrolls an applicant into the course of the application phase.
+type CourseParticipationProvider interface {
+	CreateIfNotExistingCourseParticipation(ctx context.Context, transactionQueries *db.Queries, studentID uuid.UUID, courseID uuid.UUID) (courseParticipationDTO.GetCourseParticipation, error)
+}
+
+// FileStorageProvider serves the files uploaded as answers to file upload questions.
+type FileStorageProvider interface {
+	PresignUpload(ctx context.Context, req files.PresignUploadRequest) (*files.PresignUploadResponse, error)
+	CreateFileFromStorageKey(ctx context.Context, req files.CreateFileFromStorageKeyRequest, uploaderUserID, uploaderEmail string) (*files.FileResponse, error)
+	GetFileByID(ctx context.Context, fileID uuid.UUID) (*files.FileResponse, error)
+	DeleteFile(ctx context.Context, fileID uuid.UUID, hardDelete bool) error
+}
+
+// ConfirmationMailer sends the confirmation mail of a submitted application.
+type ConfirmationMailer interface {
+	SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (bool, error)
+}
+
+type ApplicationService struct {
+	queries              db.Queries
+	conn                 *pgxpool.Pool
+	coursePhases         CoursePhaseProvider
+	participations       CoursePhaseParticipationProvider
+	students             StudentProvider
+	courseParticipations CourseParticipationProvider
+	files                FileStorageProvider
+	mailer               ConfirmationMailer
+}
+
+func NewApplicationService(
+	queries db.Queries,
+	conn *pgxpool.Pool,
+	coursePhases CoursePhaseProvider,
+	participations CoursePhaseParticipationProvider,
+	students StudentProvider,
+	courseParticipations CourseParticipationProvider,
+	files FileStorageProvider,
+	mailer ConfirmationMailer,
+) *ApplicationService {
 	return &ApplicationService{
-		queries:        queries,
-		conn:           conn,
-		coursePhases:   coursePhases,
-		participations: participations,
+		queries:              queries,
+		conn:                 conn,
+		coursePhases:         coursePhases,
+		participations:       participations,
+		students:             students,
+		courseParticipations: courseParticipations,
+		files:                files,
+		mailer:               mailer,
 	}
 }
 
@@ -72,7 +115,7 @@ func (s *ApplicationService) buildFileUploadAnswerDTOs(ctx context.Context, answ
 		}
 
 		if includeDownloadURL {
-			file, err := files.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
+			file, err := s.files.GetFileByID(ctx, answer.FileID)
 			if err != nil {
 				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
 			} else {
@@ -141,11 +184,11 @@ func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applica
 	return oldFileID, nil
 }
 
-func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
+func (s *ApplicationService) cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 	if len(fileIDs) == 0 {
 		return
 	}
-	if files.StorageServiceSingleton == nil {
+	if s.files == nil {
 		return
 	}
 
@@ -159,7 +202,7 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 		}
 		seenFileIDs[fileID] = struct{}{}
 
-		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+		if err := s.files.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}
 	}
@@ -401,7 +444,7 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 		}
 	} else {
 		// create student
-		studentObj, err = student.CreateStudent(ctx, qtx, application.Student)
+		studentObj, err = s.students.CreateStudent(ctx, qtx, application.Student)
 		if err != nil {
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save student")
@@ -414,7 +457,7 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 		return uuid.Nil, errors.New("could not get the application phase")
 	}
 
-	cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+	cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course participation")
@@ -486,13 +529,13 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	cleanupReplacedFiles(ctx, replacedFileIDs)
+	s.cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
 }
 
-func SyncStudentDetailsFromToken(ctx context.Context, s studentDTO.Student) error {
-	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent(s))
+func (s *ApplicationService) SyncStudentDetailsFromToken(ctx context.Context, studentObj studentDTO.Student) error {
+	_, err := s.students.UpdateStudent(ctx, nil, studentObj.ID, studentDTO.CreateStudent(studentObj))
 	return err
 }
 
@@ -590,7 +633,7 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 	qtx := s.queries.WithTx(tx)
 
 	// 1. Update student details
-	studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, application.Student)
+	studentObj, err := s.students.CreateOrUpdateStudent(ctx, qtx, application.Student)
 	if err != nil {
 		log.Error(err)
 		var pgErr *pgconn.PgError
@@ -607,7 +650,7 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 		return uuid.Nil, errors.New("could not get the application phase")
 	}
 
-	cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+	cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course participation")
@@ -679,7 +722,7 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	cleanupReplacedFiles(ctx, replacedFileIDs)
+	s.cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
 
@@ -700,7 +743,7 @@ func (s *ApplicationService) GetApplicationByCPID(ctx context.Context, coursePha
 		return applicationDTO.Application{}, ErrNotFound
 	}
 
-	studentObj, err := student.GetStudentByCourseParticipationID(ctxWithTimeout, courseParticipationID)
+	studentObj, err := s.students.GetStudentByCourseParticipationID(ctxWithTimeout, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.Application{}, errors.New("could not get student")
@@ -1200,7 +1243,7 @@ func (s *ApplicationService) PostApplicationImport(ctx context.Context, coursePh
 			studentInput.StudyDegree = db.StudyDegreeBachelor
 		}
 
-		studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, studentInput)
+		studentObj, err := s.students.CreateOrUpdateStudent(ctx, qtx, studentInput)
 		if err != nil {
 			log.Error(err)
 			var pgErr *pgconn.PgError
@@ -1215,7 +1258,7 @@ func (s *ApplicationService) PostApplicationImport(ctx context.Context, coursePh
 			return applicationDTO.ImportResult{}, fmt.Errorf("could not save student %s: %w", studentInput.UniversityLogin, err)
 		}
 
-		cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+		cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 		if err != nil {
 			log.Error(err)
 			return applicationDTO.ImportResult{}, errors.New("could not save the course participation")

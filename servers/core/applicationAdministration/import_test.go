@@ -16,6 +16,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
@@ -47,10 +50,14 @@ func (suite *ApplicationImportTestSuite) SetupSuite() {
 	resolutionService := resolution.NewResolutionService("localhost:8080")
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService)
 	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService)
-	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService)
+	studentService := student.NewStudentService(*testDB.Queries)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*testDB.Queries)
+	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
+	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 	suite.router = gin.Default()
-	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
+	student.RegisterRoutes(suite.router.Group("/api"), studentService)
+	courseParticipation.RegisterRoutes(suite.router.Group("/api"), courseParticipationService)
 }
 
 func (suite *ApplicationImportTestSuite) TearDownSuite() {

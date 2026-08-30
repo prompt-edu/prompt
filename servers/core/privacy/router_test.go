@@ -15,15 +15,20 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/instructorNote"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
+	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -212,6 +217,10 @@ func (suite *RouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	resolutionService := resolution.NewResolutionService("localhost:8080")
+	studentService := student.NewStudentService(*testDB.Queries)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*testDB.Queries)
+	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
+	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
 	suite.privacyService = service.NewPrivacyService(
 		*testDB.Queries,
 		testDB.Conn,
@@ -220,11 +229,19 @@ func (suite *RouterTestSuite) SetupSuite() {
 			testDB.Conn,
 			coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService),
 			coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService),
+			studentService,
+			courseParticipationService,
+			fileStorageService,
+			mailingService,
 		),
-		authService.NewAuthService(*testDB.Queries),
+		authService.NewAuthService(*testDB.Queries, courseParticipationService),
 		coursePhaseType.NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false),
+		studentService,
+		instructorNote.NewInstructorNoteService(*testDB.Queries, testDB.Conn),
+		fileStorageService,
+		privacyexport.NewExportStorage(&storage.MockStorageAdapter{}),
+		mailingService,
 	)
-	privacyexport.InitWithAdapter(&storage.MockStorageAdapter{})
 
 	suite.router = setupRouter(suite.privacyService)
 }

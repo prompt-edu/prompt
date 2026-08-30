@@ -13,8 +13,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
+	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -38,7 +43,16 @@ func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, nil, nil)
+	suite.applicationAdminService = NewApplicationService(
+		*testDB.Queries,
+		testDB.Conn,
+		nil,
+		nil,
+		student.NewStudentService(*testDB.Queries),
+		courseParticipation.NewCourseParticipationService(*testDB.Queries),
+		files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil),
+		mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost"),
+	)
 	suite.router = gin.Default()
 }
 

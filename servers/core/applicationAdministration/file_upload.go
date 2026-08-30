@@ -60,7 +60,7 @@ func (s *ApplicationService) presignApplicationUploadExternal(c *gin.Context) {
 		return
 	}
 
-	response, err := files.StorageServiceSingleton.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
+	response, err := s.files.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
 		Filename:      body.Filename,
 		ContentType:   body.ContentType,
 		CoursePhaseID: &coursePhaseID,
@@ -101,7 +101,7 @@ func (s *ApplicationService) completeApplicationUploadExternal(c *gin.Context) {
 		return
 	}
 
-	fileResponse, err := files.StorageServiceSingleton.CreateFileFromStorageKey(c.Request.Context(), files.CreateFileFromStorageKeyRequest{
+	fileResponse, err := s.files.CreateFileFromStorageKey(c.Request.Context(), files.CreateFileFromStorageKeyRequest{
 		StorageKey:       body.StorageKey,
 		OriginalFilename: body.OriginalFilename,
 		ContentType:      body.ContentType,
@@ -151,7 +151,7 @@ func (s *ApplicationService) presignApplicationUploadAuthenticated(c *gin.Contex
 		return
 	}
 
-	response, err := files.StorageServiceSingleton.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
+	response, err := s.files.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
 		Filename:      body.Filename,
 		ContentType:   body.ContentType,
 		CoursePhaseID: &coursePhaseID,
@@ -208,7 +208,7 @@ func (s *ApplicationService) completeApplicationUploadAuthenticated(c *gin.Conte
 		}
 	}
 
-	fileResponse, err := files.StorageServiceSingleton.CreateFileFromStorageKey(c.Request.Context(), files.CreateFileFromStorageKeyRequest{
+	fileResponse, err := s.files.CreateFileFromStorageKey(c.Request.Context(), files.CreateFileFromStorageKeyRequest{
 		StorageKey:       body.StorageKey,
 		OriginalFilename: body.OriginalFilename,
 		ContentType:      body.ContentType,
@@ -266,7 +266,7 @@ func (s *ApplicationService) deleteApplicationFileAuthenticated(c *gin.Context) 
 		return
 	}
 
-	fileResponse, err := files.StorageServiceSingleton.GetFileByID(c.Request.Context(), fileID)
+	fileResponse, err := s.files.GetFileByID(c.Request.Context(), fileID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
 		return
@@ -282,7 +282,7 @@ func (s *ApplicationService) deleteApplicationFileAuthenticated(c *gin.Context) 
 		return
 	}
 
-	if err := files.StorageServiceSingleton.DeleteFile(c.Request.Context(), fileID, true); err != nil {
+	if err := s.files.DeleteFile(c.Request.Context(), fileID, true); err != nil {
 		log.WithError(err).Error("Failed to delete application file")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete file"})
 		return
@@ -305,7 +305,7 @@ func (s *ApplicationService) deleteApplicationFileAuthenticated(c *gin.Context) 
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/files/{fileId}/download-url [get]
-func getApplicationFileDownloadURL(c *gin.Context) {
+func (s *ApplicationService) getApplicationFileDownloadURL(c *gin.Context) {
 	coursePhaseID, ok := parseCoursePhaseID(c)
 	if !ok {
 		return
@@ -317,7 +317,7 @@ func getApplicationFileDownloadURL(c *gin.Context) {
 		return
 	}
 
-	fileResponse, err := files.StorageServiceSingleton.GetFileByID(c.Request.Context(), fileID)
+	fileResponse, err := s.files.GetFileByID(c.Request.Context(), fileID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
 		return

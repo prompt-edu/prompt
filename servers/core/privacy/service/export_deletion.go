@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,7 +56,7 @@ func (s *PrivacyService) ArchiveExport(ctx context.Context, exportID uuid.UUID) 
 	}
 
 	for _, key := range objectKeys {
-		if err := privacyexport.DeleteFile(ctx, key); err != nil {
+		if err := s.exportStorage.DeleteFile(ctx, key); err != nil {
 			return fmt.Errorf("delete s3 object %s: %w", key, err)
 		}
 	}

@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/mailing"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +28,7 @@ func (s *PrivacyService) sendDeletionConfirmationMail(ctx context.Context, reque
 		return
 	}
 
-	if err := mailing.SendMail(recipientEmail, subject, body); err != nil {
+	if err := s.mailer.SendMail(recipientEmail, subject, body); err != nil {
 		log.WithError(err).WithField("requestID", requestID).
 			Error("failed to send deletion confirmation mail")
 	}

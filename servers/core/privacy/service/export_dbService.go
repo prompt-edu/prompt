@@ -89,7 +89,7 @@ func (s *PrivacyService) PrepareExportRecordDoc(c context.Context, exportID uuid
 		return ServiceExportRequest{}, errDoc
 	}
 
-	url, errUrl := privacyexport.GetUploadURL(c, exportID.String(), sourceName)
+	url, errUrl := s.exportStorage.GetUploadURL(c, exportID.String(), sourceName)
 	if errUrl != nil {
 		if setErr := s.SetExportDocStatus(c, dbDoc.ID, db.ExportStatusFailed); setErr != nil {
 			log.WithError(setErr).Error("failed to mark export doc as failed after presign error")
@@ -252,7 +252,7 @@ func (s *PrivacyService) UpdateExportDocFileSize(c context.Context, exportDocID 
 		return
 	}
 
-	fileSize, sizeErr := privacyexport.GetFileSize(c, objectKey)
+	fileSize, sizeErr := s.exportStorage.GetFileSize(c, objectKey)
 	if sizeErr != nil {
 		log.WithError(sizeErr).Error("failed to get file size from s3 obj")
 		return

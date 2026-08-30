@@ -6,22 +6,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote/instructorNoteDTO"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func setupInstructorNoteRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+// RegisterRoutes mounts the instructor note endpoints on the given router group.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *InstructorNoteService) {
+	setupInstructorNoteRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+}
+
+func setupInstructorNoteRouter(router *gin.RouterGroup, s *InstructorNoteService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	instructorNoteRouter := router.Group("/instructor-notes", authMiddleware())
-	instructorNoteRouter.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllInstructorNotes)
-	instructorNoteRouter.DELETE("/:note-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), deleteInstructorNote)
+	instructorNoteRouter.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getAllInstructorNotes)
+	instructorNoteRouter.DELETE("/:note-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.deleteInstructorNote)
 
-	instructorNoteRouter.GET("/s/:student-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getInstructorNoteForStudentByID)
-	instructorNoteRouter.POST("/s/:student-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), createInstructorNoteForStudentByID)
+	instructorNoteRouter.GET("/s/:student-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getInstructorNoteForStudentByID)
+	instructorNoteRouter.POST("/s/:student-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.createInstructorNoteForStudentByID)
 
-	instructorNoteRouter.GET("/tags", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), getAllNoteTags)
-	instructorNoteRouter.POST("/tags", permissionRoleMiddleware(permissionValidation.PromptAdmin), createNoteTag)
-	instructorNoteRouter.PUT("/tags/:tag-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), updateNoteTag)
-	instructorNoteRouter.DELETE("/tags/:tag-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), deleteNoteTag)
+	instructorNoteRouter.GET("/tags", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.getAllNoteTags)
+	instructorNoteRouter.POST("/tags", permissionRoleMiddleware(permissionValidation.PromptAdmin), s.createNoteTag)
+	instructorNoteRouter.PUT("/tags/:tag-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), s.updateNoteTag)
+	instructorNoteRouter.DELETE("/tags/:tag-uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), s.deleteNoteTag)
 }
 
 // getAllInstructorNotes godoc
@@ -33,8 +39,8 @@ func setupInstructorNoteRouter(router *gin.RouterGroup, authMiddleware func() gi
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes [get]
-func getAllInstructorNotes(c *gin.Context) {
-	studentNotes, err := GetStudentNotes(c)
+func (s *InstructorNoteService) getAllInstructorNotes(c *gin.Context) {
+	studentNotes, err := s.GetStudentNotes(c)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -52,14 +58,14 @@ func getAllInstructorNotes(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/s/{student-uuid} [get]
-func getInstructorNoteForStudentByID(c *gin.Context) {
+func (s *InstructorNoteService) getInstructorNoteForStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("student-uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	studentNotes, err := GetStudentNotesByID(c, id)
+	studentNotes, err := s.GetStudentNotesByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -79,7 +85,7 @@ func getInstructorNoteForStudentByID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/s/{student-uuid} [post]
-func createInstructorNoteForStudentByID(c *gin.Context) {
+func (s *InstructorNoteService) createInstructorNoteForStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("student-uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -106,18 +112,18 @@ func createInstructorNoteForStudentByID(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := ValidateReferencedNote(newNote, c, userID); err != nil {
+	if err := s.ValidateReferencedNote(newNote, c, userID); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	_, err = NewStudentNote(c, id, newNote, userID, authorName, authorEmail)
+	_, err = s.NewStudentNote(c, id, newNote, userID, authorName, authorEmail)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	studentNotes, err := GetStudentNotesByID(c, id)
+	studentNotes, err := s.GetStudentNotesByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -135,7 +141,7 @@ func createInstructorNoteForStudentByID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/{note-uuid} [delete]
-func deleteInstructorNote(c *gin.Context) {
+func (s *InstructorNoteService) deleteInstructorNote(c *gin.Context) {
 	note_id, err := uuid.Parse(c.Param("note-uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -148,12 +154,12 @@ func deleteInstructorNote(c *gin.Context) {
 		return
 	}
 
-	if _, err := VerifyNoteOwnership(c, note_id, userID); err != nil {
+	if _, err := s.VerifyNoteOwnership(c, note_id, userID); err != nil {
 		handleError(c, http.StatusForbidden, err)
 		return
 	}
 
-	note, err := DeleteInstructorNote(c, note_id, userID)
+	note, err := s.DeleteInstructorNote(c, note_id, userID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -173,14 +179,14 @@ func deleteInstructorNote(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/tags [post]
-func createNoteTag(c *gin.Context) {
+func (s *InstructorNoteService) createNoteTag(c *gin.Context) {
 	var newTag instructorNoteDTO.CreateNoteTag
 	if err := c.BindJSON(&newTag); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	tag, err := CreateNoteTag(c, newTag)
+	tag, err := s.CreateNoteTag(c, newTag)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -200,7 +206,7 @@ func createNoteTag(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/tags/{tag-uuid} [put]
-func updateNoteTag(c *gin.Context) {
+func (s *InstructorNoteService) updateNoteTag(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("tag-uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -213,7 +219,7 @@ func updateNoteTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := UpdateNoteTag(c, id, updatedTag)
+	tag, err := s.UpdateNoteTag(c, id, updatedTag)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -231,14 +237,14 @@ func updateNoteTag(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/tags/{tag-uuid} [delete]
-func deleteNoteTag(c *gin.Context) {
+func (s *InstructorNoteService) deleteNoteTag(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("tag-uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := DeleteNoteTag(c, id); err != nil {
+	if err := s.DeleteNoteTag(c, id); err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -253,8 +259,8 @@ func deleteNoteTag(c *gin.Context) {
 // @Success 200 {object} []instructorNoteDTO.NoteTag
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /instructor-notes/tags [get]
-func getAllNoteTags(c *gin.Context) {
-	tags, err := GetAllTags(c)
+func (s *InstructorNoteService) getAllNoteTags(c *gin.Context) {
+	tags, err := s.GetAllTags(c)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

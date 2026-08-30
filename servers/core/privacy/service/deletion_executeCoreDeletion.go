@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +45,7 @@ func (s *PrivacyService) ExecuteCoreDeletion(ctx context.Context, subject sdk.Su
 	}
 
 	// applicationFiles
-	if err := deleteApplicationFiles(ctx, fileIDs); err != nil {
+	if err := s.deleteApplicationFiles(ctx, fileIDs); err != nil {
 		return fmt.Errorf("delete application files: %w", err)
 	}
 
@@ -97,10 +96,10 @@ func deleteUserScopedData(ctx context.Context, q *db.Queries, userID uuid.UUID) 
 	return nil
 }
 
-func deleteApplicationFiles(ctx context.Context, fileIDs []uuid.UUID) error {
+func (s *PrivacyService) deleteApplicationFiles(ctx context.Context, fileIDs []uuid.UUID) error {
 	var errs []error
 	for _, fileID := range fileIDs {
-		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+		if err := s.applicationFiles.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileID", fileID).Warn("failed to delete application file during privacy deletion")
 			errs = append(errs, fmt.Errorf("file %s: %w", fileID, err))
 		}

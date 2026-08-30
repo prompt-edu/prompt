@@ -8,9 +8,6 @@ import (
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
-	"github.com/prompt-edu/prompt/servers/core/instructorNote"
-	"github.com/prompt-edu/prompt/servers/core/storage/files"
-	"github.com/prompt-edu/prompt/servers/core/student"
 )
 
 func (s *PrivacyService) AggregateSubjectDataFromCore(ctx context.Context, doc ServiceExportRequest, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
@@ -24,7 +21,7 @@ func (s *PrivacyService) AggregateSubjectDataFromCore(ctx context.Context, doc S
 	defer ex.Close()
 
 	if subjectIdentifiers.UserID != uuid.Nil {
-		getSubjectDataForUser(ctx, ex, subjectIdentifiers.UserID)
+		s.getSubjectDataForUser(ctx, ex, subjectIdentifiers.UserID)
 	}
 
 	if subjectIdentifiers.StudentID != uuid.Nil {
@@ -35,10 +32,10 @@ func (s *PrivacyService) AggregateSubjectDataFromCore(ctx context.Context, doc S
 	return
 }
 
-func getSubjectDataForUser(ctx context.Context, ex *utils.Export, userUUID uuid.UUID) {
+func (s *PrivacyService) getSubjectDataForUser(ctx context.Context, ex *utils.Export, userUUID uuid.UUID) {
 
 	ex.AddJSON("Instructor Notes as Author", "user/instructor_notes.json", func() (any, error) {
-		return instructorNote.GetStudentNotesForAuthorWithoutStudent(ctx, userUUID)
+		return s.instructorNotes.GetStudentNotesForAuthorWithoutStudent(ctx, userUUID)
 	})
 
 }
@@ -46,15 +43,15 @@ func getSubjectDataForUser(ctx context.Context, ex *utils.Export, userUUID uuid.
 func (s *PrivacyService) getSubjectDataForStudent(ctx context.Context, ex *utils.Export, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID) {
 
 	ex.AddJSON("Student record", "student/student_record.json", func() (any, error) {
-		return student.GetStudentByID(ctx, studentUUID)
+		return s.students.GetStudentByID(ctx, studentUUID)
 	})
 
 	ex.AddJSON("Enrollments", "student/enrollments.json", func() (any, error) {
-		return student.GetStudentEnrollmentsByID(ctx, studentUUID)
+		return s.students.GetStudentEnrollmentsByID(ctx, studentUUID)
 	})
 
 	ex.AddJSON("Instructor Notes as Receiver", "student/instructor_notes.json", func() (any, error) {
-		return instructorNote.GetStudentNotesByIDWithoutAuthor(ctx, studentUUID)
+		return s.instructorNotes.GetStudentNotesByIDWithoutAuthor(ctx, studentUUID)
 	})
 
 	ex.AddJSON("Application Data", "student/application.json", func() (any, error) {
@@ -73,7 +70,7 @@ func (s *PrivacyService) addApplicationFiles(ctx context.Context, ex *utils.Expo
 			fmt.Sprintf("Application File: %s-%s", answer.FileID, questionTitle),
 			fmt.Sprintf("student/application_files/%s", MakeUniqueFileNameWithEnding(answer)),
 			func() (io.Reader, error) {
-				reader, _, err := files.StorageServiceSingleton.DownloadFile(ctx, fileID)
+				reader, _, err := s.applicationFiles.DownloadFile(ctx, fileID)
 				return reader, err
 			},
 		)

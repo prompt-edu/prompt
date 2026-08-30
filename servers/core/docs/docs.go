@@ -6097,6 +6097,10 @@ const docTemplate = `{
                 },
                 "universityLoginAvailable": {
                     "type": "boolean"
+                },
+                "welcomeText": {
+                    "description": "WelcomeText is instructor-authored HTML shown above the application form.",
+                    "type": "string"
                 }
             }
         },

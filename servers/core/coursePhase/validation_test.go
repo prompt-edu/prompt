@@ -1,6 +1,7 @@
 package coursePhase
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -138,4 +139,27 @@ func TestValidateUpdateCoursePhase(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateWelcomeText(t *testing.T) {
+	t.Run("accepts an absent, null or empty value", func(t *testing.T) {
+		assert.NoError(t, validateWelcomeText(meta.MetaData{}))
+		assert.NoError(t, validateWelcomeText(meta.MetaData{welcomeTextKey: nil}))
+		assert.NoError(t, validateWelcomeText(meta.MetaData{welcomeTextKey: ""}))
+	})
+
+	t.Run("rejects a non-string value", func(t *testing.T) {
+		assert.Error(t, validateWelcomeText(meta.MetaData{welcomeTextKey: 42}))
+	})
+
+	t.Run("caps the size of the public text", func(t *testing.T) {
+		assert.NoError(t, validateWelcomeText(meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes)}))
+		assert.Error(t, validateWelcomeText(meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes+1)}))
+	})
+
+	t.Run("is enforced by the update validation", func(t *testing.T) {
+		assert.Error(t, validateUpdateCoursePhase(coursePhaseDTO.UpdateCoursePhase{
+			RestrictedData: meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes+1)},
+		}))
+	})
 }

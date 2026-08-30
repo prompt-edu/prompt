@@ -95,7 +95,7 @@ func (s *ConfigService) UpdateReleaseDate(ctx context.Context, coursePhaseID uui
 	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
 }
 
-func (s *ConfigService) UpdateStudentPageText(ctx context.Context, coursePhaseID uuid.UUID, studentPageText *string, updatedBy string) (configDTO.CoursePhaseConfig, error) {
+func (s *ConfigService) UpdateStudentPageText(ctx context.Context, coursePhaseID uuid.UUID, studentPageText *string) (configDTO.CoursePhaseConfig, error) {
 	var text pgtype.Text
 	if studentPageText != nil {
 		text = pgtype.Text{String: *studentPageText, Valid: true}
@@ -104,7 +104,6 @@ func (s *ConfigService) UpdateStudentPageText(ctx context.Context, coursePhaseID
 	config, err := s.queries.UpsertStudentPageText(ctx, db.UpsertStudentPageTextParams{
 		CoursePhaseID:   coursePhaseID,
 		StudentPageText: text,
-		UpdatedBy:       pgtype.Text{String: updatedBy, Valid: updatedBy != ""},
 	})
 	if err != nil {
 		log.WithError(err).Error("Failed to update student page text")

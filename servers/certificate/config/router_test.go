@@ -253,6 +253,9 @@ func (s *ConfigRouterTestSuite) TestUpdateStudentPageTextPreservesTemplateAndRel
 	s.router.ServeHTTP(releaseResp, releaseReq)
 	assert.Equal(s.T(), http.StatusOK, releaseResp.Code)
 
+	var beforeText configDTO.CoursePhaseConfig
+	assert.NoError(s.T(), json.Unmarshal(releaseResp.Body.Bytes(), &beforeText))
+
 	resp := s.putStudentPageText(coursePhaseID, `{"studentPageText":"<p>See you at the ceremony.</p>"}`)
 	assert.Equal(s.T(), http.StatusOK, resp.Code)
 
@@ -261,4 +264,9 @@ func (s *ConfigRouterTestSuite) TestUpdateStudentPageTextPreservesTemplateAndRel
 	assert.True(s.T(), config.HasTemplate, "the template must survive a text-only write")
 	assert.NotNil(s.T(), config.ReleaseDate, "the release date must survive a text-only write")
 	assert.NotNil(s.T(), config.StudentPageText)
+
+	// The settings page presents updatedAt/updatedBy as the template's
+	// provenance, so a text-only write must not claim it was reconfigured.
+	assert.Equal(s.T(), beforeText.UpdatedAt, config.UpdatedAt)
+	assert.Equal(s.T(), beforeText.UpdatedBy, config.UpdatedBy)
 }

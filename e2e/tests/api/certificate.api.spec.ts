@@ -6,8 +6,9 @@ import { certificateUrl } from '../certificate/helpers'
 // The certificate server is reached on the browser origin through the e2e
 // nginx proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
 // both for missing tokens and for valid tokens lacking the required role.
-// All checks are side-effect-free (GET only) on the graph-tail certificate
-// phase, which the journeys never touch.
+// Every check runs on the graph-tail certificate phase, which the journeys never
+// touch, and is side-effect-free: the writes below are all expected to be
+// rejected before they reach the database.
 const PHASE_ID = CERTIFICATE_PHASES.graphTail
 
 test.describe('certificate API auth', () => {

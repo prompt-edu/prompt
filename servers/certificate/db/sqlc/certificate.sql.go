@@ -356,19 +356,12 @@ func (q *Queries) UpsertCoursePhaseConfig(ctx context.Context, arg UpsertCourseP
 
 const upsertStudentPageText = `-- name: UpsertStudentPageText :one
 INSERT INTO
-    course_phase_config (
-        course_phase_id,
-        student_page_text,
-        updated_at,
-        updated_by
-    )
-VALUES ($1, $2, NOW(), $3)
+    course_phase_config (course_phase_id, student_page_text)
+VALUES ($1, $2)
 ON CONFLICT (course_phase_id) DO
 UPDATE
 SET
-    student_page_text = EXCLUDED.student_page_text,
-    updated_at = NOW(),
-    updated_by = EXCLUDED.updated_by
+    student_page_text = EXCLUDED.student_page_text
 RETURNING
     course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
 `
@@ -376,13 +369,14 @@ RETURNING
 type UpsertStudentPageTextParams struct {
 	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
 	StudentPageText pgtype.Text `json:"student_page_text"`
-	UpdatedBy       pgtype.Text `json:"updated_by"`
 }
 
 // Upsert rather than update: the phase may have no config row yet, and the
-// template and release date must survive a text-only write.
+// template and release date must survive a text-only write. updated_at and
+// updated_by are deliberately left alone, because the settings page presents
+// them as the template's provenance.
 func (q *Queries) UpsertStudentPageText(ctx context.Context, arg UpsertStudentPageTextParams) (CoursePhaseConfig, error) {
-	row := q.db.QueryRow(ctx, upsertStudentPageText, arg.CoursePhaseID, arg.StudentPageText, arg.UpdatedBy)
+	row := q.db.QueryRow(ctx, upsertStudentPageText, arg.CoursePhaseID, arg.StudentPageText)
 	var i CoursePhaseConfig
 	err := row.Scan(
 		&i.CoursePhaseID,

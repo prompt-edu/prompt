@@ -29,15 +29,14 @@ test.describe('certificate: instructor text on the student download page', () =>
       await setStudentPageText(PHASE_ID, HOSTILE_HTML)
     })
 
-    test('the instructor text renders, sanitized, before the certificate exists', async ({
-      page,
-    }) => {
+    // Deliberately makes no claim about whether a template is configured: the
+    // lecturer case below uploads one and there is no API to remove it, so a CI
+    // retry would find the phase in the other state.
+    test('the instructor text renders, sanitized', async ({ page }) => {
       const phase = new CertificatePage(page)
       await phase.goto(COURSE_ID, PHASE_ID)
       await phase.expectOverviewLoaded()
 
-      // No template is configured on this phase, which is exactly when an
-      // instructor's explanation is most useful.
       await expect(phase.studentPageText).toContainText(MESSAGE, { timeout: 15_000 })
 
       const link = phase.studentPageText.getByRole('link', { name: 'Certificate guide' })

@@ -124,13 +124,7 @@ func (s *ConfigService) updateStudentPageText(c *gin.Context) {
 		return
 	}
 
-	// Get the name of the user making the update
-	var updatedBy string
-	if user, exists := keycloakTokenVerifier.GetTokenUser(c); exists {
-		updatedBy = user.FirstName + " " + user.LastName
-	}
-
-	config, err := s.UpdateStudentPageText(c, coursePhaseID, studentPageText, updatedBy)
+	config, err := s.UpdateStudentPageText(c, coursePhaseID, studentPageText)
 	if err != nil {
 		log.WithError(err).Error("Failed to update student page text")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update student page text"})

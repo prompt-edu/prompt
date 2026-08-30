@@ -211,7 +211,7 @@ func (s *GeneratorRouterTestSuite) TestCertificateStatus_CarriesStudentPageText(
 
 	// Without a template: the instructor's text is exactly what explains the wait.
 	noTemplatePhase := uuid.New()
-	_, err := configService.UpdateStudentPageText(s.suiteCtx, noTemplatePhase, &text, "Lecturer")
+	_, err := configService.UpdateStudentPageText(s.suiteCtx, noTemplatePhase, &text)
 	assert.NoError(s.T(), err)
 
 	status := s.certificateStatus(s.router, noTemplatePhase)
@@ -222,7 +222,7 @@ func (s *GeneratorRouterTestSuite) TestCertificateStatus_CarriesStudentPageText(
 	withTemplatePhase := uuid.New()
 	_, err = configService.UpdateCoursePhaseConfig(s.suiteCtx, withTemplatePhase, "= Certificate", "Lecturer")
 	assert.NoError(s.T(), err)
-	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, &text, "Lecturer")
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, &text)
 	assert.NoError(s.T(), err)
 
 	staff := s.staffRouter()
@@ -231,7 +231,7 @@ func (s *GeneratorRouterTestSuite) TestCertificateStatus_CarriesStudentPageText(
 	assert.Equal(s.T(), text, status["studentPageText"])
 
 	// Cleared again, the key disappears rather than turning into an empty string.
-	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, nil, "Lecturer")
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, nil)
 	assert.NoError(s.T(), err)
 
 	status = s.certificateStatus(staff, withTemplatePhase)

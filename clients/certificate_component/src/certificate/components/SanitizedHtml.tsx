@@ -5,19 +5,30 @@ interface SanitizedHtmlProps {
   className?: string
 }
 
-// Registered once, at module scope: DOMPurify hooks are global, so registering
-// per render would stack duplicates on every re-render.
-DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A' && node.hasAttribute('href')) {
-    node.setAttribute('target', '_blank')
-    node.setAttribute('rel', 'noopener noreferrer')
+// Registered once, lazily: DOMPurify hooks are global, so registering per render
+// would stack duplicates, but registering at import time crashes where there is
+// no DOM (DOMPurify exposes no addHook when it is unsupported).
+let anchorHookRegistered = false
+
+const registerAnchorHook = () => {
+  if (anchorHookRegistered || typeof DOMPurify.addHook !== 'function') {
+    return
   }
-})
+  anchorHookRegistered = true
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A' && node.hasAttribute('href')) {
+      node.setAttribute('target', '_blank')
+      node.setAttribute('rel', 'noopener noreferrer')
+    }
+  })
+}
 
 // The instructor-authored HTML renderer for this remote. A Module Federation
 // remote cannot import core's FormDescriptionHTML, so this is a local
 // equivalent; it belongs in @tumaet/prompt-ui-components long term.
 export const SanitizedHtml = ({ html, className }: SanitizedHtmlProps) => {
+  registerAnchorHook()
+
   const sanitized = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     ALLOW_UNKNOWN_PROTOCOLS: false,

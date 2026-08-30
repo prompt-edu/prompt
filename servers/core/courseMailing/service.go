@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -13,6 +14,8 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,9 +23,21 @@ type CourseMailingService struct {
 	queries   db.Queries
 	conn      *pgxpool.Pool
 	clientURL string
+	sendMail  func(mailingDTO.CourseMailingSettings, string, string, string) error
+	now       func() time.Time
+	runAsync  func(func())
 }
 
-var CourseMailingServiceSingleton *CourseMailingService
+func NewCourseMailingService(queries db.Queries, conn *pgxpool.Pool, clientURL string) *CourseMailingService {
+	return &CourseMailingService{
+		queries:   queries,
+		conn:      conn,
+		clientURL: clientURL,
+		sendMail:  mailing.SendCourseMail,
+		now:       func() time.Time { return time.Now().UTC() },
+		runAsync:  func(fn func()) { go fn() },
+	}
+}
 
 var (
 	// ErrValidation signals invalid campaign input (maps to 400/422).

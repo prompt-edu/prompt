@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
-	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
-	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +29,7 @@ type Export struct {
 }
 
 func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
-	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
+	subjectIdentifiers, err := s.subjects.GetSubjectIdentifiers(c)
 	if err != nil {
 		return Export{}, err
 	}
@@ -47,7 +45,7 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 		return Export{}, err
 	}
 
-	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudentCourses(c, subjectIdentifiers.StudentID)
+	coursePhaseTypes, err := s.coursePhaseTypes.GetCoursePhaseTypesForStudentCourses(c, subjectIdentifiers.StudentID)
 	if err != nil {
 		return Export{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}

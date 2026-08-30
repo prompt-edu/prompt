@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/auditLog"
 	"github.com/prompt-edu/prompt/servers/core/auth"
+	coreAuth "github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
@@ -187,16 +188,23 @@ func main() {
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
 	isDevEnvironment := environment == "development"
-	coursePhaseType.InitCoursePhaseTypeModule(api, keycloakTokenVerifier.KeycloakMiddleware, *query, conn, isDevEnvironment)
+	authService := coreAuth.NewAuthService(*query)
+	coursePhaseTypeService := coursePhaseType.NewCoursePhaseTypeService(*query, conn, isDevEnvironment)
+	coursePhaseType.RegisterRoutes(api, coursePhaseTypeService, authService, keycloakTokenVerifier.KeycloakMiddleware)
+	coursePhaseTypeService.InitializePhaseTypes()
 
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolution.InitResolutionModule(coreHost)
 
-	auth.InitAuthModule(api, *query, conn)
+	auth.RegisterRoutes(api, authService)
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
 	course.InitCourseModule(api, *query, conn)
-	courseMailing.InitCourseMailingModule(api, *query, conn)
+	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"))
+	courseMailing.RegisterRoutes(api, courseMailingService)
+	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
+	// background so a slow/degraded database at boot doesn't delay server startup.
+	go courseMailingService.ReconcileStuckCampaigns(context.Background())
 	copy.InitCourseCopyModule(api, *query, conn)
 	coursePhase.InitCoursePhaseModule(api, *query, conn)
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
@@ -216,7 +224,7 @@ func main() {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacyService := service.NewPrivacyService(*query, conn, applicationService)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService)
 	privacy.RegisterRoutes(api, privacyService, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 	privacyService.StartExportDeletionRoutine(context.Background())
 

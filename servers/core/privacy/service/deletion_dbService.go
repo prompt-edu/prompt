@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
@@ -19,7 +18,7 @@ import (
 var ErrDeletionRequestNotPending = errors.New("deletion request is no longer in pending_approval state")
 
 func (s *PrivacyService) CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, error) {
-	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
+	subjectIdentifiers, err := s.subjects.GetSubjectIdentifiers(c)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, err
 	}

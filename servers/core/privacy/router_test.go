@@ -15,6 +15,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -207,8 +208,13 @@ func (suite *RouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
-	suite.privacyService = service.NewPrivacyService(*testDB.Queries, testDB.Conn, applicationAdministration.NewApplicationService(*testDB.Queries, testDB.Conn))
-	authService.InitAuthService(*testDB.Queries, testDB.Conn)
+	suite.privacyService = service.NewPrivacyService(
+		*testDB.Queries,
+		testDB.Conn,
+		applicationAdministration.NewApplicationService(*testDB.Queries, testDB.Conn),
+		authService.NewAuthService(*testDB.Queries),
+		coursePhaseType.NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false),
+	)
 	privacyexport.InitWithAdapter(&storage.MockStorageAdapter{})
 
 	suite.router = setupRouter(suite.privacyService)

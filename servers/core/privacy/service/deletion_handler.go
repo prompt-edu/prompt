@@ -10,8 +10,6 @@ import (
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
-	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
-	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
@@ -37,7 +35,7 @@ func (s *PrivacyService) PrepareDataDeletion(c context.Context, record privacyDT
 	if record.StudentID != nil {
 		studentID = *record.StudentID
 	}
-	coursePhaseTypes, err := coursePhaseType.GetCoursePhaseTypesForStudentCourses(c, studentID)
+	coursePhaseTypes, err := s.coursePhaseTypes.GetCoursePhaseTypesForStudentCourses(c, studentID)
 	if err != nil {
 		return Deletion{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}
@@ -74,7 +72,7 @@ func (s *PrivacyService) PrepareDataDeletion(c context.Context, record privacyDT
 	if record.UserID != nil {
 		userID = *record.UserID
 	}
-	subject, err := authService.AssembleSubjectIdentifiers(c, userID, record.StudentID)
+	subject, err := s.subjects.AssembleSubjectIdentifiers(c, userID, record.StudentID)
 	if err != nil {
 		return Deletion{}, fmt.Errorf("failed to assemble subject identifiers: %w", err)
 	}

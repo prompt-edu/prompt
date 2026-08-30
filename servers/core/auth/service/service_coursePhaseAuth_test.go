@@ -16,7 +16,7 @@ type CoursePhaseAuthTestSuite struct {
 	suite.Suite
 	ctx         context.Context
 	cleanup     func()
-	authService AuthService
+	authService *AuthService
 }
 
 func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
@@ -29,11 +29,7 @@ func (suite *CoursePhaseAuthTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.authService = AuthService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AuthServiceSingleton = &suite.authService
+	suite.authService = NewAuthService(*testDB.Queries)
 }
 
 func (suite *CoursePhaseAuthTestSuite) TearDownSuite() {
@@ -50,7 +46,7 @@ func (suite *CoursePhaseAuthTestSuite) TestCoursePhaseParticipation() {
 	matriculationNumber := "09999999"
 	universityLogin := "as45fgh"
 
-	result, err := GetCoursePhaseParticipation(suite.ctx, coursePhaseID, matriculationNumber, universityLogin)
+	result, err := suite.authService.GetCoursePhaseParticipation(suite.ctx, coursePhaseID, matriculationNumber, universityLogin)
 	suite.Require().NoError(err)
 	suite.True(result.IsStudentOfCoursePhase, "Expected student to be part of the course phase")
 	suite.Equal(courseParticipationID, result.CourseParticipationID, "Unexpected course participation id")
@@ -60,7 +56,7 @@ func (suite *CoursePhaseAuthTestSuite) TestGetCourseRoles() {
 	// Use a coursePhaseID from your test data.
 	coursePhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
 
-	result, err := GetCourseRoles(suite.ctx, coursePhaseID)
+	result, err := suite.authService.GetCourseRoles(suite.ctx, coursePhaseID)
 	suite.Require().NoError(err)
 
 	// Adjust expected values according to your test database contents.

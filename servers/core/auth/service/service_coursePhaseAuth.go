@@ -9,9 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func GetCourseRoles(ctx context.Context, coursePhaseID uuid.UUID) (authDTO.GetCourseRoles, error) {
+func (s *AuthService) GetCourseRoles(ctx context.Context, coursePhaseID uuid.UUID) (authDTO.GetCourseRoles, error) {
 	// Get course roles
-	courseRoles, err := AuthServiceSingleton.queries.GetCoursePhaseAuthRoleMapping(ctx, coursePhaseID)
+	courseRoles, err := s.queries.GetCoursePhaseAuthRoleMapping(ctx, coursePhaseID)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"coursePhaseID": coursePhaseID,
@@ -27,9 +27,9 @@ func GetCourseRoles(ctx context.Context, coursePhaseID uuid.UUID) (authDTO.GetCo
 	}, nil
 }
 
-func GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (authDTO.GetCoursePhaseParticipation, error) {
+func (s *AuthService) GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (authDTO.GetCoursePhaseParticipation, error) {
 	// Get course phase participation
-	coursePhaseParticipation, err := AuthServiceSingleton.queries.IsStudentInCoursePhase(ctx, db.IsStudentInCoursePhaseParams{
+	coursePhaseParticipation, err := s.queries.IsStudentInCoursePhase(ctx, db.IsStudentInCoursePhaseParams{
 		CoursePhaseID:       coursePhaseID,
 		MatriculationNumber: matriculationNumber,
 		UniversityLogin:     universityLogin,

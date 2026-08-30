@@ -13,13 +13,13 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
+func (s *AuthService) GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 	userID, errUserUUID := utils.GetUserUUIDFromContext(ctx)
 	if errUserUUID != nil {
 		return sdk.SubjectIdentifiers{}, errUserUUID
 	}
 
-	studentID, errStudentUUID := getStudentID(ctx)
+	studentID, errStudentUUID := s.getStudentID(ctx)
 
 	if errors.Is(errStudentUUID, sql.ErrNoRows) {
 		return sdk.SubjectIdentifiers{UserID: userID}, nil
@@ -41,7 +41,7 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 	}, nil
 }
 
-func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID *uuid.UUID) (sdk.SubjectIdentifiers, error) {
+func (s *AuthService) AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID *uuid.UUID) (sdk.SubjectIdentifiers, error) {
 	identifiers := sdk.SubjectIdentifiers{UserID: userID}
 	if studentID == nil {
 		return identifiers, nil
@@ -56,11 +56,11 @@ func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID
 	return identifiers, nil
 }
 
-func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
+func (s *AuthService) getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	matrNr := utils.GetMatriculationNumberFromContext(ctx)
 	universityLogin := utils.GetUniversityLoginFromContext(ctx)
 
-	student, err := student.ResolveStudentByUniversityCredentials(ctx, &AuthServiceSingleton.queries, matrNr, universityLogin)
+	student, err := student.ResolveStudentByUniversityCredentials(ctx, &s.queries, matrNr, universityLogin)
 	if err != nil {
 		return uuid.UUID{}, err
 	}

@@ -5,8 +5,6 @@ import {
   CLOSED_APPLICATION_PHASE_ID,
   FULL_COURSE_APPLICATION_QUESTION,
   FULL_COURSE_PHASES,
-  SEEDED_WELCOME_TEXT,
-  WELCOME_TEXT_PHASE_ID,
 } from '../../src/data/constants'
 
 const OPEN_PHASE_ID = FULL_COURSE_PHASES.application.id
@@ -66,26 +64,6 @@ test.describe('core API: public application submission', () => {
   test.afterAll(async () => {
     await ctx.dispose()
     await deleteApplication(APPLICANT_EMAIL)
-  })
-
-  test('the welcome text reaches an anonymous applicant, but not the course list', async () => {
-    const form = await ctx.get(`/api/apply/${WELCOME_TEXT_PHASE_ID}`)
-    expect(form.ok(), await form.text()).toBeTruthy()
-    const body = (await form.json()) as { applicationPhase: { welcomeText?: string } }
-    expect(body.applicationPhase.welcomeText).toContain(SEEDED_WELCOME_TEXT.paragraph)
-
-    // A phase that never set the key must still serve its form.
-    const withoutText = await ctx.get(`/api/apply/${OPEN_PHASE_ID}`)
-    expect(withoutText.ok(), await withoutText.text()).toBeTruthy()
-    const plain = (await withoutText.json()) as { applicationPhase: { welcomeText?: string } }
-    expect(plain.applicationPhase.welcomeText).toBeUndefined()
-
-    // The open-course list has no use for the HTML and must not carry it.
-    const list = await ctx.get('/api/apply')
-    expect(list.ok(), await list.text()).toBeTruthy()
-    const openPhases = (await list.json()) as { welcomeText?: string }[]
-    expect(openPhases.length).toBeGreaterThan(0)
-    expect(openPhases.every((phase) => phase.welcomeText === undefined)).toBeTruthy()
   })
 
   test('the application form of a closed phase is not served', async () => {

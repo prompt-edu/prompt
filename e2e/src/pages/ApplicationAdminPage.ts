@@ -77,8 +77,18 @@ export class ApplicationAdminPage {
       await this.page.keyboard.type(text)
     }
     await expect(this.welcomeTextSaveButton).toBeEnabled()
+
+    // The button is disabled while the request is in flight too, so waiting on the
+    // response is the only way to tell "saving" from "saved".
+    const saved = this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/course_phases/') &&
+        response.request().method() === 'PUT' &&
+        response.ok(),
+      { timeout: 15_000 },
+    )
     await this.welcomeTextSaveButton.click()
-    // The save settles when the button goes back to its unchanged, disabled state.
+    await saved
     await expect(this.welcomeTextSaveButton).toBeDisabled({ timeout: 15_000 })
   }
 

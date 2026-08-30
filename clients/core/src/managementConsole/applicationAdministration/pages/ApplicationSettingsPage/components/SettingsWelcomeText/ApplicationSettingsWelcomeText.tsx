@@ -18,8 +18,12 @@ interface ApplicationSettingsWelcomeTextProps {
 }
 
 // An emptied rich text editor still emits markup like `<p></p>`, which must count
-// as no welcome text at all.
-const normalizeHtml = (html: string) => (html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html)
+// as no welcome text at all. Elements that render on their own carry no text, so
+// they have to be recognised before the tags are stripped.
+const CONTENT_WITHOUT_TEXT = /<(img|hr|br|iframe|video|audio|table)\b/i
+
+const normalizeHtml = (html: string) =>
+  !CONTENT_WITHOUT_TEXT.test(html) && html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html
 
 export function ApplicationSettingsWelcomeText({
   initialData,
@@ -55,7 +59,8 @@ export function ApplicationSettingsWelcomeText({
     const updatedPhase: UpdateCoursePhase = {
       id: phaseId ?? '',
       restrictedData: {
-        // null clears the key, so an emptied editor does not leave a blank string behind
+        // The metadata is merged, so an emptied editor stores an explicit null
+        // rather than a blank string; the apply endpoint reads that back as unset.
         welcomeText: normalizedWelcomeText === '' ? null : normalizedWelcomeText,
       },
     }

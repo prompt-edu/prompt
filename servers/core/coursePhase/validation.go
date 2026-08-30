@@ -29,7 +29,8 @@ func validateCreateCoursePhase(coursePhase coursePhaseDTO.CreateCoursePhase) err
 		log.Error(errorMessage)
 		return errors.New(errorMessage)
 	}
-	return nil
+
+	return validateWelcomeText(coursePhase.RestrictedData)
 }
 
 func validateUpdateCoursePhase(coursePhase coursePhaseDTO.UpdateCoursePhase) error {

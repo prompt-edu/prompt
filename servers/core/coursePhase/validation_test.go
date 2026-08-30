@@ -157,9 +157,16 @@ func TestValidateWelcomeText(t *testing.T) {
 		assert.Error(t, validateWelcomeText(meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes+1)}))
 	})
 
-	t.Run("is enforced by the update validation", func(t *testing.T) {
+	t.Run("is enforced on both write paths", func(t *testing.T) {
+		oversized := meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes+1)}
+
 		assert.Error(t, validateUpdateCoursePhase(coursePhaseDTO.UpdateCoursePhase{
-			RestrictedData: meta.MetaData{welcomeTextKey: strings.Repeat("a", maxWelcomeTextBytes+1)},
+			RestrictedData: oversized,
+		}))
+		assert.Error(t, validateCreateCoursePhase(coursePhaseDTO.CreateCoursePhase{
+			Name:           "Phase 1",
+			CourseID:       uuid.New(),
+			RestrictedData: oversized,
 		}))
 	})
 }

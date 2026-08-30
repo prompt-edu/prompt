@@ -1,7 +1,9 @@
-import type { APIRequestContext } from '@playwright/test'
+import { type APIRequestContext, request } from '@playwright/test'
+import { CORE_API_URL } from '../../src/env'
 import { apiContextFor } from '../../src/fixtures/api'
 import { expect, test } from '../../src/fixtures/auth'
 import {
+  FULL_COURSE_PHASES,
   SEEDED_WELCOME_TEXT,
   WELCOME_TEXT_COURSE_ID,
   WELCOME_TEXT_PHASE_ID,
@@ -25,6 +27,33 @@ test.describe('application: instructor welcome text', () => {
     // The apply page is public; a signed-in session would be redirected to the
     // authenticated variant instead.
     test.use({ storageState: { cookies: [], origins: [] } })
+
+    // These API assertions read the phase the instructor case below edits, so they
+    // live in this file: spec files run in parallel workers, tests within one do not.
+    test('the apply endpoint serves the welcome text, the course list does not', async () => {
+      const anonymous = await request.newContext({ baseURL: CORE_API_URL })
+      try {
+        const form = await anonymous.get(`/api/apply/${WELCOME_TEXT_PHASE_ID}`)
+        expect(form.ok(), await form.text()).toBeTruthy()
+        const body = (await form.json()) as { applicationPhase: { welcomeText?: string } }
+        expect(body.applicationPhase.welcomeText).toContain(SEEDED_WELCOME_TEXT.paragraph)
+
+        // A phase that never set the key must still serve its form.
+        const withoutText = await anonymous.get(`/api/apply/${FULL_COURSE_PHASES.application.id}`)
+        expect(withoutText.ok(), await withoutText.text()).toBeTruthy()
+        const plain = (await withoutText.json()) as { applicationPhase: { welcomeText?: string } }
+        expect(plain.applicationPhase.welcomeText).toBeUndefined()
+
+        // The open-course list has no use for the HTML and must not carry it.
+        const list = await anonymous.get('/api/apply')
+        expect(list.ok(), await list.text()).toBeTruthy()
+        const openPhases = (await list.json()) as { welcomeText?: string }[]
+        expect(openPhases.length).toBeGreaterThan(0)
+        expect(openPhases.every((phase) => phase.welcomeText === undefined)).toBeTruthy()
+      } finally {
+        await anonymous.dispose()
+      }
+    })
 
     test('the welcome text renders above the form, sanitized', async ({ page }) => {
       const apply = new ApplyPage(page)

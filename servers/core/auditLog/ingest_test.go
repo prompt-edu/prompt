@@ -15,7 +15,7 @@ import (
 const ingestService = "interview"
 
 // ingestRouter mounts only the ingest route: the read routes of
-// setupAuditLogRouter need the Keycloak and permission-validation singletons,
+// RegisterRoutes need the Keycloak and permission-validation singletons,
 // which are irrelevant to the ingest contract.
 func (s *AuditLogTestSuite) ingestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -54,7 +54,7 @@ func (s *AuditLogTestSuite) TestIngest_AcceptsErrorOutcome() {
 	}, ingestService, "sekret")
 	require.Equal(s.T(), http.StatusCreated, res.Code)
 
-	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+	page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), page.Entries, 1)
 	require.Equal(s.T(), audit.OutcomeError, page.Entries[0].Outcome)
@@ -69,7 +69,7 @@ func (s *AuditLogTestSuite) TestIngest_StampsSourceServiceFromCredentialsNotBody
 	}, ingestService, "sekret")
 	require.Equal(s.T(), http.StatusCreated, res.Code)
 
-	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+	page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), page.Entries, 1)
 	require.Equal(s.T(), ingestService, page.Entries[0].SourceService)

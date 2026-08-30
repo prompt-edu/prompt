@@ -1,6 +1,7 @@
 package auditLog
 
 import (
+	"context"
 	"crypto/subtle"
 	"fmt"
 	"net/http"
@@ -21,11 +22,21 @@ import (
 
 const ingestServiceContextKey = "auditServiceName"
 
-// setupAuditLogStatusRoute mounts the feature-toggle probe. It is registered
-// even when audit logging is off, so the client can hide the UI instead of
-// requesting routes that do not exist.
-func setupAuditLogStatusRoute(api *gin.RouterGroup) {
-	api.GET("/audit-log/status", keycloakTokenVerifier.KeycloakMiddleware(), getAuditLogStatus)
+// RegisterCapture registers the auto-capture middleware on the API group so
+// every mutating core route is recorded. Gin snapshots the middleware chain when
+// a route or subgroup is registered, so this MUST run before any module (in
+// particular initKeycloak) registers its routes; otherwise those routes keep the
+// pre-audit chain and their mutations are never captured. It is a no-op unless
+// the AUDIT_ENABLED feature toggle is set.
+func RegisterCapture(api *gin.RouterGroup, service *AuditLogService) {
+	if !audit.Enabled() {
+		log.Info("audit logging disabled (AUDIT_ENABLED not set)")
+		return
+	}
+
+	api.Use(audit.Middleware(NewDBSink(service.queries),
+		audit.WithActorExtractor(CoreActorExtractor),
+		audit.WithSourceService("core")))
 }
 
 // getAuditLogStatus godoc
@@ -40,26 +51,41 @@ func getAuditLogStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, auditLogDTO.AuditLogStatus{Enabled: audit.Enabled()})
 }
 
-func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
+// RegisterRoutes mounts the audit read and ingest endpoints and starts the
+// retention pruner. Call it after permissionValidation is initialized (the read
+// routes use its access-control middleware). Only the status probe is mounted
+// unless AUDIT_ENABLED is set; it pairs with RegisterCapture.
+func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService) {
 	authMiddleware := keycloakTokenVerifier.KeycloakMiddleware
+
+	// The feature-toggle probe is registered even when audit logging is off, so
+	// the client can hide the UI instead of requesting routes that do not exist.
+	api.GET("/audit-log/status", authMiddleware(), getAuditLogStatus)
+
+	if !audit.Enabled() {
+		return
+	}
 
 	// Platform-wide log (admins only).
 	api.GET("/audit-log",
 		authMiddleware(),
 		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin),
-		listGlobalAuditLog)
+		service.listGlobalAuditLog)
 
 	// Per-course log (course lecturers of that course, or admins).
 	api.GET("/courses/:uuid/audit-log",
 		authMiddleware(),
 		permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid",
 			permissionValidation.CourseLecturer, permissionValidation.PromptAdmin),
-		listCourseAuditLog)
+		service.listCourseAuditLog)
 
 	// Ingest endpoint for phase services, authenticated by a per-service shared
 	// secret (not a user/Keycloak token).
 	keys := parseIngestKeys(sdkUtils.GetEnv("AUDIT_INGEST_KEYS", ""))
-	api.POST("/audit", ingestAuth(keys), ingestAuditEvent(sink))
+	api.POST("/audit", ingestAuth(keys), ingestAuditEvent(NewDBSink(service.queries)))
+
+	service.StartRetentionPruner(context.Background())
+	log.Info("audit logging enabled")
 }
 
 // listGlobalAuditLog godoc
@@ -83,13 +109,13 @@ func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /audit-log [get]
-func listGlobalAuditLog(c *gin.Context) {
+func (s *AuditLogService) listGlobalAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
-	page, err := AuditLogServiceSingleton.ListAuditLog(c.Request.Context(), filters)
+	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
 		return
@@ -119,14 +145,14 @@ func listGlobalAuditLog(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/audit-log [get]
-func listCourseAuditLog(c *gin.Context) {
+func (s *AuditLogService) listCourseAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	filters.CourseID = c.Param("uuid")
-	page, err := AuditLogServiceSingleton.ListAuditLog(c.Request.Context(), filters)
+	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
 		return

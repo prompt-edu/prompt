@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,12 +59,12 @@ func TestGetAuditLogStatus_ReflectsFeatureToggle(t *testing.T) {
 	}
 }
 
-func TestInitAuditLogRoutes_KeepsStatusMountedWhenDisabled(t *testing.T) {
+func TestRegisterRoutes_KeepsStatusMountedWhenDisabled(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	t.Setenv("AUDIT_ENABLED", "")
 
 	router := gin.New()
-	InitAuditLogRoutes(router.Group("/api"))
+	RegisterRoutes(router.Group("/api"), NewAuditLogService(db.Queries{}))
 
 	mounted := make(map[string]bool)
 	for _, route := range router.Routes() {

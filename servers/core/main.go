@@ -174,14 +174,15 @@ func main() {
 	// snapshots the middleware chain when a route/group is registered, so it has
 	// to be registered before initKeycloak and all other modules; otherwise
 	// their routes (e.g. Keycloak course-role grants) are never captured.
-	auditLog.InitAuditLogCapture(api, *query, conn)
+	auditLogService := auditLog.NewAuditLogService(*query)
+	auditLog.RegisterCapture(api, auditLogService)
 
 	initKeycloak(api, *query)
 	permissionValidation.InitValidationService(*query, conn)
 
 	// Mount the audit read/ingest endpoints and start the pruner now that the
 	// permission-validation singleton the read routes rely on is initialized.
-	auditLog.InitAuditLogRoutes(api)
+	auditLog.RegisterRoutes(api, auditLogService)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")

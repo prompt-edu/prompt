@@ -38,7 +38,7 @@ func (s *AuditLogTestSuite) captureRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	api := router.Group("/api")
-	InitAuditLogCapture(api, *s.queries, s.conn)
+	RegisterCapture(api, s.service)
 
 	ok := func(c *gin.Context) { c.Status(http.StatusOK) }
 	api.PUT("/courses/:uuid/archive", fakeCoreAuth(map[string]bool{"PROMPT_Admin": true}), ok)
@@ -68,7 +68,7 @@ func serve(router *gin.Engine, method, path string) int {
 func (s *AuditLogTestSuite) waitForEntries(n int) []auditLogDTO.AuditEntry {
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+		page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
 		require.NoError(s.T(), err)
 		if len(page.Entries) >= n || time.Now().After(deadline) {
 			return page.Entries

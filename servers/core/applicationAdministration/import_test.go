@@ -14,6 +14,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
@@ -43,12 +44,13 @@ func (suite *ApplicationImportTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn)
+	resolutionService := resolution.NewResolutionService("localhost:8080")
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService)
+	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService)
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService)
 	suite.router = gin.Default()
 	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	coursePhase.InitCoursePhaseModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 }
 
 func (suite *ApplicationImportTestSuite) TearDownSuite() {

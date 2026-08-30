@@ -21,9 +21,16 @@ import (
 // ErrDuplicateCourseIdentifier is returned when a course with the same name and semester tag already exists.
 var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semester already exists")
 
+// CoursePhaseProvider reads the course phases a course graph refers to.
+type CoursePhaseProvider interface {
+	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
+	CheckCoursePhasesBelongToCourse(ctx context.Context, courseID uuid.UUID, coursePhaseIDs []uuid.UUID) (bool, error)
+}
+
 type CourseService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+	queries      db.Queries
+	conn         *pgxpool.Pool
+	coursePhases CoursePhaseProvider
 	// use dependency injection for keycloak to allow mocking
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
 	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error
@@ -32,12 +39,14 @@ type CourseService struct {
 func NewCourseService(
 	queries db.Queries,
 	conn *pgxpool.Pool,
+	coursePhases CoursePhaseProvider,
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error,
 	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error,
 ) *CourseService {
 	return &CourseService{
 		queries:                    queries,
 		conn:                       conn,
+		coursePhases:               coursePhases,
 		createCourseGroupsAndRoles: createCourseGroupsAndRoles,
 		deleteCourseGroupsAndRoles: deleteCourseGroupsAndRoles,
 	}

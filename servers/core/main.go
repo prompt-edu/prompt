@@ -194,24 +194,27 @@ func main() {
 	coursePhaseTypeService.InitializePhaseTypes()
 
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
-	resolution.InitResolutionModule(coreHost)
+	resolutionService := resolution.NewResolutionService(coreHost)
+
+	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService)
+	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
 	auth.RegisterRoutes(api, authService)
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
-	courseService := course.NewCourseService(*query, conn, keycloakRealmManager.CreateCourseGroupsAndRoles, keycloakRealmManager.DeleteCourseGroupsAndRoles)
+	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmManager.CreateCourseGroupsAndRoles, keycloakRealmManager.DeleteCourseGroupsAndRoles)
 	course.RegisterRoutes(api, courseService)
 	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"))
 	courseMailing.RegisterRoutes(api, courseMailingService)
 	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
 	// background so a slow/degraded database at boot doesn't delay server startup.
 	go courseMailingService.ReconcileStuckCampaigns(context.Background())
-	courseCopyService := copy.NewCourseCopyService(*query, conn, keycloakRealmManager.CreateCourseGroupsAndRoles)
+	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmManager.CreateCourseGroupsAndRoles)
 	copy.RegisterRoutes(api, courseCopyService)
-	coursePhase.InitCoursePhaseModule(api, *query, conn)
+	coursePhase.RegisterRoutes(api, coursePhaseService)
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
-	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)
-	applicationService := applicationAdministration.NewApplicationService(*query, conn)
+	coursePhaseParticipation.RegisterRoutes(api, coursePhaseParticipationService)
+	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService)
 	applicationAdministration.RegisterRoutes(api, applicationService)
 	if err := applicationService.InitializeApplicationCoursePhaseType(context.Background()); err != nil {
 		log.Fatal("failed to init application phase type: ", err)

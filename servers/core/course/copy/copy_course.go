@@ -98,7 +98,7 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 		}
 	}
 
-	phaseIDMap, err := copyCoursePhases(c, qtx, sourceCourseID, createdCourse.ID)
+	phaseIDMap, err := s.copyCoursePhases(c, qtx, sourceCourseID, createdCourse.ID)
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to copy course phases: %w", err)
 	}

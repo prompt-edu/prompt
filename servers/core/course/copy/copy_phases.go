@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -23,7 +22,7 @@ import (
 
 // copyCoursePhases duplicates all phases from the source course to the target course.
 // It returns a mapping of old phase IDs to new phase IDs.
-func copyCoursePhases(c *gin.Context, qtx *db.Queries, sourceID, targetID uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
+func (s *CourseCopyService) copyCoursePhases(c *gin.Context, qtx *db.Queries, sourceID, targetID uuid.UUID) (map[uuid.UUID]uuid.UUID, error) {
 	sequence, err := qtx.GetCoursePhaseSequence(c, sourceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get course phase sequence: %w", err)
@@ -43,7 +42,7 @@ func copyCoursePhases(c *gin.Context, qtx *db.Queries, sourceID, targetID uuid.U
 
 	mapping := make(map[uuid.UUID]uuid.UUID)
 	for oldID := range allPhases {
-		phase, err := coursePhase.GetCoursePhaseByID(c, oldID)
+		phase, err := s.coursePhases.GetCoursePhaseByID(c, oldID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get course phase by ID %s: %w", oldID, err)
 		}
@@ -104,7 +103,7 @@ func setInitialPhase(c *gin.Context, qtx *db.Queries, sourceID, targetID uuid.UU
 // the correct phases are targeted.
 func (s *CourseCopyService) copyPhaseConfigurations(c *gin.Context, phaseIDMap map[uuid.UUID]uuid.UUID) error {
 	for oldPhaseID, newPhaseID := range phaseIDMap {
-		oldPhase, err := coursePhase.GetCoursePhaseByID(c, oldPhaseID)
+		oldPhase, err := s.coursePhases.GetCoursePhaseByID(c, oldPhaseID)
 		if err != nil {
 			return fmt.Errorf("course phase with ID %s not found: %w", oldPhaseID, err)
 		}

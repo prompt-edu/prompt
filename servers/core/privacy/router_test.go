@@ -15,6 +15,9 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
@@ -208,10 +211,16 @@ func (suite *RouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
+	resolutionService := resolution.NewResolutionService("localhost:8080")
 	suite.privacyService = service.NewPrivacyService(
 		*testDB.Queries,
 		testDB.Conn,
-		applicationAdministration.NewApplicationService(*testDB.Queries, testDB.Conn),
+		applicationAdministration.NewApplicationService(
+			*testDB.Queries,
+			testDB.Conn,
+			coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService),
+			coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService),
+		),
 		authService.NewAuthService(*testDB.Queries),
 		coursePhaseType.NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false),
 	)

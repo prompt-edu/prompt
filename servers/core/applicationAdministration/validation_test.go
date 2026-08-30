@@ -38,7 +38,7 @@ func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn)
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, nil, nil)
 	suite.router = gin.Default()
 }
 

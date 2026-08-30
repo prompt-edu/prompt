@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +47,8 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles)
 
 	// Init the permissionValidation service
 	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
@@ -57,7 +59,6 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 	setupCourseCopyRouter(api, suite.courseCopyService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
 }
 
 func (suite *CourseCopyRouterTestSuite) TearDownSuite() {

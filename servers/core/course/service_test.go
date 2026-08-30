@@ -13,6 +13,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -47,11 +48,10 @@ func (suite *CourseServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
-	// Initialize CoursePhase module
 	suite.router = gin.Default()
-	coursePhase.InitCoursePhaseModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 }
 
 func (suite *CourseServiceTestSuite) TearDownSuite() {

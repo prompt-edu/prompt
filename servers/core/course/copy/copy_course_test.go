@@ -12,6 +12,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -34,10 +35,10 @@ func (suite *CopyCourseTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, func(ctx context.Context, courseName, semesterTag, userID string) error {
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, func(ctx context.Context, courseName, semesterTag, userID string) error {
 		return nil
 	})
-	coursePhase.InitCoursePhaseModule(gin.Default().Group("/api"), *testDB.Queries, testDB.Conn)
 
 	// Use the known UUID from the dump
 	sourceID := uuid.MustParse("c1f8060d-7381-4b64-a6ea-5ba8e8ac88dd")

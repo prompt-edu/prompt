@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
@@ -36,9 +35,9 @@ func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, auth
 	// Application Form Endpoints
 	application.GET("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationForm)
 	application.PUT("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationForm)
-	application.GET("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getAdditionalScores)
+	application.GET("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getAdditionalScores)
 	application.POST("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.uploadAdditionalScore)
-	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationsStatus)
+	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationsStatus)
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationManual)
 	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationImport)
@@ -643,14 +642,14 @@ func (s *ApplicationService) uploadAdditionalScore(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/score [get]
-func getAdditionalScores(c *gin.Context) {
+func (s *ApplicationService) getAdditionalScores(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	additionalScore, err := GetAdditionalScores(c, coursePhaseId)
+	additionalScore, err := s.GetAdditionalScores(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get additional score"))
@@ -672,7 +671,7 @@ func getAdditionalScores(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/assessment [put]
-func updateApplicationsStatus(c *gin.Context) {
+func (s *ApplicationService) updateApplicationsStatus(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -685,7 +684,7 @@ func updateApplicationsStatus(c *gin.Context) {
 		return
 	}
 
-	participationIDs, err := coursePhaseParticipation.BatchUpdatePassStatus(c, coursePhaseId, status.CourseParticipationIDs, status.PassStatus)
+	participationIDs, err := s.participations.BatchUpdatePassStatus(c, coursePhaseId, status.CourseParticipationIDs, status.PassStatus)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not update application status"))

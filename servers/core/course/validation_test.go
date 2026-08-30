@@ -14,6 +14,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,8 @@ func (suite *CourseTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, nil, nil)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, nil, nil)
 	suite.router = gin.Default()
 }
 
@@ -210,9 +212,6 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 }
 
 func (suite *CourseTestSuite) TestValidateUpdateCourseOrder() {
-	// set up CoursePhaseService
-	coursePhase.InitCoursePhaseModule(suite.router.Group("/api"), suite.courseService.queries, suite.courseService.conn)
-
 	tests := []struct {
 		name          string
 		courseID      uuid.UUID
@@ -250,7 +249,7 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseOrder() {
 				})
 			}
 
-			err := validateUpdateCourseOrder(context.Background(), tt.courseID, phaseGraph)
+			err := suite.courseService.validateUpdateCourseOrder(context.Background(), tt.courseID, phaseGraph)
 			if tt.expectedError == "" {
 				assert.NoError(t, err, "Expected no error, got %v", err)
 			} else {

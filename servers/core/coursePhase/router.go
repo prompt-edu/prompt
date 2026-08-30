@@ -7,27 +7,40 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupCoursePhaseRouter sets up the course phase endpoints
+// RegisterRoutes mounts the course phase endpoints on the given router group.
 // @Summary Course Phase Endpoints
 // @Description Endpoints for managing course phases
 // @Tags course_phases
 // @Security BearerAuth
-func setupCoursePhaseRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware, permissionCourseIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, service *CoursePhaseService) {
+	setupCoursePhaseRouter(router, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper, checkAccessControlByCourseIDWrapper)
+}
+
+func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
+	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePhasePermission, "uuid", allowedRoles...)
+}
+
+func checkAccessControlByCourseIDWrapper(allowedRoles ...string) gin.HandlerFunc {
+	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "courseID", allowedRoles...)
+}
+
+func setupCoursePhaseRouter(router *gin.RouterGroup, s *CoursePhaseService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware, permissionCourseIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	coursePhase := router.Group("/course_phases", authMiddleware())
-	coursePhase.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), getCoursePhaseByID)
-	coursePhase.GET("/:uuid/course_phase_data", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), getPrevPhaseDataByCoursePhaseID)
-	coursePhase.GET("/:uuid/participation_status_counts", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getCoursePhaseParticipationStatusCounts)
+	coursePhase.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getCoursePhaseByID)
+	coursePhase.GET("/:uuid/course_phase_data", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getPrevPhaseDataByCoursePhaseID)
+	coursePhase.GET("/:uuid/participation_status_counts", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCoursePhaseParticipationStatusCounts)
 
 	// getting the course ID here to do correct rights management
-	coursePhase.POST("/course/:courseID", permissionCourseIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), createCoursePhase)
-	coursePhase.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateCoursePhase)
-	coursePhase.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteCoursePhase)
+	coursePhase.POST("/course/:courseID", permissionCourseIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.createCoursePhase)
+	coursePhase.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhase)
+	coursePhase.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteCoursePhase)
 }
 
 // createCoursePhase godoc
@@ -42,7 +55,7 @@ func setupCoursePhaseRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/course/{courseID} [post]
-func createCoursePhase(c *gin.Context) {
+func (s *CoursePhaseService) createCoursePhase(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -66,7 +79,7 @@ func createCoursePhase(c *gin.Context) {
 		return
 	}
 
-	coursePhase, err := CreateCoursePhase(c, newCoursePhase)
+	coursePhase, err := s.CreateCoursePhase(c, newCoursePhase)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -85,14 +98,14 @@ func createCoursePhase(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [get]
-func getCoursePhaseByID(c *gin.Context) {
+func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	coursePhase, err := GetCoursePhaseByID(c, id)
+	coursePhase, err := s.GetCoursePhaseByID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -135,7 +148,7 @@ func getCoursePhaseByID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [put]
-func updateCoursePhase(c *gin.Context) {
+func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 	var updatedCoursePhase coursePhaseDTO.UpdateCoursePhase
 	if err := c.BindJSON(&updatedCoursePhase); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -147,7 +160,7 @@ func updateCoursePhase(c *gin.Context) {
 		return
 	}
 
-	err := UpdateCoursePhase(c, updatedCoursePhase)
+	err := s.UpdateCoursePhase(c, updatedCoursePhase)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -166,14 +179,14 @@ func updateCoursePhase(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [delete]
-func deleteCoursePhase(c *gin.Context) {
+func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = DeleteCoursePhase(c, id)
+	err = s.DeleteCoursePhase(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -192,14 +205,14 @@ func deleteCoursePhase(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/course_phase_data [get]
-func getPrevPhaseDataByCoursePhaseID(c *gin.Context) {
+func (s *CoursePhaseService) getPrevPhaseDataByCoursePhaseID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	coursePhaseData, err := GetPrevPhaseDataByCoursePhaseID(c, id)
+	coursePhaseData, err := s.GetPrevPhaseDataByCoursePhaseID(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -230,14 +243,14 @@ func handleError(c *gin.Context, statusCode int, err error) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participation_status_counts [get]
-func getCoursePhaseParticipationStatusCounts(c *gin.Context) {
+func (s *CoursePhaseService) getCoursePhaseParticipationStatusCounts(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	countsMap, err := GetCoursePhaseParticipationStatusCounts(c, id)
+	countsMap, err := s.GetCoursePhaseParticipationStatusCounts(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

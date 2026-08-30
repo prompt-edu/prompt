@@ -308,7 +308,7 @@ func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 		return
 	}
 
-	if err := validateUpdateCourseOrder(c, courseID, graphUpdate.PhaseGraph); err != nil {
+	if err := s.validateUpdateCourseOrder(c, courseID, graphUpdate.PhaseGraph); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -336,7 +336,7 @@ func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participation_data_graph [put]
 func (s *CourseService) updateParticipationDataGraph(c *gin.Context) {
-	newGraph, courseID, err := parseAndValidateMetaDataGraph(c)
+	newGraph, courseID, err := s.parseAndValidateMetaDataGraph(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
@@ -365,7 +365,7 @@ func (s *CourseService) updateParticipationDataGraph(c *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/phase_data_graph [put]
 func (s *CourseService) updatePhaseDataGraph(c *gin.Context) {
-	newGraph, courseID, err := parseAndValidateMetaDataGraph(c)
+	newGraph, courseID, err := s.parseAndValidateMetaDataGraph(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
@@ -381,7 +381,7 @@ func (s *CourseService) updatePhaseDataGraph(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func parseAndValidateMetaDataGraph(c *gin.Context) ([]courseDTO.MetaDataGraphItem, uuid.UUID, error) {
+func (s *CourseService) parseAndValidateMetaDataGraph(c *gin.Context) ([]courseDTO.MetaDataGraphItem, uuid.UUID, error) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		return nil, uuid.UUID{}, err
@@ -392,7 +392,7 @@ func parseAndValidateMetaDataGraph(c *gin.Context) ([]courseDTO.MetaDataGraphIte
 		return nil, uuid.UUID{}, err
 	}
 
-	if err := validateMetaDataGraph(c, courseID, newGraph); err != nil {
+	if err := s.validateMetaDataGraph(c, courseID, newGraph); err != nil {
 		return nil, uuid.UUID{}, err
 	}
 

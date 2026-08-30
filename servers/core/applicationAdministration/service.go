@@ -15,8 +15,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
@@ -27,15 +26,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ApplicationService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+// CoursePhaseProvider reads the course phase an application belongs to.
+type CoursePhaseProvider interface {
+	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
 }
 
-func NewApplicationService(queries db.Queries, conn *pgxpool.Pool) *ApplicationService {
+// CoursePhaseParticipationProvider creates and updates the participations an application produces.
+type CoursePhaseParticipationProvider interface {
+	CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueries *db.Queries, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error)
+	UpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, updatedCoursePhaseParticipation coursePhaseParticipationDTO.UpdateCoursePhaseParticipation) error
+	BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, passStatus db.PassStatus) ([]uuid.UUID, error)
+}
+
+type ApplicationService struct {
+	queries        db.Queries
+	conn           *pgxpool.Pool
+	coursePhases   CoursePhaseProvider
+	participations CoursePhaseParticipationProvider
+}
+
+func NewApplicationService(queries db.Queries, conn *pgxpool.Pool, coursePhases CoursePhaseProvider, participations CoursePhaseParticipationProvider) *ApplicationService {
 	return &ApplicationService{
-		queries: queries,
-		conn:    conn,
+		queries:        queries,
+		conn:           conn,
+		coursePhases:   coursePhases,
+		participations: participations,
 	}
 }
 
@@ -405,7 +420,7 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 		return uuid.Nil, errors.New("could not save the course participation")
 	}
 
-	cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+	cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not create course phase participation")
@@ -598,7 +613,7 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 		return uuid.Nil, errors.New("could not save the course participation")
 	}
 
-	cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+	cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course phase participation")
@@ -920,7 +935,7 @@ func (s *ApplicationService) UpdateApplicationAssessment(ctx context.Context, co
 	qtx := s.queries.WithTx(tx)
 
 	if assessment.PassStatus != nil || assessment.RestrictedData.Length() > 0 {
-		err := coursePhaseParticipation.UpdateCoursePhaseParticipation(ctx, qtx, coursePhaseParticipationDTO.UpdateCoursePhaseParticipation{
+		err := s.participations.UpdateCoursePhaseParticipation(ctx, qtx, coursePhaseParticipationDTO.UpdateCoursePhaseParticipation{
 			CourseParticipationID: courseParticipationID,
 			PassStatus:            assessment.PassStatus,
 			RestrictedData:        assessment.RestrictedData,
@@ -1025,7 +1040,7 @@ func (s *ApplicationService) UploadAdditionalScore(ctx context.Context, coursePh
 		}
 	}
 
-	coursePhaseDTO, err := coursePhase.GetCoursePhaseByID(ctx, coursePhaseID)
+	coursePhaseDTO, err := s.coursePhases.GetCoursePhaseByID(ctx, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return errors.New("could not update additional scores")
@@ -1053,11 +1068,11 @@ func (s *ApplicationService) UploadAdditionalScore(ctx context.Context, coursePh
 	return nil
 }
 
-func GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.AdditionalScore, error) {
+func (s *ApplicationService) GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.AdditionalScore, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coursePhaseDTO, err := coursePhase.GetCoursePhaseByID(ctxWithTimeout, coursePhaseID)
+	coursePhaseDTO, err := s.coursePhases.GetCoursePhaseByID(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not update additional scores")
@@ -1218,7 +1233,7 @@ func (s *ApplicationService) PostApplicationImport(ctx context.Context, coursePh
 			outcome = "updated"
 		}
 
-		cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+		cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 		if err != nil {
 			log.Error(err)
 			return applicationDTO.ImportResult{}, errors.New("could not save the course phase participation")

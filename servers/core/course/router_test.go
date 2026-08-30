@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -50,7 +51,8 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
 	// Init the permissionValidation service
 	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
@@ -61,7 +63,6 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	setupCourseRouter(api, suite.courseService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
 }
 
 func (suite *CourseRouterTestSuite) TearDownSuite() {

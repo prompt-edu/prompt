@@ -32,7 +32,7 @@ type Deletion struct {
 	ExternalDeletions []ServiceDeletionRequest
 }
 
-func PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionRequest) (Deletion, error) {
+func (s *PrivacyService) PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionRequest) (Deletion, error) {
 	studentID := uuid.Nil
 	if record.StudentID != nil {
 		studentID = *record.StudentID
@@ -42,12 +42,12 @@ func PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionReq
 		return Deletion{}, fmt.Errorf("failed to load involved course phase types: %w", err)
 	}
 
-	tx, err := PrivacyServiceSingleton.conn.Begin(c)
+	tx, err := s.conn.Begin(c)
 	if err != nil {
 		return Deletion{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(c) }()
-	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
+	txQueries := s.queries.WithTx(tx)
 
 	coreReq, err := CreateDeletionSubrequest(c, txQueries, record.ID, "Core", "")
 	if err != nil {
@@ -87,13 +87,13 @@ func PrepareDataDeletion(c context.Context, record privacyDTO.PrivacyDeletionReq
 	}, nil
 }
 
-func RunDataDeletion(ctx context.Context, authHeader string, state Deletion) {
+func (s *PrivacyService) RunDataDeletion(ctx context.Context, authHeader string, state Deletion) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
 	wg.Go(func() {
-		err := ExecuteCoreDeletion(ctx, state.Subject)
-		updateSubrequestStatus(context.WithoutCancel(ctx), state.CoreDeletion.Subrequest.ID, err)
+		err := s.ExecuteCoreDeletion(ctx, state.Subject)
+		s.updateSubrequestStatus(context.WithoutCancel(ctx), state.CoreDeletion.Subrequest.ID, err)
 		mu.Lock()
 		state.CoreDeletion.Result = subrequestStatusFromError(err)
 		mu.Unlock()
@@ -103,7 +103,7 @@ func RunDataDeletion(ctx context.Context, authHeader string, state Deletion) {
 		i := i
 		wg.Go(func() {
 			err := RequestDeletionFromCPM(ctx, state.ExternalDeletions[i].APIURL, state.Subject, authHeader)
-			updateSubrequestStatus(context.WithoutCancel(ctx), state.ExternalDeletions[i].Subrequest.ID, err)
+			s.updateSubrequestStatus(context.WithoutCancel(ctx), state.ExternalDeletions[i].Subrequest.ID, err)
 			mu.Lock()
 			state.ExternalDeletions[i].Result = subrequestStatusFromError(err)
 			mu.Unlock()
@@ -112,16 +112,16 @@ func RunDataDeletion(ctx context.Context, authHeader string, state Deletion) {
 
 	wg.Wait()
 
-	finalStatus := UpdateDeletionRequestStatus(ctx, &state)
-	sendDeletionConfirmationMail(context.WithoutCancel(ctx), state.Record.ID, state.Record.RecipientEmail, finalStatus)
+	finalStatus := s.UpdateDeletionRequestStatus(ctx, &state)
+	s.sendDeletionConfirmationMail(context.WithoutCancel(ctx), state.Record.ID, state.Record.RecipientEmail, finalStatus)
 }
 
-func updateSubrequestStatus(ctx context.Context, subrequestID uuid.UUID, callErr error) {
+func (s *PrivacyService) updateSubrequestStatus(ctx context.Context, subrequestID uuid.UUID, callErr error) {
 	errMsg := ""
 	if callErr != nil {
 		errMsg = callErr.Error()
 	}
-	if _, err := PrivacyServiceSingleton.queries.SetDeletionSubrequestStatus(ctx, db.SetDeletionSubrequestStatusParams{
+	if _, err := s.queries.SetDeletionSubrequestStatus(ctx, db.SetDeletionSubrequestStatusParams{
 		ID:           subrequestID,
 		Status:       subrequestStatusFromError(callErr),
 		ErrorMessage: errMsg,
@@ -130,7 +130,7 @@ func updateSubrequestStatus(ctx context.Context, subrequestID uuid.UUID, callErr
 	}
 }
 
-func UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) db.PrivacyDeletionRequestStatus {
+func (s *PrivacyService) UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) db.PrivacyDeletionRequestStatus {
 	statusCtx := context.WithoutCancel(ctx)
 
 	anyFailed := state.CoreDeletion.Result == db.PrivacyDeletionSubrequestStatusFailed
@@ -146,7 +146,7 @@ func UpdateDeletionRequestStatus(ctx context.Context, state *Deletion) db.Privac
 		finalStatus = db.PrivacyDeletionRequestStatusFailed
 	}
 
-	if _, err := PrivacyServiceSingleton.queries.SetDeletionRequestStatus(statusCtx, db.SetDeletionRequestStatusParams{
+	if _, err := s.queries.SetDeletionRequestStatus(statusCtx, db.SetDeletionRequestStatusParams{
 		ID:     state.Record.ID,
 		Status: finalStatus,
 	}); err != nil {

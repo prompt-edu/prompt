@@ -13,22 +13,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ExecuteCoreDeletion(ctx context.Context, subject sdk.SubjectIdentifiers) error {
+func (s *PrivacyService) ExecuteCoreDeletion(ctx context.Context, subject sdk.SubjectIdentifiers) error {
 
 	// collect application file IDs
 	// must happen before the student delete
-	fileIDs, err := collectApplicationFileIDs(ctx, subject.CourseParticipationIDs)
+	fileIDs, err := s.collectApplicationFileIDs(ctx, subject.CourseParticipationIDs)
 	if err != nil {
 		return fmt.Errorf("collect application file IDs: %w", err)
 	}
 
 	// begin transaction
-	tx, err := PrivacyServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin deletion transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	q := PrivacyServiceSingleton.queries.WithTx(tx)
+	q := s.queries.WithTx(tx)
 
 	// Student record related
 	if err := deleteStudentScopedData(ctx, q, subject.StudentID); err != nil {
@@ -51,18 +51,18 @@ func ExecuteCoreDeletion(ctx context.Context, subject sdk.SubjectIdentifiers) er
 	}
 
 	// Privacy Exports
-	if err := archiveSubjectPrivacyExports(ctx, subject.UserID); err != nil {
+	if err := s.archiveSubjectPrivacyExports(ctx, subject.UserID); err != nil {
 		return fmt.Errorf("archive privacy exports: %w", err)
 	}
 
 	return nil
 }
 
-func collectApplicationFileIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]uuid.UUID, error) {
+func (s *PrivacyService) collectApplicationFileIDs(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]uuid.UUID, error) {
 	if len(courseParticipationIDs) == 0 {
 		return nil, nil
 	}
-	return PrivacyServiceSingleton.queries.GetApplicationFileIDsByCourseParticipationIDs(ctx, courseParticipationIDs)
+	return s.queries.GetApplicationFileIDsByCourseParticipationIDs(ctx, courseParticipationIDs)
 }
 
 func deleteStudentScopedData(ctx context.Context, q *db.Queries, studentID uuid.UUID) error {
@@ -111,17 +111,17 @@ func deleteApplicationFiles(ctx context.Context, fileIDs []uuid.UUID) error {
 	return nil
 }
 
-func archiveSubjectPrivacyExports(ctx context.Context, userID uuid.UUID) error {
+func (s *PrivacyService) archiveSubjectPrivacyExports(ctx context.Context, userID uuid.UUID) error {
 	if userID == uuid.Nil {
 		return nil
 	}
 
-	exportIDs, err := PrivacyServiceSingleton.queries.GetExportIDsForUser(ctx, pgtype.UUID{Bytes: userID, Valid: true})
+	exportIDs, err := s.queries.GetExportIDsForUser(ctx, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		return fmt.Errorf("list exports: %w", err)
 	}
 	for _, exportID := range exportIDs {
-		if err := ArchiveExport(ctx, exportID); err != nil {
+		if err := s.ArchiveExport(ctx, exportID); err != nil {
 			return fmt.Errorf("archive export %s: %w", exportID, err)
 		}
 	}

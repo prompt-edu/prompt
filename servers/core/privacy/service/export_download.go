@@ -7,8 +7,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 )
 
-func GetDownloadURLForDoc(c context.Context, docID uuid.UUID) (string, error) {
-	objectKey, err := PrivacyServiceSingleton.queries.GetExportDocObjectKey(c, docID)
+func (s *PrivacyService) GetDownloadURLForDoc(c context.Context, docID uuid.UUID) (string, error) {
+	objectKey, err := s.queries.GetExportDocObjectKey(c, docID)
 	if err != nil {
 		return "", err
 	}
@@ -18,6 +18,6 @@ func GetDownloadURLForDoc(c context.Context, docID uuid.UUID) (string, error) {
 		return "", err
 	}
 
-	_ = PrivacyServiceSingleton.queries.SetExportDocDownloadedAt(c, docID)
+	_ = s.queries.SetExportDocDownloadedAt(c, docID)
 	return url, nil
 }

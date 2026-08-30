@@ -31,6 +31,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
+	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -210,7 +211,9 @@ func main() {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacyService := service.NewPrivacyService(*query, conn)
+	privacy.RegisterRoutes(api, privacyService, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+	privacyService.StartExportDeletionRoutine(context.Background())
 
 	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")

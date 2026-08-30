@@ -190,9 +190,10 @@ func int64Ptr(v int64) *int64 { return &v }
 
 type RouterTestSuite struct {
 	suite.Suite
-	router  *gin.Engine
-	ctx     context.Context
-	cleanup func()
+	router         *gin.Engine
+	privacyService *service.PrivacyService
+	ctx            context.Context
+	cleanup        func()
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -205,27 +206,27 @@ func (suite *RouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
-	service.InitPrivacyService(*testDB.Queries, testDB.Conn)
+	suite.privacyService = service.NewPrivacyService(*testDB.Queries, testDB.Conn)
 	authService.InitAuthService(*testDB.Queries, testDB.Conn)
 	privacyexport.InitWithAdapter(&storage.MockStorageAdapter{})
 
-	suite.router = setupRouter()
+	suite.router = setupRouter(suite.privacyService)
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(privacyService *service.PrivacyService) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
 	authMiddleware := func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin"})
 	}
 	permissionMiddleware := sdkTestUtils.MockPermissionMiddleware
-	setupPrivacyRouter(api, authMiddleware, permissionMiddleware)
+	RegisterRoutes(api, privacyService, authMiddleware, permissionMiddleware)
 	return router
 }
 
 // routerForUser returns a router that authenticates requests as the given user ID.
 // Required for endpoints that call GetUserUUIDFromContext (all non-admin routes).
-func routerForUser(userID uuid.UUID) *gin.Engine {
+func routerForUser(privacyService *service.PrivacyService, userID uuid.UUID) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
 	authMiddleware := func() gin.HandlerFunc {
@@ -235,7 +236,7 @@ func routerForUser(userID uuid.UUID) *gin.Engine {
 			c.Next()
 		}
 	}
-	setupPrivacyRouter(api, authMiddleware, sdkTestUtils.MockPermissionMiddleware)
+	RegisterRoutes(api, privacyService, authMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	return router
 }
 
@@ -266,7 +267,7 @@ func (suite *RouterTestSuite) TestRouterGetAllExportsAdmin() {
 
 func (suite *RouterTestSuite) TestRouterGetLatestExport_Exists() {
 	// Alice has a valid export (valid_until: 2030)
-	router := routerForUser(aliceUserID)
+	router := routerForUser(suite.privacyService, aliceUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -287,7 +288,7 @@ func (suite *RouterTestSuite) TestRouterGetLatestExport_Exists() {
 
 func (suite *RouterTestSuite) TestRouterGetLatestExport_RateLimited() {
 	// Dave's export expired yesterday but was created 5 days ago — still within the 30-day rate limit
-	router := routerForUser(daveUserID)
+	router := routerForUser(suite.privacyService, daveUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -308,7 +309,7 @@ func (suite *RouterTestSuite) TestRouterGetLatestExport_RateLimited() {
 
 func (suite *RouterTestSuite) TestRouterGetLatestExport_NoExport() {
 	// Carol's export is archived and past the rate limit window → 204
-	router := routerForUser(carolUserID)
+	router := routerForUser(suite.privacyService, carolUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -317,7 +318,7 @@ func (suite *RouterTestSuite) TestRouterGetLatestExport_NoExport() {
 }
 
 func (suite *RouterTestSuite) TestRouterGetExport_Owner() {
-	router := routerForUser(aliceUserID)
+	router := routerForUser(suite.privacyService, aliceUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export1.ID.String(), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -338,7 +339,7 @@ func (suite *RouterTestSuite) TestRouterGetExport_Owner() {
 
 func (suite *RouterTestSuite) TestRouterGetExport_WrongUser() {
 	// Bob tries to fetch Alice's export
-	router := routerForUser(bobUserID)
+	router := routerForUser(suite.privacyService, bobUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export1.ID.String(), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -348,7 +349,7 @@ func (suite *RouterTestSuite) TestRouterGetExport_WrongUser() {
 
 func (suite *RouterTestSuite) TestRouterGetExport_Archived() {
 	// Carol fetches her own export but valid_until is in the past
-	router := routerForUser(carolUserID)
+	router := routerForUser(suite.privacyService, carolUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export3.ID.String(), nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -358,7 +359,7 @@ func (suite *RouterTestSuite) TestRouterGetExport_Archived() {
 
 func (suite *RouterTestSuite) TestRouterPostDataExport_ValidExportAlreadyExists() {
 	// Alice already has a valid export (valid_until: 2030)
-	router := routerForUser(aliceUserID)
+	router := routerForUser(suite.privacyService, aliceUserID)
 	req, _ := http.NewRequest("POST", "/api/privacy/data-export", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -368,7 +369,7 @@ func (suite *RouterTestSuite) TestRouterPostDataExport_ValidExportAlreadyExists(
 
 func (suite *RouterTestSuite) TestRouterPostDataExport_RateLimited() {
 	// Dave's export expired but he is still within the 30-day rate limit window
-	router := routerForUser(daveUserID)
+	router := routerForUser(suite.privacyService, daveUserID)
 	req, _ := http.NewRequest("POST", "/api/privacy/data-export", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -378,7 +379,7 @@ func (suite *RouterTestSuite) TestRouterPostDataExport_RateLimited() {
 
 func (suite *RouterTestSuite) TestRouterGetDownloadURL_Owner() {
 	docID := export1.Documents[0].ID // 'complete' doc belonging to Alice
-	router := routerForUser(aliceUserID)
+	router := routerForUser(suite.privacyService, aliceUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export1.ID.String()+"/docs/"+docID.String()+"/download-url", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -394,7 +395,7 @@ func (suite *RouterTestSuite) TestRouterGetDownloadURL_Owner() {
 func (suite *RouterTestSuite) TestRouterGetDownloadURL_WrongUser() {
 	// Bob tries to get a download URL for Alice's export doc
 	docID := export1.Documents[0].ID
-	router := routerForUser(bobUserID)
+	router := routerForUser(suite.privacyService, bobUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export1.ID.String()+"/docs/"+docID.String()+"/download-url", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -405,7 +406,7 @@ func (suite *RouterTestSuite) TestRouterGetDownloadURL_WrongUser() {
 func (suite *RouterTestSuite) TestRouterGetDownloadURL_DocNotInExport() {
 	// Alice requests a URL using a doc ID that belongs to a different export (export2)
 	foreignDocID := export2.Documents[0].ID
-	router := routerForUser(aliceUserID)
+	router := routerForUser(suite.privacyService, aliceUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export1.ID.String()+"/docs/"+foreignDocID.String()+"/download-url", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -416,7 +417,7 @@ func (suite *RouterTestSuite) TestRouterGetDownloadURL_DocNotInExport() {
 func (suite *RouterTestSuite) TestRouterGetDownloadURL_ArchivedExport() {
 	// Carol tries to download from her own archived (expired) export
 	docID := export3.Documents[0].ID
-	router := routerForUser(carolUserID)
+	router := routerForUser(suite.privacyService, carolUserID)
 	req, _ := http.NewRequest("GET", "/api/privacy/data-export/"+export3.ID.String()+"/docs/"+docID.String()+"/download-url", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

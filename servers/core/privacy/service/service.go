@@ -10,15 +10,9 @@ type PrivacyService struct {
 	conn    *pgxpool.Pool
 }
 
-var PrivacyServiceSingleton *PrivacyService
-
-func (s *PrivacyService) GetConn() *pgxpool.Pool { return s.conn }
-
-func InitPrivacyService(queries db.Queries, conn *pgxpool.Pool) {
-
-	PrivacyServiceSingleton = &PrivacyService{
+func NewPrivacyService(queries db.Queries, conn *pgxpool.Pool) *PrivacyService {
+	return &PrivacyService{
 		queries: queries,
 		conn:    conn,
 	}
-
 }

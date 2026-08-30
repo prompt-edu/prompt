@@ -16,7 +16,7 @@ import (
 
 const adminInitiatedAuditorNote = "Admin-initiated bulk deletion"
 
-func CreateAdminInitiatedDeletionRequests(c *gin.Context, studentIDs []uuid.UUID) ([]privacyDTO.PrivacyDeletionRequest, error) {
+func (s *PrivacyService) CreateAdminInitiatedDeletionRequests(c *gin.Context, studentIDs []uuid.UUID) ([]privacyDTO.PrivacyDeletionRequest, error) {
 	auditorID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve admin identity: %w", err)
@@ -34,7 +34,7 @@ func CreateAdminInitiatedDeletionRequests(c *gin.Context, studentIDs []uuid.UUID
 			recipientEmail = stud.Email
 		}
 
-		row, err := PrivacyServiceSingleton.queries.CreateAdminInitiatedDeletionRequest(c, db.CreateAdminInitiatedDeletionRequestParams{
+		row, err := s.queries.CreateAdminInitiatedDeletionRequest(c, db.CreateAdminInitiatedDeletionRequestParams{
 			ID:             uuid.New(),
 			StudentID:      pgtype.UUID{Bytes: sid, Valid: true},
 			AuditorID:      pgtype.UUID{Bytes: auditorID, Valid: true},
@@ -51,14 +51,14 @@ func CreateAdminInitiatedDeletionRequests(c *gin.Context, studentIDs []uuid.UUID
 	return records, nil
 }
 
-func RunAdminInitiatedDeletions(ctx context.Context, authHeader string, records []privacyDTO.PrivacyDeletionRequest) {
+func (s *PrivacyService) RunAdminInitiatedDeletions(ctx context.Context, authHeader string, records []privacyDTO.PrivacyDeletionRequest) {
 	for _, rec := range records {
-		state, err := PrepareDataDeletion(ctx, rec)
+		state, err := s.PrepareDataDeletion(ctx, rec)
 		if err != nil {
 			log.WithError(err).WithField("requestID", rec.ID).Error("admin-initiated deletion: prepare failed")
-			MarkDeletionRequestFailed(ctx, rec.ID)
+			s.MarkDeletionRequestFailed(ctx, rec.ID)
 			continue
 		}
-		RunDataDeletion(ctx, authHeader, state)
+		s.RunDataDeletion(ctx, authHeader, state)
 	}
 }

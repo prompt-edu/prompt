@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func sendDeletionConfirmationMail(ctx context.Context, requestID uuid.UUID, recipientEmail string, status db.PrivacyDeletionRequestStatus) {
+func (s *PrivacyService) sendDeletionConfirmationMail(ctx context.Context, requestID uuid.UUID, recipientEmail string, status db.PrivacyDeletionRequestStatus) {
 	if recipientEmail == "" {
 		log.WithField("requestID", requestID).Info("skipping deletion confirmation mail: no recipient email on record")
 		return
@@ -34,7 +34,7 @@ func sendDeletionConfirmationMail(ctx context.Context, requestID uuid.UUID, reci
 			Error("failed to send deletion confirmation mail")
 	}
 
-	if err := PrivacyServiceSingleton.queries.ClearDeletionRequestRecipientEmail(ctx, requestID); err != nil {
+	if err := s.queries.ClearDeletionRequestRecipientEmail(ctx, requestID); err != nil {
 		log.WithError(err).WithField("requestID", requestID).
 			Warn("failed to clear recipient email after deletion confirmation")
 	}

@@ -30,19 +30,19 @@ type Export struct {
 	ExternalExports []ServiceExportRequest
 }
 
-func PrepareDataExport(c *gin.Context) (Export, error) {
+func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
 	if err != nil {
 		return Export{}, err
 	}
 
-	exportRecord, err := CreateExportRecord(c, subjectIdentifiers)
+	exportRecord, err := s.CreateExportRecord(c, subjectIdentifiers)
 	if err != nil {
 		return Export{}, err
 	}
 
 	// prepare core
-	coreDoc, err := PrepareExportRecordDoc(c, exportRecord.ID, "Core", "")
+	coreDoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, "Core", "")
 	if err != nil {
 		return Export{}, err
 	}
@@ -60,7 +60,7 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
 		if err != nil {
 			continue
 		}
-		comparedoc, err := PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
+		comparedoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
 		if err != nil {
 			continue
 		}
@@ -75,13 +75,13 @@ func PrepareDataExport(c *gin.Context) (Export, error) {
 	}, nil
 }
 
-func RunDataExport(ctx context.Context, authHeader string, exportState Export) {
+func (s *PrivacyService) RunDataExport(ctx context.Context, authHeader string, exportState Export) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
 	wg.Go(func() {
-		err := AggregateSubjectDataFromCore(ctx, exportState.CoreExport, exportState.Subject)
-		UpdateExportDocFileSize(ctx, exportState.CoreExport.ExportDoc.ID)
+		err := s.AggregateSubjectDataFromCore(ctx, exportState.CoreExport, exportState.Subject)
+		s.UpdateExportDocFileSize(ctx, exportState.CoreExport.ExportDoc.ID)
 		mu.Lock()
 		updateExportStateForRequest(err, &exportState.CoreExport)
 		mu.Unlock()
@@ -93,11 +93,11 @@ func RunDataExport(ctx context.Context, authHeader string, exportState Export) {
 		wg.Go(func() {
 			result := RequestExportFromCPM(exportState.ExternalExports[i], authHeader)
 
-			if setErr := SetExportDocStatus(context.WithoutCancel(ctx), exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
+			if setErr := s.SetExportDocStatus(context.WithoutCancel(ctx), exportState.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(result)); setErr != nil {
 				log.WithError(setErr).Error("failed to set export doc status")
 			}
 			if result == Successful {
-				UpdateExportDocFileSize(ctx, exportState.ExternalExports[i].ExportDoc.ID)
+				s.UpdateExportDocFileSize(ctx, exportState.ExternalExports[i].ExportDoc.ID)
 			}
 
 			mu.Lock()
@@ -108,7 +108,7 @@ func RunDataExport(ctx context.Context, authHeader string, exportState Export) {
 
 	wg.Wait()
 
-	updateExportState(ctx, &exportState)
+	s.updateExportState(ctx, &exportState)
 }
 
 func updateExportStateForRequest(callErr error, expReq *ServiceExportRequest) {
@@ -119,7 +119,7 @@ func updateExportStateForRequest(callErr error, expReq *ServiceExportRequest) {
 	}
 }
 
-func updateExportState(ctx context.Context, e *Export) {
+func (s *PrivacyService) updateExportState(ctx context.Context, e *Export) {
 	statusCtx := context.WithoutCancel(ctx)
 	failed := 0
 
@@ -132,7 +132,7 @@ func updateExportState(ctx context.Context, e *Export) {
 			failed++
 			if e.ExternalExports[i].Result == Pending {
 				log.Errorf("export doc %s still pending after request finished", e.ExternalExports[i].ExportDoc.ID)
-				if setErr := SetExportDocStatus(statusCtx, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
+				if setErr := s.SetExportDocStatus(statusCtx, e.ExternalExports[i].ExportDoc.ID, exportResultToDBStatus(Failed)); setErr != nil {
 					log.WithError(setErr).Error("failed to mark pending export doc as failed")
 				}
 			}
@@ -140,8 +140,8 @@ func updateExportState(ctx context.Context, e *Export) {
 	}
 
 	if failed > 0 {
-		UpdateExportStatus(fmt.Errorf("at least one request failed"), statusCtx, e.Record.ID)
+		s.UpdateExportStatus(fmt.Errorf("at least one request failed"), statusCtx, e.Record.ID)
 	} else {
-		UpdateExportStatus(nil, statusCtx, e.Record.ID)
+		s.UpdateExportStatus(nil, statusCtx, e.Record.ID)
 	}
 }

@@ -14,8 +14,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 )
 
-func AggregateSubjectDataFromCore(ctx context.Context, doc ServiceExportRequest, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
-	defer func() { UpdateExportDocStatus(err, context.WithoutCancel(ctx), doc.ExportDoc.ID) }()
+func (s *PrivacyService) AggregateSubjectDataFromCore(ctx context.Context, doc ServiceExportRequest, subjectIdentifiers sdk.SubjectIdentifiers) (err error) {
+	defer func() { s.UpdateExportDocStatus(err, context.WithoutCancel(ctx), doc.ExportDoc.ID) }()
 
 	ex, err := utils.NewExport()
 	if err != nil {

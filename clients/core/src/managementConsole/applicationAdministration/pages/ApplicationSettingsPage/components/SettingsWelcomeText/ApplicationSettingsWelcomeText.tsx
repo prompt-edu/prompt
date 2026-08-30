@@ -1,0 +1,90 @@
+import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
+import {
+  Button,
+  Card,
+  CardContent,
+  DescriptionMinimalTiptapEditor,
+  TooltipProvider,
+} from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
+
+interface ApplicationSettingsWelcomeTextProps {
+  initialData: ApplicationMetaData
+}
+
+const isBlankHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim() === ''
+
+export function ApplicationSettingsWelcomeText({
+  initialData,
+}: ApplicationSettingsWelcomeTextProps) {
+  const queryClient = useQueryClient()
+  const { phaseId } = useParams<{ phaseId: string }>()
+
+  const savedWelcomeText = initialData.welcomeText ?? ''
+  const [welcomeText, setWelcomeText] = useState(savedWelcomeText)
+
+  const {
+    mutate: mutatePhase,
+    isPending,
+    isError,
+  } = useMutation({
+    mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] }),
+  })
+
+  const handleSave = () => {
+    const updatedPhase: UpdateCoursePhase = {
+      id: phaseId ?? '',
+      restrictedData: {
+        // null clears the key, so an emptied editor does not leave an empty string behind
+        welcomeText: isBlankHtml(welcomeText) ? null : welcomeText,
+      },
+    }
+
+    mutatePhase(updatedPhase)
+  }
+
+  return (
+    <Card className='w-full'>
+      <CardContent>
+        <div className='mb-2 mt-5 space-y-4'>
+          <div>
+            <h3 className='text-lg font-semibold'>Welcome Text</h3>
+            <p className='text-sm text-muted-foreground'>
+              An optional text shown to applicants above the application form, for example to help
+              them confirm they are applying for the right course.
+            </p>
+          </div>
+
+          <TooltipProvider>
+            <DescriptionMinimalTiptapEditor
+              value={welcomeText}
+              onChange={(value) => setWelcomeText(typeof value === 'string' ? value : '')}
+              className='w-full'
+              editorContentClassName='p-3'
+              output='html'
+              placeholder='Type your welcome text here...'
+              autofocus={false}
+              editable={true}
+              editorClassName='focus:outline-hidden'
+            />
+          </TooltipProvider>
+
+          {isError && <p className='text-sm text-red-600'>Error saving welcome text</p>}
+
+          <div className='flex justify-end'>
+            <Button onClick={handleSave} disabled={isPending || welcomeText === savedWelcomeText}>
+              {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              Save Welcome Text
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

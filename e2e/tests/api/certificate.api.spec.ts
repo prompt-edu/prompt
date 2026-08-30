@@ -53,6 +53,26 @@ test.describe('certificate API auth', () => {
     expect(res.status()).toBe(200)
   })
 
+  test('rejects a student on the config endpoint', async ({ apiAs }) => {
+    // The config payload carries the full Typst template, so students are not
+    // admitted; their page reads the instructor text from certificate/status.
+    const api = await apiAs('student')
+    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    expect(res.status()).toBe(401)
+  })
+
+  test('rejects a student and a course editor on the student page text endpoint', async ({
+    apiAs,
+  }) => {
+    for (const role of ['student', 'course-editor'] as const) {
+      const api = await apiAs(role)
+      const res = await api.put(certificateUrl(PHASE_ID, 'config/student-page-text'), {
+        data: { studentPageText: 'nope' },
+      })
+      expect(res.status(), `role ${role}`).toBe(401)
+    }
+  })
+
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(certificateUrl(CERTIFICATE_FOREIGN_PHASE_ID, 'certificate/status'))

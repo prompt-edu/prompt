@@ -52,9 +52,18 @@ export async function setReleaseDate(
   await put(role, phaseId, 'config/release-date', { releaseDate })
 }
 
+export async function setStudentPageText(
+  phaseId: string,
+  studentPageText: string | null,
+  role: Role = 'lecturer',
+): Promise<void> {
+  await put(role, phaseId, 'config/student-page-text', { studentPageText })
+}
+
 // Idempotent teardown so CI retries (which reuse the ephemeral DB) stay
 // deterministic. Certificate downloads cannot be un-recorded, but clearing the
 // release date restores the phase's release gating.
 export async function resetCertificatePhase(phaseId: string, role: Role = 'admin'): Promise<void> {
   await setReleaseDate(phaseId, null, role)
+  await setStudentPageText(phaseId, null, role)
 }

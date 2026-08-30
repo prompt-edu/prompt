@@ -131,10 +131,12 @@ export const CERTIFICATE_PHASES = {
 // URL). One phase per mutating spec file so template/release-date state and
 // download recording never leak between parallel Playwright files:
 // `lecturer` hosts the lecturer journey (template + release + participants),
-// `student` the student self-download journey (Stan participates in both).
+// `student` the student self-download journey, and `studentPageText` the
+// instructor download-page message (Stan participates in all three).
 export const CERTIFICATE_FIXTURE_PHASES = {
   lecturer: 'd000000a-0000-0000-0000-00000000000a',
   student: 'd000000b-0000-0000-0000-00000000000b',
+  studentPageText: 'd0000016-0000-0000-0000-000000000016',
 }
 
 // Certificate phase on TestCourse with NO participants: requests by the e2e

@@ -19,8 +19,8 @@ import (
 // It copies phases, metadata, DTO mappings, graphs, and the application form if present.
 // It also creates course-specific Keycloak roles and groups.
 // The function runs within a database transaction.
-func copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariables courseCopyDTO.CopyCourseRequest, requesterID string) (courseDTO.Course, error) {
-	sourceCourse, err := CourseCopyServiceSingleton.queries.GetCourse(c, sourceCourseID)
+func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariables courseCopyDTO.CopyCourseRequest, requesterID string) (courseDTO.Course, error) {
+	sourceCourse, err := s.queries.GetCourse(c, sourceCourseID)
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to fetch source course: %w", err)
 	}
@@ -73,12 +73,12 @@ func copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariable
 		}
 	}
 
-	tx, err := CourseCopyServiceSingleton.conn.Begin(c)
+	tx, err := s.conn.Begin(c)
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer sdkUtils.DeferRollback(tx, c)
-	qtx := CourseCopyServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	createCourseParams, err := newCourse.GetDBModel()
 	if err != nil {
@@ -136,7 +136,7 @@ func copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariable
 		}
 	}
 
-	if err := CourseCopyServiceSingleton.createCourseGroupsAndRoles(c, createdCourse.Name, createdCourse.SemesterTag.String, requesterID); err != nil {
+	if err := s.createCourseGroupsAndRoles(c, createdCourse.Name, createdCourse.SemesterTag.String, requesterID); err != nil {
 		log.Error("failed to create keycloak roles for course: ", err)
 		return courseDTO.Course{}, fmt.Errorf("failed to create keycloak roles/groups: %w", err)
 	}
@@ -145,7 +145,7 @@ func copyCourseInternal(c *gin.Context, sourceCourseID uuid.UUID, courseVariable
 		return courseDTO.Course{}, fmt.Errorf("failed to commit course transaction: %w", err)
 	}
 
-	if err := copyPhaseConfigurations(c, phaseIDMap); err != nil {
+	if err := s.copyPhaseConfigurations(c, phaseIDMap); err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to copy phase configurations: %w", err)
 	}
 

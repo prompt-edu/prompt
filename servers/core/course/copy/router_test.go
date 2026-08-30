@@ -28,7 +28,7 @@ type CourseCopyRouterTestSuite struct {
 	router            *gin.Engine
 	ctx               context.Context
 	cleanup           func()
-	courseCopyService CourseCopyService
+	courseCopyService *CourseCopyService
 }
 
 func (suite *CourseCopyRouterTestSuite) SetupSuite() {
@@ -46,13 +46,7 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseCopyService = CourseCopyService{
-		queries:                    *testDB.Queries,
-		conn:                       testDB.Conn,
-		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
-	}
-
-	CourseCopyServiceSingleton = &suite.courseCopyService
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles)
 
 	// Init the permissionValidation service
 	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
@@ -60,7 +54,7 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 	// Initialize router
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupCourseCopyRouter(api, func() gin.HandlerFunc {
+	setupCourseCopyRouter(api, suite.courseCopyService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)

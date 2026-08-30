@@ -199,13 +199,15 @@ func main() {
 	auth.RegisterRoutes(api, authService)
 	initMailing(api, *query, conn)
 	student.InitStudentModule(api, *query, conn)
-	course.InitCourseModule(api, *query, conn)
+	courseService := course.NewCourseService(*query, conn, keycloakRealmManager.CreateCourseGroupsAndRoles, keycloakRealmManager.DeleteCourseGroupsAndRoles)
+	course.RegisterRoutes(api, courseService)
 	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"))
 	courseMailing.RegisterRoutes(api, courseMailingService)
 	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
 	// background so a slow/degraded database at boot doesn't delay server startup.
 	go courseMailingService.ReconcileStuckCampaigns(context.Background())
-	copy.InitCourseCopyModule(api, *query, conn)
+	courseCopyService := copy.NewCourseCopyService(*query, conn, keycloakRealmManager.CreateCourseGroupsAndRoles)
+	copy.RegisterRoutes(api, courseCopyService)
 	coursePhase.InitCoursePhaseModule(api, *query, conn)
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)

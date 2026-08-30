@@ -25,7 +25,7 @@ type CourseTestSuite struct {
 	router        *gin.Engine
 	ctx           context.Context
 	cleanup       func()
-	courseService CourseService
+	courseService *CourseService
 }
 
 func (suite *CourseTestSuite) SetupSuite() {
@@ -38,12 +38,7 @@ func (suite *CourseTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = CourseService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	CourseServiceSingleton = &suite.courseService
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, nil, nil)
 	suite.router = gin.Default()
 }
 

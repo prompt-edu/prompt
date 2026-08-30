@@ -19,18 +19,28 @@ type CourseCopyService struct {
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
 }
 
-var CourseCopyServiceSingleton *CourseCopyService
+func NewCourseCopyService(
+	queries db.Queries,
+	conn *pgxpool.Pool,
+	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error,
+) *CourseCopyService {
+	return &CourseCopyService{
+		queries:                    queries,
+		conn:                       conn,
+		createCourseGroupsAndRoles: createCourseGroupsAndRoles,
+	}
+}
 
-func CheckAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]string, error) {
-	missing, err := checkAllCoursePhasesCopyable(c, sourceCourseID)
+func (s *CourseCopyService) CheckAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]string, error) {
+	missing, err := s.checkAllCoursePhasesCopyable(c, sourceCourseID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check course phases copyable: %w", err)
 	}
 	return missing, nil
 }
 
-func CopyCourse(c *gin.Context, sourceCourseID uuid.UUID, courseVariables courseCopyDTO.CopyCourseRequest, requesterID string) (courseDTO.Course, error) {
-	course, err := copyCourseInternal(c, sourceCourseID, courseVariables, requesterID)
+func (s *CourseCopyService) CopyCourse(c *gin.Context, sourceCourseID uuid.UUID, courseVariables courseCopyDTO.CopyCourseRequest, requesterID string) (courseDTO.Course, error) {
+	course, err := s.copyCourseInternal(c, sourceCourseID, courseVariables, requesterID)
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("course copy failed: %w", err)
 	}

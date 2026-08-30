@@ -29,7 +29,7 @@ type CourseRouterTestSuite struct {
 	router        *gin.Engine
 	ctx           context.Context
 	cleanup       func()
-	courseService CourseService
+	courseService *CourseService
 }
 
 func (suite *CourseRouterTestSuite) SetupSuite() {
@@ -50,14 +50,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = CourseService{
-		queries:                    *testDB.Queries,
-		conn:                       testDB.Conn,
-		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
-		deleteCourseGroupsAndRoles: mockDeleteGroupsAndRoles,
-	}
-
-	CourseServiceSingleton = &suite.courseService
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
 	// Init the permissionValidation service
 	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
@@ -65,7 +58,7 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	// Initialize router
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupCourseRouter(api, func() gin.HandlerFunc {
+	setupCourseRouter(api, suite.courseService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
 	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
@@ -150,7 +143,7 @@ func (suite *CourseRouterTestSuite) TestArchiveCourse() {
 
 	// Verify DB state
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetCourse(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetCourse(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedCourse.Archived, "Course should be archived")
 	assert.True(suite.T(), updatedCourse.ArchivedOn.Valid, "ArchivedOn should be set")
@@ -198,7 +191,7 @@ func (suite *CourseRouterTestSuite) TestUnarchiveCourse() {
 
 	// Verify DB state
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetCourse(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetCourse(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), updatedCourse.Archived, "Course should be unarchived")
 	assert.False(suite.T(), updatedCourse.ArchivedOn.Valid, "ArchivedOn should be NULL")
@@ -289,7 +282,7 @@ func (suite *CourseRouterTestSuite) TestUpdateCourseTemplateStatus() {
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetTemplateCourseByID(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetTemplateCourseByID(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedCourse.Template, "Course should be marked as a template")
 }

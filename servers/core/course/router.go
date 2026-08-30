@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -14,36 +15,45 @@ import (
 
 // Id Middleware for all routes with a course id
 // Role middleware for all without id -> possible additional filtering in subroutes required
-// setupCourseRouter sets up the course endpoints
+// RegisterRoutes mounts the course endpoints on the given router group.
 // @Summary Course Endpoints
 // @Description Endpoints for managing courses and course graphs
 // @Tags courses
 // @Security BearerAuth
-func setupCourseRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, service *CourseService) {
+	setupCourseRouter(router, service, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole, checkAccessControlByIDWrapper)
+}
+
+// initializes the handler func with CheckCoursePermissions
+func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
+	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid", allowedRoles...)
+}
+
+func setupCourseRouter(router *gin.RouterGroup, s *CourseService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	course := router.Group("/courses", authMiddleware())
-	course.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), getAllCourses)
-	course.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getCourseByID)
-	course.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), createCourse)
-	course.PUT("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateCoursePhaseOrder)
-	course.GET("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getCoursePhaseGraph)
-	course.GET("/:uuid/participation_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getParticipationDataGraph)
-	course.PUT("/:uuid/participation_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateParticipationDataGraph)
-	course.GET("/:uuid/phase_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getPhaseDataGraph)
-	course.PUT("/:uuid/phase_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updatePhaseDataGraph)
+	course.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getAllCourses)
+	course.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCourseByID)
+	course.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.createCourse)
+	course.PUT("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhaseOrder)
+	course.GET("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCoursePhaseGraph)
+	course.GET("/:uuid/participation_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getParticipationDataGraph)
+	course.PUT("/:uuid/participation_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateParticipationDataGraph)
+	course.GET("/:uuid/phase_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getPhaseDataGraph)
+	course.PUT("/:uuid/phase_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updatePhaseDataGraph)
 
-	course.PUT("/:uuid/archive", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), archiveCourse)
+	course.PUT("/:uuid/archive", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.archiveCourse)
 
-	course.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateCourseData)
-	course.GET("/self", getOwnCourses)
+	course.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCourseData)
+	course.GET("/self", s.getOwnCourses)
 
-	course.PUT("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateCourseTemplateStatus)
-	course.GET("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), checkCourseTemplateStatus)
+	course.PUT("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCourseTemplateStatus)
+	course.GET("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.checkCourseTemplateStatus)
 
-	course.GET("/template", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getTemplateCourses)
+	course.GET("/template", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getTemplateCourses)
 
-	course.GET("/check-name", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), checkCourseNameAvailability)
+	course.GET("/check-name", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.checkCourseNameAvailability)
 
-	course.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteCourse)
+	course.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteCourse)
 }
 
 // getOwnCourses godoc
@@ -53,7 +63,7 @@ func setupCourseRouter(router *gin.RouterGroup, authMiddleware func() gin.Handle
 // @Produce json
 // @Success 200 {array} uuid.UUID
 // @Router /courses/self [get]
-func getOwnCourses(c *gin.Context) {
+func (s *CourseService) getOwnCourses(c *gin.Context) {
 	matriculationNumber := c.GetString("matriculationNumber")
 	universityLogin := c.GetString("universityLogin")
 
@@ -65,7 +75,7 @@ func getOwnCourses(c *gin.Context) {
 		return
 	}
 
-	courseIDs, err := GetOwnCourseIDs(c, matriculationNumber, universityLogin)
+	courseIDs, err := s.GetOwnCourseIDs(c, matriculationNumber, universityLogin)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -83,7 +93,7 @@ func getOwnCourses(c *gin.Context) {
 // @Failure 403 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/ [get]
-func getAllCourses(c *gin.Context) {
+func (s *CourseService) getAllCourses(c *gin.Context) {
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
 		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
@@ -92,7 +102,7 @@ func getAllCourses(c *gin.Context) {
 
 	userRoles := rolesVal.(map[string]bool)
 
-	courses, err := GetAllCourses(c, userRoles)
+	courses, err := s.GetAllCourses(c, userRoles)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -111,14 +121,14 @@ func getAllCourses(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid} [get]
-func getCourseByID(c *gin.Context) {
+func (s *CourseService) getCourseByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	course, err := GetCourseByID(c, id)
+	course, err := s.GetCourseByID(c, id)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to get course"))
@@ -139,7 +149,7 @@ func getCourseByID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/ [post]
-func createCourse(c *gin.Context) {
+func (s *CourseService) createCourse(c *gin.Context) {
 	userID := c.GetString("userID")
 
 	var newCourse courseDTO.CreateCourse
@@ -153,7 +163,7 @@ func createCourse(c *gin.Context) {
 		return
 	}
 
-	course, err := CreateCourse(c, newCourse, userID)
+	course, err := s.CreateCourse(c, newCourse, userID)
 	if err != nil {
 		if errors.Is(err, ErrDuplicateCourseIdentifier) {
 			handleError(c, http.StatusConflict, err)
@@ -177,7 +187,7 @@ func createCourse(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/check-name [get]
-func checkCourseNameAvailability(c *gin.Context) {
+func (s *CourseService) checkCourseNameAvailability(c *gin.Context) {
 	name := c.Query("name")
 	semesterTag := c.Query("semesterTag")
 	if name == "" || semesterTag == "" {
@@ -185,7 +195,7 @@ func checkCourseNameAvailability(c *gin.Context) {
 		return
 	}
 
-	exists, err := CheckCourseNameExists(c, name, semesterTag)
+	exists, err := s.CheckCourseNameExists(c, name, semesterTag)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to check course name availability"))
@@ -205,14 +215,14 @@ func checkCourseNameAvailability(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/phase_graph [get]
-func getCoursePhaseGraph(c *gin.Context) {
+func (s *CourseService) getCoursePhaseGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	graph, err := GetCoursePhaseGraph(c, courseID)
+	graph, err := s.GetCoursePhaseGraph(c, courseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -231,14 +241,14 @@ func getCoursePhaseGraph(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participation_data_graph [get]
-func getParticipationDataGraph(c *gin.Context) {
+func (s *CourseService) getParticipationDataGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	graph, err := GetParticipationDataGraph(c, courseID)
+	graph, err := s.GetParticipationDataGraph(c, courseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -257,14 +267,14 @@ func getParticipationDataGraph(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/phase_data_graph [get]
-func getPhaseDataGraph(c *gin.Context) {
+func (s *CourseService) getPhaseDataGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	graph, err := GetPhaseDataGraph(c, courseID)
+	graph, err := s.GetPhaseDataGraph(c, courseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -285,7 +295,7 @@ func getPhaseDataGraph(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/phase_graph [put]
-func updateCoursePhaseOrder(c *gin.Context) {
+func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -303,7 +313,7 @@ func updateCoursePhaseOrder(c *gin.Context) {
 		return
 	}
 
-	err = UpdateCoursePhaseOrder(c, courseID, graphUpdate)
+	err = s.UpdateCoursePhaseOrder(c, courseID, graphUpdate)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to update course phase order"))
@@ -325,14 +335,14 @@ func updateCoursePhaseOrder(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participation_data_graph [put]
-func updateParticipationDataGraph(c *gin.Context) {
+func (s *CourseService) updateParticipationDataGraph(c *gin.Context) {
 	newGraph, courseID, err := parseAndValidateMetaDataGraph(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = UpdateParticipationDataGraph(c, courseID, newGraph)
+	err = s.UpdateParticipationDataGraph(c, courseID, newGraph)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
@@ -354,14 +364,14 @@ func updateParticipationDataGraph(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/phase_data_graph [put]
-func updatePhaseDataGraph(c *gin.Context) {
+func (s *CourseService) updatePhaseDataGraph(c *gin.Context) {
 	newGraph, courseID, err := parseAndValidateMetaDataGraph(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = UpdatePhaseDataGraph(c, courseID, newGraph)
+	err = s.UpdatePhaseDataGraph(c, courseID, newGraph)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
@@ -401,7 +411,7 @@ func parseAndValidateMetaDataGraph(c *gin.Context) ([]courseDTO.MetaDataGraphIte
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/archive [put]
-func archiveCourse(c *gin.Context) {
+func (s *CourseService) archiveCourse(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -414,7 +424,7 @@ func archiveCourse(c *gin.Context) {
 		return
 	}
 
-	updatedCourse, err := UpdateCourseArchiveStatus(c, courseID, update.Archived)
+	updatedCourse, err := s.UpdateCourseArchiveStatus(c, courseID, update.Archived)
 	if err != nil {
 		utils.RespondWithDBError(c, err)
 		return
@@ -435,7 +445,7 @@ func archiveCourse(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid} [put]
-func updateCourseData(c *gin.Context) {
+func (s *CourseService) updateCourseData(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -454,7 +464,7 @@ func updateCourseData(c *gin.Context) {
 		return
 	}
 
-	err = UpdateCourseData(c, courseID, update)
+	err = s.UpdateCourseData(c, courseID, update)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to update course data"))
@@ -474,14 +484,14 @@ func updateCourseData(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid} [delete]
-func deleteCourse(c *gin.Context) {
+func (s *CourseService) deleteCourse(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = DeleteCourse(c, courseID)
+	err = s.DeleteCourse(c, courseID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))
@@ -503,7 +513,7 @@ func deleteCourse(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/template [put]
-func updateCourseTemplateStatus(c *gin.Context) {
+func (s *CourseService) updateCourseTemplateStatus(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -516,7 +526,7 @@ func updateCourseTemplateStatus(c *gin.Context) {
 		return
 	}
 
-	err = UpdateCourseTemplateStatus(c, courseID, update.IsTemplate)
+	err = s.UpdateCourseTemplateStatus(c, courseID, update.IsTemplate)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to update course template status"))
@@ -535,7 +545,7 @@ func updateCourseTemplateStatus(c *gin.Context) {
 // @Failure 403 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/template [get]
-func getTemplateCourses(c *gin.Context) {
+func (s *CourseService) getTemplateCourses(c *gin.Context) {
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
 		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
@@ -544,7 +554,7 @@ func getTemplateCourses(c *gin.Context) {
 
 	userRoles := rolesVal.(map[string]bool)
 
-	courses, err := GetTemplateCourses(c, userRoles)
+	courses, err := s.GetTemplateCourses(c, userRoles)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -563,14 +573,14 @@ func getTemplateCourses(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/template [get]
-func checkCourseTemplateStatus(c *gin.Context) {
+func (s *CourseService) checkCourseTemplateStatus(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	isTemplate, err := CheckCourseTemplateStatus(c, courseID)
+	isTemplate, err := s.CheckCourseTemplateStatus(c, courseID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to check if course is template"))

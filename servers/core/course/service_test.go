@@ -26,7 +26,7 @@ type CourseServiceTestSuite struct {
 	router        *gin.Engine
 	ctx           context.Context
 	cleanup       func()
-	courseService CourseService
+	courseService *CourseService
 }
 
 func (suite *CourseServiceTestSuite) SetupSuite() {
@@ -47,14 +47,7 @@ func (suite *CourseServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = CourseService{
-		queries:                    *testDB.Queries,
-		conn:                       testDB.Conn,
-		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
-		deleteCourseGroupsAndRoles: mockDeleteGroupsAndRoles,
-	}
-
-	CourseServiceSingleton = &suite.courseService
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
 	// Initialize CoursePhase module
 	suite.router = gin.Default()
@@ -66,7 +59,7 @@ func (suite *CourseServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCourses() {
-	courses, err := GetAllCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(courses), 11, "Expected all courses")
 
@@ -77,7 +70,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCourses() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCoursesWithRestriction() {
-	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Lecturer": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Lecturer": true})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, len(courses), "Expected to get only one course")
 
@@ -88,7 +81,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithRestriction() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
-	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Student": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Student": true})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, len(courses), "Expected to get only one course")
 
@@ -103,7 +96,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
 // Archived courses must remain visible to their instructors (lecturers/editors)
 // so they can still review older results. See issue #1264.
 func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructor() {
-	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true})
 	assert.NoError(suite.T(), err)
 	require.Len(suite.T(), courses, 1, "Expected the archived course to be visible to its instructor")
 	assert.True(suite.T(), courses[0].Archived, "Returned course should be archived")
@@ -111,7 +104,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructo
 
 // Student-only users must not see archived courses (preserves prior behavior).
 func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent() {
-	courses, err := GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, len(courses), "Archived course should be hidden from student-only users")
 }
@@ -119,7 +112,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent(
 func (suite *CourseServiceTestSuite) TestGetCourseByID() {
 	courseID := uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e")
 
-	course, err := GetCourseByID(suite.ctx, courseID)
+	course, err := suite.courseService.GetCourseByID(suite.ctx, courseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), courseID, course.ID, "Course ID should match")
 	assert.NotEmpty(suite.T(), course.CoursePhases, "Course should have phases")
@@ -137,7 +130,7 @@ func (suite *CourseServiceTestSuite) TestCreateCourse() {
 		Ects:                pgtype.Int4{Int32: 10, Valid: true},
 	}
 
-	createdCourse, err := CreateCourse(suite.ctx, newCourse, "test_user")
+	createdCourse, err := suite.courseService.CreateCourse(suite.ctx, newCourse, "test_user")
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newCourse.Name, createdCourse.Name, "Course name should match")
 	assert.Equal(suite.T(), "practical course", createdCourse.CourseType, "Course type should match")
@@ -165,11 +158,11 @@ func (suite *CourseServiceTestSuite) TestUpdateCoursePhaseOrder() {
 		},
 	}
 
-	err := UpdateCoursePhaseOrder(suite.ctx, courseID, graphUpdate)
+	err := suite.courseService.UpdateCoursePhaseOrder(suite.ctx, courseID, graphUpdate)
 	assert.NoError(suite.T(), err, "Updating course phase order should not produce an error")
 
 	// Verify phase order has been updated
-	course, err := GetCourseByID(suite.ctx, courseID)
+	course, err := suite.courseService.GetCourseByID(suite.ctx, courseID)
 	assert.NoError(suite.T(), err, "Fetching updated course should not produce an error")
 
 	var firstCoursePhase, secondCoursePhase, thirdCoursePhase *coursePhaseDTO.CoursePhaseSequence
@@ -202,30 +195,30 @@ func (suite *CourseServiceTestSuite) TestUpdateCoursePhaseOrder() {
 
 func (suite *CourseServiceTestSuite) TestCheckCourseTemplateStatusTrue() {
 	courseID := uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e")
-	status, err := CheckCourseTemplateStatus(suite.ctx, courseID)
+	status, err := suite.courseService.CheckCourseTemplateStatus(suite.ctx, courseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), status, "Course should be a template")
 }
 
 func (suite *CourseServiceTestSuite) TestCheckCourseTemplateStatusFalse() {
 	courseID := uuid.MustParse("918977e1-2d27-4b55-9064-8504ff027a1a")
-	status, err := CheckCourseTemplateStatus(suite.ctx, courseID)
+	status, err := suite.courseService.CheckCourseTemplateStatus(suite.ctx, courseID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), status, "Course should not be a template")
 }
 
 func (suite *CourseServiceTestSuite) TestUpdateCourseTemplateStatus() {
 	courseID := uuid.MustParse("918977e1-2d27-4b55-9064-8504ff027a1a")
-	err := UpdateCourseTemplateStatus(suite.ctx, courseID, true)
+	err := suite.courseService.UpdateCourseTemplateStatus(suite.ctx, courseID, true)
 	assert.NoError(suite.T(), err, "Updating course template status should not produce an error")
 
-	status, err := CourseServiceSingleton.queries.CheckCourseTemplateStatus(suite.ctx, courseID)
+	status, err := suite.courseService.queries.CheckCourseTemplateStatus(suite.ctx, courseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), status, "Course should now be a template")
 }
 
 func (suite *CourseServiceTestSuite) TestGetTemplateCourses() {
-	courses, err := GetTemplateCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
+	courses, err := suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), courses, "Template courses should not be empty")
 

@@ -17,7 +17,9 @@ interface ApplicationSettingsWelcomeTextProps {
   initialData: ApplicationMetaData
 }
 
-const isBlankHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim() === ''
+// An emptied rich text editor still emits markup like `<p></p>`, which must count
+// as no welcome text at all.
+const normalizeHtml = (html: string) => (html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html)
 
 export function ApplicationSettingsWelcomeText({
   initialData,
@@ -25,8 +27,11 @@ export function ApplicationSettingsWelcomeText({
   const queryClient = useQueryClient()
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const savedWelcomeText = initialData.welcomeText ?? ''
-  const [welcomeText, setWelcomeText] = useState(savedWelcomeText)
+  const [welcomeText, setWelcomeText] = useState(initialData.welcomeText ?? '')
+  const [savedWelcomeText, setSavedWelcomeText] = useState(initialData.welcomeText ?? '')
+
+  const normalizedWelcomeText = normalizeHtml(welcomeText)
+  const hasChanges = normalizedWelcomeText !== savedWelcomeText
 
   const {
     mutate: mutatePhase,
@@ -34,15 +39,18 @@ export function ApplicationSettingsWelcomeText({
     isError,
   } = useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] }),
+    onSuccess: (_, coursePhase) => {
+      setSavedWelcomeText((coursePhase.restrictedData?.welcomeText as string | null) ?? '')
+      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+    },
   })
 
   const handleSave = () => {
     const updatedPhase: UpdateCoursePhase = {
       id: phaseId ?? '',
       restrictedData: {
-        // null clears the key, so an emptied editor does not leave an empty string behind
-        welcomeText: isBlankHtml(welcomeText) ? null : welcomeText,
+        // null clears the key, so an emptied editor does not leave a blank string behind
+        welcomeText: normalizedWelcomeText === '' ? null : normalizedWelcomeText,
       },
     }
 
@@ -50,7 +58,7 @@ export function ApplicationSettingsWelcomeText({
   }
 
   return (
-    <Card className='w-full'>
+    <Card className='w-full' data-testid='application-welcome-text'>
       <CardContent>
         <div className='mb-2 mt-5 space-y-4'>
           <div>
@@ -78,7 +86,11 @@ export function ApplicationSettingsWelcomeText({
           {isError && <p className='text-sm text-red-600'>Error saving welcome text</p>}
 
           <div className='flex justify-end'>
-            <Button onClick={handleSave} disabled={isPending || welcomeText === savedWelcomeText}>
+            <Button
+              data-testid='application-welcome-text-save'
+              onClick={handleSave}
+              disabled={isPending || !hasChanges}
+            >
               {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               Save Welcome Text
             </Button>

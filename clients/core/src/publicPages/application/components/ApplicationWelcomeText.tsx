@@ -10,7 +10,7 @@ export const ApplicationWelcomeText = ({ welcomeText }: ApplicationWelcomeTextPr
   }
 
   return (
-    <div className='max-w-3xl mx-auto text-left'>
+    <div className='max-w-3xl mx-auto text-left' data-testid='application-welcome-text-content'>
       <FormDescriptionHTML
         htmlCode={welcomeText}
         className='text-base text-muted-foreground leading-relaxed'

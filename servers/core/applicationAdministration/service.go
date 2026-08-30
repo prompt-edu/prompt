@@ -188,9 +188,6 @@ func (s *ApplicationService) cleanupReplacedFiles(ctx context.Context, fileIDs [
 	if len(fileIDs) == 0 {
 		return
 	}
-	if s.files == nil {
-		return
-	}
 
 	seenFileIDs := make(map[uuid.UUID]struct{}, len(fileIDs))
 	for _, fileID := range fileIDs {

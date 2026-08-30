@@ -31,7 +31,7 @@ type ApplicationImportTestSuite struct {
 	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
-	applicationAdminService ApplicationService
+	applicationAdminService *ApplicationService
 }
 
 func (suite *ApplicationImportTestSuite) SetupSuite() {
@@ -43,12 +43,7 @@ func (suite *ApplicationImportTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = ApplicationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	ApplicationServiceSingleton = &suite.applicationAdminService
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
 	coursePhase.InitCoursePhaseModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
@@ -116,10 +111,10 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_Success() {
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 
-	result, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	result, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 2, result.Created)
 	assert.Equal(suite.T(), 0, result.Updated)
@@ -172,7 +167,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_NotAssessedStatu
 		},
 	}
 
-	result, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	result, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, result.Created)
 	assert.Equal(suite.T(), "not_assessed", suite.passStatusForParticipation(*result.Rows[0].CourseParticipationID, importApplicationPhaseID))
@@ -198,13 +193,13 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportIdempote
 		},
 	}
 
-	first, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	first, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, first.Created)
 
 	// Change the answer to verify overwrite (not duplicate) on re-import.
 	req.Rows[0].Answers[0].Answer = "second"
-	second, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	second, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, second.Created)
 	assert.Equal(suite.T(), 1, second.Updated)
@@ -250,7 +245,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportPreserve
 			}},
 		},
 	}
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, full)
+	_, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, full)
 	assert.NoError(suite.T(), err)
 
 	// Re-import the same student with only the required fields; optional attributes are omitted.
@@ -263,7 +258,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportPreserve
 			}},
 		},
 	}
-	_, err = PostApplicationImport(suite.ctx, importApplicationPhaseID, partial)
+	_, err = suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, partial)
 	assert.NoError(suite.T(), err)
 
 	stored, err := suite.applicationAdminService.queries.GetStudentByUniversityLogin(suite.ctx, pgtype.Text{String: "ka01abc", Valid: true})
@@ -291,7 +286,7 @@ func (suite *ApplicationImportTestSuite) TestImport_StudentRoleResolvedWithoutMa
 		},
 	}
 
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	_, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 
 	// The token at login carries no matriculation number.
@@ -325,7 +320,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_RejectApplyMode(
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "import mode")
 }
@@ -342,7 +337,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_DuplicateLoginRe
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "duplicate university login")
 }
@@ -358,7 +353,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidEmailReje
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 }
 
@@ -376,7 +371,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_UnknownAnswerCol
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "does not map to an import question")
 }
@@ -397,7 +392,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_DuplicateQuestio
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "duplicate question title")
 }
@@ -416,7 +411,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidAllowedLe
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "allowed length")
 }
@@ -440,11 +435,11 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_AnswerExceedingA
 
 	// validateApplicationImport rejects it before the transaction, so the handler maps it to a 400
 	// (client error) instead of a 500.
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
 
-	_, err = PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	_, err = suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length")
 	assert.ErrorIs(suite.T(), err, ErrImportAnswerTooLong)
@@ -470,8 +465,8 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReuseUsesPersist
 			},
 		},
 	}
-	assert.NoError(suite.T(), validateApplicationImport(suite.ctx, importApplicationPhaseID, create))
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, create)
+	assert.NoError(suite.T(), suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, create))
+	_, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, create)
 	assert.NoError(suite.T(), err)
 
 	// Re-import the same title with a larger requested limit and an answer that fits the request but
@@ -488,7 +483,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReuseUsesPersist
 			},
 		},
 	}
-	err = validateApplicationImport(suite.ctx, importApplicationPhaseID, reuse)
+	err = suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, reuse)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "exceeds the allowed length of 10")
 }
@@ -509,7 +504,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportKeepsMan
 		},
 	}
 
-	first, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	first, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, first.Created)
 	participationID := *first.Rows[0].CourseParticipationID
@@ -522,7 +517,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_ReImportKeepsMan
 
 	// Re-importing the same roster with the default status must not flip the manual decision.
 	req.PassStatus = db.PassStatusPassed
-	second, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	second, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, second.Created)
 	assert.Equal(suite.T(), 1, second.Updated)
@@ -545,7 +540,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_QuestionDefaults
 			{Student: studentDTO.CreateStudent{FirstName: "Def", LastName: "Aults", Email: "def.aults@example.com", UniversityLogin: "da01abc"}},
 		},
 	}
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	_, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 
 	var accessible pgtype.Bool
@@ -576,7 +571,7 @@ func (suite *ApplicationImportTestSuite) TestImport_RoleNotResolvedForStoredMatr
 			}},
 		},
 	}
-	_, err := PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	_, err := suite.applicationAdminService.PostApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.NoError(suite.T(), err)
 
 	// A token missing the matriculation claim must not match this student, who carries one.
@@ -608,7 +603,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_DuplicateEmailRe
 		},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "duplicate email")
 }
@@ -625,7 +620,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_EmptyRowsRejecte
 		Rows: []applicationDTO.ImportRow{},
 	}
 
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, req)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "no rows")
 }
@@ -644,7 +639,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidOptionalF
 			}},
 		},
 	}
-	err := validateApplicationImport(suite.ctx, importApplicationPhaseID, semesterReq)
+	err := suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, semesterReq)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "semester is invalid")
 
@@ -658,7 +653,7 @@ func (suite *ApplicationImportTestSuite) TestImportApplications_InvalidOptionalF
 			}},
 		},
 	}
-	err = validateApplicationImport(suite.ctx, importApplicationPhaseID, degreeReq)
+	err = suite.applicationAdminService.validateApplicationImport(suite.ctx, importApplicationPhaseID, degreeReq)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "study degree is invalid")
 }

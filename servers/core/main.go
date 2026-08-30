@@ -201,7 +201,11 @@ func main() {
 	coursePhase.InitCoursePhaseModule(api, *query, conn)
 	courseParticipation.InitCourseParticipationModule(api, *query, conn)
 	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)
-	applicationAdministration.InitApplicationAdministrationModule(api, *query, conn)
+	applicationService := applicationAdministration.NewApplicationService(*query, conn)
+	applicationAdministration.RegisterRoutes(api, applicationService)
+	if err := applicationService.InitializeApplicationCoursePhaseType(context.Background()); err != nil {
+		log.Fatal("failed to init application phase type: ", err)
+	}
 	instructorNote.InitInstructorNoteModule(api, *query, conn)
 
 	if err := files.Init(*query, conn); err != nil {
@@ -212,7 +216,7 @@ func main() {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacyService := service.NewPrivacyService(*query, conn)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService)
 	privacy.RegisterRoutes(api, privacyService, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 	privacyService.StartExportDeletionRoutine(context.Background())
 

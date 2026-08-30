@@ -25,7 +25,7 @@ type ApplicationAdminValidationTestSuite struct {
 	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
-	applicationAdminService ApplicationService
+	applicationAdminService *ApplicationService
 }
 
 func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
@@ -38,12 +38,7 @@ func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = ApplicationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	ApplicationServiceSingleton = &suite.applicationAdminService
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 }
 
@@ -73,7 +68,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Success
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.NoError(suite.T(), err)
 }
 
@@ -82,7 +77,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 	updateForm := applicationDTO.UpdateForm{
 		DeleteQuestionsText: []uuid.UUID{uuid.New()}, // Non-existent question
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "question does not belong to this course", err.Error())
 }
@@ -98,7 +93,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase id is not correct", err.Error())
 }
@@ -116,7 +111,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "minimum selection must be at least 0", err.Error())
 }
@@ -168,7 +163,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_Invali
 		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{},
 	}
 
-	err := validateApplication(suite.ctx, coursePhaseID, application, false)
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "invalid student", err.Error())
 }
@@ -196,7 +191,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_Invali
 		},
 	}
 
-	err := validateApplication(suite.ctx, coursePhaseID, application, false)
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "required question")
 }
@@ -390,7 +385,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_S
 		PassStatus: &passStatus,
 	}
 
-	err := validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err := suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.NoError(suite.T(), err)
 }
 
@@ -399,7 +394,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_N
 	courseParticipationID := uuid.MustParse("82d7efae-d545-4cc5-9b94-5d0ee1e50d25")
 	assessment := applicationDTO.PutAssessment{}
 
-	err := validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err := suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase is not an assessment phase", err.Error())
 }
@@ -417,7 +412,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_I
 		RestrictedData: restrictedData,
 	}
 
-	err = validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err = suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "invalid meta data key - not allowed to update other meta data", err.Error())
 }

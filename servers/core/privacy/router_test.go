@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
@@ -206,7 +207,7 @@ func (suite *RouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
-	suite.privacyService = service.NewPrivacyService(*testDB.Queries, testDB.Conn)
+	suite.privacyService = service.NewPrivacyService(*testDB.Queries, testDB.Conn, applicationAdministration.NewApplicationService(*testDB.Queries, testDB.Conn))
 	authService.InitAuthService(*testDB.Queries, testDB.Conn)
 	privacyexport.InitWithAdapter(&storage.MockStorageAdapter{})
 

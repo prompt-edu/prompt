@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/utils"
-	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -29,7 +28,7 @@ func (s *PrivacyService) AggregateSubjectDataFromCore(ctx context.Context, doc S
 	}
 
 	if subjectIdentifiers.StudentID != uuid.Nil {
-		getSubjectDataForStudent(ctx, ex, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs)
+		s.getSubjectDataForStudent(ctx, ex, subjectIdentifiers.StudentID, subjectIdentifiers.CourseParticipationIDs)
 	}
 
 	err = ex.UploadTo(ctx, doc.PresignedUploadURL)
@@ -44,7 +43,7 @@ func getSubjectDataForUser(ctx context.Context, ex *utils.Export, userUUID uuid.
 
 }
 
-func getSubjectDataForStudent(ctx context.Context, ex *utils.Export, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID) {
+func (s *PrivacyService) getSubjectDataForStudent(ctx context.Context, ex *utils.Export, studentUUID uuid.UUID, courseParticipationUUIDs []uuid.UUID) {
 
 	ex.AddJSON("Student record", "student/student_record.json", func() (any, error) {
 		return student.GetStudentByID(ctx, studentUUID)
@@ -59,15 +58,15 @@ func getSubjectDataForStudent(ctx context.Context, ex *utils.Export, studentUUID
 	})
 
 	ex.AddJSON("Application Data", "student/application.json", func() (any, error) {
-		return applicationAdministration.GetAllApplicationAnswers(ctx, courseParticipationUUIDs)
+		return s.applications.GetAllApplicationAnswers(ctx, courseParticipationUUIDs)
 	})
 
-	addApplicationFiles(ctx, ex, courseParticipationUUIDs)
+	s.addApplicationFiles(ctx, ex, courseParticipationUUIDs)
 
 }
 
-func addApplicationFiles(ctx context.Context, ex *utils.Export, courseParticipationUUIDs []uuid.UUID) {
-	for _, answer := range applicationAdministration.GetApplicationFileUploadAnswersWithFileRecord(ctx, courseParticipationUUIDs) {
+func (s *PrivacyService) addApplicationFiles(ctx context.Context, ex *utils.Export, courseParticipationUUIDs []uuid.UUID) {
+	for _, answer := range s.applications.GetApplicationFileUploadAnswersWithFileRecord(ctx, courseParticipationUUIDs) {
 		fileID := answer.FileID
 		questionTitle := answer.QuestionTitle
 		ex.AddFile(

@@ -46,12 +46,12 @@ type applicationCompleteUploadRequest struct {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/{coursePhaseID}/files/presign [post]
-func presignApplicationUploadExternal(c *gin.Context) {
+func (s *ApplicationService) presignApplicationUploadExternal(c *gin.Context) {
 	coursePhaseID, ok := parseCoursePhaseID(c)
 	if !ok {
 		return
 	}
-	if !ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
 		return
 	}
 
@@ -87,12 +87,12 @@ func presignApplicationUploadExternal(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/{coursePhaseID}/files/complete [post]
-func completeApplicationUploadExternal(c *gin.Context) {
+func (s *ApplicationService) completeApplicationUploadExternal(c *gin.Context) {
 	coursePhaseID, ok := parseCoursePhaseID(c)
 	if !ok {
 		return
 	}
-	if !ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
 		return
 	}
 
@@ -131,7 +131,7 @@ func completeApplicationUploadExternal(c *gin.Context) {
 // @Failure 401 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID}/files/presign [post]
-func presignApplicationUploadAuthenticated(c *gin.Context) {
+func (s *ApplicationService) presignApplicationUploadAuthenticated(c *gin.Context) {
 	if _, ok := getUserID(c); !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return
@@ -142,7 +142,7 @@ func presignApplicationUploadAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if !ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
 		return
 	}
 
@@ -180,7 +180,7 @@ func presignApplicationUploadAuthenticated(c *gin.Context) {
 // @Failure 401 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID}/files/complete [post]
-func completeApplicationUploadAuthenticated(c *gin.Context) {
+func (s *ApplicationService) completeApplicationUploadAuthenticated(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
@@ -192,7 +192,7 @@ func completeApplicationUploadAuthenticated(c *gin.Context) {
 		return
 	}
 
-	if !ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
 		return
 	}
 
@@ -238,7 +238,7 @@ func completeApplicationUploadAuthenticated(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID}/files/{fileId} [delete]
-func deleteApplicationFileAuthenticated(c *gin.Context) {
+func (s *ApplicationService) deleteApplicationFileAuthenticated(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
@@ -250,7 +250,7 @@ func deleteApplicationFileAuthenticated(c *gin.Context) {
 		return
 	}
 
-	importMode, err := IsImportModePhase(c.Request.Context(), coursePhaseID)
+	importMode, err := s.IsImportModePhase(c.Request.Context(), coursePhaseID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not resolve course phase"})
 		return
@@ -390,11 +390,11 @@ func parseTags(tags string) []string {
 	return result
 }
 
-func ensureOpenApplicationPhase(c *gin.Context, coursePhaseID uuid.UUID) bool {
+func (s *ApplicationService) ensureOpenApplicationPhase(c *gin.Context, coursePhaseID uuid.UUID) bool {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(c.Request.Context())
 	defer cancel()
 
-	applicationDetails, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
+	applicationDetails, err := s.queries.CheckIfCoursePhaseIsOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Could not validate application phase")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not validate application phase"})

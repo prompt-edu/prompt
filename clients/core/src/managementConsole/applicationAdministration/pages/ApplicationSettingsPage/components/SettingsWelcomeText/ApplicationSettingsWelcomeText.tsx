@@ -20,7 +20,7 @@ interface ApplicationSettingsWelcomeTextProps {
 // An emptied rich text editor still emits markup like `<p></p>`, which must count
 // as no welcome text at all. Elements that render on their own carry no text, so
 // they have to be recognised before the tags are stripped.
-const CONTENT_WITHOUT_TEXT = /<(img|hr|br|iframe|video|audio|table)\b/i
+const CONTENT_WITHOUT_TEXT = /<(img|hr|iframe|video|audio|table)\b/i
 
 const normalizeHtml = (html: string) =>
   !CONTENT_WITHOUT_TEXT.test(html) && html.replace(/<[^>]*>/g, '').trim() === '' ? '' : html

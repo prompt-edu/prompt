@@ -10,7 +10,8 @@ import (
 func InitAllocationModule(routerGroup *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
 	setupAllocationRouter(routerGroup, promptSDK.AuthenticationMiddleware, queries)
 	AllocationServiceSingleton = &AllocationService{
-		queries: queries,
-		conn:    conn,
+		queries:             queries,
+		conn:                conn,
+		resolveParticipants: DefaultParticipantResolver(),
 	}
 }

@@ -634,6 +634,8 @@ INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPrak
 -- phase is the negative-auth fixture.
 INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
+INSERT INTO public.course_participation VALUES ('ca000009-0000-4000-8000-000000000009', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000009-0000-0000-0000-000000000009');
+INSERT INTO public.course_participation VALUES ('ca000010-0000-4000-8000-000000000010', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000010-0000-0000-0000-000000000010');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
 -- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
@@ -1025,6 +1027,13 @@ INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Nicl
 -- its full-course participation resolves to a DB-derived Student role.
 INSERT INTO public.student VALUES ('e0000005-0000-0000-0000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the privacy deletion-approval spec, which deletes this student. Nothing
+-- else may reference it; it maps to the Keycloak user `privacy-student`.
+INSERT INTO public.student VALUES ('e0000009-0000-0000-0000-000000000009', 'Priya', 'Vacy', 'privacy_subject@example.com', '00000009', 'pv99tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the admin-initiated deletion spec. last_modified is far enough in the
+-- past to match the student table's "not modified in N years" filter, which a student
+-- created during the run never can. No Keycloak account: admins delete this one.
+INSERT INTO public.student VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
 
 
 --

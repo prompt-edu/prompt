@@ -220,3 +220,26 @@ export const CUSTOM_SCORES_APPLICATION = {
   scoredApplicant: { email: 'pgdp_enjoyer@example.com', score: '87.5' },
   unscoredApplicant: { email: 'second_student@example.com' },
 }
+
+// Privacy (GDPR) fixtures. Both subjects are owned exclusively by the privacy
+// suite, because those journeys delete the subject they operate on.
+export const PRIVACY_SUBJECTS = {
+  // Maps to the Keycloak user `privacy-student`; the deletion-approval spec
+  // requests its own deletion and an admin approves it, so it disappears.
+  deletionApproval: {
+    id: 'e0000009-0000-0000-0000-000000000009',
+    firstName: 'Priya',
+    lastName: 'Vacy',
+    name: 'Priya Vacy',
+    email: 'privacy_subject@example.com',
+  },
+  // No Keycloak account. last_modified is 2015, so it is the only student the
+  // "not modified in N years" filter can select.
+  inactive: {
+    id: 'e0000010-0000-0000-0000-000000000010',
+    firstName: 'Ida',
+    lastName: 'Inactive',
+    name: 'Ida Inactive',
+    email: 'inactive_subject@example.com',
+  },
+}

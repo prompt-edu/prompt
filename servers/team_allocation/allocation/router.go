@@ -2,17 +2,23 @@ package allocation
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
+
+const maxAllocationBodyBytes = 4 << 10
 
 func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
 	allocationRouter := routerGroup.Group("/allocation")
@@ -20,6 +26,8 @@ func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllocationByCourseParticipationID)
+	allocationRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, updateAllocation)
+	allocationRouter.DELETE("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, deleteAllocation)
 }
 
 // getAllAllocations godoc
@@ -106,6 +114,178 @@ func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipa
 		}
 	}
 	return result
+}
+
+// updateAllocation godoc
+// @Summary Assign a participant to a team
+// @Description Assign a course participation to a team. Lecturers and admins may write any team; a tutor may only write the team they are assigned to, and only for a participant who is unallocated or already in that team.
+// @Tags allocation
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param courseParticipationID path string true "Course Participation UUID"
+// @Param request body allocationDTO.UpdateAllocationRequest true "Target team"
+// @Success 200 {object} allocationDTO.Allocation
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 413 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [put]
+func updateAllocation(c *gin.Context) {
+	coursePhaseID, courseParticipationID, ok := parseAllocationParams(c)
+	if !ok {
+		return
+	}
+
+	var request allocationDTO.UpdateAllocationRequest
+	if !bindAllocationJSON(c, &request) {
+		return
+	}
+	if request.TeamID == uuid.Nil {
+		handleError(c, http.StatusBadRequest, errors.New("teamID is required"))
+		return
+	}
+
+	expectedTeamID, allowed := authorizeAllocationWrite(c)
+	if !allowed {
+		denyAllocationWrite(c)
+		return
+	}
+	if expectedTeamID.Valid && request.TeamID != uuid.UUID(expectedTeamID.Bytes) {
+		denyAllocationWrite(c)
+		return
+	}
+
+	err := UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, expectedTeamID)
+	switch {
+	case err == nil:
+		c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: request.TeamID})
+	case errors.Is(err, ErrTeamWriteDenied):
+		denyAllocationWrite(c)
+	case errors.Is(err, ErrParticipantNotInPhase), errors.Is(err, ErrInvalidTeamForPhase):
+		handleError(c, http.StatusBadRequest, err)
+	case errors.Is(err, ErrParticipantLookup):
+		handleError(c, http.StatusBadGateway, err)
+	default:
+		handleError(c, http.StatusInternalServerError, err)
+	}
+}
+
+// deleteAllocation godoc
+// @Summary Remove a participant's team allocation
+// @Description Remove the team allocation of a course participation. Lecturers and admins may remove any; a tutor may only remove one from the team they are assigned to.
+// @Tags allocation
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param courseParticipationID path string true "Course Participation UUID"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [delete]
+func deleteAllocation(c *gin.Context) {
+	coursePhaseID, courseParticipationID, ok := parseAllocationParams(c)
+	if !ok {
+		return
+	}
+
+	expectedTeamID, allowed := authorizeAllocationWrite(c)
+	if !allowed {
+		denyAllocationWrite(c)
+		return
+	}
+
+	err := DeleteAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID)
+	switch {
+	case err == nil:
+		c.Status(http.StatusNoContent)
+	case errors.Is(err, ErrAllocationNotFound):
+		if isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID) {
+			denyAllocationWrite(c)
+			return
+		}
+		handleError(c, http.StatusNotFound, err)
+	default:
+		handleError(c, http.StatusInternalServerError, err)
+	}
+}
+
+func parseAllocationParams(c *gin.Context) (coursePhaseID, courseParticipationID uuid.UUID, ok bool) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil || coursePhaseID == uuid.Nil {
+		handleError(c, http.StatusBadRequest, errors.New("invalid course phase id"))
+		return uuid.Nil, uuid.Nil, false
+	}
+
+	courseParticipationID, err = uuid.Parse(c.Param("courseParticipationID"))
+	if err != nil || courseParticipationID == uuid.Nil {
+		handleError(c, http.StatusBadRequest, errors.New("invalid course participation id"))
+		return uuid.Nil, uuid.Nil, false
+	}
+
+	return coursePhaseID, courseParticipationID, true
+}
+
+// authorizeAllocationWrite reports whether the requester may write allocations and,
+// for a tutor, which source team the write is confined to. Reads deliberately fail
+// open for editors the scoping middleware cannot resolve; writes fail closed.
+// Authorization is decided from the team resolved at the start of the request.
+func authorizeAllocationWrite(c *gin.Context) (pgtype.UUID, bool) {
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		return pgtype.UUID{}, false
+	}
+
+	if tokenUser.Roles[promptSDK.PromptAdmin] || tokenUser.Roles[promptSDK.PromptLecturer] || tokenUser.IsLecturer {
+		return pgtype.UUID{}, true
+	}
+
+	if !tokenUser.IsEditor {
+		return pgtype.UUID{}, false
+	}
+
+	tutorTeamID, scoped := promptSDK.GetTutorTeamID(c)
+	if !scoped {
+		return pgtype.UUID{}, false
+	}
+
+	return pgtype.UUID{Bytes: tutorTeamID, Valid: true}, true
+}
+
+// isForeignTeamAllocation classifies a delete that affected no rows. It only picks
+// the status code, it never grants access: the scoped delete has already not happened.
+func isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) bool {
+	if !expectedTeamID.Valid {
+		return false
+	}
+	_, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	return err == nil
+}
+
+func denyAllocationWrite(c *gin.Context) {
+	c.JSON(http.StatusForbidden, gin.H{"error": ErrTeamWriteDenied.Error()})
+}
+
+func bindAllocationJSON(c *gin.Context, target any) bool {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxAllocationBodyBytes)
+	if err := c.ShouldBindJSON(target); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			handleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxAllocationBodyBytes))
+			return false
+		}
+		if errors.Is(err, io.EOF) {
+			handleError(c, http.StatusBadRequest, errors.New("request body is required"))
+			return false
+		}
+		handleError(c, http.StatusBadRequest, err)
+		return false
+	}
+	return true
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

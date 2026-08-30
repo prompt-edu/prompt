@@ -12,6 +12,13 @@ definitions:
       teamAllocation:
         type: string
     type: object
+  allocationDTO.UpdateAllocationRequest:
+    properties:
+      teamID:
+        type: string
+    required:
+    - teamID
+    type: object
   db.SkillLevel:
     enum:
     - very_bad
@@ -335,6 +342,55 @@ paths:
       tags:
       - allocation
   /course_phase/{coursePhaseID}/allocation/{courseParticipationID}:
+    delete:
+      description: Remove the team allocation of a course participation. Lecturers
+        and admins may remove any; a tutor may only remove one from the team they
+        are assigned to.
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course Participation UUID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Remove a participant's team allocation
+      tags:
+      - allocation
     get:
       description: Get the team allocation for a specific course participation
       parameters:
@@ -382,6 +438,71 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get allocation by course participation ID
+      tags:
+      - allocation
+    put:
+      consumes:
+      - application/json
+      description: Assign a course participation to a team. Lecturers and admins may
+        write any team; a tutor may only write the team they are assigned to, and
+        only for a participant who is unallocated or already in that team.
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course Participation UUID
+        in: path
+        name: courseParticipationID
+        required: true
+        type: string
+      - description: Target team
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/allocationDTO.UpdateAllocationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/allocationDTO.Allocation'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Assign a participant to a team
       tags:
       - allocation
   /course_phase/{coursePhaseID}/skill:

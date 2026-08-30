@@ -66,9 +66,6 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 	}
 	setupApplicationRouter(api, suite.applicationAdminService, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	student.RegisterRoutes(suite.router.Group("/api"), studentService)
-	courseParticipation.RegisterRoutes(suite.router.Group("/api"), courseParticipationService)
-	mailing.RegisterRoutes(api, mailingService)
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TearDownSuite() {

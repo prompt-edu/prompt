@@ -5,7 +5,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,7 +31,6 @@ var importApplicationPhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fa
 // the questions and participations it creates do not leak into the other application suites.
 type ApplicationImportTestSuite struct {
 	suite.Suite
-	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
 	applicationAdminService *ApplicationService
@@ -55,9 +53,6 @@ func (suite *ApplicationImportTestSuite) SetupSuite() {
 	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
 	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
 	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
-	suite.router = gin.Default()
-	student.RegisterRoutes(suite.router.Group("/api"), studentService)
-	courseParticipation.RegisterRoutes(suite.router.Group("/api"), courseParticipationService)
 }
 
 func (suite *ApplicationImportTestSuite) TearDownSuite() {

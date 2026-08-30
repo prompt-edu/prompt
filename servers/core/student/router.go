@@ -6,15 +6,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // RegisterRoutes mounts the student endpoints on the given router group.
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *StudentService) {
-	setupStudentRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *StudentService, authMiddleware func() gin.HandlerFunc) {
+	setupStudentRouter(routerGroup, service, authMiddleware, permissionValidation.CheckAccessControlByRole)
 }
 
 func setupStudentRouter(router *gin.RouterGroup, s *StudentService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

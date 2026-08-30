@@ -14,9 +14,9 @@ import (
 
 const ingestService = "interview"
 
-// ingestRouter mounts only the ingest route: the read routes of
-// RegisterRoutes need the Keycloak and permission-validation singletons,
-// which are irrelevant to the ingest contract.
+// ingestRouter mounts only the ingest route: the authentication and
+// access-control middleware of the read routes is irrelevant to the ingest
+// contract.
 func (s *AuditLogTestSuite) ingestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

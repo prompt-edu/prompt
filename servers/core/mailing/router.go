@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
@@ -17,12 +16,14 @@ import (
 // @Description Endpoints for sending status mails
 // @Tags mailing
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *MailingService) {
-	setupMailingRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *MailingService, authMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) {
+	setupMailingRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePhasePermission))
 }
 
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePhasePermission, "coursePhaseID", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "coursePhaseID", allowedRoles...)
+	}
 }
 
 func setupMailingRouter(router *gin.RouterGroup, s *MailingService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

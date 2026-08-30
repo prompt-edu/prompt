@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,7 +29,6 @@ import (
 
 type ApplicationAdminServiceTestSuite struct {
 	suite.Suite
-	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
 	applicationAdminService *ApplicationService
@@ -54,9 +52,6 @@ func (suite *ApplicationAdminServiceTestSuite) SetupSuite() {
 	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
 	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
 	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
-	suite.router = gin.Default()
-	student.RegisterRoutes(suite.router.Group("/api"), studentService)
-	courseParticipation.RegisterRoutes(suite.router.Group("/api"), courseParticipationService)
 
 }
 

@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
@@ -19,16 +18,20 @@ import (
 // @Description Endpoints for managing course phases
 // @Tags course_phases
 // @Security BearerAuth
-func RegisterRoutes(router *gin.RouterGroup, service *CoursePhaseService) {
-	setupCoursePhaseRouter(router, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper, checkAccessControlByCourseIDWrapper)
+func RegisterRoutes(router *gin.RouterGroup, service *CoursePhaseService, authMiddleware func() gin.HandlerFunc, checkCoursePhasePermission, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupCoursePhaseRouter(router, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePhasePermission), checkAccessControlByCourseIDWrapper(checkCoursePermission))
 }
 
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePhasePermission, "uuid", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
 }
 
-func checkAccessControlByCourseIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "courseID", allowedRoles...)
+func checkAccessControlByCourseIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "courseID", allowedRoles...)
+	}
 }
 
 func setupCoursePhaseRouter(router *gin.RouterGroup, s *CoursePhaseService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware, permissionCourseIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

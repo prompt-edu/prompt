@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation/courseParticipationDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
@@ -16,13 +15,15 @@ import (
 // @Description Endpoints for managing course participations
 // @Tags course_participation
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *CourseParticipationService) {
-	setupCourseParticipationRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CourseParticipationService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupCourseParticipationRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
 }
 
 // initializes the handler func with CheckCoursePermissions
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
 }
 
 func setupCourseParticipationRouter(router *gin.RouterGroup, s *CourseParticipationService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

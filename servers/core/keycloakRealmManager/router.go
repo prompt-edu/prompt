@@ -18,13 +18,15 @@ import (
 // @Description Endpoints for managing Keycloak groups and students
 // @Tags keycloak
 // @Security BearerAuth
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *KeycloakRealmService) {
-	setupKeycloakRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *KeycloakRealmService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupKeycloakRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
 }
 
 // initializes the handler func with CheckCoursePermissions
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "courseID", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "courseID", allowedRoles...)
+	}
 }
 
 func setupKeycloakRouter(router *gin.RouterGroup, s *KeycloakRealmService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

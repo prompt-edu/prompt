@@ -14,7 +14,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -37,9 +36,6 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	authService := service.NewAuthService(*testDB.Queries, courseParticipation.NewCourseParticipationService(*testDB.Queries))
-
-	// Init the permissionValidation service.
-	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
 
 	// Initialize router.
 	suite.router = gin.Default()

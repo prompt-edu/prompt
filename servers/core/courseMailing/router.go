@@ -19,13 +19,15 @@ import (
 // @Description Endpoints for managing per-course mail campaigns
 // @Tags course_mailing
 // @Security BearerAuth
-func RegisterRoutes(router *gin.RouterGroup, service *CourseMailingService) {
-	setupCourseMailingRouter(router, service, keycloakTokenVerifier.KeycloakMiddleware, checkAccessControlByIDWrapper)
+func RegisterRoutes(router *gin.RouterGroup, service *CourseMailingService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupCourseMailingRouter(router, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
 }
 
 // checkAccessControlByIDWrapper enforces course-level permissions on the :uuid param.
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
 }
 
 func setupCourseMailingRouter(router *gin.RouterGroup, s *CourseMailingService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

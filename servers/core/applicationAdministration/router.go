@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -19,13 +18,15 @@ import (
 // @Description Endpoints for managing applications and application forms
 // @Tags applications
 // @Security BearerAuth
-func RegisterRoutes(router *gin.RouterGroup, service *ApplicationService) {
-	setupApplicationRouter(router, service, keycloakTokenVerifier.KeycloakMiddleware, keycloakTokenVerifier.ApplicationMiddleware, checkAccessControlByIDWrapper)
+func RegisterRoutes(router *gin.RouterGroup, service *ApplicationService, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) {
+	setupApplicationRouter(router, service, authMiddleware, applicationMiddleware, checkAccessControlByIDWrapper(checkCoursePhasePermission))
 }
 
 // initializes the handler func with CheckCoursePermissions
-func checkAccessControlByIDWrapper(allowedRoles ...string) gin.HandlerFunc {
-	return permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePhasePermission, "coursePhaseID", allowedRoles...)
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "coursePhaseID", allowedRoles...)
+	}
 }
 
 func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

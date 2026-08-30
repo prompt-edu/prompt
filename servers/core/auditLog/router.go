@@ -14,7 +14,6 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -52,12 +51,9 @@ func getAuditLogStatus(c *gin.Context) {
 }
 
 // RegisterRoutes mounts the audit read and ingest endpoints and starts the
-// retention pruner. Call it after permissionValidation is initialized (the read
-// routes use its access-control middleware). Only the status probe is mounted
-// unless AUDIT_ENABLED is set; it pairs with RegisterCapture.
-func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService) {
-	authMiddleware := keycloakTokenVerifier.KeycloakMiddleware
-
+// retention pruner. Only the status probe is mounted unless AUDIT_ENABLED is
+// set; it pairs with RegisterCapture.
+func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
 	// The feature-toggle probe is registered even when audit logging is off, so
 	// the client can hide the UI instead of requesting routes that do not exist.
 	api.GET("/audit-log/status", authMiddleware(), getAuditLogStatus)
@@ -75,7 +71,7 @@ func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService) {
 	// Per-course log (course lecturers of that course, or admins).
 	api.GET("/courses/:uuid/audit-log",
 		authMiddleware(),
-		permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid",
+		permissionValidation.CheckAccessControlByID(checkCoursePermission, "uuid",
 			permissionValidation.CourseLecturer, permissionValidation.PromptAdmin),
 		service.listCourseAuditLog)
 

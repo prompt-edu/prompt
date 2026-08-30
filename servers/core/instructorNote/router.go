@@ -6,14 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote/instructorNoteDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // RegisterRoutes mounts the instructor note endpoints on the given router group.
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *InstructorNoteService) {
-	setupInstructorNoteRouter(routerGroup, service, keycloakTokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *InstructorNoteService, authMiddleware func() gin.HandlerFunc) {
+	setupInstructorNoteRouter(routerGroup, service, authMiddleware, permissionValidation.CheckAccessControlByRole)
 }
 
 func setupInstructorNoteRouter(router *gin.RouterGroup, s *InstructorNoteService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {

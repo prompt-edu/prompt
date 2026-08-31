@@ -125,7 +125,8 @@ func main() {
 	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, promptSDK.AuthenticationMiddleware)
 	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
 	interview_assignment.RegisterRoutes(coursePhaseApi, interviewAssignmentService, promptSDK.AuthenticationMiddleware)
-	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
+	interviewReviewService := interview_review.NewInterviewReviewService(*query)
+	interview_review.RegisterRoutes(coursePhaseApi, interviewReviewService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

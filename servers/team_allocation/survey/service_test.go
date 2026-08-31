@@ -3,6 +3,7 @@ package survey
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -72,6 +73,23 @@ func (suite *SurveyServiceTestSuite) TestGetSurveyTimeframeNonExistent() {
 	timeframe, err := GetSurveyTimeframe(suite.suiteCtx, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent timeframe")
 	assert.False(suite.T(), timeframe.TimeframeSet, "Timeframe should not be set")
+}
+
+func (suite *SurveyServiceTestSuite) TestSetSurveyTimeframePreservesInstantForNonUTCZone() {
+	berlin, err := time.LoadLocation("Europe/Berlin")
+	assert.NoError(suite.T(), err)
+
+	coursePhaseID := uuid.New()
+	start := time.Date(2026, 1, 15, 12, 34, 56, 123456000, berlin)
+	deadline := start.Add(48 * time.Hour)
+
+	err = SetSurveyTimeframe(suite.suiteCtx, coursePhaseID, start, deadline)
+	assert.NoError(suite.T(), err)
+
+	timeframe, err := GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), start.Equal(timeframe.SurveyStart))
+	assert.True(suite.T(), deadline.Equal(timeframe.SurveyDeadline))
 }
 
 func TestSurveyServiceTestSuite(t *testing.T) {

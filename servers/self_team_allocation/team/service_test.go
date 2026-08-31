@@ -216,8 +216,8 @@ func (suite *TeamsServiceTestSuite) createTeam(coursePhaseID uuid.UUID, name str
 func (suite *TeamsServiceTestSuite) setTimeframe(coursePhaseID uuid.UUID, start, end time.Time) {
 	err := suite.testDB.Queries.SetTimeframe(suite.ctx, db.SetTimeframeParams{
 		CoursePhaseID: coursePhaseID,
-		Starttime:     pgtype.Timestamp{Time: start, Valid: true},
-		Endtime:       pgtype.Timestamp{Time: end, Valid: true},
+		Starttime:     pgtype.Timestamptz{Time: start, Valid: true},
+		Endtime:       pgtype.Timestamptz{Time: end, Valid: true},
 	})
 	require.NoError(suite.T(), err)
 }

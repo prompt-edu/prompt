@@ -44,9 +44,8 @@ func SetTimeframe(ctx context.Context, coursePhaseID uuid.UUID, startTime, endTi
 		return errors.New("team allocation end date must be before start date")
 	}
 
-	var startTimestamp, deadlineTimestamp pgtype.Timestamp
-	startTimestamp = pgtype.Timestamp{Time: startTime, Valid: true}
-	deadlineTimestamp = pgtype.Timestamp{Time: endTime, Valid: true}
+	startTimestamp := pgtype.Timestamptz{Time: startTime, Valid: true}
+	deadlineTimestamp := pgtype.Timestamptz{Time: endTime, Valid: true}
 
 	err := TimeframeServiceSingleton.queries.SetTimeframe(ctx, db.SetTimeframeParams{
 		CoursePhaseID: coursePhaseID,

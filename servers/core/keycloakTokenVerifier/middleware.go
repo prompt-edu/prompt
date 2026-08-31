@@ -22,7 +22,7 @@ import (
 //
 // If any validation fails, the request is aborted with an appropriate HTTP status code.
 // On success, "resourceAccess" is attached to the context for further use.
-func KeycloakMiddleware() gin.HandlerFunc {
+func (v *KeycloakTokenVerifier) KeycloakMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString, err := extractBearerToken(c)
 		if err != nil {
@@ -31,7 +31,7 @@ func KeycloakMiddleware() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		idToken, err := verifier.Verify(ctx, tokenString)
+		idToken, err := v.verifier.Verify(ctx, tokenString)
 		if err != nil {
 			logTokenVerificationFailure(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
@@ -45,7 +45,7 @@ func KeycloakMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if !checkAuthorizedParty(claims, KeycloakTokenVerifierSingleton.expectedAuthorizedParty) {
+		if !checkAuthorizedParty(claims, v.expectedAuthorizedParty) {
 			log.Error("Token authorized party mismatch")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token authorized party mismatch"})
 			return
@@ -85,14 +85,14 @@ func KeycloakMiddleware() gin.HandlerFunc {
 		}
 
 		// Retrieve all user's roles from the token (if any) for the audience prompt-server (clientID)
-		userRoles, err := checkKeycloakRoles(claims)
+		userRoles, err := v.checkKeycloakRoles(claims)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "could not authenticate user"})
 			return
 		}
 
 		// Retrieve all student roles from the DB
-		studentRoles, err := getStudentRoles(matriculationNumber, universityLogin)
+		studentRoles, err := v.getStudentRoles(matriculationNumber, universityLogin)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "could not authenticate user"})
 			return
@@ -169,9 +169,9 @@ func checkAudience(claims map[string]interface{}, expectedClientID string) bool 
 	return false
 }
 
-func checkKeycloakRoles(claims map[string]interface{}) (map[string]bool, error) {
+func (v *KeycloakTokenVerifier) checkKeycloakRoles(claims map[string]interface{}) (map[string]bool, error) {
 	userRoles := make(map[string]bool)
-	if !checkAudience(claims, KeycloakTokenVerifierSingleton.ClientID) {
+	if !checkAudience(claims, v.ClientID) {
 		log.Debug("No keycloak roles found for ClientID")
 		return userRoles, nil
 	}
@@ -183,7 +183,7 @@ func checkKeycloakRoles(claims map[string]interface{}) (map[string]bool, error) 
 		return nil, errors.New("could not authenticate user")
 	}
 
-	rolesInterface, ok := resourceAccess[KeycloakTokenVerifierSingleton.ClientID].(map[string]interface{})["roles"]
+	rolesInterface, ok := resourceAccess[v.ClientID].(map[string]interface{})["roles"]
 	if !ok {
 		log.Error("Failed to extract roles from resource access")
 		return nil, errors.New("could not authenticate user")
@@ -221,7 +221,7 @@ func checkAuthorizedParty(claims map[string]interface{}, expectedAuthorizedParty
 	return azp == expectedAuthorizedParty
 }
 
-func getStudentRoles(matriculationNumber, universityLogin string) ([]string, error) {
+func (v *KeycloakTokenVerifier) getStudentRoles(matriculationNumber, universityLogin string) ([]string, error) {
 	ctx := context.Background()
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -236,7 +236,7 @@ func getStudentRoles(matriculationNumber, universityLogin string) ([]string, err
 	}
 
 	// Retrieve course roles from the DB
-	studentRoles, err := KeycloakTokenVerifierSingleton.queries.GetStudentRoleStrings(ctxWithTimeout, db.GetStudentRoleStringsParams{
+	studentRoles, err := v.queries.GetStudentRoleStrings(ctxWithTimeout, db.GetStudentRoleStringsParams{
 		MatriculationNumber: pgtype.Text{String: matriculationNumber, Valid: true},
 		UniversityLogin:     pgtype.Text{String: universityLogin, Valid: true},
 	})

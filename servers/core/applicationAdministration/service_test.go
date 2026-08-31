@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,8 +15,12 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
@@ -26,10 +29,9 @@ import (
 
 type ApplicationAdminServiceTestSuite struct {
 	suite.Suite
-	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
-	applicationAdminService ApplicationService
+	applicationAdminService *ApplicationService
 }
 
 func (suite *ApplicationAdminServiceTestSuite) SetupSuite() {
@@ -42,17 +44,14 @@ func (suite *ApplicationAdminServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = ApplicationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	ApplicationServiceSingleton = &suite.applicationAdminService
-	suite.router = gin.Default()
-	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	coursePhase.InitCoursePhaseModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
+	resolutionService := resolution.NewResolutionService("localhost:8080")
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService)
+	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService)
+	studentService := student.NewStudentService(*testDB.Queries)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*testDB.Queries)
+	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
+	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 
 }
 
@@ -63,7 +62,7 @@ func (suite *ApplicationAdminServiceTestSuite) TearDownSuite() {
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_Success() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	form, err := GetApplicationForm(suite.ctx, coursePhaseID)
+	form, err := suite.applicationAdminService.GetApplicationForm(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), form)
 	assert.NotEmpty(suite.T(), form.QuestionsText)
@@ -117,7 +116,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_Success() 
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationForm_NotApplicationPhase() {
 	nonApplicationPhaseID := uuid.MustParse("7062236a-e290-487c-be41-29b24e0afc64")
 
-	_, err := GetApplicationForm(suite.ctx, nonApplicationPhaseID)
+	_, err := suite.applicationAdminService.GetApplicationForm(suite.ctx, nonApplicationPhaseID)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase is not an application phase", err.Error())
 }
@@ -156,11 +155,11 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationForm_Success
 		},
 	}
 
-	err := UpdateApplicationForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.UpdateApplicationForm(suite.ctx, coursePhaseID, updateForm)
 	assert.NoError(suite.T(), err)
 
 	// Verify updates
-	form, err := GetApplicationForm(suite.ctx, coursePhaseID)
+	form, err := suite.applicationAdminService.GetApplicationForm(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), form)
 
@@ -212,13 +211,13 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationForm_NotAppl
 	nonApplicationPhaseID := uuid.MustParse("7062236a-e290-487c-be41-29b24e0afc64")
 	updateForm := applicationDTO.UpdateForm{}
 
-	err := UpdateApplicationForm(suite.ctx, nonApplicationPhaseID, updateForm)
+	err := suite.applicationAdminService.UpdateApplicationForm(suite.ctx, nonApplicationPhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase is not an application phase", err.Error())
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestGetOpenApplicationPhases_Success() {
-	openPhases, err := GetOpenApplicationPhases(suite.ctx)
+	openPhases, err := suite.applicationAdminService.GetOpenApplicationPhases(suite.ctx)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), openPhases)
 	assert.Greater(suite.T(), len(openPhases), 0)
@@ -232,7 +231,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetOpenApplicationPhases_Succ
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails_Success() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	formWithDetails, err := GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
+	formWithDetails, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), formWithDetails)
 	assert.NotEmpty(suite.T(), formWithDetails.QuestionsText)
@@ -246,7 +245,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails_NotFound() {
 	invalidCoursePhaseID := uuid.New()
 
-	_, err := GetApplicationFormWithDetails(suite.ctx, invalidCoursePhaseID)
+	_, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, invalidCoursePhaseID)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), ErrNotFound, err)
 }
@@ -279,7 +278,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationExtern_Success
 		},
 	}
 
-	_, err := PostApplicationExtern(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -300,11 +299,11 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationExtern_Already
 	}
 
 	// Apply once
-	_, err := PostApplicationExtern(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, application)
 	assert.NoError(suite.T(), err)
 
 	// Apply again, should fail
-	_, err = PostApplicationExtern(suite.ctx, coursePhaseID, application)
+	_, err = suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, application)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), ErrAlreadyApplied, err)
 }
@@ -314,7 +313,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationAuthenticatedBy
 	universityLogin := "ab12cde"
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	application, err := GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(suite.ctx, coursePhaseID, matrNr, universityLogin)
+	application, err := suite.applicationAdminService.GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(suite.ctx, coursePhaseID, matrNr, universityLogin)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), application)
 	assert.Equal(suite.T(), applicationDTO.StatusNotApplied, application.Status)
@@ -324,7 +323,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationAuthenticatedBy
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationAuthenticatedByEmail_Unknown() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	application, err := GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(suite.ctx, coursePhaseID, "00000000", "ab12cde")
+	application, err := suite.applicationAdminService.GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(suite.ctx, coursePhaseID, "00000000", "ab12cde")
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), application)
 	assert.Equal(suite.T(), applicationDTO.StatusNewUser, application.Status)
@@ -363,7 +362,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 		},
 	}
 
-	_, err := PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -386,7 +385,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 	}
 
 	// Apply with existing email but updated details
-	_, err := PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -403,11 +402,11 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpdateApplicationAssessment_S
 		Score:          pgtype.Int4{Int32: 90, Valid: true},
 	}
 
-	err = UpdateApplicationAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err = suite.applicationAdminService.UpdateApplicationAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.NoError(suite.T(), err)
 
 	// Verify that the assessment was updated
-	participations, err := GetAllApplicationParticipations(suite.ctx, coursePhaseID)
+	participations, err := suite.applicationAdminService.GetAllApplicationParticipations(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	for _, participation := range participations {
 		if participation.CourseParticipationID == courseParticipationID {
@@ -446,10 +445,10 @@ func (suite *ApplicationAdminServiceTestSuite) TestUploadAdditionalScore_Success
 		},
 	}
 
-	err := UploadAdditionalScore(suite.ctx, coursePhaseID, additionalScore)
+	err := suite.applicationAdminService.UploadAdditionalScore(suite.ctx, coursePhaseID, additionalScore)
 	assert.NoError(suite.T(), err)
 
-	participations, err := GetAllApplicationParticipations(suite.ctx, coursePhaseID)
+	participations, err := suite.applicationAdminService.GetAllApplicationParticipations(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	for _, participation := range participations {
 		if participation.CourseParticipationID == uuid.MustParse("82d7efae-d545-4cc5-9b94-5d0ee1e50d25") {
@@ -464,7 +463,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestUploadAdditionalScore_Success
 	}
 
 	// Verify the scores are stored correctly
-	scoreNames, err := GetAdditionalScores(suite.ctx, coursePhaseID)
+	scoreNames, err := suite.applicationAdminService.GetAdditionalScores(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Contains(suite.T(), scoreNames, applicationDTO.AdditionalScore{Key: "TestScore", Name: "TestScore"})
 }
@@ -475,14 +474,14 @@ func (suite *ApplicationAdminServiceTestSuite) TestDeleteApplication_Success() {
 
 	toBeDeletedUUIDs := []uuid.UUID{courseParticipationID}
 
-	err := DeleteApplications(suite.ctx, coursePhaseID, toBeDeletedUUIDs)
+	err := suite.applicationAdminService.DeleteApplications(suite.ctx, coursePhaseID, toBeDeletedUUIDs)
 	assert.NoError(suite.T(), err)
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers_Success() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	participations, err := GetAllApplicationParticipations(suite.ctx, coursePhaseID)
+	participations, err := suite.applicationAdminService.GetAllApplicationParticipations(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), participations, "seed phase must have at least one participation")
 	courseParticipationID := participations[0].CourseParticipationID
@@ -540,7 +539,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 		_, _ = conn.Exec(suite.ctx, `DELETE FROM application_question_multi_select WHERE id = ANY($1)`, allQuestionIDs)
 	}()
 
-	response, err := GetExportedApplicationAnswers(suite.ctx, coursePhaseID)
+	response, err := suite.applicationAdminService.GetExportedApplicationAnswers(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	// Columns: only exported questions with a non-empty access_key, one per questionID

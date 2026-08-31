@@ -4,19 +4,31 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
+	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType/coursePhaseTypeDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-// setupCoursePhaseTypeRouter sets up the course phase type endpoints
+// SubjectIdentifierProvider resolves the authenticated user's subject identifiers.
+type SubjectIdentifierProvider interface {
+	GetSubjectIdentifiers(c *gin.Context) (sdk.SubjectIdentifiers, error)
+}
+
+type coursePhaseTypeHandler struct {
+	service  *CoursePhaseTypeService
+	subjects SubjectIdentifierProvider
+}
+
+// RegisterRoutes mounts the course phase type endpoints on the given router group.
 // @Summary Course Phase Type Endpoints
 // @Description Endpoints for retrieving course phase types
 // @Tags course_phase_types
 // @Security BearerAuth
-func setupCoursePhaseTypeRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, service *CoursePhaseTypeService, subjects SubjectIdentifierProvider, authMiddleware func() gin.HandlerFunc) {
+	handler := &coursePhaseTypeHandler{service: service, subjects: subjects}
+
 	course := router.Group("/course_phase_types", authMiddleware())
-	course.GET("", getCoursePhaseTypes)
+	course.GET("", handler.getCoursePhaseTypes)
 }
 
 // getCoursePhaseTypes godoc
@@ -28,21 +40,21 @@ func setupCoursePhaseTypeRouter(router *gin.RouterGroup, authMiddleware func() g
 // @Success 200 {array} coursePhaseTypeDTO.CoursePhaseType
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phase_types [get]
-func getCoursePhaseTypes(c *gin.Context) {
+func (h *coursePhaseTypeHandler) getCoursePhaseTypes(c *gin.Context) {
 	var (
 		coursePhaseTypes []coursePhaseTypeDTO.CoursePhaseType
 		err              error
 	)
 
 	if c.Query("for_self") == "true" {
-		subject, subjErr := authService.GetSubjectIdentifiers(c)
+		subject, subjErr := h.subjects.GetSubjectIdentifiers(c)
 		if subjErr != nil {
 			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: subjErr.Error()})
 			return
 		}
-		coursePhaseTypes, err = GetCoursePhaseTypesForStudent(c, subject.StudentID)
+		coursePhaseTypes, err = h.service.GetCoursePhaseTypesForStudent(c, subject.StudentID)
 	} else {
-		coursePhaseTypes, err = GetAllCoursePhaseTypes(c)
+		coursePhaseTypes, err = h.service.GetAllCoursePhaseTypes(c)
 	}
 
 	if err != nil {

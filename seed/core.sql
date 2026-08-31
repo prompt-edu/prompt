@@ -209,8 +209,11 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- runs the two spec files in parallel workers.
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('aaaa4444-0000-0000-0000-0000000000a4', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation Overview', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Self Team Allocation'), '{}');
+-- The open Application phase on fullCourse. universityLoginAvailable must stay true: it is what
+-- sends an already logged-in student from /apply/:phaseId straight to /apply/:phaseId/authenticated
+-- instead of the login card, which the auth session-persistence spec asserts.
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
-    VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, (SELECT id FROM course_phase_type WHERE name = 'Application'), '{}');
+    VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true}', true, (SELECT id FROM course_phase_type WHERE name = 'Application'), '{}');
 -- Standalone import-mode Application phase on fullCourse (no graph edge, reach by API). Non-initial
 -- because fullCourse already has an initial Application phase (unique_initial_phase_per_course), and
 -- the import endpoint keys off the phase type, not is_initial_phase. applicationMode=import closes

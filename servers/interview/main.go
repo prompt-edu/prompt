@@ -102,7 +102,8 @@ func main() {
 	), helloInterviewServer)
 
 	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+	privacy.RegisterRoutes(api, privacyService)
 
 	config.InitConfigModule(coursePhaseApi, *query, conn)
 

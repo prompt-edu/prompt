@@ -25,7 +25,12 @@ type InterviewSlotService struct {
 	conn    *pgxpool.Pool
 }
 
-var InterviewSlotServiceSingleton *InterviewSlotService
+func NewInterviewSlotService(queries db.Queries, conn *pgxpool.Pool) *InterviewSlotService {
+	return &InterviewSlotService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 type ServiceError struct {
 	StatusCode int
@@ -70,12 +75,12 @@ func pgTextToStringPtr(t pgtype.Text) *string {
 	return nil
 }
 
-func CreateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, req interviewSlotDTO.CreateInterviewSlotRequest) (db.InterviewSlot, error) {
+func (s *InterviewSlotService) CreateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, req interviewSlotDTO.CreateInterviewSlotRequest) (db.InterviewSlot, error) {
 	if !req.EndTime.After(req.StartTime) {
 		return db.InterviewSlot{}, newServiceError(http.StatusBadRequest, "End time must be after start time", nil)
 	}
 
-	slot, err := InterviewSlotServiceSingleton.queries.CreateInterviewSlot(ctx, db.CreateInterviewSlotParams{
+	slot, err := s.queries.CreateInterviewSlot(ctx, db.CreateInterviewSlotParams{
 		CoursePhaseID: coursePhaseID,
 		StartTime:     timeToPgTimestamptz(req.StartTime),
 		EndTime:       timeToPgTimestamptz(req.EndTime),
@@ -92,7 +97,7 @@ func CreateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, req inter
 
 // CreateInterviewSlotsBatch creates all requested slots in a single transaction, so a rejected slot
 // never leaves a partial series behind.
-func CreateInterviewSlotsBatch(ctx context.Context, coursePhaseID uuid.UUID, req interviewSlotDTO.CreateInterviewSlotsBatchRequest) ([]db.InterviewSlot, error) {
+func (s *InterviewSlotService) CreateInterviewSlotsBatch(ctx context.Context, coursePhaseID uuid.UUID, req interviewSlotDTO.CreateInterviewSlotsBatchRequest) ([]db.InterviewSlot, error) {
 	if len(req.Slots) > interviewSlotDTO.MaxBatchInterviewSlots {
 		return nil, newServiceError(http.StatusBadRequest, fmt.Sprintf("A batch may contain at most %d slots", interviewSlotDTO.MaxBatchInterviewSlots), nil)
 	}
@@ -103,13 +108,13 @@ func CreateInterviewSlotsBatch(ctx context.Context, coursePhaseID uuid.UUID, req
 		}
 	}
 
-	tx, err := InterviewSlotServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.Errorf("Failed to begin interview slot batch transaction: %v", err)
 		return nil, newServiceError(http.StatusInternalServerError, "Failed to create interview slots", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := InterviewSlotServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	slots := make([]db.InterviewSlot, 0, len(req.Slots))
 	for _, slot := range req.Slots {
@@ -135,8 +140,8 @@ func CreateInterviewSlotsBatch(ctx context.Context, coursePhaseID uuid.UUID, req
 	return slots, nil
 }
 
-func GetAllInterviewSlots(ctx context.Context, coursePhaseID uuid.UUID, authHeader string) ([]interviewSlotDTO.InterviewSlotResponse, error) {
-	rows, err := InterviewSlotServiceSingleton.queries.GetInterviewSlotWithAssignments(ctx, coursePhaseID)
+func (s *InterviewSlotService) GetAllInterviewSlots(ctx context.Context, coursePhaseID uuid.UUID, authHeader string) ([]interviewSlotDTO.InterviewSlotResponse, error) {
+	rows, err := s.queries.GetInterviewSlotWithAssignments(ctx, coursePhaseID)
 	if err != nil {
 		log.Errorf("Failed to get interview slots: %v", err)
 		return nil, newServiceError(http.StatusInternalServerError, "Failed to get interview slots", err)
@@ -199,8 +204,8 @@ func GetAllInterviewSlots(ctx context.Context, coursePhaseID uuid.UUID, authHead
 	return response, nil
 }
 
-func GetInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID, authHeader string) (interviewSlotDTO.InterviewSlotResponse, error) {
-	slot, err := InterviewSlotServiceSingleton.queries.GetInterviewSlot(ctx, slotID)
+func (s *InterviewSlotService) GetInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID, authHeader string) (interviewSlotDTO.InterviewSlotResponse, error) {
+	slot, err := s.queries.GetInterviewSlot(ctx, slotID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return interviewSlotDTO.InterviewSlotResponse{}, newServiceError(http.StatusNotFound, "Interview slot not found", err)
@@ -213,7 +218,7 @@ func GetInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.
 		return interviewSlotDTO.InterviewSlotResponse{}, newServiceError(http.StatusNotFound, "Interview slot not found", nil)
 	}
 
-	assignments, err := InterviewSlotServiceSingleton.queries.GetInterviewAssignmentsBySlot(ctx, slotID)
+	assignments, err := s.queries.GetInterviewAssignmentsBySlot(ctx, slotID)
 	if err != nil {
 		log.Errorf("Failed to get assignments for slot %s: %v", slotID, err)
 		return interviewSlotDTO.InterviewSlotResponse{}, newServiceError(http.StatusInternalServerError, "Failed to get assignments", err)
@@ -251,12 +256,12 @@ func GetInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.
 	return response, nil
 }
 
-func UpdateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID, req interviewSlotDTO.UpdateInterviewSlotRequest) (db.InterviewSlot, error) {
+func (s *InterviewSlotService) UpdateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID, req interviewSlotDTO.UpdateInterviewSlotRequest) (db.InterviewSlot, error) {
 	if !req.EndTime.After(req.StartTime) {
 		return db.InterviewSlot{}, newServiceError(http.StatusBadRequest, "End time must be after start time", nil)
 	}
 
-	existingSlot, err := InterviewSlotServiceSingleton.queries.GetInterviewSlot(ctx, slotID)
+	existingSlot, err := s.queries.GetInterviewSlot(ctx, slotID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.InterviewSlot{}, newServiceError(http.StatusNotFound, "Interview slot not found", err)
@@ -269,7 +274,7 @@ func UpdateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uu
 		return db.InterviewSlot{}, newServiceError(http.StatusNotFound, "Interview slot not found", nil)
 	}
 
-	currentAssignedCount, err := InterviewSlotServiceSingleton.queries.CountAssignmentsBySlot(ctx, slotID)
+	currentAssignedCount, err := s.queries.CountAssignmentsBySlot(ctx, slotID)
 	if err != nil {
 		log.Errorf("Failed to count assignments for slot: %v", err)
 		return db.InterviewSlot{}, newServiceError(http.StatusInternalServerError, "Failed to validate capacity", err)
@@ -283,7 +288,7 @@ func UpdateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uu
 		)
 	}
 
-	slot, err := InterviewSlotServiceSingleton.queries.UpdateInterviewSlot(ctx, db.UpdateInterviewSlotParams{
+	slot, err := s.queries.UpdateInterviewSlot(ctx, db.UpdateInterviewSlotParams{
 		ID:        slotID,
 		StartTime: timeToPgTimestamptz(req.StartTime),
 		EndTime:   timeToPgTimestamptz(req.EndTime),
@@ -298,8 +303,8 @@ func UpdateInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uu
 	return slot, nil
 }
 
-func DeleteInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID) error {
-	existingSlot, err := InterviewSlotServiceSingleton.queries.GetInterviewSlot(ctx, slotID)
+func (s *InterviewSlotService) DeleteInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uuid.UUID) error {
+	existingSlot, err := s.queries.GetInterviewSlot(ctx, slotID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return newServiceError(http.StatusNotFound, "Interview slot not found", err)
@@ -312,7 +317,7 @@ func DeleteInterviewSlot(ctx context.Context, coursePhaseID uuid.UUID, slotID uu
 		return newServiceError(http.StatusNotFound, "Interview slot not found", nil)
 	}
 
-	if err := InterviewSlotServiceSingleton.queries.DeleteInterviewSlot(ctx, slotID); err != nil {
+	if err := s.queries.DeleteInterviewSlot(ctx, slotID); err != nil {
 		log.Errorf("Failed to delete interview slot: %v", err)
 		return newServiceError(http.StatusInternalServerError, "Failed to delete interview slot", err)
 	}

@@ -121,7 +121,8 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
+	interviewSlotService := interview_slot.NewInterviewSlotService(*query, conn)
+	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, promptSDK.AuthenticationMiddleware)
 	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
 	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
 

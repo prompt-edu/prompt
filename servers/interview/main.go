@@ -101,11 +101,11 @@ func main() {
 		promptSDK.CourseStudent,
 	), helloInterviewServer)
 
-	copy.InitCopyModule(api, *query, conn)
+	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
 	privacyService := privacy.NewPrivacyService(*query, conn)
 	privacy.RegisterRoutes(api, privacyService)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, promptSDK.AuthenticationMiddleware)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "interview",

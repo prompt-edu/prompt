@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { FeedbackItem } from '../../../interfaces/feedbackItem'
-
-import { getFeedbackItemsForTutorInPhase } from '../../../network/queries/getFeedbackItemsForTutorInPhase'
+import { assessmentApi } from '../../../network/api'
+import { assessmentKeys } from '../../../network/cache'
 
 export const useGetFeedbackItemsForTutorInPhase = (
   tutorParticipationID: string,
@@ -12,8 +11,8 @@ export const useGetFeedbackItemsForTutorInPhase = (
   const { phaseId } = useParams<{ phaseId: string }>()
 
   return useQuery<FeedbackItem[]>({
-    queryKey: ['tutor-feedback-items', phaseId, tutorParticipationID],
-    queryFn: () => getFeedbackItemsForTutorInPhase(phaseId ?? '', tutorParticipationID),
+    queryKey: assessmentKeys.feedbackItems.ofTutor(phaseId, tutorParticipationID),
+    queryFn: () => assessmentApi.feedbackItems.ofTutor(phaseId ?? '', tutorParticipationID),
     enabled: options?.enabled && !!phaseId && !!tutorParticipationID,
   })
 }

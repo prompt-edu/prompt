@@ -4,7 +4,7 @@ import { useRef } from 'react'
 
 import type { AssessmentType } from '../../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../../interfaces/category'
-import { triggerTextDownload } from '../../../../../network/queries/exportStudentAssessment'
+import { triggerTextDownload } from '../../../../utils/triggerTextDownload'
 import {
   type AssessmentSchemaTemplate,
   buildAssessmentSchemaTemplate,

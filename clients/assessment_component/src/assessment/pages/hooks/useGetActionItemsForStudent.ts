@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-
 import type { ActionItem } from '../../interfaces/actionItem'
-import { getAllActionItemsForStudentInPhase } from '../../network/queries/getAllActionItemsForStudentInPhase'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 
 const EMPTY_ACTION_ITEMS: ActionItem[] = []
 
@@ -13,8 +13,9 @@ export const useGetActionItemsForStudent = (enabled = true) => {
   }>()
 
   const { data, ...queryInfo } = useQuery<ActionItem[]>({
-    queryKey: ['actionItems', phaseId, courseParticipationID],
-    queryFn: () => getAllActionItemsForStudentInPhase(phaseId ?? '', courseParticipationID ?? ''),
+    queryKey: assessmentKeys.actionItems.ofParticipant(phaseId, courseParticipationID),
+    queryFn: () =>
+      assessmentApi.actionItems.ofParticipant(phaseId ?? '', courseParticipationID ?? ''),
     enabled: enabled && !!phaseId && !!courseParticipationID,
   })
 

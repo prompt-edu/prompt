@@ -96,17 +96,9 @@ Start by importing the essential components required for the page, including:
 
 ### 6. Ensure Styling
 
-`CoursePhaseMailing` renders a `minimal-tiptap` rich-text editor, which needs the editor stylesheet
-in addition to your component's Tailwind entry. The stylesheet ships with the shared package and is
-exposed as its own export:
+Nothing to do. `CoursePhaseMailing` renders a `minimal-tiptap` rich-text editor whose stylesheet is
+imported by the shared package's own module, and the utilities it needs come from `clients/core`,
+which builds the single Tailwind stylesheet for the whole shell and scans every component directory.
 
-```javascript
-// in your component's style entry, e.g. src/loadStyles.ts
-import './styles.css'
-import '@tumaet/prompt-ui-components/minimal-tiptap/index.css'
-```
-
-No bundler configuration is required. Earlier versions of this guide asked you to extend an
-`include` array in the CSS loader rule so it would pick up `shared_library/components/minimal-tiptap`.
-That no longer applies: the shared library is a published package rather than a folder in this
-repository, and the CSS rules in `rspack.config.mjs` no longer use `include` paths.
+Your phase component has no Tailwind entry of its own and must not add one. See the styling section
+of `docs/contributor/guide/client.md`.

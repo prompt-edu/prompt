@@ -11,21 +11,44 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/certificate/config"
+	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	log "github.com/sirupsen/logrus"
 )
 
-type GeneratorService struct {
-	queries db.Queries
+type templateProvider interface {
+	GetTemplateContent(ctx context.Context, coursePhaseID uuid.UUID) (string, error)
+	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configDTO.CoursePhaseConfig, error)
 }
 
-var GeneratorServiceSingleton *GeneratorService
+type courseInfoProvider interface {
+	GetCoursePhaseWithCourse(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*participants.CoursePhaseWithCourse, error)
+	GetStudentTeamName(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (string, error)
+}
 
-func NewGeneratorService(queries db.Queries) *GeneratorService {
+type studentProvider interface {
+	GetStudentInfo(ctx context.Context, authHeader string, coursePhaseID, studentID uuid.UUID) (*promptTypes.Student, error)
+	GetOwnStudentInfo(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (*promptTypes.Student, error)
+}
+
+type GeneratorService struct {
+	queries  db.Queries
+	config   templateProvider
+	courses  courseInfoProvider
+	students studentProvider
+	now      func() time.Time
+	compile  func(ctx context.Context, tempDir, templatePath string) ([]byte, error)
+}
+
+func NewGeneratorService(queries db.Queries, config templateProvider, courses courseInfoProvider, students studentProvider) *GeneratorService {
 	return &GeneratorService{
-		queries: queries,
+		queries:  queries,
+		config:   config,
+		courses:  courses,
+		students: students,
+		now:      time.Now,
+		compile:  compileTypst,
 	}
 }
 
@@ -91,29 +114,29 @@ func compileTypst(ctx context.Context, tempDir, templatePath string) ([]byte, er
 
 func (s *GeneratorService) GenerateCertificate(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, student *promptTypes.Student) ([]byte, error) {
 	// Get template content
-	templateContent, err := config.GetTemplateContent(ctx, coursePhaseID)
+	templateContent, err := s.config.GetTemplateContent(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get template content")
 		return nil, fmt.Errorf("no template configured: %w", err)
 	}
 
 	// Get course info
-	coursePhase, err := participants.GetCoursePhaseWithCourse(ctx, authHeader, coursePhaseID)
+	coursePhase, err := s.courses.GetCoursePhaseWithCourse(ctx, authHeader, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get course info")
 		return nil, fmt.Errorf("failed to get course info: %w", err)
 	}
 
 	// Resolve team name (best-effort, non-fatal if not available)
-	teamName, err := participants.GetStudentTeamName(ctx, authHeader, coursePhaseID, student.ID)
+	teamName, err := s.courses.GetStudentTeamName(ctx, authHeader, coursePhaseID, student.ID)
 	if err != nil {
 		log.WithError(err).Warn("Could not resolve team name, continuing without it")
 	}
 
 	// Determine certificate date: use the configured release date for consistency,
 	// so every download shows the same date. Fall back to today if not set.
-	certDate := time.Now().Format("January 2, 2006")
-	if phaseConfig, configErr := config.GetCoursePhaseConfig(ctx, coursePhaseID); configErr == nil && phaseConfig.ReleaseDate != nil {
+	certDate := s.now().Format("January 2, 2006")
+	if phaseConfig, configErr := s.config.GetCoursePhaseConfig(ctx, coursePhaseID); configErr == nil && phaseConfig.ReleaseDate != nil {
 		certDate = phaseConfig.ReleaseDate.Format("January 2, 2006")
 	}
 
@@ -147,7 +170,7 @@ func (s *GeneratorService) GenerateCertificate(ctx context.Context, authHeader s
 	}
 
 	// Compile template to PDF
-	pdfData, err := compileTypst(ctx, tempDir, templatePath)
+	pdfData, err := s.compile(ctx, tempDir, templatePath)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +182,7 @@ func (s *GeneratorService) GenerateCertificate(ctx context.Context, authHeader s
 // This is used by instructors to preview how the certificate will look.
 func (s *GeneratorService) GeneratePreviewCertificate(ctx context.Context, coursePhaseID uuid.UUID) ([]byte, error) {
 	// Get template content
-	templateContent, err := config.GetTemplateContent(ctx, coursePhaseID)
+	templateContent, err := s.config.GetTemplateContent(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get template content")
 		return nil, fmt.Errorf("no template configured: %w", err)
@@ -185,7 +208,7 @@ func (s *GeneratorService) GeneratePreviewCertificate(ctx context.Context, cours
 		StudentName: "Jane Doe",
 		CourseName:  "iPraktikum",
 		TeamName:    "Hermes",
-		Date:        time.Now().Format("January 2, 2006"),
+		Date:        s.now().Format("January 2, 2006"),
 	}
 
 	// Write data JSON files (data.json + vars.json for template compatibility)
@@ -195,5 +218,5 @@ func (s *GeneratorService) GeneratePreviewCertificate(ctx context.Context, cours
 	}
 
 	// Compile template to PDF
-	return compileTypst(ctx, tempDir, templatePath)
+	return s.compile(ctx, tempDir, templatePath)
 }

@@ -47,12 +47,8 @@ services:
     volumes: !override ["stress_pg_keycloak:/var/lib/postgresql/data"]
 
   # ---- keycloak (published on 18081; issuer port must match) ----
-  # NOTE: pinned to 26.4.7 because the repo's pinned 26.6.3 fails to import the
-  # committed keycloakConfig.json on a fresh DB ("Duplicate resource error" /
-  # UK_J3RWUVD56ONTGSUHOGM184WW2). Recorded as a setup finding in the report.
   keycloak:
     container_name: stress-keycloak
-    image: quay.io/keycloak/keycloak:26.4.7
     ports: !override ["18081:8080", "19000:9000"]
     environment:
       KC_HOSTNAME_PORT: "18081"

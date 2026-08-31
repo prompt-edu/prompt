@@ -21,13 +21,10 @@ func TestPresentationPhaseTypeExists(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
-	CoursePhaseTypeServiceSingleton = &CoursePhaseTypeService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	service := NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false)
 
-	require.NoError(t, initPresentation())
-	require.NoError(t, initPresentation(), "initialization must be idempotent")
+	require.NoError(t, service.initPresentation())
+	require.NoError(t, service.initPresentation(), "initialization must be idempotent")
 
 	exists, err := testDB.Queries.TestPresentationPhaseTypeExists(ctx)
 	require.NoError(t, err)
@@ -58,7 +55,7 @@ func TestPresentationPhaseTypeExists(t *testing.T) {
 	}
 	assert.Equal(t, 1, presentationCount)
 
-	presentationDTOs, err := GetAllCoursePhaseTypes(ctx)
+	presentationDTOs, err := service.GetAllCoursePhaseTypes(ctx)
 	require.NoError(t, err)
 	for _, phaseType := range presentationDTOs {
 		if phaseType.Name == "Presentation" {
@@ -80,10 +77,7 @@ func TestPresentationPhaseTypeInitializationRestoresMissingInputs(t *testing.T) 
 	require.NoError(t, err)
 	defer cleanup()
 
-	CoursePhaseTypeServiceSingleton = &CoursePhaseTypeService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	service := NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false)
 
 	presentationPhaseID := uuid.MustParse("12345678-1234-1234-1234-123456789012")
 	require.NoError(t, testDB.Queries.CreateCoursePhaseType(ctx, db.CreateCoursePhaseTypeParams{
@@ -94,8 +88,8 @@ func TestPresentationPhaseTypeInitializationRestoresMissingInputs(t *testing.T) 
 		Description:  pgtype.Text{String: "Existing Presentation phase type without input descriptors.", Valid: true},
 	}))
 
-	require.NoError(t, initPresentation())
-	require.NoError(t, initPresentation(), "restored input descriptors must remain idempotent")
+	require.NoError(t, service.initPresentation())
+	require.NoError(t, service.initPresentation(), "restored input descriptors must remain idempotent")
 
 	phaseInputs, err := testDB.Queries.GetCoursePhaseRequiredPhaseInputs(ctx, presentationPhaseID)
 	require.NoError(t, err)

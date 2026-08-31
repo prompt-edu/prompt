@@ -53,7 +53,6 @@ func (suite *StorageServiceTestSuite) SetupSuite() {
 		[]string{"application/pdf", "image/jpeg", "image/png"},
 	)
 
-	StorageServiceSingleton = suite.service
 }
 
 func (suite *StorageServiceTestSuite) TearDownSuite() {

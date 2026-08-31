@@ -206,8 +206,8 @@ WHERE course_phase_id = $1
 `
 
 type GetSurveyTimeframeRow struct {
-	SurveyStart    pgtype.Timestamp `json:"survey_start"`
-	SurveyDeadline pgtype.Timestamp `json:"survey_deadline"`
+	SurveyStart    pgtype.Timestamptz `json:"survey_start"`
+	SurveyDeadline pgtype.Timestamptz `json:"survey_deadline"`
 }
 
 // Returns the survey timeframe (survey_start and survey_deadline) for a course phase.
@@ -344,9 +344,9 @@ DO UPDATE SET survey_start = EXCLUDED.survey_start,
 `
 
 type SetSurveyTimeframeParams struct {
-	CoursePhaseID  uuid.UUID        `json:"course_phase_id"`
-	SurveyStart    pgtype.Timestamp `json:"survey_start"`
-	SurveyDeadline pgtype.Timestamp `json:"survey_deadline"`
+	CoursePhaseID  uuid.UUID          `json:"course_phase_id"`
+	SurveyStart    pgtype.Timestamptz `json:"survey_start"`
+	SurveyDeadline pgtype.Timestamptz `json:"survey_deadline"`
 }
 
 // Upsert the survey timeframe for a given course phase.

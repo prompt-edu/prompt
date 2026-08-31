@@ -16,9 +16,11 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/auditLog"
 	"github.com/prompt-edu/prompt/servers/core/auth"
+	coreAuth "github.com/prompt-edu/prompt/servers/core/auth/service"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/courseMailing"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
@@ -30,6 +32,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
+	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -66,7 +69,7 @@ func runMigrations(databaseURL string) {
 	fmt.Print(sanitized)
 }
 
-func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
+func initKeycloak(router *gin.RouterGroup, queries db.Queries, checkCoursePermission permissionValidation.PermissionCheck) (*keycloakTokenVerifier.KeycloakTokenVerifier, *keycloakRealmManager.KeycloakRealmService) {
 	baseURL := sdkUtils.GetEnv("KEYCLOAK_HOST", "http://localhost:8081")
 	if !strings.HasPrefix(baseURL, "http") {
 		baseURL = "https://" + baseURL
@@ -81,15 +84,24 @@ func initKeycloak(router *gin.RouterGroup, queries db.Queries) {
 	log.Info("Debugging: baseURL: ", baseURL, " realm: ", realm, " clientID: ", clientID, " idOfClient: ", idOfClient, " expectedAuthorizedParty: ", expectedAuthorizedParty)
 
 	// first we initialize the keycloak token verfier
-	keycloakTokenVerifier.InitKeycloakTokenVerifier(context.Background(), baseURL, realm, clientID, expectedAuthorizedParty, queries)
-
-	err := keycloakRealmManager.InitKeycloak(context.Background(), router, baseURL, realm, clientID, clientSecret, idOfClient, expectedAuthorizedParty, queries)
+	tokenVerifier, err := keycloakTokenVerifier.NewKeycloakTokenVerifier(context.Background(), baseURL, realm, clientID, expectedAuthorizedParty, queries)
 	if err != nil {
+		log.Fatal("Failed to initialize Keycloak verifier: ", err)
+	}
+
+	keycloakRealmService := keycloakRealmManager.NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient, queries)
+
+	// Test Login connection
+	if _, err := keycloakRealmService.LoginClient(context.Background()); err != nil {
 		log.Error("Failed to initialize keycloak: ", err)
 	}
+
+	keycloakRealmManager.RegisterRoutes(router, keycloakRealmService, tokenVerifier.KeycloakMiddleware, checkCoursePermission)
+
+	return tokenVerifier, keycloakRealmService
 }
 
-func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool) {
+func initMailing(router *gin.RouterGroup, queries db.Queries, authMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) *mailing.MailingService {
 	log.Debug("Reading mailing environment variables...")
 
 	clientURL := sdkUtils.GetEnv("CORE_HOST", "localhost:3000") // required for application link in mails
@@ -111,7 +123,10 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, conn *pgxpool.Pool
 
 	log.Info("Initializing mailing service with SMTP host: ", smtpHost, " port: ", smtpPort, " sender email: ", senderEmail)
 
-	mailing.InitMailingModule(router, queries, conn, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL)
+	mailingService := mailing.NewMailingService(queries, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL)
+	mailing.RegisterRoutes(router, mailingService, authMiddleware, checkCoursePhasePermission)
+
+	return mailingService
 }
 
 // @title           PROMPT Core API
@@ -172,43 +187,67 @@ func main() {
 	// snapshots the middleware chain when a route/group is registered, so it has
 	// to be registered before initKeycloak and all other modules; otherwise
 	// their routes (e.g. Keycloak course-role grants) are never captured.
-	auditLog.InitAuditLogCapture(api, *query, conn)
+	auditLogService := auditLog.NewAuditLogService(*query)
+	auditLog.RegisterCapture(api, auditLogService)
 
-	initKeycloak(api, *query)
-	permissionValidation.InitValidationService(*query, conn)
+	validationService := permissionValidation.NewValidationService(*query)
+	tokenVerifier, keycloakRealmService := initKeycloak(api, *query, validationService.CheckCoursePermission)
 
-	// Mount the audit read/ingest endpoints and start the pruner now that the
-	// permission-validation singleton the read routes rely on is initialized.
-	auditLog.InitAuditLogRoutes(api)
+	auditLog.RegisterRoutes(api, auditLogService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
 	isDevEnvironment := environment == "development"
-	coursePhaseType.InitCoursePhaseTypeModule(api, keycloakTokenVerifier.KeycloakMiddleware, *query, conn, isDevEnvironment)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*query)
+	authService := coreAuth.NewAuthService(*query, courseParticipationService)
+	coursePhaseTypeService := coursePhaseType.NewCoursePhaseTypeService(*query, conn, isDevEnvironment)
+	coursePhaseType.RegisterRoutes(api, coursePhaseTypeService, authService, tokenVerifier.KeycloakMiddleware)
+	coursePhaseTypeService.InitializePhaseTypes()
 
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
-	resolution.InitResolutionModule(coreHost)
+	resolutionService := resolution.NewResolutionService(coreHost)
 
-	auth.InitAuthModule(api, *query, conn)
-	initMailing(api, *query, conn)
-	student.InitStudentModule(api, *query, conn)
-	course.InitCourseModule(api, *query, conn)
-	copy.InitCourseCopyModule(api, *query, conn)
-	coursePhase.InitCoursePhaseModule(api, *query, conn)
-	courseParticipation.InitCourseParticipationModule(api, *query, conn)
-	coursePhaseParticipation.InitCoursePhaseParticipationModule(api, *query, conn)
-	applicationAdministration.InitApplicationAdministrationModule(api, *query, conn)
-	instructorNote.InitInstructorNoteModule(api, *query, conn)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService)
+	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
-	if err := files.Init(*query, conn); err != nil {
+	auth.RegisterRoutes(api, authService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)
+	mailingService := initMailing(api, *query, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)
+	studentService := student.NewStudentService(*query)
+	student.RegisterRoutes(api, studentService, tokenVerifier.KeycloakMiddleware)
+	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles, keycloakRealmService.DeleteCourseGroupsAndRoles)
+	course.RegisterRoutes(api, courseService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
+	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"), mailingService.SendCourseMail)
+	courseMailing.RegisterRoutes(api, courseMailingService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
+	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
+	// background so a slow/degraded database at boot doesn't delay server startup.
+	go courseMailingService.ReconcileStuckCampaigns(context.Background())
+	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles)
+	copy.RegisterRoutes(api, courseCopyService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
+	coursePhase.RegisterRoutes(api, coursePhaseService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission, validationService.CheckCoursePermission)
+	courseParticipation.RegisterRoutes(api, courseParticipationService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
+	coursePhaseParticipation.RegisterRoutes(api, coursePhaseParticipationService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)
+
+	fileStorageService, err := files.NewStorageServiceFromEnv(*query, conn)
+	if err != nil {
 		log.Fatalf("Failed to initialize prompt file storage: %v", err)
 	}
 
-	if err := privacyexport.Init(); err != nil {
+	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
+	applicationAdministration.RegisterRoutes(api, applicationService, tokenVerifier.KeycloakMiddleware, tokenVerifier.ApplicationMiddleware, validationService.CheckCoursePhasePermission)
+	if err := applicationService.InitializeApplicationCoursePhaseType(context.Background()); err != nil {
+		log.Fatal("failed to init application phase type: ", err)
+	}
+	instructorNoteService := instructorNote.NewInstructorNoteService(*query, conn)
+	instructorNote.RegisterRoutes(api, instructorNoteService, tokenVerifier.KeycloakMiddleware)
+
+	exportStorage, err := privacyexport.NewExportStorageFromEnv()
+	if err != nil {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService)
+	privacy.RegisterRoutes(api, privacyService, tokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
+	privacyService.StartExportDeletionRoutine(context.Background())
 
 	serverAddress := sdkUtils.GetEnv("SERVER_ADDRESS", "localhost:8080")
 	log.Info("Core Server started")

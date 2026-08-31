@@ -20,7 +20,7 @@ type ServiceTestSuite struct {
 	suite.Suite
 	ctx            context.Context
 	cleanup        func()
-	studentService StudentService
+	studentService *StudentService
 }
 
 func (suite *ServiceTestSuite) SetupSuite() {
@@ -33,11 +33,7 @@ func (suite *ServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.studentService = StudentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	StudentServiceSingleton = &suite.studentService
+	suite.studentService = NewStudentService(*testDB.Queries)
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {
@@ -45,7 +41,7 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) TestGetAllStudents() {
-	students, err := GetAllStudents(suite.ctx)
+	students, err := suite.studentService.GetAllStudents(suite.ctx)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(students), 0, "Expected at least one student in the initial data")
 }
@@ -53,7 +49,7 @@ func (suite *ServiceTestSuite) TestGetAllStudents() {
 func (suite *ServiceTestSuite) TestGetStudentByID() {
 	expectedID, _ := uuid.Parse("3a774200-39a7-4656-bafb-92b7210a93c1")
 
-	student, err := GetStudentByID(suite.ctx, expectedID)
+	student, err := suite.studentService.GetStudentByID(suite.ctx, expectedID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedID, student.ID, "Student ID should match the expected ID")
 }
@@ -73,7 +69,7 @@ func (suite *ServiceTestSuite) TestCreateStudent() {
 		StudyDegree:          "bachelor",
 	}
 
-	createdStudent, err := CreateStudent(suite.ctx, nil, newStudent)
+	createdStudent, err := suite.studentService.CreateStudent(suite.ctx, nil, newStudent)
 	assert.NoError(suite.T(), err)
 	assert.NotEqual(suite.T(), uuid.Nil, createdStudent.ID, "Created student should have a valid ID")
 	assert.Equal(suite.T(), newStudent.FirstName, createdStudent.FirstName, "First name should match")
@@ -89,7 +85,7 @@ func (suite *ServiceTestSuite) TestCreateStudent() {
 	assert.Equal(suite.T(), newStudent.StudyDegree, createdStudent.StudyDegree, "StudyDegree should match")
 
 	// Verify it exists in the database
-	fetchedStudent, err := GetStudentByID(suite.ctx, createdStudent.ID)
+	fetchedStudent, err := suite.studentService.GetStudentByID(suite.ctx, createdStudent.ID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), createdStudent.ID, fetchedStudent.ID, "Fetched student ID should match created student ID")
 	assert.Equal(suite.T(), createdStudent.FirstName, fetchedStudent.FirstName, "Fetched student First name should match created student First name")

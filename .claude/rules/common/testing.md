@@ -1,6 +1,11 @@
 # Testing (all code)
 
 - Run `make lint` and `make test` before considering a change done.
+- **Clients:** Vitest at the `clients/` workspace root (`make test-clients`, or `yarn test` from
+  `clients/`; `yarn vitest run <workspace>` for one workspace). Tests are colocated as
+  `*.test.ts(x)` next to the module they cover, run in a `node` environment, and import
+  `describe`/`it`/`expect` from `vitest` explicitly. Keep them on pure modules: anything needing a
+  browser belongs in the Playwright suite.
 - **Go:** `cd servers/<service> && go test ./...`. Tests use `testcontainers-go` for DB isolation;
   seed data from `database_dumps/*.sql`; pattern `*_test.go` with `testutils.SetupTestDB()`.
 - **End-to-end:** Playwright, in `e2e/`, one shard at a time. Run `make test-e2e-shard SHARD=<name>`

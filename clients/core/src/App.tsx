@@ -4,9 +4,12 @@ import { Toaster } from '@tumaet/prompt-ui-components'
 import { Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
+import { RequireAuth } from './keycloak/RequireAuth'
 import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
 import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
+import { CourseMailingComposePage } from './managementConsole/courseMailing/CourseMailingComposePage'
+import { CourseMailingOverviewPage } from './managementConsole/courseMailing/CourseMailingOverviewPage'
 import { CourseOverview } from './managementConsole/courseOverview/CourseOverviewPage'
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
@@ -55,7 +58,14 @@ export const App = () => {
             <Route path='/imprint' element={<ImprintPage />} />
             <Route path='/' element={<LandingPage />} />
             <Route path='/apply/:phaseId' element={<ApplicationLoginPage />} />
-            <Route path='/apply/:phaseId/authenticated' element={<ApplicationAuthenticated />} />
+            <Route
+              path='/apply/:phaseId/authenticated'
+              element={
+                <RequireAuth>
+                  <ApplicationAuthenticated />
+                </RequireAuth>
+              }
+            />
             <Route path='/management' element={<ManagementRoot />} />
             <Route
               path='/management/courses'
@@ -211,6 +221,54 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={LECTURER_ROLES}>
                     <CourseUserManagementPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingOverviewPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/new'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/mailing/:campaignId'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction
+                    requiredPermissions={[
+                      Role.PROMPT_ADMIN,
+                      Role.COURSE_LECTURER,
+                      Role.COURSE_EDITOR,
+                    ]}
+                  >
+                    <CourseMailingComposePage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

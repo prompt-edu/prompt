@@ -2,7 +2,6 @@ package mailing
 
 import (
 	"context"
-	"net/mail"
 	"testing"
 
 	"github.com/google/uuid"
@@ -25,6 +24,7 @@ type StatusMailServiceTestSuite struct {
 	ctx         context.Context
 	cleanup     func()
 	conn        *pgxpool.Pool
+	service     *MailingService
 	phaseID     uuid.UUID
 	passed      uuid.UUID
 	failed      uuid.UUID
@@ -64,27 +64,20 @@ func (suite *StatusMailServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn
 
-	MailingServiceSingleton = &MailingService{
-		senderEmail: mail.Address{
-			Name:    "Status Mail Test",
-			Address: "noreply@example.com",
-		},
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewMailingService(*testDB.Queries, "", "", "", "", "Status Mail Test", "noreply@example.com", "")
 
-	suite.oldSendMailFn = sendMailFn
+	suite.oldSendMailFn = suite.service.sendMail
 }
 
 func (suite *StatusMailServiceTestSuite) TearDownSuite() {
-	sendMailFn = suite.oldSendMailFn
+	suite.service.sendMail = suite.oldSendMailFn
 	if suite.cleanup != nil {
 		suite.cleanup()
 	}
 }
 
 func (suite *StatusMailServiceTestSuite) SetupTest() {
-	sendMailFn = suite.oldSendMailFn
+	suite.service.sendMail = suite.oldSendMailFn
 	suite.clearStatusMailMarkers()
 }
 
@@ -104,7 +97,7 @@ func (suite *StatusMailServiceTestSuite) clearStatusMailMarkers() {
 
 func (suite *StatusMailServiceTestSuite) recordSentMails() *[]capturedMail {
 	sentMails := make([]capturedMail, 0)
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -129,7 +122,7 @@ func recipientsOf(sentMails []capturedMail) []string {
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsWithStatus() {
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusPassed, nil)
+	report, err := suite.service.SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), []string{"alice@example.com"}, report.SuccessfulEmails)
@@ -144,7 +137,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsWith
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsUsesStatusTemplate() {
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusFailed, nil)
+	report, err := suite.service.SendStatusMailManualTrigger(suite.ctx, suite.phaseID, db.PassStatusFailed, nil)
 	suite.Require().NoError(err)
 
 	assert.Equal(suite.T(), []string{"bob@example.com"}, report.SuccessfulEmails)
@@ -158,7 +151,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToAllParticipantsUses
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToSelectedRecipients() {
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(
+	report, err := suite.service.SendStatusMailManualTrigger(
 		suite.ctx,
 		suite.phaseID,
 		db.PassStatusPassed,
@@ -174,7 +167,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToSelectedRecipients(
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipientsWithOtherStatus() {
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(
+	report, err := suite.service.SendStatusMailManualTrigger(
 		suite.ctx,
 		suite.phaseID,
 		db.PassStatusPassed,
@@ -189,7 +182,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipien
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelection() {
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(
+	report, err := suite.service.SendStatusMailManualTrigger(
 		suite.ctx,
 		suite.phaseID,
 		db.PassStatusPassed,
@@ -207,7 +200,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailToEmptyRecipientSelec
 func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipientsAlreadyMailed() {
 	firstMails := suite.recordSentMails()
 
-	_, err := SendStatusMailManualTrigger(
+	_, err := suite.service.SendStatusMailManualTrigger(
 		suite.ctx,
 		suite.phaseID,
 		db.PassStatusPassed,
@@ -218,7 +211,7 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipien
 
 	sentMails := suite.recordSentMails()
 
-	report, err := SendStatusMailManualTrigger(
+	report, err := suite.service.SendStatusMailManualTrigger(
 		suite.ctx,
 		suite.phaseID,
 		db.PassStatusPassed,
@@ -232,4 +225,11 @@ func (suite *StatusMailServiceTestSuite) TestSendStatusMailSkipsSelectedRecipien
 
 func TestStatusMailServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(StatusMailServiceTestSuite))
+}
+
+func TestValidateMailInputsRequiresInitializedService(t *testing.T) {
+	var service *MailingService
+
+	err := service.validateMailInputs("student@example.com", "subject", "body")
+	assert.ErrorContains(t, err, "not initialized")
 }

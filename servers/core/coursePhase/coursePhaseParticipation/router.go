@@ -13,22 +13,33 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupCoursePhaseParticipationRouter sets up the course phase participation endpoints
+// RegisterRoutes mounts the course phase participation endpoints on the given router group.
 // @Summary Course Phase Participation Endpoints
 // @Description Endpoints for managing course phase participations
 // @Tags course_phase_participation
 // @Security BearerAuth
-func setupCoursePhaseParticipationRouter(routerGroup *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CoursePhaseParticipationService, authMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) {
+	setupCoursePhaseParticipationRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePhasePermission))
+}
+
+// initializes the handler func with CheckCoursePermissions
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
+}
+
+func setupCoursePhaseParticipationRouter(routerGroup *gin.RouterGroup, s *CoursePhaseParticipationService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	courseParticipation := routerGroup.Group("/course_phases/:uuid/participations", authMiddleware())
-	courseParticipation.GET("/self", permissionIDMiddleware(permissionValidation.CourseStudent), getOwnCoursePhaseParticipation)
-	courseParticipation.GET("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getParticipationsForCoursePhase)
-	courseParticipation.GET("/:course_participation_id", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getParticipation)
-	courseParticipation.PUT("/:course_participation_id", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateCoursePhaseParticipation)
+	courseParticipation.GET("/self", permissionIDMiddleware(permissionValidation.CourseStudent), s.getOwnCoursePhaseParticipation)
+	courseParticipation.GET("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getParticipationsForCoursePhase)
+	courseParticipation.GET("/:course_participation_id", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getParticipation)
+	courseParticipation.PUT("/:course_participation_id", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhaseParticipation)
 	// allow to modify multiple at once
-	courseParticipation.PUT("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateBatchCoursePhaseParticipation)
+	courseParticipation.PUT("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateBatchCoursePhaseParticipation)
 
 	// get the students data of the participations
-	courseParticipation.GET("/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getStudentsOfCoursePhase)
+	courseParticipation.GET("/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getStudentsOfCoursePhase)
 }
 
 // getOwnCoursePhaseParticipation godoc
@@ -43,7 +54,7 @@ func setupCoursePhaseParticipationRouter(routerGroup *gin.RouterGroup, authMiddl
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations/self [get]
-func getOwnCoursePhaseParticipation(c *gin.Context) {
+func (s *CoursePhaseParticipationService) getOwnCoursePhaseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -58,7 +69,7 @@ func getOwnCoursePhaseParticipation(c *gin.Context) {
 		return
 	}
 
-	coursePhaseParticipation, err := GetOwnCoursePhaseParticipation(c, id, matriculationNumber, universityLogin)
+	coursePhaseParticipation, err := s.GetOwnCoursePhaseParticipation(c, id, matriculationNumber, universityLogin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			handleError(c, http.StatusNotFound, errors.New("course phase participation not found"))
@@ -81,14 +92,14 @@ func getOwnCoursePhaseParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations [get]
-func getParticipationsForCoursePhase(c *gin.Context) {
+func (s *CoursePhaseParticipationService) getParticipationsForCoursePhase(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	courseParticipations, err := GetAllParticipationsForCoursePhase(c, id)
+	courseParticipations, err := s.GetAllParticipationsForCoursePhase(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -108,7 +119,7 @@ func getParticipationsForCoursePhase(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations/{course_participation_id} [get]
-func getParticipation(c *gin.Context) {
+func (s *CoursePhaseParticipationService) getParticipation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		log.Error("Error parsing course phase ID: ", err)
@@ -123,7 +134,7 @@ func getParticipation(c *gin.Context) {
 		return
 	}
 
-	courseParticipation, err := GetCoursePhaseParticipation(c, coursePhaseID, courseParticipationID)
+	courseParticipation, err := s.GetCoursePhaseParticipation(c, coursePhaseID, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -146,7 +157,7 @@ func getParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations/{course_participation_id} [put]
-func updateCoursePhaseParticipation(c *gin.Context) {
+func (s *CoursePhaseParticipationService) updateCoursePhaseParticipation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -173,7 +184,7 @@ func updateCoursePhaseParticipation(c *gin.Context) {
 		return
 	}
 
-	courseParticipation, err := CreateOrUpdateCoursePhaseParticipation(c, nil, newCourseParticipation)
+	courseParticipation, err := s.CreateOrUpdateCoursePhaseParticipation(c, nil, newCourseParticipation)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -193,7 +204,7 @@ func updateCoursePhaseParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations [put]
-func updateBatchCoursePhaseParticipation(c *gin.Context) {
+func (s *CoursePhaseParticipationService) updateBatchCoursePhaseParticipation(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -230,7 +241,7 @@ func updateBatchCoursePhaseParticipation(c *gin.Context) {
 		createOrUpdateCourseParticipationDTOs = append(createOrUpdateCourseParticipationDTOs, dbParticipation)
 	}
 
-	ids, err := UpdateBatchCoursePhaseParticipation(c, createOrUpdateCourseParticipationDTOs)
+	ids, err := s.UpdateBatchCoursePhaseParticipation(c, createOrUpdateCourseParticipationDTOs)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -249,14 +260,14 @@ func updateBatchCoursePhaseParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid}/participations/students [get]
-func getStudentsOfCoursePhase(c *gin.Context) {
+func (s *CoursePhaseParticipationService) getStudentsOfCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	students, err := GetStudentsOfCoursePhase(c, coursePhaseID)
+	students, err := s.GetStudentsOfCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

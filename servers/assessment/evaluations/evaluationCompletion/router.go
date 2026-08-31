@@ -13,21 +13,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupEvaluationCompletionRouter sets up evaluation completion endpoints.
+// RegisterRoutes sets up evaluation completion endpoints.
 // @Summary Evaluation Completion Endpoints
 // @Description Manage evaluation completion for students.
 // @Tags evaluation_completions
 // @Security BearerAuth
-func setupEvaluationCompletionRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationCompletionService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	evaluationRouter := routerGroup.Group("/evaluation/completed")
 
-	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listEvaluationCompletionsByCoursePhase)
+	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listEvaluationCompletionsByCoursePhase)
 
-	evaluationRouter.POST("/my-completion", authMiddleware(promptSDK.CourseStudent), createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.PUT("/my-completion", authMiddleware(promptSDK.CourseStudent), createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.POST("/my-completion/mark-complete", authMiddleware(promptSDK.CourseStudent), markMyEvaluationAsCompleted)
-	evaluationRouter.PUT("/my-completion/unmark", authMiddleware(promptSDK.CourseStudent), unmarkMyEvaluationAsCompleted)
-	evaluationRouter.GET("/my-completions", authMiddleware(promptSDK.CourseStudent), getMyEvaluationCompletions)
+	evaluationRouter.POST("/my-completion", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.PUT("/my-completion", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.POST("/my-completion/mark-complete", authMiddleware(promptSDK.CourseStudent), service.markMyEvaluationAsCompleted)
+	evaluationRouter.PUT("/my-completion/unmark", authMiddleware(promptSDK.CourseStudent), service.unmarkMyEvaluationAsCompleted)
+	evaluationRouter.GET("/my-completions", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationCompletions)
 
 }
 
@@ -41,13 +41,13 @@ func setupEvaluationCompletionRouter(routerGroup *gin.RouterGroup, authMiddlewar
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed [get]
-func listEvaluationCompletionsByCoursePhase(c *gin.Context) {
+func (s *EvaluationCompletionService) listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	completions, err := ListEvaluationCompletionsByCoursePhase(c, coursePhaseID)
+	completions, err := s.ListEvaluationCompletionsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -69,7 +69,7 @@ func listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [post]
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion [put]
-func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
+func (s *EvaluationCompletionService) createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -90,7 +90,7 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 		return
 	}
 
-	err = CreateOrUpdateEvaluationCompletion(c, c.GetHeader("Authorization"), req)
+	err = s.CreateOrUpdateEvaluationCompletion(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
@@ -119,7 +119,7 @@ func createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/mark-complete [post]
-func markMyEvaluationAsCompleted(c *gin.Context) {
+func (s *EvaluationCompletionService) markMyEvaluationAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -140,7 +140,7 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 		return
 	}
 
-	err = MarkEvaluationAsCompleted(c, c.GetHeader("Authorization"), req)
+	err = s.MarkEvaluationAsCompleted(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
 			handleError(c, http.StatusForbidden, err)
@@ -168,7 +168,7 @@ func markMyEvaluationAsCompleted(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completion/unmark [put]
-func unmarkMyEvaluationAsCompleted(c *gin.Context) {
+func (s *EvaluationCompletionService) unmarkMyEvaluationAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -193,7 +193,7 @@ func unmarkMyEvaluationAsCompleted(c *gin.Context) {
 		return
 	}
 
-	if err := UnmarkEvaluationAsCompleted(c, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID); err != nil {
+	if err := s.UnmarkEvaluationAsCompleted(c, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID); err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
 			handleError(c, http.StatusForbidden, err)
 		} else {
@@ -214,7 +214,7 @@ func unmarkMyEvaluationAsCompleted(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/completed/my-completions [get]
-func getMyEvaluationCompletions(c *gin.Context) {
+func (s *EvaluationCompletionService) getMyEvaluationCompletions(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -227,7 +227,7 @@ func getMyEvaluationCompletions(c *gin.Context) {
 		return
 	}
 
-	evaluationCompletions, err := GetEvaluationCompletionsForAuthorInPhase(c, userCourseParticipationUUID, coursePhaseID)
+	evaluationCompletions, err := s.GetEvaluationCompletionsForAuthorInPhase(c, userCourseParticipationUUID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

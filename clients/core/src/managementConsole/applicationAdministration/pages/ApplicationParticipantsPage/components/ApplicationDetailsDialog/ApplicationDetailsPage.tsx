@@ -22,6 +22,7 @@ import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
 import { getApplicationNavigationButtonColorClass } from '../table/getApplicationStatusBadge'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
+import { CustomScoresCard } from './components/CustomScoresCard'
 import { MissingUniversityData } from './components/MissingUniversityData'
 
 interface ApplicationDetailsLocationState {
@@ -32,7 +33,7 @@ export const ApplicationDetailsPage = () => {
   const { phaseId, participationId } = useParams<{ phaseId: string; participationId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { participations } = useApplicationStore()
+  const { participations, additionalScores } = useApplicationStore()
   const navigationState = (location.state as ApplicationDetailsLocationState | null) ?? null
   const filteredApplicationIds = navigationState?.filteredApplicationIds
 
@@ -171,6 +172,7 @@ export const ApplicationDetailsPage = () => {
                 courseParticipationID={participationId ?? ''}
               />
             )}
+            <CustomScoresCard additionalScores={additionalScores} restrictedData={restrictedData} />
             {fetchedApplication && fetchedApplicationForm && (
               <ApplicationAnswers
                 coursePhaseId={phaseId ?? ''}

@@ -10,6 +10,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ type CoursePhaseParticipationTestSuite struct {
 	suite.Suite
 	ctx                             context.Context
 	cleanup                         func()
-	coursePhaseParticipationService CoursePhaseParticipationService
+	coursePhaseParticipationService *CoursePhaseParticipationService
 }
 
 func (suite *CoursePhaseParticipationTestSuite) SetupSuite() {
@@ -34,13 +35,7 @@ func (suite *CoursePhaseParticipationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseParticipationService = CoursePhaseParticipationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseParticipationServiceSingleton = &suite.coursePhaseParticipationService
-
-	resolution.InitResolutionModule("localhost:8080")
+	suite.coursePhaseParticipationService = NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
 }
 
 func (suite *CoursePhaseParticipationTestSuite) TearDownSuite() {
@@ -50,7 +45,7 @@ func (suite *CoursePhaseParticipationTestSuite) TearDownSuite() {
 func (suite *CoursePhaseParticipationTestSuite) TestGetAllParticipationsForCoursePhase() {
 	coursePhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
 
-	participationsWithResolution, err := GetAllParticipationsForCoursePhase(suite.ctx, coursePhaseID)
+	participationsWithResolution, err := suite.coursePhaseParticipationService.GetAllParticipationsForCoursePhase(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(participationsWithResolution.Participations), 0, "Expected participations for the course phase")
 
@@ -62,13 +57,39 @@ func (suite *CoursePhaseParticipationTestSuite) TestGetAllParticipationsForCours
 func (suite *CoursePhaseParticipationTestSuite) TestGetParticipationsWithPrevData() {
 	coursePhaseID := uuid.MustParse("2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1")
 
-	participationsWithResolution, err := GetAllParticipationsForCoursePhase(suite.ctx, coursePhaseID)
+	participationsWithResolution, err := suite.coursePhaseParticipationService.GetAllParticipationsForCoursePhase(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(participationsWithResolution.Participations), 0, "Expected participations for the course phase")
 	for _, participation := range participationsWithResolution.Participations {
 		assert.NotNil(suite.T(), participation.PrevData, "Expected prev data to be present")
 		assert.NotNil(suite.T(), participation.PrevData["score"], "Expected score to be present")
 	}
+}
+
+func (suite *CoursePhaseParticipationTestSuite) TestInterviewScoreIsResolvedNotInlined() {
+	matchingPhaseID := uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c")
+	interviewPhaseID := uuid.MustParse("2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1")
+
+	participationsWithResolution, err := suite.coursePhaseParticipationService.GetAllParticipationsForCoursePhase(suite.ctx, matchingPhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Greater(suite.T(), len(participationsWithResolution.Participations), 0, "Expected participations for the matching phase")
+
+	// The interview service owns the score now, so core must not copy it out of the
+	// interview participation's restricted_data into the successor's prev data.
+	for _, participation := range participationsWithResolution.Participations {
+		assert.NotContains(suite.T(), participation.PrevData, "score", "Interview score must not be inlined into prev data")
+	}
+
+	var scoreResolution *resolutionDTO.Resolution
+	for i, res := range participationsWithResolution.Resolutions {
+		if res.DtoName == "score" && res.CoursePhaseID == interviewPhaseID {
+			scoreResolution = &participationsWithResolution.Resolutions[i]
+			break
+		}
+	}
+	assert.NotNil(suite.T(), scoreResolution, "Expected a REST resolution for the interview score")
+	assert.Equal(suite.T(), "/interview-review/score", scoreResolution.EndpointPath)
+	assert.Equal(suite.T(), "https://localhost:8080/interview/api", scoreResolution.BaseURL, "{CORE_HOST} must be replaced with the core host")
 }
 
 func (suite *CoursePhaseParticipationTestSuite) TestCreateCoursePhaseParticipation() {
@@ -91,7 +112,7 @@ func (suite *CoursePhaseParticipationTestSuite) TestCreateCoursePhaseParticipati
 		StudentReadableData:   studentReadableData,
 	}
 
-	createdParticipation, err := CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, newParticipation)
+	createdParticipation, err := suite.coursePhaseParticipationService.CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, newParticipation)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newParticipation.CoursePhaseID, createdParticipation.CoursePhaseID, "CoursePhaseID should match")
 	assert.Equal(suite.T(), newParticipation.RestrictedData, createdParticipation.RestrictedData, "Meta data should match")
@@ -121,9 +142,9 @@ func (suite *CoursePhaseParticipationTestSuite) TestUpdateCoursePhaseParticipati
 		CoursePhaseID:         coursePhaseID,
 	}
 
-	err = UpdateCoursePhaseParticipation(suite.ctx, nil, updatedParticipation)
+	err = suite.coursePhaseParticipationService.UpdateCoursePhaseParticipation(suite.ctx, nil, updatedParticipation)
 	assert.NoError(suite.T(), err)
-	result, err := GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
+	result, err := suite.coursePhaseParticipationService.GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), updatedParticipation.CourseParticipationID, result.Participation.CourseParticipationID, "Participation ID should match")
 	assert.Equal(suite.T(), "passed", result.Participation.PassStatus, "PassStatus should match")
@@ -153,12 +174,12 @@ func (suite *CoursePhaseParticipationTestSuite) TestUpdateCoursePhaseParticipati
 		CoursePhaseID:         uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908"),
 	}
 
-	BeforeResult, err := GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
+	BeforeResult, err := suite.coursePhaseParticipationService.GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
 	assert.NoError(suite.T(), err)
 
-	err = UpdateCoursePhaseParticipation(suite.ctx, nil, updatedParticipation)
+	err = suite.coursePhaseParticipationService.UpdateCoursePhaseParticipation(suite.ctx, nil, updatedParticipation)
 	assert.NoError(suite.T(), err)
-	result, err := GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
+	result, err := suite.coursePhaseParticipationService.GetCoursePhaseParticipation(suite.ctx, coursePhaseID, courseParticipationID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), updatedParticipation.CourseParticipationID, result.Participation.CourseParticipationID, "Participation ID should match")
 	assert.Equal(suite.T(), BeforeResult.Participation.PassStatus, result.Participation.PassStatus, "PassStatus should match")
@@ -190,7 +211,7 @@ func (suite *CoursePhaseParticipationTestSuite) TestNewCoursePhaseParticipation(
 		CoursePhaseID:         uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908"),
 	}
 
-	participation, err := CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, createParticipation)
+	participation, err := suite.coursePhaseParticipationService.CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, createParticipation)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), participation.PassStatus, "not_assessed", "PassStatus should be not assessed")
 	for key, value := range createParticipation.RestrictedData {
@@ -221,7 +242,7 @@ func (suite *CoursePhaseParticipationTestSuite) TestNewCoursePhaseParticipationW
 		CoursePhaseID:         uuid.MustParse("7062236a-e290-487c-be41-29b24e0afc64"), // belongs to wrong course
 	}
 
-	_, err = CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, createParticipation)
+	_, err = suite.coursePhaseParticipationService.CreateOrUpdateCoursePhaseParticipation(suite.ctx, nil, createParticipation)
 	assert.Error(suite.T(), err)
 }
 

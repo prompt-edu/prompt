@@ -16,7 +16,7 @@ type AllocationServiceTestSuite struct {
 	suite.Suite
 	suiteCtx          context.Context
 	cleanup           func()
-	allocationService AllocationService
+	allocationService *AllocationService
 }
 
 func (suite *AllocationServiceTestSuite) SetupSuite() {
@@ -26,11 +26,7 @@ func (suite *AllocationServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.allocationService = AllocationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AllocationServiceSingleton = &suite.allocationService
+	suite.allocationService = NewAllocationService(*testDB.Queries)
 }
 
 func (suite *AllocationServiceTestSuite) TearDownSuite() {
@@ -42,7 +38,7 @@ func (suite *AllocationServiceTestSuite) TearDownSuite() {
 func (suite *AllocationServiceTestSuite) TestGetAllAllocations() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	allocations, err := GetAllAllocations(suite.suiteCtx, coursePhaseID)
+	allocations, err := suite.allocationService.GetAllAllocations(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(allocations), 0, "Expected at least one allocation")
 
@@ -55,7 +51,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllAllocations() {
 func (suite *AllocationServiceTestSuite) TestGetAllAllocationsNonExistentCoursePhase() {
 	nonExistentID := uuid.New()
 
-	allocations, err := GetAllAllocations(suite.suiteCtx, nonExistentID)
+	allocations, err := suite.allocationService.GetAllAllocations(suite.suiteCtx, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent course phase")
 	assert.Equal(suite.T(), 0, len(allocations), "Should return empty list for non-existent course phase")
 }
@@ -65,7 +61,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 	courseParticipationID := uuid.MustParse("99999999-9999-9999-9999-999999999991")
 	expectedTeamID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-	teamID, err := GetAllocationByCourseParticipationID(suite.suiteCtx, courseParticipationID, coursePhaseID)
+	teamID, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, courseParticipationID, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedTeamID, teamID, "Should return the correct team ID")
 }
@@ -74,7 +70,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	nonExistentID := uuid.New()
 
-	_, err := GetAllocationByCourseParticipationID(suite.suiteCtx, nonExistentID, coursePhaseID)
+	_, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, nonExistentID, coursePhaseID)
 	assert.Error(suite.T(), err, "Should error for non-existent course participation")
 }
 
@@ -82,7 +78,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 	wrongCoursePhaseID := uuid.New()
 	courseParticipationID := uuid.MustParse("99999999-9999-9999-9999-999999999991")
 
-	_, err := GetAllocationByCourseParticipationID(suite.suiteCtx, courseParticipationID, wrongCoursePhaseID)
+	_, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, courseParticipationID, wrongCoursePhaseID)
 	assert.Error(suite.T(), err, "Should error for wrong course phase")
 }
 

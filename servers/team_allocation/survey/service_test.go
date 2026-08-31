@@ -3,6 +3,7 @@ package survey
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +17,7 @@ type SurveyServiceTestSuite struct {
 	suite.Suite
 	suiteCtx      context.Context
 	cleanup       func()
-	surveyService SurveyService
+	surveyService *SurveyService
 }
 
 func (suite *SurveyServiceTestSuite) SetupSuite() {
@@ -26,11 +27,7 @@ func (suite *SurveyServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.surveyService = SurveyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	SurveyServiceSingleton = &suite.surveyService
+	suite.surveyService = NewSurveyService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *SurveyServiceTestSuite) TearDownSuite() {
@@ -42,7 +39,7 @@ func (suite *SurveyServiceTestSuite) TearDownSuite() {
 func (suite *SurveyServiceTestSuite) TestGetSurveyForm() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	surveyForm, err := GetSurveyForm(suite.suiteCtx, coursePhaseID)
+	surveyForm, err := suite.surveyService.GetSurveyForm(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(surveyForm.Teams), 0, "Should return teams")
 	assert.GreaterOrEqual(suite.T(), len(surveyForm.Skills), 0, "Should return skills")
@@ -52,14 +49,14 @@ func (suite *SurveyServiceTestSuite) TestGetSurveyForm() {
 func (suite *SurveyServiceTestSuite) TestGetSurveyFormNonExistentCoursePhase() {
 	nonExistentID := uuid.New()
 
-	_, err := GetSurveyForm(suite.suiteCtx, nonExistentID)
+	_, err := suite.surveyService.GetSurveyForm(suite.suiteCtx, nonExistentID)
 	assert.Error(suite.T(), err, "Should error for non-existent course phase")
 }
 
 func (suite *SurveyServiceTestSuite) TestGetSurveyTimeframe() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	timeframe, err := GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
+	timeframe, err := suite.surveyService.GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), timeframe.TimeframeSet, "Timeframe should be set")
 	assert.NotZero(suite.T(), timeframe.SurveyStart, "Should have a start time")
@@ -69,9 +66,26 @@ func (suite *SurveyServiceTestSuite) TestGetSurveyTimeframe() {
 func (suite *SurveyServiceTestSuite) TestGetSurveyTimeframeNonExistent() {
 	nonExistentID := uuid.New()
 
-	timeframe, err := GetSurveyTimeframe(suite.suiteCtx, nonExistentID)
+	timeframe, err := suite.surveyService.GetSurveyTimeframe(suite.suiteCtx, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent timeframe")
 	assert.False(suite.T(), timeframe.TimeframeSet, "Timeframe should not be set")
+}
+
+func (suite *SurveyServiceTestSuite) TestSetSurveyTimeframePreservesInstantForNonUTCZone() {
+	berlin, err := time.LoadLocation("Europe/Berlin")
+	assert.NoError(suite.T(), err)
+
+	coursePhaseID := uuid.New()
+	start := time.Date(2026, 1, 15, 12, 34, 56, 123456000, berlin)
+	deadline := start.Add(48 * time.Hour)
+
+	err = suite.surveyService.SetSurveyTimeframe(suite.suiteCtx, coursePhaseID, start, deadline)
+	assert.NoError(suite.T(), err)
+
+	timeframe, err := suite.surveyService.GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), start.Equal(timeframe.SurveyStart))
+	assert.True(suite.T(), deadline.Equal(timeframe.SurveyDeadline))
 }
 
 func TestSurveyServiceTestSuite(t *testing.T) {

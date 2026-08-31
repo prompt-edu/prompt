@@ -8,29 +8,31 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupAssessmentRouter sets up assessment endpoints.
+// RegisterRoutes sets up assessment endpoints.
 // @Summary Assessment Endpoints
 // @Description Manage assessments for course participation.
 // @Tags assessments
 // @Security BearerAuth
-func setupAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+type assessmentGuard interface {
+	RequireAssessmentEnabled() gin.HandlerFunc
+}
+
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assessmentRouter := routerGroup.Group("/student-assessment")
 
-	assessmentRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listAssessmentsByCoursePhase)
-	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), coursePhaseConfig.RequireAssessmentEnabled(), createOrUpdateAssessment)
-	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), exportStudentAssessment)
-	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getStudentAssessment)
-	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listAssessmentsByStudentInPhase)
-	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), coursePhaseConfig.RequireAssessmentEnabled(), deleteAssessment)
+	assessmentRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByCoursePhase)
+	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
+	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.exportStudentAssessment)
+	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
+	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)
+	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), guard.RequireAssessmentEnabled(), service.deleteAssessment)
 
-	assessmentRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), getMyAssessmentResults)
+	assessmentRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyAssessmentResults)
 }
 
 // listAssessmentsByCoursePhase godoc
@@ -43,13 +45,13 @@ func setupAssessmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [get]
-func listAssessmentsByCoursePhase(c *gin.Context) {
+func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	assessments, err := ListAssessmentsByCoursePhase(c, coursePhaseID)
+	assessments, err := s.ListAssessmentsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -70,7 +72,7 @@ func listAssessmentsByCoursePhase(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
-func createOrUpdateAssessment(c *gin.Context) {
+func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -93,7 +95,7 @@ func createOrUpdateAssessment(c *gin.Context) {
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
 	req.CoursePhaseID = coursePhaseID
 
-	err = CreateOrUpdateAssessment(c, req)
+	err = s.CreateOrUpdateAssessment(c, req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidScoreLevel) {
 			handleError(c, http.StatusBadRequest, err)
@@ -116,7 +118,7 @@ func createOrUpdateAssessment(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID} [get]
-func getStudentAssessment(c *gin.Context) {
+func (s *AssessmentService) getStudentAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -128,7 +130,7 @@ func getStudentAssessment(c *gin.Context) {
 		return
 	}
 
-	studentAssessment, err := GetStudentAssessment(c, coursePhaseID, courseParticipationID)
+	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -148,7 +150,7 @@ func getStudentAssessment(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/{courseParticipationID}/export [get]
-func exportStudentAssessment(c *gin.Context) {
+func (s *AssessmentService) exportStudentAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -161,7 +163,7 @@ func exportStudentAssessment(c *gin.Context) {
 	}
 
 	format := c.DefaultQuery("format", AssessmentExportFormatJSON)
-	export, err := ExportStudentAssessment(c, coursePhaseID, courseParticipationID, format)
+	export, err := s.ExportStudentAssessment(c, coursePhaseID, courseParticipationID, format)
 	if err != nil {
 		if errors.Is(err, ErrUnsupportedAssessmentExportFormat) {
 			handleError(c, http.StatusBadRequest, err)
@@ -186,14 +188,14 @@ func exportStudentAssessment(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/my-results [get]
-func getMyAssessmentResults(c *gin.Context) {
+func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	config, err := coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -212,7 +214,7 @@ func getMyAssessmentResults(c *gin.Context) {
 	}
 
 	// Students can only see results after they have a completed assessment
-	exists, err := assessmentCompletion.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
+	exists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -221,7 +223,7 @@ func getMyAssessmentResults(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 		return
 	}
-	completion, err := assessmentCompletion.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
+	completion, err := s.assessmentCompletion.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -231,7 +233,7 @@ func getMyAssessmentResults(c *gin.Context) {
 		return
 	}
 
-	results, err := GetStudentAssessmentResults(c, coursePhaseID, courseParticipationID, config)
+	results, err := s.GetStudentAssessmentResults(c, coursePhaseID, courseParticipationID, config)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -251,7 +253,7 @@ func getMyAssessmentResults(c *gin.Context) {
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/{assessmentID} [delete]
-func deleteAssessment(c *gin.Context) {
+func (s *AssessmentService) deleteAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -262,7 +264,7 @@ func deleteAssessment(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := DeleteAssessment(c, assessmentID, coursePhaseID); err != nil {
+	if err := s.DeleteAssessment(c, assessmentID, coursePhaseID); err != nil {
 		if errors.Is(err, ErrAssessmentNotInPhase) || errors.Is(err, ErrAssessmentNotFound) {
 			handleError(c, http.StatusNotFound, err)
 			return
@@ -284,7 +286,7 @@ func deleteAssessment(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/course-participation/{courseParticipationID} [get]
-func listAssessmentsByStudentInPhase(c *gin.Context) {
+func (s *AssessmentService) listAssessmentsByStudentInPhase(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -295,7 +297,7 @@ func listAssessmentsByStudentInPhase(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	assessments, err := ListAssessmentsByStudentInPhase(c, courseParticipationID, coursePhaseID)
+	assessments, err := s.ListAssessmentsByStudentInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

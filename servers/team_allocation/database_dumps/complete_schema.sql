@@ -27,8 +27,8 @@ CREATE TABLE
 CREATE TABLE
     survey_timeframe (
         course_phase_id uuid NOT NULL PRIMARY KEY,
-        survey_start TIMESTAMP NOT NULL,
-        survey_deadline TIMESTAMP NOT NULL
+        survey_start TIMESTAMPTZ NOT NULL,
+        survey_deadline TIMESTAMPTZ NOT NULL
     );
 
 CREATE TABLE
@@ -76,8 +76,8 @@ INSERT INTO
 VALUES
     (
         '4179d58a-d00d-4fa7-94a5-397bc69fab02',
-        '2024-01-01 00:00:00',
-        '2030-12-31 23:59:59'
+        '2024-01-01 00:00:00+00',
+        '2030-12-31 23:59:59+00'
     );
 
 -- Skills for testing

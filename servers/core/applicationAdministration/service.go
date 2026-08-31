@@ -14,11 +14,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
-	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation/courseParticipationDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
@@ -26,12 +26,76 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ApplicationService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+// CoursePhaseProvider reads the course phase an application belongs to.
+type CoursePhaseProvider interface {
+	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
 }
 
-var ApplicationServiceSingleton *ApplicationService
+// CoursePhaseParticipationProvider creates and updates the participations an application produces.
+type CoursePhaseParticipationProvider interface {
+	CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueries *db.Queries, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error)
+	UpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, updatedCoursePhaseParticipation coursePhaseParticipationDTO.UpdateCoursePhaseParticipation) error
+	BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, passStatus db.PassStatus) ([]uuid.UUID, error)
+}
+
+// StudentProvider writes the student records an application creates or updates.
+type StudentProvider interface {
+	CreateStudent(ctx context.Context, transactionQueries *db.Queries, student studentDTO.CreateStudent) (studentDTO.Student, error)
+	UpdateStudent(ctx context.Context, transactionQueries *db.Queries, id uuid.UUID, student studentDTO.CreateStudent) (studentDTO.Student, error)
+	CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, studentInput studentDTO.CreateStudent) (studentDTO.Student, error)
+	GetStudentByCourseParticipationID(ctx context.Context, courseParticipationID uuid.UUID) (studentDTO.Student, error)
+}
+
+// CourseParticipationProvider enrolls an applicant into the course of the application phase.
+type CourseParticipationProvider interface {
+	CreateIfNotExistingCourseParticipation(ctx context.Context, transactionQueries *db.Queries, studentID uuid.UUID, courseID uuid.UUID) (courseParticipationDTO.GetCourseParticipation, error)
+}
+
+// FileStorageProvider serves the files uploaded as answers to file upload questions.
+type FileStorageProvider interface {
+	PresignUpload(ctx context.Context, req files.PresignUploadRequest) (*files.PresignUploadResponse, error)
+	CreateFileFromStorageKey(ctx context.Context, req files.CreateFileFromStorageKeyRequest, uploaderUserID, uploaderEmail string) (*files.FileResponse, error)
+	GetFileByID(ctx context.Context, fileID uuid.UUID) (*files.FileResponse, error)
+	DeleteFile(ctx context.Context, fileID uuid.UUID, hardDelete bool) error
+}
+
+// ConfirmationMailer sends the confirmation mail of a submitted application.
+type ConfirmationMailer interface {
+	SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (bool, error)
+}
+
+type ApplicationService struct {
+	queries              db.Queries
+	conn                 *pgxpool.Pool
+	coursePhases         CoursePhaseProvider
+	participations       CoursePhaseParticipationProvider
+	students             StudentProvider
+	courseParticipations CourseParticipationProvider
+	files                FileStorageProvider
+	mailer               ConfirmationMailer
+}
+
+func NewApplicationService(
+	queries db.Queries,
+	conn *pgxpool.Pool,
+	coursePhases CoursePhaseProvider,
+	participations CoursePhaseParticipationProvider,
+	students StudentProvider,
+	courseParticipations CourseParticipationProvider,
+	files FileStorageProvider,
+	mailer ConfirmationMailer,
+) *ApplicationService {
+	return &ApplicationService{
+		queries:              queries,
+		conn:                 conn,
+		coursePhases:         coursePhases,
+		participations:       participations,
+		students:             students,
+		courseParticipations: courseParticipations,
+		files:                files,
+		mailer:               mailer,
+	}
+}
 
 var ErrNotFound = errors.New("application was not found")
 var ErrAlreadyApplied = errors.New("application already exists")
@@ -40,7 +104,7 @@ var ErrEmailAlreadyInUse = errors.New("email already in use")
 var ErrImportAnswerTooLong = errors.New("import answer exceeds the allowed length")
 var ErrUniversityLoginConflict = errors.New("university login already belongs to a different student")
 
-func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
+func (s *ApplicationService) buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnswerFileUpload, includeDownloadURL bool) []applicationDTO.AnswerFileUpload {
 	answerDTOs := make([]applicationDTO.AnswerFileUpload, 0, len(answers))
 	for _, answer := range answers {
 		dto := applicationDTO.AnswerFileUpload{
@@ -51,7 +115,7 @@ func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnsw
 		}
 
 		if includeDownloadURL {
-			file, err := files.StorageServiceSingleton.GetFileByID(ctx, answer.FileID)
+			file, err := s.files.GetFileByID(ctx, answer.FileID)
 			if err != nil {
 				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
 			} else {
@@ -61,7 +125,7 @@ func buildFileUploadAnswerDTOs(ctx context.Context, answers []db.ApplicationAnsw
 				dto.DownloadURL = file.DownloadURL
 			}
 		} else {
-			file, err := ApplicationServiceSingleton.queries.GetFileByID(ctx, answer.FileID)
+			file, err := s.queries.GetFileByID(ctx, answer.FileID)
 			if err != nil {
 				log.WithError(err).WithField("fileId", answer.FileID).Warn("Failed to load file metadata for answer")
 			} else {
@@ -120,11 +184,8 @@ func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applica
 	return oldFileID, nil
 }
 
-func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
+func (s *ApplicationService) cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 	if len(fileIDs) == 0 {
-		return
-	}
-	if files.StorageServiceSingleton == nil {
 		return
 	}
 
@@ -138,17 +199,17 @@ func cleanupReplacedFiles(ctx context.Context, fileIDs []uuid.UUID) {
 		}
 		seenFileIDs[fileID] = struct{}{}
 
-		if err := files.StorageServiceSingleton.DeleteFile(ctx, fileID, true); err != nil {
+		if err := s.files.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}
 	}
 }
 
-func GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.Form, error) {
+func (s *ApplicationService) GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.Form, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	isApplicationPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return applicationDTO.Form{}, err
 	}
@@ -157,17 +218,17 @@ func GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicati
 		return applicationDTO.Form{}, errors.New("course phase is not an application phase")
 	}
 
-	applicationQuestionsText, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsText, err := s.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return applicationDTO.Form{}, err
 	}
 
-	applicationQuestionsMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsMultiSelect, err := s.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return applicationDTO.Form{}, err
 	}
 
-	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsFileUpload, err := s.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return applicationDTO.Form{}, err
 	}
@@ -177,13 +238,13 @@ func GetApplicationForm(ctx context.Context, coursePhaseID uuid.UUID) (applicati
 	return applicationFormDTO, nil
 }
 
-func UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form applicationDTO.UpdateForm) error {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form applicationDTO.UpdateForm) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// Check if course phase is application phase
 	isApplicationPhase, err := qtx.CheckIfCoursePhaseIsApplicationPhase(ctx, coursePhaseId)
@@ -298,8 +359,8 @@ func UpdateApplicationForm(ctx context.Context, coursePhaseId uuid.UUID, form ap
 
 }
 
-func GetOpenApplicationPhases(ctx context.Context) ([]applicationDTO.OpenApplication, error) {
-	applicationCoursePhases, err := ApplicationServiceSingleton.queries.GetAllOpenApplicationPhases(ctx)
+func (s *ApplicationService) GetOpenApplicationPhases(ctx context.Context) ([]applicationDTO.OpenApplication, error) {
+	applicationCoursePhases, err := s.queries.GetAllOpenApplicationPhases(ctx)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get open application phases")
@@ -314,28 +375,28 @@ func GetOpenApplicationPhases(ctx context.Context) ([]applicationDTO.OpenApplica
 	return openApplications, nil
 }
 
-func GetApplicationFormWithDetails(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.FormWithDetails, error) {
+func (s *ApplicationService) GetApplicationFormWithDetails(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.FormWithDetails, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
-	applicationCoursePhase, err := ApplicationServiceSingleton.queries.GetOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
+	applicationCoursePhase, err := s.queries.GetOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.FormWithDetails{}, ErrNotFound
 	}
 
-	applicationFormText, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationFormText, err := s.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.FormWithDetails{}, errors.New("could not get application form")
 	}
 
-	applicationFormMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationFormMultiSelect, err := s.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.FormWithDetails{}, errors.New("could not get application form")
 	}
 
-	applicationFormFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationFormFileUpload, err := s.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.FormWithDetails{}, errors.New("could not get application form")
@@ -346,14 +407,14 @@ func GetApplicationFormWithDetails(ctx context.Context, coursePhaseID uuid.UUID)
 	return openApplicationDTO, nil
 }
 
-func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) (uuid.UUID, error) {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) (uuid.UUID, error) {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
-	queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
+	qtx := s.queries.WithTx(tx)
+	queries := utils.GetQueries(qtx, &s.queries)
 
 	// 1. Check if studentObj with this email already exists
 	studentObj, err := student.GetStudentByEmail(ctx, &queries, application.Student.Email)
@@ -380,7 +441,7 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		}
 	} else {
 		// create student
-		studentObj, err = student.CreateStudent(ctx, qtx, application.Student)
+		studentObj, err = s.students.CreateStudent(ctx, qtx, application.Student)
 		if err != nil {
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save student")
@@ -393,13 +454,13 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		return uuid.Nil, errors.New("could not get the application phase")
 	}
 
-	cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+	cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course participation")
 	}
 
-	cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+	cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not create course phase participation")
@@ -465,21 +526,21 @@ func PostApplicationExtern(ctx context.Context, coursePhaseID uuid.UUID, applica
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	cleanupReplacedFiles(ctx, replacedFileIDs)
+	s.cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
 }
 
-func SyncStudentDetailsFromToken(ctx context.Context, s studentDTO.Student) error {
-	_, err := student.UpdateStudent(ctx, nil, s.ID, studentDTO.CreateStudent(s))
+func (s *ApplicationService) SyncStudentDetailsFromToken(ctx context.Context, studentObj studentDTO.Student) error {
+	_, err := s.students.UpdateStudent(ctx, nil, studentObj.ID, studentDTO.CreateStudent(studentObj))
 	return err
 }
 
-func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (applicationDTO.Application, error) {
+func (s *ApplicationService) GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (applicationDTO.Application, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	studentObj, err := student.ResolveStudentByUniversityCredentials(ctxWithTimeout, &ApplicationServiceSingleton.queries, matriculationNumber, universityLogin)
+	studentObj, err := student.ResolveStudentByUniversityCredentials(ctxWithTimeout, &s.queries, matriculationNumber, universityLogin)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return applicationDTO.Application{
 			Status:             applicationDTO.StatusNewUser,
@@ -494,7 +555,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 		return applicationDTO.Application{}, errors.New("could not get the student")
 	}
 
-	exists, err := ApplicationServiceSingleton.queries.GetApplicationExistsForStudent(ctxWithTimeout, db.GetApplicationExistsForStudentParams{StudentID: studentObj.ID, ID: coursePhaseID})
+	exists, err := s.queries.GetApplicationExistsForStudent(ctxWithTimeout, db.GetApplicationExistsForStudentParams{StudentID: studentObj.ID, ID: coursePhaseID})
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.Application{}, errors.New("could not get application details")
@@ -502,7 +563,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 
 	if exists {
 		// Get courseParticipation
-		courseParticipation, err := ApplicationServiceSingleton.queries.GetCourseParticipationByStudentAndCoursePhaseID(ctxWithTimeout, db.GetCourseParticipationByStudentAndCoursePhaseIDParams{
+		courseParticipation, err := s.queries.GetCourseParticipationByStudentAndCoursePhaseID(ctxWithTimeout, db.GetCourseParticipationByStudentAndCoursePhaseIDParams{
 			StudentID:     studentObj.ID,
 			CoursePhaseID: coursePhaseID,
 		})
@@ -511,7 +572,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			return applicationDTO.Application{}, errors.New("could not get course participation")
 		}
 
-		answersText, err := ApplicationServiceSingleton.queries.GetApplicationAnswersTextForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersTextForCourseParticipationIDParams{
+		answersText, err := s.queries.GetApplicationAnswersTextForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersTextForCourseParticipationIDParams{
 			CourseParticipationID: courseParticipation.ID,
 			CoursePhaseID:         coursePhaseID,
 		})
@@ -520,7 +581,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			return applicationDTO.Application{}, errors.New("could not get application answers")
 		}
 
-		answersMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationAnswersMultiSelectForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersMultiSelectForCourseParticipationIDParams{
+		answersMultiSelect, err := s.queries.GetApplicationAnswersMultiSelectForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersMultiSelectForCourseParticipationIDParams{
 			CourseParticipationID: courseParticipation.ID,
 			CoursePhaseID:         coursePhaseID,
 		})
@@ -529,7 +590,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			return applicationDTO.Application{}, errors.New("could not get application answers")
 		}
 
-		answersFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
+		answersFileUpload, err := s.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
 			CourseParticipationID: courseParticipation.ID,
 			CoursePhaseID:         coursePhaseID,
 		})
@@ -544,7 +605,7 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 			Student:            &studentObj,
 			AnswersText:        applicationDTO.GetAnswersTextDTOFromDBModels(answersText),
 			AnswersMultiSelect: applicationDTO.GetAnswersMultiSelectDTOFromDBModels(answersMultiSelect),
-			AnswersFileUpload:  buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, true),
+			AnswersFileUpload:  s.buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, true),
 		}, nil
 
 	} else {
@@ -560,16 +621,16 @@ func GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(ctx cont
 
 }
 
-func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) (uuid.UUID, error) {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) (uuid.UUID, error) {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// 1. Update student details
-	studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, application.Student)
+	studentObj, err := s.students.CreateOrUpdateStudent(ctx, qtx, application.Student)
 	if err != nil {
 		log.Error(err)
 		var pgErr *pgconn.PgError
@@ -586,13 +647,13 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 		return uuid.Nil, errors.New("could not get the application phase")
 	}
 
-	cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+	cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course participation")
 	}
 
-	cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+	cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return uuid.Nil, errors.New("could not save the course phase participation")
@@ -658,18 +719,18 @@ func PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid
 		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	cleanupReplacedFiles(ctx, replacedFileIDs)
+	s.cleanupReplacedFiles(ctx, replacedFileIDs)
 
 	return cPhaseParticipation.CourseParticipationID, nil
 
 }
 
 // TODO update
-func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) (applicationDTO.Application, error) {
+func (s *ApplicationService) GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) (applicationDTO.Application, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	applicationExists, err := ApplicationServiceSingleton.queries.GetApplicationExists(ctxWithTimeout, db.GetApplicationExistsParams{CoursePhaseID: coursePhaseID, CourseParticipationID: courseParticipationID})
+	applicationExists, err := s.queries.GetApplicationExists(ctxWithTimeout, db.GetApplicationExistsParams{CoursePhaseID: coursePhaseID, CourseParticipationID: courseParticipationID})
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.Application{}, errors.New("could not get application")
@@ -679,13 +740,13 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		return applicationDTO.Application{}, ErrNotFound
 	}
 
-	studentObj, err := student.GetStudentByCourseParticipationID(ctxWithTimeout, courseParticipationID)
+	studentObj, err := s.students.GetStudentByCourseParticipationID(ctxWithTimeout, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.Application{}, errors.New("could not get student")
 	}
 
-	answersText, err := ApplicationServiceSingleton.queries.GetApplicationAnswersTextForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersTextForCourseParticipationIDParams{
+	answersText, err := s.queries.GetApplicationAnswersTextForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersTextForCourseParticipationIDParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -694,7 +755,7 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		return applicationDTO.Application{}, errors.New("could not get application answers")
 	}
 
-	answersMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationAnswersMultiSelectForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersMultiSelectForCourseParticipationIDParams{
+	answersMultiSelect, err := s.queries.GetApplicationAnswersMultiSelectForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersMultiSelectForCourseParticipationIDParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -703,7 +764,7 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		return applicationDTO.Application{}, errors.New("could not get application answers")
 	}
 
-	answersFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
+	answersFileUpload, err := s.queries.GetApplicationAnswersFileUploadForCourseParticipationID(ctxWithTimeout, db.GetApplicationAnswersFileUploadForCourseParticipationIDParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -718,7 +779,7 @@ func GetApplicationByCPID(ctx context.Context, coursePhaseID uuid.UUID, coursePa
 		Student:            &studentObj,
 		AnswersText:        applicationDTO.GetAnswersTextDTOFromDBModels(answersText),
 		AnswersMultiSelect: applicationDTO.GetAnswersMultiSelectDTOFromDBModels(answersMultiSelect),
-		AnswersFileUpload:  buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, false),
+		AnswersFileUpload:  s.buildFileUploadAnswerDTOs(ctxWithTimeout, answersFileUpload, false),
 	}, nil
 }
 
@@ -730,29 +791,29 @@ type ApplicationDataExportPerCourseParticipation struct {
 	Assessments           []db.ApplicationAssessment                                          `json:"assessments"`
 }
 
-func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]ApplicationDataExportPerCourseParticipation, error) {
+func (s *ApplicationService) GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid.UUID) ([]ApplicationDataExportPerCourseParticipation, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	answersText, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	answersText, err := s.queries.GetAllApplicationAnswersTextByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get application text answers")
 	}
 
-	answersMultiSelect, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	answersMultiSelect, err := s.queries.GetAllApplicationAnswersMultiSelectByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get application multi-select answers")
 	}
 
-	answersFileUpload, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	answersFileUpload, err := s.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get application file upload answers")
 	}
 
-	assessments, err := ApplicationServiceSingleton.queries.GetAllApplicationAssessmentsByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
+	assessments, err := s.queries.GetAllApplicationAssessmentsByCourseParticipationIDs(ctxWithTimeout, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get application assessments")
@@ -793,11 +854,11 @@ func GetAllApplicationAnswers(ctx context.Context, courseParticipationIDs []uuid
 	return result, nil
 }
 
-func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
+func (s *ApplicationService) GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadByCourseParticipationIDsRow {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	answers, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answers, err := s.queries.GetAllApplicationAnswersFileUploadByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
@@ -805,11 +866,11 @@ func GetApplicationFileUploadAnswers(ctx context.Context, coursecourseParticipat
 	return answers
 }
 
-func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
+func (s *ApplicationService) GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, coursecourseParticipationIDS []uuid.UUID) []db.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDsRow {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	answersWithFileRecords, err := ApplicationServiceSingleton.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
+	answersWithFileRecords, err := s.queries.GetAllApplicationAnswersFileUploadWithFileRecordByCourseParticipationIDs(ctxWithTimeout, coursecourseParticipationIDS)
 	if err != nil {
 		log.Error(err)
 		return nil
@@ -817,11 +878,11 @@ func GetApplicationFileUploadAnswersWithFileRecord(ctx context.Context, courseco
 	return answersWithFileRecords
 }
 
-func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {
+func (s *ApplicationService) GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.ApplicationParticipation, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	applicationParticipations, err := ApplicationServiceSingleton.queries.GetAllApplicationParticipations(ctxWithTimeout, coursePhaseID)
+	applicationParticipations, err := s.queries.GetAllApplicationParticipations(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not get application participations")
@@ -840,11 +901,11 @@ func GetAllApplicationParticipations(ctx context.Context, coursePhaseID uuid.UUI
 	return applicationParticipationsDTO, nil
 }
 
-func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.ExportedApplicationAnswersResponse, error) {
+func (s *ApplicationService) GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID) (applicationDTO.ExportedApplicationAnswersResponse, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	questions, err := ApplicationServiceSingleton.queries.GetExportedApplicationQuestionsForCoursePhase(ctxWithTimeout, coursePhaseID)
+	questions, err := s.queries.GetExportedApplicationQuestionsForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application questions")
@@ -868,7 +929,7 @@ func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID)
 		}, nil
 	}
 
-	answers, err := ApplicationServiceSingleton.queries.GetExportedApplicationAnswersForCoursePhase(ctxWithTimeout, coursePhaseID)
+	answers, err := s.queries.GetExportedApplicationAnswersForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return applicationDTO.ExportedApplicationAnswersResponse{}, errors.New("could not get exported application answers")
@@ -905,16 +966,16 @@ func GetExportedApplicationAnswers(ctx context.Context, coursePhaseID uuid.UUID)
 	}, nil
 }
 
-func UpdateApplicationAssessment(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) UpdateApplicationAssessment(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	if assessment.PassStatus != nil || assessment.RestrictedData.Length() > 0 {
-		err := coursePhaseParticipation.UpdateCoursePhaseParticipation(ctx, qtx, coursePhaseParticipationDTO.UpdateCoursePhaseParticipation{
+		err := s.participations.UpdateCoursePhaseParticipation(ctx, qtx, coursePhaseParticipationDTO.UpdateCoursePhaseParticipation{
 			CourseParticipationID: courseParticipationID,
 			PassStatus:            assessment.PassStatus,
 			RestrictedData:        assessment.RestrictedData,
@@ -955,14 +1016,14 @@ func UpdateApplicationAssessment(ctx context.Context, coursePhaseID uuid.UUID, c
 	return nil
 }
 
-func UploadAdditionalScore(ctx context.Context, coursePhaseID uuid.UUID, additionalScore applicationDTO.AdditionalScoreUpload) error {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) UploadAdditionalScore(ctx context.Context, coursePhaseID uuid.UUID, additionalScore applicationDTO.AdditionalScoreUpload) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// generate batch of scores
 	batchScores := make([]pgtype.Numeric, 0, len(additionalScore.Scores))
@@ -1019,7 +1080,7 @@ func UploadAdditionalScore(ctx context.Context, coursePhaseID uuid.UUID, additio
 		}
 	}
 
-	coursePhaseDTO, err := coursePhase.GetCoursePhaseByID(ctx, coursePhaseID)
+	coursePhaseDTO, err := s.coursePhases.GetCoursePhaseByID(ctx, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return errors.New("could not update additional scores")
@@ -1047,11 +1108,11 @@ func UploadAdditionalScore(ctx context.Context, coursePhaseID uuid.UUID, additio
 	return nil
 }
 
-func GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.AdditionalScore, error) {
+func (s *ApplicationService) GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applicationDTO.AdditionalScore, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coursePhaseDTO, err := coursePhase.GetCoursePhaseByID(ctxWithTimeout, coursePhaseID)
+	coursePhaseDTO, err := s.coursePhases.GetCoursePhaseByID(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("could not update additional scores")
@@ -1062,8 +1123,8 @@ func GetAdditionalScores(ctx context.Context, coursePhaseID uuid.UUID) ([]applic
 
 // IsImportModePhase reports whether the application phase is configured for CSV import instead of
 // the public application form (restricted_data.applicationMode == "import").
-func IsImportModePhase(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
-	mode, err := ApplicationServiceSingleton.queries.GetApplicationModeForCoursePhase(ctx, coursePhaseID)
+func (s *ApplicationService) IsImportModePhase(ctx context.Context, coursePhaseID uuid.UUID) (bool, error) {
+	mode, err := s.queries.GetApplicationModeForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return false, err
 	}
@@ -1075,14 +1136,14 @@ func IsImportModePhase(ctx context.Context, coursePhaseID uuid.UUID) (bool, erro
 // title on re-import), upserts each student and its participations, stores the answers and applies
 // the chosen pass status to the whole batch. The whole import runs in a single transaction, so a
 // failing row rolls back everything.
-func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) (applicationDTO.ImportResult, error) {
-	tx, err := ApplicationServiceSingleton.conn.Begin(ctx)
+func (s *ApplicationService) PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) (applicationDTO.ImportResult, error) {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return applicationDTO.ImportResult{}, err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := ApplicationServiceSingleton.queries.WithTx(tx)
-	queries := utils.GetQueries(qtx, &ApplicationServiceSingleton.queries)
+	qtx := s.queries.WithTx(tx)
+	queries := utils.GetQueries(qtx, &s.queries)
 
 	courseID, err := qtx.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
 	if err != nil {
@@ -1179,7 +1240,7 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			studentInput.StudyDegree = db.StudyDegreeBachelor
 		}
 
-		studentObj, err := student.CreateOrUpdateStudent(ctx, qtx, studentInput)
+		studentObj, err := s.students.CreateOrUpdateStudent(ctx, qtx, studentInput)
 		if err != nil {
 			log.Error(err)
 			var pgErr *pgconn.PgError
@@ -1194,7 +1255,7 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			return applicationDTO.ImportResult{}, fmt.Errorf("could not save student %s: %w", studentInput.UniversityLogin, err)
 		}
 
-		cParticipation, err := courseParticipation.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
+		cParticipation, err := s.courseParticipations.CreateIfNotExistingCourseParticipation(ctx, qtx, studentObj.ID, courseID)
 		if err != nil {
 			log.Error(err)
 			return applicationDTO.ImportResult{}, errors.New("could not save the course participation")
@@ -1212,7 +1273,7 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 			outcome = "updated"
 		}
 
-		cPhaseParticipation, err := coursePhaseParticipation.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
+		cPhaseParticipation, err := s.participations.CreateIfNotExistingPhaseParticipation(ctx, qtx, cParticipation.ID, coursePhaseID)
 		if err != nil {
 			log.Error(err)
 			return applicationDTO.ImportResult{}, errors.New("could not save the course phase participation")
@@ -1286,14 +1347,115 @@ func PostApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req app
 	return result, nil
 }
 
-func DeleteApplications(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID) error {
+func (s *ApplicationService) DeleteApplications(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	err := ApplicationServiceSingleton.queries.DeleteApplications(ctxWithTimeout, db.DeleteApplicationsParams{CoursePhaseID: coursePhaseID, CourseParticipationIds: courseParticipationIDs})
+	err := s.queries.DeleteApplications(ctxWithTimeout, db.DeleteApplicationsParams{CoursePhaseID: coursePhaseID, CourseParticipationIds: courseParticipationIDs})
 	if err != nil {
 		log.Error(err)
 		return errors.New("could not delete applications")
 	}
+	return nil
+}
+
+// InitializeApplicationCoursePhaseType creates the application course phase type together with its
+// provided outputs. It is a no-op once the type exists.
+func (s *ApplicationService) InitializeApplicationCoursePhaseType(ctx context.Context) error {
+	// check if the application module exists in the types
+	exists, err := s.queries.TestApplicationPhaseTypeExists(ctx)
+	if err != nil {
+		log.Error("failed to check if application phase type exists: ", err)
+		return err
+	}
+
+	if !exists {
+		// 1.) start transaction
+		tx, err := s.conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		defer sdkUtils.DeferRollback(tx, ctx)
+		qtx := s.queries.WithTx(tx)
+
+		// 2.) create the application module
+		newApplicationPhaseType := db.CreateCoursePhaseTypeParams{
+			ID:           uuid.New(),
+			Name:         "Application",
+			InitialPhase: true,
+			BaseUrl:      "core",
+		}
+		err = qtx.CreateCoursePhaseType(ctx, newApplicationPhaseType)
+		if err != nil {
+			log.Error("failed to create application module: ", err)
+		}
+
+		// 3.) create the provided output meta data
+		// 3.1 Application Score
+		scoreSpecificationJson := meta.MetaData{}
+		scoreSpecificationJson["type"] = "integer"
+		scoreSpecificationBytes, err := scoreSpecificationJson.GetDBModel()
+		if err != nil {
+			log.Error("failed to parse score specification")
+			return err
+		}
+
+		scoreLevelSpecificationBytes, err := getScoreLevelSpecificationBytes()
+		if err != nil {
+			log.Error("failed to parse score level specification")
+			return err
+		}
+
+		newProvidedOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
+			ID:                uuid.New(),
+			CoursePhaseTypeID: newApplicationPhaseType.ID,
+			DtoName:           "score",
+			Specification:     scoreSpecificationBytes,
+			VersionNumber:     1,
+			EndpointPath:      "core",
+		}
+		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
+		if err != nil {
+			log.Error("failed to create required score input: ", err)
+			return err
+		}
+
+		newProvidedScoreLevelOutput := db.CreateCoursePhaseTypeProvidedOutputParams{
+			ID:                uuid.New(),
+			CoursePhaseTypeID: newApplicationPhaseType.ID,
+			DtoName:           "scoreLevel",
+			Specification:     scoreLevelSpecificationBytes,
+			VersionNumber:     1,
+			EndpointPath:      "core",
+		}
+		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
+		if err != nil {
+			log.Error("failed to create score level output: ", err)
+			return err
+		}
+
+		// 3.2 Application Answers
+		err = qtx.InsertCourseProvidedApplicationAnswers(ctx, newApplicationPhaseType.ID)
+		if err != nil {
+			log.Error("failed to create required application answers: ", err)
+			return err
+		}
+
+		// 3.3 Additional Scores
+		err = qtx.InsertCourseProvidedAdditionalScores(ctx, newApplicationPhaseType.ID)
+		if err != nil {
+			log.Error("failed to create required additional scores: ", err)
+			return err
+		}
+
+		// 4.) commit the transaction
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+	} else {
+		log.Debug("application module already exists")
+	}
+
 	return nil
 }

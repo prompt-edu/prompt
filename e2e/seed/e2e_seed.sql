@@ -634,6 +634,8 @@ INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPrak
 -- phase is the negative-auth fixture.
 INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
+INSERT INTO public.course_participation VALUES ('ca000009-0000-4000-8000-000000000009', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000009-0000-0000-0000-000000000009');
+INSERT INTO public.course_participation VALUES ('ca000010-0000-4000-8000-000000000010', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000010-0000-0000-0000-000000000010');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
 -- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
@@ -704,6 +706,8 @@ INSERT INTO public.course_phase_participation VALUES ('a0000001-0000-0000-0000-0
 INSERT INTO public.course_phase_participation VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000003-0000-0000-0000-000000000003', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
 INSERT INTO public.course_phase_participation VALUES ('a0000004-0000-0000-0000-000000000004', 'd0000005-0000-0000-0000-000000000005', '{}', 'not_assessed', '2025-01-09 18:20:28.256593', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000015-0000-0000-0000-000000000015', '{"exercisescore": 87.5}', 'not_assessed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('ca000008-0000-4000-8000-000000000008', 'd0000015-0000-0000-0000-000000000015', '{}', 'not_assessed', '{}');
 -- Standalone assessment fixture phases (see the course_phase inserts below):
 -- Stan + Selma in the visibility phase, Stan in the self-evaluation phase,
 -- Stan in the print phase, Stan + Selma in the grade export phase, Stan in the
@@ -786,12 +790,13 @@ INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 
 -- formed there never collide with the student journey's phase when Playwright
 -- runs the two spec files in parallel workers.
 INSERT INTO public.course_phase VALUES ('aaaa4444-0000-0000-0000-0000000000a4', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation Overview', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
-INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 -- Standalone import-mode Application phase on fullCourse (no graph edge, reach by API). Non-initial
 -- because fullCourse already has an initial Application phase (unique_initial_phase_per_course), and
 -- the import endpoint keys off the phase type, not is_initial_phase. applicationMode=import closes
 -- the public apply flow and enables the CSV import endpoint. Owned by the application-import API spec.
 INSERT INTO public.course_phase VALUES ('d0000011-0000-0000-0000-000000000011', 'c0000001-0000-0000-0000-000000000001', 'CSV Import Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": true, "applicationMode": "import"}', false, 'a1111111-1111-1111-1111-111111111111', '{}');
+INSERT INTO public.course_phase VALUES ('d0000015-0000-0000-0000-000000000015', 'c0000001-0000-0000-0000-000000000001', 'Custom Scores Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": false, "universityLoginAvailable": true, "useCustomScores": true, "additionalScores": [{"key": "exercisescore", "name": "Exercise Score"}]}', false, 'a1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000002-0000-0000-0000-000000000002', 'c0000001-0000-0000-0000-000000000001', 'Interview', '{}', false, 'b1111111-1111-1111-1111-111111111111', '{}');
 INSERT INTO public.course_phase VALUES ('d0000003-0000-0000-0000-000000000003', 'c0000001-0000-0000-0000-000000000001', 'Matching', '{}', false, 'b2222222-2222-2222-2222-222222222222', '{}');
 INSERT INTO public.course_phase VALUES ('d0000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation', '{}', false, 'b3333333-3333-3333-3333-333333333333', '{}');
@@ -878,7 +883,7 @@ INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 
 -- existing course lifecycle fixtures remain unchanged.
 --
 
-INSERT INTO public.course_phase VALUES ('d0000012-0000-0000-0000-000000000012', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
+INSERT INTO public.course_phase VALUES ('d0000014-0000-0000-0000-000000000014', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, 'c6666666-6666-6666-6666-666666666666', '{}');
 
 --
 -- Standalone interview fixture phase (no graph edge, see above):
@@ -1022,6 +1027,13 @@ INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Nicl
 -- its full-course participation resolves to a DB-derived Student role.
 INSERT INTO public.student VALUES ('e0000005-0000-0000-0000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the privacy deletion-approval spec, which deletes this student. Nothing
+-- else may reference it; it maps to the Keycloak user `privacy-student`.
+INSERT INTO public.student VALUES ('e0000009-0000-0000-0000-000000000009', 'Priya', 'Vacy', 'privacy_subject@example.com', '00000009', 'pv99tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the admin-initiated deletion spec. last_modified is far enough in the
+-- past to match the student table's "not modified in N years" filter, which a student
+-- created during the run never can. No Keycloak account: admins delete this one.
+INSERT INTO public.student VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
 
 
 --

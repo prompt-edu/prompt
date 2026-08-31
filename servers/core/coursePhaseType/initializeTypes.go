@@ -14,6 +14,56 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// InitializePhaseTypes creates every built-in course phase type and repairs the
+// descriptors of the ones that already exist. A failure is fatal: core must not
+// serve a course catalogue with missing phase types.
+func (s *CoursePhaseTypeService) InitializePhaseTypes() {
+	err := s.initInterview()
+	if err != nil {
+		log.Fatal("failed to init interview phase type: ", err)
+	}
+
+	err = s.initMatching()
+	if err != nil {
+		log.Fatal("failed to init matching phase type: ", err)
+	}
+
+	err = s.initIntroCourseDeveloper()
+	if err != nil {
+		log.Fatal("failed to init intro course developer phase type: ", err)
+	}
+
+	err = s.initDevOpsChallenge()
+	if err != nil {
+		log.Fatal("failed to init dev ops challenge phase type: ", err)
+	}
+
+	err = s.initAssessment()
+	if err != nil {
+		log.Fatal("failed to init assessment phase type: ", err)
+	}
+
+	err = s.initTeamAllocation()
+	if err != nil {
+		log.Fatal("failed to init team allocation phase type: ", err)
+	}
+
+	err = s.initSelfTeamAllocation()
+	if err != nil {
+		log.Fatal("failed to init self team allocation phase type: ", err)
+	}
+
+	err = s.initCertificate()
+	if err != nil {
+		log.Fatal("failed to init certificate phase type: ", err)
+	}
+
+	err = s.initPresentation()
+	if err != nil {
+		log.Fatal("failed to init presentation phase type: ", err)
+	}
+}
+
 func getScoreLevelSpecificationBytes() ([]byte, error) {
 	scoreLevelSpecificationJson := meta.MetaData{}
 	scoreLevelSpecificationJson["type"] = "string"
@@ -21,24 +71,24 @@ func getScoreLevelSpecificationBytes() ([]byte, error) {
 	return scoreLevelSpecificationJson.GetDBModel()
 }
 
-func initInterview() error {
+func (s *CoursePhaseTypeService) initInterview() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestInterviewPhaseTypeExists(ctx)
+	exists, err := s.queries.TestInterviewPhaseTypeExists(ctx)
 	if err != nil {
 		log.Error("failed to check if interview phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/interview/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8087/interview/api"
 		}
 
@@ -95,7 +145,7 @@ func initInterview() error {
 			DtoName:           "score",
 			Specification:     scoreSpecificationBytes,
 			VersionNumber:     1,
-			EndpointPath:      "core",
+			EndpointPath:      "/interview-review/score",
 		}
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedOutput)
 		if err != nil {
@@ -109,7 +159,7 @@ func initInterview() error {
 			DtoName:           "scoreLevel",
 			Specification:     scoreLevelSpecificationBytes,
 			VersionNumber:     1,
-			EndpointPath:      "core",
+			EndpointPath:      "/interview-review/scoreLevel",
 		}
 		err = qtx.CreateCoursePhaseTypeProvidedOutput(ctx, newProvidedScoreLevelOutput)
 		if err != nil {
@@ -127,21 +177,21 @@ func initInterview() error {
 	return nil
 }
 
-func initMatching() error {
+func (s *CoursePhaseTypeService) initMatching() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestMatchingPhaseTypeExists(ctx)
+	exists, err := s.queries.TestMatchingPhaseTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if matching phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		newMatchingPhase := db.CreateCoursePhaseTypeParams{
@@ -190,25 +240,25 @@ func initMatching() error {
 	return nil
 }
 
-func initIntroCourseDeveloper() error {
+func (s *CoursePhaseTypeService) initIntroCourseDeveloper() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestIntroCourseDeveloperPhaseTypeExists(ctx)
+	exists, err := s.queries.TestIntroCourseDeveloperPhaseTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if intro course developer phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/intro-course/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8082/intro-course/api"
 		}
 		newIntroCourseDeveloper := db.CreateCoursePhaseTypeParams{
@@ -243,9 +293,9 @@ func initIntroCourseDeveloper() error {
 	return nil
 }
 
-func initDevOpsChallenge() error {
+func (s *CoursePhaseTypeService) initDevOpsChallenge() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestDevOpsChallengeTypeExists(ctx)
+	exists, err := s.queries.TestDevOpsChallengeTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if dev ops challenge phase type exists: ", err)
@@ -260,7 +310,7 @@ func initDevOpsChallenge() error {
 			BaseUrl:      "core", // We use core here, as the server does not provide any exported DTOs
 			Description:  pgtype.Text{String: "A placeholder description for this course phase type. Detailed description will follow.", Valid: true},
 		}
-		err = CoursePhaseTypeServiceSingleton.queries.CreateCoursePhaseType(ctx, newDevOps)
+		err = s.queries.CreateCoursePhaseType(ctx, newDevOps)
 		if err != nil {
 			log.Error("failed to create intro course developer module: ", err)
 			return err
@@ -274,25 +324,25 @@ func initDevOpsChallenge() error {
 	return nil
 }
 
-func initAssessment() error {
+func (s *CoursePhaseTypeService) initAssessment() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestAssessmentTypeExists(ctx)
+	exists, err := s.queries.TestAssessmentTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if assessment phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/assessment/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8085/assessment/api"
 		}
 
@@ -362,25 +412,25 @@ func initAssessment() error {
 	return nil
 }
 
-func initTeamAllocation() error {
+func (s *CoursePhaseTypeService) initTeamAllocation() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestTeamAllocationTypeExists(ctx)
+	exists, err := s.queries.TestTeamAllocationTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if team allocation phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/team-allocation/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8083/team-allocation/api"
 		}
 
@@ -445,25 +495,25 @@ func initTeamAllocation() error {
 	return nil
 }
 
-func initSelfTeamAllocation() error {
+func (s *CoursePhaseTypeService) initSelfTeamAllocation() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestSelfTeamAllocationTypeExists(ctx)
+	exists, err := s.queries.TestSelfTeamAllocationTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if self team allocation phase type exists: ", err)
 		return err
 	}
 	if !exists {
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/self-team-allocation/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8084/self-team-allocation/api"
 		}
 
@@ -505,9 +555,9 @@ func initSelfTeamAllocation() error {
 	return nil
 }
 
-func initCertificate() error {
+func (s *CoursePhaseTypeService) initCertificate() error {
 	ctx := context.Background()
-	exists, err := CoursePhaseTypeServiceSingleton.queries.TestCertificateTypeExists(ctx)
+	exists, err := s.queries.TestCertificateTypeExists(ctx)
 
 	if err != nil {
 		log.Error("failed to check if certificate phase type exists: ", err)
@@ -515,17 +565,17 @@ func initCertificate() error {
 	}
 	if !exists {
 		// Begin transaction
-		tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+		tx, err := s.conn.Begin(ctx)
 		if err != nil {
 			log.Error("failed to begin transaction: ", err)
 			return err
 		}
 		defer sdkUtils.DeferRollback(tx, ctx)
-		qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+		qtx := s.queries.WithTx(tx)
 
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/certificate/api"
-		if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+		if s.isDevEnvironment {
 			baseURL = "http://localhost:8088/certificate/api"
 		}
 
@@ -577,17 +627,17 @@ func initCertificate() error {
 	return nil
 }
 
-func initPresentation() error {
+func (s *CoursePhaseTypeService) initPresentation() error {
 	ctx := context.Background()
-	tx, err := CoursePhaseTypeServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CoursePhaseTypeServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	baseURL := "{CORE_HOST}/presentation/api"
-	if CoursePhaseTypeServiceSingleton.isDevEnvironment {
+	if s.isDevEnvironment {
 		baseURL = "http://localhost:8089/presentation/api"
 	}
 

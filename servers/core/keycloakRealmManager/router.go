@@ -13,24 +13,35 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-// setupKeycloakRouter sets up the keycloak endpoints
+// RegisterRoutes mounts the keycloak endpoints on the given router group.
 // @Summary Keycloak Endpoints
 // @Description Endpoints for managing Keycloak groups and students
 // @Tags keycloak
 // @Security BearerAuth
-func setupKeycloakRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *KeycloakRealmService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupKeycloakRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
+}
+
+// initializes the handler func with CheckCoursePermissions
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "courseID", allowedRoles...)
+	}
+}
+
+func setupKeycloakRouter(router *gin.RouterGroup, s *KeycloakRealmService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	keycloak := router.Group("/keycloak/:courseID", authMiddleware())
-	keycloak.PUT("/group", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), createCustomGroup)
-	keycloak.GET("/group/:groupName/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getStudentsInGroup)
+	keycloak.PUT("/group", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.createCustomGroup)
+	keycloak.GET("/group/:groupName/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getStudentsInGroup)
 	// Adding Students to the editor role of a course
-	keycloak.PUT("/group/editor/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addStudentsToEditorGroup)
+	keycloak.PUT("/group/editor/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.addStudentsToEditorGroup)
 	// Adding Students to a custom group
-	keycloak.PUT("/group/:groupName/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addStudentsToGroup)
+	keycloak.PUT("/group/:groupName/students", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.addStudentsToGroup)
 
 	// Course staff management (Lecturer & Editor membership)
-	keycloak.GET("/group/staff", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getCourseStaff)
-	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), addCourseStaffMember)
-	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), removeCourseStaffMember)
+	keycloak.GET("/group/staff", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getCourseStaff)
+	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.addCourseStaffMember)
+	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.removeCourseStaffMember)
 
 	// Realm-wide Keycloak user search. Not nested under :courseID because the
 	// query has no course context; permissionValidation.CheckAccessControlByRole
@@ -40,12 +51,12 @@ func setupKeycloakRouter(router *gin.RouterGroup, authMiddleware func() gin.Hand
 	realmWide := router.Group("/keycloak", authMiddleware())
 	realmWide.GET("/users/search",
 		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer),
-		searchKeycloakUsers,
+		s.searchKeycloakUsers,
 	)
 	// Service-account health probe for the admin system-status page.
 	realmWide.GET("/status",
 		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin),
-		getKeycloakStatus,
+		s.getKeycloakStatus,
 	)
 }
 
@@ -61,7 +72,7 @@ func setupKeycloakRouter(router *gin.RouterGroup, authMiddleware func() gin.Hand
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group [put]
-func createCustomGroup(c *gin.Context) {
+func (s *KeycloakRealmService) createCustomGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -74,7 +85,7 @@ func createCustomGroup(c *gin.Context) {
 		return
 	}
 
-	id, err := AddCustomGroup(c, courseID, newGroupName.GroupName)
+	id, err := s.AddCustomGroup(c, courseID, newGroupName.GroupName)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -96,7 +107,7 @@ func createCustomGroup(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/students [put]
-func addStudentsToGroup(c *gin.Context) {
+func (s *KeycloakRealmService) addStudentsToGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -115,7 +126,7 @@ func addStudentsToGroup(c *gin.Context) {
 		return
 	}
 
-	addingReport, err := AddStudentsToGroup(c, courseID, request.StudentsToAdd, groupName)
+	addingReport, err := s.AddStudentsToGroup(c, courseID, request.StudentsToAdd, groupName)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -136,7 +147,7 @@ func addStudentsToGroup(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/editor/students [put]
-func addStudentsToEditorGroup(c *gin.Context) {
+func (s *KeycloakRealmService) addStudentsToEditorGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -149,7 +160,7 @@ func addStudentsToEditorGroup(c *gin.Context) {
 		return
 	}
 
-	addingReport, err := AddStudentsToEditorGroup(c, courseID, request.StudentsToAdd)
+	addingReport, err := s.AddStudentsToEditorGroup(c, courseID, request.StudentsToAdd)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -169,7 +180,7 @@ func addStudentsToEditorGroup(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/students [get]
-func getStudentsInGroup(c *gin.Context) {
+func (s *KeycloakRealmService) getStudentsInGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -182,7 +193,7 @@ func getStudentsInGroup(c *gin.Context) {
 		return
 	}
 
-	students, err := GetStudentsInGroup(c, courseID, groupName)
+	students, err := s.GetStudentsInGroup(c, courseID, groupName)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -207,14 +218,14 @@ func handleError(c *gin.Context, statusCode int, err error) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/staff [get]
-func getCourseStaff(c *gin.Context) {
+func (s *KeycloakRealmService) getCourseStaff(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	staff, err := GetCourseStaff(c, courseID)
+	staff, err := s.GetCourseStaff(c, courseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -235,7 +246,7 @@ func getCourseStaff(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/members/{userID} [put]
-func addCourseStaffMember(c *gin.Context) {
+func (s *KeycloakRealmService) addCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -258,7 +269,7 @@ func addCourseStaffMember(c *gin.Context) {
 		return
 	}
 
-	if err := AddUserToCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
+	if err := s.AddUserToCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
 		writeServiceError(c, err)
 		return
 	}
@@ -277,7 +288,7 @@ func addCourseStaffMember(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/{courseID}/group/{groupName}/members/{userID} [delete]
-func removeCourseStaffMember(c *gin.Context) {
+func (s *KeycloakRealmService) removeCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -300,7 +311,7 @@ func removeCourseStaffMember(c *gin.Context) {
 		return
 	}
 
-	if err := RemoveUserFromCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
+	if err := s.RemoveUserFromCourseGroup(c, courseID, groupName, targetUserID, callerUserID); err != nil {
 		writeServiceError(c, err)
 		return
 	}
@@ -318,7 +329,7 @@ func removeCourseStaffMember(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /keycloak/users/search [get]
-func searchKeycloakUsers(c *gin.Context) {
+func (s *KeycloakRealmService) searchKeycloakUsers(c *gin.Context) {
 	query := c.Query("q")
 
 	limit := 20
@@ -331,7 +342,7 @@ func searchKeycloakUsers(c *gin.Context) {
 		limit = parsed
 	}
 
-	results, err := SearchKeycloakUsers(c, query, limit)
+	results, err := s.SearchKeycloakUsers(c, query, limit)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -346,8 +357,8 @@ func searchKeycloakUsers(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} keycloakRealmDTO.KeycloakStatus
 // @Router /keycloak/status [get]
-func getKeycloakStatus(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, GetKeycloakStatus(c))
+func (s *KeycloakRealmService) getKeycloakStatus(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, s.GetKeycloakStatus(c))
 }
 
 // writeServiceError maps service-layer sentinel errors to HTTP status codes.

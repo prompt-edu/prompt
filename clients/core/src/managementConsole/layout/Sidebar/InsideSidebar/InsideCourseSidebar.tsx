@@ -34,7 +34,7 @@ export const InsideCourseSidebar = () => {
 
   return (
     <SidebarMenu>
-      <SidebarGroup>
+      <SidebarGroup className='pb-0'>
         <SidebarGroupContent>
           <InsideSidebarMenuItem goToPath={rootPath} icon={<Gauge />} title='Overview' />
           <CourseConfiguratorSidebar rootPath={rootPath} title='Course Configurator' />
@@ -45,7 +45,7 @@ export const InsideCourseSidebar = () => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <SidebarGroup>
+      <SidebarGroup className='pt-0'>
         <SidebarGroupLabel>Course Phases</SidebarGroupLabel>
         <SidebarGroupContent>
           {sortedPhases.map((phase) => {

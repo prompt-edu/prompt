@@ -12,7 +12,7 @@ export const InsideGeneralSidebar = () => {
   return (
     <SidebarMenu>
       <SidebarGroup>
-        <SidebarGroupContent className='flex flex-col gap-5'>
+        <SidebarGroupContent className='flex flex-col gap-3'>
           <InsideSidebarVisualGroup title='Courses'>
             <InsideSidebarMenuItem
               icon={<FileText />}

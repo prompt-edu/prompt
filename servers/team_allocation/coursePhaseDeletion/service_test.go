@@ -28,6 +28,7 @@ type CoursePhaseDeletionServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
+	conn     *pgxpool.Pool
 	queries  *db.Queries
 	service  *CoursePhaseDeletionService
 }
@@ -39,8 +40,20 @@ func (suite *CoursePhaseDeletionServiceTestSuite) SetupTest() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
+	suite.conn = testDB.Conn
 	suite.queries = testDB.Queries
 	suite.service = NewCoursePhaseDeletionService(*testDB.Queries, testDB.Conn)
+}
+
+// countRows counts every row of a table. The generated queries for the child tables join their
+// parent, so they cannot tell a cascaded delete apart from an orphaned row. Counting the raw table
+// is what catches a migration that weakens one of the ON DELETE CASCADE constraints the handler
+// relies on.
+func (suite *CoursePhaseDeletionServiceTestSuite) countRows(table string) int64 {
+	var count int64
+	err := suite.conn.QueryRow(suite.suiteCtx, "SELECT count(*) FROM "+table).Scan(&count)
+	suite.Require().NoError(err, "Failed to count rows of %s", table)
+	return count
 }
 
 func (suite *CoursePhaseDeletionServiceTestSuite) TearDownTest() {
@@ -86,19 +99,13 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestHandleCoursePhaseDeletion(
 	assert.NoError(t, err)
 	assert.Empty(t, allocations, "Expected allocations to be cascaded away with the teams")
 
-	preferences, err := suite.queries.GetStudentTeamPreferences(suite.suiteCtx, db.GetStudentTeamPreferencesParams{
-		CourseParticipationID: studentParticipationID,
-		CoursePhaseID:         deletedCoursePhaseID,
-	})
-	assert.NoError(t, err)
-	assert.Empty(t, preferences, "Expected team preference responses to be cascaded away with the teams")
-
-	skillResponses, err := suite.queries.GetStudentSkillResponses(suite.suiteCtx, db.GetStudentSkillResponsesParams{
-		CourseParticipationID: studentParticipationID,
-		CoursePhaseID:         deletedCoursePhaseID,
-	})
-	assert.NoError(t, err)
-	assert.Empty(t, skillResponses, "Expected skill responses to be cascaded away with the skills")
+	// student_team_preference_response and student_skill_response carry no course phase of their
+	// own, so the rows left over are exactly the ones of the retained course phase. Counting the
+	// raw tables also fails if a cascade stops firing and leaves the rows orphaned.
+	assert.EqualValues(t, 1, suite.countRows("student_team_preference_response"),
+		"Expected only the retained course phase to keep a team preference response")
+	assert.EqualValues(t, 1, suite.countRows("student_skill_response"),
+		"Expected only the retained course phase to keep a skill response")
 
 	_, err = suite.queries.GetTutorByCourseParticipationID(suite.suiteCtx, db.GetTutorByCourseParticipationIDParams{
 		CourseParticipationID: tutorParticipationID,

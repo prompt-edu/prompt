@@ -27,27 +27,32 @@ func NewCoursePhaseDeletionService(queries db.Queries, conn *pgxpool.Pool) *Cour
 // db/query/coursePhaseDeletion.sql. The handler is idempotent: deleting a course phase without any
 // stored data succeeds.
 func (s *CoursePhaseDeletionService) HandleCoursePhaseDeletion(c *gin.Context, coursePhaseID uuid.UUID) error {
-	tx, err := s.conn.Begin(c)
+	// Deleting the teams takes row locks that can block behind a concurrent transaction, so bound
+	// the work rather than holding a pool connection for as long as that transaction runs.
+	ctx, cancel := db.GetTimeoutContext(c)
+	defer cancel()
+
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction for deleting course phase %s: %w", coursePhaseID, err)
 	}
-	defer promptSDK.DeferDBRollback(tx, c)
+	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
-	if err := qtx.DeleteTeamsByCoursePhase(c, coursePhaseID); err != nil {
+	if err := qtx.DeleteTeamsByCoursePhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("failed to delete teams for course phase %s: %w", coursePhaseID, err)
 	}
-	if err := qtx.DeleteSkillsByCoursePhase(c, coursePhaseID); err != nil {
+	if err := qtx.DeleteSkillsByCoursePhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("failed to delete skills for course phase %s: %w", coursePhaseID, err)
 	}
-	if err := qtx.DeleteSurveyTimeframeByCoursePhase(c, coursePhaseID); err != nil {
+	if err := qtx.DeleteSurveyTimeframeByCoursePhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("failed to delete survey timeframe for course phase %s: %w", coursePhaseID, err)
 	}
-	if err := qtx.DeleteTeaseWorkspaceByCoursePhase(c, coursePhaseID); err != nil {
+	if err := qtx.DeleteTeaseWorkspaceByCoursePhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("failed to delete tease workspace for course phase %s: %w", coursePhaseID, err)
 	}
 
-	if err := tx.Commit(c); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit deletion of course phase %s: %w", coursePhaseID, err)
 	}
 	return nil

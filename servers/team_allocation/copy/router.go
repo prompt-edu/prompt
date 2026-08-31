@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *CopyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &teamAllocationCopyHandler{service: service})
+	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
 }

@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterConfigEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &configHandler{service: service})
+	promptTypes.RegisterConfigEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
 }

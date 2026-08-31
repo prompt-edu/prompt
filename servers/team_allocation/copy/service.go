@@ -1,6 +1,7 @@
 package copy
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -24,26 +25,25 @@ func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
 	}
 }
 
-type teamAllocationCopyHandler struct {
-	service *CopyService
+// HandlePhaseCopy implements promptTypes.PhaseCopyHandler.
+func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+	return s.CopyPhase(c.Request.Context(), req.SourceCoursePhaseID, req.TargetCoursePhaseID)
 }
 
-func (h *teamAllocationCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
-	if req.SourceCoursePhaseID == req.TargetCoursePhaseID {
+func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, targetCoursePhaseID uuid.UUID) error {
+	if sourceCoursePhaseID == targetCoursePhaseID {
 		return nil
 	}
 
-	ctx := c.Request.Context()
-
-	tx, err := h.service.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := h.service.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
-	skills, err := qtx.GetSkillsByCoursePhase(ctx, req.SourceCoursePhaseID)
+	skills, err := qtx.GetSkillsByCoursePhase(ctx, sourceCoursePhaseID)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (h *teamAllocationCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTy
 		err := qtx.CreateSkill(ctx, db.CreateSkillParams{
 			ID:            uuid.New(),
 			Name:          skill.Name,
-			CoursePhaseID: req.TargetCoursePhaseID,
+			CoursePhaseID: targetCoursePhaseID,
 		})
 		if err != nil {
 			return err

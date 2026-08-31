@@ -79,7 +79,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_Success() {
 	assert.NoError(suite.T(), err)
 
 	// Execute copy
-	handler := &assessmentCopyHandler{service: suite.copyService}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: sourceCoursePhaseID,
 		TargetCoursePhaseID: targetCoursePhaseID,
@@ -114,7 +114,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_Success() {
 func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SameSourceAndTarget() {
 	coursePhaseID := uuid.New()
 
-	handler := &assessmentCopyHandler{service: suite.copyService}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: coursePhaseID,
 		TargetCoursePhaseID: coursePhaseID,
@@ -133,7 +133,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_NonExistentSource() {
 	nonExistentSourceID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
-	handler := &assessmentCopyHandler{service: suite.copyService}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: nonExistentSourceID,
 		TargetCoursePhaseID: targetCoursePhaseID,
@@ -173,7 +173,7 @@ func (suite *CopyServiceTestSuite) copyPhase(sourceID, targetID uuid.UUID) error
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("POST", "/api/copy", nil)
 
-	return (&assessmentCopyHandler{service: suite.copyService}).HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{
+	return suite.copyService.HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: sourceID,
 		TargetCoursePhaseID: targetID,
 	})

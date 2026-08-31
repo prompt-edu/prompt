@@ -1,9 +1,11 @@
 package copy
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -25,27 +27,26 @@ func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
 	}
 }
 
-type assessmentCopyHandler struct {
-	service *CopyService
+// HandlePhaseCopy implements promptTypes.PhaseCopyHandler.
+func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+	return s.CopyPhase(c.Request.Context(), req.SourceCoursePhaseID, req.TargetCoursePhaseID)
 }
 
-func (h *assessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
-	if req.SourceCoursePhaseID == req.TargetCoursePhaseID {
+func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, targetCoursePhaseID uuid.UUID) error {
+	if sourceCoursePhaseID == targetCoursePhaseID {
 		return nil
 	}
 
-	ctx := c.Request.Context()
-
-	tx, err := h.service.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := h.service.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// Get the course phase config from the source course phase
-	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, req.SourceCoursePhaseID)
+	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, sourceCoursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get source course phase config")
 		return err
@@ -53,7 +54,7 @@ func (h *assessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.
 
 	// Copying a disabled source must not hide grades a non-empty target already holds
 	if !sourceConfig.AssessmentEnabled {
-		hasData, err := qtx.PhaseHasAssessmentData(ctx, req.TargetCoursePhaseID)
+		hasData, err := qtx.PhaseHasAssessmentData(ctx, targetCoursePhaseID)
 		if err != nil {
 			log.WithError(err).Error("Failed to check target course phase for assessment data")
 			return err
@@ -66,7 +67,7 @@ func (h *assessmentCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.
 	// Create a new course phase config for the target course phase with the same parameters
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
 		AssessmentSchemaID:       sourceConfig.AssessmentSchemaID,
-		CoursePhaseID:            req.TargetCoursePhaseID,
+		CoursePhaseID:            targetCoursePhaseID,
 		Start:                    sourceConfig.Start,
 		Deadline:                 sourceConfig.Deadline,
 		SelfEvaluationEnabled:    sourceConfig.SelfEvaluationEnabled,

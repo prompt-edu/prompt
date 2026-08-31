@@ -46,11 +46,7 @@ rename_tokens() {
     s/EXAMPLE_SERVER/${UPPER}_SERVER/g;
     s/EXAMPLE_HOST/${UPPER}_HOST/g;
     s/DB_EXAMPLE_/DB_${UPPER}_/g;
-    s/InitExampleModule/Init${PASCAL}Module/g;
-    s/setupExampleRouter/setup${PASCAL}Router/g;
     s/ExampleService/${PASCAL}Service/g;
-    s/ExampleServerConfigHandler/${PASCAL}ConfigHandler/g;
-    s/ExampleServerCopyHandler/${PASCAL}CopyHandler/g;
     s/helloExampleServer/hello${PASCAL}Server/g;
     s/GetExampleInfo/Get${PASCAL}Info/g;
     s/getExampleInfo/get${PASCAL}Info/g;

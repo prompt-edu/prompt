@@ -95,7 +95,8 @@ func main() {
 
 	config.InitConfigModule(api, *query, conn)
 
-	example.InitExampleModule(api, *query, conn)
+	exampleService := example.NewExampleService(*query, conn)
+	example.RegisterRoutes(api, exampleService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8086")
 	log.Info("Example Server started")

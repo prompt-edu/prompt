@@ -248,7 +248,7 @@ func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 		return
 	}
 
-	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, request.AuthorCourseParticipationID, "evaluation completions")
+	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, request.AuthorCourseParticipationID, "evaluations")
 	if err != nil {
 		c.JSON(statusCode, gin.H{"error": "Students can only create evaluations as the author"})
 		return

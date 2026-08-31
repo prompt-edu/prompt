@@ -18,11 +18,13 @@ import (
 
 type TeamsServiceTestSuite struct {
 	suite.Suite
-	ctx           context.Context
-	testDB        *sdkTestUtils.TestDB[*db.Queries]
-	cleanup       func()
-	activePhaseID uuid.UUID
-	futurePhaseID uuid.UUID
+	ctx               context.Context
+	testDB            *sdkTestUtils.TestDB[*db.Queries]
+	cleanup           func()
+	activePhaseID     uuid.UUID
+	futurePhaseID     uuid.UUID
+	teamsService      *TeamsService
+	assignmentService *AssignmentService
 }
 
 func (suite *TeamsServiceTestSuite) SetupSuite() {
@@ -34,15 +36,9 @@ func (suite *TeamsServiceTestSuite) SetupSuite() {
 	suite.activePhaseID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	suite.futurePhaseID = uuid.MustParse("22222222-2222-2222-2222-222222222222")
 
-	TeamsServiceSingleton = &TeamsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssignmentServiceSingleton = &AssignmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	timeframe.TimeframeServiceSingleton = timeframe.NewTimeframeService(*testDB.Queries, testDB.Conn)
+	timeframeService := timeframe.NewTimeframeService(*testDB.Queries)
+	suite.teamsService = NewTeamsService(*testDB.Queries, testDB.Conn, timeframeService)
+	suite.assignmentService = NewAssignmentService(*testDB.Queries)
 }
 
 func (suite *TeamsServiceTestSuite) TearDownSuite() {
@@ -52,7 +48,7 @@ func (suite *TeamsServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *TeamsServiceTestSuite) TestGetAllTeamsReturnsSeedData() {
-	teams, err := GetAllTeams(suite.ctx, suite.activePhaseID)
+	teams, err := suite.teamsService.GetAllTeams(suite.ctx, suite.activePhaseID)
 
 	require.NoError(suite.T(), err)
 	suite.GreaterOrEqual(len(teams), 2)
@@ -69,7 +65,7 @@ func (suite *TeamsServiceTestSuite) TestGetAllTeamsReturnsSeedData() {
 func (suite *TeamsServiceTestSuite) TestGetTeamByID() {
 	teamID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-	team, err := GetTeamByID(suite.ctx, suite.activePhaseID, teamID)
+	team, err := suite.teamsService.GetTeamByID(suite.ctx, suite.activePhaseID, teamID)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), teamID, team.ID)
@@ -79,7 +75,7 @@ func (suite *TeamsServiceTestSuite) TestCreateNewTeams() {
 	coursePhaseID := uuid.New()
 	names := []string{"Team-" + uuid.NewString()[0:8], "Team-" + uuid.NewString()[0:8]}
 
-	err := CreateNewTeams(suite.ctx, names, coursePhaseID)
+	err := suite.teamsService.CreateNewTeams(suite.ctx, names, coursePhaseID)
 
 	require.NoError(suite.T(), err)
 
@@ -89,7 +85,7 @@ func (suite *TeamsServiceTestSuite) TestCreateNewTeams() {
 }
 
 func (suite *TeamsServiceTestSuite) TestCreateNewTeamsRejectsEmptyName() {
-	err := CreateNewTeams(suite.ctx, []string{"", "Valid"}, uuid.New())
+	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"", "Valid"}, uuid.New())
 
 	require.Error(suite.T(), err)
 }
@@ -98,7 +94,7 @@ func (suite *TeamsServiceTestSuite) TestUpdateTeam() {
 	coursePhaseID := uuid.New()
 	teamID := suite.createTeam(coursePhaseID, "Original")
 
-	err := UpdateTeam(suite.ctx, coursePhaseID, teamID, "Updated")
+	err := suite.teamsService.UpdateTeam(suite.ctx, coursePhaseID, teamID, "Updated")
 
 	require.NoError(suite.T(), err)
 
@@ -115,7 +111,7 @@ func (suite *TeamsServiceTestSuite) TestAssignAndLeaveTeam() {
 	teamID := suite.createTeam(coursePhaseID, "Assignables")
 	participantID := uuid.New()
 
-	err := AssignTeam(suite.ctx, coursePhaseID, teamID, participantID, "Sam", "Student")
+	err := suite.assignmentService.AssignTeam(suite.ctx, coursePhaseID, teamID, participantID, "Sam", "Student")
 	require.NoError(suite.T(), err)
 
 	row, err := suite.testDB.Queries.GetAssignmentForStudent(suite.ctx, db.GetAssignmentForStudentParams{
@@ -125,7 +121,7 @@ func (suite *TeamsServiceTestSuite) TestAssignAndLeaveTeam() {
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), teamID, row.TeamID)
 
-	err = LeaveTeam(suite.ctx, coursePhaseID, teamID, participantID)
+	err = suite.assignmentService.LeaveTeam(suite.ctx, coursePhaseID, teamID, participantID)
 	require.NoError(suite.T(), err)
 
 	_, err = suite.testDB.Queries.GetAssignmentForStudent(suite.ctx, db.GetAssignmentForStudentParams{
@@ -139,7 +135,7 @@ func (suite *TeamsServiceTestSuite) TestDeleteTeam() {
 	coursePhaseID := uuid.New()
 	teamID := suite.createTeam(coursePhaseID, "Disposable")
 
-	err := DeleteTeam(suite.ctx, coursePhaseID, teamID)
+	err := suite.teamsService.DeleteTeam(suite.ctx, coursePhaseID, teamID)
 	require.NoError(suite.T(), err)
 
 	_, err = suite.testDB.Queries.GetTeamWithStudentNamesByTeamID(suite.ctx, db.GetTeamWithStudentNamesByTeamIDParams{
@@ -150,7 +146,7 @@ func (suite *TeamsServiceTestSuite) TestDeleteTeam() {
 }
 
 func (suite *TeamsServiceTestSuite) TestValidateTimeframeInsideWindow() {
-	allowed, err := ValidateTimeframe(suite.ctx, suite.activePhaseID)
+	allowed, err := suite.teamsService.ValidateTimeframe(suite.ctx, suite.activePhaseID)
 
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), allowed)
@@ -160,7 +156,7 @@ func (suite *TeamsServiceTestSuite) TestValidateTimeframeOutsideWindow() {
 	coursePhaseID := uuid.New()
 	suite.setTimeframe(coursePhaseID, time.Now().Add(24*time.Hour), time.Now().Add(48*time.Hour))
 
-	allowed, err := ValidateTimeframe(suite.ctx, coursePhaseID)
+	allowed, err := suite.teamsService.ValidateTimeframe(suite.ctx, coursePhaseID)
 
 	require.Error(suite.T(), err)
 	require.False(suite.T(), allowed)
@@ -179,10 +175,10 @@ func (suite *TeamsServiceTestSuite) TestImportTutorsAndGetTutors() {
 		},
 	}
 
-	err := ImportTutors(suite.ctx, coursePhaseID, tutors)
+	err := suite.teamsService.ImportTutors(suite.ctx, coursePhaseID, tutors)
 	require.NoError(suite.T(), err)
 
-	result, err := GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	result, err := suite.teamsService.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), result, 1)
 }
@@ -191,14 +187,14 @@ func (suite *TeamsServiceTestSuite) TestCreateAndDeleteManualTutor() {
 	coursePhaseID := uuid.New()
 	teamID := suite.createTeam(coursePhaseID, "ManualTutorTeam")
 
-	err := CreateManualTutor(suite.ctx, coursePhaseID, "Manual", "Tutor", teamID)
+	err := suite.teamsService.CreateManualTutor(suite.ctx, coursePhaseID, "Manual", "Tutor", teamID)
 	require.NoError(suite.T(), err)
 
-	tutors, err := GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	tutors, err := suite.teamsService.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), tutors, 1)
 
-	err = DeleteTutor(suite.ctx, coursePhaseID, tutors[0].CourseParticipationID)
+	err = suite.teamsService.DeleteTutor(suite.ctx, coursePhaseID, tutors[0].CourseParticipationID)
 	require.NoError(suite.T(), err)
 }
 

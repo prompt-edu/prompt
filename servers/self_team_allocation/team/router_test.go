@@ -24,9 +24,11 @@ import (
 
 type TeamRouterTestSuite struct {
 	suite.Suite
-	ctx     context.Context
-	testDB  *sdkTestUtils.TestDB[*db.Queries]
-	cleanup func()
+	ctx               context.Context
+	testDB            *sdkTestUtils.TestDB[*db.Queries]
+	cleanup           func()
+	teamsService      *TeamsService
+	assignmentService *AssignmentService
 }
 
 func (suite *TeamRouterTestSuite) SetupSuite() {
@@ -38,15 +40,9 @@ func (suite *TeamRouterTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	TeamsServiceSingleton = &TeamsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssignmentServiceSingleton = &AssignmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	timeframe.TimeframeServiceSingleton = timeframe.NewTimeframeService(*testDB.Queries, testDB.Conn)
+	timeframeService := timeframe.NewTimeframeService(*testDB.Queries)
+	suite.teamsService = NewTeamsService(*testDB.Queries, testDB.Conn, timeframeService)
+	suite.assignmentService = NewAssignmentService(*testDB.Queries)
 }
 
 func (suite *TeamRouterTestSuite) TearDownSuite() {
@@ -58,7 +54,7 @@ func (suite *TeamRouterTestSuite) TearDownSuite() {
 func (suite *TeamRouterTestSuite) newRouter(courseParticipationID uuid.UUID) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupTeamRouter(api, func(allowedRoles ...string) gin.HandlerFunc {
+	RegisterRoutes(api, suite.teamsService, suite.assignmentService, func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithParticipation(allowedRoles, courseParticipationID)
 	})
 	return router

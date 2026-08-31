@@ -88,19 +88,28 @@ func main() {
 
 	// No health endpoint; health checks are handled externally.
 
-	skills.InitSkillModule(coursePhaseApi, *query, conn)
-	teams.InitTeamModule(coursePhaseApi, *query, conn)
-	survey.InitSurveyModule(coursePhaseApi, *query, conn)
-	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
+	skillsService := skills.NewSkillsService(*query, conn)
+	teamsService := teams.NewTeamsService(*query, conn)
+	surveyService := survey.NewSurveyService(*query, conn)
+	allocationService := allocation.NewAllocationService(*query)
+	teaseService := tease.NewTeaseService(*query, conn)
+	configService := config.NewConfigService(*query, surveyService)
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewTeamsPrivacyService(*query, conn)
 
-	tease.InitTeaseModule(router.Group("team-allocation/api"), *query, conn) // some tease endpoint are coursePhase independent
+	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
+	survey.RegisterRoutes(coursePhaseApi, surveyService, promptSDK.AuthenticationMiddleware)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
+
+	tease.RegisterRoutes(router.Group("team-allocation/api"), teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
 
 	copyApi := router.Group("team-allocation/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.RegisterRoutes(copyApi, copyService, promptSDK.AuthenticationMiddleware)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",

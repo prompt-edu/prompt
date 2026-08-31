@@ -10,18 +10,18 @@ import (
 )
 
 // ValidateStudentResponse validates the survey submission from a student.
-func ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submission surveyDTO.StudentSurveyResponse) error {
+func (s *SurveyService) ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submission surveyDTO.StudentSurveyResponse) error {
 	log.Info("validating student survey response")
 	/* ----------------------------------------------------------------
 	   1. Fetch course‑phase data
 	-----------------------------------------------------------------*/
-	validTeams, err := SurveyServiceSingleton.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
+	validTeams, err := s.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch teams: ", err)
 		return fmt.Errorf("failed to fetch teams")
 	}
 
-	validSkills, err := SurveyServiceSingleton.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
+	validSkills, err := s.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch skills: ", err)
 		return fmt.Errorf("failed to fetch skills")
@@ -36,8 +36,8 @@ func ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submi
 	}
 
 	validSkillIDs := make(map[uuid.UUID]bool, len(validSkills))
-	for _, s := range validSkills {
-		validSkillIDs[s.ID] = true
+	for _, skill := range validSkills {
+		validSkillIDs[skill.ID] = true
 	}
 
 	/* ----------------------------------------------------------------
@@ -67,9 +67,9 @@ func ValidateStudentResponse(ctx context.Context, coursePhaseID uuid.UUID, submi
 	// --- 3b. every valid skill appears exactly once
 	// (The cardinality check + duplicate check above are enough, but the
 	//   loop below keeps the intent very explicit.)
-	for _, s := range validSkills {
-		if !seenSkillIDs[s.ID] {
-			return fmt.Errorf("missing rating for skill %s", s.ID)
+	for _, skill := range validSkills {
+		if !seenSkillIDs[skill.ID] {
+			return fmt.Errorf("missing rating for skill %s", skill.ID)
 		}
 	}
 

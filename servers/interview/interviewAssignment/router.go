@@ -9,7 +9,6 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	"github.com/prompt-edu/prompt/servers/interview/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,9 +58,9 @@ func createInterviewAssignment(c *gin.Context) {
 		return
 	}
 
-	participationID, err := utils.GetUserCourseParticipationID(c)
+	participationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+		c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -128,9 +127,9 @@ func getMyInterviewAssignment(c *gin.Context) {
 		return
 	}
 
-	participationID, err := utils.GetUserCourseParticipationID(c)
+	participationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+		c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -182,9 +181,9 @@ func deleteInterviewAssignment(c *gin.Context) {
 	// For non-privileged users, get their participation ID for ownership check
 	var selfParticipationID uuid.UUID
 	if !isPrivileged {
-		selfParticipationID, err = utils.GetUserCourseParticipationID(c)
+		selfParticipationID, err = keycloakTokenVerifier.GetUserCourseParticipationID(c)
 		if err != nil {
-			c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+			c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 			return
 		}
 	}

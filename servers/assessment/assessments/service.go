@@ -12,14 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -29,12 +25,65 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type AssessmentService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type assessmentCompletionProvider interface {
+	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
+	CheckAssessmentCompletionExists(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (bool, error)
+	GetAssessmentCompletion(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (db.AssessmentCompletion, error)
 }
 
-var AssessmentServiceSingleton *AssessmentService
+type categoryAssessmentProvider interface {
+	ListCategoryAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.CategoryAssessment, error)
+}
+
+type actionItemProvider interface {
+	ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error)
+}
+
+type scoreLevelProvider interface {
+	GetStudentScore(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (scoreLevelDTO.StudentScore, error)
+}
+
+type evaluationProvider interface {
+	GetEvaluationsForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]evaluationDTO.Evaluation, error)
+}
+
+type coursePhaseConfigProvider interface {
+	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
+}
+
+type AssessmentService struct {
+	queries              db.Queries
+	conn                 *pgxpool.Pool
+	assessmentCompletion assessmentCompletionProvider
+	categoryAssessment   categoryAssessmentProvider
+	actionItem           actionItemProvider
+	scoreLevel           scoreLevelProvider
+	evaluations          evaluationProvider
+	coursePhaseConfig    coursePhaseConfigProvider
+}
+
+func NewAssessmentService(
+	queries db.Queries,
+	conn *pgxpool.Pool,
+	assessmentCompletion assessmentCompletionProvider,
+	categoryAssessment categoryAssessmentProvider,
+	actionItem actionItemProvider,
+	scoreLevel scoreLevelProvider,
+	evaluations evaluationProvider,
+	coursePhaseConfig coursePhaseConfigProvider,
+) *AssessmentService {
+	return &AssessmentService{
+		queries:              queries,
+		conn:                 conn,
+		assessmentCompletion: assessmentCompletion,
+		categoryAssessment:   categoryAssessment,
+		actionItem:           actionItem,
+		scoreLevel:           scoreLevel,
+		evaluations:          evaluations,
+		coursePhaseConfig:    coursePhaseConfig,
+	}
+}
+
 var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required and must be valid")
 var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
 var ErrAssessmentNotInPhase = errors.New("assessment does not belong to this course phase")
@@ -42,20 +91,20 @@ var ErrAssessmentNotFound = errors.New("assessment not found")
 
 const AssessmentExportFormatJSON = "json"
 
-func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
+func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
 	if req.ScoreLevel == "" {
 		return ErrInvalidScoreLevel
 	}
 
-	tx, err := AssessmentServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
-	err = assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		return err
 	}
@@ -79,8 +128,8 @@ func CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpd
 	return nil
 }
 
-func GetAssessment(ctx context.Context, id uuid.UUID) (db.Assessment, error) {
-	assessment, err := AssessmentServiceSingleton.queries.GetAssessment(ctx, id)
+func (s *AssessmentService) GetAssessment(ctx context.Context, id uuid.UUID) (db.Assessment, error) {
+	assessment, err := s.queries.GetAssessment(ctx, id)
 	if err != nil {
 		log.Error("could not get assessment: ", err)
 		return db.Assessment{}, errors.New("could not get assessment")
@@ -88,8 +137,8 @@ func GetAssessment(ctx context.Context, id uuid.UUID) (db.Assessment, error) {
 	return assessment, nil
 }
 
-func ListAssessmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Assessment, error) {
-	assessments, err := AssessmentServiceSingleton.queries.ListAssessmentsByCoursePhase(ctx, coursePhaseID)
+func (s *AssessmentService) ListAssessmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.Assessment, error) {
+	assessments, err := s.queries.ListAssessmentsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get assessments by course phase: ", err)
 		return nil, errors.New("could not get assessments by course phase")
@@ -97,8 +146,8 @@ func ListAssessmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) 
 	return assessments, nil
 }
 
-func ListAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.Assessment, error) {
-	assessments, err := AssessmentServiceSingleton.queries.ListAssessmentsByStudentInPhase(ctx, db.ListAssessmentsByStudentInPhaseParams{
+func (s *AssessmentService) ListAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.Assessment, error) {
+	assessments, err := s.queries.ListAssessmentsByStudentInPhase(ctx, db.ListAssessmentsByStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -109,14 +158,14 @@ func ListAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID,
 	return assessments, nil
 }
 
-func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (assessmentDTO.StudentAssessment, error) {
-	assessments, err := ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+func (s *AssessmentService) GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (assessmentDTO.StudentAssessment, error) {
+	assessments, err := s.ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get assessments for student in phase: ", err)
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get assessments for student in phase")
 	}
 
-	categoryAssessments, err := categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	categoryAssessments, err := s.categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get category assessments for student in phase: ", err)
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get category assessments for student in phase")
@@ -128,14 +177,14 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
 	}
 
-	exists, err := assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
+	exists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not check assessment completion existence: ", err)
 		return assessmentDTO.StudentAssessment{}, errors.New("could not check assessment completion existence")
 	}
 
 	if exists {
-		dbAssessmentCompletion, err := assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
+		dbAssessmentCompletion, err := s.assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessment completion: ", err)
 			return assessmentDTO.StudentAssessment{}, errors.New("could not get assessment completion")
@@ -144,14 +193,14 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 	}
 
 	if len(assessments) > 0 {
-		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+		studentScore, err = s.scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get score level: ", err)
 			return assessmentDTO.StudentAssessment{}, errors.New("could not get score level")
 		}
 	}
 
-	evaluations, err := evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
+	evaluations, err := s.evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get evaluations: ", err)
 		return assessmentDTO.StudentAssessment{}, errors.New("could not get evaluations")
@@ -171,31 +220,31 @@ func GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipatio
 	}, nil
 }
 
-func ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, format string) (assessmentDTO.AssessmentExport, error) {
+func (s *AssessmentService) ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, format string) (assessmentDTO.AssessmentExport, error) {
 	if format != AssessmentExportFormatJSON {
 		return assessmentDTO.AssessmentExport{}, ErrUnsupportedAssessmentExportFormat
 	}
 
-	assessments, err := ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	assessments, err := s.ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get assessments for export: ", err)
 		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessments for export")
 	}
 
-	catAssessments, err := categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+	catAssessments, err := s.categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get category assessments for export: ", err)
 		return assessmentDTO.AssessmentExport{}, errors.New("could not get category assessments for export")
 	}
 
 	completion := assessmentCompletionDTO.AssessmentCompletion{}
-	completionExists, err := assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
+	completionExists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not check assessment completion existence: ", err)
 		return assessmentDTO.AssessmentExport{}, errors.New("could not check assessment completion existence")
 	}
 	if completionExists {
-		dbCompletion, err := assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
+		dbCompletion, err := s.assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessment completion: ", err)
 			return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment completion")
@@ -208,14 +257,14 @@ func ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipa
 		ScoreNumeric: pgtype.Float8{Float64: 0.0, Valid: true},
 	}
 	if len(assessments) > 0 {
-		studentScore, err = scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+		studentScore, err = s.scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get score level: ", err)
 			return assessmentDTO.AssessmentExport{}, errors.New("could not get score level")
 		}
 	}
 
-	actionItems, err := getAssessmentExportActionItems(ctx, coursePhaseID, courseParticipationID)
+	actionItems, err := s.getAssessmentExportActionItems(ctx, coursePhaseID, courseParticipationID)
 	if err != nil {
 		log.Error("could not get assessment export action items: ", err)
 		return assessmentDTO.AssessmentExport{}, errors.New("could not get assessment export action items")
@@ -237,8 +286,8 @@ func ExportStudentAssessment(ctx context.Context, coursePhaseID, courseParticipa
 	}, nil
 }
 
-func getAssessmentExportActionItems(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
-	actionItems, err := AssessmentServiceSingleton.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
+func (s *AssessmentService) getAssessmentExportActionItems(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) ([]actionItemDTO.ActionItem, error) {
+	actionItems, err := s.queries.ListActionItemsForStudentInPhase(ctx, db.ListActionItemsForStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -249,19 +298,19 @@ func getAssessmentExportActionItems(ctx context.Context, coursePhaseID, coursePa
 	return actionItemDTO.GetActionItemDTOsFromDBModels(actionItems), nil
 }
 
-func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (assessmentDTO.StudentAssessmentResults, error) {
+func (s *AssessmentService) GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (assessmentDTO.StudentAssessmentResults, error) {
 	var results assessmentDTO.StudentAssessmentResults
 	var err error
 
 	assessments := []db.Assessment{}
 	categoryAssessments := []db.CategoryAssessment{}
 	if config.GradingSheetVisible {
-		assessments, err = ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+		assessments, err = s.ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessments for student in phase: ", err)
 			return results, errors.New("could not get assessments for student in phase")
 		}
-		categoryAssessments, err = categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+		categoryAssessments, err = s.categoryAssessment.ListCategoryAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get category assessments for student in phase: ", err)
 			return results, errors.New("could not get category assessments for student in phase")
@@ -269,13 +318,13 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	}
 
 	completion := db.AssessmentCompletion{}
-	exists, err := assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
+	exists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not check assessment completion existence: ", err)
 		return results, errors.New("could not check assessment completion existence")
 	}
 	if exists {
-		completion, err = assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
+		completion, err = s.assessmentCompletion.GetAssessmentCompletion(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get assessment completion: ", err)
 			return results, errors.New("could not get assessment completion")
@@ -284,7 +333,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 
 	var studentScore *scoreLevelDTO.StudentScore
 	if config.GradingSheetVisible && len(assessments) > 0 {
-		score, err := scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
+		score, err := s.scoreLevel.GetStudentScore(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get score level: ", err)
 			return results, errors.New("could not get score level")
@@ -294,7 +343,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 
 	var evals []evaluationDTO.Evaluation
 	if config.GradingSheetVisible {
-		evals, err = evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
+		evals, err = s.evaluations.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not get evaluations for participant in phase: ", err)
 			return results, errors.New("could not get evaluations for participant in phase")
@@ -303,7 +352,7 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 
 	var actionItems []actionItemDTO.ActionItem
 	if config.ActionItemsVisible {
-		actionItems, err = actionItem.ListActionItemsForStudentInPhase(ctx, courseParticipationID, coursePhaseID)
+		actionItems, err = s.actionItem.ListActionItemsForStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 		if err != nil {
 			log.Error("could not list action items for student in phase: ", err)
 			return results, errors.New("could not list action items for student in phase")
@@ -338,14 +387,14 @@ func GetStudentAssessmentResults(ctx context.Context, coursePhaseID, courseParti
 	return results, nil
 }
 
-func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
-	tx, err := AssessmentServiceSingleton.conn.Begin(ctx)
+func (s *AssessmentService) DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	assessment, err := qtx.GetAssessment(ctx, id)
 	if err != nil {
@@ -360,7 +409,7 @@ func DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 		return ErrAssessmentNotInPhase
 	}
 
-	err = assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, assessment.CourseParticipationID, assessment.CoursePhaseID)
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, assessment.CourseParticipationID, assessment.CoursePhaseID)
 	if err != nil {
 		return err
 	}

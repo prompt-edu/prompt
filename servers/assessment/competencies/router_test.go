@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/competencies/competencyDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -27,7 +28,7 @@ type CompetencyRouterTestSuite struct {
 	ctx               context.Context
 	cleanup           func()
 	mockCoreCleanup   func()
-	competencyService CompetencyService
+	competencyService *CompetencyService
 }
 
 const testCoursePhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
@@ -45,24 +46,16 @@ func (suite *CompetencyRouterTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.competencyService = CompetencyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	CompetencyServiceSingleton = &suite.competencyService
-
-	// Initialize service modules needed for schema copy logic
-	group := gin.New().Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, schemaService)
+	suite.competencyService = NewCompetencyService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, coursePhaseConfigService, *testDB.Queries))
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleWare := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupCompetencyRouter(api, testMiddleWare)
+	RegisterRoutes(api, suite.competencyService, testMiddleWare)
 }
 
 func (suite *CompetencyRouterTestSuite) TearDownTest() {

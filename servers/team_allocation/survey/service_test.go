@@ -79,10 +79,10 @@ func (suite *SurveyServiceTestSuite) TestSetSurveyTimeframePreservesInstantForNo
 	start := time.Date(2026, 1, 15, 12, 34, 56, 123456000, berlin)
 	deadline := start.Add(48 * time.Hour)
 
-	err = SetSurveyTimeframe(suite.suiteCtx, coursePhaseID, start, deadline)
+	err = suite.surveyService.SetSurveyTimeframe(suite.suiteCtx, coursePhaseID, start, deadline)
 	assert.NoError(suite.T(), err)
 
-	timeframe, err := GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
+	timeframe, err := suite.surveyService.GetSurveyTimeframe(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), start.Equal(timeframe.SurveyStart))
 	assert.True(suite.T(), deadline.Equal(timeframe.SurveyDeadline))

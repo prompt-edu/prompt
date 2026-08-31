@@ -20,17 +20,14 @@ func NewConfigService(queries db.Queries) *ConfigService {
 	}
 }
 
-type configHandler struct {
-	service *ConfigService
-}
-
-func (h *configHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
+// HandlePhaseConfig implements promptTypes.PhaseConfigHandler.
+func (s *ConfigService) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		return nil, err
 	}
 
-	return h.service.GetPhaseConfig(c.Request.Context(), coursePhaseID)
+	return s.GetPhaseConfig(c.Request.Context(), coursePhaseID)
 }
 
 func (s *ConfigService) GetPhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (map[string]bool, error) {

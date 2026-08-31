@@ -5,8 +5,8 @@ import (
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-type SelfTeamCopyHandler struct{}
+type selfTeamCopyHandler struct{}
 
-func (h *SelfTeamCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+func (h *selfTeamCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	return nil
 }

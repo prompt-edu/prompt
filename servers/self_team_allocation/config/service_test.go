@@ -49,20 +49,18 @@ func (suite *ConfigServiceTestSuite) newContext(coursePhaseID uuid.UUID) *gin.Co
 }
 
 func (suite *ConfigServiceTestSuite) TestHandlePhaseConfigWithTimeframe() {
-	handler := configHandler{service: suite.configService}
 	c := suite.newContext(uuid.MustParse("11111111-1111-1111-1111-111111111111"))
 
-	configMap, err := handler.HandlePhaseConfig(c)
+	configMap, err := suite.configService.HandlePhaseConfig(c)
 
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), configMap["surveyTimeframe"])
 }
 
 func (suite *ConfigServiceTestSuite) TestHandlePhaseConfigWithoutTimeframe() {
-	handler := configHandler{service: suite.configService}
 	c := suite.newContext(uuid.New())
 
-	configMap, err := handler.HandlePhaseConfig(c)
+	configMap, err := suite.configService.HandlePhaseConfig(c)
 
 	require.NoError(suite.T(), err)
 	require.False(suite.T(), configMap["surveyTimeframe"])

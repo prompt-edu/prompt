@@ -101,8 +101,12 @@ func main() {
 		promptSDK.CourseStudent,
 	), helloInterviewServer)
 
-	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
 	privacyService := privacy.NewPrivacyService(*query, conn)
+	interviewSlotService := interview_slot.NewInterviewSlotService(*query, conn)
+	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
+	interviewReviewService := interview_review.NewInterviewReviewService(*query)
+
+	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
 
 	config.RegisterRoutes(coursePhaseApi, promptSDK.AuthenticationMiddleware)
@@ -122,11 +126,8 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	interviewSlotService := interview_slot.NewInterviewSlotService(*query, conn)
 	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, promptSDK.AuthenticationMiddleware)
-	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
 	interview_assignment.RegisterRoutes(coursePhaseApi, interviewAssignmentService, promptSDK.AuthenticationMiddleware)
-	interviewReviewService := interview_review.NewInterviewReviewService(*query)
 	interview_review.RegisterRoutes(coursePhaseApi, interviewReviewService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")

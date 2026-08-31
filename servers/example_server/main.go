@@ -75,8 +75,12 @@ func main() {
 
 	api.GET("/hello", helloExampleServer)
 
+	configService := config.NewConfigService(*query, conn)
+	copyService := copy.NewCopyService(*query, conn)
+	exampleService := example.NewExampleService(*query, conn)
+
 	copyApi := router.Group("example-service/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	copy.RegisterRoutes(copyApi, copyService, promptSDK.AuthenticationMiddleware)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "example-service",
@@ -93,9 +97,8 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	config.InitConfigModule(api, *query, conn)
+	config.RegisterRoutes(api, configService, promptSDK.AuthenticationMiddleware)
 
-	exampleService := example.NewExampleService(*query, conn)
 	example.RegisterRoutes(api, exampleService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8086")

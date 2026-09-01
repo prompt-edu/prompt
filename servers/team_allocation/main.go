@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
+	"github.com/prompt-edu/prompt/servers/team_allocation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/privacy"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
@@ -96,6 +97,7 @@ func main() {
 	configService := config.NewConfigService(*query, surveyService)
 	copyService := copy.NewCopyService(*query, conn)
 	privacyService := privacy.NewTeamsPrivacyService(*query, conn)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
 	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
 	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
@@ -110,6 +112,7 @@ func main() {
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
 	privacy.RegisterRoutes(api, privacyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",
@@ -119,6 +122,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

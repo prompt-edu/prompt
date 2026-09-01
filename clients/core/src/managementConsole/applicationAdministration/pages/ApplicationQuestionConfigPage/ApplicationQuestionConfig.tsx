@@ -1,6 +1,7 @@
 import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import { coreKeys } from '@core/network/cache'
 import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
@@ -78,7 +79,7 @@ export const ApplicationQuestionConfig = () => {
     isError: isApplicationFormError,
     error: applicationFormError,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', phaseId],
+    queryKey: coreKeys.applications.form(phaseId),
     queryFn: () => getApplicationForm(phaseId ?? 'undefined'),
   })
   const originalQuestions = [

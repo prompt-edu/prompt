@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { getTemplateCourses } from '@core/network/queries/getTemplateCourses'
 import { CopyCourseDialog } from '@managementConsole/courseOverview/components/CopyCourseDialog'
 import { useQuery } from '@tanstack/react-query'
@@ -29,7 +30,7 @@ export const TemplateSelectionDialog = ({ open, onOpenChange }: TemplateSelectio
     error,
     isError,
   } = useQuery({
-    queryKey: ['template-courses'],
+    queryKey: coreKeys.courses.templates(),
     queryFn: getTemplateCourses,
     enabled: open,
   })

@@ -1,5 +1,6 @@
 // src/hooks/useCourseSetup.ts
 
+import { coreKeys } from '@core/network/cache'
 import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { getParticipationDataGraph } from '@core/network/queries/courseParticipationDataGraph'
@@ -42,7 +43,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isCoursePhaseTypesError,
     refetch: refetchCoursePhaseTypes,
   } = useQuery<CoursePhaseType[]>({
-    queryKey: ['course_phase_types'],
+    queryKey: coreKeys.coursePhases.types(),
     queryFn: getAllCoursePhaseTypes,
   })
 
@@ -53,7 +54,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isGraphError,
     refetch: refetchGraph,
   } = useQuery<CoursePhaseGraphItem[]>({
-    queryKey: ['course_phases', 'course_phase_graph', courseId],
+    queryKey: coreKeys.courseGraphs.phase(courseId),
     queryFn: () => getCoursePhaseGraph(courseId),
     enabled: !!courseId,
   })
@@ -65,7 +66,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isParticipationGraphError,
     refetch: refetchParticipationGraph,
   } = useQuery<MetaDataGraphItem[]>({
-    queryKey: ['course_phases', 'participation_phase_graph', courseId],
+    queryKey: coreKeys.courseGraphs.participationData(courseId),
     queryFn: () => getParticipationDataGraph(courseId),
     enabled: !!courseId,
   })
@@ -77,7 +78,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isPhaseGraphError,
     refetch: refetchPhaseGraph,
   } = useQuery<MetaDataGraphItem[]>({
-    queryKey: ['course_phases', 'phase_phase_graph', courseId],
+    queryKey: coreKeys.courseGraphs.phaseData(courseId),
     queryFn: () => getPhaseDataGraph(courseId),
     enabled: !!courseId,
   })
@@ -92,7 +93,7 @@ export function useCourseConfiguratorDataSetup() {
     isPending: isFetchingApplicationForm,
     isError: isApplicationFormError,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', applicationPhase?.id],
+    queryKey: coreKeys.applications.form(applicationPhase?.id),
     queryFn: () => getApplicationForm(applicationPhase?.id || ''),
     enabled: !!applicationPhase?.id,
   })
@@ -102,7 +103,7 @@ export function useCourseConfiguratorDataSetup() {
     isPending: isAdditionalScoresPending,
     isError: isAdditionalScoresError,
   } = useQuery<AdditionalScore[]>({
-    queryKey: ['application_participations', applicationPhase?.id],
+    queryKey: coreKeys.applications.participations.inPhase(applicationPhase?.id),
     queryFn: () => getAdditionalScoreNames(applicationPhase?.id || ''),
     enabled: !!applicationPhase?.id,
   })

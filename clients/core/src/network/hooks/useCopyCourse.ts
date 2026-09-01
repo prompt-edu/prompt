@@ -1,4 +1,5 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreKeys } from '@core/network/cache'
 import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
 import { copyCourse } from '@core/network/mutations/copyCourse'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
@@ -26,7 +27,7 @@ export const useCopyCourse = (
     isLoading: isCheckingCopyability,
     error: copyabilityError,
   } = useQuery({
-    queryKey: ['course-copyability', courseId],
+    queryKey: coreKeys.courses.copyability(courseId),
     queryFn: () => checkCourseCopyable(courseId),
     enabled: currentStep === 'warning' && !!courseId,
   })

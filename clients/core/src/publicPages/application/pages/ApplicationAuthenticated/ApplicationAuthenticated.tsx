@@ -4,6 +4,7 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { GetApplication } from '@core/interfaces/application/getApplication'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
+import { coreKeys } from '@core/network/cache'
 import { postNewApplicationAuthenticated } from '@core/network/mutations/postApplicationAuthenticated'
 import { getApplication } from '@core/network/queries/application'
 import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
@@ -34,7 +35,7 @@ export const ApplicationAuthenticated = () => {
     isError,
     error,
   } = useQuery<ApplicationFormWithDetails>({
-    queryKey: ['applicationForm', phaseId],
+    queryKey: coreKeys.apply.form(phaseId),
     queryFn: () => getApplicationFormWithDetails(phaseId ?? ''),
   })
 
@@ -44,7 +45,7 @@ export const ApplicationAuthenticated = () => {
     isError: isApplicationError,
     error: applicationError,
   } = useQuery<GetApplication>({
-    queryKey: ['application', phaseId],
+    queryKey: coreKeys.applications.inPhase(phaseId),
     queryFn: () => getApplication(phaseId ?? ''),
     enabled: !!phaseId,
   })

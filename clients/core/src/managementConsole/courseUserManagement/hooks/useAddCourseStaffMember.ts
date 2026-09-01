@@ -1,8 +1,8 @@
+import { coreKeys } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import type { CourseGroupName } from '../interfaces/StaffMember'
-import { courseStaffQueryKey } from './useCourseStaff'
 
 interface AddMemberArgs {
   groupName: CourseGroupName
@@ -22,8 +22,8 @@ export const useAddCourseStaffMember = (courseId: string) => {
   return useMutation({
     mutationFn: (args: AddMemberArgs) => addCourseStaffMember(courseId, args),
     onSuccess: (_, args) => {
-      queryClient.invalidateQueries({ queryKey: courseStaffQueryKey(courseId) })
-      queryClient.invalidateQueries({ queryKey: ['keycloakUserSearch'] })
+      queryClient.invalidateQueries({ queryKey: coreKeys.courses.staff(courseId) })
+      queryClient.invalidateQueries({ queryKey: coreKeys.keycloak.userSearch.all() })
       toast({ title: `Added user as ${args.groupName}` })
     },
     onError: (err: unknown, args) => {

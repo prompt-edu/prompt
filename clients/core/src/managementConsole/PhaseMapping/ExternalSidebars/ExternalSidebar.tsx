@@ -1,4 +1,5 @@
 import type { CourseParticipation } from '@core/managementConsole/shared/interfaces/CourseParticipation'
+import { coreKeys } from '@core/network/cache'
 import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -38,7 +39,7 @@ export const ExternalSidebarComponent: React.FC<ExternalSidebarProps> = ({
     isError: isCourseParticipationError,
     refetch: refetchCourseParticipation,
   } = useQuery<CourseParticipation>({
-    queryKey: ['course_participation', courseId],
+    queryKey: coreKeys.courses.myParticipation(courseId),
     queryFn: () => getCourseParticipation(courseId ?? ''),
   })
 

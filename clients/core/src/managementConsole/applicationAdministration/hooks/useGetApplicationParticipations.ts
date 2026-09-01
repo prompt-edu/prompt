@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { getApplicationParticipations } from '@core/network/queries/applicationParticipations'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -7,7 +8,7 @@ export const useGetApplicationParticipations = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   return useQuery<ApplicationParticipation[]>({
-    queryKey: ['application_participations', 'students', phaseId],
+    queryKey: coreKeys.applications.participations.students(phaseId),
     queryFn: () => getApplicationParticipations(phaseId ?? ''),
   })
 }

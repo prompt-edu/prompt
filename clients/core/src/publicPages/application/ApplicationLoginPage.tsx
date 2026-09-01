@@ -4,6 +4,7 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreKeys } from '@core/network/cache'
 import { postNewApplicationExtern } from '@core/network/mutations/postApplicationExtern'
 import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -33,7 +34,7 @@ export const ApplicationLoginPage = () => {
     isError,
     error,
   } = useQuery<ApplicationFormWithDetails>({
-    queryKey: ['applicationForm', phaseId],
+    queryKey: coreKeys.apply.form(phaseId),
     queryFn: () => getApplicationFormWithDetails(phaseId ?? ''),
   })
 

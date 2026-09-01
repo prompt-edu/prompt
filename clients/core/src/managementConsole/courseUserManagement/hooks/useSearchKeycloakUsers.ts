@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import type { UserSearchResults } from '../interfaces/StaffMember'
@@ -13,7 +14,7 @@ const searchKeycloakUsers = async (query: string, limit = 20): Promise<UserSearc
 export const useSearchKeycloakUsers = (query: string) => {
   const trimmed = query.trim()
   return useQuery({
-    queryKey: ['keycloakUserSearch', trimmed],
+    queryKey: coreKeys.keycloak.userSearch.forQuery(trimmed),
     queryFn: () => searchKeycloakUsers(trimmed),
     enabled: trimmed.length >= 2,
     staleTime: 60_000,

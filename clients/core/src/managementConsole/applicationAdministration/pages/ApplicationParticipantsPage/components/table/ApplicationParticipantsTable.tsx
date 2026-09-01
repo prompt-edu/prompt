@@ -1,5 +1,6 @@
 import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
+import { coreKeys } from '@core/network/cache'
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
@@ -60,7 +61,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   const { toast } = useToast()
 
   const { data: exportedAnswers, isError: exportedAnswersError } = useQuery({
-    queryKey: ['application_exported_answers', phaseId],
+    queryKey: coreKeys.applications.exportedAnswers(phaseId),
     queryFn: () => getExportedApplicationAnswers(phaseId),
   })
 
@@ -146,7 +147,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     async (rows: ApplicationRow[]) => {
       try {
         const applicationForm = await queryClient.fetchQuery({
-          queryKey: ['application_form', phaseId],
+          queryKey: coreKeys.applications.form(phaseId),
           queryFn: () => getApplicationForm(phaseId),
         })
 
@@ -155,7 +156,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
           APPLICATION_EXPORT_CONCURRENCY,
           (row) =>
             queryClient.fetchQuery({
-              queryKey: ['application', phaseId, row.courseParticipationID],
+              queryKey: coreKeys.applications.ofParticipant(phaseId, row.courseParticipationID),
               queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
             }),
         )

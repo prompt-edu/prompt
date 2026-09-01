@@ -2,6 +2,7 @@ import type {
   CreateNoteTag,
   UpdateNoteTag,
 } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { deleteNoteTag } from '../mutations/deleteNoteTag'
@@ -11,7 +12,7 @@ import { getNoteTags } from '../queries/getNoteTags'
 
 export const useNoteTags = () => {
   return useQuery({
-    queryKey: ['noteTags'],
+    queryKey: coreKeys.instructorNotes.tags(),
     queryFn: getNoteTags,
   })
 }

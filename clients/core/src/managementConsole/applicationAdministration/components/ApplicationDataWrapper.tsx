@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
@@ -23,7 +24,7 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
     isError: isAdditionalScoresError,
     refetch: refetchScores,
   } = useQuery<AdditionalScore[]>({
-    queryKey: ['application_participations', phaseId],
+    queryKey: coreKeys.applications.participations.inPhase(phaseId),
     queryFn: () => getAdditionalScoreNames(phaseId ?? ''),
   })
 

@@ -1,4 +1,5 @@
 import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
+import { coreKeys } from '@core/network/cache'
 import { getAllOpenApplications } from '@core/network/queries/openApplications'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
@@ -12,7 +13,7 @@ export function LandingPage() {
     isPending,
     isError,
   } = useQuery<OpenApplicationDetails[]>({
-    queryKey: ['open_applications'],
+    queryKey: coreKeys.apply.open(),
     queryFn: () => getAllOpenApplications(),
   })
 

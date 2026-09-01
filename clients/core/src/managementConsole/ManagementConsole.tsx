@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
@@ -52,7 +53,7 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
     isError: isCourseError,
     refetch: refetchCourses,
   } = useQuery<Course[]>({
-    queryKey: ['courses'],
+    queryKey: coreKeys.courses.all(),
     queryFn: () => getAllCourses(),
   })
 
@@ -63,7 +64,7 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
     isError: isOwnCourseIdError,
     refetch: refetchOwnCourseIds,
   } = useQuery<string[]>({
-    queryKey: ['own_courses'],
+    queryKey: coreKeys.courses.own(),
     queryFn: () => getOwnCourseIDs(),
   })
 

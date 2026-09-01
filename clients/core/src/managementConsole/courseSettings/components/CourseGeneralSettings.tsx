@@ -4,6 +4,7 @@ import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import { coreKeys } from '@core/network/cache'
 import { updateCourseData } from '@core/network/mutations/updateCourseData'
 import { getAllCourses } from '@core/network/queries/course'
 import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
@@ -52,7 +53,7 @@ export function CourseGeneralSettings() {
     isError: isCoursesError,
     refetch: refetchCourses,
   } = useQuery<Course[]>({
-    queryKey: ['courses'],
+    queryKey: coreKeys.courses.all(),
     queryFn: () => getAllCourses(),
   })
 

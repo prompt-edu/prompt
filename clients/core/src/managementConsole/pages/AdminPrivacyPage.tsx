@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import {
   type AdminPrivacyDeletionRequest,
   DeletionRequestStatus,
@@ -36,11 +37,11 @@ export function AdminPrivacyPage() {
   const [reviewing, setReviewing] = useState<AdminPrivacyDeletionRequest | null>(null)
 
   const allExportsQuery = useQuery({
-    queryKey: ['privacy', 'admin', 'exports'],
+    queryKey: coreKeys.privacy.admin.exports(),
     queryFn: getAllExports,
   })
   const allDeletionsQuery = useQuery({
-    queryKey: ['privacy', 'admin', 'deletions'],
+    queryKey: coreKeys.privacy.admin.deletions(),
     queryFn: getAllDeletionRequests,
     refetchInterval: (query) =>
       query.state.data?.some((r) => r.status === DeletionRequestStatus.in_progress) ? 3000 : false,

@@ -1,4 +1,5 @@
 import type { CreateInstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { deleteInstructorNote } from '../mutations/deleteInstructorNote'
@@ -7,7 +8,7 @@ import { getInstructorNotes } from '../queries/getInstructorNotes'
 
 export const useInstructorNotes = (studentId?: string) => {
   return useQuery({
-    queryKey: ['instructorNotes', studentId],
+    queryKey: coreKeys.instructorNotes.ofStudent(studentId),
     queryFn: () => getInstructorNotes(studentId!),
     enabled: !!studentId,
   })

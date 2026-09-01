@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { useQueries } from '@tanstack/react-query'
 import { KeycloakStatusCard } from './components/KeycloakStatusCard'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
@@ -16,7 +17,7 @@ export const SystemStatusPage = () => {
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {
       return {
-        queryKey: [`serviceInfo-${service.id}`],
+        queryKey: coreKeys.serviceInfo.ofService(service.id),
         queryFn: () => getServiceInfo(service),
         retry: false,
         staleTime: 30_000,

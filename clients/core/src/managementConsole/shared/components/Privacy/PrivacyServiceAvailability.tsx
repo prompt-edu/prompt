@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@tumaet/prompt-ui-components'
@@ -63,7 +64,7 @@ export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabili
   const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => isRealMicroservice(cpt.baseUrl))
 
   const coreQuery = useQuery({
-    queryKey: ['serviceInfo-core'],
+    queryKey: coreKeys.serviceInfo.core(),
     queryFn: () => axiosInstance.get('/api/hello'),
     retry: false,
     staleTime: 30_000,
@@ -71,7 +72,7 @@ export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabili
 
   const cpmResults = useQueries({
     queries: coursePhaseTypes.map((service) => ({
-      queryKey: [`serviceInfo-${service.id}`],
+      queryKey: coreKeys.serviceInfo.ofService(service.id),
       queryFn: () => getServiceInfo(service),
       retry: false,
       staleTime: 30_000,

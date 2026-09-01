@@ -2,6 +2,7 @@ import type { CreateApplicationAnswerFileUpload } from '@core/interfaces/applica
 import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
 import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
+import { coreKeys } from '@core/network/cache'
 import { postNewApplicationManual } from '@core/network/mutations/postApplicationManual'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { ApplicationFormView } from '@core/publicPages/application/pages/ApplicationForm/ApplicationFormView'
@@ -65,7 +66,7 @@ export const ApplicationManualAddingDialog = ({
     error: fetchingError,
     refetch: refetchApplicationForm,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', phaseId],
+    queryKey: coreKeys.applications.form(phaseId),
     queryFn: () => getApplicationForm(phaseId ?? ''),
     enabled: !!phaseId,
   })

@@ -25,7 +25,7 @@ type CopyRouterTestSuite struct {
 	router      *gin.Engine
 	suiteCtx    context.Context
 	cleanup     func()
-	copyService CopyService
+	copyService *CopyService
 }
 
 func (suite *CopyRouterTestSuite) SetupSuite() {
@@ -35,17 +35,13 @@ func (suite *CopyRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.copyService = CopyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CopyServiceSingleton = &suite.copyService
+	suite.copyService = NewCopyService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
-	setupCopyRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.copyService, testMiddleware)
 }
 
 func (suite *CopyRouterTestSuite) TearDownSuite() {

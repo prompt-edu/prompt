@@ -13,8 +13,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/meta"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
+	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -25,7 +30,7 @@ type ApplicationAdminValidationTestSuite struct {
 	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
-	applicationAdminService ApplicationService
+	applicationAdminService *ApplicationService
 }
 
 func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
@@ -38,12 +43,16 @@ func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = ApplicationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	ApplicationServiceSingleton = &suite.applicationAdminService
+	suite.applicationAdminService = NewApplicationService(
+		*testDB.Queries,
+		testDB.Conn,
+		nil,
+		nil,
+		student.NewStudentService(*testDB.Queries),
+		courseParticipation.NewCourseParticipationService(*testDB.Queries),
+		files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil),
+		mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost"),
+	)
 	suite.router = gin.Default()
 }
 
@@ -73,7 +82,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Success
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.NoError(suite.T(), err)
 }
 
@@ -82,7 +91,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 	updateForm := applicationDTO.UpdateForm{
 		DeleteQuestionsText: []uuid.UUID{uuid.New()}, // Non-existent question
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "question does not belong to this course", err.Error())
 }
@@ -98,7 +107,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase id is not correct", err.Error())
 }
@@ -116,7 +125,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateForm_Invalid
 			},
 		},
 	}
-	err := validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
+	err := suite.applicationAdminService.validateUpdateForm(suite.ctx, coursePhaseID, updateForm)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "minimum selection must be at least 0", err.Error())
 }
@@ -168,7 +177,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_Invali
 		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{},
 	}
 
-	err := validateApplication(suite.ctx, coursePhaseID, application, false)
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "invalid student", err.Error())
 }
@@ -196,7 +205,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_Invali
 		},
 	}
 
-	err := validateApplication(suite.ctx, coursePhaseID, application, false)
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "required question")
 }
@@ -390,7 +399,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_S
 		PassStatus: &passStatus,
 	}
 
-	err := validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err := suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.NoError(suite.T(), err)
 }
 
@@ -399,7 +408,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_N
 	courseParticipationID := uuid.MustParse("82d7efae-d545-4cc5-9b94-5d0ee1e50d25")
 	assessment := applicationDTO.PutAssessment{}
 
-	err := validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err := suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "course phase is not an assessment phase", err.Error())
 }
@@ -417,7 +426,7 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateUpdateAssessment_I
 		RestrictedData: restrictedData,
 	}
 
-	err = validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
+	err = suite.applicationAdminService.validateUpdateAssessment(suite.ctx, coursePhaseID, courseParticipationID, assessment)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "invalid meta data key - not allowed to update other meta data", err.Error())
 }

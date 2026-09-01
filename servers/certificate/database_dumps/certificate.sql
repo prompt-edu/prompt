@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS course_phase_config (
     created_at timestamp with time zone NOT NULL DEFAULT NOW(),
     updated_at timestamp with time zone NOT NULL DEFAULT NOW(),
     updated_by text,
-    release_date timestamp with time zone
+    release_date timestamp with time zone,
+    student_page_text text
 );
 
 -- Certificate download tracking per student per course phase

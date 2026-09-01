@@ -18,23 +18,29 @@ type CoursePhaseTypeService struct {
 	isDevEnvironment bool
 }
 
-var CoursePhaseTypeServiceSingleton *CoursePhaseTypeService
+func NewCoursePhaseTypeService(queries db.Queries, conn *pgxpool.Pool, isDevEnvironment bool) *CoursePhaseTypeService {
+	return &CoursePhaseTypeService{
+		queries:          queries,
+		conn:             conn,
+		isDevEnvironment: isDevEnvironment,
+	}
+}
 
-func GetAllCoursePhaseTypes(ctx context.Context) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
+func (s *CoursePhaseTypeService) GetAllCoursePhaseTypes(ctx context.Context) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coursePhaseTypes, err := CoursePhaseTypeServiceSingleton.queries.GetAllCoursePhaseTypes(ctxWithTimeout)
+	coursePhaseTypes, err := s.queries.GetAllCoursePhaseTypes(ctxWithTimeout)
 	if err != nil {
 		return nil, err
 	}
 
-	return addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
+	return s.addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
 }
 
 // GetCoursePhaseTypesForStudent returns the course phase types the student has been involved in
 // via at least one course_phase_participation. For studentID == uuid.Nil it returns an empty slice.
-func GetCoursePhaseTypesForStudent(ctx context.Context, studentID uuid.UUID) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
+func (s *CoursePhaseTypeService) GetCoursePhaseTypesForStudent(ctx context.Context, studentID uuid.UUID) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
 	if studentID == uuid.Nil {
 		return []coursePhaseTypeDTO.CoursePhaseType{}, nil
 	}
@@ -42,15 +48,15 @@ func GetCoursePhaseTypesForStudent(ctx context.Context, studentID uuid.UUID) ([]
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coursePhaseTypes, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseTypesForStudent(ctxWithTimeout, studentID)
+	coursePhaseTypes, err := s.queries.GetCoursePhaseTypesForStudent(ctxWithTimeout, studentID)
 	if err != nil {
 		return nil, err
 	}
 
-	return addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
+	return s.addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
 }
 
-func GetCoursePhaseTypesForStudentCourses(ctx context.Context, studentID uuid.UUID) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
+func (s *CoursePhaseTypeService) GetCoursePhaseTypesForStudentCourses(ctx context.Context, studentID uuid.UUID) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
 	if studentID == uuid.Nil {
 		return []coursePhaseTypeDTO.CoursePhaseType{}, nil
 	}
@@ -58,33 +64,33 @@ func GetCoursePhaseTypesForStudentCourses(ctx context.Context, studentID uuid.UU
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	coursePhaseTypes, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseTypesForStudentCourses(ctxWithTimeout, studentID)
+	coursePhaseTypes, err := s.queries.GetCoursePhaseTypesForStudentCourses(ctxWithTimeout, studentID)
 	if err != nil {
 		return nil, err
 	}
 
-	return addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
+	return s.addCoursePhaseTypeInputOutput(ctxWithTimeout, coursePhaseTypes)
 }
 
-func addCoursePhaseTypeInputOutput(ctx context.Context, coursePhaseTypes []db.CoursePhaseType) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
+func (s *CoursePhaseTypeService) addCoursePhaseTypeInputOutput(ctx context.Context, coursePhaseTypes []db.CoursePhaseType) ([]coursePhaseTypeDTO.CoursePhaseType, error) {
 	dtoCoursePhaseTypes := make([]coursePhaseTypeDTO.CoursePhaseType, 0, len(coursePhaseTypes))
 	for _, phaseType := range coursePhaseTypes {
 		// Participation Graph
-		fetchedParticipationInputDTOs, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseRequiredParticipationInputs(ctx, phaseType.ID)
+		fetchedParticipationInputDTOs, err := s.queries.GetCoursePhaseRequiredParticipationInputs(ctx, phaseType.ID)
 		if err != nil {
 			return nil, err
 		}
-		fetchedParticipationOutputDTOs, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseProvidedParticipationOutputs(ctx, phaseType.ID)
+		fetchedParticipationOutputDTOs, err := s.queries.GetCoursePhaseProvidedParticipationOutputs(ctx, phaseType.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		// Phase Data Graph
-		fetchedPhaseInputDTOs, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseRequiredPhaseInputs(ctx, phaseType.ID)
+		fetchedPhaseInputDTOs, err := s.queries.GetCoursePhaseRequiredPhaseInputs(ctx, phaseType.ID)
 		if err != nil {
 			return nil, err
 		}
-		fetchedPhaseOutputDTOs, err := CoursePhaseTypeServiceSingleton.queries.GetCoursePhaseProvidedPhaseOutputs(ctx, phaseType.ID)
+		fetchedPhaseOutputDTOs, err := s.queries.GetCoursePhaseProvidedPhaseOutputs(ctx, phaseType.ID)
 		if err != nil {
 			return nil, err
 		}

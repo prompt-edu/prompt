@@ -18,6 +18,7 @@ type InterviewReviewServiceTestSuite struct {
 	ctx           context.Context
 	testDB        *sdkTestUtils.TestDB[*db.Queries]
 	cleanup       func()
+	service       *InterviewReviewService
 	activePhaseID uuid.UUID
 }
 
@@ -29,9 +30,7 @@ func (suite *InterviewReviewServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.activePhaseID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
 
-	InterviewReviewServiceSingleton = &InterviewReviewService{
-		queries: *testDB.Queries,
-	}
+	suite.service = NewInterviewReviewService(*testDB.Queries)
 }
 
 func (suite *InterviewReviewServiceTestSuite) TearDownSuite() {
@@ -44,7 +43,7 @@ func (suite *InterviewReviewServiceTestSuite) TestUpsertCreatesAndUpdatesReview(
 	participationID := uuid.New()
 	score := int32(2)
 
-	created, err := UpsertInterviewReview(suite.ctx, suite.activePhaseID, participationID, interviewReviewDTO.UpdateInterviewReviewRequest{
+	created, err := suite.service.UpsertInterviewReview(suite.ctx, suite.activePhaseID, participationID, interviewReviewDTO.UpdateInterviewReviewRequest{
 		Score:       &score,
 		Interviewer: "Ada Lovelace",
 		InterviewAnswers: []interviewReviewDTO.InterviewAnswer{
@@ -60,7 +59,7 @@ func (suite *InterviewReviewServiceTestSuite) TestUpsertCreatesAndUpdatesReview(
 	require.Len(suite.T(), created.InterviewAnswers, 1)
 
 	updatedScore := int32(5)
-	updated, err := UpsertInterviewReview(suite.ctx, suite.activePhaseID, participationID, interviewReviewDTO.UpdateInterviewReviewRequest{
+	updated, err := suite.service.UpsertInterviewReview(suite.ctx, suite.activePhaseID, participationID, interviewReviewDTO.UpdateInterviewReviewRequest{
 		Score:            &updatedScore,
 		Interviewer:      "Alan Turing",
 		InterviewAnswers: []interviewReviewDTO.InterviewAnswer{},
@@ -71,7 +70,7 @@ func (suite *InterviewReviewServiceTestSuite) TestUpsertCreatesAndUpdatesReview(
 	require.Equal(suite.T(), "Alan Turing", updated.Interviewer)
 	require.Empty(suite.T(), updated.InterviewAnswers)
 
-	all, err := GetInterviewReviews(suite.ctx, suite.activePhaseID)
+	all, err := suite.service.GetInterviewReviews(suite.ctx, suite.activePhaseID)
 	require.NoError(suite.T(), err)
 	count := 0
 	for _, r := range all {
@@ -87,24 +86,24 @@ func (suite *InterviewReviewServiceTestSuite) TestScoreAndScoreLevelOutputsOnlyI
 	unscoredParticipation := uuid.New()
 	score := int32(1)
 
-	_, err := UpsertInterviewReview(suite.ctx, suite.activePhaseID, scoredParticipation, interviewReviewDTO.UpdateInterviewReviewRequest{
+	_, err := suite.service.UpsertInterviewReview(suite.ctx, suite.activePhaseID, scoredParticipation, interviewReviewDTO.UpdateInterviewReviewRequest{
 		Score:       &score,
 		Interviewer: "Grace Hopper",
 	})
 	require.NoError(suite.T(), err)
 
-	_, err = UpsertInterviewReview(suite.ctx, suite.activePhaseID, unscoredParticipation, interviewReviewDTO.UpdateInterviewReviewRequest{
+	_, err = suite.service.UpsertInterviewReview(suite.ctx, suite.activePhaseID, unscoredParticipation, interviewReviewDTO.UpdateInterviewReviewRequest{
 		Score:       nil,
 		Interviewer: "Grace Hopper",
 	})
 	require.NoError(suite.T(), err)
 
-	scores, err := GetScores(suite.ctx, suite.activePhaseID)
+	scores, err := suite.service.GetScores(suite.ctx, suite.activePhaseID)
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), containsScore(scores, scoredParticipation))
 	require.False(suite.T(), containsScore(scores, unscoredParticipation))
 
-	scoreLevels, err := GetScoreLevels(suite.ctx, suite.activePhaseID)
+	scoreLevels, err := suite.service.GetScoreLevels(suite.ctx, suite.activePhaseID)
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), containsScoreLevel(scoreLevels, scoredParticipation, interviewReviewDTO.ScoreLevelVeryGood))
 	require.False(suite.T(), containsScoreLevel(scoreLevels, unscoredParticipation, ""))

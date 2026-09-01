@@ -14,6 +14,7 @@ export interface CertificateStatus {
   lastDownload?: string
   downloadCount?: number
   message?: string
+  studentPageText?: string
 }
 
 export interface CoursePhaseConfig {
@@ -25,4 +26,5 @@ export interface CoursePhaseConfig {
   updatedBy?: string
   releaseDate?: string
   hasDownloads: boolean
+  studentPageText?: string
 }

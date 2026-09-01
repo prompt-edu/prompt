@@ -2,20 +2,13 @@ package copy
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 )
 
-type CopyService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
-}
+// interviewCopyHandler implements promptTypes.PhaseCopyHandler. Interview slots and
+// reviews are tied to the phase they were created for, so nothing is carried over.
+type interviewCopyHandler struct{}
 
-var CopyServiceSingleton *CopyService
-
-type SelfTeamCopyHandler struct{}
-
-func (h *SelfTeamCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+func (h *interviewCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	return nil
 }

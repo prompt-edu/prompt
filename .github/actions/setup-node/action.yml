@@ -13,3 +13,4 @@ runs:
         cache-dependency-path: ./clients/yarn.lock
     - run: yarn install
       shell: bash
+      working-directory: ./clients

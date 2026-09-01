@@ -9,17 +9,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func newReminderSendTestService(recipients reminderRecipientsResolver) *CoursePhaseConfigService {
+	service := NewCoursePhaseConfigService(db.Queries{}, nil, nil)
+	service.getEvaluationReminderRecipients = recipients
+	return service
+}
+
 func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
-	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
 	oldSendManualReminderMailFn := sendManualReminderMailFn
 	oldUpdateCoreCoursePhaseFn := updateCoreCoursePhaseFn
 	t.Cleanup(func() {
-		getEvaluationReminderRecipientsForSendFn = oldRecipientsFn
 		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
 		sendManualReminderMailFn = oldSendManualReminderMailFn
 		updateCoreCoursePhaseFn = oldUpdateCoreCoursePhaseFn
@@ -32,7 +37,7 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 	previousSentAt := time.Date(2026, time.January, 2, 10, 0, 0, 0, time.UTC)
 	sentAt := time.Date(2026, time.January, 10, 10, 0, 0, 0, time.UTC)
 
-	getEvaluationReminderRecipientsForSendFn = func(
+	service := newReminderSendTestService(func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -47,7 +52,7 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 			DeadlinePassed:                         true,
 			IncompleteAuthorCourseParticipationIDs: []uuid.UUID{recipientID},
 		}, nil
-	}
+	})
 
 	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
 		return coreCoursePhaseResponse{
@@ -90,7 +95,7 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 		return nil
 	}
 
-	report, err := SendEvaluationReminderManualTrigger(ctx, "Bearer token", coursePhaseID, assessmentType.Self)
+	report, err := service.SendEvaluationReminderManualTrigger(ctx, "Bearer token", coursePhaseID, assessmentType.Self)
 	require.NoError(t, err)
 	require.NotNil(t, report.PreviousSentAt)
 	assert.Equal(t, previousSentAt.Format(time.RFC3339), report.PreviousSentAt.UTC().Format(time.RFC3339))
@@ -108,13 +113,8 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 }
 
 func TestSendEvaluationReminderManualTriggerDeadlineNotPassed(t *testing.T) {
-	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
-	t.Cleanup(func() {
-		getEvaluationReminderRecipientsForSendFn = oldRecipientsFn
-	})
-
 	deadline := time.Date(2026, time.January, 20, 15, 0, 0, 0, time.UTC)
-	getEvaluationReminderRecipientsForSendFn = func(
+	service := newReminderSendTestService(func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -125,22 +125,20 @@ func TestSendEvaluationReminderManualTriggerDeadlineNotPassed(t *testing.T) {
 			Deadline:          &deadline,
 			DeadlinePassed:    false,
 		}, nil
-	}
+	})
 
-	_, err := SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
+	_, err := service.SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "deadline")
 }
 
 func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
-	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
 	t.Cleanup(func() {
-		getEvaluationReminderRecipientsForSendFn = oldRecipientsFn
 		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
 	})
 
-	getEvaluationReminderRecipientsForSendFn = func(
+	service := newReminderSendTestService(func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -150,7 +148,7 @@ func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
 			EvaluationEnabled: true,
 			DeadlinePassed:    true,
 		}, nil
-	}
+	})
 
 	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
 		return coreCoursePhaseResponse{
@@ -161,18 +159,16 @@ func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
 		}, nil
 	}
 
-	_, err := SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
+	_, err := service.SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrReminderTemplateIncomplete)
 }
 
 func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testing.T) {
-	oldRecipientsFn := getEvaluationReminderRecipientsForSendFn
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
 	oldSendManualReminderMailFn := sendManualReminderMailFn
 	oldUpdateCoreCoursePhaseFn := updateCoreCoursePhaseFn
 	t.Cleanup(func() {
-		getEvaluationReminderRecipientsForSendFn = oldRecipientsFn
 		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
 		sendManualReminderMailFn = oldSendManualReminderMailFn
 		updateCoreCoursePhaseFn = oldUpdateCoreCoursePhaseFn
@@ -184,7 +180,7 @@ func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testin
 	deadline := time.Date(2026, time.January, 9, 15, 0, 0, 0, time.UTC)
 	sentAt := time.Date(2026, time.January, 10, 10, 0, 0, 0, time.UTC)
 
-	getEvaluationReminderRecipientsForSendFn = func(
+	service := newReminderSendTestService(func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -199,7 +195,7 @@ func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testin
 			DeadlinePassed:                         true,
 			IncompleteAuthorCourseParticipationIDs: []uuid.UUID{recipientID},
 		}, nil
-	}
+	})
 
 	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
 		return coreCoursePhaseResponse{
@@ -235,7 +231,7 @@ func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testin
 		return errors.New("failed to persist")
 	}
 
-	report, err := SendEvaluationReminderManualTrigger(ctx, "Bearer token", coursePhaseID, assessmentType.Self)
+	report, err := service.SendEvaluationReminderManualTrigger(ctx, "Bearer token", coursePhaseID, assessmentType.Self)
 	require.NoError(t, err)
 	assert.Equal(t, sentAt, report.SentAt)
 	assert.Equal(t, 1, report.RequestedRecipients)

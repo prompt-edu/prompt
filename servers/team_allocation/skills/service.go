@@ -18,10 +18,15 @@ type SkillsService struct {
 	conn    *pgxpool.Pool
 }
 
-var SkillsServiceSingleton *SkillsService
+func NewSkillsService(queries db.Queries, conn *pgxpool.Pool) *SkillsService {
+	return &SkillsService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-func GetAllSkills(ctx context.Context, coursePhaseID uuid.UUID) ([]skillDTO.Skill, error) {
-	dbSkills, err := SkillsServiceSingleton.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
+func (s *SkillsService) GetAllSkills(ctx context.Context, coursePhaseID uuid.UUID) ([]skillDTO.Skill, error) {
+	dbSkills, err := s.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get the skills from the database: ", err)
 		return nil, errors.New("could not get the skills from the database")
@@ -29,13 +34,13 @@ func GetAllSkills(ctx context.Context, coursePhaseID uuid.UUID) ([]skillDTO.Skil
 	return skillDTO.GetSkillDTOsFromDBModels(dbSkills), nil
 }
 
-func CreateNewSkills(ctx context.Context, skillNames []string, coursePhaseID uuid.UUID) error {
-	tx, err := SkillsServiceSingleton.conn.Begin(ctx)
+func (s *SkillsService) CreateNewSkills(ctx context.Context, skillNames []string, coursePhaseID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := SkillsServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	for _, skillName := range skillNames {
 		err := qtx.CreateSkill(ctx, db.CreateSkillParams{
@@ -56,8 +61,8 @@ func CreateNewSkills(ctx context.Context, skillNames []string, coursePhaseID uui
 	return nil
 }
 
-func UpdateSkill(ctx context.Context, coursePhaseID, skillID uuid.UUID, newSkillName string) error {
-	err := SkillsServiceSingleton.queries.UpdateSkill(ctx, db.UpdateSkillParams{
+func (s *SkillsService) UpdateSkill(ctx context.Context, coursePhaseID, skillID uuid.UUID, newSkillName string) error {
+	err := s.queries.UpdateSkill(ctx, db.UpdateSkillParams{
 		ID:            skillID,
 		CoursePhaseID: coursePhaseID,
 		Name:          newSkillName,
@@ -69,8 +74,8 @@ func UpdateSkill(ctx context.Context, coursePhaseID, skillID uuid.UUID, newSkill
 	return nil
 }
 
-func DeleteSkill(ctx context.Context, coursePhaseID, skillID uuid.UUID) error {
-	err := SkillsServiceSingleton.queries.DeleteSkill(ctx, db.DeleteSkillParams{
+func (s *SkillsService) DeleteSkill(ctx context.Context, coursePhaseID, skillID uuid.UUID) error {
+	err := s.queries.DeleteSkill(ctx, db.DeleteSkillParams{
 		ID:            skillID,
 		CoursePhaseID: coursePhaseID,
 	})

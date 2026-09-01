@@ -18,7 +18,6 @@ type AssessmentSchemaService struct {
 	conn    *pgxpool.Pool
 }
 
-var AssessmentSchemaServiceSingleton *AssessmentSchemaService
 var ErrSchemaNotAccessible = errors.New("assessment schema is not accessible for this course phase")
 var ErrSchemaNotFound = errors.New("assessment schema not found")
 
@@ -29,30 +28,30 @@ func NewAssessmentSchemaService(queries db.Queries, conn *pgxpool.Pool) *Assessm
 	}
 }
 
-func CreateAssessmentSchema(ctx context.Context, req assessmentSchemaDTO.CreateAssessmentSchemaRequest) (assessmentSchemaDTO.AssessmentSchema, error) {
-	return insertAssessmentSchema(ctx, pgtype.UUID{Valid: false}, req)
+func (s *AssessmentSchemaService) CreateAssessmentSchema(ctx context.Context, req assessmentSchemaDTO.CreateAssessmentSchemaRequest) (assessmentSchemaDTO.AssessmentSchema, error) {
+	return s.insertAssessmentSchema(ctx, pgtype.UUID{Valid: false}, req)
 }
 
-func CreateAssessmentSchemaForCoursePhase(
+func (s *AssessmentSchemaService) CreateAssessmentSchemaForCoursePhase(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	req assessmentSchemaDTO.CreateAssessmentSchemaRequest,
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
-	return insertAssessmentSchema(ctx, pgtype.UUID{Bytes: coursePhaseID, Valid: true}, req)
+	return s.insertAssessmentSchema(ctx, pgtype.UUID{Bytes: coursePhaseID, Valid: true}, req)
 }
 
-func insertAssessmentSchema(
+func (s *AssessmentSchemaService) insertAssessmentSchema(
 	ctx context.Context,
 	sourcePhaseID pgtype.UUID,
 	req assessmentSchemaDTO.CreateAssessmentSchemaRequest,
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
-	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	schemaID := uuid.New()
 
@@ -78,7 +77,7 @@ func insertAssessmentSchema(
 	}
 
 	// Fetch the created schema
-	schema, err := GetAssessmentSchema(ctx, schemaID)
+	schema, err := s.GetAssessmentSchema(ctx, schemaID)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
@@ -86,8 +85,8 @@ func insertAssessmentSchema(
 	return schema, nil
 }
 
-func GetAssessmentSchema(ctx context.Context, schemaID uuid.UUID) (assessmentSchemaDTO.AssessmentSchema, error) {
-	schema, err := AssessmentSchemaServiceSingleton.queries.GetAssessmentSchema(ctx, schemaID)
+func (s *AssessmentSchemaService) GetAssessmentSchema(ctx context.Context, schemaID uuid.UUID) (assessmentSchemaDTO.AssessmentSchema, error) {
+	schema, err := s.queries.GetAssessmentSchema(ctx, schemaID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get assessment schema")
 		return assessmentSchemaDTO.AssessmentSchema{}, err
@@ -96,8 +95,8 @@ func GetAssessmentSchema(ctx context.Context, schemaID uuid.UUID) (assessmentSch
 	return assessmentSchemaDTO.MapDBAssessmentSchemaToDTOAssessmentSchema(schema), nil
 }
 
-func ListAssessmentSchemas(ctx context.Context) ([]assessmentSchemaDTO.AssessmentSchema, error) {
-	schemas, err := AssessmentSchemaServiceSingleton.queries.ListAssessmentSchemas(ctx)
+func (s *AssessmentSchemaService) ListAssessmentSchemas(ctx context.Context) ([]assessmentSchemaDTO.AssessmentSchema, error) {
+	schemas, err := s.queries.ListAssessmentSchemas(ctx)
 	if err != nil {
 		log.WithError(err).Error("Failed to list assessment schemas")
 		return nil, err
@@ -111,11 +110,11 @@ func ListAssessmentSchemas(ctx context.Context) ([]assessmentSchemaDTO.Assessmen
 	return result, nil
 }
 
-func ListAssessmentSchemasForCoursePhase(
+func (s *AssessmentSchemaService) ListAssessmentSchemasForCoursePhase(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 ) ([]assessmentSchemaDTO.AssessmentSchema, error) {
-	schemas, err := AssessmentSchemaServiceSingleton.queries.ListAssessmentSchemasForCoursePhase(
+	schemas, err := s.queries.ListAssessmentSchemasForCoursePhase(
 		ctx,
 		pgtype.UUID{Bytes: coursePhaseID, Valid: true},
 	)
@@ -134,12 +133,12 @@ func ListAssessmentSchemasForCoursePhase(
 	return result, nil
 }
 
-func CheckSchemaAccessibleForCoursePhase(
+func (s *AssessmentSchemaService) CheckSchemaAccessibleForCoursePhase(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	schemaID uuid.UUID,
 ) (bool, error) {
-	isAccessible, err := AssessmentSchemaServiceSingleton.queries.CheckSchemaAccessibleForCoursePhase(
+	isAccessible, err := s.queries.CheckSchemaAccessibleForCoursePhase(
 		ctx,
 		db.CheckSchemaAccessibleForCoursePhaseParams{
 			CoursePhaseID: pgtype.UUID{Bytes: coursePhaseID, Valid: true},
@@ -154,12 +153,12 @@ func CheckSchemaAccessibleForCoursePhase(
 	return isAccessible, nil
 }
 
-func GetAssessmentSchemaForCoursePhase(
+func (s *AssessmentSchemaService) GetAssessmentSchemaForCoursePhase(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	schemaID uuid.UUID,
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
-	isAccessible, err := CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
+	isAccessible, err := s.CheckSchemaAccessibleForCoursePhase(ctx, coursePhaseID, schemaID)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
@@ -167,12 +166,12 @@ func GetAssessmentSchemaForCoursePhase(
 		return assessmentSchemaDTO.AssessmentSchema{}, ErrSchemaNotAccessible
 	}
 
-	return GetAssessmentSchema(ctx, schemaID)
+	return s.GetAssessmentSchema(ctx, schemaID)
 }
 
-func UpdateAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest, isAdmin bool) error {
+func (s *AssessmentSchemaService) UpdateAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, schemaID uuid.UUID, req assessmentSchemaDTO.UpdateAssessmentSchemaRequest, isAdmin bool) error {
 	if !isAdmin {
-		isOwner, err := CheckSchemaOwnership(ctx, schemaID, coursePhaseID)
+		isOwner, err := s.CheckSchemaOwnership(ctx, schemaID, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -186,7 +185,7 @@ func UpdateAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, schema
 		description = pgtype.Text{String: req.Description, Valid: true}
 	}
 
-	rows, err := AssessmentSchemaServiceSingleton.queries.UpdateAssessmentSchema(ctx, db.UpdateAssessmentSchemaParams{
+	rows, err := s.queries.UpdateAssessmentSchema(ctx, db.UpdateAssessmentSchemaParams{
 		ID:          schemaID,
 		Name:        req.Name,
 		Description: description,
@@ -202,14 +201,14 @@ func UpdateAssessmentSchema(ctx context.Context, coursePhaseID uuid.UUID, schema
 	return nil
 }
 
-func DeleteAssessmentSchema(ctx context.Context, schemaID uuid.UUID) error {
-	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
+func (s *AssessmentSchemaService) DeleteAssessmentSchema(ctx context.Context, schemaID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.DeleteAssessmentSchema(ctx, schemaID)
 	if err != nil {
@@ -220,8 +219,8 @@ func DeleteAssessmentSchema(ctx context.Context, schemaID uuid.UUID) error {
 	return tx.Commit(ctx)
 }
 
-func GetCoursePhasesByAssessmentSchema(ctx context.Context, assessmentSchemaID uuid.UUID) ([]uuid.UUID, error) {
-	coursePhaseIDs, err := AssessmentSchemaServiceSingleton.queries.GetCoursePhasesByAssessmentSchema(ctx, assessmentSchemaID)
+func (s *AssessmentSchemaService) GetCoursePhasesByAssessmentSchema(ctx context.Context, assessmentSchemaID uuid.UUID) ([]uuid.UUID, error) {
+	coursePhaseIDs, err := s.queries.GetCoursePhasesByAssessmentSchema(ctx, assessmentSchemaID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get course phases by assessment schema")
 		return nil, err
@@ -230,8 +229,8 @@ func GetCoursePhasesByAssessmentSchema(ctx context.Context, assessmentSchemaID u
 	return coursePhaseIDs, nil
 }
 
-func CheckSchemaUsageInOtherPhases(ctx context.Context, schemaID uuid.UUID, currentCoursePhaseID uuid.UUID) (bool, error) {
-	used, err := AssessmentSchemaServiceSingleton.queries.CheckAssessmentSchemaUsageInOtherPhases(ctx, db.CheckAssessmentSchemaUsageInOtherPhasesParams{
+func (s *AssessmentSchemaService) CheckSchemaUsageInOtherPhases(ctx context.Context, schemaID uuid.UUID, currentCoursePhaseID uuid.UUID) (bool, error) {
+	used, err := s.queries.CheckAssessmentSchemaUsageInOtherPhases(ctx, db.CheckAssessmentSchemaUsageInOtherPhasesParams{
 		AssessmentSchemaID: schemaID,
 		CoursePhaseID:      currentCoursePhaseID,
 	})
@@ -243,19 +242,19 @@ func CheckSchemaUsageInOtherPhases(ctx context.Context, schemaID uuid.UUID, curr
 	return used, nil
 }
 
-func CopyAssessmentSchema(
+func (s *AssessmentSchemaService) CopyAssessmentSchema(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	sourceSchemaID uuid.UUID,
 	courseIdentifierPrefix string,
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
-	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	copiedSchema, err := qtx.CopyAssessmentSchema(ctx, db.CopyAssessmentSchemaParams{
 		CoursePhaseID:          pgtype.UUID{Bytes: coursePhaseID, Valid: true},
@@ -277,8 +276,8 @@ func CopyAssessmentSchema(
 	return schema, nil
 }
 
-func CheckSchemaOwnership(ctx context.Context, schemaID uuid.UUID, coursePhaseID uuid.UUID) (bool, error) {
-	isOwner, err := AssessmentSchemaServiceSingleton.queries.CheckSchemaOwnership(ctx, db.CheckSchemaOwnershipParams{
+func (s *AssessmentSchemaService) CheckSchemaOwnership(ctx context.Context, schemaID uuid.UUID, coursePhaseID uuid.UUID) (bool, error) {
+	isOwner, err := s.queries.CheckSchemaOwnership(ctx, db.CheckSchemaOwnershipParams{
 		ID:            schemaID,
 		SourcePhaseID: pgtype.UUID{Bytes: coursePhaseID, Valid: true},
 	})
@@ -290,8 +289,8 @@ func CheckSchemaOwnership(ctx context.Context, schemaID uuid.UUID, coursePhaseID
 	return isOwner, nil
 }
 
-func GetConsumerPhases(ctx context.Context, schemaID uuid.UUID, ownerPhaseID uuid.UUID) ([]uuid.UUID, error) {
-	phases, err := AssessmentSchemaServiceSingleton.queries.GetConsumerPhases(ctx, db.GetConsumerPhasesParams{
+func (s *AssessmentSchemaService) GetConsumerPhases(ctx context.Context, schemaID uuid.UUID, ownerPhaseID uuid.UUID) ([]uuid.UUID, error) {
+	phases, err := s.queries.GetConsumerPhases(ctx, db.GetConsumerPhasesParams{
 		AssessmentSchemaID: schemaID,
 		CoursePhaseID:      ownerPhaseID,
 	})
@@ -303,8 +302,8 @@ func GetConsumerPhases(ctx context.Context, schemaID uuid.UUID, ownerPhaseID uui
 	return phases, nil
 }
 
-func CheckPhaseHasAssessmentData(ctx context.Context, phaseID uuid.UUID, schemaID uuid.UUID) (bool, error) {
-	hasData, err := AssessmentSchemaServiceSingleton.queries.CheckPhaseHasAssessmentData(ctx, db.CheckPhaseHasAssessmentDataParams{
+func (s *AssessmentSchemaService) CheckPhaseHasAssessmentData(ctx context.Context, phaseID uuid.UUID, schemaID uuid.UUID) (bool, error) {
+	hasData, err := s.queries.CheckPhaseHasAssessmentData(ctx, db.CheckPhaseHasAssessmentDataParams{
 		CoursePhaseID:      phaseID,
 		AssessmentSchemaID: schemaID,
 	})
@@ -316,14 +315,14 @@ func CheckPhaseHasAssessmentData(ctx context.Context, phaseID uuid.UUID, schemaI
 	return hasData.Bool, nil
 }
 
-func UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseID uuid.UUID, oldCompetencyID uuid.UUID, newCompetencyID uuid.UUID) error {
-	tx, err := AssessmentSchemaServiceSingleton.conn.Begin(ctx)
+func (s *AssessmentSchemaService) UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseID uuid.UUID, oldCompetencyID uuid.UUID, newCompetencyID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := AssessmentSchemaServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.UpdateAssessmentCompetencies(ctx, db.UpdateAssessmentCompetenciesParams{
 		CoursePhaseID:  coursePhaseID,
@@ -351,8 +350,8 @@ func UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseI
 // UpdateCategoryAssessmentCategory remaps category_assessment rows in coursePhaseID
 // from oldCategoryID to newCategoryID. Called during a schema clone so that
 // per-category student comments survive the remap.
-func UpdateCategoryAssessmentCategory(ctx context.Context, coursePhaseID uuid.UUID, oldCategoryID uuid.UUID, newCategoryID uuid.UUID) error {
-	err := AssessmentSchemaServiceSingleton.queries.UpdateCategoryAssessmentCategories(ctx, db.UpdateCategoryAssessmentCategoriesParams{
+func (s *AssessmentSchemaService) UpdateCategoryAssessmentCategory(ctx context.Context, coursePhaseID uuid.UUID, oldCategoryID uuid.UUID, newCategoryID uuid.UUID) error {
+	err := s.queries.UpdateCategoryAssessmentCategories(ctx, db.UpdateCategoryAssessmentCategoriesParams{
 		CoursePhaseID: coursePhaseID,
 		CategoryID:    oldCategoryID,
 		CategoryID_2:  newCategoryID,

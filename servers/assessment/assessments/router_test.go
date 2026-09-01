@@ -15,11 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
@@ -29,7 +25,7 @@ type AssessmentRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
-	service  AssessmentService
+	service  *AssessmentService
 }
 
 func (suite *AssessmentRouterTestSuite) SetupSuite() {
@@ -40,16 +36,8 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	// initialize service singleton
-	suite.service = AssessmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentServiceSingleton = &suite.service
-	assessmentCompletion.InitAssessmentCompletionModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
-	scoreLevel.InitScoreLevelModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
-	categoryAssessment.InitCategoryAssessmentModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(gin.New().Group("/dummy"), *testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := newTestCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	suite.service = newTestAssessmentService(*testDB.Queries, testDB.Conn, coursePhaseConfigService)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -57,7 +45,7 @@ func (suite *AssessmentRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "id@example.com", "id")
 	}
 	// attach assessment routes
-	setupAssessmentRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, coursePhaseConfigService, testMiddleware)
 }
 
 func (suite *AssessmentRouterTestSuite) TearDownSuite() {

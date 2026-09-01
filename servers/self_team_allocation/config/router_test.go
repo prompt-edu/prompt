@@ -32,17 +32,14 @@ func (suite *ConfigRouterTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	ConfigServiceSingleton = &ConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	configService := NewConfigService(*testDB.Queries)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.DefaultMockAuthMiddleware()
 	}
-	setupConfigRouter(api, authMiddleware)
+	RegisterRoutes(api, configService, authMiddleware)
 }
 
 func (suite *ConfigRouterTestSuite) TearDownSuite() {

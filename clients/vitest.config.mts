@@ -7,7 +7,7 @@ export default defineConfig({
   css: { postcss: {} },
   test: {
     environment: 'node',
-    include: ['*.test.ts', '*/src/**/*.test.{ts,tsx}'],
+    include: ['**/*.test.{ts,tsx}'],
     setupFiles: ['./vitest.setup.ts'],
   },
 })

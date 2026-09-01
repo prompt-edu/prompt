@@ -47,6 +47,51 @@ export class ApplicationAdminPage {
     await expect(dialog.getByRole('heading', { name: 'Personal Information' })).toBeVisible()
   }
 
+  async gotoSettings(courseId: string, phaseId: string) {
+    await this.page.goto(`/management/course/${courseId}/${phaseId}/settings`)
+    await expect(
+      this.page.getByRole('heading', { name: 'Application Settings' }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
+
+  // The welcome-text card owns its own tiptap editor; the settings page has more
+  // than one (the mailing templates), so scope every locator to the card.
+  get welcomeTextCard(): Locator {
+    return this.page.getByTestId('application-welcome-text')
+  }
+
+  get welcomeTextEditor(): Locator {
+    return this.welcomeTextCard.locator('[contenteditable="true"]')
+  }
+
+  get welcomeTextSaveButton(): Locator {
+    return this.page.getByTestId('application-welcome-text-save')
+  }
+
+  async setWelcomeText(text: string) {
+    await expect(this.welcomeTextEditor).toBeVisible({ timeout: 15_000 })
+    await this.welcomeTextEditor.click()
+    await this.page.keyboard.press('ControlOrMeta+A')
+    await this.page.keyboard.press('Delete')
+    if (text) {
+      await this.page.keyboard.type(text)
+    }
+    await expect(this.welcomeTextSaveButton).toBeEnabled()
+
+    // The button is disabled while the request is in flight too, so waiting on the
+    // response is the only way to tell "saving" from "saved".
+    const saved = this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/course_phases/') &&
+        response.request().method() === 'PUT' &&
+        response.ok(),
+      { timeout: 15_000 },
+    )
+    await this.welcomeTextSaveButton.click()
+    await saved
+    await expect(this.welcomeTextSaveButton).toBeDisabled({ timeout: 15_000 })
+  }
+
   // Mailing configuration moved into the Application settings page.
   async gotoMailing(courseId: string, phaseId: string) {
     await this.page.goto(`/management/course/${courseId}/${phaseId}/settings`)

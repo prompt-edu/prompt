@@ -6,21 +6,33 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-type CoursePhaseService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+// ResolutionReplacer rewrites the base URLs of course phase resolutions.
+type ResolutionReplacer interface {
+	ReplaceResolutionURLs(ctx context.Context, resolutions []resolutionDTO.Resolution) ([]resolutionDTO.Resolution, error)
 }
 
-var CoursePhaseServiceSingleton *CoursePhaseService
+type CoursePhaseService struct {
+	queries     db.Queries
+	conn        *pgxpool.Pool
+	resolutions ResolutionReplacer
+}
 
-func GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error) {
-	coursePhase, err := CoursePhaseServiceSingleton.queries.GetCoursePhase(ctx, id)
+func NewCoursePhaseService(queries db.Queries, conn *pgxpool.Pool, resolutions ResolutionReplacer) *CoursePhaseService {
+	return &CoursePhaseService{
+		queries:     queries,
+		conn:        conn,
+		resolutions: resolutions,
+	}
+}
+
+func (s *CoursePhaseService) GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error) {
+	coursePhase, err := s.queries.GetCoursePhase(ctx, id)
 	if err != nil {
 		return coursePhaseDTO.CoursePhase{}, err
 	}
@@ -28,37 +40,37 @@ func GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.Cours
 	return coursePhaseDTO.GetCoursePhaseDTOFromDBModel(coursePhase)
 }
 
-func UpdateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
+func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
 	dbModel, err := coursePhase.GetDBModel()
 	if err != nil {
 		return err
 	}
 
 	dbModel.ID = coursePhase.ID
-	return CoursePhaseServiceSingleton.queries.UpdateCoursePhase(ctx, dbModel)
+	return s.queries.UpdateCoursePhase(ctx, dbModel)
 }
 
-func CreateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
+func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
 	dbModel, err := coursePhase.GetDBModel()
 	if err != nil {
 		return coursePhaseDTO.CoursePhase{}, err
 	}
 
 	dbModel.ID = uuid.New()
-	createdCoursePhase, err := CoursePhaseServiceSingleton.queries.CreateCoursePhase(ctx, dbModel)
+	createdCoursePhase, err := s.queries.CreateCoursePhase(ctx, dbModel)
 	if err != nil {
 		return coursePhaseDTO.CoursePhase{}, err
 	}
 
-	return GetCoursePhaseByID(ctx, createdCoursePhase.ID)
+	return s.GetCoursePhaseByID(ctx, createdCoursePhase.ID)
 }
 
-func DeleteCoursePhase(ctx context.Context, id uuid.UUID) error {
-	return CoursePhaseServiceSingleton.queries.DeleteCoursePhase(ctx, id)
+func (s *CoursePhaseService) DeleteCoursePhase(ctx context.Context, id uuid.UUID) error {
+	return s.queries.DeleteCoursePhase(ctx, id)
 }
 
-func CheckCoursePhasesBelongToCourse(ctx context.Context, courseId uuid.UUID, coursePhaseIds []uuid.UUID) (bool, error) {
-	ok, err := CoursePhaseServiceSingleton.queries.CheckCoursePhasesBelongToCourse(ctx, db.CheckCoursePhasesBelongToCourseParams{
+func (s *CoursePhaseService) CheckCoursePhasesBelongToCourse(ctx context.Context, courseId uuid.UUID, coursePhaseIds []uuid.UUID) (bool, error) {
+	ok, err := s.queries.CheckCoursePhasesBelongToCourse(ctx, db.CheckCoursePhasesBelongToCourseParams{
 		CourseID: courseId,
 		Column1:  coursePhaseIds,
 	})
@@ -71,13 +83,13 @@ func CheckCoursePhasesBelongToCourse(ctx context.Context, courseId uuid.UUID, co
 	return ok, nil
 }
 
-func GetPrevPhaseDataByCoursePhaseID(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseDTO.PrevCoursePhaseData, error) {
-	dataFromCore, err := CoursePhaseServiceSingleton.queries.GetPrevCoursePhaseDataFromCore(ctx, coursePhaseID)
+func (s *CoursePhaseService) GetPrevPhaseDataByCoursePhaseID(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseDTO.PrevCoursePhaseData, error) {
+	dataFromCore, err := s.queries.GetPrevCoursePhaseDataFromCore(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseDTO.PrevCoursePhaseData{}, err
 	}
 
-	resolutions, err := CoursePhaseServiceSingleton.queries.GetPrevCoursePhaseDataResolution(ctx, coursePhaseID)
+	resolutions, err := s.queries.GetPrevCoursePhaseDataResolution(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseDTO.PrevCoursePhaseData{}, err
 	}
@@ -91,7 +103,7 @@ func GetPrevPhaseDataByCoursePhaseID(ctx context.Context, coursePhaseID uuid.UUI
 	}
 
 	// Replace resolution URLs with the correct host
-	prevCoursePhaseDataDTO.Resolutions, err = resolution.ReplaceResolutionURLs(ctx, prevCoursePhaseDataDTO.Resolutions)
+	prevCoursePhaseDataDTO.Resolutions, err = s.resolutions.ReplaceResolutionURLs(ctx, prevCoursePhaseDataDTO.Resolutions)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"coursePhaseID": coursePhaseID,
@@ -102,8 +114,8 @@ func GetPrevPhaseDataByCoursePhaseID(ctx context.Context, coursePhaseID uuid.UUI
 	return prevCoursePhaseDataDTO, nil
 }
 
-func GetCoursePhaseParticipationStatusCounts(ctx context.Context, coursePhaseID uuid.UUID) (map[string]int, error) {
-	counts, err := CoursePhaseServiceSingleton.queries.GetCoursePhaseParticipationStatusCounts(ctx, coursePhaseID)
+func (s *CoursePhaseService) GetCoursePhaseParticipationStatusCounts(ctx context.Context, coursePhaseID uuid.UUID) (map[string]int, error) {
+	counts, err := s.queries.GetCoursePhaseParticipationStatusCounts(ctx, coursePhaseID)
 
 	// Convert the slice of structs to a map
 	countsMap := make(map[string]int)

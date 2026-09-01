@@ -2,6 +2,7 @@ package interviewReview
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -15,10 +16,14 @@ type InterviewReviewService struct {
 	queries db.Queries
 }
 
-var InterviewReviewServiceSingleton *InterviewReviewService
+var errScoreOutOfRange = errors.New("score must be between 1 and 5")
 
-func GetInterviewReviews(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.InterviewReview, error) {
-	reviews, err := InterviewReviewServiceSingleton.queries.GetInterviewReviewsByCoursePhase(ctx, coursePhaseID)
+func NewInterviewReviewService(queries db.Queries) *InterviewReviewService {
+	return &InterviewReviewService{queries: queries}
+}
+
+func (s *InterviewReviewService) GetInterviewReviews(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.InterviewReview, error) {
+	reviews, err := s.queries.GetInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch interview reviews: ", err)
 		return nil, fmt.Errorf("failed to fetch interview reviews: %w", err)
@@ -26,7 +31,7 @@ func GetInterviewReviews(ctx context.Context, coursePhaseID uuid.UUID) ([]interv
 	return interviewReviewDTO.GetInterviewReviewsFromDB(reviews), nil
 }
 
-func UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, req interviewReviewDTO.UpdateInterviewReviewRequest) (interviewReviewDTO.InterviewReview, error) {
+func (s *InterviewReviewService) UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, req interviewReviewDTO.UpdateInterviewReviewRequest) (interviewReviewDTO.InterviewReview, error) {
 	answers, err := interviewReviewDTO.EncodeInterviewAnswers(req.InterviewAnswers)
 	if err != nil {
 		log.Error("failed to encode interview answers: ", err)
@@ -38,7 +43,7 @@ func UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipati
 		score = pgtype.Int4{Int32: *req.Score, Valid: true}
 	}
 
-	review, err := InterviewReviewServiceSingleton.queries.UpsertInterviewReview(ctx, db.UpsertInterviewReviewParams{
+	review, err := s.queries.UpsertInterviewReview(ctx, db.UpsertInterviewReviewParams{
 		CoursePhaseID:         coursePhaseID,
 		CourseParticipationID: courseParticipationID,
 		Score:                 score,
@@ -53,8 +58,8 @@ func UpsertInterviewReview(ctx context.Context, coursePhaseID, courseParticipati
 	return interviewReviewDTO.GetInterviewReviewFromDB(review), nil
 }
 
-func GetScores(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreWithParticipation, error) {
-	reviews, err := InterviewReviewServiceSingleton.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
+func (s *InterviewReviewService) GetScores(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreWithParticipation, error) {
+	reviews, err := s.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch interview scores: ", err)
 		return nil, fmt.Errorf("failed to fetch interview scores: %w", err)
@@ -73,8 +78,8 @@ func GetScores(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewD
 	return scores, nil
 }
 
-func GetScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreLevelWithParticipation, error) {
-	reviews, err := InterviewReviewServiceSingleton.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
+func (s *InterviewReviewService) GetScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]interviewReviewDTO.ScoreLevelWithParticipation, error) {
+	reviews, err := s.queries.GetScoredInterviewReviewsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to fetch interview score levels: ", err)
 		return nil, fmt.Errorf("failed to fetch interview score levels: %w", err)

@@ -26,14 +26,12 @@ func (suite *CopyRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
 
-	CopyServiceSingleton = &CopyService{}
-
 	suite.router = gin.Default()
 	api := suite.router.Group("/self-team-allocation/api")
 	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.DefaultMockAuthMiddleware()
 	}
-	setupCopyRouter(api, authMiddleware)
+	RegisterRoutes(api, authMiddleware)
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpointSuccess() {

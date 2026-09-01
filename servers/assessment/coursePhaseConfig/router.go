@@ -14,26 +14,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var getEvaluationReminderRecipientsFn = GetEvaluationReminderRecipients
-var sendEvaluationReminderManualTriggerFn = SendEvaluationReminderManualTrigger
-
-// setupCoursePhaseRouter sets up course phase config endpoints.
+// RegisterRoutes sets up course phase config endpoints.
 // @Summary Course Phase Config Endpoints
 // @Description Manage course phase configuration and communication data.
 // @Tags course_phase_config
 // @Security BearerAuth
-func setupCoursePhaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CoursePhaseConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	coursePhaseRouter := routerGroup.Group("/config")
 
-	coursePhaseRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getCoursePhaseConfig)
-	coursePhaseRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createOrUpdateCoursePhaseConfig)
-	coursePhaseRouter.POST("/release", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), releaseResults)
-	coursePhaseRouter.POST("/unrelease", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), unreleaseResults)
-	coursePhaseRouter.GET("/reminders/incomplete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getIncompleteReminderRecipients)
-	coursePhaseRouter.POST("/reminders/send", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), sendEvaluationReminder)
+	coursePhaseRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getCoursePhaseConfig)
+	coursePhaseRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createOrUpdateCoursePhaseConfig)
+	coursePhaseRouter.POST("/release", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.releaseResults)
+	coursePhaseRouter.POST("/unrelease", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.unreleaseResults)
+	coursePhaseRouter.GET("/reminders/incomplete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getIncompleteReminderRecipients)
+	coursePhaseRouter.POST("/reminders/send", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.sendEvaluationReminder)
 
-	coursePhaseRouter.GET("participations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getParticipationsForCoursePhase)
-	coursePhaseRouter.GET("teams", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getTeamsForCoursePhase)
+	coursePhaseRouter.GET("participations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getParticipationsForCoursePhase)
+	coursePhaseRouter.GET("teams", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getTeamsForCoursePhase)
 
 }
 
@@ -47,7 +44,7 @@ func setupCoursePhaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(al
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config [get]
-func getCoursePhaseConfig(c *gin.Context) {
+func (s *CoursePhaseConfigService) getCoursePhaseConfig(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -55,7 +52,7 @@ func getCoursePhaseConfig(c *gin.Context) {
 		return
 	}
 
-	config, err := GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get course phase config")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve course phase config"})
@@ -78,7 +75,7 @@ func getCoursePhaseConfig(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config [put]
-func createOrUpdateCoursePhaseConfig(c *gin.Context) {
+func (s *CoursePhaseConfigService) createOrUpdateCoursePhaseConfig(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -93,7 +90,7 @@ func createOrUpdateCoursePhaseConfig(c *gin.Context) {
 		return
 	}
 
-	err = CreateOrUpdateCoursePhaseConfig(c, coursePhaseID, request)
+	err = s.CreateOrUpdateCoursePhaseConfig(c, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, ErrCannotChangeSchemaWithData) || errors.Is(err, ErrCannotDisableAssessmentWithData) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -121,7 +118,7 @@ func createOrUpdateCoursePhaseConfig(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/release [post]
-func releaseResults(c *gin.Context) {
+func (s *CoursePhaseConfigService) releaseResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -129,7 +126,7 @@ func releaseResults(c *gin.Context) {
 		return
 	}
 
-	err = ReleaseResults(c, coursePhaseID)
+	err = s.ReleaseResults(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to release results")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to release results"})
@@ -149,7 +146,7 @@ func releaseResults(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/unrelease [post]
-func unreleaseResults(c *gin.Context) {
+func (s *CoursePhaseConfigService) unreleaseResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -157,7 +154,7 @@ func unreleaseResults(c *gin.Context) {
 		return
 	}
 
-	err = UnreleaseResults(c, coursePhaseID)
+	err = s.UnreleaseResults(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to unrelease results")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unrelease results"})
@@ -177,7 +174,7 @@ func unreleaseResults(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/participations [get]
-func getParticipationsForCoursePhase(c *gin.Context) {
+func (s *CoursePhaseConfigService) getParticipationsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -206,7 +203,7 @@ func getParticipationsForCoursePhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/teams [get]
-func getTeamsForCoursePhase(c *gin.Context) {
+func (s *CoursePhaseConfigService) getTeamsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -236,7 +233,7 @@ func getTeamsForCoursePhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/reminders/incomplete [get]
-func getIncompleteReminderRecipients(c *gin.Context) {
+func (s *CoursePhaseConfigService) getIncompleteReminderRecipients(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -252,7 +249,7 @@ func getIncompleteReminderRecipients(c *gin.Context) {
 	}
 
 	authHeader := c.GetHeader("Authorization")
-	response, err := getEvaluationReminderRecipientsFn(c, authHeader, coursePhaseID, evaluationType)
+	response, err := s.getEvaluationReminderRecipients(c, authHeader, coursePhaseID, evaluationType)
 	if err != nil {
 		log.WithError(err).Error("Failed to compute incomplete reminder recipients")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to compute reminder recipients"})
@@ -304,7 +301,7 @@ func parseEvaluationType(raw string) (assessmentType.AssessmentType, error) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/reminders/send [post]
-func sendEvaluationReminder(c *gin.Context) {
+func (s *CoursePhaseConfigService) sendEvaluationReminder(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -328,7 +325,7 @@ func sendEvaluationReminder(c *gin.Context) {
 		return
 	}
 
-	report, err := sendEvaluationReminderManualTriggerFn(
+	report, err := s.sendEvaluationReminderManualTrigger(
 		c,
 		c.GetHeader("Authorization"),
 		coursePhaseID,

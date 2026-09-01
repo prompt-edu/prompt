@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/require"
@@ -45,10 +46,7 @@ type CourseMailingServiceTestSuite struct {
 	emptyPhase uuid.UUID
 	actor      courseMailingDTO.Actor
 
-	oldSendMailFn   func(mailingDTO.CourseMailingSettings, string, string, string) error
-	oldRunSendAsync func(func())
-	oldNowFn        func() time.Time
-	captured        []capturedMail
+	captured []capturedMail
 }
 
 func (suite *CourseMailingServiceTestSuite) SetupSuite() {
@@ -77,22 +75,10 @@ func (suite *CourseMailingServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = &CourseMailingService{
-		queries:   *testDB.Queries,
-		conn:      testDB.Conn,
-		clientURL: "https://prompt.example.com",
-	}
-	CourseMailingServiceSingleton = suite.service
-
-	suite.oldSendMailFn = sendMailFn
-	suite.oldRunSendAsync = runSendAsync
-	suite.oldNowFn = nowFn
+	suite.service = NewCourseMailingService(*testDB.Queries, testDB.Conn, "https://prompt.example.com", mailing.NewMailingService(*testDB.Queries, "", "", "", "", "Course Mailing Test", "noreply@example.com", "").SendCourseMail)
 }
 
 func (suite *CourseMailingServiceTestSuite) TearDownSuite() {
-	sendMailFn = suite.oldSendMailFn
-	runSendAsync = suite.oldRunSendAsync
-	nowFn = suite.oldNowFn
 	if suite.cleanup != nil {
 		suite.cleanup()
 	}
@@ -100,13 +86,13 @@ func (suite *CourseMailingServiceTestSuite) TearDownSuite() {
 
 func (suite *CourseMailingServiceTestSuite) SetupTest() {
 	// Run sends synchronously and capture mails by default.
-	runSendAsync = func(fn func()) { fn() }
+	suite.service.runAsync = func(fn func()) { fn() }
 	suite.captured = nil
-	sendMailFn = func(settings mailingDTO.CourseMailingSettings, recipient, subject, body string) error {
+	suite.service.sendMail = func(settings mailingDTO.CourseMailingSettings, recipient, subject, body string) error {
 		suite.captured = append(suite.captured, capturedMail{settings: settings, recipient: recipient, subject: subject, body: body})
 		return nil
 	}
-	nowFn = func() time.Time { return time.Date(2026, time.July, 28, 12, 0, 0, 0, time.UTC) }
+	suite.service.now = func() time.Time { return time.Date(2026, time.July, 28, 12, 0, 0, 0, time.UTC) }
 }
 
 func (suite *CourseMailingServiceTestSuite) newCampaign(name, subject, body string, phase *uuid.UUID, statuses []string) db.MailCampaign {
@@ -255,7 +241,7 @@ func (suite *CourseMailingServiceTestSuite) TestSendAllSuccessSetsSentMeta() {
 }
 
 func (suite *CourseMailingServiceTestSuite) TestSendSMTPErrorMarksFailed() {
-	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error {
+	suite.service.sendMail = func(mailingDTO.CourseMailingSettings, string, string, string) error {
 		return errors.New("smtp down")
 	}
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
@@ -322,7 +308,7 @@ func (suite *CourseMailingServiceTestSuite) TestSendRejectsAlreadySentCampaign()
 
 func (suite *CourseMailingServiceTestSuite) TestResendFailedRecovers() {
 	// First send fails for everyone.
-	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error {
+	suite.service.sendMail = func(mailingDTO.CourseMailingSettings, string, string, string) error {
 		return errors.New("smtp down")
 	}
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
@@ -331,7 +317,7 @@ func (suite *CourseMailingServiceTestSuite) TestResendFailedRecovers() {
 	suite.Equal(db.MailCampaignStatusFailed, suite.statusOf(campaign.ID))
 
 	// Resend succeeds.
-	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error { return nil }
+	suite.service.sendMail = func(mailingDTO.CourseMailingSettings, string, string, string) error { return nil }
 	count, err := suite.service.ResendFailed(suite.ctx, suite.courseID, campaign.ID, suite.actor)
 	suite.Require().NoError(err)
 	suite.Equal(1, count)
@@ -339,7 +325,7 @@ func (suite *CourseMailingServiceTestSuite) TestResendFailedRecovers() {
 }
 
 func (suite *CourseMailingServiceTestSuite) TestResendFailedSkipsRecipientsNoLongerMatchingStatus() {
-	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error {
+	suite.service.sendMail = func(mailingDTO.CourseMailingSettings, string, string, string) error {
 		return errors.New("smtp down")
 	}
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
@@ -364,7 +350,7 @@ func (suite *CourseMailingServiceTestSuite) TestResendFailedSkipsRecipientsNoLon
 		})
 	}()
 
-	sendMailFn = func(mailingDTO.CourseMailingSettings, string, string, string) error { return nil }
+	suite.service.sendMail = func(mailingDTO.CourseMailingSettings, string, string, string) error { return nil }
 	_, err = suite.service.ResendFailed(suite.ctx, suite.courseID, campaign.ID, suite.actor)
 	suite.ErrorIs(err, ErrValidation)
 	suite.Empty(suite.captured, "no mail must be sent to a recipient outside the campaign's target statuses")
@@ -553,11 +539,11 @@ func enforceRoles(allowed ...string) gin.HandlerFunc {
 	}
 }
 
-func buildEngine(roles []string) *gin.Engine {
+func (suite *CourseMailingServiceTestSuite) buildEngine(roles []string) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	api := router.Group("/api")
-	setupCourseMailingRouter(api, func() gin.HandlerFunc {
+	setupCourseMailingRouter(api, suite.service, func() gin.HandlerFunc {
 		return testutils.MockAuthMiddleware(roles)
 	}, enforceRoles)
 	return router
@@ -565,7 +551,7 @@ func buildEngine(roles []string) *gin.Engine {
 
 func (suite *CourseMailingServiceTestSuite) TestEditorCannotSend() {
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
-	router := buildEngine([]string{permissionValidation.CourseEditor})
+	router := suite.buildEngine([]string{permissionValidation.CourseEditor})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/courses/"+testCourseID+"/mail-campaigns/"+campaign.ID.String()+"/send", nil)
 	resp := httptest.NewRecorder()
@@ -576,7 +562,7 @@ func (suite *CourseMailingServiceTestSuite) TestEditorCannotSend() {
 
 func (suite *CourseMailingServiceTestSuite) TestLecturerCanSend() {
 	campaign := suite.newCampaign("Send", "Hi", "Body", &suite.phaseID, []string{"failed"})
-	router := buildEngine([]string{permissionValidation.CourseLecturer})
+	router := suite.buildEngine([]string{permissionValidation.CourseLecturer})
 
 	req := httptest.NewRequest(http.MethodPost, "/api/courses/"+testCourseID+"/mail-campaigns/"+campaign.ID.String()+"/send", nil)
 	resp := httptest.NewRecorder()

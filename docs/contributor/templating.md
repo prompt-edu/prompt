@@ -98,15 +98,13 @@ Key files under `clients/core`:
   - `useTemplateForm` → validates name/semester tag
   - Backend call: POST `/api/courses/:id/copy` with `Template = true`
 - Use Template to create course: `TemplateSelectionDialog.tsx`
-  - Queries templates with `getTemplateCourses` (GET `/api/courses/template`)
+  - Queries templates with `coreApi.courses.listTemplates` (GET `/api/courses/template`)
   - On select → opens `CopyCourseDialog` (`useTemplateCopy = true`, `createTemplate = false`)
   - Backend call: POST `/api/courses/:templateId/copy` with `Template = false`
 
 Networking helpers:
 
-- `src/network/queries/getTemplateCourses.ts`
-- `src/network/queries/checkCourseTemplateStatus.ts`
-- `src/network/mutations/updateCourseTemplateStatus.ts`
+- `src/network/api/courses.ts` — `listTemplates`, `templateStatus`, `setTemplateStatus`, `copy`
 - `src/network/hooks/useCopyCourse.ts`
 - `src/network/hooks/useTemplateForm.ts`
 

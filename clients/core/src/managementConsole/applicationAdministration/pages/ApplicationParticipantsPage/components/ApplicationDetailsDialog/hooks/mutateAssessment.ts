@@ -1,4 +1,5 @@
 import type { ApplicationAssessment } from '@core/managementConsole/applicationAdministration/interfaces/applicationAssessment'
+import { coreCache } from '@core/network/cache'
 import { postApplicationAssessment } from '@core/network/mutations/postApplicationAssessment'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -18,7 +19,7 @@ export const useModifyAssessment = (courseParticipationID: string) => {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['application_participations'] })
+      coreCache.applicationAssessmentSaved(queryClient)
     },
     onError: () => {
       toast({

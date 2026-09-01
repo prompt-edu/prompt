@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import type { QueryClient } from '@tanstack/react-query'
 import {
   Alert,
@@ -103,11 +104,7 @@ export const WarningStep = ({
           <Button variant='outline' onClick={onBack}>
             Back
           </Button>
-          <Button
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ['course-copyability', courseId] })
-            }
-          >
+          <Button onClick={() => coreCache.courseCopyabilityChanged(queryClient, courseId)}>
             Retry
           </Button>
         </DialogFooter>

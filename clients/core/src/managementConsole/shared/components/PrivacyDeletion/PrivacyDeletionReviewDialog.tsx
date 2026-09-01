@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import {
   type AdminPrivacyDeletionRequest,
   type AuditorDecision,
@@ -56,7 +57,7 @@ export function PrivacyDeletionReviewDialog({
     mutationFn: (decision: AuditorDecision) =>
       decideOnDeletionRequest(request!.id, { decision, note }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'deletions'] })
+      coreCache.privacyDeletionsChanged(queryClient)
       setNote('')
       onClose()
     },

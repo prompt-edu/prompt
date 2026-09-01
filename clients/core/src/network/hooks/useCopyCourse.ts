@@ -1,5 +1,5 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
 import { copyCourse } from '@core/network/mutations/copyCourse'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
@@ -41,14 +41,8 @@ export const useCopyCourse = (
         title: 'Successfully Copied Course',
       })
       forceTokenRefresh() // refresh token to get permission for new course
-        .then(() => {
-          // Invalidate course queries
-          return queryClient.invalidateQueries({ queryKey: ['courses'] })
-        })
-        .then(() => {
-          // Wait for courses to be refetched
-          return queryClient.refetchQueries({ queryKey: ['courses'] })
-        })
+        // The navigation below needs the new course in the list, not merely marked stale
+        .then(() => coreCache.courseCreated(queryClient))
         .then(() => {
           // Close the window and navigate
           navigate(`/management/course/${data}`)

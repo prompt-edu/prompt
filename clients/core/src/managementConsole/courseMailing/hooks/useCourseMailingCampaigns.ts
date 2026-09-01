@@ -1,4 +1,4 @@
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MailCampaignRequest } from '../interfaces/mailCampaign'
 import { MailCampaignStatus } from '../interfaces/mailCampaign'
@@ -53,8 +53,7 @@ export const useCreateMailCampaign = (courseID: string) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (request: MailCampaignRequest) => createMailCampaign(courseID, request),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) }),
+    onSuccess: () => coreCache.mailCampaignListChanged(queryClient, courseID),
   })
 }
 
@@ -63,12 +62,7 @@ export const useUpdateMailCampaign = (courseID: string, campaignID: string) => {
   return useMutation({
     mutationFn: (request: MailCampaignRequest) => updateMailCampaign(courseID, campaignID, request),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) })
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.byId(courseID, campaignID) })
-      // Targeting (phase/statuses) may have changed, so the cached preview is stale.
-      queryClient.invalidateQueries({
-        queryKey: coreKeys.mailCampaigns.recipientPreview(courseID, campaignID),
-      })
+      coreCache.mailCampaignChanged(queryClient, courseID, campaignID)
     },
   })
 }
@@ -77,8 +71,7 @@ export const useDeleteMailCampaign = (courseID: string) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (campaignID: string) => deleteMailCampaign(courseID, campaignID),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) }),
+    onSuccess: () => coreCache.mailCampaignListChanged(queryClient, courseID),
   })
 }
 
@@ -86,8 +79,7 @@ export const useCopyMailCampaign = (courseID: string) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (campaignID: string) => copyMailCampaign(courseID, campaignID),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) }),
+    onSuccess: () => coreCache.mailCampaignListChanged(queryClient, courseID),
   })
 }
 
@@ -96,8 +88,7 @@ export const useSendMailCampaign = (courseID: string) => {
   return useMutation({
     mutationFn: (campaignID: string) => sendMailCampaign(courseID, campaignID),
     onSuccess: (_data, campaignID) => {
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) })
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.byId(courseID, campaignID) })
+      coreCache.mailCampaignSent(queryClient, courseID, campaignID)
     },
   })
 }
@@ -107,8 +98,7 @@ export const useResendFailedMailCampaign = (courseID: string) => {
   return useMutation({
     mutationFn: (campaignID: string) => resendFailedMailCampaign(courseID, campaignID),
     onSuccess: (_data, campaignID) => {
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.inCourse(courseID) })
-      queryClient.invalidateQueries({ queryKey: coreKeys.mailCampaigns.byId(courseID, campaignID) })
+      coreCache.mailCampaignSent(queryClient, courseID, campaignID)
     },
   })
 }

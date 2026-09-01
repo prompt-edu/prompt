@@ -1,5 +1,6 @@
 import type { ImportApplicationRequest } from '@core/managementConsole/applicationAdministration/interfaces/import/importApplicationRequest'
 import type { ImportResult } from '@core/managementConsole/applicationAdministration/interfaces/import/importResult'
+import { coreCache } from '@core/network/cache'
 import { postApplicationImport } from '@core/network/mutations/postApplicationImport'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PassStatus } from '@tumaet/prompt-shared-state'
@@ -87,10 +88,7 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
     mutationFn: (importRequest: ImportApplicationRequest) =>
       postApplicationImport(phaseId ?? '', importRequest),
     onSuccess: (importResult) => {
-      queryClient.invalidateQueries({ queryKey: ['application_participations', phaseId] })
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', 'students', phaseId],
-      })
+      coreCache.applicationsImported(queryClient, phaseId)
       setResult(importResult)
       setPage(RESULT_PAGE)
       toast({

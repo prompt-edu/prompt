@@ -1,5 +1,6 @@
 import { CopyCourseDialog } from '@core/managementConsole/courseOverview/components/CopyCourseDialog'
 import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/components/ArchiveCourseConfirmationDialog'
+import { coreCache } from '@core/network/cache'
 import { deleteCourse } from '@core/network/mutations/deleteCourse'
 import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -59,7 +60,7 @@ export default function CourseDangerZone() {
   const { mutate: mutateDeleteCourse } = useMutation({
     mutationFn: () => deleteCourse(courseId ?? ''),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       navigate('/management/courses')
     },
     onError: () => {

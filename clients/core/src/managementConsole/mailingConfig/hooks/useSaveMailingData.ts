@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import { updateCourseData } from '@core/network/mutations/updateCourseData'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCourseData } from '@tumaet/prompt-shared-state'
@@ -18,7 +19,7 @@ export const useSaveMailingData = ({ onSuccess }: SaveMailingDataProps) => {
       return updateCourseData(courseId ?? 'undefined', courseData)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       toast({
         title: 'Successfully Stored Mailing Settings',
       })

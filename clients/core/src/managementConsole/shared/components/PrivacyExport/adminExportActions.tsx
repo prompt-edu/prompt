@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import {
   type AdminPrivacyExport,
   deleteExport,
@@ -14,8 +15,7 @@ interface PassedDeps {
 export function getAdminExportActions({
   queryClient,
 }: PassedDeps): RowAction<AdminPrivacyExport>[] {
-  const invalidateExports = () =>
-    queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'exports'] })
+  const invalidateExports = () => coreCache.privacyExportsChanged(queryClient)
 
   return [
     {

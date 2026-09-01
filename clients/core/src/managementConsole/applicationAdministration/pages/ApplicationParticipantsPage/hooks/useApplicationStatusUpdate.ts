@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import { updateApplicationStatus } from '@core/network/mutations/updateApplicationStatus'
 import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhaseParticipationStatus } from '@tumaet/prompt-shared-state'
@@ -19,9 +20,7 @@ export const useApplicationStatusUpdate = (): UseMutationResult<
       return updateApplicationStatus(phaseId ?? 'undefined', updateApplication)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', 'students', phaseId],
-      })
+      coreCache.applicationParticipantsChanged(queryClient, phaseId)
       toast({
         title: 'Successfully updated the status.',
       })

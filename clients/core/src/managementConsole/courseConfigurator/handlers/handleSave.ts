@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import type { UseMutateAsyncFunction } from '@tanstack/react-query'
 import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import type { Edge, Node } from '@xyflow/react'
@@ -161,15 +162,7 @@ export async function handleSave({
 
   try {
     await mutateParticipationDataGraph(participationDataGraph)
-    queryClient.invalidateQueries({
-      queryKey: [
-        'courses',
-        'participation_data_phase_graph',
-        'phase_data_phase_graph',
-        'course_phase_types',
-        'course_phase_graph',
-      ],
-    })
+    coreCache.coursePhaseGraphSaved(queryClient)
     setIsModified(false)
     // Optionally reload if needed
     // window.location.reload()

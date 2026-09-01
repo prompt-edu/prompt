@@ -1,6 +1,6 @@
 import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
@@ -215,9 +215,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         })),
         {
           onSuccess: () => {
-            queryClient.invalidateQueries({
-              queryKey: ['application_participations', 'students', phaseId],
-            })
+            coreCache.applicationParticipantsChanged(queryClient, phaseId)
           },
         },
       )

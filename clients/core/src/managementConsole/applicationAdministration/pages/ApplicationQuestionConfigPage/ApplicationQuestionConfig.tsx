@@ -1,7 +1,7 @@
 import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
@@ -100,7 +100,7 @@ export const ApplicationQuestionConfig = () => {
     },
     onSuccess: () => {
       // invalidate query
-      queryClient.invalidateQueries({ queryKey: ['application_form', phaseId] })
+      coreCache.applicationFormChanged(queryClient, phaseId)
       // close this window
     },
   })

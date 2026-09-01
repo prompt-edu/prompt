@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import { updateStudent } from '@core/network/mutations/updateStudent'
 import {
   formSchemaUniversityData,
@@ -39,8 +40,7 @@ export const MissingUniversityData = ({ student }: MissingUniversityDataProps) =
       return updateStudent(modifiedStudent)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['application'] })
-      queryClient.invalidateQueries({ queryKey: ['application_participations'] })
+      coreCache.studentUniversityDataChanged(queryClient)
       setIsAddingData(false)
     },
   })

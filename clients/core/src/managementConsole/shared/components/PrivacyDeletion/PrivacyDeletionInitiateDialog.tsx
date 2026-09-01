@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import {
   adminInitiateDataDeletions,
   DeletionRequestStatus,
@@ -112,7 +113,7 @@ export function PrivacyDeletionInitiateDialog({
       }
 
       setPhase('done')
-      queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'deletions'] })
+      coreCache.privacyDeletionsChanged(queryClient)
     } catch (err) {
       setPhase('error')
       setErrorMsg(err instanceof Error ? err.message : String(err))

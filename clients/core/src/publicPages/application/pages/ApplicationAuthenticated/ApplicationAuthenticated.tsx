@@ -4,7 +4,7 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { GetApplication } from '@core/interfaces/application/getApplication'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { postNewApplicationAuthenticated } from '@core/network/mutations/postApplicationAuthenticated'
 import { getApplication } from '@core/network/queries/application'
 import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
@@ -55,7 +55,7 @@ export const ApplicationAuthenticated = () => {
       return postNewApplicationAuthenticated(phaseId ?? 'undefined', modifiedApplication)
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['application', phaseId] })
+      coreCache.myApplicationSubmitted(queryClient, phaseId)
       setConfirmationMailSent(data.confirmationMailSent)
       setShowDialog('success')
     },

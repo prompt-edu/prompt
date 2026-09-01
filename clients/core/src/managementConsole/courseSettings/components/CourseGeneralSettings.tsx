@@ -4,7 +4,7 @@ import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
-import { coreKeys } from '@core/network/cache'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { updateCourseData } from '@core/network/mutations/updateCourseData'
 import { getAllCourses } from '@core/network/queries/course'
 import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
@@ -124,7 +124,7 @@ export function CourseGeneralSettings() {
       return updateCourseData(courseId ?? 'undefined', courseData)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       toast({
         title: 'Successfully Updated Course',
       })

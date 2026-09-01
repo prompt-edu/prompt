@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
@@ -26,7 +27,7 @@ export function ApplicationSettingsCustomScores({ initialData }: Props) {
     isError,
   } = useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] }),
+    onSuccess: () => coreCache.coursePhaseChanged(queryClient, phaseId),
   })
 
   const handleToggle = (checked: boolean) => {

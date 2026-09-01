@@ -1,3 +1,4 @@
+import { coreCache } from '@core/network/cache'
 import { deleteApplications } from '@core/network/mutations/deleteApplications'
 import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -13,9 +14,7 @@ export const useDeleteApplications = (): UseMutationResult<void, Error, string[]
       return deleteApplications(phaseId ?? 'undefined', courseParticipationIDs)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', 'students', phaseId],
-      })
+      coreCache.applicationParticipantsChanged(queryClient, phaseId)
       toast({
         title: 'Successfully deleted the applications.',
       })

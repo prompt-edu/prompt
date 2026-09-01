@@ -1,9 +1,4 @@
-import { deleteCoursePhase } from '@core/network/mutations/deleteCoursePhase'
-import { postNewCoursePhase } from '@core/network/mutations/postNewCoursePhase'
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
-import { updateParticipationDataGraph } from '@core/network/mutations/updateParticipationDataGraph'
-import { updatePhaseDataGraph } from '@core/network/mutations/updatePhaseDataGraph'
-import { updatePhaseGraph } from '@core/network/mutations/updatePhaseGraph'
+import { coreApi } from '@core/network/api'
 import { useMutation } from '@tanstack/react-query'
 import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
@@ -13,30 +8,31 @@ import type { CoursePhaseGraphUpdate } from '../interfaces/coursePhaseGraphUpdat
 export function useMutations() {
   const { courseId } = useParams<{ courseId: string }>()
   const { mutateAsync: mutateAsyncPhases, isError: isPhaseError } = useMutation({
-    mutationFn: (coursePhase: CreateCoursePhase) => postNewCoursePhase(coursePhase),
+    mutationFn: (coursePhase: CreateCoursePhase) => coreApi.coursePhases.create(coursePhase),
   })
 
   const { mutateAsync: mutateCoursePhaseGraph, isError: isGraphError } = useMutation({
-    mutationFn: (update: CoursePhaseGraphUpdate) => updatePhaseGraph(courseId ?? '', update),
+    mutationFn: (update: CoursePhaseGraphUpdate) =>
+      coreApi.courseGraphs.savePhase(courseId ?? '', update),
   })
 
   const { mutateAsync: mutateDeletePhase, isError: isDeleteError } = useMutation({
-    mutationFn: (coursePhaseId: string) => deleteCoursePhase(coursePhaseId),
+    mutationFn: (coursePhaseId: string) => coreApi.coursePhases.remove(coursePhaseId),
   })
 
   const { mutateAsync: mutateRenamePhase, isError: isRenameError } = useMutation({
-    mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
+    mutationFn: (coursePhase: UpdateCoursePhase) => coreApi.coursePhases.update(coursePhase),
   })
 
   const { mutateAsync: mutatePhaseDataGraph, isError: isPhaseDataGraphError } = useMutation({
     mutationFn: (updatedGraph: MetaDataGraphItem[]) =>
-      updatePhaseDataGraph(courseId ?? '', updatedGraph),
+      coreApi.courseGraphs.savePhaseData(courseId ?? '', updatedGraph),
   })
 
   const { mutateAsync: mutateParticipationDataGraph, isError: isParticipationDataGraphError } =
     useMutation({
       mutationFn: (updatedGraph: MetaDataGraphItem[]) =>
-        updateParticipationDataGraph(courseId ?? '', updatedGraph),
+        coreApi.courseGraphs.saveParticipationData(courseId ?? '', updatedGraph),
       onSuccess: () => {
         // this is the last executed mutation and on this we want to reload!
         window.location.reload()

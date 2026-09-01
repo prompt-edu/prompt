@@ -1,6 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { postNewCourse } from '@core/network/mutations/postNewCourse'
 import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
 import type { TemplateFormValues } from '@core/validations/template'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -49,7 +49,7 @@ export const AddTemplateDialog = ({
 
   const { mutate, isPending, error, isError, reset } = useMutation({
     mutationFn: (course: PostCourse) => {
-      return postNewCourse(course)
+      return coreApi.courses.create(course)
     },
     onSuccess: (data: string | undefined) => {
       toast({

@@ -1,4 +1,7 @@
-import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
+import {
+  archiveCourses,
+  unarchiveCourses,
+} from '@core/managementConsole/shared/hooks/courseArchive'
 import type { Course } from '@tumaet/prompt-shared-state'
 import type { RowAction } from '@tumaet/prompt-ui-components'
 import { Archive, ArchiveRestore } from 'lucide-react'

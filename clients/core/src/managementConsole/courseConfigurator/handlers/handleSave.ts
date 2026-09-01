@@ -12,7 +12,7 @@ interface HandleSaveProps {
   nodes: Node[]
   edges: Edge[]
   coursePhases: CoursePhaseWithPosition[]
-  mutateDeletePhase: UseMutateAsyncFunction<string | undefined, Error, string, unknown>
+  mutateDeletePhase: UseMutateAsyncFunction<void, Error, string, unknown>
   mutateAsyncPhases: (coursePhase: CreateCoursePhase) => Promise<string | undefined>
   mutateRenamePhase: UseMutateAsyncFunction<string | undefined, Error, UpdateCoursePhase, unknown>
   mutateCoursePhaseGraph: UseMutateAsyncFunction<void, Error, CoursePhaseGraphUpdate, unknown>

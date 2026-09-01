@@ -1,7 +1,7 @@
 import type { ImportApplicationRequest } from '@core/managementConsole/applicationAdministration/interfaces/import/importApplicationRequest'
 import type { ImportResult } from '@core/managementConsole/applicationAdministration/interfaces/import/importResult'
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { postApplicationImport } from '@core/network/mutations/postApplicationImport'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import {
@@ -86,7 +86,7 @@ export const ImportStudents = ({ existingApplications }: ImportStudentsProps): R
 
   const { mutate, isPending } = useMutation({
     mutationFn: (importRequest: ImportApplicationRequest) =>
-      postApplicationImport(phaseId ?? '', importRequest),
+      coreApi.applications.importStudents(phaseId ?? '', importRequest),
     onSuccess: (importResult) => {
       coreCache.applicationsImported(queryClient, phaseId)
       setResult(importResult)

@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
 import { ErrorPage } from '@tumaet/prompt-ui-components'
@@ -25,7 +25,7 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
     refetch: refetchScores,
   } = useQuery<AdditionalScore[]>({
     queryKey: coreKeys.applications.participations.inPhase(phaseId),
-    queryFn: () => getAdditionalScoreNames(phaseId ?? ''),
+    queryFn: () => coreApi.applications.additionalScoreNames(phaseId ?? ''),
   })
 
   const {

@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { searchStudents } from '@core/network/queries/searchStudents'
 import { useQuery } from '@tanstack/react-query'
 import { type Student, translations } from '@tumaet/prompt-shared-state'
 import {
@@ -40,7 +40,7 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
     refetch,
   } = useQuery({
     queryKey: coreKeys.applications.universityUsers(enteredSearchString, phaseId),
-    queryFn: () => searchStudents(enteredSearchString),
+    queryFn: () => coreApi.students.search(enteredSearchString),
     enabled: searchQuery.length > 2,
   })
 

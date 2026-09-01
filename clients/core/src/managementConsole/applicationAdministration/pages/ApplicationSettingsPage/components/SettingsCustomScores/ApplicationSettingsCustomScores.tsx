@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { Card, CardContent, Label, Switch } from '@tumaet/prompt-ui-components'
@@ -26,7 +26,7 @@ export function ApplicationSettingsCustomScores({ initialData }: Props) {
     isPending,
     isError,
   } = useMutation({
-    mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
+    mutationFn: (coursePhase: UpdateCoursePhase) => coreApi.coursePhases.update(coursePhase),
     onSuccess: () => coreCache.coursePhaseChanged(queryClient, phaseId),
   })
 

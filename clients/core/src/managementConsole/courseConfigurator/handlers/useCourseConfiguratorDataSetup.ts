@@ -1,12 +1,7 @@
 // src/hooks/useCourseSetup.ts
 
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { getParticipationDataGraph } from '@core/network/queries/courseParticipationDataGraph'
-import { getPhaseDataGraph } from '@core/network/queries/coursePhaseDataGraph'
-import { getCoursePhaseGraph } from '@core/network/queries/coursePhaseGraph'
-import { getAllCoursePhaseTypes } from '@core/network/queries/coursePhaseTypes'
 import { useQuery } from '@tanstack/react-query'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { useEffect, useState } from 'react'
@@ -44,7 +39,7 @@ export function useCourseConfiguratorDataSetup() {
     refetch: refetchCoursePhaseTypes,
   } = useQuery<CoursePhaseType[]>({
     queryKey: coreKeys.coursePhases.types(),
-    queryFn: getAllCoursePhaseTypes,
+    queryFn: coreApi.coursePhases.listTypes,
   })
 
   const {
@@ -55,7 +50,7 @@ export function useCourseConfiguratorDataSetup() {
     refetch: refetchGraph,
   } = useQuery<CoursePhaseGraphItem[]>({
     queryKey: coreKeys.courseGraphs.phase(courseId),
-    queryFn: () => getCoursePhaseGraph(courseId),
+    queryFn: () => coreApi.courseGraphs.phase(courseId),
     enabled: !!courseId,
   })
 
@@ -67,7 +62,7 @@ export function useCourseConfiguratorDataSetup() {
     refetch: refetchParticipationGraph,
   } = useQuery<MetaDataGraphItem[]>({
     queryKey: coreKeys.courseGraphs.participationData(courseId),
-    queryFn: () => getParticipationDataGraph(courseId),
+    queryFn: () => coreApi.courseGraphs.participationData(courseId),
     enabled: !!courseId,
   })
 
@@ -79,7 +74,7 @@ export function useCourseConfiguratorDataSetup() {
     refetch: refetchPhaseGraph,
   } = useQuery<MetaDataGraphItem[]>({
     queryKey: coreKeys.courseGraphs.phaseData(courseId),
-    queryFn: () => getPhaseDataGraph(courseId),
+    queryFn: () => coreApi.courseGraphs.phaseData(courseId),
     enabled: !!courseId,
   })
 
@@ -94,7 +89,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isApplicationFormError,
   } = useQuery<ApplicationForm>({
     queryKey: coreKeys.applications.form(applicationPhase?.id),
-    queryFn: () => getApplicationForm(applicationPhase?.id || ''),
+    queryFn: () => coreApi.applications.form(applicationPhase?.id || ''),
     enabled: !!applicationPhase?.id,
   })
 
@@ -104,7 +99,7 @@ export function useCourseConfiguratorDataSetup() {
     isError: isAdditionalScoresError,
   } = useQuery<AdditionalScore[]>({
     queryKey: coreKeys.applications.participations.inPhase(applicationPhase?.id),
-    queryFn: () => getAdditionalScoreNames(applicationPhase?.id || ''),
+    queryFn: () => coreApi.applications.additionalScoreNames(applicationPhase?.id || ''),
     enabled: !!applicationPhase?.id,
   })
 

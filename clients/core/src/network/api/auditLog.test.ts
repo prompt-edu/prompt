@@ -1,6 +1,6 @@
 import type { AuditLogFilters } from '@core/managementConsole/auditLog/interfaces/auditLog'
 import { describe, expect, it } from 'vitest'
-import { buildAuditLogQuery } from './getAuditLog'
+import { buildAuditLogQuery } from './auditLog'
 
 describe('buildAuditLogQuery', () => {
   it('sends only the filters that are set, plus the page size', () => {

@@ -1,6 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getCourseParticipation } from '@core/network/queries/courseParticipation'
 import { useQuery } from '@tanstack/react-query'
 import {
   getPermissionString,
@@ -38,7 +38,7 @@ export const PermissionRestriction = ({
     refetch: refetchCourseParticipation,
   } = useQuery<CourseParticipation>({
     queryKey: coreKeys.courses.myParticipation(courseId),
-    queryFn: () => getCourseParticipation(courseId ?? ''),
+    queryFn: () => coreApi.courses.myParticipation(courseId ?? ''),
     enabled: isStudent,
   })
 

@@ -1,6 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { postNewCourse } from '@core/network/mutations/postNewCourse'
 import type { CourseFormValues } from '@core/validations/course'
 import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -46,7 +46,7 @@ export const AddCourseDialog = ({
 
   const { mutate, isPending, error, isError, reset } = useMutation({
     mutationFn: (course: PostCourse) => {
-      return postNewCourse(course)
+      return coreApi.courses.create(course)
     },
     onSuccess: (data: string | undefined) => {
       forceTokenRefresh() // refresh token to get permission for new course

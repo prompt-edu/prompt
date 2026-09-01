@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getApplicationParticipations } from '@core/network/queries/applicationParticipations'
 import { useQuery } from '@tanstack/react-query'
 import type { CoursePhaseStudentIdentifierProps } from '@tumaet/prompt-shared-state'
 import type React from 'react'
@@ -18,7 +18,7 @@ export const ApplicationStudentDetailComponent: React.FC<CoursePhaseStudentIdent
   const { data: participations, isPending } = useQuery<ApplicationParticipation[]>({
     // align with the key used in useGetApplicationParticipations() so we reuse cache
     queryKey: coreKeys.applications.participations.students(coursePhaseId),
-    queryFn: () => getApplicationParticipations(coursePhaseId),
+    queryFn: () => coreApi.applications.listParticipations(coursePhaseId),
   })
 
   const application = useMemo(() => {

@@ -2,18 +2,15 @@ import type {
   CreateNoteTag,
   UpdateNoteTag,
 } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { deleteNoteTag } from '../mutations/deleteNoteTag'
-import { postNoteTag } from '../mutations/postNoteTag'
-import { putNoteTag } from '../mutations/putNoteTag'
-import { getNoteTags } from '../queries/getNoteTags'
 
 export const useNoteTags = () => {
   return useQuery({
     queryKey: coreKeys.instructorNotes.tags(),
-    queryFn: getNoteTags,
+    queryFn: coreApi.instructorNotes.listTags,
   })
 }
 
@@ -22,7 +19,7 @@ export const useCreateNoteTag = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (tag: CreateNoteTag) => postNoteTag(tag),
+    mutationFn: (tag: CreateNoteTag) => coreApi.instructorNotes.createTag(tag),
     onSuccess: () => {
       toast({ title: 'Tag created successfully' })
       coreCache.noteTagsChanged(queryClient)
@@ -42,7 +39,8 @@ export const useUpdateNoteTag = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ tagId, tag }: { tagId: string; tag: UpdateNoteTag }) => putNoteTag(tagId, tag),
+    mutationFn: ({ tagId, tag }: { tagId: string; tag: UpdateNoteTag }) =>
+      coreApi.instructorNotes.updateTag(tagId, tag),
     onSuccess: () => {
       toast({ title: 'Tag updated successfully' })
       coreCache.noteTagsChanged(queryClient)
@@ -62,7 +60,7 @@ export const useDeleteNoteTag = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (tagId: string) => deleteNoteTag(tagId),
+    mutationFn: (tagId: string) => coreApi.instructorNotes.removeTag(tagId),
     onSuccess: () => {
       toast({ title: 'Tag deleted successfully' })
       coreCache.noteTagsChanged(queryClient)

@@ -1,9 +1,7 @@
 import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
+import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
-import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
@@ -62,7 +60,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
 
   const { data: exportedAnswers, isError: exportedAnswersError } = useQuery({
     queryKey: coreKeys.applications.exportedAnswers(phaseId),
-    queryFn: () => getExportedApplicationAnswers(phaseId),
+    queryFn: () => coreApi.applications.exportedAnswers(phaseId),
   })
 
   useEffect(() => {
@@ -148,7 +146,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
       try {
         const applicationForm = await queryClient.fetchQuery({
           queryKey: coreKeys.applications.form(phaseId),
-          queryFn: () => getApplicationForm(phaseId),
+          queryFn: () => coreApi.applications.form(phaseId),
         })
 
         const applicationResults = await fetchWithConcurrencyLimit(
@@ -157,7 +155,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
           (row) =>
             queryClient.fetchQuery({
               queryKey: coreKeys.applications.ofParticipant(phaseId, row.courseParticipationID),
-              queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
+              queryFn: () => coreApi.applications.ofParticipant(phaseId, row.courseParticipationID),
             }),
         )
 

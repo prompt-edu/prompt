@@ -1,6 +1,6 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import type { CourseGroupName } from '../interfaces/StaffMember'
 
@@ -9,18 +9,13 @@ interface RemoveMemberArgs {
   keycloakUserID: string
 }
 
-const removeCourseStaffMember = async (courseId: string, args: RemoveMemberArgs): Promise<void> => {
-  await axiosInstance.delete(
-    `/api/keycloak/${courseId}/group/${args.groupName}/members/${args.keycloakUserID}`,
-  )
-}
-
 export const useRemoveCourseStaffMember = (courseId: string) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: (args: RemoveMemberArgs) => removeCourseStaffMember(courseId, args),
+    mutationFn: (args: RemoveMemberArgs) =>
+      coreApi.keycloak.removeStaffMember(courseId, args.groupName, args.keycloakUserID),
     onSuccess: (_, args) => {
       coreCache.courseStaffChanged(queryClient, courseId)
       toast({ title: `Removed user from ${args.groupName}` })

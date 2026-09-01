@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { updateStudent } from '@core/network/mutations/updateStudent'
 import {
   formSchemaUniversityData,
   type UniversityDataFormValues,
@@ -37,7 +37,7 @@ export const MissingUniversityData = ({ student }: MissingUniversityDataProps) =
     reset: resetMutation,
   } = useMutation({
     mutationFn: (modifiedStudent: Student) => {
-      return updateStudent(modifiedStudent)
+      return coreApi.students.update(modifiedStudent)
     },
     onSuccess: () => {
       coreCache.studentUniversityDataChanged(queryClient)

@@ -1,4 +1,4 @@
-import { ExportStatus, type PrivacyExport } from '@core/network/queries/privacyStudentDataExport'
+import { ExportStatus, type PrivacyExport } from '@core/interfaces/privacy'
 import { CollapsibleDocSection } from './PrivacyExportDocSection'
 
 interface PrivacyExportDocumentListProps {

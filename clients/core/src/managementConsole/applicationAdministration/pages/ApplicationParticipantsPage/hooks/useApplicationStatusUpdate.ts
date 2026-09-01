@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { updateApplicationStatus } from '@core/network/mutations/updateApplicationStatus'
 import { type UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhaseParticipationStatus } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -17,7 +17,7 @@ export const useApplicationStatusUpdate = (): UseMutationResult<
 
   const mutation = useMutation({
     mutationFn: (updateApplication: UpdateCoursePhaseParticipationStatus) => {
-      return updateApplicationStatus(phaseId ?? 'undefined', updateApplication)
+      return coreApi.applications.updateStatuses(phaseId ?? 'undefined', updateApplication)
     },
     onSuccess: () => {
       coreCache.applicationParticipantsChanged(queryClient, phaseId)

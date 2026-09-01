@@ -1,11 +1,11 @@
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import type { CoursePhaseType } from '../interfaces/coursePhaseType'
-import { getCoursePhaseTypes } from '../network/getCoursePhaseTypes'
 
 export function useGetCoursePhaseTypes(forSelf?: boolean) {
   return useQuery<CoursePhaseType[]>({
     queryKey: coreKeys.coursePhases.typesForScope(forSelf ? 'self' : 'all'),
-    queryFn: () => getCoursePhaseTypes(forSelf),
+    queryFn: () => coreApi.coursePhases.listTypesForScope(forSelf),
   })
 }

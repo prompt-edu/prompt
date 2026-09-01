@@ -3,9 +3,8 @@ import { useApplicationStore } from '@core/managementConsole/applicationAdminist
 import { InstructorNotes } from '@core/managementConsole/shared/components/InstructorNote/InstructorNotes'
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { CourseEnrollments } from '@core/managementConsole/shared/components/StudentDetail/CourseEnrollmentList'
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { useQuery } from '@tanstack/react-query'
 import { Role } from '@tumaet/prompt-shared-state'
 import {
@@ -84,7 +83,7 @@ export const ApplicationDetailsPage = () => {
     refetch: refetchApplication,
   } = useQuery<GetApplication>({
     queryKey: coreKeys.applications.ofParticipation(participationId),
-    queryFn: () => getApplicationAssessment(phaseId ?? '', participationId ?? ''),
+    queryFn: () => coreApi.applications.ofParticipant(phaseId ?? '', participationId ?? ''),
     enabled: !!phaseId && !!participationId,
   })
 
@@ -95,7 +94,7 @@ export const ApplicationDetailsPage = () => {
     refetch: refetchApplicationForm,
   } = useQuery<ApplicationForm>({
     queryKey: coreKeys.applications.form(phaseId),
-    queryFn: () => getApplicationForm(phaseId ?? ''),
+    queryFn: () => coreApi.applications.form(phaseId ?? ''),
     enabled: !!phaseId,
   })
 

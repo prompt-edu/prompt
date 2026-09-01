@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import {
@@ -85,7 +85,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
     isPending,
   } = useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => {
-      return updateCoursePhase(coursePhase)
+      return coreApi.coursePhases.update(coursePhase)
     },
     onSuccess: () => {
       coreCache.coursePhaseChanged(queryClient, phaseId)

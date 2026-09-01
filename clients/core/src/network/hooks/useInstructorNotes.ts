@@ -1,15 +1,13 @@
 import type { CreateInstructorNote } from '@core/managementConsole/shared/interfaces/InstructorNote'
+import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { deleteInstructorNote } from '../mutations/deleteInstructorNote'
-import { postInstructorNote } from '../mutations/postInstructorNote'
-import { getInstructorNotes } from '../queries/getInstructorNotes'
 
 export const useInstructorNotes = (studentId?: string) => {
   return useQuery({
     queryKey: coreKeys.instructorNotes.ofStudent(studentId),
-    queryFn: () => getInstructorNotes(studentId!),
+    queryFn: () => coreApi.instructorNotes.ofStudent(studentId!),
     enabled: !!studentId,
   })
 }
@@ -19,7 +17,7 @@ export const useDeleteInstructorNote = (studentId?: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (noteId: string) => deleteInstructorNote(noteId),
+    mutationFn: (noteId: string) => coreApi.instructorNotes.remove(noteId),
     onSuccess: () => {
       coreCache.instructorNotesChanged(queryClient, studentId)
     },
@@ -38,7 +36,7 @@ export const useCreateInstructorNote = (studentId: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (note: CreateInstructorNote) => postInstructorNote(studentId, note),
+    mutationFn: (note: CreateInstructorNote) => coreApi.instructorNotes.create(studentId, note),
     onSuccess: () => {
       coreCache.instructorNotesChanged(queryClient, studentId)
     },

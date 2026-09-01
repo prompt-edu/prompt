@@ -1,6 +1,6 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import type { CourseGroupName } from '../interfaces/StaffMember'
 
@@ -9,18 +9,13 @@ interface AddMemberArgs {
   keycloakUserID: string
 }
 
-const addCourseStaffMember = async (courseId: string, args: AddMemberArgs): Promise<void> => {
-  await axiosInstance.put(
-    `/api/keycloak/${courseId}/group/${args.groupName}/members/${args.keycloakUserID}`,
-  )
-}
-
 export const useAddCourseStaffMember = (courseId: string) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: (args: AddMemberArgs) => addCourseStaffMember(courseId, args),
+    mutationFn: (args: AddMemberArgs) =>
+      coreApi.keycloak.addStaffMember(courseId, args.groupName, args.keycloakUserID),
     onSuccess: (_, args) => {
       coreCache.courseStaffChanged(queryClient, courseId)
       toast({ title: `Added user as ${args.groupName}` })

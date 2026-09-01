@@ -4,9 +4,8 @@ import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
+import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
-import { updateCourseData } from '@core/network/mutations/updateCourseData'
-import { getAllCourses } from '@core/network/queries/course'
 import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -54,7 +53,7 @@ export function CourseGeneralSettings() {
     refetch: refetchCourses,
   } = useQuery<Course[]>({
     queryKey: coreKeys.courses.all(),
-    queryFn: () => getAllCourses(),
+    queryFn: () => coreApi.courses.list(),
   })
 
   // Update store when data arrives
@@ -121,7 +120,7 @@ export function CourseGeneralSettings() {
 
   const { mutate: mutateCourse, isPending: isSaving } = useMutation({
     mutationFn: (courseData: UpdateCourseData) => {
-      return updateCourseData(courseId ?? 'undefined', courseData)
+      return coreApi.courses.update(courseId ?? 'undefined', courseData)
     },
     onSuccess: () => {
       coreCache.coursesChanged(queryClient)

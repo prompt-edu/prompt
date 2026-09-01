@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreCache } from '@core/network/cache'
-import { postAdditionalScore } from '@core/network/mutations/postAdditionalScore'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -68,7 +68,7 @@ export default function AssessmentScoreUpload({ applications }: AssessmentScoreU
 
   const { mutate: mutateSendScore } = useMutation({
     mutationFn: (additionalScore: AdditionalScoreUpload) => {
-      return postAdditionalScore(phaseId ?? 'undefined', additionalScore)
+      return coreApi.applications.addAdditionalScore(phaseId ?? 'undefined', additionalScore)
     },
     onSuccess: () => {
       coreCache.additionalScoresUploaded(queryClient, phaseId)

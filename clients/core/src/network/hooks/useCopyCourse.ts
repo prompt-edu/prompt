@@ -1,7 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
+import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
-import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
-import { copyCourse } from '@core/network/mutations/copyCourse'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -28,13 +27,13 @@ export const useCopyCourse = (
     error: copyabilityError,
   } = useQuery({
     queryKey: coreKeys.courses.copyability(courseId),
-    queryFn: () => checkCourseCopyable(courseId),
+    queryFn: () => coreApi.courses.copyability(courseId),
     enabled: currentStep === 'warning' && !!courseId,
   })
 
   const { mutate: mutateCopyCourse, isPending: isCopying } = useMutation({
     mutationFn: (courseData: CopyCourse) => {
-      return copyCourse(courseId ?? '', courseData)
+      return coreApi.courses.copy(courseId ?? '', courseData)
     },
     onSuccess: (data: string | undefined) => {
       toast({

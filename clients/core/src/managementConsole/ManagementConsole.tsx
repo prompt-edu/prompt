@@ -1,5 +1,5 @@
+import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { type Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
@@ -17,7 +17,6 @@ import React, { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { RequireAuth } from '../keycloak/RequireAuth'
 import { useKeycloak } from '../keycloak/useKeycloak'
-import { getAllCourses } from '../network/queries/course'
 import { Breadcrumbs } from './layout/Breadcrumbs/Breadcrumbs'
 import { AppSidebar } from './layout/Sidebar/AppSidebar'
 import { NavUserMenu } from './layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
@@ -54,7 +53,7 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
     refetch: refetchCourses,
   } = useQuery<Course[]>({
     queryKey: coreKeys.courses.all(),
-    queryFn: () => getAllCourses(),
+    queryFn: () => coreApi.courses.list(),
   })
 
   // getting the course ids of the course a user is enrolled in
@@ -65,7 +64,7 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
     refetch: refetchOwnCourseIds,
   } = useQuery<string[]>({
     queryKey: coreKeys.courses.own(),
-    queryFn: () => getOwnCourseIDs(),
+    queryFn: () => coreApi.courses.listOwnIDs(),
   })
 
   const refetch = () => {

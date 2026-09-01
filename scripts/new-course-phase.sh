@@ -80,6 +80,7 @@ rename_tokens() {
     s/EXAMPLE_HOST/${UPPER}_HOST/g;
     s/DB_EXAMPLE_/DB_${UPPER}_/g;
     s/ExampleService/${PASCAL}Service/g;
+    s/exampleService/${CAMEL}Service/g;
     s/helloExampleServer/hello${PASCAL}Server/g;
     s/GetExampleInfo/Get${PASCAL}Info/g;
     s/getExampleInfo/get${PASCAL}Info/g;

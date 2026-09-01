@@ -17,35 +17,35 @@ import (
 // course. It must run before the course row is removed from the database, since
 // the group name is derived from it. A group that is already gone is treated as
 // success so the operation stays idempotent.
-func DeleteCourseGroupsAndRoles(ctx context.Context, courseID uuid.UUID) error {
-	token, err := LoginClient(ctx)
+func (s *KeycloakRealmService) DeleteCourseGroupsAndRoles(ctx context.Context, courseID uuid.UUID) error {
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	courseGroupName, err := GetCourseGroupName(ctx, courseID)
+	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("failed to get course group name: %w", err)
 	}
 
 	// 1. Delete the course group; Keycloak cascades subgroups and role mappings.
-	group, err := GetCourseGroup(ctx, token.AccessToken, courseID)
+	group, err := s.GetCourseGroup(ctx, token.AccessToken, courseID)
 	if err != nil {
 		if !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("failed to resolve course group: %w", err)
 		}
 		log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseID)
-	} else if err := KeycloakRealmSingleton.client.DeleteGroup(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, *group.ID); err != nil {
+	} else if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, *group.ID); err != nil {
 		return fmt.Errorf("failed to delete course group: %w", err)
 	}
 
 	// 2. Delete the client roles. Group deletion only drops the group-role
 	// mapping, not the role definitions themselves.
-	return deleteCourseClientRoles(ctx, token.AccessToken, courseGroupName)
+	return s.deleteCourseClientRoles(ctx, token.AccessToken, courseGroupName)
 }
 
-func deleteCourseClientRoles(ctx context.Context, accessToken, courseGroupName string) error {
-	roles, err := KeycloakRealmSingleton.client.GetClientRoles(ctx, accessToken, KeycloakRealmSingleton.Realm, KeycloakRealmSingleton.idOfClient, gocloak.GetRoleParams{})
+func (s *KeycloakRealmService) deleteCourseClientRoles(ctx context.Context, accessToken, courseGroupName string) error {
+	roles, err := s.client.GetClientRoles(ctx, accessToken, s.Realm, s.idOfClient, gocloak.GetRoleParams{})
 	if err != nil {
 		return fmt.Errorf("failed to list client roles: %w", err)
 	}
@@ -54,7 +54,7 @@ func deleteCourseClientRoles(ctx context.Context, accessToken, courseGroupName s
 		if role == nil || role.Name == nil || !isCourseClientRole(*role.Name, courseGroupName) {
 			continue
 		}
-		if err := KeycloakRealmSingleton.client.DeleteClientRole(ctx, accessToken, KeycloakRealmSingleton.Realm, KeycloakRealmSingleton.idOfClient, *role.Name); err != nil {
+		if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, *role.Name); err != nil {
 			return fmt.Errorf("failed to delete client role %s: %w", *role.Name, err)
 		}
 	}

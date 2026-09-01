@@ -32,17 +32,14 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err)
 	suite.cleanup = cleanup
 
-	AllocationServiceSingleton = &AllocationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	allocationService := NewAllocationService(*testDB.Queries)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.DefaultMockAuthMiddleware()
 	}
-	setupAllocationRouter(api, authMiddleware)
+	RegisterRoutes(api, allocationService, authMiddleware)
 }
 
 func (suite *AllocationRouterTestSuite) TearDownSuite() {

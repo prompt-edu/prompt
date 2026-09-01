@@ -9,17 +9,16 @@ import (
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
-	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
-func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(queries))
+	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(service.queries))
 
-	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllAllocations)
-	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllocationByCourseParticipationID)
+	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
+	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
 }
 
 // getAllAllocations godoc
@@ -33,14 +32,14 @@ func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation [get]
-func getAllAllocations(c *gin.Context) {
+func (s *AllocationService) getAllAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	allocations, err := GetAllAllocations(c, coursePhaseID)
+	allocations, err := s.GetAllAllocations(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -67,7 +66,7 @@ func getAllAllocations(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]
-func getAllocationByCourseParticipationID(c *gin.Context) {
+func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -80,7 +79,7 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	teamID, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	teamID, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			handleError(c, http.StatusNotFound, err)

@@ -21,28 +21,49 @@ import (
 // ErrDuplicateCourseIdentifier is returned when a course with the same name and semester tag already exists.
 var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semester already exists")
 
+// CoursePhaseProvider reads the course phases a course graph refers to.
+type CoursePhaseProvider interface {
+	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
+	CheckCoursePhasesBelongToCourse(ctx context.Context, courseID uuid.UUID, coursePhaseIDs []uuid.UUID) (bool, error)
+}
+
 type CourseService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+	queries      db.Queries
+	conn         *pgxpool.Pool
+	coursePhases CoursePhaseProvider
 	// use dependency injection for keycloak to allow mocking
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
 	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error
 }
 
-var CourseServiceSingleton *CourseService
+func NewCourseService(
+	queries db.Queries,
+	conn *pgxpool.Pool,
+	coursePhases CoursePhaseProvider,
+	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error,
+	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error,
+) *CourseService {
+	return &CourseService{
+		queries:                    queries,
+		conn:                       conn,
+		coursePhases:               coursePhases,
+		createCourseGroupsAndRoles: createCourseGroupsAndRoles,
+		deleteCourseGroupsAndRoles: deleteCourseGroupsAndRoles,
+	}
+}
 
-func GetOwnCourseIDs(ctx context.Context, matriculationNumber, universityLogin string) ([]uuid.UUID, error) {
+func (s *CourseService) GetOwnCourseIDs(ctx context.Context, matriculationNumber, universityLogin string) ([]uuid.UUID, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	courses, err := CourseServiceSingleton.queries.GetOwnCourses(ctxWithTimeout, db.GetOwnCoursesParams{
+	courses, err := s.queries.GetOwnCourses(ctxWithTimeout, db.GetOwnCoursesParams{
 		MatriculationNumber: pgtype.Text{String: matriculationNumber, Valid: true},
 		UniversityLogin:     pgtype.Text{String: universityLogin, Valid: true},
 	})
 	return courses, err
 }
 
-func GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.CourseWithPhases, error) {
+func (s *CourseService) GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.CourseWithPhases, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -51,7 +72,7 @@ func GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.
 	// Get all active courses the user is allowed to see
 	if userRoles[permissionValidation.PromptAdmin] {
 		// get all courses
-		courses, err = CourseServiceSingleton.queries.GetAllActiveCoursesAdmin(ctxWithTimeout)
+		courses, err = s.queries.GetAllActiveCoursesAdmin(ctxWithTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +84,7 @@ func GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.
 				userRolesArray = append(userRolesArray, key)
 			}
 		}
-		coursesRestricted, err := CourseServiceSingleton.queries.GetAllActiveCoursesRestricted(ctxWithTimeout, userRolesArray)
+		coursesRestricted, err := s.queries.GetAllActiveCoursesRestricted(ctxWithTimeout, userRolesArray)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +98,7 @@ func GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.
 	dtoCourses := make([]courseDTO.CourseWithPhases, 0, len(courses))
 	for _, course := range courses {
 		// Get all course phases for the course
-		coursePhases, err := GetCoursePhasesForCourseID(ctx, course.ID)
+		coursePhases, err := s.GetCoursePhasesForCourseID(ctx, course.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -95,15 +116,15 @@ func GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.
 	return dtoCourses, nil
 }
 
-func GetCoursePhasesForCourseID(ctx context.Context, courseID uuid.UUID) ([]coursePhaseDTO.CoursePhaseSequence, error) {
+func (s *CourseService) GetCoursePhasesForCourseID(ctx context.Context, courseID uuid.UUID) ([]coursePhaseDTO.CoursePhaseSequence, error) {
 	// Get all course phases in order
-	coursePhasesOrder, err := CourseServiceSingleton.queries.GetCoursePhaseSequence(ctx, courseID)
+	coursePhasesOrder, err := s.queries.GetCoursePhaseSequence(ctx, courseID)
 	if err != nil {
 		return nil, err
 	}
 
 	// get all coursePhases out of order
-	coursePhasesNoOrder, err := CourseServiceSingleton.queries.GetNotOrderedCoursePhases(ctx, courseID)
+	coursePhasesNoOrder, err := s.queries.GetNotOrderedCoursePhases(ctx, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,22 +137,22 @@ func GetCoursePhasesForCourseID(ctx context.Context, courseID uuid.UUID) ([]cour
 	return coursePhaseDTO, nil
 }
 
-func GetCourseByID(ctx context.Context, id uuid.UUID) (courseDTO.CourseWithPhases, error) {
+func (s *CourseService) GetCourseByID(ctx context.Context, id uuid.UUID) (courseDTO.CourseWithPhases, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
-	course, err := CourseServiceSingleton.queries.GetCourse(ctxWithTimeout, id)
+	course, err := s.queries.GetCourse(ctxWithTimeout, id)
 	if err != nil {
 		return courseDTO.CourseWithPhases{}, err
 	}
 
 	// Get all course phases in order
-	coursePhasesOrder, err := CourseServiceSingleton.queries.GetCoursePhaseSequence(ctx, id)
+	coursePhasesOrder, err := s.queries.GetCoursePhaseSequence(ctx, id)
 	if err != nil {
 		return courseDTO.CourseWithPhases{}, err
 	}
 
 	// get all coursePhases out of order
-	coursePhasesNoOrder, err := CourseServiceSingleton.queries.GetNotOrderedCoursePhases(ctx, id)
+	coursePhasesNoOrder, err := s.queries.GetNotOrderedCoursePhases(ctx, id)
 	if err != nil {
 		return courseDTO.CourseWithPhases{}, err
 	}
@@ -152,14 +173,14 @@ func GetCourseByID(ctx context.Context, id uuid.UUID) (courseDTO.CourseWithPhase
 	return CourseWithPhases, nil
 }
 
-func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterID string) (courseDTO.Course, error) {
+func (s *CourseService) CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterID string) (courseDTO.Course, error) {
 	// start transaction to roll back if keycloak failed
-	tx, err := CourseServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return courseDTO.Course{}, err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CourseServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	createCourseParams, err := course.GetDBModel()
 	if err != nil {
@@ -181,7 +202,7 @@ func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterI
 	}
 
 	// create keycloak roles - also add the requester to the course lecturer role
-	err = CourseServiceSingleton.createCourseGroupsAndRoles(ctx, createdCourse.Name, createdCourse.SemesterTag.String, requesterID)
+	err = s.createCourseGroupsAndRoles(ctx, createdCourse.Name, createdCourse.SemesterTag.String, requesterID)
 	if err != nil {
 		log.Error("Failed to create keycloak roles for course: ", err)
 		return courseDTO.Course{}, err
@@ -193,26 +214,26 @@ func CreateCourse(ctx context.Context, course courseDTO.CreateCourse, requesterI
 	return courseDTO.GetCourseDTOFromDBModel(createdCourse)
 }
 
-func CheckCourseNameExists(ctx context.Context, name, semesterTag string) (bool, error) {
+func (s *CourseService) CheckCourseNameExists(ctx context.Context, name, semesterTag string) (bool, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 	semesterTagParam := pgtype.Text{Valid: false}
 	if semesterTag != "" {
 		semesterTagParam = pgtype.Text{String: semesterTag, Valid: true}
 	}
-	return CourseServiceSingleton.queries.CheckCourseNameExists(ctxWithTimeout, db.CheckCourseNameExistsParams{
+	return s.queries.CheckCourseNameExists(ctxWithTimeout, db.CheckCourseNameExistsParams{
 		Name:        name,
 		SemesterTag: semesterTagParam,
 	})
 }
 
-func UpdateCoursePhaseOrder(ctx context.Context, courseID uuid.UUID, graphUpdate courseDTO.UpdateCoursePhaseGraph) error {
-	tx, err := CourseServiceSingleton.conn.Begin(ctx)
+func (s *CourseService) UpdateCoursePhaseOrder(ctx context.Context, courseID uuid.UUID, graphUpdate courseDTO.UpdateCoursePhaseGraph) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CourseServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// delete all previous connections
 	err = qtx.DeleteCourseGraph(ctx, courseID)
@@ -254,8 +275,8 @@ func UpdateCoursePhaseOrder(ctx context.Context, courseID uuid.UUID, graphUpdate
 	return nil
 }
 
-func GetCoursePhaseGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.CoursePhaseGraph, error) {
-	graph, err := CourseServiceSingleton.queries.GetCoursePhaseGraph(ctx, courseID)
+func (s *CourseService) GetCoursePhaseGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.CoursePhaseGraph, error) {
+	graph, err := s.queries.GetCoursePhaseGraph(ctx, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -270,8 +291,8 @@ func GetCoursePhaseGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.C
 	return dtoGraph, nil
 }
 
-func GetParticipationDataGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.MetaDataGraphItem, error) {
-	graph, err := CourseServiceSingleton.queries.GetParticipationDataGraph(ctx, courseID)
+func (s *CourseService) GetParticipationDataGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.MetaDataGraphItem, error) {
+	graph, err := s.queries.GetParticipationDataGraph(ctx, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -288,8 +309,8 @@ func GetParticipationDataGraph(ctx context.Context, courseID uuid.UUID) ([]cours
 	return dtoGraph, nil
 }
 
-func GetPhaseDataGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.MetaDataGraphItem, error) {
-	graph, err := CourseServiceSingleton.queries.GetPhaseDataGraph(ctx, courseID)
+func (s *CourseService) GetPhaseDataGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.MetaDataGraphItem, error) {
+	graph, err := s.queries.GetPhaseDataGraph(ctx, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -306,13 +327,13 @@ func GetPhaseDataGraph(ctx context.Context, courseID uuid.UUID) ([]courseDTO.Met
 	return dtoGraph, nil
 }
 
-func UpdateParticipationDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate []courseDTO.MetaDataGraphItem) error {
-	tx, err := CourseServiceSingleton.conn.Begin(ctx)
+func (s *CourseService) UpdateParticipationDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate []courseDTO.MetaDataGraphItem) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CourseServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// delete all previous connections
 	err = qtx.DeleteParticipationDataGraphConnections(ctx, courseID)
@@ -341,13 +362,13 @@ func UpdateParticipationDataGraph(ctx context.Context, courseID uuid.UUID, graph
 
 }
 
-func UpdatePhaseDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate []courseDTO.MetaDataGraphItem) error {
-	tx, err := CourseServiceSingleton.conn.Begin(ctx)
+func (s *CourseService) UpdatePhaseDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate []courseDTO.MetaDataGraphItem) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CourseServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// delete all previous connections
 	err = qtx.DeletePhaseDataGraphConnections(ctx, courseID)
@@ -376,7 +397,7 @@ func UpdatePhaseDataGraph(ctx context.Context, courseID uuid.UUID, graphUpdate [
 
 }
 
-func UpdateCourseArchiveStatus(
+func (s *CourseService) UpdateCourseArchiveStatus(
 	ctx context.Context,
 	courseID uuid.UUID,
 	archived bool,
@@ -392,7 +413,7 @@ func UpdateCourseArchiveStatus(
 		}
 	}
 
-	res, err := CourseServiceSingleton.queries.ArchiveCourse(
+	res, err := s.queries.ArchiveCourse(
 		ctxWithTimeout,
 		db.ArchiveCourseParams{
 			ID:         courseID,
@@ -413,7 +434,7 @@ func UpdateCourseArchiveStatus(
 	return course, nil
 }
 
-func UpdateCourseData(ctx context.Context, courseID uuid.UUID, courseData courseDTO.UpdateCourseData) error {
+func (s *CourseService) UpdateCourseData(ctx context.Context, courseID uuid.UUID, courseData courseDTO.UpdateCourseData) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -425,7 +446,7 @@ func UpdateCourseData(ctx context.Context, courseID uuid.UUID, courseData course
 
 	updateCourseParams.ID = courseID
 
-	err = CourseServiceSingleton.queries.UpdateCourse(ctxWithTimeout, updateCourseParams)
+	err = s.queries.UpdateCourse(ctxWithTimeout, updateCourseParams)
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to update course data")
@@ -434,11 +455,11 @@ func UpdateCourseData(ctx context.Context, courseID uuid.UUID, courseData course
 	return nil
 }
 
-func DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
+func (s *CourseService) DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
 	// Delete the Keycloak groups and roles first: the group name is derived from
 	// the course row, which must still exist. On failure the course is kept so it
 	// stays deletable on a later retry instead of orphaning its Keycloak state.
-	if err := CourseServiceSingleton.deleteCourseGroupsAndRoles(ctx, courseID); err != nil {
+	if err := s.deleteCourseGroupsAndRoles(ctx, courseID); err != nil {
 		log.Error("Failed to delete keycloak groups and roles for course: ", err)
 		return errors.New("failed to delete keycloak groups and roles")
 	}
@@ -446,7 +467,7 @@ func DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	err := CourseServiceSingleton.queries.DeleteCourse(ctxWithTimeout, courseID)
+	err := s.queries.DeleteCourse(ctxWithTimeout, courseID)
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
@@ -455,18 +476,18 @@ func DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
 	return nil
 }
 
-func UpdateCourseTemplateStatus(ctx context.Context, courseID uuid.UUID, isTemplate bool) error {
+func (s *CourseService) UpdateCourseTemplateStatus(ctx context.Context, courseID uuid.UUID, isTemplate bool) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	if isTemplate {
-		err := CourseServiceSingleton.queries.MarkCourseAsTemplate(ctxWithTimeout, courseID)
+		err := s.queries.MarkCourseAsTemplate(ctxWithTimeout, courseID)
 		if err != nil {
 			log.Error(err)
 			return errors.New("failed to mark course as template")
 		}
 	} else {
-		err := CourseServiceSingleton.queries.UnmarkCourseAsTemplate(ctxWithTimeout, courseID)
+		err := s.queries.UnmarkCourseAsTemplate(ctxWithTimeout, courseID)
 		if err != nil {
 			log.Error(err)
 			return errors.New("failed to unmark course as template")
@@ -476,14 +497,14 @@ func UpdateCourseTemplateStatus(ctx context.Context, courseID uuid.UUID, isTempl
 	return nil
 }
 
-func GetTemplateCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.Course, error) {
+func (s *CourseService) GetTemplateCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.Course, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	var courses []db.Course
 	var err error
 	if userRoles[permissionValidation.PromptAdmin] {
-		courses, err = CourseServiceSingleton.queries.GetTemplateCoursesAdmin(ctxWithTimeout)
+		courses, err = s.queries.GetTemplateCoursesAdmin(ctxWithTimeout)
 		if err != nil {
 			return nil, err
 		}
@@ -494,7 +515,7 @@ func GetTemplateCourses(ctx context.Context, userRoles map[string]bool) ([]cours
 				userRolesArray = append(userRolesArray, key)
 			}
 		}
-		coursesRestricted, err := CourseServiceSingleton.queries.GetTemplateCoursesRestricted(ctxWithTimeout, userRolesArray)
+		coursesRestricted, err := s.queries.GetTemplateCoursesRestricted(ctxWithTimeout, userRolesArray)
 		if err != nil {
 			return nil, err
 		}
@@ -516,11 +537,11 @@ func GetTemplateCourses(ctx context.Context, userRoles map[string]bool) ([]cours
 	return dtoCourses, nil
 }
 
-func CheckCourseTemplateStatus(ctx context.Context, courseID uuid.UUID) (bool, error) {
+func (s *CourseService) CheckCourseTemplateStatus(ctx context.Context, courseID uuid.UUID) (bool, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	isTemplate, err := CourseServiceSingleton.queries.CheckCourseTemplateStatus(ctxWithTimeout, courseID)
+	isTemplate, err := s.queries.CheckCourseTemplateStatus(ctxWithTimeout, courseID)
 	if err != nil {
 		log.Error(err)
 		return false, errors.New("failed to check if course is template")

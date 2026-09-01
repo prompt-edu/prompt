@@ -10,17 +10,28 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-// setupCourseParticipationRouter sets up the course participation endpoints
+// RegisterRoutes mounts the course participation endpoints on the given router group.
 // @Summary Course Participation Endpoints
 // @Description Endpoints for managing course participations
 // @Tags course_participation
 // @Security BearerAuth
-func setupCourseParticipationRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CourseParticipationService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupCourseParticipationRouter(routerGroup, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
+}
+
+// initializes the handler func with CheckCoursePermissions
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
+}
+
+func setupCourseParticipationRouter(router *gin.RouterGroup, s *CourseParticipationService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	// incoming path should be /course/:uuid/
 	courseParticipation := router.Group("/courses/:uuid/participations", authMiddleware())
-	courseParticipation.GET("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getCourseParticipationsForCourse)
-	courseParticipation.POST("/enroll", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), createCourseParticipation)
-	courseParticipation.GET("/self", getOwnCourseParticipation)
+	courseParticipation.GET("", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCourseParticipationsForCourse)
+	courseParticipation.POST("/enroll", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.createCourseParticipation)
+	courseParticipation.GET("/self", s.getOwnCourseParticipation)
 }
 
 // getOwnCourseParticipation godoc
@@ -33,7 +44,7 @@ func setupCourseParticipationRouter(router *gin.RouterGroup, authMiddleware func
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participations/self [get]
-func getOwnCourseParticipation(c *gin.Context) {
+func (s *CourseParticipationService) getOwnCourseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -52,7 +63,7 @@ func getOwnCourseParticipation(c *gin.Context) {
 		return
 	}
 
-	courseParticipation, err := GetOwnCourseParticipation(c, id, matriculationNumber, universityLogin)
+	courseParticipation, err := s.GetOwnCourseParticipation(c, id, matriculationNumber, universityLogin)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -71,14 +82,14 @@ func getOwnCourseParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participations [get]
-func getCourseParticipationsForCourse(c *gin.Context) {
+func (s *CourseParticipationService) getCourseParticipationsForCourse(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	courseParticipations, err := GetAllCourseParticipationsForCourse(c, id)
+	courseParticipations, err := s.GetAllCourseParticipationsForCourse(c, id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -99,7 +110,7 @@ func getCourseParticipationsForCourse(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/participations/enroll [post]
-func createCourseParticipation(c *gin.Context) {
+func (s *CourseParticipationService) createCourseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -120,7 +131,7 @@ func createCourseParticipation(c *gin.Context) {
 		return
 	}
 
-	courseParticipation, err := CreateCourseParticipation(c, nil, newCourseParticipation)
+	courseParticipation, err := s.CreateCourseParticipation(c, nil, newCourseParticipation)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

@@ -22,7 +22,7 @@ type SkillRouterTestSuite struct {
 	router       *gin.Engine
 	suiteCtx     context.Context
 	cleanup      func()
-	skillService SkillsService
+	skillService *SkillsService
 }
 
 func (suite *SkillRouterTestSuite) SetupSuite() {
@@ -32,17 +32,13 @@ func (suite *SkillRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.skillService = SkillsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	SkillsServiceSingleton = &suite.skillService
+	suite.skillService = NewSkillsService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
 	}
-	setupSkillRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.skillService, testMiddleware)
 }
 
 func (suite *SkillRouterTestSuite) TearDownSuite() {

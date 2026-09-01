@@ -20,6 +20,7 @@ type InterviewSlotServiceTestSuite struct {
 	ctx           context.Context
 	testDB        *sdkTestUtils.TestDB[*db.Queries]
 	cleanup       func()
+	service       *InterviewSlotService
 	activePhaseID uuid.UUID
 	futurePhaseID uuid.UUID
 }
@@ -33,10 +34,7 @@ func (suite *InterviewSlotServiceTestSuite) SetupSuite() {
 	suite.activePhaseID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	suite.futurePhaseID = uuid.MustParse("22222222-2222-2222-2222-222222222222")
 
-	InterviewSlotServiceSingleton = &InterviewSlotService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewInterviewSlotService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *InterviewSlotServiceTestSuite) TearDownSuite() {
@@ -54,7 +52,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlot() {
 		Capacity:  2,
 	}
 
-	slot, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, req)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, req)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), suite.activePhaseID, slot.CoursePhaseID)
@@ -73,7 +71,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotInvalidTimes(
 		Capacity:  1,
 	}
 
-	_, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, req)
+	_, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, req)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -92,7 +90,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatch() {
 		},
 	}
 
-	slots, err := CreateInterviewSlotsBatch(suite.ctx, suite.futurePhaseID, req)
+	slots, err := suite.service.CreateInterviewSlotsBatch(suite.ctx, suite.futurePhaseID, req)
 
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), slots, 3)
@@ -105,7 +103,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatch() {
 }
 
 func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejectsInvalidTimesWithoutCreating() {
-	before, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
+	before, err := suite.service.GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
 	require.NoError(suite.T(), err)
 
 	start := time.Now().Add(72 * time.Hour)
@@ -116,7 +114,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejects
 		},
 	}
 
-	_, err = CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, req)
+	_, err = suite.service.CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, req)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -124,7 +122,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejects
 	require.Equal(suite.T(), 400, serviceErr.StatusCode)
 
 	// The valid slot preceding the rejected one must not have been created either.
-	after, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
+	after, err := suite.service.GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), after, len(before))
 }
@@ -141,7 +139,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejects
 		}
 	}
 
-	_, err := CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, interviewSlotDTO.CreateInterviewSlotsBatchRequest{Slots: slots})
+	_, err := suite.service.CreateInterviewSlotsBatch(suite.ctx, suite.activePhaseID, interviewSlotDTO.CreateInterviewSlotsBatchRequest{Slots: slots})
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -150,7 +148,7 @@ func (suite *InterviewSlotServiceTestSuite) TestCreateInterviewSlotsBatchRejects
 }
 
 func (suite *InterviewSlotServiceTestSuite) TestGetAllInterviewSlots() {
-	slots, err := GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
+	slots, err := suite.service.GetAllInterviewSlots(suite.ctx, suite.activePhaseID, "")
 
 	require.NoError(suite.T(), err)
 	require.GreaterOrEqual(suite.T(), len(slots), 3)
@@ -169,7 +167,7 @@ func (suite *InterviewSlotServiceTestSuite) TestGetAllInterviewSlots() {
 func (suite *InterviewSlotServiceTestSuite) TestGetInterviewSlot() {
 	slotID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-	slot, err := GetInterviewSlot(suite.ctx, suite.activePhaseID, slotID, "")
+	slot, err := suite.service.GetInterviewSlot(suite.ctx, suite.activePhaseID, slotID, "")
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), slotID, slot.ID)
@@ -180,7 +178,7 @@ func (suite *InterviewSlotServiceTestSuite) TestGetInterviewSlot() {
 func (suite *InterviewSlotServiceTestSuite) TestGetInterviewSlotNotFound() {
 	nonExistentID := uuid.New()
 
-	_, err := GetInterviewSlot(suite.ctx, suite.activePhaseID, nonExistentID, "")
+	_, err := suite.service.GetInterviewSlot(suite.ctx, suite.activePhaseID, nonExistentID, "")
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -196,7 +194,7 @@ func (suite *InterviewSlotServiceTestSuite) TestUpdateInterviewSlot() {
 		Location:  &location,
 		Capacity:  2,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
 	require.NoError(suite.T(), err)
 
 	newLocation := "Updated Room"
@@ -207,7 +205,7 @@ func (suite *InterviewSlotServiceTestSuite) TestUpdateInterviewSlot() {
 		Capacity:  3,
 	}
 
-	updated, err := UpdateInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID, updateReq)
+	updated, err := suite.service.UpdateInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID, updateReq)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), slot.ID, updated.ID)
@@ -223,7 +221,7 @@ func (suite *InterviewSlotServiceTestSuite) TestUpdateInterviewSlotReduceCapacit
 		Location:  &location,
 		Capacity:  2,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
 	require.NoError(suite.T(), err)
 
 	// Add 2 assignments
@@ -246,7 +244,7 @@ func (suite *InterviewSlotServiceTestSuite) TestUpdateInterviewSlotReduceCapacit
 		Capacity:  1,
 	}
 
-	_, err = UpdateInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID, updateReq)
+	_, err = suite.service.UpdateInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID, updateReq)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -262,10 +260,10 @@ func (suite *InterviewSlotServiceTestSuite) TestDeleteInterviewSlot() {
 		Location:  &location,
 		Capacity:  1,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
 	require.NoError(suite.T(), err)
 
-	err = DeleteInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID)
+	err = suite.service.DeleteInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID)
 
 	require.NoError(suite.T(), err)
 
@@ -282,7 +280,7 @@ func (suite *InterviewSlotServiceTestSuite) TestDeleteInterviewSlotCascadesAssig
 		Location:  &location,
 		Capacity:  5,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
 	require.NoError(suite.T(), err)
 
 	// Create some assignments for this slot
@@ -307,7 +305,7 @@ func (suite *InterviewSlotServiceTestSuite) TestDeleteInterviewSlotCascadesAssig
 	require.Equal(suite.T(), 2, len(assignments))
 
 	// Delete the slot
-	err = DeleteInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID)
+	err = suite.service.DeleteInterviewSlot(suite.ctx, suite.activePhaseID, slot.ID)
 	require.NoError(suite.T(), err)
 
 	// Verify assignments were cascaded (deleted)

@@ -17,7 +17,7 @@ func TestHandlePhaseCopyReturnsNil(t *testing.T) {
 	c.Request = httptest.NewRequest("POST", "/copy", nil)
 	c.Params = []gin.Param{{Key: "coursePhaseID", Value: uuid.New().String()}}
 
-	handler := SelfTeamCopyHandler{}
+	handler := selfTeamCopyHandler{}
 	err := handler.HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.New(),
 		TargetCoursePhaseID: uuid.New(),

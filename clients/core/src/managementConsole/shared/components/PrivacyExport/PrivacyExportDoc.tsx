@@ -61,6 +61,7 @@ export function PrivacyExportDocument({
               variant='outline'
               onClick={handleDownload}
               className='shrink-0'
+              aria-label={`Download ${privacy_export_document.source_name} export`}
             >
               {isDownloading ? (
                 <Loader2 className='h-4 w-4 animate-spin' />

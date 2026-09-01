@@ -40,6 +40,8 @@ DECLARE
         '5939210d-5c47-446e-ba55-3da992fd7aa6',
         'e0000005-0000-0000-0000-000000000005',
         'a5000007-0000-4000-8000-000000000007',
+        'e0000009-0000-0000-0000-000000000009',
+        'e0000010-0000-0000-0000-000000000010',
         'e1000001-0000-0000-0000-000000000001',
         'e1000002-0000-0000-0000-000000000002',
         'e1000003-0000-0000-0000-000000000003',
@@ -52,7 +54,8 @@ DECLARE
         'e12ffe63-448d-4469-a840-1699e9b328d1',
         'be780b32-a678-4b79-ae1c-80071771d254',
         'c0000001-0000-0000-0000-000000000001',
-        'c0000002-0000-0000-0000-000000000002'
+        'c0000002-0000-0000-0000-000000000002',
+        'c0000003-0000-0000-0000-000000000003'
     ];
     blocker text;
 BEGIN
@@ -80,7 +83,8 @@ DELETE FROM course WHERE id IN (
     'e12ffe63-448d-4469-a840-1699e9b328d1',
     'be780b32-a678-4b79-ae1c-80071771d254',
     'c0000001-0000-0000-0000-000000000001',
-    'c0000002-0000-0000-0000-000000000002'
+    'c0000002-0000-0000-0000-000000000002',
+    'c0000003-0000-0000-0000-000000000003'
 );
 
 DELETE FROM student WHERE id IN (
@@ -105,6 +109,8 @@ DELETE FROM student WHERE id IN (
     '5939210d-5c47-446e-ba55-3da992fd7aa6',
     'e0000005-0000-0000-0000-000000000005',
     'a5000007-0000-4000-8000-000000000007',
+    'e0000009-0000-0000-0000-000000000009',
+    'e0000010-0000-0000-0000-000000000010',
     'e1000001-0000-0000-0000-000000000001',
     'e1000002-0000-0000-0000-000000000002',
     'e1000003-0000-0000-0000-000000000003',
@@ -177,6 +183,15 @@ INSERT INTO student (id, first_name, last_name, email, matriculation_number, uni
     VALUES ('e0000005-0000-0000-0000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified)
     VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the privacy deletion-approval spec, which deletes this student. Nothing
+-- else may reference it; it maps to the Keycloak user `privacy-student`.
+INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified)
+    VALUES ('e0000009-0000-0000-0000-000000000009', 'Priya', 'Vacy', 'privacy_subject@example.com', '00000009', 'pv99tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the admin-initiated deletion spec. last_modified is far enough in the
+-- past to match the student table's "not modified in N years" filter, which a student
+-- created during the run never can. No Keycloak account: admins delete this one.
+INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified)
+    VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
 
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('d7307be2-d3dc-496e-86f0-643bff6cc1c8', 'iPraktikum', '2024-10-13', '2025-02-14', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'iOS practical course', 'The iPraktikum is a hands-on iOS development course.', false, NULL);
@@ -186,6 +201,10 @@ INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, e
     VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestCourse', '2024-12-19', '2025-04-19', 'ios2425', 'seminar', 5, '{"icon": "book", "bg-color": "bg-purple-100"}', '{"icon": "book", "bg-color": "bg-purple-100"}', false, 'Seminar course', 'A seminar.', false, NULL);
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('c0000001-0000-0000-0000-000000000001', 'iPraktikumFull', '2025-04-01', '2025-09-30', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'Full-cycle practical course', 'A practical course spanning application, interview, matching, team allocation, and assessment. Seeded with participations and course-scoped roles for e2e.', false, NULL);
+-- Owned by the application welcome-text spec, which mutates the phase's welcomeText.
+-- Its own course, because only one initial phase is allowed per course.
+INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
+    VALUES ('c0000003-0000-0000-0000-000000000003', 'iPraktikumWelcome', '2025-04-01', '2025-09-30', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'Welcome text fixture course', 'Owns the Application phase used by the welcome-text spec.', false, NULL);
 
 -- An open Application phase on iPraktikum, so the file-upload endpoints accept
 -- uploads (applicationEndDate in the future → CheckIfCoursePhaseIsOpenApplicationPhase passes).
@@ -285,18 +304,25 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- TestCourse has no other initial phase, so unique_initial_phase_per_course holds.
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('aaaa5555-0000-0000-0000-0000000000a5', 'be780b32-a678-4b79-ae1c-80071771d254', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2020-06-30T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": false}', true, (SELECT id FROM course_phase_type WHERE name = 'Application'), '{}');
+-- The welcomeText deliberately carries a script tag and an inline event handler:
+-- the spec asserts DOMPurify strips both before the applicant sees the page.
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('d0000030-0000-0000-0000-000000000030', 'c0000003-0000-0000-0000-000000000003', 'Welcome Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true, "welcomeText": "<p>Welcome to the PROMPT e2e welcome course.</p><p><a href=\"https://example.com/handbook\">Course handbook</a></p><script>window.__welcomeTextXss=1</script><img src=\"x\" onerror=\"window.__welcomeTextXss=1\">"}', true, (SELECT id FROM course_phase_type WHERE name = 'Application'), '{}');
 -- Certificate phases. d000000d is the graph-tail phase on iPraktikumFull
--- (smoke + API-auth reads, left unconfigured). d000000a / d000000b are
+-- (smoke + API-auth reads, left unconfigured). d000000a / d000000b / d0000016 are
 -- standalone fixtures (no graph edge, route by URL) so the lecturer journey's
--- template/release state and the student journey's downloads never cross when
--- Playwright runs the spec files in parallel. d000000c is the TestCourse
--- negative-auth fixture (no participants; the e2e students are not enrolled).
+-- template/release state, the student journey's downloads and the download-page
+-- instructor text never cross when Playwright runs the spec files in parallel.
+-- d000000c is the TestCourse negative-auth fixture (no participants; the e2e
+-- students are not enrolled).
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000000d-0000-0000-0000-00000000000d', 'c0000001-0000-0000-0000-000000000001', 'Certificate', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000000a-0000-0000-0000-00000000000a', 'c0000001-0000-0000-0000-000000000001', 'Certificate Lecturer', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}');
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('d0000016-0000-0000-0000-000000000016', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student Page Text', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}');
 -- Standalone Presentation phase on fullCourse for the Module Federation and
@@ -332,6 +358,10 @@ INSERT INTO course_participation (id, course_id, student_id)
     VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO course_participation (id, course_id, student_id)
     VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
+INSERT INTO course_participation (id, course_id, student_id)
+    VALUES ('ca000009-0000-4000-8000-000000000009', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000009-0000-0000-0000-000000000009');
+INSERT INTO course_participation (id, course_id, student_id)
+    VALUES ('ca000010-0000-4000-8000-000000000010', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000010-0000-0000-0000-000000000010');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
 -- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
@@ -441,14 +471,17 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('ca000008-0000-4000-8000-000000000008', 'd000000e-0000-0000-0000-00000000000e', '{"score": 85}', 'not_assessed', '{}');
 -- Certificate phases (see the course_phase inserts below): Stan participates in
--- the graph-tail phase (smoke + API reads) and both standalone journey phases
--- (lecturer participants table + staff download, student self-download).
+-- the graph-tail phase (smoke + API reads) and all three standalone journey phases
+-- (lecturer participants table + staff download, student self-download, and the
+-- instructor text on the student download page).
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000d-0000-0000-0000-00000000000d', '{}', 'passed', '{}');
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000a-0000-0000-0000-00000000000a', '{}', 'passed', '{}');
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000b-0000-0000-0000-00000000000b', '{}', 'passed', '{}');
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
+    VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000016-0000-0000-0000-000000000016', '{}', 'passed', '{}');
 -- Standalone Team Allocation journey phase (see the course_phase inserts below):
 -- Stan + Selma participate so the lecturer participants table lists them and the
 -- published allocation can target Stan's participation.

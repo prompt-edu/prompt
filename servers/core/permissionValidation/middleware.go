@@ -16,8 +16,10 @@ func handleAuthError(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 }
 
+type PermissionCheck func(c *gin.Context, id uuid.UUID, allowedRoles ...string) (bool, error)
+
 // Reads an id from the URL and checks based on the URL the permission of the user
-func CheckAccessControlByID(checkPermission func(ctx *gin.Context, id uuid.UUID, allowedRoles ...string) (bool, error), idParamName string, allowedRoles ...string) gin.HandlerFunc {
+func CheckAccessControlByID(checkPermission PermissionCheck, idParamName string, allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract and parse the course UUID from route parameters.
 		id, err := uuid.Parse(c.Param(idParamName))

@@ -3,7 +3,6 @@ package mailing
 import (
 	"context"
 	"errors"
-	"net/mail"
 	"sort"
 	"sync"
 	"testing"
@@ -24,6 +23,7 @@ type StatusMailDedupTestSuite struct {
 	cleanup func()
 	queries *db.Queries
 	conn    *pgxpool.Pool
+	service *MailingService
 
 	oldSendMailFn func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
@@ -54,27 +54,23 @@ func (suite *StatusMailDedupTestSuite) SetupSuite() {
 	suite.queries = testDB.Queries
 	suite.conn = testDB.Conn
 
-	MailingServiceSingleton = &MailingService{
-		senderEmail: mail.Address{Name: "Status Mail Test", Address: "noreply@example.com"},
-		queries:     *testDB.Queries,
-		conn:        testDB.Conn,
-	}
+	suite.service = NewMailingService(*testDB.Queries, "", "", "", "", "Status Mail Test", "noreply@example.com", "")
 
-	suite.oldSendMailFn = sendMailFn
-	suite.oldNowFn = nowFn
+	suite.oldSendMailFn = suite.service.sendMail
+	suite.oldNowFn = suite.service.now
 
 	suite.configureTestData()
 }
 
 func (suite *StatusMailDedupTestSuite) TearDownSuite() {
-	sendMailFn = suite.oldSendMailFn
-	nowFn = suite.oldNowFn
+	suite.service.sendMail = suite.oldSendMailFn
+	suite.service.now = suite.oldNowFn
 	suite.cleanup()
 }
 
 func (suite *StatusMailDedupTestSuite) SetupTest() {
-	sendMailFn = suite.oldSendMailFn
-	nowFn = suite.oldNowFn
+	suite.service.sendMail = suite.oldSendMailFn
+	suite.service.now = suite.oldNowFn
 }
 
 // configureTestData adds the reply-to and passed-status templates the trigger requires and gives the
@@ -139,10 +135,10 @@ func (suite *StatusMailDedupTestSuite) restrictedData(cpID uuid.UUID) string {
 	return data
 }
 
-// recordingSendMailFn installs a sendMailFn that records recipients and fails for failFor.
+// recordingSendMailFn installs a sendMail seam that records recipients and fails for failFor.
 func (suite *StatusMailDedupTestSuite) recordingSendMailFn(failFor string) *[]string {
 	sent := make([]string, 0)
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -230,7 +226,7 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailConcurrentTriggersMailO
 	sending := make(chan struct{})
 	secondTriggerDone := make(chan struct{})
 
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -248,13 +244,13 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailConcurrentTriggersMailO
 
 	firstReports := make(chan mailingDTO.MailingReport, 1)
 	go func() {
-		report, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+		report, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 		assert.NoError(t, err)
 		firstReports <- report
 	}()
 
 	<-sending
-	secondReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	secondReport, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 	close(secondTriggerDone)
 
@@ -276,7 +272,7 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailOnlyOncePerParticipant(
 	suite.setParticipation(dedupCP2, "passed", `{}`)
 	sent := suite.recordingSendMailFn("")
 
-	report, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	report, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 
 	sortedSent := append([]string(nil), *sent...)
@@ -287,7 +283,7 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailOnlyOncePerParticipant(
 
 	// The claims are committed per trigger, so the second trigger has no recipients left.
 	secondSent := suite.recordingSendMailFn("")
-	secondReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	secondReport, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 	assert.Empty(t, *secondSent)
 	assert.Empty(t, secondReport.SuccessfulEmails)
@@ -303,7 +299,7 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailRetriesFailedRecipients
 	failingRecipient := dedupEmail1
 
 	sent := suite.recordingSendMailFn(failingRecipient)
-	report, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	report, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 	assert.Equal(t, []string{dedupEmail2}, *sent)
 	assert.Equal(t, []string{failingRecipient}, report.FailedEmails)
@@ -314,7 +310,7 @@ func (suite *StatusMailDedupTestSuite) TestSendStatusMailRetriesFailedRecipients
 	assert.Contains(t, cp1Data, `"foo": "bar"`)
 
 	retried := suite.recordingSendMailFn("")
-	retryReport, err := SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
+	retryReport, err := suite.service.SendStatusMailManualTrigger(suite.ctx, dedupCoursePhaseID, db.PassStatusPassed, nil)
 	suite.Require().NoError(err)
 	assert.Equal(t, []string{failingRecipient}, *retried)
 	assert.Equal(t, []string{failingRecipient}, retryReport.SuccessfulEmails)

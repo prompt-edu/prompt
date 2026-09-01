@@ -6,7 +6,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-// setupCopyRouter sets up phase copy endpoints.
+// RegisterRoutes sets up phase copy endpoints.
 // @Summary Phase Copy Endpoints
 // @Description Copy course phase configuration between phases.
 // @Tags copy
@@ -18,6 +18,6 @@ import (
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /copy [post]
-func setupCopyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &AssessmentCopyHandler{})
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CopyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
 }

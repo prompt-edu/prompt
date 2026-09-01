@@ -9,4 +9,5 @@ export type ApplicationMetaData = {
   useCustomScores?: boolean
   applicationCsvExportSettings?: Record<string, boolean>
   applicationMode?: ApplicationMode
+  welcomeText?: string
 }

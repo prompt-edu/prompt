@@ -2,8 +2,8 @@ package keycloakTokenVerifier
 
 import (
 	"context"
-	"log"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
@@ -13,14 +13,13 @@ type KeycloakTokenVerifier struct {
 	ClientID                string
 	expectedAuthorizedParty string
 	queries                 db.Queries
+	verifier                *oidc.IDTokenVerifier
 }
-
-var KeycloakTokenVerifierSingleton *KeycloakTokenVerifier
 
 var TOP_LEVEL_GROUP_NAME = "Prompt"
 
-func InitKeycloakTokenVerifier(ctx context.Context, BaseURL, Realm, ClientID, expectedAuthorizedParty string, queries db.Queries) {
-	KeycloakTokenVerifierSingleton = &KeycloakTokenVerifier{
+func NewKeycloakTokenVerifier(ctx context.Context, BaseURL, Realm, ClientID, expectedAuthorizedParty string, queries db.Queries) (*KeycloakTokenVerifier, error) {
+	tokenVerifier := &KeycloakTokenVerifier{
 		BaseURL:                 BaseURL,
 		Realm:                   Realm,
 		ClientID:                ClientID,
@@ -28,9 +27,9 @@ func InitKeycloakTokenVerifier(ctx context.Context, BaseURL, Realm, ClientID, ex
 		queries:                 queries,
 	}
 
-	// init the middleware
-	err := InitKeycloakVerifier()
-	if err != nil {
-		log.Fatal("Failed to initialize Keycloak verifier: ", err)
+	if err := tokenVerifier.initOIDCVerifier(ctx); err != nil {
+		return nil, err
 	}
+
+	return tokenVerifier, nil
 }

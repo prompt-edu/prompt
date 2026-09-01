@@ -14,26 +14,37 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupCourseMailingRouter registers the course-level mail campaign endpoints.
+// RegisterRoutes mounts the course-level mail campaign endpoints.
 // @Summary Course Mailing Endpoints
 // @Description Endpoints for managing per-course mail campaigns
 // @Tags course_mailing
 // @Security BearerAuth
-func setupCourseMailingRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, service *CourseMailingService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	setupCourseMailingRouter(router, service, authMiddleware, checkAccessControlByIDWrapper(checkCoursePermission))
+}
+
+// checkAccessControlByIDWrapper enforces course-level permissions on the :uuid param.
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "uuid", allowedRoles...)
+	}
+}
+
+func setupCourseMailingRouter(router *gin.RouterGroup, s *CourseMailingService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	editRoles := []string{permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer, permissionValidation.CourseEditor}
 	sendRoles := []string{permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer}
 
 	campaigns := router.Group("/courses/:uuid/mail-campaigns", authMiddleware())
-	campaigns.GET("", permissionIDMiddleware(editRoles...), listCampaigns)
-	campaigns.POST("", permissionIDMiddleware(editRoles...), createCampaign)
-	campaigns.GET("/:campaignID", permissionIDMiddleware(editRoles...), getCampaign)
-	campaigns.PUT("/:campaignID", permissionIDMiddleware(editRoles...), updateCampaign)
-	campaigns.DELETE("/:campaignID", permissionIDMiddleware(editRoles...), deleteCampaign)
-	campaigns.POST("/:campaignID/copy", permissionIDMiddleware(editRoles...), copyCampaign)
-	campaigns.GET("/:campaignID/recipients-preview", permissionIDMiddleware(editRoles...), previewRecipients)
-	campaigns.POST("/:campaignID/test", permissionIDMiddleware(editRoles...), testSendCampaign)
-	campaigns.POST("/:campaignID/send", permissionIDMiddleware(sendRoles...), sendCampaign)
-	campaigns.POST("/:campaignID/resend-failed", permissionIDMiddleware(sendRoles...), resendFailedCampaign)
+	campaigns.GET("", permissionIDMiddleware(editRoles...), s.listCampaigns)
+	campaigns.POST("", permissionIDMiddleware(editRoles...), s.createCampaign)
+	campaigns.GET("/:campaignID", permissionIDMiddleware(editRoles...), s.getCampaign)
+	campaigns.PUT("/:campaignID", permissionIDMiddleware(editRoles...), s.updateCampaign)
+	campaigns.DELETE("/:campaignID", permissionIDMiddleware(editRoles...), s.deleteCampaign)
+	campaigns.POST("/:campaignID/copy", permissionIDMiddleware(editRoles...), s.copyCampaign)
+	campaigns.GET("/:campaignID/recipients-preview", permissionIDMiddleware(editRoles...), s.previewRecipients)
+	campaigns.POST("/:campaignID/test", permissionIDMiddleware(editRoles...), s.testSendCampaign)
+	campaigns.POST("/:campaignID/send", permissionIDMiddleware(sendRoles...), s.sendCampaign)
+	campaigns.POST("/:campaignID/resend-failed", permissionIDMiddleware(sendRoles...), s.resendFailedCampaign)
 }
 
 func actorFromContext(c *gin.Context) courseMailingDTO.Actor {
@@ -66,13 +77,13 @@ func parseCourseAndCampaign(c *gin.Context) (uuid.UUID, uuid.UUID, error) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns [get]
-func listCampaigns(c *gin.Context) {
+func (s *CourseMailingService) listCampaigns(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	campaigns, err := CourseMailingServiceSingleton.ListCampaigns(c, courseID)
+	campaigns, err := s.ListCampaigns(c, courseID)
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -91,7 +102,7 @@ func listCampaigns(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns [post]
-func createCampaign(c *gin.Context) {
+func (s *CourseMailingService) createCampaign(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -102,7 +113,7 @@ func createCampaign(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	created, err := CourseMailingServiceSingleton.CreateCampaign(c, courseID, actorFromContext(c), req)
+	created, err := s.CreateCampaign(c, courseID, actorFromContext(c), req)
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -121,13 +132,13 @@ func createCampaign(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [get]
-func getCampaign(c *gin.Context) {
+func (s *CourseMailingService) getCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	detail, err := CourseMailingServiceSingleton.GetCampaignDetail(c, courseID, campaignID)
+	detail, err := s.GetCampaignDetail(c, courseID, campaignID)
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -149,7 +160,7 @@ func getCampaign(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [put]
-func updateCampaign(c *gin.Context) {
+func (s *CourseMailingService) updateCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -160,7 +171,7 @@ func updateCampaign(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	updated, err := CourseMailingServiceSingleton.UpdateCampaign(c, courseID, campaignID, actorFromContext(c), req)
+	updated, err := s.UpdateCampaign(c, courseID, campaignID, actorFromContext(c), req)
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -178,13 +189,13 @@ func updateCampaign(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID} [delete]
-func deleteCampaign(c *gin.Context) {
+func (s *CourseMailingService) deleteCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := CourseMailingServiceSingleton.DeleteCampaign(c, courseID, campaignID); err != nil {
+	if err := s.DeleteCampaign(c, courseID, campaignID); err != nil {
 		handleServiceError(c, err)
 		return
 	}
@@ -202,13 +213,13 @@ func deleteCampaign(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/copy [post]
-func copyCampaign(c *gin.Context) {
+func (s *CourseMailingService) copyCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	copied, err := CourseMailingServiceSingleton.CopyCampaign(c, courseID, campaignID, actorFromContext(c))
+	copied, err := s.CopyCampaign(c, courseID, campaignID, actorFromContext(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -227,13 +238,13 @@ func copyCampaign(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/recipients-preview [get]
-func previewRecipients(c *gin.Context) {
+func (s *CourseMailingService) previewRecipients(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	preview, err := CourseMailingServiceSingleton.PreviewRecipients(c, courseID, campaignID)
+	preview, err := s.PreviewRecipients(c, courseID, campaignID)
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -251,13 +262,13 @@ func previewRecipients(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/test [post]
-func testSendCampaign(c *gin.Context) {
+func (s *CourseMailingService) testSendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	if err := CourseMailingServiceSingleton.TestSend(c, courseID, campaignID, actorFromContext(c)); err != nil {
+	if err := s.TestSend(c, courseID, campaignID, actorFromContext(c)); err != nil {
 		handleServiceError(c, err)
 		return
 	}
@@ -277,13 +288,13 @@ func testSendCampaign(c *gin.Context) {
 // @Failure 422 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/send [post]
-func sendCampaign(c *gin.Context) {
+func (s *CourseMailingService) sendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	count, err := CourseMailingServiceSingleton.SendCampaign(c, courseID, campaignID, actorFromContext(c))
+	count, err := s.SendCampaign(c, courseID, campaignID, actorFromContext(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return
@@ -304,13 +315,13 @@ func sendCampaign(c *gin.Context) {
 // @Failure 422 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/mail-campaigns/{campaignID}/resend-failed [post]
-func resendFailedCampaign(c *gin.Context) {
+func (s *CourseMailingService) resendFailedCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	count, err := CourseMailingServiceSingleton.ResendFailed(c, courseID, campaignID, actorFromContext(c))
+	count, err := s.ResendFailed(c, courseID, campaignID, actorFromContext(c))
 	if err != nil {
 		handleServiceError(c, err)
 		return

@@ -46,12 +46,13 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 
 | Prefix | What |
 | --- | --- |
-| `c0000001…` / `c0000002…` | courses `iPraktikumFull` / `iPraktikumDemo` |
+| `c0000001…` / `c0000002…` / `c0000003…` | courses `iPraktikumFull` / `iPraktikumDemo` / `iPraktikumWelcome` |
 | `d7307be2…`, `e12ffe63…`, `be780b32…` | the e2e fixture courses |
 | `f00000NN…` | demo course phases (1 Application … 9 Example) |
 | `cd0000NN…` | demo course participations |
 | `e10000NN…` | demo students |
 | `e0000005…` / `a5000007…` | the Keycloak `student` / `student2` rows |
+| `e0000009…` / `e0000010…` | the privacy suite's deletion subjects |
 | `fa…`, `fb…`, `fc…`, `fd…`, `fe…`, `ff…` | demo application questions, answers, assessments, mail campaign |
 | `1a…`, `1b…` | interview slots, assignments |
 | `2a…`, `2b…` | self team allocation teams, assignments |

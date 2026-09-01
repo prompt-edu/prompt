@@ -16,9 +16,13 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/storage"
+	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +34,7 @@ type ApplicationAdminRouterTestSuite struct {
 	router                  *gin.Engine
 	ctx                     context.Context
 	cleanup                 func()
-	applicationAdminService ApplicationService
+	applicationAdminService *ApplicationService
 }
 
 var (
@@ -48,22 +52,20 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.applicationAdminService = ApplicationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	ApplicationServiceSingleton = &suite.applicationAdminService
+	resolutionService := resolution.NewResolutionService("localhost:8080")
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolutionService)
+	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolutionService)
+	studentService := student.NewStudentService(*testDB.Queries)
+	courseParticipationService := courseParticipation.NewCourseParticipationService(*testDB.Queries)
+	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
+	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
+	suite.applicationAdminService = NewApplicationService(*testDB.Queries, testDB.Conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupApplicationRouter(api, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	student.InitStudentModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	courseParticipation.InitCourseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	coursePhaseParticipation.InitCoursePhaseParticipationModule(suite.router.Group("/api"), *testDB.Queries, testDB.Conn)
-	mailing.InitMailingModule(api, *testDB.Queries, testDB.Conn, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
+	setupApplicationRouter(api, suite.applicationAdminService, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TearDownSuite() {

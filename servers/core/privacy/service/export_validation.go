@@ -12,8 +12,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func ValidateExportValid(c context.Context, exportID uuid.UUID) error {
-	exp, err := PrivacyServiceSingleton.queries.GetExportRecordByID(c, exportID)
+func (s *PrivacyService) ValidateExportValid(c context.Context, exportID uuid.UUID) error {
+	exp, err := s.queries.GetExportRecordByID(c, exportID)
 	if err != nil {
 		return err
 	}
@@ -25,8 +25,8 @@ func ValidateExportValid(c context.Context, exportID uuid.UUID) error {
 	return nil
 }
 
-func ValidateExportDocBelongsToExport(c context.Context, docID uuid.UUID, exportID uuid.UUID) error {
-	expWD, err := GetExportWithDocs(c, exportID)
+func (s *PrivacyService) ValidateExportDocBelongsToExport(c context.Context, docID uuid.UUID, exportID uuid.UUID) error {
+	expWD, err := s.GetExportWithDocs(c, exportID)
 	if err != nil {
 		return err
 	}
@@ -38,8 +38,8 @@ func ValidateExportDocBelongsToExport(c context.Context, docID uuid.UUID, export
 	return fmt.Errorf("the export doc with given ID does not belong to the export with given ID")
 }
 
-func ValidateNoValidExportExists(c context.Context, userID uuid.UUID) error {
-	availability, exp, err := GetExportAvailability(c, userID)
+func (s *PrivacyService) ValidateNoValidExportExists(c context.Context, userID uuid.UUID) error {
+	availability, exp, err := s.GetExportAvailability(c, userID)
 	if err != nil {
 		return err
 	}
@@ -49,8 +49,8 @@ func ValidateNoValidExportExists(c context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func ValidateNotRateLimited(c context.Context, userID uuid.UUID) error {
-	availability, exp, err := GetExportAvailability(c, userID)
+func (s *PrivacyService) ValidateNotRateLimited(c context.Context, userID uuid.UUID) error {
+	availability, exp, err := s.GetExportAvailability(c, userID)
 	if err != nil {
 		return err
 	}
@@ -60,8 +60,8 @@ func ValidateNotRateLimited(c context.Context, userID uuid.UUID) error {
 	return nil
 }
 
-func ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error {
-	exp, err := PrivacyServiceSingleton.queries.GetExportRecordByID(c, exportID)
+func (s *PrivacyService) ValidateExportBelongsToRequester(c *gin.Context, exportID uuid.UUID) error {
+	exp, err := s.queries.GetExportRecordByID(c, exportID)
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,6 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -207,9 +206,9 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 

@@ -245,7 +245,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails_WelcomeText() {
 	coursePhaseID := uuid.MustParse("d0000099-0000-0000-0000-000000000099")
 
-	formWithDetails, err := GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
+	formWithDetails, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), formWithDetails.ApplicationPhase.WelcomeText)
 	assert.Equal(suite.T(), "<p>Welcome to the course.</p>", *formWithDetails.ApplicationPhase.WelcomeText)
@@ -256,7 +256,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationFormWithDetails
 	// an absent key cannot fail the scan.
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	formWithDetails, err := GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
+	formWithDetails, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), formWithDetails.ApplicationPhase.WelcomeText)
 }

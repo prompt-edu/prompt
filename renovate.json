@@ -16,6 +16,15 @@
       "description": "No minimum age for security updates",
       "matchCategories": ["security"],
       "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "No minimum age for the packages we maintain ourselves",
+      "matchPackageNames": [
+        "@tumaet/prompt-shared-state",
+        "@tumaet/prompt-ui-components",
+        "github.com/prompt-edu/prompt-sdk"
+      ],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }

@@ -731,6 +731,7 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000d-0000-0000-0000-00000000000d', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000a-0000-0000-0000-00000000000a', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000b-0000-0000-0000-00000000000b', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000016-0000-0000-0000-000000000016', '{}', 'passed', '{}');
 -- Standalone Team Allocation journey phase (see the course_phase inserts below):
 -- Stan + Selma participate so the lecturer participants table lists them and the
 -- published allocation can target Stan's participation.
@@ -875,6 +876,7 @@ INSERT INTO public.course_phase VALUES ('aaaa5555-0000-0000-0000-0000000000a5', 
 INSERT INTO public.course_phase VALUES ('d000000d-0000-0000-0000-00000000000d', 'c0000001-0000-0000-0000-000000000001', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000a-0000-0000-0000-00000000000a', 'c0000001-0000-0000-0000-000000000001', 'Certificate Lecturer', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
+INSERT INTO public.course_phase VALUES ('d0000016-0000-0000-0000-000000000016', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student Page Text', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 
 --

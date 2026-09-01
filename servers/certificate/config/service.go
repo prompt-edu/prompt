@@ -95,6 +95,30 @@ func (s *ConfigService) UpdateReleaseDate(ctx context.Context, coursePhaseID uui
 	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
 }
 
+func (s *ConfigService) UpdateStudentPageText(ctx context.Context, coursePhaseID uuid.UUID, studentPageText *string) (configDTO.CoursePhaseConfig, error) {
+	var text pgtype.Text
+	if studentPageText != nil {
+		text = pgtype.Text{String: *studentPageText, Valid: true}
+	}
+
+	config, err := s.queries.UpsertStudentPageText(ctx, db.UpsertStudentPageTextParams{
+		CoursePhaseID:   coursePhaseID,
+		StudentPageText: text,
+	})
+	if err != nil {
+		log.WithError(err).Error("Failed to update student page text")
+		return configDTO.CoursePhaseConfig{}, err
+	}
+
+	hasDownloads, err := s.queries.HasDownloads(ctx, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Warn("Failed to check for existing downloads")
+		hasDownloads = false
+	}
+
+	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
+}
+
 func (s *ConfigService) GetTemplateContent(ctx context.Context, coursePhaseID uuid.UUID) (string, error) {
 	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {

@@ -29,3 +29,14 @@ export const updateReleaseDate = async (
   )
   return response.data
 }
+
+export const updateStudentPageText = async (
+  coursePhaseId: string,
+  studentPageText: string | null,
+): Promise<CoursePhaseConfig> => {
+  const response = await certificateAxiosInstance.put(
+    `certificate/api/course_phase/${coursePhaseId}/config/student-page-text`,
+    { studentPageText },
+  )
+  return response.data
+}

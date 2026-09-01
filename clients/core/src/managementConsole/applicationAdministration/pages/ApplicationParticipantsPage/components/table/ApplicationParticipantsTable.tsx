@@ -4,9 +4,13 @@ import { getApplicationAssessment } from '@core/network/queries/applicationAsses
 import { getApplicationForm } from '@core/network/queries/applicationForm'
 import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
-import { PromptTableURL, type TableFilter, useToast } from '@tumaet/prompt-ui-components'
+import {
+  type PromptTableColumnDef,
+  PromptTableURL,
+  type TableFilter,
+  useToast,
+} from '@tumaet/prompt-ui-components'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
@@ -92,7 +96,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [participations, additionalScores, exportedAnswersByParticipation],
   )
 
-  const columns: ColumnDef<ApplicationRow>[] = useMemo(
+  const columns: PromptTableColumnDef<ApplicationRow>[] = useMemo(
     () => getApplicationColumns(additionalScores, exportedColumns),
     [additionalScores, exportedColumns],
   )

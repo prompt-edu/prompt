@@ -1,8 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table'
+import type { PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import { InstructorNoteTagColor } from '../../shared/components/InstructorNote/InstructorNoteTag'
 import type { NoteTag } from '../../shared/interfaces/InstructorNote'
 
-export const noteTagTableColumns: ColumnDef<NoteTag>[] = [
+export const noteTagTableColumns: PromptTableColumnDef<NoteTag>[] = [
   {
     accessorKey: 'name',
     header: 'Name',

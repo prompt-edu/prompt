@@ -12,14 +12,19 @@ import (
 )
 
 type PrivacyService struct {
-	Queries db.Queries
-	Conn    *pgxpool.Pool
+	queries db.Queries
+	conn    *pgxpool.Pool
 }
 
-var PrivacyServiceSingleton *PrivacyService
+func NewPrivacyService(queries db.Queries, conn *pgxpool.Pool) *PrivacyService {
+	return &PrivacyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
-	q := PrivacyServiceSingleton.Queries
+func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
+	q := s.queries
 	ids := subject.CourseParticipationIDs
 
 	exp.AddJSON("Assessments", "student/assessment.json", func() (any, error) {
@@ -47,18 +52,18 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	return nil
 }
 
-func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
 	ids := subject.CourseParticipationIDs
 
 	// needed so when caller closes connection we also stop the procedure
 	ctx := c.Request.Context()
 
-	tx, err := PrivacyServiceSingleton.Conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin deletion transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete assessments: %w", err)

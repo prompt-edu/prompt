@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -17,13 +16,16 @@ var ErrAssignmentNotFound = errors.New("assignment not found")
 
 type AllocationService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var AllocationServiceSingleton *AllocationService
+func NewAllocationService(queries db.Queries) *AllocationService {
+	return &AllocationService{
+		queries: queries,
+	}
+}
 
-func GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocationDTO.AllocationWithParticipation, error) {
-	dbAssignments, err := AllocationServiceSingleton.queries.GetAssignmentsByCoursePhase(ctx, coursePhaseID)
+func (s *AllocationService) GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocationDTO.AllocationWithParticipation, error) {
+	dbAssignments, err := s.queries.GetAssignmentsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("Error fetching assignments from database: ", err)
 		return []allocationDTO.AllocationWithParticipation{}, err
@@ -33,8 +35,8 @@ func GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocati
 	return allocations, nil
 }
 
-func GetAllocationByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (uuid.UUID, error) {
-	assignment, err := AllocationServiceSingleton.queries.GetAssignmentForStudent(ctx, db.GetAssignmentForStudentParams{
+func (s *AllocationService) GetAllocationByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (uuid.UUID, error) {
+	assignment, err := s.queries.GetAssignmentForStudent(ctx, db.GetAssignmentForStudentParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})

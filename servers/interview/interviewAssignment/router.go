@@ -9,16 +9,15 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
-	"github.com/prompt-edu/prompt/servers/interview/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-func setupInterviewAssignmentRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewAssignmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assignmentRouter := routerGroup.Group("/interview-assignments")
-	assignmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), createInterviewAssignment)
-	assignmentRouter.POST("/admin", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createInterviewAssignmentAdmin)
-	assignmentRouter.GET("/my-assignment", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), getMyInterviewAssignment)
-	assignmentRouter.DELETE("/:assignmentId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), deleteInterviewAssignment)
+	assignmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.createInterviewAssignment)
+	assignmentRouter.POST("/admin", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewAssignmentAdmin)
+	assignmentRouter.GET("/my-assignment", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getMyInterviewAssignment)
+	assignmentRouter.DELETE("/:assignmentId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.deleteInterviewAssignment)
 }
 
 func writeServiceError(c *gin.Context, err error) {
@@ -46,7 +45,7 @@ func writeServiceError(c *gin.Context, err error) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-assignments [post]
-func createInterviewAssignment(c *gin.Context) {
+func (s *InterviewAssignmentService) createInterviewAssignment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -59,13 +58,13 @@ func createInterviewAssignment(c *gin.Context) {
 		return
 	}
 
-	participationID, err := utils.GetUserCourseParticipationID(c)
+	participationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+		c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := CreateInterviewAssignment(c.Request.Context(), coursePhaseID, participationID, req)
+	response, err := s.CreateInterviewAssignment(c.Request.Context(), coursePhaseID, participationID, req)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -88,7 +87,7 @@ func createInterviewAssignment(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-assignments/admin [post]
-func createInterviewAssignmentAdmin(c *gin.Context) {
+func (s *InterviewAssignmentService) createInterviewAssignmentAdmin(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -101,7 +100,7 @@ func createInterviewAssignmentAdmin(c *gin.Context) {
 		return
 	}
 
-	response, err := CreateInterviewAssignmentAdmin(c.Request.Context(), coursePhaseID, req)
+	response, err := s.CreateInterviewAssignmentAdmin(c.Request.Context(), coursePhaseID, req)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -121,20 +120,20 @@ func createInterviewAssignmentAdmin(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-assignments/my-assignment [get]
-func getMyInterviewAssignment(c *gin.Context) {
+func (s *InterviewAssignmentService) getMyInterviewAssignment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
 		return
 	}
 
-	participationID, err := utils.GetUserCourseParticipationID(c)
+	participationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+		c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := GetMyInterviewAssignment(c.Request.Context(), coursePhaseID, participationID)
+	response, err := s.GetMyInterviewAssignment(c.Request.Context(), coursePhaseID, participationID)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -154,7 +153,7 @@ func getMyInterviewAssignment(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-assignments/{assignmentId} [delete]
-func deleteInterviewAssignment(c *gin.Context) {
+func (s *InterviewAssignmentService) deleteInterviewAssignment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -182,14 +181,14 @@ func deleteInterviewAssignment(c *gin.Context) {
 	// For non-privileged users, get their participation ID for ownership check
 	var selfParticipationID uuid.UUID
 	if !isPrivileged {
-		selfParticipationID, err = utils.GetUserCourseParticipationID(c)
+		selfParticipationID, err = keycloakTokenVerifier.GetUserCourseParticipationID(c)
 		if err != nil {
-			c.JSON(utils.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+			c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	err = DeleteInterviewAssignment(c.Request.Context(), coursePhaseID, assignmentID, selfParticipationID, isPrivileged)
+	err = s.DeleteInterviewAssignment(c.Request.Context(), coursePhaseID, assignmentID, selfParticipationID, isPrivileged)
 	if err != nil {
 		writeServiceError(c, err)
 		return

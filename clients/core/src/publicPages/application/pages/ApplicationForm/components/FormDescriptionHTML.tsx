@@ -4,9 +4,14 @@ import { useFormContext } from 'react-hook-form'
 
 interface FormDescriptionHTMLProps {
   htmlCode: string
+  // Only applies outside a form context, where this component owns its wrapper.
+  className?: string
 }
 
-export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
+export const FormDescriptionHTML = ({
+  htmlCode,
+  className = 'text-sm text-muted-foreground',
+}: FormDescriptionHTMLProps) => {
   const formContext = useFormContext()
 
   // allowing _blank in links, but only with noopener
@@ -82,7 +87,7 @@ export const FormDescriptionHTML = ({ htmlCode }: FormDescriptionHTMLProps) => {
   )
 
   if (!formContext) {
-    return <div className='text-sm text-muted-foreground'>{content}</div>
+    return <div className={className}>{content}</div>
   }
 
   return <FormDescription>{content}</FormDescription>

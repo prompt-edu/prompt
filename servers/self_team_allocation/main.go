@@ -90,13 +90,20 @@ func main() {
 			"message": "Hello from team self assignment service"})
 	})
 
-	teams.InitTeamModule(coursePhaseApi, *query, conn)
-	timeframe.InitTimeframeModule(coursePhaseApi, *query, conn)
-	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	timeframeService := timeframe.NewTimeframeService(*query)
+	teamsService := teams.NewTeamsService(*query, conn, timeframeService)
+	assignmentService := teams.NewAssignmentService(*query)
+	allocationService := allocation.NewAllocationService(*query)
+	configService := config.NewConfigService(*query)
+	privacyService := privacy.NewPrivacyService(*query, conn)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)
+	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, promptSDK.AuthenticationMiddleware)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
+
+	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "self-team-allocation",

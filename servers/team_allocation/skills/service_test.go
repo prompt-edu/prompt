@@ -16,7 +16,7 @@ type SkillServiceTestSuite struct {
 	suite.Suite
 	suiteCtx     context.Context
 	cleanup      func()
-	skillService SkillsService
+	skillService *SkillsService
 }
 
 func (suite *SkillServiceTestSuite) SetupSuite() {
@@ -26,11 +26,7 @@ func (suite *SkillServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.skillService = SkillsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	SkillsServiceSingleton = &suite.skillService
+	suite.skillService = NewSkillsService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *SkillServiceTestSuite) TearDownSuite() {
@@ -42,7 +38,7 @@ func (suite *SkillServiceTestSuite) TearDownSuite() {
 func (suite *SkillServiceTestSuite) TestGetAllSkills() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	skills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	skills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(skills), 0, "Expected at least one skill")
 
@@ -55,7 +51,7 @@ func (suite *SkillServiceTestSuite) TestGetAllSkills() {
 func (suite *SkillServiceTestSuite) TestGetAllSkillsNonExistentCoursePhase() {
 	nonExistentID := uuid.New()
 
-	skills, err := GetAllSkills(suite.suiteCtx, nonExistentID)
+	skills, err := suite.skillService.GetAllSkills(suite.suiteCtx, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent course phase")
 	assert.Equal(suite.T(), 0, len(skills), "Should return empty list for non-existent course phase")
 }
@@ -65,16 +61,16 @@ func (suite *SkillServiceTestSuite) TestCreateNewSkills() {
 	newSkillNames := []string{"React", "Vue.js", "Angular"}
 
 	// Get initial count
-	initialSkills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	initialSkills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	initialCount := len(initialSkills)
 
 	// Create new skills
-	err = CreateNewSkills(suite.suiteCtx, newSkillNames, coursePhaseID)
+	err = suite.skillService.CreateNewSkills(suite.suiteCtx, newSkillNames, coursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	// Verify skills were created
-	updatedSkills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	updatedSkills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), initialCount+len(newSkillNames), len(updatedSkills), "Should have created new skills")
 
@@ -93,7 +89,7 @@ func (suite *SkillServiceTestSuite) TestCreateNewSkillsEmptyList() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	emptySkillNames := []string{}
 
-	err := CreateNewSkills(suite.suiteCtx, emptySkillNames, coursePhaseID)
+	err := suite.skillService.CreateNewSkills(suite.suiteCtx, emptySkillNames, coursePhaseID)
 	assert.NoError(suite.T(), err, "Should not error for empty skill list")
 }
 
@@ -102,11 +98,11 @@ func (suite *SkillServiceTestSuite) TestUpdateSkillName() {
 	skillID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	newSkillName := "Advanced Java Programming"
 
-	err := UpdateSkill(suite.suiteCtx, coursePhaseID, skillID, newSkillName)
+	err := suite.skillService.UpdateSkill(suite.suiteCtx, coursePhaseID, skillID, newSkillName)
 	assert.NoError(suite.T(), err)
 
 	// Verify the skill was updated
-	skills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	skills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	found := false
@@ -125,7 +121,7 @@ func (suite *SkillServiceTestSuite) TestUpdateSkillNameNonExistent() {
 	nonExistentID := uuid.New()
 	newSkillName := "Non-existent Skill"
 
-	err := UpdateSkill(suite.suiteCtx, coursePhaseID, nonExistentID, newSkillName)
+	err := suite.skillService.UpdateSkill(suite.suiteCtx, coursePhaseID, nonExistentID, newSkillName)
 	assert.NoError(suite.T(), err, "Should not error for non-existent skill (UPDATE does not fail)")
 }
 
@@ -134,16 +130,16 @@ func (suite *SkillServiceTestSuite) TestDeleteSkill() {
 	skillID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 
 	// Get initial count
-	initialSkills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	initialSkills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	initialCount := len(initialSkills)
 
 	// Delete the skill
-	err = DeleteSkill(suite.suiteCtx, coursePhaseID, skillID)
+	err = suite.skillService.DeleteSkill(suite.suiteCtx, coursePhaseID, skillID)
 	assert.NoError(suite.T(), err)
 
 	// Verify skill was deleted
-	updatedSkills, err := GetAllSkills(suite.suiteCtx, coursePhaseID)
+	updatedSkills, err := suite.skillService.GetAllSkills(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), initialCount-1, len(updatedSkills), "Should have deleted one skill")
 
@@ -157,7 +153,7 @@ func (suite *SkillServiceTestSuite) TestDeleteSkillNonExistent() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	nonExistentID := uuid.New()
 
-	err := DeleteSkill(suite.suiteCtx, coursePhaseID, nonExistentID)
+	err := suite.skillService.DeleteSkill(suite.suiteCtx, coursePhaseID, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent skill (DELETE does not fail)")
 }
 

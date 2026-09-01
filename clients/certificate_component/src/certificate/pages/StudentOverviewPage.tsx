@@ -14,6 +14,7 @@ import {
 import { Download, FileCheck2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { SanitizedHtml } from '../components/SanitizedHtml'
 import { downloadOwnCertificate, triggerBlobDownload } from '../network/queries/downloadCertificate'
 import { getCertificateStatus } from '../network/queries/getCertificateStatus'
 
@@ -67,6 +68,17 @@ export const StudentOverviewPage = () => {
     <div className='space-y-4'>
       <ManagementPageHeader>Course Certificate</ManagementPageHeader>
       <p className='text-muted-foreground'>Download your course completion certificate.</p>
+
+      {status?.studentPageText && (
+        <Card data-testid='certificate-student-page-text'>
+          <CardContent className='pt-6'>
+            <SanitizedHtml
+              html={status.studentPageText}
+              className='text-sm text-muted-foreground'
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

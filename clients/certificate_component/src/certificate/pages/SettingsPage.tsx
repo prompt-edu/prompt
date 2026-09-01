@@ -33,6 +33,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { StudentPageTextCard } from '../components/StudentPageTextCard'
 import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
 import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
@@ -394,6 +395,8 @@ export const SettingsPage = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      <StudentPageTextCard phaseId={phaseId ?? ''} initialText={config?.studentPageText ?? ''} />
 
       <Card>
         <CardHeader>

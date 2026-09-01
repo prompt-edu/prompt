@@ -1,32 +1,37 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 )
 
 type ConfigService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var ConfigServiceSingleton *ConfigService
+func NewConfigService(queries db.Queries) *ConfigService {
+	return &ConfigService{
+		queries: queries,
+	}
+}
 
-type ConfigHandler struct{}
-
-func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (config map[string]bool, err error) {
+// HandlePhaseConfig implements promptTypes.PhaseConfigHandler.
+func (s *ConfigService) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := c.Request.Context()
-	surveyTimeframe, err := ConfigServiceSingleton.queries.GetTimeframe(ctx, coursePhaseID)
+	return s.GetPhaseConfig(c.Request.Context(), coursePhaseID)
+}
+
+func (s *ConfigService) GetPhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (map[string]bool, error) {
+	surveyTimeframe, err := s.queries.GetTimeframe(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return map[string]bool{
 			"surveyTimeframe": false,

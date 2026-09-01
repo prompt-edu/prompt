@@ -36,14 +36,14 @@ func (suite *TimeframeRouterTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	TimeframeServiceSingleton = NewTimeframeService(*testDB.Queries, testDB.Conn)
+	timeframeService := NewTimeframeService(*testDB.Queries)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.DefaultMockAuthMiddleware()
 	}
-	setupTimeframeRouter(api, authMiddleware)
+	RegisterRoutes(api, timeframeService, authMiddleware)
 }
 
 func (suite *TimeframeRouterTestSuite) TearDownSuite() {

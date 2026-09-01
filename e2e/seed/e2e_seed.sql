@@ -622,6 +622,9 @@ INSERT INTO public.course VALUES ('d7307be2-d3dc-496e-86f0-643bff6cc1c8', 'iPrak
 INSERT INTO public.course VALUES ('e12ffe63-448d-4469-a840-1699e9b328d1', 'iPraktikum-Test', '2024-12-15', '2025-03-15', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-green-100"}', '{"icon": "graduation-cap", "bg-color": "bg-green-100"}', false, 'Test variant', 'A test course.', false, NULL);
 INSERT INTO public.course VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'TestCourse', '2024-12-19', '2025-04-19', 'ios2425', 'seminar', 5, '{"icon": "book", "bg-color": "bg-purple-100"}', '{"icon": "book", "bg-color": "bg-purple-100"}', false, 'Seminar course', 'A seminar.', false, NULL);
 INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPraktikumFull', '2025-04-01', '2025-09-30', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'Full-cycle practical course', 'A practical course spanning application, interview, matching, team allocation, and assessment. Seeded with participations and course-scoped roles for e2e.', false, NULL);
+-- Owned by the application welcome-text spec, which mutates the phase's welcomeText.
+-- Its own course, because only one initial phase is allowed per course.
+INSERT INTO public.course VALUES ('c0000002-0000-0000-0000-000000000002', 'iPraktikumWelcome', '2025-04-01', '2025-09-30', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'Welcome text fixture course', 'Owns the Application phase used by the welcome-text spec.', false, NULL);
 
 
 --
@@ -634,6 +637,8 @@ INSERT INTO public.course VALUES ('c0000001-0000-0000-0000-000000000001', 'iPrak
 -- phase is the negative-auth fixture.
 INSERT INTO public.course_participation VALUES ('ca000005-0000-4000-8000-000000000005', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000005-0000-0000-0000-000000000005');
 INSERT INTO public.course_participation VALUES ('ca000007-0000-4000-8000-000000000007', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'a5000007-0000-4000-8000-000000000007');
+INSERT INTO public.course_participation VALUES ('ca000009-0000-4000-8000-000000000009', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000009-0000-0000-0000-000000000009');
+INSERT INTO public.course_participation VALUES ('ca000010-0000-4000-8000-000000000010', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'e0000010-0000-0000-0000-000000000010');
 -- iPraktikumFull participations. a0000001 is the same Keycloak `student` user (Stan,
 -- 00000005/no42tum) that the iPraktikum self team allocation fixtures above use.
 -- ca000008 enrolls `student2` (Selma) too, so assessment visibility tests have a
@@ -729,6 +734,7 @@ INSERT INTO public.course_phase_participation (course_participation_id, course_p
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000d-0000-0000-0000-00000000000d', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000a-0000-0000-0000-00000000000a', '{}', 'passed', '{}');
 INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd000000b-0000-0000-0000-00000000000b', '{}', 'passed', '{}');
+INSERT INTO public.course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data) VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000016-0000-0000-0000-000000000016', '{}', 'passed', '{}');
 -- Standalone Team Allocation journey phase (see the course_phase inserts below):
 -- Stan + Selma participate so the lecturer participants table lists them and the
 -- published allocation can target Stan's participation.
@@ -789,6 +795,9 @@ INSERT INTO public.course_phase VALUES ('aaaa3333-0000-0000-0000-0000000000a3', 
 -- runs the two spec files in parallel workers.
 INSERT INTO public.course_phase VALUES ('aaaa4444-0000-0000-0000-0000000000a4', 'd7307be2-d3dc-496e-86f0-643bff6cc1c8', 'Self Team Allocation Overview', '{}', false, 'a3333333-3333-3333-3333-333333333333', '{}');
 INSERT INTO public.course_phase VALUES ('d0000001-0000-0000-0000-000000000001', 'c0000001-0000-0000-0000-000000000001', 'Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
+-- The welcomeText deliberately carries a script tag and an inline event handler:
+-- the spec asserts DOMPurify strips both before the applicant sees the page.
+INSERT INTO public.course_phase VALUES ('d0000030-0000-0000-0000-000000000030', 'c0000002-0000-0000-0000-000000000002', 'Welcome Application', '{"applicationStartDate": "2020-01-01T00:00:00", "applicationEndDate": "2099-12-31T23:59:59", "externalStudentsAllowed": true, "universityLoginAvailable": true, "welcomeText": "<p>Welcome to the PROMPT e2e welcome course.</p><p><a href=\"https://example.com/handbook\">Course handbook</a></p><script>window.__welcomeTextXss=1</script><img src=\"x\" onerror=\"window.__welcomeTextXss=1\">"}', true, 'a1111111-1111-1111-1111-111111111111', '{}');
 -- Standalone import-mode Application phase on fullCourse (no graph edge, reach by API). Non-initial
 -- because fullCourse already has an initial Application phase (unique_initial_phase_per_course), and
 -- the import endpoint keys off the phase type, not is_initial_phase. applicationMode=import closes
@@ -873,6 +882,7 @@ INSERT INTO public.course_phase VALUES ('aaaa5555-0000-0000-0000-0000000000a5', 
 INSERT INTO public.course_phase VALUES ('d000000d-0000-0000-0000-00000000000d', 'c0000001-0000-0000-0000-000000000001', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000a-0000-0000-0000-00000000000a', 'c0000001-0000-0000-0000-000000000001', 'Certificate Lecturer', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000b-0000-0000-0000-00000000000b', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
+INSERT INTO public.course_phase VALUES ('d0000016-0000-0000-0000-000000000016', 'c0000001-0000-0000-0000-000000000001', 'Certificate Student Page Text', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 INSERT INTO public.course_phase VALUES ('d000000c-0000-0000-0000-00000000000c', 'be780b32-a678-4b79-ae1c-80071771d254', 'Certificate', '{}', false, 'c5555555-5555-5555-5555-555555555555', '{}');
 
 --
@@ -1025,6 +1035,13 @@ INSERT INTO public.student VALUES ('5939210d-5c47-446e-ba55-3da992fd7aa6', 'Nicl
 -- its full-course participation resolves to a DB-derived Student role.
 INSERT INTO public.student VALUES ('e0000005-0000-0000-0000-000000000005', 'Stan', 'Stan', 'pgdp_enjoyer@example.com', '00000005', 'no42tum', true, 'male', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
 INSERT INTO public.student VALUES ('a5000007-0000-4000-8000-000000000007', 'Selma', 'Second', 'second_student@example.com', '00000007', 'st70two', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the privacy deletion-approval spec, which deletes this student. Nothing
+-- else may reference it; it maps to the Keycloak user `privacy-student`.
+INSERT INTO public.student VALUES ('e0000009-0000-0000-0000-000000000009', 'Priya', 'Vacy', 'privacy_subject@example.com', '00000009', 'pv99tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2025-01-09 12:00:00.000000');
+-- Subject of the admin-initiated deletion spec. last_modified is far enough in the
+-- past to match the student table's "not modified in N years" filter, which a student
+-- created during the run never can. No Keycloak account: admins delete this one.
+INSERT INTO public.student VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
 
 
 --

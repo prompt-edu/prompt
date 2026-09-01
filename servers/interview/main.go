@@ -101,10 +101,15 @@ func main() {
 		promptSDK.CourseStudent,
 	), helloInterviewServer)
 
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+	interviewSlotService := interview_slot.NewInterviewSlotService(*query, conn)
+	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
+	interviewReviewService := interview_review.NewInterviewReviewService(*query)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
+
+	config.RegisterRoutes(coursePhaseApi, promptSDK.AuthenticationMiddleware)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "interview",
@@ -121,9 +126,9 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
-	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
-	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
+	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, promptSDK.AuthenticationMiddleware)
+	interview_assignment.RegisterRoutes(coursePhaseApi, interviewAssignmentService, promptSDK.AuthenticationMiddleware)
+	interview_review.RegisterRoutes(coursePhaseApi, interviewReviewService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

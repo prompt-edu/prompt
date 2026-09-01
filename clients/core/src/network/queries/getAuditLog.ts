@@ -5,7 +5,11 @@ import type {
 } from '@core/managementConsole/auditLog/interfaces/auditLog'
 import { axiosInstance } from '@tumaet/prompt-shared-state'
 
-const buildQuery = (filters: AuditLogFilters, cursor?: AuditCursor): string => {
+export const buildAuditLogQuery = (
+  filters: AuditLogFilters,
+  limit: number,
+  cursor?: AuditCursor,
+): string => {
   const params = new URLSearchParams()
   const set = (key: string, value?: string) => {
     if (value) params.set(key, value)
@@ -19,6 +23,9 @@ const buildQuery = (filters: AuditLogFilters, cursor?: AuditCursor): string => {
   set('search', filters.search)
   set('from', filters.from)
   set('to', filters.to)
+  // Sent explicitly so the page size the table renders and the page size the
+  // server returns cannot drift apart.
+  params.set('limit', String(limit))
   if (cursor) {
     params.set('cursorTs', cursor.createdAt)
     params.set('cursorId', cursor.id)
@@ -29,16 +36,18 @@ const buildQuery = (filters: AuditLogFilters, cursor?: AuditCursor): string => {
 export const getCourseAuditLog = async (
   courseId: string,
   filters: AuditLogFilters,
+  limit: number,
   cursor?: AuditCursor,
 ): Promise<AuditLogPage> => {
-  const query = buildQuery(filters, cursor)
+  const query = buildAuditLogQuery(filters, limit, cursor)
   return (await axiosInstance.get(`/api/courses/${courseId}/audit-log?${query}`)).data
 }
 
 export const getGlobalAuditLog = async (
   filters: AuditLogFilters,
+  limit: number,
   cursor?: AuditCursor,
 ): Promise<AuditLogPage> => {
-  const query = buildQuery(filters, cursor)
+  const query = buildAuditLogQuery(filters, limit, cursor)
   return (await axiosInstance.get(`/api/audit-log?${query}`)).data
 }

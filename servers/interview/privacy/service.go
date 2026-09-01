@@ -18,7 +18,12 @@ type PrivacyService struct {
 	conn    *pgxpool.Pool
 }
 
-var PrivacyServiceSingleton *PrivacyService
+func NewPrivacyService(queries db.Queries, conn *pgxpool.Pool) *PrivacyService {
+	return &PrivacyService{
+		Queries: queries,
+		conn:    conn,
+	}
+}
 
 type interviewReviewExport struct {
 	CoursePhaseID         uuid.UUID                            `json:"coursePhaseID"`
@@ -52,12 +57,12 @@ func toInterviewReviewExports(reviews []db.InterviewReview) []interviewReviewExp
 	return exports
 }
 
-func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
+func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
 	exp.AddJSON("Interview Assignments", "interview_assignments.json", func() (any, error) {
-		return PrivacyServiceSingleton.Queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
+		return s.Queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
 	})
 	exp.AddJSON("Interview Reviews", "interview_reviews.json", func() (any, error) {
-		reviews, err := PrivacyServiceSingleton.Queries.GetInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
+		reviews, err := s.Queries.GetInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
 		if err != nil {
 			return nil, err
 		}
@@ -66,13 +71,13 @@ func PrivacyDataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth
 	return nil
 }
 
-func PrivacyDataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
-	tx, err := PrivacyServiceSingleton.conn.Begin(c)
+func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.SubjectIdentifiers) error {
+	tx, err := s.conn.Begin(c)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, c)
-	qtx := PrivacyServiceSingleton.Queries.WithTx(tx)
+	qtx := s.Queries.WithTx(tx)
 
 	if err := qtx.DeleteInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
 		return err

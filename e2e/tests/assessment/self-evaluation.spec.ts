@@ -159,4 +159,36 @@ test.describe('assessment: student self evaluation', () => {
       await lecturer.dispose()
     }
   })
+
+  // The `lecturer` user holds the course lecturer role but no participation, so
+  // it has no student role: every student-only endpoint behind this page would
+  // answer 401 and must therefore not be requested at all.
+  test.describe('previewed by a lecturer', () => {
+    test.use({ role: 'lecturer' })
+
+    test('the page stays readable instead of erroring on student-only data', async ({ page }) => {
+      const phase = new AssessmentPage(page)
+      await phase.gotoSelfEvaluation(SEEDED_COURSES.fullCourse.id, PHASE_ID)
+
+      // The notice repeats the phrase in its title and its description, so the
+      // assertion goes for the alert that carries both.
+      await expect(
+        page.getByRole('alert').filter({ hasText: 'not a student of this course' }),
+      ).toBeVisible()
+
+      // Both feedback panels show their empty state, not the error page.
+      await expect(
+        page.getByText('What did you do particularly well?', { exact: true }),
+      ).toBeVisible()
+      await expect(page.getByText('Where can you still improve?', { exact: true })).toBeVisible()
+      await expect(page.getByText('Error loading feedback items')).toHaveCount(0)
+
+      // The student-only writes behind the page are out of reach.
+      const addItem = page.getByRole('button', { name: 'Add Item' })
+      await expect(addItem).toHaveCount(2)
+      await expect(addItem.first()).toBeDisabled()
+      await expect(addItem.last()).toBeDisabled()
+      await expect(page.getByRole('button', { name: 'Unmark as Final' })).toBeDisabled()
+    })
+  })
 })

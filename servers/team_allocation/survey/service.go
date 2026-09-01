@@ -22,13 +22,17 @@ type SurveyService struct {
 	conn    *pgxpool.Pool
 }
 
-// SurveyServiceSingleton provides a global instance.
-var SurveyServiceSingleton *SurveyService
+func NewSurveyService(queries db.Queries, conn *pgxpool.Pool) *SurveyService {
+	return &SurveyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 // GetSurveyForm returns available teams and skills if the survey has started.
-func GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyForm, error) {
+func (s *SurveyService) GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyForm, error) {
 	// Get survey timeframe
-	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
+	timeframe, err := s.queries.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get survey timeframe: ", err)
 		return surveyDTO.SurveyForm{}, fmt.Errorf("could not get survey timeframe: %w", err)
@@ -38,12 +42,12 @@ func GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.Surv
 		return surveyDTO.SurveyForm{}, errors.New("survey has not started yet")
 	}
 	// Get teams and skills
-	teams, err := SurveyServiceSingleton.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
+	teams, err := s.queries.GetTeamsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get teams: ", err)
 		return surveyDTO.SurveyForm{}, errors.New("could not get teams")
 	}
-	skills, err := SurveyServiceSingleton.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
+	skills, err := s.queries.GetSkillsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get skills: ", err)
 		return surveyDTO.SurveyForm{}, errors.New("could not get skills")
@@ -52,8 +56,8 @@ func GetSurveyForm(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.Surv
 }
 
 // GetStudentSurveyResponses returns any submitted survey answers for the student.
-func GetStudentSurveyResponses(ctx context.Context, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (surveyDTO.StudentSurveyResponse, error) {
-	teamResponses, err := SurveyServiceSingleton.queries.GetStudentTeamPreferences(ctx, db.GetStudentTeamPreferencesParams{
+func (s *SurveyService) GetStudentSurveyResponses(ctx context.Context, courseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (surveyDTO.StudentSurveyResponse, error) {
+	teamResponses, err := s.queries.GetStudentTeamPreferences(ctx, db.GetStudentTeamPreferencesParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -61,7 +65,7 @@ func GetStudentSurveyResponses(ctx context.Context, courseParticipationID uuid.U
 		log.Error("could not get team preferences: ", err)
 		return surveyDTO.StudentSurveyResponse{}, errors.New("could not get team preferences")
 	}
-	skillResponses, err := SurveyServiceSingleton.queries.GetStudentSkillResponses(ctx, db.GetStudentSkillResponsesParams{
+	skillResponses, err := s.queries.GetStudentSkillResponses(ctx, db.GetStudentSkillResponsesParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -74,9 +78,9 @@ func GetStudentSurveyResponses(ctx context.Context, courseParticipationID uuid.U
 
 // SubmitSurveyResponses saves or overwrites the student's survey answers.
 // It only accepts submissions before the survey_deadline.
-func SubmitSurveyResponses(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID, submission surveyDTO.StudentSurveyResponse) error {
+func (s *SurveyService) SubmitSurveyResponses(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID, submission surveyDTO.StudentSurveyResponse) error {
 	// Get survey timeframe to check deadline.
-	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
+	timeframe, err := s.queries.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get survey timeframe: ", err)
 		return errors.New("could not get survey timeframe")
@@ -89,12 +93,12 @@ func SubmitSurveyResponses(ctx context.Context, courseParticipationID, coursePha
 	}
 
 	// Begin transaction.
-	tx, err := SurveyServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := SurveyServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	// Delete any existing responses for this student.
 	if err := qtx.DeleteStudentTeamPreferences(ctx, db.DeleteStudentTeamPreferencesParams{
@@ -148,16 +152,15 @@ func SubmitSurveyResponses(ctx context.Context, courseParticipationID, coursePha
 
 // SetSurveyTimeframe sets (or updates) the survey start and deadline for a course phase.
 // It returns an error if surveyStart is not before surveyDeadline.
-func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStart, surveyDeadline time.Time) error {
+func (s *SurveyService) SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStart, surveyDeadline time.Time) error {
 	if !surveyStart.Before(surveyDeadline) {
 		return errors.New("survey start must be before survey deadline")
 	}
 
-	var startTimestamp, deadlineTimestamp pgtype.Timestamp
-	startTimestamp = pgtype.Timestamp{Time: surveyStart, Valid: true}
-	deadlineTimestamp = pgtype.Timestamp{Time: surveyDeadline, Valid: true}
+	startTimestamp := pgtype.Timestamptz{Time: surveyStart, Valid: true}
+	deadlineTimestamp := pgtype.Timestamptz{Time: surveyDeadline, Valid: true}
 
-	err := SurveyServiceSingleton.queries.SetSurveyTimeframe(ctx, db.SetSurveyTimeframeParams{
+	err := s.queries.SetSurveyTimeframe(ctx, db.SetSurveyTimeframeParams{
 		CoursePhaseID:  coursePhaseID,
 		SurveyStart:    startTimestamp,
 		SurveyDeadline: deadlineTimestamp,
@@ -170,23 +173,23 @@ func SetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID, surveyStar
 }
 
 // GetSurveyStatistics returns aggregated team preference and skill distribution statistics.
-func GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyStatistics, error) {
-	teamRows, err := SurveyServiceSingleton.queries.GetTeamPopularityStatistics(ctx, coursePhaseID)
+func (s *SurveyService) GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyStatistics, error) {
+	teamRows, err := s.queries.GetTeamPopularityStatistics(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get team popularity statistics: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not get team popularity statistics")
 	}
-	teamCountRows, err := SurveyServiceSingleton.queries.GetTeamPreferenceCounts(ctx, coursePhaseID)
+	teamCountRows, err := s.queries.GetTeamPreferenceCounts(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get team preference counts: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not get team preference counts")
 	}
-	skillRows, err := SurveyServiceSingleton.queries.GetSkillDistributionStatistics(ctx, coursePhaseID)
+	skillRows, err := s.queries.GetSkillDistributionStatistics(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get skill distribution statistics: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not get skill distribution statistics")
 	}
-	respondentCount, err := SurveyServiceSingleton.queries.CountSurveyRespondents(ctx, coursePhaseID)
+	respondentCount, err := s.queries.CountSurveyRespondents(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not count survey respondents: ", err)
 		return surveyDTO.SurveyStatistics{}, errors.New("could not count survey respondents")
@@ -194,8 +197,8 @@ func GetSurveyStatistics(ctx context.Context, coursePhaseID uuid.UUID) (surveyDT
 	return surveyDTO.GetSurveyStatisticsDTOFromDBModels(respondentCount, teamRows, teamCountRows, skillRows), nil
 }
 
-func GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error) {
-	timeframe, err := SurveyServiceSingleton.queries.GetSurveyTimeframe(ctx, coursePhaseID)
+func (s *SurveyService) GetSurveyTimeframe(ctx context.Context, coursePhaseID uuid.UUID) (surveyDTO.SurveyTimeframe, error) {
+	timeframe, err := s.queries.GetSurveyTimeframe(ctx, coursePhaseID)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return surveyDTO.SurveyTimeframe{TimeframeSet: false}, nil
 	} else if err != nil {

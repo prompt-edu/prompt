@@ -20,6 +20,11 @@ func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhas
 		longDesc = &applicationPhase.LongDescription.String
 	}
 
+	var welcomeText *string
+	if applicationPhase.WelcomeText != "" {
+		welcomeText = &applicationPhase.WelcomeText
+	}
+
 	applicationPhaseDTO := OpenApplication{
 		CourseName:               applicationPhase.CourseName,
 		CoursePhaseID:            applicationPhase.CoursePhaseID,
@@ -32,6 +37,7 @@ func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhas
 		UniversityLoginAvailable: applicationPhase.UniversityLoginAvailable,
 		ShortDescription:         shortDesc,
 		LongDescription:          longDesc,
+		WelcomeText:              welcomeText,
 	}
 
 	applicationFormDTO := FormWithDetails{

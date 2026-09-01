@@ -10,25 +10,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupTeamRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+type teamHandler struct {
+	teamsService      *TeamsService
+	assignmentService *AssignmentService
+}
+
+func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, assignmentService *AssignmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	handler := &teamHandler{teamsService: teamsService, assignmentService: assignmentService}
 	teamRouter := routerGroup.Group("/team")
 
-	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), getAllTeams)
-	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), createTeams)
-	teamRouter.PUT("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateTeam)
+	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.getAllTeams)
+	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.createTeams)
+	teamRouter.PUT("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.updateTeam)
 	// only allowing student - as this is a self assignment
-	teamRouter.PUT("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), assignTeam)
-	teamRouter.DELETE("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), leaveTeam)
-	teamRouter.DELETE("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteTeam)
+	teamRouter.PUT("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), handler.assignTeam)
+	teamRouter.DELETE("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), handler.leaveTeam)
+	teamRouter.DELETE("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTeam)
 
 	// this is required to comply with the inter phase communication protocol
-	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeamByID)
+	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTeamByID)
 
 	// Tutor management endpoints
-	teamRouter.POST("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), importTutors)
-	teamRouter.POST("/:teamID/tutor", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createManualTutor)
-	teamRouter.DELETE("/tutor/:tutorID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteTutor)
-	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTutors)
+	teamRouter.POST("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.importTutors)
+	teamRouter.POST("/:teamID/tutor", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.createManualTutor)
+	teamRouter.DELETE("/tutor/:tutorID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTutor)
+	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTutors)
 }
 
 // getAllTeams godoc
@@ -42,7 +48,7 @@ func setupTeamRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRo
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team [get]
-func getAllTeams(c *gin.Context) {
+func (h *teamHandler) getAllTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -50,7 +56,7 @@ func getAllTeams(c *gin.Context) {
 		return
 	}
 
-	teams, err := GetAllTeams(c, coursePhaseID)
+	teams, err := h.teamsService.GetAllTeams(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -70,7 +76,7 @@ func getAllTeams(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID} [get]
-func getTeamByID(c *gin.Context) {
+func (h *teamHandler) getTeamByID(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -85,7 +91,7 @@ func getTeamByID(c *gin.Context) {
 		return
 	}
 
-	team, err := GetTeamByID(c, coursePhaseID, teamID)
+	team, err := h.teamsService.GetTeamByID(c, coursePhaseID, teamID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -106,7 +112,7 @@ func getTeamByID(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team [post]
-func createTeams(c *gin.Context) {
+func (h *teamHandler) createTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -114,7 +120,7 @@ func createTeams(c *gin.Context) {
 		return
 	}
 
-	allowed, err := ValidateTimeframe(c, coursePhaseID)
+	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -130,7 +136,7 @@ func createTeams(c *gin.Context) {
 		return
 	}
 
-	err = CreateNewTeams(c, request.TeamNames, coursePhaseID)
+	err = h.teamsService.CreateNewTeams(c, request.TeamNames, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -152,7 +158,7 @@ func createTeams(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID} [put]
-func updateTeam(c *gin.Context) {
+func (h *teamHandler) updateTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -160,7 +166,7 @@ func updateTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := ValidateTimeframe(c, coursePhaseID)
+	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -183,7 +189,7 @@ func updateTeam(c *gin.Context) {
 		return
 	}
 
-	err = UpdateTeam(c, coursePhaseID, teamID, request.NewTeamName)
+	err = h.teamsService.UpdateTeam(c, coursePhaseID, teamID, request.NewTeamName)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -203,7 +209,7 @@ func updateTeam(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID}/assignment [put]
-func assignTeam(c *gin.Context) {
+func (h *teamHandler) assignTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -211,7 +217,7 @@ func assignTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := ValidateTimeframe(c, coursePhaseID)
+	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -229,7 +235,7 @@ func assignTeam(c *gin.Context) {
 	}
 
 	// Check if the team has already 3 members
-	team, err := GetTeamByID(c, coursePhaseID, teamID)
+	team, err := h.teamsService.GetTeamByID(c, coursePhaseID, teamID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -261,7 +267,7 @@ func assignTeam(c *gin.Context) {
 		return
 	}
 
-	err = AssignTeam(c, coursePhaseID, teamID, courseParticipationID.(uuid.UUID), firstName.(string), lastName.(string))
+	err = h.assignmentService.AssignTeam(c, coursePhaseID, teamID, courseParticipationID.(uuid.UUID), firstName.(string), lastName.(string))
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -281,7 +287,7 @@ func assignTeam(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID}/assignment [delete]
-func leaveTeam(c *gin.Context) {
+func (h *teamHandler) leaveTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -303,7 +309,7 @@ func leaveTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := ValidateTimeframe(c, coursePhaseID)
+	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -313,7 +319,7 @@ func leaveTeam(c *gin.Context) {
 		return
 	}
 
-	err = LeaveTeam(c, coursePhaseID, teamID, courseParticipationID.(uuid.UUID))
+	err = h.assignmentService.LeaveTeam(c, coursePhaseID, teamID, courseParticipationID.(uuid.UUID))
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -333,7 +339,7 @@ func leaveTeam(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID} [delete]
-func deleteTeam(c *gin.Context) {
+func (h *teamHandler) deleteTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -348,7 +354,7 @@ func deleteTeam(c *gin.Context) {
 		return
 	}
 
-	err = DeleteTeam(c, coursePhaseID, teamID)
+	err = h.teamsService.DeleteTeam(c, coursePhaseID, teamID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -369,7 +375,7 @@ func deleteTeam(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/tutors [post]
-func importTutors(c *gin.Context) {
+func (h *teamHandler) importTutors(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -384,7 +390,7 @@ func importTutors(c *gin.Context) {
 		return
 	}
 
-	if err := ImportTutors(c, coursePhaseID, tutors); err != nil {
+	if err := h.teamsService.ImportTutors(c, coursePhaseID, tutors); err != nil {
 		log.Error("Error importing tutors: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -407,7 +413,7 @@ func importTutors(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID}/tutor [post]
-func createManualTutor(c *gin.Context) {
+func (h *teamHandler) createManualTutor(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -433,7 +439,7 @@ func createManualTutor(c *gin.Context) {
 		return
 	}
 
-	if err := CreateManualTutor(c, coursePhaseID, request.FirstName, request.LastName, teamID); err != nil {
+	if err := h.teamsService.CreateManualTutor(c, coursePhaseID, request.FirstName, request.LastName, teamID); err != nil {
 		log.Error("Error creating manual tutor: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -454,7 +460,7 @@ func createManualTutor(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/tutor/{tutorID} [delete]
-func deleteTutor(c *gin.Context) {
+func (h *teamHandler) deleteTutor(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -469,7 +475,7 @@ func deleteTutor(c *gin.Context) {
 		return
 	}
 
-	if err := DeleteTutor(c, coursePhaseID, tutorID); err != nil {
+	if err := h.teamsService.DeleteTutor(c, coursePhaseID, tutorID); err != nil {
 		log.Error("Error deleting tutor: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -489,7 +495,7 @@ func deleteTutor(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/tutors [get]
-func getTutors(c *gin.Context) {
+func (h *teamHandler) getTutors(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -497,7 +503,7 @@ func getTutors(c *gin.Context) {
 		return
 	}
 
-	tutors, err := GetTutorsByCoursePhase(c, coursePhaseID)
+	tutors, err := h.teamsService.GetTutorsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

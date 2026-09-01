@@ -28,6 +28,7 @@ interface FeedbackItemPanelProps {
   feedbackType: FeedbackType
   courseParticipationID: string
   authorCourseParticipationID: string
+  isStudent: boolean
   completed?: boolean
 }
 
@@ -36,6 +37,7 @@ export function FeedbackItemPanel({
   feedbackType,
   courseParticipationID,
   authorCourseParticipationID,
+  isStudent,
   completed = false,
 }: FeedbackItemPanelProps) {
   const [error, setError] = useState<string | undefined>(undefined)
@@ -51,7 +53,7 @@ export function FeedbackItemPanel({
     isLoading: isGetFeedbackItemsPending,
     isError,
     refetch,
-  } = useGetMyFeedbackItems()
+  } = useGetMyFeedbackItems({ enabled: isStudent })
 
   const feedbackItems = allFeedbackItems.filter(
     (item) =>

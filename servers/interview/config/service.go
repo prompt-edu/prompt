@@ -2,19 +2,12 @@ package config
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 )
 
-type ConfigService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
-}
+// configHandler implements promptTypes.PhaseConfigHandler. The interview phase has
+// nothing to configure, so the handler is stateless and reports an empty config.
+type configHandler struct{}
 
-var ConfigServiceSingleton *ConfigService
-
-type ConfigHandler struct{}
-
-func (h *ConfigHandler) HandlePhaseConfig(c *gin.Context) (config map[string]bool, err error) {
+func (h *configHandler) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	return map[string]bool{}, nil
 }

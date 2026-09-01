@@ -1,5 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table'
-import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import {
+  ManagementPageHeader,
+  PromptTable,
+  type PromptTableColumnDef,
+} from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -57,7 +60,7 @@ export const TutorOverviewPage = (): ReactNode => {
     [evaluations],
   )
 
-  const columns: ColumnDef<TutorRow>[] = useMemo(
+  const columns: PromptTableColumnDef<TutorRow>[] = useMemo(
     () => [
       {
         accessorKey: 'firstName',

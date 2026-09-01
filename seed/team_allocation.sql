@@ -23,7 +23,7 @@ INSERT INTO skill (id, course_phase_id, name)
            ('3b000003-0000-0000-0000-000000000003', 'f0000004-0000-0000-0000-000000000004', 'Backend');
 
 INSERT INTO survey_timeframe (course_phase_id, survey_start, survey_deadline)
-    VALUES ('f0000004-0000-0000-0000-000000000004', '2026-04-01 08:00:00', '2026-04-06 23:59:00');
+    VALUES ('f0000004-0000-0000-0000-000000000004', '2026-04-01 08:00:00+00', '2026-04-06 23:59:00+00');
 
 -- Every student ranked both teams (1 = first choice).
 INSERT INTO student_team_preference_response (course_participation_id, team_id, preference)

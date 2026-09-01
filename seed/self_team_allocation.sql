@@ -16,7 +16,7 @@ INSERT INTO team (id, name, course_phase_id)
            ('2a000002-0000-0000-0000-000000000002', 'Team Borealis', 'f0000008-0000-0000-0000-000000000008');
 
 INSERT INTO timeframe (course_phase_id, starttime, endtime)
-    VALUES ('f0000008-0000-0000-0000-000000000008', '2026-04-07 08:00:00', '2026-04-14 23:59:00');
+    VALUES ('f0000008-0000-0000-0000-000000000008', '2026-04-07 08:00:00+00', '2026-04-14 23:59:00+00');
 
 INSERT INTO assignments (id, course_participation_id, team_id, course_phase_id, student_first_name, student_last_name)
     VALUES ('2b000001-0000-0000-0000-000000000001', 'cd000001-0000-0000-0000-000000000001', '2a000001-0000-0000-0000-000000000001', 'f0000008-0000-0000-0000-000000000008', 'Stan', 'Stan'),

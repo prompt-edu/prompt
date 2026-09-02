@@ -19,6 +19,7 @@ See the following pages:
 	- [Contributor Guidelines](guide/index.md)
 	- [Client Guidelines](guide/client.md)
 	- [Server Guidelines](guide/server.md)
+	- [Database Seeding](guide/seeding.md)
 - [Setup Guide](setup.md)
 - [How to Add a New Microfrontend](new_microfrontend.md)
 - [UI Integration Guidelines](ui_guidelines.md)

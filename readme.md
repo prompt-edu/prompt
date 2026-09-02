@@ -195,6 +195,17 @@ This launches all micro-frontends simultaneously using Lerna. The app runs at [h
 
 To start a specific micro-frontend only, navigate to its subdirectory and run `yarn run dev` there.
 
+#### 7. Seed the Databases (optional)
+
+```bash
+make seed
+```
+
+This loads one fully populated demo course - every phase type, with participants,
+applications, interviews, teams, assessments and certificates - into all eight service
+databases. Run it after the servers have started at least once, since they create the
+schemas. See the [seeding guide](docs/contributor/guide/seeding.md).
+
 ---
 
 ### Keycloak Passkey Testing

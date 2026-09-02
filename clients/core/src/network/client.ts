@@ -48,23 +48,24 @@ const send = async <T>(
   }
 }
 
-interface ReadOptions {
+interface RequestOptions {
   params?: Record<string, string | number | boolean>
 }
 
-interface WriteOptions extends ReadOptions {
+/** `data` stays off `RequestOptions` so it cannot silently override a `post`/`put` body. */
+interface DeleteOptions extends RequestOptions {
   /** Sent as the request body of a DELETE, which is how core deletes a batch. */
   data?: unknown
 }
 
 const requestsThrough = (instance: AxiosInstance, description: string) => ({
-  get: async <T>(url: string, options?: ReadOptions): Promise<T> =>
+  get: async <T>(url: string, options?: RequestOptions): Promise<T> =>
     (await send<T>(instance, description, { method: 'get', url, ...options })).data,
 
-  getResponse: <T>(url: string, options?: ReadOptions): Promise<AxiosResponse<T>> =>
+  getResponse: <T>(url: string, options?: RequestOptions): Promise<AxiosResponse<T>> =>
     send<T>(instance, description, { method: 'get', url, ...options }),
 
-  post: async <T = void>(url: string, data?: unknown, options?: WriteOptions): Promise<T> =>
+  post: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
     (
       await send<T>(instance, description, {
         method: 'post',
@@ -75,7 +76,7 @@ const requestsThrough = (instance: AxiosInstance, description: string) => ({
       })
     ).data,
 
-  put: async <T = void>(url: string, data?: unknown, options?: WriteOptions): Promise<T> =>
+  put: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
     (
       await send<T>(instance, description, {
         method: 'put',
@@ -86,7 +87,7 @@ const requestsThrough = (instance: AxiosInstance, description: string) => ({
       })
     ).data,
 
-  del: async <T = void>(url: string, options?: WriteOptions): Promise<T> =>
+  del: async <T = void>(url: string, options?: DeleteOptions): Promise<T> =>
     (
       await send<T>(instance, description, {
         method: 'delete',

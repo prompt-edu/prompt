@@ -8,6 +8,10 @@ import { API_PREFIX, coreRequest } from '../client'
 
 const path = `${API_PREFIX}/audit-log`
 
+/**
+ * Built by hand rather than through the `params` option: every filter is optional, and `set` drops
+ * the empty ones from the query string entirely, which a `params` record cannot express.
+ */
 export const buildAuditLogQuery = (
   filters: AuditLogFilters,
   limit: number,

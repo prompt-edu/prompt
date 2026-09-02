@@ -104,26 +104,6 @@ describe('coursePhaseChanged', () => {
   })
 })
 
-describe('coursePhaseGraphSaved', () => {
-  it('reaches none of the graphs, because it sends one composite key rather than four', () => {
-    seed(
-      coreKeys.courses.all(),
-      coreKeys.courseGraphs.phase(COURSE),
-      coreKeys.courseGraphs.participationData(COURSE),
-      coreKeys.courseGraphs.phaseData(COURSE),
-      coreKeys.coursePhases.types(),
-    )
-
-    coreCache.coursePhaseGraphSaved(queryClient)
-
-    expect(isInvalidated(coreKeys.courses.all())).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.phase(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.participationData(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.phaseData(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.coursePhases.types())).toBe(false)
-  })
-})
-
 describe('applicationsImported', () => {
   it('invalidates the score names and the participations of this phase', () => {
     seed(

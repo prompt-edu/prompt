@@ -41,20 +41,6 @@ export const coreCache = {
   coursePhaseChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [coreKeys.coursePhases.byId(phaseId)]),
 
-  // One composite key rather than one key per graph, which is what the configurator has always
-  // sent. `invalidateQueries` matches by prefix, so nothing caches under it and nothing is
-  // invalidated; the configurator reloads its graphs by other means.
-  coursePhaseGraphSaved: (queryClient: QueryClient): void =>
-    invalidate(queryClient, [
-      [
-        'courses',
-        'participation_data_phase_graph',
-        'phase_data_phase_graph',
-        'course_phase_types',
-        'course_phase_graph',
-      ],
-    ]),
-
   applicationsImported: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [
       coreKeys.applications.additionalScores(phaseId),

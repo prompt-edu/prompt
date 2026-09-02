@@ -67,6 +67,10 @@ make db
 # Stop database and Keycloak
 make db-down
 
+# Boot the seeded stack for browser verification (see the `verify` skill)
+make verify-up
+make verify-down
+
 # Run linting
 make lint
 
@@ -123,8 +127,8 @@ Agent configuration is shared with the team and split by purpose:
 - **Skills** — repeatable procedures in `.agents/skills/` (canonical source), symlinked into
   `.claude/skills/` via `make setup-skills`.
   - Repo-specific: `new-course-phase`, `sqlc-migration`, `add-shared-ui-component`,
-    `module-federation-remote`, `keycloak-local-setup`, `open-pr`, `address-pr-comments`,
-    `github-release-creation`.
+    `module-federation-remote`, `keycloak-local-setup`, `verify`, `open-pr`,
+    `address-pr-comments`, `github-release-creation`.
   - Reference patterns (vendored from ECC, MIT): `golang-patterns`, `postgres-patterns`,
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
@@ -144,6 +148,10 @@ phases: see the external-phase section of the guide and `template-repository/`.
 Run `make lint` and `make test` before completing a change. Client unit tests run on Vitest from
 `clients/` (`make test-clients`); Go tests use `testcontainers-go`; end-to-end tests use Playwright
 and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md`.
+
+To observe a change in a real browser rather than through tests, use the `verify` skill:
+`make verify-up` boots the same seeded stack in host-browser mode (client
+<http://localhost:4000>), which is then driven with the Playwright MCP browser.
 
 ## Definition of Done
 

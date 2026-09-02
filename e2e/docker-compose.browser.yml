@@ -1,0 +1,57 @@
+# ============================================================================
+# Host-browser overlay for the e2e stack (docker-compose.e2e.yml).
+#
+# The base stack addresses everything by compose service name, because the
+# containerized Playwright runner's Chromium resolves those via Docker DNS. A
+# browser on the *host* cannot: it dies on ERR_NAME_NOT_RESOLVED at the login
+# redirect, and a token minted via localhost:18081 is rejected by the servers
+# as an issuer mismatch.
+#
+# This overlay flips the browser-facing URLs to the published host ports and
+# points every token-validating server at the same localhost Keycloak (via
+# localhost:host-gateway), so host browser and servers agree on one issuer:
+# http://localhost:18081/realms/prompt.
+#
+# Run:   make verify-up   /   make verify-down     (see the `verify` skill)
+# ============================================================================
+
+# Every phase server validates tokens and CORS-checks the browser origin, so it
+# needs the same localhost view of Keycloak and the client as the core server.
+x-host-phase-server: &host-phase-server
+  extra_hosts:
+    - "localhost:host-gateway"
+  environment:
+    - KEYCLOAK_HOST=http://localhost:18081
+    - CORE_HOST=http://localhost:4000
+    - S3_PUBLIC_ENDPOINT=http://localhost:18333
+
+services:
+  server-core:
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      # CORS allow-list entry for the browser origin, and the base URL in mails.
+      - CORE_HOST=http://localhost:4000
+      - KEYCLOAK_HOST=http://localhost:18081
+      # Presigned upload/download URLs are handed to the browser, so they must
+      # resolve on the host. Server-side S3 calls keep using S3_ENDPOINT.
+      - S3_PUBLIC_ENDPOINT=http://localhost:18333
+
+  client-core:
+    environment:
+      # The client's CORE_HOST is the API base written into env.js.
+      - CORE_HOST=http://localhost:18090
+      - KEYCLOAK_HOST=http://localhost:18081
+
+  server-self-team-allocation: *host-phase-server
+  server-example: *host-phase-server
+  server-assessment: *host-phase-server
+  server-interview: *host-phase-server
+  server-certificate: *host-phase-server
+  server-presentation: *host-phase-server
+  server-team-allocation: *host-phase-server
+
+  seaweedfs-s3:
+    # Not published in the base stack; the host browser needs it for presigned URLs.
+    ports:
+      - "18333:8333"

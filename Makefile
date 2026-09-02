@@ -8,6 +8,7 @@
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-presentation \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
+	verify-up verify-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation \
@@ -196,6 +197,28 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 		-v "$(CURDIR)/e2e/test-results:/work/test-results" \
 		e2e-runner npx playwright test --ui-host=0.0.0.0 --ui-port=8123; \
 		$(E2E_COMPOSE) down -v
+
+# ─── Browser Verification ─────────────────────────────────────────────────────
+
+# Same seeded stack as the e2e suite, overlaid so the client, Keycloak and the
+# core API are reachable as localhost:<published port>. That lets a browser on
+# the host complete the login redirect and mint a token the servers accept.
+# Driven by the `verify` skill.
+VERIFY_COMPOSE = docker compose -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
+
+verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 reuses existing images)
+	set -e; unset $(E2E_ENV_KEYS); \
+		$(if $(SKIP_BUILD),true,$(VERIFY_COMPOSE) build); \
+		$(VERIFY_COMPOSE) up -d client-core server-core
+	@echo ""
+	@echo "client    http://localhost:4000/management"
+	@echo "core API  http://localhost:18090"
+	@echo "keycloak  http://localhost:18081"
+	@echo "mailpit   http://localhost:18025"
+	@echo "logins    username == password (lecturer, admin, student, ...)"
+
+verify-down: ## Tear down the host-browser stack and remove volumes
+	unset $(E2E_ENV_KEYS); $(VERIFY_COMPOSE) down -v
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 

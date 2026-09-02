@@ -32,11 +32,14 @@ const emptyOnUnauthorized = async <T>(read: Promise<T[]>): Promise<T[]> => {
   }
 }
 
+const emptyList = { quietStatuses: [UNAUTHORIZED] } as const
+
 export const courses = {
-  list: (): Promise<Course[]> => emptyOnUnauthorized(coreRequest.get<Course[]>(`${path}/`)),
+  list: (): Promise<Course[]> =>
+    emptyOnUnauthorized(coreRequest.get<Course[]>(`${path}/`, emptyList)),
 
   listOwnIDs: (): Promise<string[]> =>
-    emptyOnUnauthorized(coreRequest.get<string[]>(`${path}/self`)),
+    emptyOnUnauthorized(coreRequest.get<string[]>(`${path}/self`, emptyList)),
 
   listTemplates: (): Promise<Course[]> => coreRequest.get(`${path}/template`),
 

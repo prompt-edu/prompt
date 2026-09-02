@@ -3,7 +3,7 @@ import type { PostCourse } from '@core/managementConsole/courseOverview/interfac
 import type { CoursePhaseType } from '@core/managementConsole/pages/SystemStatusPage/interfaces/coursePhaseType'
 import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
 import { coreApi } from './index'
 
 const CORE = 'http://core.test'
@@ -651,6 +651,7 @@ const INSTANCES = {
 
 let captured: InternalAxiosRequestConfig[]
 let responseStatus: number
+let errorLog: MockInstance<typeof console.error>
 
 const stubAdapter = (config: InternalAxiosRequestConfig): Promise<AxiosResponse> => {
   captured.push(config)
@@ -663,12 +664,31 @@ const stubAdapter = (config: InternalAxiosRequestConfig): Promise<AxiosResponse>
   })
 }
 
+const rejectingAdapter = (status: number) => (config: InternalAxiosRequestConfig) => {
+  captured.push(config)
+  return Promise.reject(
+    Object.assign(new Error(`Request failed with status code ${status}`), {
+      isAxiosError: true,
+      config,
+      response: { status, data: {}, statusText: '', headers: {}, config },
+    }),
+  )
+}
+
+const coreFailureLogs = () =>
+  errorLog.mock.calls.filter((call) => call[0] === 'Core request failed')
+
 beforeEach(() => {
   captured = []
   responseStatus = 200
+  errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
   for (const instance of Object.values(INSTANCES)) {
     instance.defaults.adapter = stubAdapter
   }
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('coreApi routes', () => {
@@ -723,18 +743,43 @@ describe('coreApi routes', () => {
   })
 
   it('answers with an empty list when a user has access to no course', async () => {
-    const unauthorized = (config: InternalAxiosRequestConfig) =>
-      Promise.reject(
-        Object.assign(new Error('Request failed with status code 401'), {
-          isAxiosError: true,
-          config,
-          response: { status: 401, data: {}, statusText: '', headers: {}, config },
-        }),
-      )
-    axiosInstance.defaults.adapter = unauthorized
+    axiosInstance.defaults.adapter = rejectingAdapter(401)
 
     await expect(coreApi.courses.list()).resolves.toEqual([])
     await expect(coreApi.courses.listOwnIDs()).resolves.toEqual([])
+  })
+
+  it('keeps its own log off an unauthorized status the read answers itself', async () => {
+    axiosInstance.defaults.adapter = rejectingAdapter(401)
+
+    await expect(coreApi.courses.list()).resolves.toEqual([])
+    await expect(coreApi.courses.listOwnIDs()).resolves.toEqual([])
+
+    expect(coreFailureLogs()).toHaveLength(0)
+  })
+
+  it('still logs a status a quiet read does not name', async () => {
+    axiosInstance.defaults.adapter = rejectingAdapter(500)
+
+    await expect(coreApi.courses.list()).rejects.toThrow('Request failed with status code 500')
+
+    expect(coreFailureLogs()).toHaveLength(1)
+  })
+
+  it('logs the unauthorized status on a read that does not declare it', async () => {
+    axiosInstance.defaults.adapter = rejectingAdapter(401)
+
+    await expect(coreApi.courses.listTemplates()).rejects.toThrow(
+      'Request failed with status code 401',
+    )
+
+    expect(coreFailureLogs()).toHaveLength(1)
+  })
+
+  it('keeps the quiet statuses out of the request it sends', async () => {
+    await coreApi.courses.list()
+
+    expect(captured[0]).not.toHaveProperty('quietStatuses')
   })
 
   it('rethrows anything else, so the caller still sees the failure', async () => {

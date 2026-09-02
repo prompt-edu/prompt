@@ -141,22 +141,26 @@ describe('applicationParticipantsChanged', () => {
 })
 
 describe('applicationAssessmentSaved', () => {
-  it('reaches every phase, because the participation key it uses is unscoped', () => {
-    seed(
-      coreKeys.applications.participations.inPhase(PHASE),
-      coreKeys.applications.participations.inPhase(OTHER_PHASE),
-    )
+  it('invalidates the participations of the assessed phase', () => {
+    seed(coreKeys.applications.participations.inPhase(PHASE))
 
-    coreCache.applicationAssessmentSaved(queryClient)
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
 
     expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
+  })
+
+  it('leaves the participations of another phase alone', () => {
+    seed(coreKeys.applications.participations.inPhase(OTHER_PHASE))
+
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
+
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(false)
   })
 
   it('leaves the applications themselves alone', () => {
     seed(coreKeys.applications.ofParticipation(PARTICIPATION))
 
-    coreCache.applicationAssessmentSaved(queryClient)
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(false)
   })

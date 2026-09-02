@@ -56,9 +56,8 @@ export const coreCache = {
   applicationParticipantsChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
-  // Unscoped, so it reaches every phase rather than the one that was assessed
-  applicationAssessmentSaved: (queryClient: QueryClient): void =>
-    invalidate(queryClient, [coreKeys.applications.participations.all()]),
+  applicationAssessmentSaved: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
   // A student gaining a university account changes the applications that name them and the
   // participation rows that render them, in every phase

@@ -1,4 +1,4 @@
-import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
+import { coreApi } from '@core/network/api'
 import { type TemplateFormValues, templateFormSchema } from '@core/validations/template'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
@@ -57,7 +57,7 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
 
   const checkTemplateExistsAndUpdateForm = async (val) => {
     try {
-      const exists = await checkCourseNameExists(val, 'template')
+      const exists = await coreApi.courses.nameExists(val, 'template')
       if (exists) {
         form.setError('name', {
           type: 'manual',

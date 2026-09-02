@@ -4,8 +4,8 @@ import {
   DEFAULT_COURSE_COLOR,
   DEFAULT_COURSE_ICON,
 } from '@core/managementConsole/courseOverview/constants/courseAppearance'
-import { updateCourseData } from '@core/network/mutations/updateCourseData'
-import { getAllCourses } from '@core/network/queries/course'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { type EditCourseFormValues, editCourseSchema } from '@core/validations/editCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -52,8 +52,8 @@ export function CourseGeneralSettings() {
     isError: isCoursesError,
     refetch: refetchCourses,
   } = useQuery<Course[]>({
-    queryKey: ['courses'],
-    queryFn: () => getAllCourses(),
+    queryKey: coreKeys.courses.all(),
+    queryFn: () => coreApi.courses.list(),
   })
 
   // Update store when data arrives
@@ -120,10 +120,10 @@ export function CourseGeneralSettings() {
 
   const { mutate: mutateCourse, isPending: isSaving } = useMutation({
     mutationFn: (courseData: UpdateCourseData) => {
-      return updateCourseData(courseId ?? 'undefined', courseData)
+      return coreApi.courses.update(courseId ?? 'undefined', courseData)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       toast({
         title: 'Successfully Updated Course',
       })

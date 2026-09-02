@@ -1,10 +1,11 @@
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQueries } from '@tanstack/react-query'
 import { KeycloakStatusCard } from './components/KeycloakStatusCard'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
 import type { CoursePhaseType } from './interfaces/coursePhaseType'
 import type { ServiceInfo } from './interfaces/serviceCapabilities'
-import { getServiceInfo } from './network/getServiceCapabilities'
 import { isRealMicroservice } from './utils/isRealMicroservice'
 
 export const SystemStatusPage = () => {
@@ -16,8 +17,8 @@ export const SystemStatusPage = () => {
   const results = useQueries({
     queries: coursePhaseTypes.map((service) => {
       return {
-        queryKey: [`serviceInfo-${service.id}`],
-        queryFn: () => getServiceInfo(service),
+        queryKey: coreKeys.serviceInfo.ofService(service.id),
+        queryFn: () => coreApi.system.serviceInfo(service),
         retry: false,
         staleTime: 30_000,
       }

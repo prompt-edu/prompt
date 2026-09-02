@@ -3,8 +3,8 @@ import { useApplicationStore } from '@core/managementConsole/applicationAdminist
 import { InstructorNotes } from '@core/managementConsole/shared/components/InstructorNote/InstructorNotes'
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
 import { CourseEnrollments } from '@core/managementConsole/shared/components/StudentDetail/CourseEnrollmentList'
-import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { Role } from '@tumaet/prompt-shared-state'
 import {
@@ -82,8 +82,8 @@ export const ApplicationDetailsPage = () => {
     isError: isApplicationError,
     refetch: refetchApplication,
   } = useQuery<GetApplication>({
-    queryKey: ['application', participationId],
-    queryFn: () => getApplicationAssessment(phaseId ?? '', participationId ?? ''),
+    queryKey: coreKeys.applications.ofParticipation(participationId),
+    queryFn: () => coreApi.applications.ofParticipant(phaseId ?? '', participationId ?? ''),
     enabled: !!phaseId && !!participationId,
   })
 
@@ -93,8 +93,8 @@ export const ApplicationDetailsPage = () => {
     isError: isApplicationFormError,
     refetch: refetchApplicationForm,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', phaseId],
-    queryFn: () => getApplicationForm(phaseId ?? ''),
+    queryKey: coreKeys.applications.form(phaseId),
+    queryFn: () => coreApi.applications.form(phaseId ?? ''),
     enabled: !!phaseId,
   })
 

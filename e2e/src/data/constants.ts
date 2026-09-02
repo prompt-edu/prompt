@@ -34,6 +34,26 @@ export const SEEDED_COURSE_COUNT = 4
 // so the application file-upload endpoints accept uploads.
 export const OPEN_APPLICATION_PHASE_ID = 'aaaa1111-0000-0000-0000-0000000000a1'
 
+// Application phase on its own course (only one initial phase is allowed per
+// course), owned by the welcome-text spec because that spec edits the phase's
+// welcomeText and would otherwise clobber the shared application fixtures.
+export const WELCOME_TEXT_COURSE_ID = 'c0000002-0000-0000-0000-000000000002'
+export const WELCOME_TEXT_PHASE_ID = 'd0000030-0000-0000-0000-000000000030'
+
+// The seeded welcomeText, including the markup DOMPurify must strip. `html` is
+// the literal seeded in e2e_seed.sql, so a spec that edits it can restore it.
+export const SEEDED_WELCOME_TEXT = {
+  paragraph: 'Welcome to the PROMPT e2e welcome course.',
+  linkName: 'Course handbook',
+  linkHref: 'https://example.com/handbook',
+  xssMarker: '__welcomeTextXss',
+  html:
+    '<p>Welcome to the PROMPT e2e welcome course.</p>' +
+    '<p><a href="https://example.com/handbook">Course handbook</a></p>' +
+    '<script>window.__welcomeTextXss=1</script>' +
+    '<img src="x" onerror="window.__welcomeTextXss=1">',
+}
+
 export const SEEDED_STUDENT = {
   id: '3869f209-9a21-4595-ae0e-bc6d6a3e2d63',
   firstName: 'Niclas',
@@ -131,10 +151,12 @@ export const CERTIFICATE_PHASES = {
 // URL). One phase per mutating spec file so template/release-date state and
 // download recording never leak between parallel Playwright files:
 // `lecturer` hosts the lecturer journey (template + release + participants),
-// `student` the student self-download journey (Stan participates in both).
+// `student` the student self-download journey, and `studentPageText` the
+// instructor download-page message (Stan participates in all three).
 export const CERTIFICATE_FIXTURE_PHASES = {
   lecturer: 'd000000a-0000-0000-0000-00000000000a',
   student: 'd000000b-0000-0000-0000-00000000000b',
+  studentPageText: 'd0000016-0000-0000-0000-000000000016',
 }
 
 // Certificate phase on TestCourse with NO participants: requests by the e2e

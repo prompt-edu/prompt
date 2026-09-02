@@ -382,6 +382,10 @@ definitions:
         type: string
       universityLoginAvailable:
         type: boolean
+      welcomeText:
+        description: WelcomeText is instructor-authored HTML shown above the application
+          form.
+        type: string
     type: object
   applicationDTO.ParticipationExportedAnswers:
     properties:

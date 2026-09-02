@@ -31,7 +31,7 @@ INSERT INTO
     course_phase_config (course_phase_id)
 VALUES ($1)
 RETURNING
-    course_phase_id, template_content, created_at, updated_at, updated_by, release_date
+    course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
 `
 
 func (q *Queries) CreateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (CoursePhaseConfig, error) {
@@ -44,6 +44,7 @@ func (q *Queries) CreateCoursePhaseConfig(ctx context.Context, coursePhaseID uui
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ReleaseDate,
+		&i.StudentPageText,
 	)
 	return i, err
 }
@@ -140,7 +141,7 @@ func (q *Queries) GetCertificateDownloadsByStudentID(ctx context.Context, studen
 }
 
 const getCoursePhaseConfig = `-- name: GetCoursePhaseConfig :one
-SELECT course_phase_id, template_content, created_at, updated_at, updated_by, release_date FROM course_phase_config WHERE course_phase_id = $1 LIMIT 1
+SELECT course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text FROM course_phase_config WHERE course_phase_id = $1 LIMIT 1
 `
 
 func (q *Queries) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (CoursePhaseConfig, error) {
@@ -153,6 +154,7 @@ func (q *Queries) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.U
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ReleaseDate,
+		&i.StudentPageText,
 	)
 	return i, err
 }
@@ -255,7 +257,7 @@ SET
 WHERE
     course_phase_id = $1
 RETURNING
-    course_phase_id, template_content, created_at, updated_at, updated_by, release_date
+    course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
 `
 
 type UpdateCoursePhaseConfigParams struct {
@@ -274,6 +276,7 @@ func (q *Queries) UpdateCoursePhaseConfig(ctx context.Context, arg UpdateCourseP
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ReleaseDate,
+		&i.StudentPageText,
 	)
 	return i, err
 }
@@ -287,7 +290,7 @@ SET
 WHERE
     course_phase_id = $1
 RETURNING
-    course_phase_id, template_content, created_at, updated_at, updated_by, release_date
+    course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
 `
 
 type UpdateReleaseDateParams struct {
@@ -306,6 +309,7 @@ func (q *Queries) UpdateReleaseDate(ctx context.Context, arg UpdateReleaseDatePa
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ReleaseDate,
+		&i.StudentPageText,
 	)
 	return i, err
 }
@@ -326,7 +330,7 @@ SET
     updated_at = NOW(),
     updated_by = EXCLUDED.updated_by
 RETURNING
-    course_phase_id, template_content, created_at, updated_at, updated_by, release_date
+    course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
 `
 
 type UpsertCoursePhaseConfigParams struct {
@@ -345,6 +349,43 @@ func (q *Queries) UpsertCoursePhaseConfig(ctx context.Context, arg UpsertCourseP
 		&i.UpdatedAt,
 		&i.UpdatedBy,
 		&i.ReleaseDate,
+		&i.StudentPageText,
+	)
+	return i, err
+}
+
+const upsertStudentPageText = `-- name: UpsertStudentPageText :one
+INSERT INTO
+    course_phase_config (course_phase_id, student_page_text)
+VALUES ($1, $2)
+ON CONFLICT (course_phase_id) DO
+UPDATE
+SET
+    student_page_text = EXCLUDED.student_page_text
+RETURNING
+    course_phase_id, template_content, created_at, updated_at, updated_by, release_date, student_page_text
+`
+
+type UpsertStudentPageTextParams struct {
+	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
+	StudentPageText pgtype.Text `json:"student_page_text"`
+}
+
+// Upsert rather than update: the phase may have no config row yet, and the
+// template and release date must survive a text-only write. updated_at and
+// updated_by are deliberately left alone, because the settings page presents
+// them as the template's provenance.
+func (q *Queries) UpsertStudentPageText(ctx context.Context, arg UpsertStudentPageTextParams) (CoursePhaseConfig, error) {
+	row := q.db.QueryRow(ctx, upsertStudentPageText, arg.CoursePhaseID, arg.StudentPageText)
+	var i CoursePhaseConfig
+	err := row.Scan(
+		&i.CoursePhaseID,
+		&i.TemplateContent,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UpdatedBy,
+		&i.ReleaseDate,
+		&i.StudentPageText,
 	)
 	return i, err
 }

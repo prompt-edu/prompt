@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -162,9 +162,9 @@ func (s *EvaluationService) getMyEvaluations(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
@@ -206,9 +206,9 @@ func (s *EvaluationService) getMyEvaluationResults(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
@@ -248,7 +248,7 @@ func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 		return
 	}
 
-	statusCode, err := utils.ValidateStudentOwnership(c, request.AuthorCourseParticipationID)
+	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, request.AuthorCourseParticipationID, "evaluations")
 	if err != nil {
 		c.JSON(statusCode, gin.H{"error": "Students can only create evaluations as the author"})
 		return
@@ -282,10 +282,10 @@ func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, er := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, er := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if er != nil {
 		log.Error("Error getting student courseParticipationID: ", er)
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(er), er)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(er), er)
 		return
 	}
 

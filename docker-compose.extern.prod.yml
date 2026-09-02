@@ -1,6 +1,6 @@
 services:
   reverse-proxy:
-    image: traefik:v2.11
+    image: traefik:v3.6
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -13,8 +13,6 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--experimental.plugins.jwt.moduleName=github.com/traefik-plugins/traefik-jwt-plugin"
-      - "--experimental.plugins.jwt.version=v0.7.1"
     restart: unless-stopped
     ports:
       - "80:80"

@@ -44,10 +44,12 @@ export const coreKeys = {
     ofParticipation: (courseParticipationId: Id) => ['application', courseParticipationId] as const,
     ofParticipant: (phaseId: Id, courseParticipationId: Id) =>
       ['application', phaseId, courseParticipationId] as const,
+    // Holds the phase's additional score names, not participations, despite sharing their prefix
+    additionalScores: (phaseId: Id) => ['application_participations', phaseId] as const,
     participations: {
       all: () => ['application_participations'] as const,
-      inPhase: (phaseId: Id) => ['application_participations', phaseId] as const,
-      students: (phaseId: Id) => ['application_participations', 'students', phaseId] as const,
+      // The `students` segment does not mean students: this is the phase's participation list
+      inPhase: (phaseId: Id) => ['application_participations', 'students', phaseId] as const,
     },
     form: (phaseId: Id) => ['application_form', phaseId] as const,
     exportedAnswers: (phaseId: Id) => ['application_exported_answers', phaseId] as const,

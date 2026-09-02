@@ -73,11 +73,14 @@ describe('coreKeys', () => {
     expect(coreKeys.applications.participations.all()).toEqual(['application_participations'])
     expect(coreKeys.applications.participations.inPhase(PHASE)).toEqual([
       'application_participations',
+      'students',
       PHASE,
     ])
-    expect(coreKeys.applications.participations.students(PHASE)).toEqual([
+  })
+
+  it('keeps the additional score names under the participation prefix, not beside them', () => {
+    expect(coreKeys.applications.additionalScores(PHASE)).toEqual([
       'application_participations',
-      'students',
       PHASE,
     ])
   })

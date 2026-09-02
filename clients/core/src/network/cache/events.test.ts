@@ -125,52 +125,52 @@ describe('coursePhaseGraphSaved', () => {
 })
 
 describe('applicationsImported', () => {
-  it('invalidates both participation caches of this phase and their descendants', () => {
+  it('invalidates the score names and the participations of this phase', () => {
     seed(
+      coreKeys.applications.additionalScores(PHASE),
       coreKeys.applications.participations.inPhase(PHASE),
-      coreKeys.applications.participations.students(PHASE),
     )
 
     coreCache.applicationsImported(queryClient, PHASE)
 
+    expect(isInvalidated(coreKeys.applications.additionalScores(PHASE))).toBe(true)
     expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.students(PHASE))).toBe(true)
   })
 
   it('leaves another phase alone', () => {
-    seed(coreKeys.applications.participations.students(OTHER_PHASE))
+    seed(coreKeys.applications.participations.inPhase(OTHER_PHASE))
 
     coreCache.applicationsImported(queryClient, PHASE)
 
-    expect(isInvalidated(coreKeys.applications.participations.students(OTHER_PHASE))).toBe(false)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(false)
   })
 })
 
 describe('applicationParticipantsChanged', () => {
-  it('invalidates only the student rows of this phase', () => {
+  it('invalidates only the participations of this phase, not the score names', () => {
     seed(
-      coreKeys.applications.participations.students(PHASE),
       coreKeys.applications.participations.inPhase(PHASE),
+      coreKeys.applications.additionalScores(PHASE),
     )
 
     coreCache.applicationParticipantsChanged(queryClient, PHASE)
 
-    expect(isInvalidated(coreKeys.applications.participations.students(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(false)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.additionalScores(PHASE))).toBe(false)
   })
 })
 
 describe('applicationAssessmentSaved', () => {
   it('reaches every phase, because the participation key it uses is unscoped', () => {
     seed(
-      coreKeys.applications.participations.students(PHASE),
-      coreKeys.applications.participations.students(OTHER_PHASE),
+      coreKeys.applications.participations.inPhase(PHASE),
+      coreKeys.applications.participations.inPhase(OTHER_PHASE),
     )
 
     coreCache.applicationAssessmentSaved(queryClient)
 
-    expect(isInvalidated(coreKeys.applications.participations.students(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.students(OTHER_PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
   })
 
   it('leaves the applications themselves alone', () => {
@@ -187,14 +187,14 @@ describe('studentUniversityDataChanged', () => {
     seed(
       coreKeys.applications.ofParticipation(PARTICIPATION),
       coreKeys.applications.inPhase(PHASE),
-      coreKeys.applications.participations.students(OTHER_PHASE),
+      coreKeys.applications.participations.inPhase(OTHER_PHASE),
     )
 
     coreCache.studentUniversityDataChanged(queryClient)
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(true)
     expect(isInvalidated(coreKeys.applications.inPhase(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.students(OTHER_PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
   })
 
   it('leaves the application form alone, which is a separate cache', () => {

@@ -24,7 +24,7 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
     isError: isAdditionalScoresError,
     refetch: refetchScores,
   } = useQuery<AdditionalScore[]>({
-    queryKey: coreKeys.applications.participations.inPhase(phaseId),
+    queryKey: coreKeys.applications.additionalScores(phaseId),
     queryFn: () => coreApi.applications.additionalScoreNames(phaseId ?? ''),
   })
 

@@ -8,7 +8,7 @@ export const useGetApplicationParticipations = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   return useQuery<ApplicationParticipation[]>({
-    queryKey: coreKeys.applications.participations.students(phaseId),
+    queryKey: coreKeys.applications.participations.inPhase(phaseId),
     queryFn: () => coreApi.applications.listParticipations(phaseId ?? ''),
   })
 }

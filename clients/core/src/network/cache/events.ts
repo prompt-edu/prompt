@@ -57,18 +57,18 @@ export const coreCache = {
 
   applicationsImported: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [
+      coreKeys.applications.additionalScores(phaseId),
       coreKeys.applications.participations.inPhase(phaseId),
-      coreKeys.applications.participations.students(phaseId),
     ]),
 
   additionalScoresUploaded: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [
+      coreKeys.applications.additionalScores(phaseId),
       coreKeys.applications.participations.inPhase(phaseId),
-      coreKeys.applications.participations.students(phaseId),
     ]),
 
   applicationParticipantsChanged: (queryClient: QueryClient, phaseId: Id): void =>
-    invalidate(queryClient, [coreKeys.applications.participations.students(phaseId)]),
+    invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
   // Unscoped, so it reaches every phase rather than the one that was assessed
   applicationAssessmentSaved: (queryClient: QueryClient): void =>

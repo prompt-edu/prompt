@@ -98,7 +98,7 @@ export function useCourseConfiguratorDataSetup() {
     isPending: isAdditionalScoresPending,
     isError: isAdditionalScoresError,
   } = useQuery<AdditionalScore[]>({
-    queryKey: coreKeys.applications.participations.inPhase(applicationPhase?.id),
+    queryKey: coreKeys.applications.additionalScores(applicationPhase?.id),
     queryFn: () => coreApi.applications.additionalScoreNames(applicationPhase?.id || ''),
     enabled: !!applicationPhase?.id,
   })

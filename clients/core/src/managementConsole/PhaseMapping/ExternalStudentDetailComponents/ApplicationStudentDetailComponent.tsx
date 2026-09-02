@@ -17,7 +17,7 @@ export const ApplicationStudentDetailComponent: React.FC<CoursePhaseStudentIdent
 }) => {
   const { data: participations, isPending } = useQuery<ApplicationParticipation[]>({
     // align with the key used in useGetApplicationParticipations() so we reuse cache
-    queryKey: coreKeys.applications.participations.students(coursePhaseId),
+    queryKey: coreKeys.applications.participations.inPhase(coursePhaseId),
     queryFn: () => coreApi.applications.listParticipations(coursePhaseId),
   })
 

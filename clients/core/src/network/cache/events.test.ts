@@ -174,17 +174,37 @@ describe('studentUniversityDataChanged', () => {
       coreKeys.applications.participations.inPhase(OTHER_PHASE),
     )
 
-    coreCache.studentUniversityDataChanged(queryClient)
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(true)
     expect(isInvalidated(coreKeys.applications.inPhase(PHASE))).toBe(true)
     expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
   })
 
+  it('invalidates the detail cache of the edited student only', () => {
+    seed(coreKeys.students.byId(STUDENT), coreKeys.students.byId('other'))
+
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
+
+    expect(isInvalidated(coreKeys.students.byId(STUDENT))).toBe(true)
+    expect(isInvalidated(coreKeys.students.byId('other'))).toBe(false)
+  })
+
+  it('invalidates every cached university user search, whatever it searched for', () => {
+    const search = coreKeys.applications.universityUsers.forSearch('ab', PHASE)
+    const otherSearch = coreKeys.applications.universityUsers.forSearch('cd', OTHER_PHASE)
+    seed(search, otherSearch)
+
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
+
+    expect(isInvalidated(search)).toBe(true)
+    expect(isInvalidated(otherSearch)).toBe(true)
+  })
+
   it('leaves the application form alone, which is a separate cache', () => {
     seed(coreKeys.applications.form(PHASE))
 
-    coreCache.studentUniversityDataChanged(queryClient)
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
 
     expect(isInvalidated(coreKeys.applications.form(PHASE))).toBe(false)
   })

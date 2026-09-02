@@ -59,12 +59,15 @@ export const coreCache = {
   applicationAssessmentSaved: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
-  // A student gaining a university account changes the applications that name them and the
-  // participation rows that render them, in every phase
-  studentUniversityDataChanged: (queryClient: QueryClient): void =>
+  // The whole student record is written, and the student's rows render in the applications and
+  // participations of every phase, which the call site does not know
+  studentUniversityDataChanged: (queryClient: QueryClient, studentId: Id): void =>
     invalidate(queryClient, [
+      coreKeys.students.byId(studentId),
       coreKeys.applications.all(),
       coreKeys.applications.participations.all(),
+      // Unscoped, so every cached search re-runs: the write sets the fields they search
+      coreKeys.applications.universityUsers.all(),
     ]),
 
   applicationFormChanged: (queryClient: QueryClient, phaseId: Id): void =>

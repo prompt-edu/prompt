@@ -126,9 +126,9 @@ only matters once a database uses credentials of its own - which is how
 
 ## Changing the seed
 
-Edit the `INSERT` blocks. There is nothing to regenerate: a migration only forces a
-seed change when it renames or drops a column the seed writes, and then `psql` fails
-loudly on the next run.
+Edit the `INSERT` blocks. There is nothing to regenerate, but review the seed
+against the schema after every migration: renamed or dropped columns, new required
+columns, and changed types, constraints or defaults can all force a seed change.
 
 Every service has its own database, and the ids linking them (`course_phase_id`,
 `course_participation_id`, `student_id`) are bare UUID values that no foreign key

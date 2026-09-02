@@ -65,7 +65,7 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 
 `iPraktikumDemo` (`ios2526`) is the full-course example. Its graph is
 
-```
+```text
 Application → Interview → Matching → Team Allocation → Assessment → Presentation → Certificate
 ```
 

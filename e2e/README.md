@@ -422,9 +422,10 @@ as the negative fixture for the public apply endpoints.
 > `split_part(role, '-', N)`, so a hyphen in either would break course
 > visibility for non-admins.
 
-> Every phase type is created by core itself
+> Every phase type except `example_component` is created by core itself
 > (`servers/core/coursePhaseType/initializeTypes.go`) and therefore carries its
-> full provided/required DTO metadata. The fixture course does not wire an
+> full provided/required DTO metadata. `core.sql` inserts `example_component`
+> because core never does. The fixture course does not wire an
 > inter-phase data-dependency graph; the demo course (`iPraktikumDemo`) does.
 > The **`Matching`**, **`Interview`**,
 > **`Certificate`**, and **`Team Allocation`** remotes ARE served in the e2e

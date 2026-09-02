@@ -665,40 +665,59 @@ INSERT INTO application_assessment (id, score, course_phase_id, course_participa
 -- server on startup, so they are resolved by (type name, dto name) rather than
 -- pinned. This is the wiring that makes a downstream phase see an upstream
 -- phase's data: without it a phase's participants table shows no resolved
--- columns at all.
+-- columns at all. A rename upstream would drop an edge silently rather than
+-- fail, so each insert asserts how many edges it wrote.
 
-INSERT INTO participation_data_dependency_graph (from_course_phase_id, to_course_phase_id, from_course_phase_dto_id, to_course_phase_dto_id)
-SELECT edge.from_phase, edge.to_phase, provided.id, required.id
-FROM (VALUES
-        ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'score',           'f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',       'score'),
-        ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'applicationAnswers', 'f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',    'applicationAnswers'),
-        ('f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',   'score',           'f0000003-0000-0000-0000-000000000003'::uuid, 'Matching',        'score'),
-        ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'scoreLevel',      'f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'scoreLevel'),
-        ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'applicationAnswers', 'f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'applicationAnswers'),
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000005-0000-0000-0000-000000000005'::uuid, 'Assessment',   'teamAllocation'),
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000006-0000-0000-0000-000000000006'::uuid, 'Presentation', 'teamAllocation'),
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teamAllocation')
-     ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
-JOIN course_phase_type from_type ON from_type.name = edge.from_type
-JOIN course_phase_type to_type   ON to_type.name = edge.to_type
-JOIN course_phase_type_participation_provided_output_dto provided
-     ON provided.course_phase_type_id = from_type.id AND provided.dto_name = edge.from_dto
-JOIN course_phase_type_participation_required_input_dto required
-     ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
+DO $$
+DECLARE
+    inserted integer;
+BEGIN
+    INSERT INTO participation_data_dependency_graph (from_course_phase_id, to_course_phase_id, from_course_phase_dto_id, to_course_phase_dto_id)
+    SELECT edge.from_phase, edge.to_phase, provided.id, required.id
+    FROM (VALUES
+            ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'score',           'f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',       'score'),
+            ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'applicationAnswers', 'f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',    'applicationAnswers'),
+            ('f0000002-0000-0000-0000-000000000002'::uuid, 'Interview',   'score',           'f0000003-0000-0000-0000-000000000003'::uuid, 'Matching',        'score'),
+            ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'scoreLevel',      'f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'scoreLevel'),
+            ('f0000001-0000-0000-0000-000000000001'::uuid, 'Application', 'applicationAnswers', 'f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'applicationAnswers'),
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000005-0000-0000-0000-000000000005'::uuid, 'Assessment',   'teamAllocation'),
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000006-0000-0000-0000-000000000006'::uuid, 'Presentation', 'teamAllocation'),
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teamAllocation')
+         ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
+    JOIN course_phase_type from_type ON from_type.name = edge.from_type
+    JOIN course_phase_type to_type   ON to_type.name = edge.to_type
+    JOIN course_phase_type_participation_provided_output_dto provided
+         ON provided.course_phase_type_id = from_type.id AND provided.dto_name = edge.from_dto
+    JOIN course_phase_type_participation_required_input_dto required
+         ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
+    GET DIAGNOSTICS inserted = ROW_COUNT;
+    IF inserted <> 8 THEN
+        RAISE EXCEPTION 'seed: expected 8 participation data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    END IF;
+END $$;
 
-INSERT INTO phase_data_dependency_graph (from_course_phase_id, to_course_phase_id, from_course_phase_DTO_id, to_course_phase_DTO_id)
-SELECT edge.from_phase, edge.to_phase, provided.id, required.id
-FROM (VALUES
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000005-0000-0000-0000-000000000005'::uuid, 'Assessment',   'teams'),
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000006-0000-0000-0000-000000000006'::uuid, 'Presentation', 'teams'),
-        ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teams')
-     ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
-JOIN course_phase_type from_type ON from_type.name = edge.from_type
-JOIN course_phase_type to_type   ON to_type.name = edge.to_type
-JOIN course_phase_type_phase_provided_output_dto provided
-     ON provided.course_phase_type_id = from_type.id AND provided.dto_name = edge.from_dto
-JOIN course_phase_type_phase_required_input_dto required
-     ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
+DO $$
+DECLARE
+    inserted integer;
+BEGIN
+    INSERT INTO phase_data_dependency_graph (from_course_phase_id, to_course_phase_id, from_course_phase_DTO_id, to_course_phase_DTO_id)
+    SELECT edge.from_phase, edge.to_phase, provided.id, required.id
+    FROM (VALUES
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000005-0000-0000-0000-000000000005'::uuid, 'Assessment',   'teams'),
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000006-0000-0000-0000-000000000006'::uuid, 'Presentation', 'teams'),
+            ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teams')
+         ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
+    JOIN course_phase_type from_type ON from_type.name = edge.from_type
+    JOIN course_phase_type to_type   ON to_type.name = edge.to_type
+    JOIN course_phase_type_phase_provided_output_dto provided
+         ON provided.course_phase_type_id = from_type.id AND provided.dto_name = edge.from_dto
+    JOIN course_phase_type_phase_required_input_dto required
+         ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
+    GET DIAGNOSTICS inserted = ROW_COUNT;
+    IF inserted <> 3 THEN
+        RAISE EXCEPTION 'seed: expected 3 phase data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    END IF;
+END $$;
 
 -- ─── Mailing ────────────────────────────────────────────────────────────────
 

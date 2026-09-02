@@ -48,10 +48,20 @@ describe('byPinnedThenCommits', () => {
     ])
   })
 
-  it('sorts a contributor without commits in this repository last', () => {
+  it('sorts an unpinned contributor without commits in this repository last', () => {
     expect(order([contributor('nocommits', 0), contributor('one', 1)])).toEqual([
       'one',
       'nocommits',
     ])
+  })
+
+  it('keeps a pinned contributor without commits in this repository at its pinned position', () => {
+    expect(
+      order([
+        contributor('prolific', 747),
+        contributor('nocommits', 0, 2),
+        contributor('lead', 500),
+      ]),
+    ).toEqual(['nocommits', 'prolific', 'lead'])
   })
 })

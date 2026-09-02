@@ -12,6 +12,11 @@ export const contributorMapping: {
     contribution: 'Project Manager, Architect',
     pinnedPosition: 1,
   },
+  airelawaleria: {
+    name: 'Valeryia Andraichuk',
+    contribution: 'Creator of PROMPT - the concept on which PROMPT 2.0 is based',
+    pinnedPosition: 2,
+  },
   niclasheun: {
     name: 'Niclas Heun',
     contribution: 'Lead Developer & Architect of PROMPT 2.0',
@@ -51,9 +56,5 @@ export const contributorMapping: {
   phnagy: {
     name: 'Philipp Nagy',
     contribution: 'TEASE - Team Allocation Decision Support System',
-  },
-  airelawaleria: {
-    name: 'Valeryia Andraichuk',
-    contribution: 'Creator of PROMPT - the concept on which PROMPT 2.0 is based',
   },
 }

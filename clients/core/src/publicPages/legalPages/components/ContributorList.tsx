@@ -10,6 +10,10 @@ import { byPinnedThenCommits } from '../contributorSorting'
 import type { Contributor, ContributorWithInfo } from '../interfaces/Contributor'
 import { contributorMapping } from './ContributorMapping'
 
+const uniqueByLogin = (contributors: Contributor[]) => [
+  ...new Map(contributors.map((contributor) => [contributor.login, contributor])).values(),
+]
+
 export const ContributorList = () => {
   const [contributors, setContributors] = useState<Contributor[]>([])
   const [vali, setVali] = useState<Contributor>()
@@ -38,13 +42,15 @@ export const ContributorList = () => {
       .catch((error) => console.error('Error fetching user:', error))
   }, [])
 
-  const mappedContributors: ContributorWithInfo[] = [...contributors, vali]
-    .filter(
-      (contributor): contributor is Contributor =>
-        contributor !== undefined &&
-        !!contributorMapping[contributor.login] &&
-        contributor.type === 'User',
-    )
+  // vali comes first so the contributors endpoint wins the dedupe if it ever returns her too.
+  const knownContributors = [vali, ...contributors].filter(
+    (contributor): contributor is Contributor =>
+      contributor !== undefined &&
+      !!contributorMapping[contributor.login] &&
+      contributor.type === 'User',
+  )
+
+  const mappedContributors: ContributorWithInfo[] = uniqueByLogin(knownContributors)
     .map((contributor) => {
       return {
         ...contributor,

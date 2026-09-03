@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	log "github.com/sirupsen/logrus"
@@ -23,9 +24,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentSchemaServi
 	schemaRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllAssessmentSchemas)
 	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentSchema)
 	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.checkSchemaHasAssessmentData)
-	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createAssessmentSchema)
-	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateAssessmentSchema)
-	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), service.deleteAssessmentSchema)
+	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), audit.Describe("Created assessment schema"), service.createAssessmentSchema)
+	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), audit.Describe("Updated assessment schema"), service.updateAssessmentSchema)
+	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), audit.Describe("Deleted assessment schema"), service.deleteAssessmentSchema)
 }
 
 // getAllAssessmentSchemas godoc

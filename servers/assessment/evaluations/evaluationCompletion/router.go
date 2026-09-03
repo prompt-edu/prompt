@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion/evaluationCompletionDTO"
@@ -23,10 +24,10 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationCompletionS
 
 	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listEvaluationCompletionsByCoursePhase)
 
-	evaluationRouter.POST("/my-completion", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.PUT("/my-completion", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.POST("/my-completion/mark-complete", authMiddleware(promptSDK.CourseStudent), service.markMyEvaluationAsCompleted)
-	evaluationRouter.PUT("/my-completion/unmark", authMiddleware(promptSDK.CourseStudent), service.unmarkMyEvaluationAsCompleted)
+	evaluationRouter.POST("/my-completion", authMiddleware(promptSDK.CourseStudent), audit.Describe("Saved own evaluation completion"), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.PUT("/my-completion", authMiddleware(promptSDK.CourseStudent), audit.Describe("Saved own evaluation completion"), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.POST("/my-completion/mark-complete", authMiddleware(promptSDK.CourseStudent), audit.Describe("Marked own evaluation as completed"), service.markMyEvaluationAsCompleted)
+	evaluationRouter.PUT("/my-completion/unmark", authMiddleware(promptSDK.CourseStudent), audit.Describe("Unmarked own evaluation completion"), service.unmarkMyEvaluationAsCompleted)
 	evaluationRouter.GET("/my-completions", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationCompletions)
 
 }

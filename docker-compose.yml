@@ -738,3 +738,63 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  # One-shot seeding of the demo course into every service database.
+  # Run with `make seed`, never started by `docker compose up` (its profile keeps
+  # it out). The servers own the schemas, so scripts/seed.sh waits for each
+  # database to reach the migration version its source tree declares before
+  # inserting anything.
+  seed:
+    image: "postgres:15.19-alpine"
+    profiles: ["seed"]
+    entrypoint: ["/seed.sh"]
+    volumes:
+      - ./seed:/seed:ro
+      - ./servers:/servers:ro
+      - ./scripts/seed.sh:/seed.sh:ro
+    environment:
+      - SEED_SQL_ROOT=/seed
+      - SEED_MIGRATIONS_ROOT=/servers
+      # SEED_DB_* is the fallback for every database; each service then
+      # overrides it with its own credentials, so a password changed for one
+      # database fails against that database instead of silently reusing core's.
+      - SEED_DB_NAME=${DB_CORE_NAME}
+      - SEED_DB_USER=${DB_CORE_USER}
+      - SEED_DB_PASSWORD=${DB_CORE_PASSWORD}
+      - SEED_CORE_HOST=db
+      - SEED_CORE_PORT=5432
+      - SEED_TEAM_ALLOCATION_HOST=db-team-allocation
+      - SEED_TEAM_ALLOCATION_PORT=5432
+      - SEED_TEAM_ALLOCATION_NAME=${DB_TEAM_ALLOCATION_NAME}
+      - SEED_TEAM_ALLOCATION_USER=${DB_TEAM_ALLOCATION_USER}
+      - SEED_TEAM_ALLOCATION_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - SEED_SELF_TEAM_ALLOCATION_HOST=db-self-team-allocation
+      - SEED_SELF_TEAM_ALLOCATION_PORT=5432
+      - SEED_SELF_TEAM_ALLOCATION_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
+      - SEED_SELF_TEAM_ALLOCATION_USER=${DB_SELF_TEAM_ALLOCATION_USER}
+      - SEED_SELF_TEAM_ALLOCATION_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
+      - SEED_ASSESSMENT_HOST=db-assessment
+      - SEED_ASSESSMENT_PORT=5432
+      - SEED_ASSESSMENT_NAME=${DB_ASSESSMENT_NAME}
+      - SEED_ASSESSMENT_USER=${DB_ASSESSMENT_USER}
+      - SEED_ASSESSMENT_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - SEED_INTERVIEW_HOST=db-interview
+      - SEED_INTERVIEW_PORT=5432
+      - SEED_INTERVIEW_NAME=${DB_INTERVIEW_NAME}
+      - SEED_INTERVIEW_USER=${DB_INTERVIEW_USER}
+      - SEED_INTERVIEW_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - SEED_CERTIFICATE_HOST=db-certificate
+      - SEED_CERTIFICATE_PORT=5432
+      - SEED_CERTIFICATE_NAME=${DB_CERTIFICATE_NAME}
+      - SEED_CERTIFICATE_USER=${DB_CERTIFICATE_USER}
+      - SEED_CERTIFICATE_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - SEED_PRESENTATION_HOST=db-presentation
+      - SEED_PRESENTATION_PORT=5432
+      - SEED_PRESENTATION_NAME=${DB_PRESENTATION_NAME}
+      - SEED_PRESENTATION_USER=${DB_PRESENTATION_USER}
+      - SEED_PRESENTATION_PASSWORD=${DB_PRESENTATION_PASSWORD}
+      - SEED_EXAMPLE_SERVER_HOST=db-example-server
+      - SEED_EXAMPLE_SERVER_PORT=5432
+      - SEED_EXAMPLE_SERVER_NAME=${DB_EXAMPLE_NAME:-prompt}
+      - SEED_EXAMPLE_SERVER_USER=${DB_EXAMPLE_USER:-prompt-postgres}
+      - SEED_EXAMPLE_SERVER_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}

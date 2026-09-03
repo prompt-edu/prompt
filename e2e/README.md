@@ -150,10 +150,12 @@ run twice — or not at all — fails fast instead of quietly.
 
 ```
 docker-compose.e2e.yml
- ├── db            ephemeral Postgres, seeded from seed/e2e_seed.sql on init
+ ├── db            ephemeral Postgres (empty; the `seed` service fills it)
  ├── keycloak(+db) realm imported from keycloak/realm.json (seeded users)
  ├── seaweedfs-*   S3 storage the core server depends on
  ├── server-core   built from ../servers/core (runs migrate up on startup)
+ ├── seed          one-shot; applies ../seed/*.sql to every database once the
+ │                 servers have migrated them (e2e-runner waits for it)
  ├── client-core   built from ../clients/core (nginx, e2e conf with the
  │                 phase-module proxy locations — nginx/client-core.conf)
  ├── self team allocation phase module:
@@ -239,24 +241,24 @@ Set the module's host var in `.env.e2e` to **empty** (`<MODULE>_HOST=`) so the
 component's axios baseURL falls back to the browser origin (same-origin, no
 CORS).
 
-**3. Core seed** (`seed/e2e_seed.sql`): pre-insert the module's
-`course_phase_type` row with a **fixed UUID** — core's startup init matches by
-name and would otherwise create it with a random UUID, breaking seeded FK
-references. Also mirror the type's provided/required DTO rows from
-`servers/core/coursePhaseType/initializeTypes.go` (init skips them when the
-type exists). Then add a `course_phase` on the seeded course and a
-`course_phase_graph` edge. Careful: the graph has UNIQUE constraints on both
+**3. Core seed** (`../seed/core.sql`): add a `course_phase` on the seeded
+course, resolving the type with
+`(SELECT id FROM course_phase_type WHERE name = '<Type>')`. Do **not** insert
+the `course_phase_type` row: core creates it at startup with a random UUID, and
+inserting it yourself makes core skip its provided/required DTO descriptors as
+well. The only exception is `example_component`, which core never creates, so
+`core.sql` inserts it. Then add a `course_phase_graph` edge. Careful: the graph
+has UNIQUE constraints on both
 `from_` and `to_course_phase_id`, so phases form a **chain** — append your
 phase to the tail (currently the self team allocation phase), don't branch
 from Application. Add `course_phase_participation` rows for `student`/`student2`
 (the student UI 404s into UnauthorizedPage without an own participation;
 backend auth checks course-level enrollment via core's `is_student`).
 
-**4. Phase DB seed:** usually **none** — the phase server migrates its empty
-DB on startup and tests create their own data. If a module does need seeded
-phase data, mount a dump into the db's `/docker-entrypoint-initdb.d/` with
-`schema_migrations` pinned to the module's latest migration (same pattern as
-the core seed below).
+**4. Phase DB seed:** usually **none for the fixture course** — the phase
+server migrates its empty DB on startup and tests create their own data. The
+shared `../seed/<module>.sql` exists for the demo course (`iPraktikumDemo`) and
+is deliberately scoped to its phases, so it never collides with a spec.
 
 **5. Readiness** (`src/global-setup.ts`): phase server images are distroless
 (no healthcheck), so poll `${BASE_URL}/<module>/api/info` with
@@ -355,11 +357,19 @@ sessions valid even after the 5-min access token expires.
 ## Test data
 
 Assertions reference seeded rows via `src/data/constants.ts` (course/student IDs
-and names). The seed lives in `seed/e2e_seed.sql`.
+and names). The seed lives in **`../seed/`** and is shared with local
+development (`make seed`); see `docs/contributor/guide/seeding.md`.
 
-The seed is a **consistent dump of the current (v24) schema** with a small
-deterministic data set. It records `schema_migrations = 24`, so the core
-server's startup `migrate up` is a clean no-op and the data loads as-is.
+It is **data only**. The servers own the schema, so the `seed` service waits
+until every database has reached the migration version its migration directory
+declares, then inserts. That also means course phase TYPES are the server's:
+`initializeTypes.go` creates them with random UUIDs, so seeded phases resolve
+their type by name rather than pinning its id. As a result the types now carry
+their full provided/required DTO metadata, which the old hand-mirrored dump did
+not.
+
+Besides the fixture courses it adds **`iPraktikumDemo`**, a fully populated
+course used for local development and demos. No spec asserts against it.
 
 It contains three read-only courses (`iPraktikum`, `iPraktikum-Test`,
 `TestCourse`) plus **`iPraktikumFull`**, a course with a full linear phase graph
@@ -412,14 +422,12 @@ as the negative fixture for the public apply endpoints.
 > `split_part(role, '-', N)`, so a hyphen in either would break course
 > visibility for non-admins.
 
-> The `Interview` / `Matching` / `Team Allocation` phase types are seeded by
-> their canonical names (matching
-> `servers/core/coursePhaseType/initializeTypes.go`), so core's startup
-> initializer skips re-creating them. As a result they carry **no provided/
-> required DTO metadata** — fine for phase-graph, participant-list, and
-> role-access tests, but the inter-phase data-dependency graph is not exercised.
-> (`Assessment` and `Self Team Allocation` DO mirror their DTO rows, per step 3
-> of the module blueprint.) The **`Matching`**, **`Interview`**,
+> Every phase type except `example_component` is created by core itself
+> (`servers/core/coursePhaseType/initializeTypes.go`) and therefore carries its
+> full provided/required DTO metadata. `core.sql` inserts `example_component`
+> because core never does. The fixture course does not wire an
+> inter-phase data-dependency graph; the demo course (`iPraktikumDemo`) does.
+> The **`Matching`**, **`Interview`**,
 > **`Certificate`**, and **`Team Allocation`** remotes ARE served in the e2e
 > stack and exercised through their own UIs (see `tests/matching/`,
 > `tests/interview/`, `tests/certificate/`, and `tests/team-allocation/`;
@@ -434,35 +442,15 @@ as the negative fixture for the public apply endpoints.
 > service and component tests.
 
 > Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
-> as an e2e seed — it's a hand-maintained Go-test fixture whose schema is
-> internally inconsistent (some tables migrated, others not; `schema_migrations`
-> stuck at 9), so `migrate up` cannot run against it.
+> as a seed — it's a hand-maintained Go-test fixture whose schema is internally
+> inconsistent (some tables migrated, others not; `schema_migrations` stuck at
+> 9), so `migrate up` cannot run against it.
 
-**Data-only changes** (adding courses, phases, participations, students, roles
-without a schema migration) are made by editing the `INSERT` blocks in
-`seed/e2e_seed.sql` directly and keeping `schema_migrations = 24`. Full
-regeneration is only needed when a core migration changes the schema.
-
-To regenerate after a **schema** change, apply the migrations to a throwaway
-Postgres, insert the data, and dump it:
-
-```bash
-docker run -d --name seedgen -e POSTGRES_USER=prompt-postgres \
-  -e POSTGRES_PASSWORD=prompt-postgres -e POSTGRES_DB=prompt postgres:15.18-alpine
-# wait for readiness, then:
-for f in servers/core/db/migration/*.up.sql; do
-  docker exec -i seedgen psql -v ON_ERROR_STOP=1 -U prompt-postgres -d prompt < "$f"
-done
-docker exec -i seedgen psql -U prompt-postgres -d prompt <<'SQL'
-CREATE TABLE schema_migrations (version bigint PRIMARY KEY, dirty boolean NOT NULL);
-INSERT INTO schema_migrations VALUES (24, false);
--- ...your INSERTs for courses / students / course_phase_type...
-SQL
-docker exec seedgen pg_dump --no-owner --no-privileges --inserts \
-  -U prompt-postgres -d prompt > e2e/seed/e2e_seed.sql
-docker rm -f seedgen
-# bump `24` to the latest migration number, and update src/data/constants.ts
-```
+Because the seed is data only, there is **nothing to regenerate**: add or edit
+`INSERT` blocks in `../seed/*.sql` and update `src/data/constants.ts`. A
+migration only forces a seed change when it renames or drops a column the seed
+writes, and then `psql` fails loudly during the `seed` service's run rather than
+silently. Run `make seed-check` after touching a cross-database id.
 
 ### Keeping the e2e realm in sync
 
@@ -507,7 +495,7 @@ Dockerfile             Playwright runner image (tag must match @playwright/test)
 .env.e2e               compose env (test-only credentials)
 keycloak/realm.json    dedicated e2e Keycloak realm (seeded users + roles)
 nginx/client-core.conf client-core nginx with the phase-module proxy locations
-seed/e2e_seed.sql      seeded core DB (consistent v24 schema + data)
+../seed/*.sql          shared data-only seed, applied by the `seed` service
 src/
   env.ts               URLs / endpoints
   data/                roles + seeded-data constants

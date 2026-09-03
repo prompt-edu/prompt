@@ -1,5 +1,4 @@
-import { ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useMemo, useState } from 'react'
 import { AssessmentDisabledNotice } from '../components/AssessmentDisabledNotice'
 import { AuthorDiagram } from '../components/diagrams/AuthorDiagram'
@@ -100,11 +99,7 @@ export const AssessmentStatisticsPage = () => {
     return <ErrorPage message='Error loading assessments' onRetry={refetch} />
   }
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
   if (!assessmentEnabled) {
     return <AssessmentDisabledNotice title='Assessment Statistics' />

@@ -1,4 +1,4 @@
-import type { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
+import type { StudentWithCourses } from '@core/interfaces/studentWithCourses'
 import type { RowAction } from '@tumaet/prompt-ui-components'
 import { ArrowRight, Trash2 } from 'lucide-react'
 

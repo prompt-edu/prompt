@@ -1,4 +1,4 @@
-import type { StudentWithCourses } from '@core/network/queries/getStudentsWithCourses'
+import type { StudentWithCourses } from '@core/interfaces/studentWithCourses'
 import {
   DropdownMenuCheckboxItem,
   DropdownMenuSub,

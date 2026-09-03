@@ -1,5 +1,12 @@
-import { Button, Card, CardContent, ErrorPage, getStudentName } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight, Loader2, Printer } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  getStudentName,
+  LoadingPage,
+} from '@tumaet/prompt-ui-components'
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -92,12 +99,7 @@ export const TutorEvaluationResultsPage = () => {
   )
 
   if (isError) return <ErrorPage onRetry={refetch} />
-  if (isPending)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+  if (isPending) return <LoadingPage />
 
   if (!tutor) {
     return <ErrorPage message='The requested tutor could not be found.' />

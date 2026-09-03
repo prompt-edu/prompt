@@ -2,7 +2,7 @@ import type {
   StudentCourseParticipation,
   StudentNoteTag,
   StudentWithCourses,
-} from '@core/network/queries/getStudentsWithCourses'
+} from '@core/interfaces/studentWithCourses'
 import {
   type Gender,
   getGenderString,

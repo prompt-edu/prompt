@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   useToast,
 } from '@tumaet/prompt-ui-components'
@@ -60,11 +61,7 @@ export const StudentOverviewPage = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (

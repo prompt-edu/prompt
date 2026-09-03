@@ -1,10 +1,5 @@
-import {
-  DeletionRequestStatus,
-  getLatestStudentDataDeletion,
-  getStudentDataDeletionStatus,
-  type LatestDeletionResponse,
-  requestStudentDataDeletion,
-} from '@core/network/queries/privacyStudentDataDeletion'
+import { DeletionRequestStatus, type LatestDeletionResponse } from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import { PrivacyDeletionBanner } from '../shared/components/PrivacyDeletion/PrivacyDeletionBanner'
@@ -30,10 +25,10 @@ export function PrivacyDataDeletionPage() {
 
   const requestFlow = usePrivacyRequestFlow({
     resource: 'data-deletion',
-    getLatest: getLatestStudentDataDeletion,
+    getLatest: coreApi.privacy.latestDeletion,
     extractIdFromLatest: getRequestIDFromLatest,
-    createRequest: requestStudentDataDeletion,
-    getStatus: getStudentDataDeletionStatus,
+    createRequest: coreApi.privacy.requestDeletion,
+    getStatus: coreApi.privacy.deletionStatus,
     isEndState,
   })
 

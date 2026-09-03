@@ -1,7 +1,5 @@
-import {
-  getStudentsWithCourses,
-  type StudentWithCourses,
-} from '@core/network/queries/getStudentsWithCourses'
+import type { StudentWithCourses } from '@core/interfaces/studentWithCourses'
+import { coreApi } from '@core/network/api'
 import { Role } from '@tumaet/prompt-shared-state'
 import {
   PromptTable,
@@ -32,7 +30,7 @@ export const StudentTable = () => {
   )
 
   const fetchStudents = useCallback(async () => {
-    const s = await getStudentsWithCourses()
+    const s = await coreApi.students.withCourses()
     setStudentsWithCourses(s)
     upsertStudents(s)
   }, [upsertStudents])

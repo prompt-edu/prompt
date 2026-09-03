@@ -1,5 +1,5 @@
 import type { ApplicationAnswerFileUpload } from '@core/interfaces/application/applicationAnswer/fileUpload/applicationAnswerFileUpload'
-import { getApplicationFileDownloadUrl } from '@core/network/queries/applicationFileDownloadUrl'
+import { coreApi } from '@core/network/api'
 import { formatFileSize, openFileDownload } from '@tumaet/prompt-shared-state'
 import { Badge, Button, useToast } from '@tumaet/prompt-ui-components'
 import { Download, File } from 'lucide-react'
@@ -42,7 +42,7 @@ export const FileUploadAnswer = ({ coursePhaseId, answer }: FileUploadAnswerProp
 
     try {
       setIsDownloading(true)
-      const downloadUrl = await getApplicationFileDownloadUrl(coursePhaseId, answer.fileID)
+      const downloadUrl = await coreApi.applications.fileDownloadURL(coursePhaseId, answer.fileID)
       await openFileDownload({ downloadUrl, fileName: answer.fileName })
     } catch (error) {
       console.error('Failed to download file:', error)

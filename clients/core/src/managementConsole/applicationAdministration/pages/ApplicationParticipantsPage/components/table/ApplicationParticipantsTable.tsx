@@ -1,8 +1,7 @@
 import { getApplicationCsvExportSettings } from '@core/managementConsole/applicationAdministration/utils/applicationCsvExportSettings'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
-import { getApplicationAssessment } from '@core/network/queries/applicationAssessment'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
-import { getExportedApplicationAnswers } from '@core/network/queries/exportedApplicationAnswers'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PassStatus, useUpdateCoursePhaseParticipationBatch } from '@tumaet/prompt-shared-state'
 import {
@@ -64,8 +63,8 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   const { toast } = useToast()
 
   const { data: exportedAnswers, isError: exportedAnswersError } = useQuery({
-    queryKey: ['application_exported_answers', phaseId],
-    queryFn: () => getExportedApplicationAnswers(phaseId),
+    queryKey: coreKeys.applications.exportedAnswers(phaseId),
+    queryFn: () => coreApi.applications.exportedAnswers(phaseId),
   })
 
   useEffect(() => {
@@ -150,8 +149,8 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     async (rows: ApplicationRow[]) => {
       try {
         const applicationForm = await queryClient.fetchQuery({
-          queryKey: ['application_form', phaseId],
-          queryFn: () => getApplicationForm(phaseId),
+          queryKey: coreKeys.applications.form(phaseId),
+          queryFn: () => coreApi.applications.form(phaseId),
         })
 
         const applicationResults = await fetchWithConcurrencyLimit(
@@ -159,8 +158,8 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
           APPLICATION_EXPORT_CONCURRENCY,
           (row) =>
             queryClient.fetchQuery({
-              queryKey: ['application', phaseId, row.courseParticipationID],
-              queryFn: () => getApplicationAssessment(phaseId, row.courseParticipationID),
+              queryKey: coreKeys.applications.ofParticipant(phaseId, row.courseParticipationID),
+              queryFn: () => coreApi.applications.ofParticipant(phaseId, row.courseParticipationID),
             }),
         )
 
@@ -218,9 +217,7 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
         })),
         {
           onSuccess: () => {
-            queryClient.invalidateQueries({
-              queryKey: ['application_participations', 'students', phaseId],
-            })
+            coreCache.applicationParticipantsChanged(queryClient, phaseId)
           },
         },
       )

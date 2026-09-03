@@ -2,8 +2,8 @@ import type { CreateApplicationAnswerFileUpload } from '@core/interfaces/applica
 import type { CreateApplicationAnswerMultiSelect } from '@core/interfaces/application/applicationAnswer/multiSelect/createApplicationAnswerMultiSelect'
 import type { CreateApplicationAnswerText } from '@core/interfaces/application/applicationAnswer/text/createApplicationAnswerText'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
-import { postNewApplicationManual } from '@core/network/mutations/postApplicationManual'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { ApplicationFormView } from '@core/publicPages/application/pages/ApplicationForm/ApplicationFormView'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Student } from '@tumaet/prompt-shared-state'
@@ -65,19 +65,17 @@ export const ApplicationManualAddingDialog = ({
     error: fetchingError,
     refetch: refetchApplicationForm,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', phaseId],
-    queryFn: () => getApplicationForm(phaseId ?? ''),
+    queryKey: coreKeys.applications.form(phaseId),
+    queryFn: () => coreApi.applications.form(phaseId ?? ''),
     enabled: !!phaseId,
   })
 
   const { mutate: mutateSendApplication } = useMutation({
     mutationFn: (manualApplication: PostApplication) => {
-      return postNewApplicationManual(phaseId ?? 'undefined', manualApplication)
+      return coreApi.applications.addManually(phaseId ?? 'undefined', manualApplication)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', 'students', phaseId],
-      })
+      coreCache.applicationParticipantsChanged(queryClient, phaseId)
       toast({
         title: 'Application added',
         description: 'The application has been successfully added',

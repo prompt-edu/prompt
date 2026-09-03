@@ -1,6 +1,5 @@
 import type { CourseTemplateStatus } from '@core/interfaces/courseTemplateStatus'
-import { updateCourseTemplateStatus } from '@core/network/mutations/updateCourseTemplateStatus'
-import { checkCourseTemplateStatus } from '@core/network/queries/checkCourseTemplateStatus'
+import { coreApi } from '@core/network/api'
 import { useCallback, useEffect, useState } from 'react'
 
 export const useCourseTemplate = (courseId: string) => {
@@ -13,7 +12,7 @@ export const useCourseTemplate = (courseId: string) => {
     try {
       setIsLoading(true)
       setError(null)
-      const status = await checkCourseTemplateStatus(courseId)
+      const status = await coreApi.courses.templateStatus(courseId)
       setTemplateStatus(status)
     } catch (err) {
       setError('Failed to fetch template status')
@@ -27,7 +26,7 @@ export const useCourseTemplate = (courseId: string) => {
     try {
       setIsUpdating(true)
       setError(null)
-      await updateCourseTemplateStatus(courseId, { isTemplate })
+      await coreApi.courses.setTemplateStatus(courseId, { isTemplate })
       setTemplateStatus({ isTemplate })
     } catch (err) {
       setError('Failed to update template status')

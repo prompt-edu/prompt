@@ -34,6 +34,11 @@ const { data, isLoading } = useQuery({
   Phase-specific queries live inside the owning component, under `src/<module>/network/`.
 - Mutations should invalidate the relevant query keys and surface toast feedback (`useToast` from
   `@tumaet/prompt-ui-components`).
+- **`core` and `assessment_component` own their data access in two modules instead**, because they
+  are the only workspaces with enough endpoints and cache keys to earn them. There, add an endpoint
+  to `src/**/network/api/` (a namespace per domain noun, over the request helper in `client.ts`) and
+  a key or a write event to `src/**/network/cache/` — never a one-endpoint module or a bare key
+  literal. Both modules carry tests that must stay green.
 - Use the shared `axiosInstance` (JWT injection + CORS) and the global `env` config object, both
   from `@tumaet/prompt-shared-state` — never raw `axios`.
 

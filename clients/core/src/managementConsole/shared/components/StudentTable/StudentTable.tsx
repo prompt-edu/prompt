@@ -1,8 +1,12 @@
 import type { StudentWithCourses } from '@core/interfaces/studentWithCourses'
 import { coreApi } from '@core/network/api'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Role } from '@tumaet/prompt-shared-state'
-import { PromptTable, type RowAction, type TableFilter } from '@tumaet/prompt-ui-components'
+import {
+  PromptTable,
+  type PromptTableColumnDef,
+  type RowAction,
+  type TableFilter,
+} from '@tumaet/prompt-ui-components'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStudentStore } from '../../store/student.store'
@@ -35,7 +39,7 @@ export const StudentTable = () => {
     fetchStudents()
   }, [fetchStudents])
 
-  const columns: ColumnDef<StudentWithCourses>[] = useMemo(() => studentTableColumns, [])
+  const columns: PromptTableColumnDef<StudentWithCourses>[] = useMemo(() => studentTableColumns, [])
 
   const filters: TableFilter[] = useMemo(
     () => getStudentTableFilters(studentsWithCourses),

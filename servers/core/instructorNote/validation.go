@@ -18,8 +18,8 @@ func ValidateCreateNote(createNoteRequest instructorNoteDTO.CreateInstructorNote
 
 // VerifyNoteOwnership checks that the given user is the author of the note.
 // Returns the note on success so callers can perform additional checks without re-fetching.
-func VerifyNoteOwnership(ctx context.Context, noteID uuid.UUID, userID uuid.UUID) (db.Note, error) {
-	note, err := GetSingleNoteByID(ctx, noteID)
+func (s *InstructorNoteService) VerifyNoteOwnership(ctx context.Context, noteID uuid.UUID, userID uuid.UUID) (db.Note, error) {
+	note, err := s.GetSingleNoteByID(ctx, noteID)
 	if err != nil {
 		return db.Note{}, err
 	}
@@ -29,9 +29,9 @@ func VerifyNoteOwnership(ctx context.Context, noteID uuid.UUID, userID uuid.UUID
 	return note, nil
 }
 
-func ValidateReferencedNote(createRequest instructorNoteDTO.CreateInstructorNote, ctx context.Context, SignedInUserID uuid.UUID) error {
+func (s *InstructorNoteService) ValidateReferencedNote(createRequest instructorNoteDTO.CreateInstructorNote, ctx context.Context, SignedInUserID uuid.UUID) error {
 	if !createRequest.New {
-		note, err := VerifyNoteOwnership(ctx, createRequest.ForNote, SignedInUserID)
+		note, err := s.VerifyNoteOwnership(ctx, createRequest.ForNote, SignedInUserID)
 		if err != nil {
 			return err
 		}

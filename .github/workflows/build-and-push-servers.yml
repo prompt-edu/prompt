@@ -92,6 +92,8 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-presentation
       docker-file: servers/Dockerfile
       docker-context: ./servers/presentation
+      tags: ${{ inputs.release_tag }}
+    secrets: inherit
   infrastructure-setup:
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:

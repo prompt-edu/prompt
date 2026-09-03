@@ -12,20 +12,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SetupAssessmentSchemaRouter sets up assessment schema endpoints.
+// RegisterRoutes sets up assessment schema endpoints.
 // @Summary Assessment Schema Endpoints
 // @Description Manage assessment schemas.
 // @Tags assessment_schemas
 // @Security BearerAuth
-func SetupAssessmentSchemaRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentSchemaService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	schemaRouter := routerGroup.Group("/assessment-schema")
 
-	schemaRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllAssessmentSchemas)
-	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAssessmentSchema)
-	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), checkSchemaHasAssessmentData)
-	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createAssessmentSchema)
-	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateAssessmentSchema)
-	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), deleteAssessmentSchema)
+	schemaRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllAssessmentSchemas)
+	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentSchema)
+	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.checkSchemaHasAssessmentData)
+	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createAssessmentSchema)
+	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateAssessmentSchema)
+	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), service.deleteAssessmentSchema)
 }
 
 // getAllAssessmentSchemas godoc
@@ -38,14 +38,14 @@ func SetupAssessmentSchemaRouter(routerGroup *gin.RouterGroup, authMiddleware fu
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema [get]
-func getAllAssessmentSchemas(c *gin.Context) {
+func (s *AssessmentSchemaService) getAllAssessmentSchemas(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	schemas, err := ListAssessmentSchemasForCoursePhase(c, coursePhaseID)
+	schemas, err := s.ListAssessmentSchemasForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -64,7 +64,7 @@ func getAllAssessmentSchemas(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID} [get]
-func getAssessmentSchema(c *gin.Context) {
+func (s *AssessmentSchemaService) getAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -77,7 +77,7 @@ func getAssessmentSchema(c *gin.Context) {
 		return
 	}
 
-	schema, err := GetAssessmentSchemaForCoursePhase(c, coursePhaseID, schemaID)
+	schema, err := s.GetAssessmentSchemaForCoursePhase(c, coursePhaseID, schemaID)
 	if err != nil {
 		if errors.Is(err, ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -100,7 +100,7 @@ func getAssessmentSchema(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID}/has-assessment-data [get]
-func checkSchemaHasAssessmentData(c *gin.Context) {
+func (s *AssessmentSchemaService) checkSchemaHasAssessmentData(c *gin.Context) {
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse schema ID")
@@ -115,7 +115,7 @@ func checkSchemaHasAssessmentData(c *gin.Context) {
 		return
 	}
 
-	isAccessible, err := CheckSchemaAccessibleForCoursePhase(c, coursePhaseID, schemaID)
+	isAccessible, err := s.CheckSchemaAccessibleForCoursePhase(c, coursePhaseID, schemaID)
 	if err != nil {
 		log.WithError(err).Error("Failed to check schema accessibility")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check assessment data"})
@@ -126,7 +126,7 @@ func checkSchemaHasAssessmentData(c *gin.Context) {
 		return
 	}
 
-	hasData, err := CheckPhaseHasAssessmentData(c, coursePhaseID, schemaID)
+	hasData, err := s.CheckPhaseHasAssessmentData(c, coursePhaseID, schemaID)
 	if err != nil {
 		log.WithError(err).Error("Failed to check if schema has assessment data")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check assessment data"})
@@ -147,7 +147,7 @@ func checkSchemaHasAssessmentData(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema [post]
-func createAssessmentSchema(c *gin.Context) {
+func (s *AssessmentSchemaService) createAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -160,7 +160,7 @@ func createAssessmentSchema(c *gin.Context) {
 		return
 	}
 
-	schema, err := CreateAssessmentSchemaForCoursePhase(c, coursePhaseID, request)
+	schema, err := s.CreateAssessmentSchemaForCoursePhase(c, coursePhaseID, request)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -182,7 +182,7 @@ func createAssessmentSchema(c *gin.Context) {
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID} [put]
-func updateAssessmentSchema(c *gin.Context) {
+func (s *AssessmentSchemaService) updateAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -208,7 +208,7 @@ func updateAssessmentSchema(c *gin.Context) {
 	}
 	isAdmin := tokenUser.Roles[promptSDK.PromptAdmin]
 
-	err = UpdateAssessmentSchema(c, coursePhaseID, schemaID, request, isAdmin)
+	err = s.UpdateAssessmentSchema(c, coursePhaseID, schemaID, request, isAdmin)
 	if err != nil {
 		if errors.Is(err, ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -234,14 +234,14 @@ func updateAssessmentSchema(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/assessment-schema/{schemaID} [delete]
-func deleteAssessmentSchema(c *gin.Context) {
+func (s *AssessmentSchemaService) deleteAssessmentSchema(c *gin.Context) {
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = DeleteAssessmentSchema(c, schemaID)
+	err = s.DeleteAssessmentSchema(c, schemaID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

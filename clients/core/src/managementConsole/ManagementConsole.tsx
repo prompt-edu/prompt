@@ -1,4 +1,5 @@
-import { getOwnCourseIDs } from '@core/network/queries/ownCourseIDs'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { type Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
@@ -14,16 +15,22 @@ import {
 } from '@tumaet/prompt-ui-components'
 import React, { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { RequireAuth } from '../keycloak/RequireAuth'
 import { useKeycloak } from '../keycloak/useKeycloak'
-import { getAllCourses } from '../network/queries/course'
 import { Breadcrumbs } from './layout/Breadcrumbs/Breadcrumbs'
 import { AppSidebar } from './layout/Sidebar/AppSidebar'
 import { NavUserMenu } from './layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 import CourseNotFound from './shared/components/CourseNotFound'
 import { EmptyPage } from './shared/components/EmptyPage'
 
-export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => {
-  const { keycloak, logout } = useKeycloak()
+export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => (
+  <RequireAuth>
+    <ManagementConsole>{children}</ManagementConsole>
+  </RequireAuth>
+)
+
+const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
+  const { logout } = useKeycloak()
   const { user, permissions } = useAuthStore()
   const { courseId } = useParams<{ courseId: string }>()
   const hasChildren = React.Children.count(children) > 0
@@ -45,9 +52,8 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
     isError: isCourseError,
     refetch: refetchCourses,
   } = useQuery<Course[]>({
-    queryKey: ['courses'],
-    queryFn: () => getAllCourses(),
-    enabled: !!keycloak,
+    queryKey: coreKeys.courses.all(),
+    queryFn: () => coreApi.courses.list(),
   })
 
   // getting the course ids of the course a user is enrolled in
@@ -57,16 +63,15 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
     isError: isOwnCourseIdError,
     refetch: refetchOwnCourseIds,
   } = useQuery<string[]>({
-    queryKey: ['own_courses'],
-    queryFn: () => getOwnCourseIDs(),
-    enabled: !!keycloak,
+    queryKey: coreKeys.courses.own(),
+    queryFn: () => coreApi.courses.listOwnIDs(),
   })
 
   const refetch = () => {
     refetchOwnCourseIds()
     refetchCourses()
   }
-  const isLoading = !(keycloak && user) || isPending || isOwnCourseIdPending
+  const isLoading = !user || isPending || isOwnCourseIdPending
   const isError = isCourseError || isOwnCourseIdError
   const courseExists = fetchedCourses?.some((course) => course.id === courseId)
 
@@ -126,7 +131,7 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
     return <ErrorPage onRetry={() => refetch()} onLogout={() => logout()} />
   }
 
-  if (isLoading || !keycloak) {
+  if (isLoading) {
     return (
       <DarkModeProvider>
         <LoadingPage />

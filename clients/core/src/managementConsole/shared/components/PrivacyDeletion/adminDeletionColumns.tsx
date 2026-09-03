@@ -3,7 +3,7 @@ import {
   DeletionRequestStatus,
   DeletionSubrequestStatus,
   type PrivacyDeletionSubrequest,
-} from '@core/network/queries/privacyStudentDataDeletion'
+} from '@core/interfaces/privacy'
 import type { ColumnDef } from '@tanstack/react-table'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'

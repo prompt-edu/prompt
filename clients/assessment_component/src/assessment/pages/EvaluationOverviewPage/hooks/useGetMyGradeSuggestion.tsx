@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { getMyGradeSuggestion } from '../../../network/queries/getMyGradeSuggestion'
+import { assessmentApi } from '../../../network/api'
+import { assessmentKeys } from '../../../network/cache'
 
 export const useGetMyGradeSuggestion = (options?: { enabled?: boolean }) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   return useQuery<number | undefined>({
-    queryKey: ['myGradeSuggestion', phaseId],
-    queryFn: () => getMyGradeSuggestion(phaseId ?? ''),
+    queryKey: assessmentKeys.results.myGradeSuggestion(phaseId),
+    queryFn: () => assessmentApi.completions.myGradeSuggestion(phaseId ?? ''),
     enabled: options?.enabled ?? true,
   })
 }

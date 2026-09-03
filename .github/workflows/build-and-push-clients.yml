@@ -175,7 +175,11 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-clients-presentation-component
       docker-file: clients/presentation_component/Dockerfile
       docker-context: ./clients/presentation_component
-
+      tags: ${{ inputs.release_tag }}
+      build-args: |
+        "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"
+        "CORE_HOST=${{ vars.CORE_HOST }}"
+    secrets: inherit
   infrastructure-setup:
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0

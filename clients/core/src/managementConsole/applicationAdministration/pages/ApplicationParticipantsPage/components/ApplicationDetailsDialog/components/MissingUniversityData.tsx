@@ -1,4 +1,5 @@
-import { updateStudent } from '@core/network/mutations/updateStudent'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import {
   formSchemaUniversityData,
   type UniversityDataFormValues,
@@ -36,11 +37,10 @@ export const MissingUniversityData = ({ student }: MissingUniversityDataProps) =
     reset: resetMutation,
   } = useMutation({
     mutationFn: (modifiedStudent: Student) => {
-      return updateStudent(modifiedStudent)
+      return coreApi.students.update(modifiedStudent)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['application'] })
-      queryClient.invalidateQueries({ queryKey: ['application_participations'] })
+      coreCache.studentUniversityDataChanged(queryClient)
       setIsAddingData(false)
     },
   })

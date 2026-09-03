@@ -1,20 +1,19 @@
-import { useQuery } from '@tanstack/react-query'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
+  LoadingPage,
   ManagementPageHeader,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { getAllEvaluationCompletionsInPhase } from '../../network/queries/getAllEvaluationCompletionsInPhase'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
+import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -67,10 +66,7 @@ export const AssessmentParticipantsPage = () => {
     isPending: isEvaluationCompletionsPending,
     isError: isEvaluationCompletionsError,
     refetch: refetchEvaluationCompletions,
-  } = useQuery({
-    queryKey: ['evaluationCompletions', phaseId],
-    queryFn: () => getAllEvaluationCompletionsInPhase(phaseId ?? ''),
-  })
+  } = useGetAllEvaluationCompletions()
 
   const isError =
     isCoursePhaseConfigError ||
@@ -161,11 +157,7 @@ export const AssessmentParticipantsPage = () => {
     return <ErrorPage message='Error loading assessments' onRetry={refetch} />
   }
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (

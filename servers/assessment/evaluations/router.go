@@ -7,33 +7,33 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupEvaluationRouter sets up evaluation endpoints.
+// RegisterRoutes sets up evaluation endpoints.
 // @Summary Evaluation Endpoints
 // @Description Manage evaluations for course participations.
 // @Tags evaluations
 // @Security BearerAuth
-func setupEvaluationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	evaluationRouter := routerGroup.Group("/evaluation")
 
 	// Admin/Lecturer/Editor endpoints - overview of all evaluations
-	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getAllEvaluationsByPhase)
-	evaluationRouter.GET("/self/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSelfEvaluationsForParticipantInPhase)
-	evaluationRouter.GET("/peer/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getPeerEvaluationsForParticipantInPhase)
-	evaluationRouter.GET("/tutor/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getEvaluationsForTutorInPhase)
+	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getAllEvaluationsByPhase)
+	evaluationRouter.GET("/self/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getSelfEvaluationsForParticipantInPhase)
+	evaluationRouter.GET("/peer/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getPeerEvaluationsForParticipantInPhase)
+	evaluationRouter.GET("/tutor/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getEvaluationsForTutorInPhase)
 
 	// Student endpoints - access to own evaluations only
-	evaluationRouter.GET("/my-evaluations", authMiddleware(promptSDK.CourseStudent), getMyEvaluations)
-	evaluationRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), getMyEvaluationResults)
-	evaluationRouter.POST("", authMiddleware(promptSDK.CourseStudent), createOrUpdateEvaluation)
-	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), deleteEvaluation)
+	evaluationRouter.GET("/my-evaluations", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluations)
+	evaluationRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationResults)
+	evaluationRouter.POST("", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateEvaluation)
+	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), service.deleteEvaluation)
 }
 
 // getAllEvaluationsByPhase godoc
@@ -46,14 +46,14 @@ func setupEvaluationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation [get]
-func getAllEvaluationsByPhase(c *gin.Context) {
+func (s *EvaluationService) getAllEvaluationsByPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	evaluations, err := GetEvaluationsByPhase(c, coursePhaseID)
+	evaluations, err := s.GetEvaluationsByPhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -72,7 +72,7 @@ func getAllEvaluationsByPhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/tutor/{courseParticipationID} [get]
-func getEvaluationsForTutorInPhase(c *gin.Context) {
+func (s *EvaluationService) getEvaluationsForTutorInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -84,7 +84,7 @@ func getEvaluationsForTutorInPhase(c *gin.Context) {
 		return
 	}
 
-	evaluations, err := GetEvaluationsForTutorInPhase(c, tutorID, coursePhaseID)
+	evaluations, err := s.GetEvaluationsForTutorInPhase(c, tutorID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -104,8 +104,8 @@ func getEvaluationsForTutorInPhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/self/{courseParticipationID} [get]
-func getSelfEvaluationsForParticipantInPhase(c *gin.Context) {
-	getEvaluationsForParticipantInPhaseByType(c, assessmentType.Self)
+func (s *EvaluationService) getSelfEvaluationsForParticipantInPhase(c *gin.Context) {
+	s.getEvaluationsForParticipantInPhaseByType(c, assessmentType.Self)
 }
 
 // getPeerEvaluationsForParticipantInPhase godoc
@@ -119,11 +119,11 @@ func getSelfEvaluationsForParticipantInPhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID} [get]
-func getPeerEvaluationsForParticipantInPhase(c *gin.Context) {
-	getEvaluationsForParticipantInPhaseByType(c, assessmentType.Peer)
+func (s *EvaluationService) getPeerEvaluationsForParticipantInPhase(c *gin.Context) {
+	s.getEvaluationsForParticipantInPhaseByType(c, assessmentType.Peer)
 }
 
-func getEvaluationsForParticipantInPhaseByType(c *gin.Context, evalType assessmentType.AssessmentType) {
+func (s *EvaluationService) getEvaluationsForParticipantInPhaseByType(c *gin.Context, evalType assessmentType.AssessmentType) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -135,7 +135,7 @@ func getEvaluationsForParticipantInPhaseByType(c *gin.Context, evalType assessme
 		return
 	}
 
-	evaluations, err := GetEvaluationsForParticipantInPhaseByType(c, courseParticipationID, coursePhaseID, evalType)
+	evaluations, err := s.GetEvaluationsForParticipantInPhaseByType(c, courseParticipationID, coursePhaseID, evalType)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -154,7 +154,7 @@ func getEvaluationsForParticipantInPhaseByType(c *gin.Context, evalType assessme
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/my-evaluations [get]
-func getMyEvaluations(c *gin.Context) {
+func (s *EvaluationService) getMyEvaluations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -162,13 +162,13 @@ func getMyEvaluations(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	evaluations, err := GetEvaluationsForAuthorInPhase(c, courseParticipationID, coursePhaseID)
+	evaluations, err := s.GetEvaluationsForAuthorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -187,7 +187,7 @@ func getMyEvaluations(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/my-results [get]
-func getMyEvaluationResults(c *gin.Context) {
+func (s *EvaluationService) getMyEvaluationResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -195,7 +195,7 @@ func getMyEvaluationResults(c *gin.Context) {
 		return
 	}
 
-	config, err := coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -206,13 +206,13 @@ func getMyEvaluationResults(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	results, err := GetStudentEvaluationResults(c, coursePhaseID, courseParticipationID, config)
+	results, err := s.GetStudentEvaluationResults(c, coursePhaseID, courseParticipationID, config)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -234,7 +234,7 @@ func getMyEvaluationResults(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation [post]
-func createOrUpdateEvaluation(c *gin.Context) {
+func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -248,13 +248,13 @@ func createOrUpdateEvaluation(c *gin.Context) {
 		return
 	}
 
-	statusCode, err := utils.ValidateStudentOwnership(c, request.AuthorCourseParticipationID)
+	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, request.AuthorCourseParticipationID, "evaluations")
 	if err != nil {
 		c.JSON(statusCode, gin.H{"error": "Students can only create evaluations as the author"})
 		return
 	}
 
-	err = CreateOrUpdateEvaluation(c, c.GetHeader("Authorization"), coursePhaseID, request)
+	err = s.CreateOrUpdateEvaluation(c, c.GetHeader("Authorization"), coursePhaseID, request)
 	if err != nil {
 		handleError(c, evaluationErrorStatus(err), err)
 		return
@@ -274,7 +274,7 @@ func createOrUpdateEvaluation(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/{evaluationID} [delete]
-func deleteEvaluation(c *gin.Context) {
+func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 	evaluationID, err := uuid.Parse(c.Param("evaluationID"))
 	if err != nil {
 		log.Error("Error parsing evaluationID: ", err)
@@ -282,20 +282,20 @@ func deleteEvaluation(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, er := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, er := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if er != nil {
 		log.Error("Error getting student courseParticipationID: ", er)
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(er), er)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(er), er)
 		return
 	}
 
 	// Ensure the user is the author of the evaluation or has the right permissions
-	if !isEvaluationAuthor(c, evaluationID, courseParticipationID) {
+	if !s.isEvaluationAuthor(c, evaluationID, courseParticipationID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this evaluation"})
 		return
 	}
 
-	err = DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
+	err = s.DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
 	if err != nil {
 		handleError(c, evaluationErrorStatus(err), err)
 		return
@@ -318,8 +318,8 @@ func evaluationErrorStatus(err error) int {
 	}
 }
 
-func isEvaluationAuthor(c *gin.Context, evaluationID, authorID uuid.UUID) bool {
-	evaluation, err := GetEvaluationByID(c, evaluationID)
+func (s *EvaluationService) isEvaluationAuthor(c *gin.Context, evaluationID, authorID uuid.UUID) bool {
+	evaluation, err := s.GetEvaluationByID(c, evaluationID)
 	if err != nil {
 		log.Error("Error fetching evaluation: ", err)
 		return false

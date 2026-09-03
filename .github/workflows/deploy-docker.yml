@@ -202,7 +202,7 @@ jobs:
           proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
-            touch .env.prod 
+            touch .env.prod
             echo "ENVIRONMENT=${{ inputs.environment }}" > .env.prod
             echo "CORE_HOST=${{ vars.CORE_HOST }}" >> .env.prod
             echo "SERVER_CORE_HOST=${{ vars.SERVER_CORE_HOST }}" >> .env.prod
@@ -220,7 +220,7 @@ jobs:
             echo "CHAIR_NAME_LONG=${{ vars.CHAIR_NAME_LONG }}" >> .env.prod
 
 
-            echo "SERVER_ADDRESS=${{ vars.SERVER_ADDRESS }}" >> .env.prod 
+            echo "SERVER_ADDRESS=${{ vars.SERVER_ADDRESS }}" >> .env.prod
             echo "DB_HOST=${{ vars.DB_HOST }}" >> .env.prod
             echo "DB_PORT=${{ vars.DB_PORT }}" >> .env.prod
             echo "DB_NAME=${{ vars.DB_NAME }}" >> .env.prod
@@ -279,6 +279,10 @@ jobs:
             echo "SMTP_PORT=${{ vars.SMTP_PORT }}" >> .env.prod
             echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env.prod
             echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env.prod
+
+            echo "AUDIT_ENABLED=${{ vars.AUDIT_ENABLED || 'false' }}" >> .env.prod
+            echo "AUDIT_RETENTION_DAYS=${{ vars.AUDIT_RETENTION_DAYS }}" >> .env.prod
+            echo "AUDIT_INGEST_KEYS=${{ secrets.AUDIT_INGEST_KEYS }}" >> .env.prod
 
             echo "SENTRY_ENABLED=${{ vars.SENTRY_ENABLED || 'false' }}" >> .env.prod
             echo "SENTRY_DSN_CORE=${{ vars.SENTRY_DSN_CORE }}" >> .env.prod

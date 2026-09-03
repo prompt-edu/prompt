@@ -4,9 +4,8 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { GetApplication } from '@core/interfaces/application/getApplication'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
-import { postNewApplicationAuthenticated } from '@core/network/mutations/postApplicationAuthenticated'
-import { getApplication } from '@core/network/queries/application'
-import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type Student, useAuthStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
@@ -34,8 +33,8 @@ export const ApplicationAuthenticated = () => {
     isError,
     error,
   } = useQuery<ApplicationFormWithDetails>({
-    queryKey: ['applicationForm', phaseId],
-    queryFn: () => getApplicationFormWithDetails(phaseId ?? ''),
+    queryKey: coreKeys.apply.form(phaseId),
+    queryFn: () => coreApi.apply.form(phaseId ?? ''),
   })
 
   const {
@@ -44,17 +43,17 @@ export const ApplicationAuthenticated = () => {
     isError: isApplicationError,
     error: applicationError,
   } = useQuery<GetApplication>({
-    queryKey: ['application', phaseId],
-    queryFn: () => getApplication(phaseId ?? ''),
-    enabled: !!phaseId && !!localStorage.getItem('jwt_token'),
+    queryKey: coreKeys.applications.inPhase(phaseId),
+    queryFn: () => coreApi.apply.mine(phaseId ?? ''),
+    enabled: !!phaseId,
   })
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({
     mutationFn: (modifiedApplication: PostApplication) => {
-      return postNewApplicationAuthenticated(phaseId ?? 'undefined', modifiedApplication)
+      return coreApi.apply.submitAuthenticated(phaseId ?? 'undefined', modifiedApplication)
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['application', phaseId] })
+      coreCache.myApplicationSubmitted(queryClient, phaseId)
       setConfirmationMailSent(data.confirmationMailSent)
       setShowDialog('success')
     },

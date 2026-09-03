@@ -9,21 +9,37 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
-// setupAuthRouter sets up the auth endpoints
+type authHandler struct {
+	service *service.AuthService
+}
+
+// RegisterRoutes mounts the auth endpoints on the given router group.
 // @Summary Auth Endpoints
 // @Description Endpoints for authentication and participation
 // @Tags auth
 // @Security BearerAuth
-func setupAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, authService *service.AuthService, authMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) {
+	setupAuthRouter(router, authService, authMiddleware, checkAccessControlByCourseIDWrapper(checkCoursePhasePermission))
+}
+
+func checkAccessControlByCourseIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "coursePhaseID", allowedRoles...)
+	}
+}
+
+func setupAuthRouter(router *gin.RouterGroup, authService *service.AuthService, authMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	handler := &authHandler{service: authService}
+
 	auth := router.Group("/auth", authMiddleware())
 
 	coursePhaseauth := auth.Group("/course_phase/:coursePhaseID")
 	// this endpoint could also be exposed without any authentication
-	coursePhaseauth.GET("/roles", getCoursePhaseAuthRoles)
+	coursePhaseauth.GET("/roles", handler.getCoursePhaseAuthRoles)
 	// returns a 401 if the user is not a student of the course
-	coursePhaseauth.GET("is_student", permissionIDMiddleware(permissionValidation.CourseStudent), getCoursePhaseParticipation)
+	coursePhaseauth.GET("is_student", permissionIDMiddleware(permissionValidation.CourseStudent), handler.getCoursePhaseParticipation)
 
-	auth.GET("/subject_identifiers", getSubjectIdentifiers)
+	auth.GET("/subject_identifiers", handler.getSubjectIdentifiers)
 }
 
 // getCoursePhaseAuthRoles godoc
@@ -36,7 +52,7 @@ func setupAuthRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerF
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /auth/course_phase/{coursePhaseID}/roles [get]
-func getCoursePhaseAuthRoles(c *gin.Context) {
+func (h *authHandler) getCoursePhaseAuthRoles(c *gin.Context) {
 	// Get the course phase ID from the URL
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
@@ -44,7 +60,7 @@ func getCoursePhaseAuthRoles(c *gin.Context) {
 		return
 	}
 
-	roleMapping, err := service.GetCourseRoles(c, coursePhaseID)
+	roleMapping, err := h.service.GetCourseRoles(c, coursePhaseID)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to get course roles"})
 		return
@@ -63,7 +79,7 @@ func getCoursePhaseAuthRoles(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /auth/course_phase/{coursePhaseID}/is_student [get]
-func getCoursePhaseParticipation(c *gin.Context) {
+func (h *authHandler) getCoursePhaseParticipation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "invalid course phase ID"})
@@ -78,7 +94,7 @@ func getCoursePhaseParticipation(c *gin.Context) {
 		return
 	}
 
-	participation, err := service.GetCoursePhaseParticipation(c, coursePhaseID, matriculationNumber, universityLogin)
+	participation, err := h.service.GetCoursePhaseParticipation(c, coursePhaseID, matriculationNumber, universityLogin)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to get course phase participation"})
 		return
@@ -96,9 +112,9 @@ func getCoursePhaseParticipation(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /auth/subject_identifiers [get]
-func getSubjectIdentifiers(c *gin.Context) {
+func (h *authHandler) getSubjectIdentifiers(c *gin.Context) {
 
-	subjectIdentifiers, err := service.GetSubjectIdentifiers(c)
+	subjectIdentifiers, err := h.service.GetSubjectIdentifiers(c)
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "failed to get subject identifiers"})
 		return

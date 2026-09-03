@@ -37,6 +37,13 @@ services:
     extra_hosts:
       - "localhost:host-gateway"
     environment:
+      # Not `development`: that branch of the phase-type init registers every
+      # phase service as http://localhost:<port>, which core cannot reach from
+      # its own container. The e2e stack fronts the phase services through the
+      # client-core nginx proxy, so the types need the {CORE_HOST} form the
+      # deployed stacks use. The former e2e_seed.sql pinned those rows by hand;
+      # the shared seed no longer does, because core owns course_phase_type.
+      - ENVIRONMENT=production
       - CORE_HOST
       - DB_USER=${DB_CORE_USER}
       - DB_PASSWORD=${DB_CORE_PASSWORD}
@@ -212,8 +219,9 @@ services:
       - POSTGRES_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
       - POSTGRES_DB=${DB_SELF_TEAM_ALLOCATION_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB and
-    # the tests create all phase data themselves.
+    # No init seed: the shared seed under seed/ is data only, so it is applied
+    # by the `seed` service below, once this phase server has migrated the
+    # database.
     healthcheck:
       test:
         [
@@ -283,8 +291,9 @@ services:
       - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD}
       - POSTGRES_DB=${DB_EXAMPLE_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB and
-    # the tests create all phase data themselves.
+    # No init seed: the shared seed under seed/ is data only, so it is applied
+    # by the `seed` service below, once this phase server has migrated the
+    # database.
     healthcheck:
       test:
         ["CMD-SHELL", "pg_isready -d ${DB_EXAMPLE_NAME} -U ${DB_EXAMPLE_USER}"]
@@ -351,9 +360,9 @@ services:
       - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
       - POSTGRES_DB=${DB_ASSESSMENT_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB (they
-    # create the default assessment/evaluation schemas) and the tests create
-    # all phase data themselves.
+    # No init seed: the phase server's own migrations create the default
+    # assessment/evaluation schemas, and the shared seed under seed/ is data
+    # only, so it is applied by the `seed` service below afterwards.
     healthcheck:
       test:
         [
@@ -444,8 +453,9 @@ services:
       - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD}
       - POSTGRES_DB=${DB_INTERVIEW_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB and
-    # the tests create all slots/assignments themselves.
+    # No init seed: the shared seed under seed/ is data only, so it is applied
+    # by the `seed` service below, once this phase server has migrated the
+    # database.
     healthcheck:
       test:
         [
@@ -517,8 +527,9 @@ services:
       - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
       - POSTGRES_DB=${DB_CERTIFICATE_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB and the
-    # tests create all phase data themselves.
+    # No init seed: the shared seed under seed/ is data only, so it is applied
+    # by the `seed` service below, once this phase server has migrated the
+    # database.
     healthcheck:
       test:
         [
@@ -727,8 +738,9 @@ services:
       - POSTGRES_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
       - POSTGRES_DB=${DB_TEAM_ALLOCATION_NAME}
       - TZ=Europe/Berlin
-    # No seed: the phase server runs its own migrations on the empty DB and
-    # the tests create all phase data themselves.
+    # No init seed: the shared seed under seed/ is data only, so it is applied
+    # by the `seed` service below, once this phase server has migrated the
+    # database.
     healthcheck:
       test:
         [
@@ -758,9 +770,9 @@ services:
       - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
       - POSTGRES_DB=${DB_CORE_NAME}
       - TZ=Europe/Berlin
-    # Seed loaded on first init (db is ephemeral → always fresh each run).
-    volumes:
-      - ./e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro
+    # No init seed: the shared seed under seed/ is data only, so it has to be
+    # applied after server-core has migrated this database and created its
+    # course phase types. The `seed` service below does that.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${DB_CORE_NAME} -U ${DB_CORE_USER}"]
       interval: 5s
@@ -825,7 +837,7 @@ services:
       start_period: 30s
 
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.41
+    image: chrislusf/seaweedfs:4.44
     container_name: prompt-e2e-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     restart: unless-stopped
@@ -836,7 +848,7 @@ services:
       retries: 3
 
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.41
+    image: chrislusf/seaweedfs:4.44
     container_name: prompt-e2e-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     depends_on:
@@ -850,7 +862,7 @@ services:
       retries: 3
 
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.41
+    image: chrislusf/seaweedfs:4.44
     container_name: prompt-e2e-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     depends_on:
@@ -864,7 +876,7 @@ services:
       retries: 3
 
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.41
+    image: chrislusf/seaweedfs:4.44
     container_name: prompt-e2e-seaweedfs-s3
     entrypoint:
       - /bin/sh
@@ -914,7 +926,7 @@ services:
   # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
   # the runner reads them back over the HTTP API (8025) to assert delivery.
   mailpit:
-    image: axllent/mailpit:v1.30.7
+    image: axllent/mailpit:v1.31.0
     container_name: prompt-e2e-mailpit
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true
@@ -928,6 +940,82 @@ services:
   # The browser, the app's runtime config, the server, and Keycloak all address
   # each other by Docker service name on the compose network — so the realm's
   # redirect URIs (http://client-core/*) and the token issuer all line up.
+  # Applies the shared seed (seed/, the same files `make seed` uses) once every
+  # server has migrated its database. scripts/seed.sh waits per database until
+  # schema_migrations reaches the version the migration directory declares, so
+  # `service_started` is enough of a dependency here.
+  seed:
+    image: "postgres:15.19-alpine"
+    container_name: prompt-e2e-seed
+    entrypoint: ["/seed.sh"]
+    depends_on:
+      server-core:
+        condition: service_started
+      server-self-team-allocation:
+        condition: service_started
+      server-example:
+        condition: service_started
+      server-assessment:
+        condition: service_started
+      server-interview:
+        condition: service_started
+      server-certificate:
+        condition: service_started
+      server-presentation:
+        condition: service_started
+      server-team-allocation:
+        condition: service_started
+    volumes:
+      - ./seed:/seed:ro
+      - ./servers:/servers:ro
+      - ./scripts/seed.sh:/seed.sh:ro
+    environment:
+      - SEED_SQL_ROOT=/seed
+      - SEED_MIGRATIONS_ROOT=/servers
+      # SEED_DB_* is the fallback for every database; each service then
+      # overrides it with its own credentials, so a password changed for one
+      # database fails against that database instead of silently reusing core's.
+      - SEED_DB_NAME=${DB_CORE_NAME}
+      - SEED_DB_USER=${DB_CORE_USER}
+      - SEED_DB_PASSWORD=${DB_CORE_PASSWORD}
+      - SEED_CORE_HOST=db
+      - SEED_CORE_PORT=5432
+      - SEED_TEAM_ALLOCATION_HOST=db-team-allocation
+      - SEED_TEAM_ALLOCATION_PORT=5432
+      - SEED_TEAM_ALLOCATION_NAME=${DB_TEAM_ALLOCATION_NAME}
+      - SEED_TEAM_ALLOCATION_USER=${DB_TEAM_ALLOCATION_USER}
+      - SEED_TEAM_ALLOCATION_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
+      - SEED_SELF_TEAM_ALLOCATION_HOST=db-self-team-allocation
+      - SEED_SELF_TEAM_ALLOCATION_PORT=5432
+      - SEED_SELF_TEAM_ALLOCATION_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
+      - SEED_SELF_TEAM_ALLOCATION_USER=${DB_SELF_TEAM_ALLOCATION_USER}
+      - SEED_SELF_TEAM_ALLOCATION_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
+      - SEED_ASSESSMENT_HOST=db-assessment
+      - SEED_ASSESSMENT_PORT=5432
+      - SEED_ASSESSMENT_NAME=${DB_ASSESSMENT_NAME}
+      - SEED_ASSESSMENT_USER=${DB_ASSESSMENT_USER}
+      - SEED_ASSESSMENT_PASSWORD=${DB_ASSESSMENT_PASSWORD}
+      - SEED_INTERVIEW_HOST=db-interview
+      - SEED_INTERVIEW_PORT=5432
+      - SEED_INTERVIEW_NAME=${DB_INTERVIEW_NAME}
+      - SEED_INTERVIEW_USER=${DB_INTERVIEW_USER}
+      - SEED_INTERVIEW_PASSWORD=${DB_INTERVIEW_PASSWORD}
+      - SEED_CERTIFICATE_HOST=db-certificate
+      - SEED_CERTIFICATE_PORT=5432
+      - SEED_CERTIFICATE_NAME=${DB_CERTIFICATE_NAME}
+      - SEED_CERTIFICATE_USER=${DB_CERTIFICATE_USER}
+      - SEED_CERTIFICATE_PASSWORD=${DB_CERTIFICATE_PASSWORD}
+      - SEED_PRESENTATION_HOST=db-presentation
+      - SEED_PRESENTATION_PORT=5432
+      - SEED_PRESENTATION_NAME=${DB_PRESENTATION_NAME}
+      - SEED_PRESENTATION_USER=${DB_PRESENTATION_USER}
+      - SEED_PRESENTATION_PASSWORD=${DB_PRESENTATION_PASSWORD}
+      - SEED_EXAMPLE_SERVER_HOST=db-example
+      - SEED_EXAMPLE_SERVER_PORT=5432
+      - SEED_EXAMPLE_SERVER_NAME=${DB_EXAMPLE_NAME}
+      - SEED_EXAMPLE_SERVER_USER=${DB_EXAMPLE_USER}
+      - SEED_EXAMPLE_SERVER_PASSWORD=${DB_EXAMPLE_PASSWORD}
+
   e2e-runner:
     build:
       context: ./e2e
@@ -976,6 +1064,8 @@ services:
       server-team-allocation:
         # distroless; global-setup polls /team-allocation/api/info.
         condition: service_started
+      seed:
+        condition: service_completed_successfully
     environment:
       - CI
       # Service-name URLs on the compose network. Chromium hard-codes

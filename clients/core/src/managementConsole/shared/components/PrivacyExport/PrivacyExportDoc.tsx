@@ -1,8 +1,8 @@
 import {
   ExportStatus,
-  getExportDocDownloadURL,
   type PrivacyExportDocument as PrivacyExportDocumentType,
-} from '@core/network/queries/privacyStudentDataExport'
+} from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
 import { Button, Card, CardContent, useToast } from '@tumaet/prompt-ui-components'
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -26,7 +26,7 @@ export function PrivacyExportDocument({
   const handleDownload = async () => {
     setIsDownloading(true)
     try {
-      const url = await getExportDocDownloadURL(exportId, privacy_export_document.id)
+      const url = await coreApi.privacy.exportDocDownloadURL(exportId, privacy_export_document.id)
       window.location.assign(url)
     } catch {
       toast({
@@ -61,6 +61,7 @@ export function PrivacyExportDocument({
               variant='outline'
               onClick={handleDownload}
               className='shrink-0'
+              aria-label={`Download ${privacy_export_document.source_name} export`}
             >
               {isDownloading ? (
                 <Loader2 className='h-4 w-4 animate-spin' />

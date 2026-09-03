@@ -10,11 +10,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupTimeframeRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *TimeframeService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	teamRouter := routerGroup.Group("/timeframe")
 
-	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), getTimeframe)
-	teamRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), setTimeframe)
+	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), service.getTimeframe)
+	teamRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.setTimeframe)
 }
 
 // getTimeframe godoc
@@ -28,14 +28,14 @@ func setupTimeframeRouter(routerGroup *gin.RouterGroup, authMiddleware func(allo
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/timeframe [get]
-func getTimeframe(c *gin.Context) {
+func (s *TimeframeService) getTimeframe(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	timeframe, err := GetTimeframe(c, coursePhaseID)
+	timeframe, err := s.GetTimeframe(c, coursePhaseID)
 	if err != nil {
 		if err.Error() == "timeframe not set" {
 			c.JSON(http.StatusOK, timeframeDTO.Timeframe{TimeframeSet: false})
@@ -60,7 +60,7 @@ func getTimeframe(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/timeframe [put]
-func setTimeframe(c *gin.Context) {
+func (s *TimeframeService) setTimeframe(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -74,7 +74,7 @@ func setTimeframe(c *gin.Context) {
 		return
 	}
 
-	err = SetTimeframe(c, coursePhaseID, request.StartTime, request.EndTime)
+	err = s.SetTimeframe(c, coursePhaseID, request.StartTime, request.EndTime)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

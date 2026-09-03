@@ -17,13 +17,13 @@ import (
 var getParticipationsForCoursePhaseFn = GetParticipationsForCoursePhase
 var getTeamsForCoursePhaseFn = GetTeamsForCoursePhase
 
-func GetEvaluationReminderRecipients(
+func (s *CoursePhaseConfigService) GetEvaluationReminderRecipients(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,
 	evaluationType assessmentType.AssessmentType,
 ) (coursePhaseConfigDTO.EvaluationReminderRecipients, error) {
-	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, fmt.Errorf("failed to load course phase config: %w", err)
 	}
@@ -64,7 +64,7 @@ func GetEvaluationReminderRecipients(
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, err
 	}
 
-	completions, err := CoursePhaseConfigSingleton.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
+	completions, err := s.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, fmt.Errorf("failed to load evaluation completions: %w", err)
 	}

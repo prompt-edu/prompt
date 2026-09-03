@@ -16,9 +16,10 @@ import (
 
 type ConfigServiceTestSuite struct {
 	suite.Suite
-	ctx     context.Context
-	testDB  *sdkTestUtils.TestDB[*db.Queries]
-	cleanup func()
+	ctx           context.Context
+	testDB        *sdkTestUtils.TestDB[*db.Queries]
+	cleanup       func()
+	configService *ConfigService
 }
 
 func (suite *ConfigServiceTestSuite) SetupSuite() {
@@ -30,10 +31,7 @@ func (suite *ConfigServiceTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	ConfigServiceSingleton = &ConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.configService = NewConfigService(*testDB.Queries)
 }
 
 func (suite *ConfigServiceTestSuite) TearDownSuite() {
@@ -51,20 +49,18 @@ func (suite *ConfigServiceTestSuite) newContext(coursePhaseID uuid.UUID) *gin.Co
 }
 
 func (suite *ConfigServiceTestSuite) TestHandlePhaseConfigWithTimeframe() {
-	handler := ConfigHandler{}
 	c := suite.newContext(uuid.MustParse("11111111-1111-1111-1111-111111111111"))
 
-	configMap, err := handler.HandlePhaseConfig(c)
+	configMap, err := suite.configService.HandlePhaseConfig(c)
 
 	require.NoError(suite.T(), err)
 	require.True(suite.T(), configMap["surveyTimeframe"])
 }
 
 func (suite *ConfigServiceTestSuite) TestHandlePhaseConfigWithoutTimeframe() {
-	handler := ConfigHandler{}
 	c := suite.newContext(uuid.New())
 
-	configMap, err := handler.HandlePhaseConfig(c)
+	configMap, err := suite.configService.HandlePhaseConfig(c)
 
 	require.NoError(suite.T(), err)
 	require.False(suite.T(), configMap["surveyTimeframe"])

@@ -7,6 +7,15 @@ permissions:
   contents: read
 
 jobs:
+  # The links between the per-service seed files are bare UUIDs that no foreign
+  # key enforces, so a typo only shows up as an empty screen at runtime.
+  seed-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the cross-database seed references
+        run: ./scripts/seed-check.sh
+
   quality-server:
     runs-on: ubuntu-latest
     strategy:

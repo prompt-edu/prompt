@@ -7,54 +7,63 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
-	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupApplicationRouter sets up the application endpoints
+// RegisterRoutes mounts the application endpoints on the given router group.
 // @Summary Application Endpoints
 // @Description Endpoints for managing applications and application forms
 // @Tags applications
 // @Security BearerAuth
-func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(router *gin.RouterGroup, service *ApplicationService, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc, checkCoursePhasePermission permissionValidation.PermissionCheck) {
+	setupApplicationRouter(router, service, authMiddleware, applicationMiddleware, checkAccessControlByIDWrapper(checkCoursePhasePermission))
+}
+
+// initializes the handler func with CheckCoursePermissions
+func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return permissionValidation.CheckAccessControlByID(check, "coursePhaseID", allowedRoles...)
+	}
+}
+
+func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	application := router.Group("/applications", authMiddleware())
 
 	// Application Form Endpoints
-	application.GET("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationForm)
-	application.PUT("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationForm)
-	application.GET("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), getAdditionalScores)
-	application.POST("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), uploadAdditionalScore)
-	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationsStatus)
+	application.GET("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationForm)
+	application.PUT("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationForm)
+	application.GET("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getAdditionalScores)
+	application.POST("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.uploadAdditionalScore)
+	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationsStatus)
 
-	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationManual)
-	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), postApplicationImport)
-	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), deleteApplications)
-	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationFileDownloadURL)
+	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationManual)
+	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationImport)
+	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteApplications)
+	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationFileDownloadURL)
 
-	application.GET("/:coursePhaseID/:courseParticipationID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getApplicationByCPID)
-	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), updateApplicationAssessment)
+	application.GET("/:coursePhaseID/:courseParticipationID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationByCPID)
+	application.PUT("/:coursePhaseID/:courseParticipationID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationAssessment)
 
-	application.GET("/:coursePhaseID/participations", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getAllApplicationParticipations)
-	application.GET("/:coursePhaseID/exported-answers", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), getExportedApplicationAnswers)
+	application.GET("/:coursePhaseID/participations", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getAllApplicationParticipations)
+	application.GET("/:coursePhaseID/exported-answers", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getExportedApplicationAnswers)
 
 	// Apply Endpoints - No Authentication needed
 	apply := router.Group("/apply")
-	apply.GET("", getAllOpenApplications)
-	apply.GET("/:coursePhaseID", getApplicationFormWithCourseDetails)
-	apply.POST("/:coursePhaseID", postApplicationExtern)
-	apply.POST("/:coursePhaseID/files/presign", presignApplicationUploadExternal)
-	apply.POST("/:coursePhaseID/files/complete", completeApplicationUploadExternal)
+	apply.GET("", s.getAllOpenApplications)
+	apply.GET("/:coursePhaseID", s.getApplicationFormWithCourseDetails)
+	apply.POST("/:coursePhaseID", s.postApplicationExtern)
+	apply.POST("/:coursePhaseID/files/presign", s.presignApplicationUploadExternal)
+	apply.POST("/:coursePhaseID/files/complete", s.completeApplicationUploadExternal)
 
 	applyAuthenticated := router.Group("/apply/authenticated", applicationMiddleware())
-	applyAuthenticated.GET("/:coursePhaseID", getApplicationAuthenticated)
-	applyAuthenticated.POST("/:coursePhaseID", postApplicationAuthenticated)
-	applyAuthenticated.POST("/:coursePhaseID/files/presign", presignApplicationUploadAuthenticated)
-	applyAuthenticated.POST("/:coursePhaseID/files/complete", completeApplicationUploadAuthenticated)
-	applyAuthenticated.DELETE("/:coursePhaseID/files/:fileId", deleteApplicationFileAuthenticated)
+	applyAuthenticated.GET("/:coursePhaseID", s.getApplicationAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID", s.postApplicationAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/presign", s.presignApplicationUploadAuthenticated)
+	applyAuthenticated.POST("/:coursePhaseID/files/complete", s.completeApplicationUploadAuthenticated)
+	applyAuthenticated.DELETE("/:coursePhaseID/files/:fileId", s.deleteApplicationFileAuthenticated)
 
 }
 
@@ -68,14 +77,14 @@ func setupApplicationRouter(router *gin.RouterGroup, authMiddleware func() gin.H
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/form [get]
-func getApplicationForm(c *gin.Context) {
+func (s *ApplicationService) getApplicationForm(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	applicationForm, err := GetApplicationForm(c, coursePhaseId)
+	applicationForm, err := s.GetApplicationForm(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
@@ -98,7 +107,7 @@ func getApplicationForm(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/form [put]
-func updateApplicationForm(c *gin.Context) {
+func (s *ApplicationService) updateApplicationForm(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -111,14 +120,14 @@ func updateApplicationForm(c *gin.Context) {
 		return
 	}
 
-	err = validateUpdateForm(c, coursePhaseId, updatedApplicationForm)
+	err = s.validateUpdateForm(c, coursePhaseId, updatedApplicationForm)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = UpdateApplicationForm(c, coursePhaseId, updatedApplicationForm)
+	err = s.UpdateApplicationForm(c, coursePhaseId, updatedApplicationForm)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not update application form"))
@@ -136,8 +145,8 @@ func updateApplicationForm(c *gin.Context) {
 // @Success 200 {array} applicationDTO.OpenApplication
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply [get]
-func getAllOpenApplications(c *gin.Context) {
-	openApplications, err := GetOpenApplicationPhases(c)
+func (s *ApplicationService) getAllOpenApplications(c *gin.Context) {
+	openApplications, err := s.GetOpenApplicationPhases(c)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get open applications"))
@@ -158,14 +167,14 @@ func getAllOpenApplications(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/{coursePhaseID} [get]
-func getApplicationFormWithCourseDetails(c *gin.Context) {
+func (s *ApplicationService) getApplicationFormWithCourseDetails(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	applicationForm, err := GetApplicationFormWithDetails(c, coursePhaseId)
+	applicationForm, err := s.GetApplicationFormWithDetails(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrNotFound) {
@@ -190,13 +199,13 @@ func getApplicationFormWithCourseDetails(c *gin.Context) {
 // @Failure 401 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID} [get]
-func getApplicationAuthenticated(c *gin.Context) {
+func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	importMode, err := IsImportModePhase(c, coursePhaseID)
+	importMode, err := s.IsImportModePhase(c, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
@@ -219,7 +228,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 	lastName := c.GetString("lastName")
 	userEmail := c.GetString("userEmail")
 
-	applicationForm, err := GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(c, coursePhaseID, matriculationNumber, universityLogin)
+	applicationForm, err := s.GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(c, coursePhaseID, matriculationNumber, universityLogin)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
@@ -233,7 +242,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 			applicationForm.Student.FirstName = firstName
 			applicationForm.Student.LastName = lastName
 		}
-		if err := SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
+		if err := s.SyncStudentDetailsFromToken(c, *applicationForm.Student); err != nil {
 			applicationForm.Student.Email = storedEmail
 			log.Warn("could not sync student details from token: ", err)
 		}
@@ -257,7 +266,7 @@ func getApplicationAuthenticated(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID} [post]
-func postApplicationManual(c *gin.Context) {
+func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -269,14 +278,14 @@ func postApplicationManual(c *gin.Context) {
 		return
 	}
 
-	err = validateApplicationManualAdd(c, coursePhaseId, application)
+	err = s.validateApplicationManualAdd(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	courseParticipationID, err := PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
+	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
@@ -291,7 +300,7 @@ func postApplicationManual(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
@@ -315,7 +324,7 @@ func postApplicationManual(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/{coursePhaseID} [post]
-func postApplicationExtern(c *gin.Context) {
+func (s *ApplicationService) postApplicationExtern(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -328,14 +337,14 @@ func postApplicationExtern(c *gin.Context) {
 		return
 	}
 
-	err = validateApplication(c, coursePhaseId, application, false)
+	err = s.validateApplication(c, coursePhaseId, application, false)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	courseParticipationID, err := PostApplicationExtern(c, coursePhaseId, application)
+	courseParticipationID, err := s.PostApplicationExtern(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
@@ -350,7 +359,7 @@ func postApplicationExtern(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
@@ -375,7 +384,7 @@ func postApplicationExtern(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /apply/authenticated/{coursePhaseID} [post]
-func postApplicationAuthenticated(c *gin.Context) {
+func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -398,7 +407,7 @@ func postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	err = validateApplication(c, coursePhaseId, application, true)
+	err = s.validateApplication(c, coursePhaseId, application, true)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
@@ -417,7 +426,7 @@ func postApplicationAuthenticated(c *gin.Context) {
 		application.Student.LastName = lastName
 	}
 
-	courseParticipationID, err := PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
+	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {
@@ -428,7 +437,7 @@ func postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
-	confirmationMailSent, err := mailing.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
+	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
@@ -451,7 +460,7 @@ func postApplicationAuthenticated(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/{courseParticipationID} [get]
-func getApplicationByCPID(c *gin.Context) {
+func (s *ApplicationService) getApplicationByCPID(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -464,7 +473,7 @@ func getApplicationByCPID(c *gin.Context) {
 		return
 	}
 
-	application, err := GetApplicationByCPID(c, coursePhaseId, courseParticipationID)
+	application, err := s.GetApplicationByCPID(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrNotFound) {
@@ -488,14 +497,14 @@ func getApplicationByCPID(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/participations [get]
-func getAllApplicationParticipations(c *gin.Context) {
+func (s *ApplicationService) getAllApplicationParticipations(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	applications, err := GetAllApplicationParticipations(c, coursePhaseId)
+	applications, err := s.GetAllApplicationParticipations(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get applications"))
@@ -515,14 +524,14 @@ func getAllApplicationParticipations(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/exported-answers [get]
-func getExportedApplicationAnswers(c *gin.Context) {
+func (s *ApplicationService) getExportedApplicationAnswers(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	exportedAnswers, err := GetExportedApplicationAnswers(c, coursePhaseId)
+	exportedAnswers, err := s.GetExportedApplicationAnswers(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get exported application answers"))
@@ -545,7 +554,7 @@ func getExportedApplicationAnswers(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/{courseParticipationID}/assessment [put]
-func updateApplicationAssessment(c *gin.Context) {
+func (s *ApplicationService) updateApplicationAssessment(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -564,14 +573,14 @@ func updateApplicationAssessment(c *gin.Context) {
 		return
 	}
 
-	err = validateUpdateAssessment(c, coursePhaseId, courseParticipationId, assessment)
+	err = s.validateUpdateAssessment(c, coursePhaseId, courseParticipationId, assessment)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	err = UpdateApplicationAssessment(c, coursePhaseId, courseParticipationId, assessment)
+	err = s.UpdateApplicationAssessment(c, coursePhaseId, courseParticipationId, assessment)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not update application assessment"))
@@ -593,7 +602,7 @@ func updateApplicationAssessment(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/score [post]
-func uploadAdditionalScore(c *gin.Context) {
+func (s *ApplicationService) uploadAdditionalScore(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -613,7 +622,7 @@ func uploadAdditionalScore(c *gin.Context) {
 		return
 	}
 
-	err = UploadAdditionalScore(c, coursePhaseId, additionalScore)
+	err = s.UploadAdditionalScore(c, coursePhaseId, additionalScore)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not upload additional score"))
@@ -633,14 +642,14 @@ func uploadAdditionalScore(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/score [get]
-func getAdditionalScores(c *gin.Context) {
+func (s *ApplicationService) getAdditionalScores(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	additionalScore, err := GetAdditionalScores(c, coursePhaseId)
+	additionalScore, err := s.GetAdditionalScores(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not get additional score"))
@@ -662,7 +671,7 @@ func getAdditionalScores(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/assessment [put]
-func updateApplicationsStatus(c *gin.Context) {
+func (s *ApplicationService) updateApplicationsStatus(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -675,7 +684,7 @@ func updateApplicationsStatus(c *gin.Context) {
 		return
 	}
 
-	participationIDs, err := coursePhaseParticipation.BatchUpdatePassStatus(c, coursePhaseId, status.CourseParticipationIDs, status.PassStatus)
+	participationIDs, err := s.participations.BatchUpdatePassStatus(c, coursePhaseId, status.CourseParticipationIDs, status.PassStatus)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not update application status"))
@@ -698,7 +707,7 @@ func updateApplicationsStatus(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID} [delete]
-func deleteApplications(c *gin.Context) {
+func (s *ApplicationService) deleteApplications(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -711,7 +720,7 @@ func deleteApplications(c *gin.Context) {
 		return
 	}
 
-	err = DeleteApplications(c, coursePhaseId, courseParticipationIDs)
+	err = s.DeleteApplications(c, coursePhaseId, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("could not delete applications"))
@@ -734,7 +743,7 @@ func deleteApplications(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /applications/{coursePhaseID}/import [post]
-func postApplicationImport(c *gin.Context) {
+func (s *ApplicationService) postApplicationImport(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -747,14 +756,14 @@ func postApplicationImport(c *gin.Context) {
 		return
 	}
 
-	err = validateApplicationImport(c, coursePhaseId, req)
+	err = s.validateApplicationImport(c, coursePhaseId, req)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	result, err := PostApplicationImport(c, coursePhaseId, req)
+	result, err := s.PostApplicationImport(c, coursePhaseId, req)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {

@@ -1,5 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
-import { postNewCourse } from '@core/network/mutations/postNewCourse'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import type { CourseAppearanceFormValues } from '@core/validations/courseAppearance'
 import type { TemplateFormValues } from '@core/validations/template'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -48,7 +49,7 @@ export const AddTemplateDialog = ({
 
   const { mutate, isPending, error, isError, reset } = useMutation({
     mutationFn: (course: PostCourse) => {
-      return postNewCourse(course)
+      return coreApi.courses.create(course)
     },
     onSuccess: (data: string | undefined) => {
       toast({
@@ -57,14 +58,8 @@ export const AddTemplateDialog = ({
         variant: 'success',
       })
       forceTokenRefresh() // refresh token to get permission for new course
-        .then(() => {
-          // Invalidate course queries
-          return queryClient.invalidateQueries({ queryKey: ['courses'] })
-        })
-        .then(() => {
-          // Wait for courses to be refetched
-          return queryClient.refetchQueries({ queryKey: ['courses'] })
-        })
+        // The navigation below needs the new course in the list, not merely marked stale
+        .then(() => coreCache.courseCreated(queryClient))
         .then(() => {
           // Close the window and navigate
           setIsOpen(false)

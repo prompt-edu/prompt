@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -16,24 +15,20 @@ import (
 
 type ConfigService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var ConfigServiceSingleton *ConfigService
-
-func NewConfigService(queries db.Queries, conn *pgxpool.Pool) *ConfigService {
+func NewConfigService(queries db.Queries) *ConfigService {
 	return &ConfigService{
 		queries: queries,
-		conn:    conn,
 	}
 }
 
-func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configDTO.CoursePhaseConfig, error) {
-	config, err := ConfigServiceSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *ConfigService) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configDTO.CoursePhaseConfig, error) {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// Create a default config
-			config, err = ConfigServiceSingleton.queries.CreateCoursePhaseConfig(ctx, coursePhaseID)
+			config, err = s.queries.CreateCoursePhaseConfig(ctx, coursePhaseID)
 			if err != nil {
 				log.WithError(err).Error("Failed to create default course phase config")
 				return configDTO.CoursePhaseConfig{}, err
@@ -44,7 +39,7 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configD
 		}
 	}
 
-	hasDownloads, err := ConfigServiceSingleton.queries.HasDownloads(ctx, coursePhaseID)
+	hasDownloads, err := s.queries.HasDownloads(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Warn("Failed to check for existing downloads")
 		hasDownloads = false
@@ -53,8 +48,8 @@ func GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configD
 	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
 }
 
-func UpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, templateContent string, updatedBy string) (configDTO.CoursePhaseConfig, error) {
-	config, err := ConfigServiceSingleton.queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
+func (s *ConfigService) UpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, templateContent string, updatedBy string) (configDTO.CoursePhaseConfig, error) {
+	config, err := s.queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
 		CoursePhaseID:   coursePhaseID,
 		TemplateContent: pgtype.Text{String: templateContent, Valid: true},
 		UpdatedBy:       pgtype.Text{String: updatedBy, Valid: updatedBy != ""},
@@ -64,7 +59,7 @@ func UpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, templ
 		return configDTO.CoursePhaseConfig{}, err
 	}
 
-	hasDownloads, err := ConfigServiceSingleton.queries.HasDownloads(ctx, coursePhaseID)
+	hasDownloads, err := s.queries.HasDownloads(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Warn("Failed to check for existing downloads")
 		hasDownloads = false
@@ -73,7 +68,7 @@ func UpdateCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID, templ
 	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
 }
 
-func UpdateReleaseDate(ctx context.Context, coursePhaseID uuid.UUID, releaseDate *time.Time, updatedBy string) (configDTO.CoursePhaseConfig, error) {
+func (s *ConfigService) UpdateReleaseDate(ctx context.Context, coursePhaseID uuid.UUID, releaseDate *time.Time, updatedBy string) (configDTO.CoursePhaseConfig, error) {
 	var releaseDatePg pgtype.Timestamptz
 	if releaseDate != nil {
 		releaseDatePg = pgtype.Timestamptz{Time: *releaseDate, Valid: true}
@@ -81,7 +76,7 @@ func UpdateReleaseDate(ctx context.Context, coursePhaseID uuid.UUID, releaseDate
 		releaseDatePg = pgtype.Timestamptz{Valid: false}
 	}
 
-	config, err := ConfigServiceSingleton.queries.UpdateReleaseDate(ctx, db.UpdateReleaseDateParams{
+	config, err := s.queries.UpdateReleaseDate(ctx, db.UpdateReleaseDateParams{
 		CoursePhaseID: coursePhaseID,
 		ReleaseDate:   releaseDatePg,
 		UpdatedBy:     pgtype.Text{String: updatedBy, Valid: updatedBy != ""},
@@ -91,7 +86,7 @@ func UpdateReleaseDate(ctx context.Context, coursePhaseID uuid.UUID, releaseDate
 		return configDTO.CoursePhaseConfig{}, err
 	}
 
-	hasDownloads, err := ConfigServiceSingleton.queries.HasDownloads(ctx, coursePhaseID)
+	hasDownloads, err := s.queries.HasDownloads(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Warn("Failed to check for existing downloads")
 		hasDownloads = false
@@ -100,8 +95,32 @@ func UpdateReleaseDate(ctx context.Context, coursePhaseID uuid.UUID, releaseDate
 	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
 }
 
-func GetTemplateContent(ctx context.Context, coursePhaseID uuid.UUID) (string, error) {
-	config, err := ConfigServiceSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+func (s *ConfigService) UpdateStudentPageText(ctx context.Context, coursePhaseID uuid.UUID, studentPageText *string) (configDTO.CoursePhaseConfig, error) {
+	var text pgtype.Text
+	if studentPageText != nil {
+		text = pgtype.Text{String: *studentPageText, Valid: true}
+	}
+
+	config, err := s.queries.UpsertStudentPageText(ctx, db.UpsertStudentPageTextParams{
+		CoursePhaseID:   coursePhaseID,
+		StudentPageText: text,
+	})
+	if err != nil {
+		log.WithError(err).Error("Failed to update student page text")
+		return configDTO.CoursePhaseConfig{}, err
+	}
+
+	hasDownloads, err := s.queries.HasDownloads(ctx, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Warn("Failed to check for existing downloads")
+		hasDownloads = false
+	}
+
+	return configDTO.MapDBConfigToDTOConfig(config, hasDownloads), nil
+}
+
+func (s *ConfigService) GetTemplateContent(ctx context.Context, coursePhaseID uuid.UUID) (string, error) {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", errors.New("no template configured for this course phase")

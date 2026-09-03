@@ -12,7 +12,7 @@
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
 	swagger install-clients install-hooks setup-skills new-phase \
-	seaweed seaweed-down deps deps-down
+	seed seed-check
 
 # Load .env file if it exists (base configuration)
 ifneq (,$(wildcard ./.env))
@@ -95,23 +95,23 @@ client-interview: ## Start only the interview client
 client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
-db: ## Start database and Keycloak
-	docker compose up -d db keycloak
+DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
+	db-example-server db-interview db-certificate db-presentation \
+	db-infrastructure-setup
 
-deps: ## Start all local dependencies (db, Keycloak, SeaweedFS)
-	docker compose up -d db keycloak seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+db: ## Start every service database and Keycloak
+	docker compose up -d $(DB_SERVICES) keycloak
 
-deps-down: ## Stop all local dependencies
-	docker compose stop db keycloak seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+db-down: ## Stop every service database and Keycloak
+	docker compose stop $(DB_SERVICES) keycloak
 
-seaweed: ## Start SeaweedFS services
-	docker compose up -d seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+# Runs in a container so no host psql is needed and the code path matches the
+# one the e2e stack uses. The servers own the schemas, so start them once first.
+seed: ## Load the demo course into every service database (re-runnable)
+	docker compose run --rm seed
 
-db-down: ## Stop database and Keycloak
-	docker compose stop db keycloak
-
-seaweed-down: ## Stop SeaweedFS services
-	docker compose stop seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+seed-check: ## Verify the cross-database references in seed/ resolve
+	./scripts/seed-check.sh
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 
@@ -121,25 +121,16 @@ lint-clients: ## Lint all clients
 	cd clients && yarn biome check
 	./scripts/check-remote-styles.sh
 
-# CI runs golangci-lint, which catches far more than go vet. It is run here too when
-# installed, so `make lint` matches the pipeline instead of passing locally and failing
-# in CI. Install it with: brew install golangci-lint
-lint-servers: ## Run go vet and golangci-lint on all servers
-	@for s in core assessment interview team_allocation self_team_allocation \
-	          example_server certificate presentation infrastructure_setup; do \
-	  echo "==> $$s"; \
-	  (cd servers/$$s && go vet ./...) || exit 1; \
-	done
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-	  for s in core assessment interview team_allocation self_team_allocation \
-	           example_server certificate presentation infrastructure_setup; do \
-	    echo "==> golangci-lint $$s"; \
-	    (cd servers/$$s && golangci-lint run --timeout 5m) || exit 1; \
-	  done; \
-	else \
-	  echo "golangci-lint not installed - skipping (CI will still run it)."; \
-	  echo "Install with: brew install golangci-lint"; \
-	fi
+lint-servers: ## Run go vet on all servers
+	cd servers/core && go vet ./...
+	cd servers/assessment && go vet ./...
+	cd servers/interview && go vet ./...
+	cd servers/team_allocation && go vet ./...
+	cd servers/self_team_allocation && go vet ./...
+	cd servers/example_server && go vet ./...
+	cd servers/certificate && go vet ./...
+	cd servers/presentation && go vet ./...
+	cd servers/infrastructure_setup && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 

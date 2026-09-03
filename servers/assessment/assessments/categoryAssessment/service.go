@@ -15,12 +15,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CategoryAssessmentService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type assessmentCompletionProvider interface {
+	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
 }
 
-var CategoryAssessmentServiceSingleton *CategoryAssessmentService
+type CategoryAssessmentService struct {
+	queries              db.Queries
+	conn                 *pgxpool.Pool
+	assessmentCompletion assessmentCompletionProvider
+}
+
+func NewCategoryAssessmentService(queries db.Queries, conn *pgxpool.Pool, assessmentCompletion assessmentCompletionProvider) *CategoryAssessmentService {
+	return &CategoryAssessmentService{
+		queries:              queries,
+		conn:                 conn,
+		assessmentCompletion: assessmentCompletion,
+	}
+}
 
 // ErrNotEditable is returned when the assessment is not editable yet, past
 // the deadline, or already finalized. The router maps this to 403.
@@ -38,16 +49,16 @@ func wrapEditabilityError(err error) error {
 	return err
 }
 
-func CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
-	tx, err := CategoryAssessmentServiceSingleton.conn.Begin(ctx)
+func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := CategoryAssessmentServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
-	if err := wrapEditabilityError(assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)); err != nil {
+	if err := wrapEditabilityError(s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)); err != nil {
 		return err
 	}
 
@@ -70,8 +81,8 @@ func CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmen
 	return nil
 }
 
-func ListCategoryAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.CategoryAssessment, error) {
-	items, err := CategoryAssessmentServiceSingleton.queries.ListCategoryAssessmentsByStudentInPhase(ctx, db.ListCategoryAssessmentsByStudentInPhaseParams{
+func (s *CategoryAssessmentService) ListCategoryAssessmentsByStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.CategoryAssessment, error) {
+	items, err := s.queries.ListCategoryAssessmentsByStudentInPhase(ctx, db.ListCategoryAssessmentsByStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})

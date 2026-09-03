@@ -16,13 +16,20 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/categories"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -101,15 +108,43 @@ func main() {
 
 	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
-	categories.InitCategoryModule(coursePhaseApi, *query, conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
-	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
-	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
+	assessmentSchemaService := assessmentSchemas.NewAssessmentSchemaService(*query, conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*query, conn, assessmentSchemaService)
+	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, coursePhaseConfigService, *query)
 
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	competencyService := competencies.NewCompetencyService(*query, conn, assessmentSchemaService, schemaModificationService)
+	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
+
+	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
+	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
+
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
+	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService, coursePhaseConfigService)
+	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
+
+	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
+	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)
+
+	coursePhaseConfig.RegisterRoutes(coursePhaseApi, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	assessmentSchemas.RegisterRoutes(coursePhaseApi, assessmentSchemaService, promptSDK.AuthenticationMiddleware)
+
+	assessments.RegisterRoutes(coursePhaseApi, assessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, promptSDK.AuthenticationMiddleware)
+	evaluations.RegisterRoutes(coursePhaseApi, evaluationService, promptSDK.AuthenticationMiddleware)
+	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, promptSDK.AuthenticationMiddleware)
+	feedbackItem.RegisterRoutes(coursePhaseApi, feedbackItemService, promptSDK.AuthenticationMiddleware)
+
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+
+	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "assessment",

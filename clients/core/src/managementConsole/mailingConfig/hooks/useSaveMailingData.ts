@@ -1,4 +1,5 @@
-import { updateCourseData } from '@core/network/mutations/updateCourseData'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCourseData } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -15,10 +16,10 @@ export const useSaveMailingData = ({ onSuccess }: SaveMailingDataProps) => {
 
   const mutation = useMutation({
     mutationFn: (courseData: UpdateCourseData) => {
-      return updateCourseData(courseId ?? 'undefined', courseData)
+      return coreApi.courses.update(courseId ?? 'undefined', courseData)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       toast({
         title: 'Successfully Stored Mailing Settings',
       })

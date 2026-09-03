@@ -1,13 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, CardContent, ErrorPage, getStudentName } from '@tumaet/prompt-ui-components'
-import { Loader2, Printer } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  getStudentName,
+  LoadingPage,
+} from '@tumaet/prompt-ui-components'
+import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { getFeedbackItemsForStudent } from '../../network/queries/getFeedbackItemsForStudent'
-import { getPeerEvaluationsForParticipantInPhase } from '../../network/queries/getPeerEvaluationsForParticipantInPhase'
-import { getSelfEvaluationsForParticipantInPhase } from '../../network/queries/getSelfEvaluationsForParticipantInPhase'
+import { assessmentApi } from '../../network/api'
+import { assessmentKeys } from '../../network/cache'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
@@ -49,11 +54,15 @@ export const EvaluationParticipantResultsPage = ({
     isError: isEvaluationsError,
     refetch: refetchEvaluations,
   } = useQuery({
-    queryKey: [assessmentType, 'evaluations', phaseId, courseParticipationID],
+    queryKey: assessmentKeys.evaluations.ofParticipant(
+      assessmentType,
+      phaseId,
+      courseParticipationID,
+    ),
     queryFn: () =>
       assessmentType === AssessmentType.SELF
-        ? getSelfEvaluationsForParticipantInPhase(phaseId ?? '', courseParticipationID ?? '')
-        : getPeerEvaluationsForParticipantInPhase(phaseId ?? '', courseParticipationID ?? ''),
+        ? assessmentApi.evaluations.ofSelf(phaseId ?? '', courseParticipationID ?? '')
+        : assessmentApi.evaluations.ofPeers(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })
 
@@ -63,8 +72,9 @@ export const EvaluationParticipantResultsPage = ({
     isError: isFeedbackItemsError,
     refetch: refetchFeedbackItems,
   } = useQuery({
-    queryKey: ['student-feedback-items', phaseId, courseParticipationID],
-    queryFn: () => getFeedbackItemsForStudent(phaseId ?? '', courseParticipationID ?? ''),
+    queryKey: assessmentKeys.feedbackItems.ofStudent(phaseId, courseParticipationID),
+    queryFn: () =>
+      assessmentApi.feedbackItems.ofStudent(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })
 
@@ -136,11 +146,7 @@ export const EvaluationParticipantResultsPage = ({
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   if (!participant) {

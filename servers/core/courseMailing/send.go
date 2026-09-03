@@ -25,14 +25,6 @@ const maxConcurrentSends = 8
 // dispatch loop stops launching new sends. A var (not const) so tests can shrink it.
 var campaignSendTimeout = 30 * time.Minute
 
-// sendMailFn is the SMTP send entry point, swappable in tests.
-var sendMailFn = mailing.SendCourseMail
-
-var nowFn = func() time.Time { return time.Now().UTC() }
-
-// runSendAsync dispatches the campaign send. Overridden in tests to run synchronously.
-var runSendAsync = func(fn func()) { go fn() }
-
 type campaignSendItem struct {
 	recipientID uuid.UUID
 	email       string
@@ -141,7 +133,7 @@ func (s *CourseMailingService) SendCampaign(ctx context.Context, courseID, campa
 		actor:       actor,
 		setSentMeta: true,
 	}
-	runSendAsync(func() { s.runCampaignSend(job) })
+	s.runAsync(func() { s.runCampaignSend(job) })
 
 	return len(items), nil
 }
@@ -256,7 +248,7 @@ func (s *CourseMailingService) ResendFailed(ctx context.Context, courseID, campa
 		actor:       actor,
 		setSentMeta: false,
 	}
-	runSendAsync(func() { s.runCampaignSend(job) })
+	s.runAsync(func() { s.runCampaignSend(job) })
 
 	return len(items), nil
 }
@@ -306,7 +298,7 @@ func (s *CourseMailingService) TestSend(ctx context.Context, courseID, campaignI
 	studentSettings.CC = nil
 	studentSettings.BCC = nil
 
-	if err := sendMailFn(studentSettings, actor.Email, subject, body); err != nil {
+	if err := s.sendMail(studentSettings, actor.Email, subject, body); err != nil {
 		return fmt.Errorf("failed to send test mail: %w", err)
 	}
 	return nil
@@ -403,7 +395,7 @@ func (s *CourseMailingService) sendOne(ctx context.Context, settings mailingDTO.
 		s.setRecipientFailed(statusCtx, item.recipientID, "missing email address")
 		return
 	}
-	if err := sendMailFn(settings, item.email, item.subject, item.body); err != nil {
+	if err := s.sendMail(settings, item.email, item.subject, item.body); err != nil {
 		// Log the recipient row ID, not the address (student email is personal data).
 		log.WithError(err).WithField("recipientID", item.recipientID).Warn("failed to send campaign mail to recipient")
 		s.setRecipientFailed(statusCtx, item.recipientID, err.Error())
@@ -413,7 +405,7 @@ func (s *CourseMailingService) sendOne(ctx context.Context, settings mailingDTO.
 		ID:           item.recipientID,
 		Status:       db.MailRecipientStatusSent,
 		ErrorMessage: "",
-		SentAt:       pgtype.Timestamptz{Time: nowFn(), Valid: true},
+		SentAt:       pgtype.Timestamptz{Time: s.now(), Valid: true},
 	}); err != nil {
 		log.WithError(err).WithField("recipientID", item.recipientID).Warn("failed to mark recipient as sent")
 	}
@@ -442,7 +434,7 @@ func (s *CourseMailingService) sendArchiveCopy(ctx context.Context, job campaign
 	}
 	subject := mailing.ReplacePlaceholders(job.subject, placeholders)
 	body := mailing.ReplacePlaceholders(job.body, placeholders)
-	if err := sendMailFn(job.settings, job.settings.ReplyTo.Address, subject, body); err != nil {
+	if err := s.sendMail(job.settings, job.settings.ReplyTo.Address, subject, body); err != nil {
 		log.WithError(err).WithField("campaignID", job.campaignID).Warn("failed to send campaign archive copy to CC/BCC")
 	}
 }
@@ -459,7 +451,7 @@ func (s *CourseMailingService) finalizeSend(ctx context.Context, job campaignSen
 	return s.queries.SetMailCampaignSentMeta(ctx, db.SetMailCampaignSentMetaParams{
 		ID:          job.campaignID,
 		Status:      status,
-		SentAt:      pgtype.Timestamptz{Time: nowFn(), Valid: true},
+		SentAt:      pgtype.Timestamptz{Time: s.now(), Valid: true},
 		SentByID:    pgtype.Text{String: job.actor.ID, Valid: true},
 		SentByEmail: pgtype.Text{String: job.actor.Email, Valid: true},
 		SentByName:  pgtype.Text{String: job.actor.Name, Valid: true},

@@ -7,30 +7,30 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupFeedbackItemRouter sets up feedback item endpoints.
+// RegisterRoutes sets up feedback item endpoints.
 // @Summary Feedback Item Endpoints
 // @Description Manage feedback items for evaluations.
 // @Tags feedback_items
 // @Security BearerAuth
-func setupFeedbackItemRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *FeedbackItemService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	feedbackItemRouter := routerGroup.Group("/evaluation/feedback-items")
 
-	feedbackItemRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), listFeedbackItemsForCoursePhase)
-	feedbackItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getFeedbackItemsForParticipantInPhase)
-	feedbackItemRouter.GET("/tutor/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getFeedbackItemsForTutorInPhase)
+	feedbackItemRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.listFeedbackItemsForCoursePhase)
+	feedbackItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getFeedbackItemsForParticipantInPhase)
+	feedbackItemRouter.GET("/tutor/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getFeedbackItemsForTutorInPhase)
 
 	// Student endpoints - access to own feedback items only
-	feedbackItemRouter.GET("/my-feedback", authMiddleware(promptSDK.CourseStudent), getMyFeedbackItems)
-	feedbackItemRouter.POST("", authMiddleware(promptSDK.CourseStudent), createFeedbackItem)
-	feedbackItemRouter.PUT("/:feedbackItemID", authMiddleware(promptSDK.CourseStudent), updateFeedbackItem)
-	feedbackItemRouter.DELETE("/:feedbackItemID", authMiddleware(promptSDK.CourseStudent), deleteFeedbackItem)
+	feedbackItemRouter.GET("/my-feedback", authMiddleware(promptSDK.CourseStudent), service.getMyFeedbackItems)
+	feedbackItemRouter.POST("", authMiddleware(promptSDK.CourseStudent), service.createFeedbackItem)
+	feedbackItemRouter.PUT("/:feedbackItemID", authMiddleware(promptSDK.CourseStudent), service.updateFeedbackItem)
+	feedbackItemRouter.DELETE("/:feedbackItemID", authMiddleware(promptSDK.CourseStudent), service.deleteFeedbackItem)
 }
 
 // listFeedbackItemsForCoursePhase godoc
@@ -43,13 +43,13 @@ func setupFeedbackItemRouter(routerGroup *gin.RouterGroup, authMiddleware func(a
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items [get]
-func listFeedbackItemsForCoursePhase(c *gin.Context) {
+func (s *FeedbackItemService) listFeedbackItemsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	feedbackItems, err := ListFeedbackItemsForCoursePhase(c, coursePhaseID)
+	feedbackItems, err := s.ListFeedbackItemsForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -68,7 +68,7 @@ func listFeedbackItemsForCoursePhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/course-participation/{courseParticipationID} [get]
-func getFeedbackItemsForParticipantInPhase(c *gin.Context) {
+func (s *FeedbackItemService) getFeedbackItemsForParticipantInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -80,7 +80,7 @@ func getFeedbackItemsForParticipantInPhase(c *gin.Context) {
 		return
 	}
 
-	feedbackItems, err := ListFeedbackItemsForParticipantInPhase(c, courseParticipationID, coursePhaseID)
+	feedbackItems, err := s.ListFeedbackItemsForParticipantInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -99,7 +99,7 @@ func getFeedbackItemsForParticipantInPhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/tutor/{courseParticipationID} [get]
-func getFeedbackItemsForTutorInPhase(c *gin.Context) {
+func (s *FeedbackItemService) getFeedbackItemsForTutorInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -111,7 +111,7 @@ func getFeedbackItemsForTutorInPhase(c *gin.Context) {
 		return
 	}
 
-	feedbackItems, err := ListFeedbackItemsForTutorInPhase(c, courseParticipationID, coursePhaseID)
+	feedbackItems, err := s.ListFeedbackItemsForTutorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -129,7 +129,7 @@ func getFeedbackItemsForTutorInPhase(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/my-feedback [get]
-func getMyFeedbackItems(c *gin.Context) {
+func (s *FeedbackItemService) getMyFeedbackItems(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -137,13 +137,13 @@ func getMyFeedbackItems(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	feedbackItems, err := ListFeedbackItemsByAuthorInPhase(c, courseParticipationID, coursePhaseID)
+	feedbackItems, err := s.ListFeedbackItemsByAuthorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -165,7 +165,7 @@ func getMyFeedbackItems(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items [post]
-func createFeedbackItem(c *gin.Context) {
+func (s *FeedbackItemService) createFeedbackItem(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -179,9 +179,9 @@ func createFeedbackItem(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
@@ -193,7 +193,7 @@ func createFeedbackItem(c *gin.Context) {
 
 	req.CoursePhaseID = coursePhaseID
 
-	err = CreateFeedbackItem(c, c.GetHeader("Authorization"), req)
+	err = s.CreateFeedbackItem(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		handleError(c, feedbackItemErrorStatus(err), err)
 		return
@@ -217,7 +217,7 @@ func createFeedbackItem(c *gin.Context) {
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [put]
-func updateFeedbackItem(c *gin.Context) {
+func (s *FeedbackItemService) updateFeedbackItem(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -238,13 +238,13 @@ func updateFeedbackItem(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	err = UpdateFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID, req)
+	err = s.UpdateFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID, req)
 	if err != nil {
 		handleError(c, feedbackItemErrorStatus(err), err)
 		return
@@ -263,7 +263,7 @@ func updateFeedbackItem(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [delete]
-func deleteFeedbackItem(c *gin.Context) {
+func (s *FeedbackItemService) deleteFeedbackItem(c *gin.Context) {
 	feedbackItemID, err := uuid.Parse(c.Param("feedbackItemID"))
 	if err != nil {
 		log.Error("Error parsing feedbackItemID: ", err)
@@ -271,17 +271,17 @@ func deleteFeedbackItem(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := utils.GetUserCourseParticipationID(c)
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, utils.GetUserCourseParticipationIDErrorStatus(err), err)
+		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
-	if !IsFeedbackItemAuthor(c, feedbackItemID, courseParticipationID) {
+	if !s.IsFeedbackItemAuthor(c, feedbackItemID, courseParticipationID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this feedback item"})
 		return
 	}
 
-	err = DeleteFeedbackItem(c, feedbackItemID)
+	err = s.DeleteFeedbackItem(c, feedbackItemID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

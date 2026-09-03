@@ -10,30 +10,30 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	log "github.com/sirupsen/logrus"
 )
 
-func setupGeneratorRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *GeneratorService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	generatorRouter := routerGroup.Group("/certificate")
 
 	// Student can download their own certificate
-	generatorRouter.GET("/download", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), downloadOwnCertificate)
+	generatorRouter.GET("/download", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.downloadOwnCertificate)
 
 	// Instructor can download certificate for any student
-	generatorRouter.GET("/download/:studentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), downloadStudentCertificate)
+	generatorRouter.GET("/download/:studentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.downloadStudentCertificate)
 
 	// Status endpoint for students
-	generatorRouter.GET("/status", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getCertificateStatus)
+	generatorRouter.GET("/status", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getCertificateStatus)
 
 	// Preview endpoint for instructors - generates certificate with mock data
-	generatorRouter.GET("/preview", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), previewCertificate)
+	generatorRouter.GET("/preview", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.previewCertificate)
 }
 
-func downloadOwnCertificate(c *gin.Context) {
+func (s *GeneratorService) downloadOwnCertificate(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -41,7 +41,7 @@ func downloadOwnCertificate(c *gin.Context) {
 		return
 	}
 
-	config, ok := ensureTemplateConfigured(c, coursePhaseID)
+	config, ok := s.ensureTemplateConfigured(c, coursePhaseID)
 	if !ok {
 		return
 	}
@@ -65,14 +65,14 @@ func downloadOwnCertificate(c *gin.Context) {
 
 	// Fetch student info from core's /self endpoint to get the correct core student ID
 	// (the Keycloak UUID from JWT differs from the core student UUID)
-	student, err := participants.GetOwnStudentInfo(c, authHeader, coursePhaseID)
+	student, err := s.students.GetOwnStudentInfo(c, authHeader, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get own student info from core")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get student info"})
 		return
 	}
 
-	pdfData, err := GeneratorServiceSingleton.GenerateCertificate(c, authHeader, coursePhaseID, student)
+	pdfData, err := s.GenerateCertificate(c, authHeader, coursePhaseID, student)
 	if err != nil {
 		log.WithError(err).Error("Failed to generate certificate")
 		var typstErr *TypstCompilationError
@@ -85,7 +85,7 @@ func downloadOwnCertificate(c *gin.Context) {
 	}
 
 	// Record the download — only student self-downloads are tracked
-	_, recordErr := GeneratorServiceSingleton.queries.RecordCertificateDownload(c, db.RecordCertificateDownloadParams{
+	_, recordErr := s.queries.RecordCertificateDownload(c, db.RecordCertificateDownloadParams{
 		StudentID:     student.ID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -99,7 +99,7 @@ func downloadOwnCertificate(c *gin.Context) {
 	c.Data(http.StatusOK, "application/pdf", pdfData)
 }
 
-func downloadStudentCertificate(c *gin.Context) {
+func (s *GeneratorService) downloadStudentCertificate(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -114,21 +114,21 @@ func downloadStudentCertificate(c *gin.Context) {
 		return
 	}
 
-	if _, ok := ensureTemplateConfigured(c, coursePhaseID); !ok {
+	if _, ok := s.ensureTemplateConfigured(c, coursePhaseID); !ok {
 		return
 	}
 
 	authHeader := c.GetHeader("Authorization")
 
 	// Instructor fetching certificate for a specific student — look up student info from core
-	student, err := participants.GetStudentInfo(c, authHeader, coursePhaseID, studentID)
+	student, err := s.students.GetStudentInfo(c, authHeader, coursePhaseID, studentID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get student info")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get student info"})
 		return
 	}
 
-	pdfData, err := GeneratorServiceSingleton.GenerateCertificate(c, authHeader, coursePhaseID, student)
+	pdfData, err := s.GenerateCertificate(c, authHeader, coursePhaseID, student)
 	if err != nil {
 		log.WithError(err).Error("Failed to generate certificate")
 		var typstErr *TypstCompilationError
@@ -149,7 +149,7 @@ func downloadStudentCertificate(c *gin.Context) {
 	c.Data(http.StatusOK, "application/pdf", pdfData)
 }
 
-func getCertificateStatus(c *gin.Context) {
+func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -158,10 +158,10 @@ func getCertificateStatus(c *gin.Context) {
 	}
 
 	// Check if template is configured
-	config, err := getTemplateConfig(c, coursePhaseID)
+	config, err := s.getTemplateConfig(c, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, errTemplateNotConfigured) {
-			c.JSON(http.StatusOK, gin.H{
+			respondCertificateStatus(c, config.StudentPageText, gin.H{
 				"available":     false,
 				"hasDownloaded": false,
 				"message":       "Certificate template not configured",
@@ -183,7 +183,7 @@ func getCertificateStatus(c *gin.Context) {
 	// Admins, lecturers, and editors don't have student enrollment records,
 	// so we return a simple "available" status for them.
 	if user.Roles[promptSDK.PromptAdmin] || user.Roles[promptSDK.CourseLecturer] || user.Roles[promptSDK.CourseEditor] {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     true,
 			"hasDownloaded": false,
 		})
@@ -192,7 +192,7 @@ func getCertificateStatus(c *gin.Context) {
 
 	// Check release date for students
 	if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     false,
 			"hasDownloaded": false,
 			"message":       "Certificate will be available after " + config.ReleaseDate.Time.Format("02.01.2006 15:04"),
@@ -202,7 +202,7 @@ func getCertificateStatus(c *gin.Context) {
 
 	// Resolve core student ID (Keycloak UUID from JWT differs from core student UUID)
 	authHeader := c.GetHeader("Authorization")
-	student, err := participants.GetOwnStudentInfo(c, authHeader, coursePhaseID)
+	student, err := s.students.GetOwnStudentInfo(c, authHeader, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get own student info for status check")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get student info"})
@@ -210,13 +210,13 @@ func getCertificateStatus(c *gin.Context) {
 	}
 
 	// Check download status
-	download, err := GeneratorServiceSingleton.queries.GetCertificateDownload(c, db.GetCertificateDownloadParams{
+	download, err := s.queries.GetCertificateDownload(c, db.GetCertificateDownloadParams{
 		StudentID:     student.ID,
 		CoursePhaseID: coursePhaseID,
 	})
 
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     true,
 			"hasDownloaded": false,
 		})
@@ -229,7 +229,7 @@ func getCertificateStatus(c *gin.Context) {
 		lastDownload = &t
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	respondCertificateStatus(c, config.StudentPageText, gin.H{
 		"available":     true,
 		"hasDownloaded": true,
 		"lastDownload":  lastDownload,
@@ -237,7 +237,7 @@ func getCertificateStatus(c *gin.Context) {
 	})
 }
 
-func previewCertificate(c *gin.Context) {
+func (s *GeneratorService) previewCertificate(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.WithError(err).Error("Failed to parse course phase ID")
@@ -245,11 +245,11 @@ func previewCertificate(c *gin.Context) {
 		return
 	}
 
-	if _, ok := ensureTemplateConfigured(c, coursePhaseID); !ok {
+	if _, ok := s.ensureTemplateConfigured(c, coursePhaseID); !ok {
 		return
 	}
 
-	pdfData, err := GeneratorServiceSingleton.GeneratePreviewCertificate(c, coursePhaseID)
+	pdfData, err := s.GeneratePreviewCertificate(c, coursePhaseID)
 	if err != nil {
 		log.WithError(err).Error("Failed to generate preview certificate")
 		var typstErr *TypstCompilationError
@@ -274,14 +274,24 @@ func sanitizeFilename(name string) string {
 	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(name)
 }
 
+// respondCertificateStatus adds the instructor's download-page text to a status
+// payload. It is attached to every status, including "not configured" and "not
+// yet released", because that is exactly where an instructor explains the wait.
+func respondCertificateStatus(c *gin.Context, studentPageText pgtype.Text, status gin.H) {
+	if studentPageText.Valid && studentPageText.String != "" {
+		status["studentPageText"] = studentPageText.String
+	}
+	c.JSON(http.StatusOK, status)
+}
+
 // errTemplateNotConfigured signals that the phase has no certificate template — a normal,
 // expected outcome (404) as opposed to a genuine query failure (500).
 var errTemplateNotConfigured = errors.New("no template configured")
 
 // getTemplateConfig fetches the phase config and distinguishes "not configured" (missing config
 // row or empty template) from genuine query errors, so callers can map each to the right status.
-func getTemplateConfig(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, error) {
-	config, err := GeneratorServiceSingleton.queries.GetCoursePhaseConfig(c, coursePhaseID)
+func (s *GeneratorService) getTemplateConfig(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, error) {
+	config, err := s.queries.GetCoursePhaseConfig(c, coursePhaseID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return db.CoursePhaseConfig{}, errTemplateNotConfigured
 	}
@@ -296,8 +306,8 @@ func getTemplateConfig(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseC
 
 // ensureTemplateConfigured writes the response and returns ok=false when the template is missing
 // (404) or the config lookup fails (500). The fetched config is returned for reuse on success.
-func ensureTemplateConfigured(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, bool) {
-	config, err := getTemplateConfig(c, coursePhaseID)
+func (s *GeneratorService) ensureTemplateConfigured(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, bool) {
+	config, err := s.getTemplateConfig(c, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, errTemplateNotConfigured) {
 			log.WithError(err).Info("Certificate template not configured")

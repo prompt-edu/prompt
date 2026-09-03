@@ -11,6 +11,7 @@ import {
   CardTitle,
   DatePicker,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   Popover,
   PopoverContent,
@@ -32,6 +33,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+import { StudentPageTextCard } from '../components/StudentPageTextCard'
 import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
 import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
@@ -229,11 +231,7 @@ export const SettingsPage = () => {
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (
@@ -397,6 +395,8 @@ export const SettingsPage = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      <StudentPageTextCard phaseId={phaseId ?? ''} initialText={config?.studentPageText ?? ''} />
 
       <Card>
         <CardHeader>

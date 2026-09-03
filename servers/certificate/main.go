@@ -74,11 +74,15 @@ func main() {
 
 	coursePhaseApi.GET("/hello", helloCertificate)
 
-	// Initialize modules
-	config.InitConfigModule(coursePhaseApi, *query, conn)
-	participants.InitParticipantsModule(coursePhaseApi, *query)
-	generator.InitGeneratorModule(coursePhaseApi, *query)
-	privacy.InitPrivacyModule(api, *query, conn)
+	configService := config.NewConfigService(*query)
+	participantsService := participants.NewParticipantsService(*query, sdkUtils.GetCoreUrl())
+	generatorService := generator.NewGeneratorService(*query, configService, participantsService, participantsService)
+	privacyService := privacy.NewPrivacyService(*query)
+
+	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
+	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
+	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "certificate",

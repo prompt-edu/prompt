@@ -8,12 +8,36 @@ import (
 
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
+
+type KeycloakRealmService struct {
+	client       *gocloak.GoCloak
+	Realm        string
+	ClientID     string
+	ClientSecret string
+	idOfClient   string
+	queries      db.Queries
+}
+
+func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient string, queries db.Queries) *KeycloakRealmService {
+	return &KeycloakRealmService{
+		client:       gocloak.NewClient(baseURL),
+		Realm:        realm,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		idOfClient:   idOfClient,
+		queries:      queries,
+	}
+}
+
+var TOP_LEVEL_GROUP_NAME = "Prompt"
+var CUSTOM_GROUPS_NAME = "CustomGroups"
 
 // Sentinel errors for the course-staff management API. Handlers map these to
 // HTTP status codes; everything else is surfaced as 500.
@@ -38,20 +62,20 @@ func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
 }
 
-func AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
-	courseGroupName, err := GetCourseGroupName(ctx, courseID)
+func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
+	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get course group name: %w", err)
 	}
 
 	// 1. Log into keycloak
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return "", err
 	}
 
 	// 2. Get Custom subgroup or create
-	customGroupID, err := GetOrCreateCustomGroup(ctx, token.AccessToken, groupName, courseID)
+	customGroupID, err := s.GetOrCreateCustomGroup(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
 		log.Error("Failed to get or create custom group: ", err)
 		return "", errors.New("failed to get or create custom top level group")
@@ -59,14 +83,14 @@ func AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (
 
 	// 3. Create desired role
 	roleName := courseGroupName + "-cg-" + groupName
-	role, err := GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
+	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
 	if err != nil {
 		log.Error("failed to create role: ", err)
 		return "", errors.New("failed to create keycloak roles")
 	}
 
 	// 4. Associate role with group
-	err = AddRoleToGroup(ctx, token.AccessToken, customGroupID, role)
+	err = s.AddRoleToGroup(ctx, token.AccessToken, customGroupID, role)
 	if err != nil {
 		log.Error("failed to associate role with group: ", err)
 		return "", errors.New("failed to associate role with group")
@@ -75,22 +99,22 @@ func AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (
 	return customGroupID, nil
 }
 
-func AddStudentsToGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID, groupName string) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {
+func (s *KeycloakRealmService) AddStudentsToGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID, groupName string) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {
 	// 1. Log into keycloak
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return keycloakRealmDTO.AddStudentsToGroupResponse{}, err
 	}
 
 	// 2. Get Custom Group Folder
-	customGroupID, err := GetCustomGroupID(ctx, token.AccessToken, groupName, courseID)
+	customGroupID, err := s.GetCustomGroupID(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
 		log.Error("Failed to get custom group: ", err)
 		return keycloakRealmDTO.AddStudentsToGroupResponse{}, errors.New("failed to get custom group")
 	}
 
 	// 3. Get the keycloak userIDs of the students
-	succeededStudents, failedStudentIDs, err := AddStudentIDsToKeycloakGroup(ctx, token.AccessToken, studentIDs, customGroupID)
+	succeededStudents, failedStudentIDs, err := s.AddStudentIDsToKeycloakGroup(ctx, token.AccessToken, studentIDs, customGroupID)
 	// some error occurred before adding students to group
 	if err != nil {
 		log.Error("Failed to add students to group: ", err)
@@ -105,22 +129,22 @@ func AddStudentsToGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uu
 }
 
 // GetStudentsInGroup retrieves the student IDs for a given course's group.
-func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName string) (keycloakRealmDTO.GroupMembers, error) {
+func (s *KeycloakRealmService) GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName string) (keycloakRealmDTO.GroupMembers, error) {
 	// 1. Log into Keycloak.
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return keycloakRealmDTO.GroupMembers{}, fmt.Errorf("failed to login to keycloak: %w", err)
 	}
 
 	// 2. Get Custom Group Folder.
-	customGroupID, err := GetCustomGroupID(ctx, token.AccessToken, groupName, courseID)
+	customGroupID, err := s.GetCustomGroupID(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
 		log.Error("Failed to get custom group", "error", err)
 		return keycloakRealmDTO.GroupMembers{}, fmt.Errorf("failed to get custom group: %w", err)
 	}
 
 	// 3. Retrieve group members from Keycloak.
-	members, err := GetGroupMembers(ctx, token.AccessToken, customGroupID)
+	members, err := s.GetGroupMembers(ctx, token.AccessToken, customGroupID)
 	if err != nil {
 		log.Error("Failed to get group members", "error", err)
 		return keycloakRealmDTO.GroupMembers{}, fmt.Errorf("failed to get group members: %w", err)
@@ -138,7 +162,7 @@ func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName strin
 	}
 
 	// 4. Get students from the database using the list of emails.
-	studentsObjects, err := KeycloakRealmSingleton.queries.GetStudentsByEmail(ctx, memberEmails)
+	studentsObjects, err := s.queries.GetStudentsByEmail(ctx, memberEmails)
 	if err != nil {
 		log.Error("Failed to get students by email", "error", err)
 		return keycloakRealmDTO.GroupMembers{}, fmt.Errorf("failed to get students by email: %w", err)
@@ -182,13 +206,13 @@ func GetStudentsInGroup(ctx context.Context, courseID uuid.UUID, groupName strin
 // course group name is resolved once (one DB round-trip instead of two) and the
 // Lecturer + Editor lookups run concurrently so wall-clock time is bounded by
 // the slower of the two Keycloak calls.
-func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseStaff, error) {
-	token, err := LoginClient(ctx)
+func (s *KeycloakRealmService) GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.CourseStaff, error) {
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return keycloakRealmDTO.CourseStaff{}, err
 	}
 
-	courseGroupName, err := GetCourseGroupName(ctx, courseID)
+	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
 		return keycloakRealmDTO.CourseStaff{}, fmt.Errorf("failed to get course group name: %w", err)
 	}
@@ -196,7 +220,7 @@ func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.C
 	var lecturers, editors []keycloakRealmDTO.StaffMember
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		members, err := getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseLecturer)
+		members, err := s.getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseLecturer)
 		if err != nil {
 			return err
 		}
@@ -204,7 +228,7 @@ func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.C
 		return nil
 	})
 	g.Go(func() error {
-		members, err := getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseEditor)
+		members, err := s.getCourseGroupMembers(gctx, token.AccessToken, courseID, courseGroupName, permissionValidation.CourseEditor)
 		if err != nil {
 			return err
 		}
@@ -221,9 +245,9 @@ func GetCourseStaff(ctx context.Context, courseID uuid.UUID) (keycloakRealmDTO.C
 	}, nil
 }
 
-func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, courseGroupName, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
+func (s *KeycloakRealmService) getCourseGroupMembers(ctx context.Context, accessToken string, courseID uuid.UUID, courseGroupName, groupName string) ([]keycloakRealmDTO.StaffMember, error) {
 	groupPath := "/" + TOP_LEVEL_GROUP_NAME + "/" + courseGroupName + "/" + groupName
-	group, err := GetGroupByPath(ctx, accessToken, groupPath, groupName)
+	group, err := s.GetGroupByPath(ctx, accessToken, groupPath, groupName)
 	if err != nil {
 		// A missing Lecturer/Editor subgroup (e.g. legacy course, manual cleanup)
 		// should not blank out the other group's table. Treat 404 as "no members
@@ -238,7 +262,7 @@ func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uui
 
 	first := 0
 	max := maxStaffMembers
-	members, err := KeycloakRealmSingleton.client.GetGroupMembers(ctx, accessToken, KeycloakRealmSingleton.Realm, *group.ID, gocloak.GetGroupsParams{
+	members, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, *group.ID, gocloak.GetGroupsParams{
 		First: &first,
 		Max:   &max,
 	})
@@ -261,17 +285,17 @@ func getCourseGroupMembers(ctx context.Context, accessToken string, courseID uui
 // a course. The groupName MUST come from the URL allow-list (the router
 // enforces this). The target user is verified to exist before any group
 // mutation. AddUserToGroup is idempotent at the Keycloak level.
-func AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
+func (s *KeycloakRealmService) AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
 	if !isAllowedCourseGroup(groupName) {
 		return ErrInvalidGroupName
 	}
 
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	if _, err := KeycloakRealmSingleton.client.GetUserByID(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID); err != nil {
+	if _, err := s.client.GetUserByID(ctx, token.AccessToken, s.Realm, targetUserID); err != nil {
 		// gocloak v13 sometimes returns an APIError with Code=0 and the status text
 		// in Message, so check both the structured code and the string as a fallback
 		// (same pattern used elsewhere in realmManagement.go).
@@ -283,12 +307,12 @@ func AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, ta
 		return fmt.Errorf("failed to verify keycloak user: %w", err)
 	}
 
-	group, err := GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
+	group, err := s.GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
 	if err != nil {
 		return fmt.Errorf("failed to resolve %s group: %w", groupName, err)
 	}
 
-	if err := KeycloakRealmSingleton.client.AddUserToGroup(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID, *group.ID); err != nil {
+	if err := s.client.AddUserToGroup(ctx, token.AccessToken, s.Realm, targetUserID, *group.ID); err != nil {
 		log.Error("failed to add user to group: ", err)
 		return fmt.Errorf("failed to add user to group: %w", err)
 	}
@@ -301,7 +325,7 @@ func AddUserToCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, ta
 // Editor group of a course. Self-removal is rejected: with this rule, the
 // final lecturer can never delete themselves, which makes a count check or
 // advisory lock unnecessary.
-func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
+func (s *KeycloakRealmService) RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupName, targetUserID, callerUserID string) error {
 	if !isAllowedCourseGroup(groupName) {
 		return ErrInvalidGroupName
 	}
@@ -309,17 +333,17 @@ func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupNam
 		return ErrSelfRemoval
 	}
 
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	group, err := GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
+	group, err := s.GetCourseSubgroup(ctx, token.AccessToken, courseID, groupName)
 	if err != nil {
 		return fmt.Errorf("failed to resolve %s group: %w", groupName, err)
 	}
 
-	if err := KeycloakRealmSingleton.client.DeleteUserFromGroup(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, targetUserID, *group.ID); err != nil {
+	if err := s.client.DeleteUserFromGroup(ctx, token.AccessToken, s.Realm, targetUserID, *group.ID); err != nil {
 		log.Error("failed to remove user from group: ", err)
 		return fmt.Errorf("failed to remove user from group: %w", err)
 	}
@@ -338,14 +362,14 @@ func RemoveUserFromCourseGroup(ctx context.Context, courseID uuid.UUID, groupNam
 // without error; an empty result set is treated as a pass (a freshly-seeded
 // realm with no users or no top-level Prompt group yet should still report
 // the service account as correctly configured).
-func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
+func (s *KeycloakRealmService) GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 	capabilities := map[string]bool{
 		keycloakRealmDTO.CapabilityKeycloakLogin:      false,
 		keycloakRealmDTO.CapabilityKeycloakReadUsers:  false,
 		keycloakRealmDTO.CapabilityKeycloakReadGroups: false,
 	}
 
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		log.Warn("keycloak status: login probe failed: ", err)
 		return keycloakRealmDTO.KeycloakStatus{
@@ -358,7 +382,7 @@ func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 	first := 0
 	max := 1
 	brief := true
-	if _, err := KeycloakRealmSingleton.client.GetUsers(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetUsersParams{
+	if _, err := s.client.GetUsers(ctx, token.AccessToken, s.Realm, gocloak.GetUsersParams{
 		First:               &first,
 		Max:                 &max,
 		BriefRepresentation: &brief,
@@ -369,7 +393,7 @@ func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 	}
 
 	groupMax := 1
-	if _, err := KeycloakRealmSingleton.client.GetGroups(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetGroupsParams{
+	if _, err := s.client.GetGroups(ctx, token.AccessToken, s.Realm, gocloak.GetGroupsParams{
 		First: &first,
 		Max:   &groupMax,
 	}); err != nil {
@@ -395,7 +419,7 @@ func GetKeycloakStatus(ctx context.Context) keycloakRealmDTO.KeycloakStatus {
 // SearchKeycloakUsers performs a realm-wide search by username/email/name.
 // Authorization for the route is "is a lecturer of any course" - see the
 // comment in router.go.
-func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloakRealmDTO.UserSearchResults, error) {
+func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloakRealmDTO.UserSearchResults, error) {
 	q := strings.TrimSpace(query)
 	if len(q) < 2 {
 		return keycloakRealmDTO.UserSearchResults{}, ErrInvalidQuery
@@ -405,7 +429,7 @@ func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloak
 		limit = maxSearchResults
 	}
 
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return keycloakRealmDTO.UserSearchResults{}, err
 	}
@@ -414,7 +438,7 @@ func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloak
 	// from "more than N matches" without an extra round-trip.
 	fetchMax := limit + 1
 	brief := true
-	users, err := KeycloakRealmSingleton.client.GetUsers(ctx, token.AccessToken, KeycloakRealmSingleton.Realm, gocloak.GetUsersParams{
+	users, err := s.client.GetUsers(ctx, token.AccessToken, s.Realm, gocloak.GetUsersParams{
 		Search:              &q,
 		Max:                 &fetchMax,
 		BriefRepresentation: &brief,
@@ -440,23 +464,23 @@ func SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloak
 	}, nil
 }
 
-func AddStudentsToEditorGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {
+func (s *KeycloakRealmService) AddStudentsToEditorGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {
 	// 1. Log into keycloak
-	token, err := LoginClient(ctx)
+	token, err := s.LoginClient(ctx)
 	if err != nil {
 		log.Error("Failed to login to keycloak: ", err)
 		return keycloakRealmDTO.AddStudentsToGroupResponse{}, err
 	}
 
 	// 2. Get Course Group
-	editorGroup, err := GetCourseEditorGroup(ctx, token.AccessToken, courseID)
+	editorGroup, err := s.GetCourseEditorGroup(ctx, token.AccessToken, courseID)
 	if err != nil {
 		log.Error("Failed to get course group: ", err)
 		return keycloakRealmDTO.AddStudentsToGroupResponse{}, errors.New("failed to get course group")
 	}
 
 	// 3. Get the keycloak userIDs of the students
-	succeededStudents, failedStudentIDs, err := AddStudentIDsToKeycloakGroup(ctx, token.AccessToken, studentIDs, *editorGroup.ID)
+	succeededStudents, failedStudentIDs, err := s.AddStudentIDsToKeycloakGroup(ctx, token.AccessToken, studentIDs, *editorGroup.ID)
 	// some error occurred before adding students to group
 	if err != nil {
 		log.Error("Failed to add students to group: ", err)

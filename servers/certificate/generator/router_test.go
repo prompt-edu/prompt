@@ -15,9 +15,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	"github.com/prompt-edu/prompt/servers/certificate/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -29,6 +31,7 @@ type GeneratorRouterTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
+	service         *GeneratorService
 }
 
 func (s *GeneratorRouterTestSuite) SetupSuite() {
@@ -42,17 +45,18 @@ func (s *GeneratorRouterTestSuite) SetupSuite() {
 	_, mockCoreCleanup := testutils.SetupMockCoreService()
 	s.mockCoreCleanup = mockCoreCleanup
 
-	// Initialize config service singleton (needed by generator)
-	config.ConfigServiceSingleton = config.NewConfigService(*testDB.Queries, testDB.Conn)
-
-	GeneratorServiceSingleton = &GeneratorService{
-		queries: *testDB.Queries,
+	coreURL := "http://localhost:8080"
+	if val, ok := os.LookupEnv("SERVER_CORE_HOST"); ok {
+		coreURL = val
 	}
+
+	participantsService := participants.NewParticipantsService(*testDB.Queries, coreURL)
+	s.service = NewGeneratorService(*testDB.Queries, config.NewConfigService(*testDB.Queries), participantsService, participantsService)
 
 	gin.SetMode(gin.TestMode)
 	s.router = gin.Default()
 	api := s.router.Group("/api/course_phase/:coursePhaseID")
-	setupGeneratorRouter(api, sdkTestUtils.MockPermissionMiddleware)
+	RegisterRoutes(api, s.service, sdkTestUtils.MockPermissionMiddleware)
 }
 
 func (s *GeneratorRouterTestSuite) TearDownSuite() {
@@ -98,7 +102,7 @@ func (s *GeneratorRouterTestSuite) TestGetCertificateStatus_InvalidCoursePhaseID
 func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	config, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
+	config, err := s.service.getTemplateConfig(s.newGinContext(), coursePhaseID)
 	assert.NoError(s.T(), err)
 	assert.True(s.T(), config.TemplateContent.Valid)
 	assert.NotEmpty(s.T(), config.TemplateContent.String)
@@ -108,7 +112,7 @@ func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_WithoutTemplate() {
 	// Phase 2 exists but has NULL template
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
 
-	_, err := getTemplateConfig(s.newGinContext(), coursePhaseID)
+	_, err := s.service.getTemplateConfig(s.newGinContext(), coursePhaseID)
 	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
@@ -116,7 +120,7 @@ func (s *GeneratorRouterTestSuite) TestGetTemplateConfig_NonExistent() {
 	// A missing config row is "not configured", not a genuine query error
 	nonExistentID := uuid.New()
 
-	_, err := getTemplateConfig(s.newGinContext(), nonExistentID)
+	_, err := s.service.getTemplateConfig(s.newGinContext(), nonExistentID)
 	assert.ErrorIs(s.T(), err, errTemplateNotConfigured)
 }
 
@@ -125,7 +129,7 @@ func (s *GeneratorRouterTestSuite) TestRecordCertificateDownload_Upsert() {
 	studentID := uuid.New()
 
 	// First download
-	d1, err := GeneratorServiceSingleton.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
+	d1, err := s.service.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -133,7 +137,7 @@ func (s *GeneratorRouterTestSuite) TestRecordCertificateDownload_Upsert() {
 	assert.Equal(s.T(), int32(1), d1.DownloadCount)
 
 	// Second download increments
-	d2, err := GeneratorServiceSingleton.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
+	d2, err := s.service.queries.RecordCertificateDownload(s.suiteCtx, db.RecordCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -145,7 +149,7 @@ func (s *GeneratorRouterTestSuite) TestGetCertificateDownload_ExistingRecord() {
 	studentID := uuid.MustParse("30000000-0000-0000-0000-000000000001")
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
 
-	download, err := GeneratorServiceSingleton.queries.GetCertificateDownload(s.suiteCtx, db.GetCertificateDownloadParams{
+	download, err := s.service.queries.GetCertificateDownload(s.suiteCtx, db.GetCertificateDownloadParams{
 		StudentID:     studentID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -170,6 +174,75 @@ func (s *GeneratorRouterTestSuite) TestCertificateStatusEndpoint_NoTemplate() {
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), false, result["available"])
 	assert.Equal(s.T(), false, result["hasDownloaded"])
+}
+
+// staffRouter authenticates every request as a course lecturer. The default suite
+// router installs a no-op permission middleware, which leaves no token user, and
+// the status handler needs one for every branch past "template not configured".
+func (s *GeneratorRouterTestSuite) staffRouter() *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, s.service, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles: map[string]bool{keycloakTokenVerifier.CourseLecturer: true},
+			})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (s *GeneratorRouterTestSuite) certificateStatus(router *gin.Engine, coursePhaseID uuid.UUID) map[string]interface{} {
+	url := fmt.Sprintf("/api/course_phase/%s/certificate/status", coursePhaseID)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	assert.Equal(s.T(), http.StatusOK, resp.Code)
+
+	var result map[string]interface{}
+	assert.NoError(s.T(), json.Unmarshal(resp.Body.Bytes(), &result))
+	return result
+}
+
+func (s *GeneratorRouterTestSuite) TestCertificateStatus_CarriesStudentPageText() {
+	configService := config.NewConfigService(s.service.queries)
+	text := "<p>Add it to your LinkedIn profile.</p>"
+
+	// Without a template: the instructor's text is exactly what explains the wait.
+	noTemplatePhase := uuid.New()
+	_, err := configService.UpdateStudentPageText(s.suiteCtx, noTemplatePhase, &text)
+	assert.NoError(s.T(), err)
+
+	status := s.certificateStatus(s.router, noTemplatePhase)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Equal(s.T(), text, status["studentPageText"])
+
+	// With a template configured, it is carried on the available status too.
+	withTemplatePhase := uuid.New()
+	_, err = configService.UpdateCoursePhaseConfig(s.suiteCtx, withTemplatePhase, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, &text)
+	assert.NoError(s.T(), err)
+
+	staff := s.staffRouter()
+	status = s.certificateStatus(staff, withTemplatePhase)
+	assert.Equal(s.T(), true, status["available"])
+	assert.Equal(s.T(), text, status["studentPageText"])
+
+	// Cleared again, the key disappears rather than turning into an empty string.
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, nil)
+	assert.NoError(s.T(), err)
+
+	status = s.certificateStatus(staff, withTemplatePhase)
+	_, present := status["studentPageText"]
+	assert.False(s.T(), present)
+}
+
+func (s *GeneratorRouterTestSuite) TestCertificateStatus_OmitsStudentPageTextWhenUnset() {
+	status := s.certificateStatus(s.router, uuid.New())
+	_, present := status["studentPageText"]
+	assert.False(s.T(), present)
 }
 
 // newGinContext creates a minimal gin.Context for unit-testing service functions.

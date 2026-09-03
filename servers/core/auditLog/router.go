@@ -1,6 +1,7 @@
 package auditLog
 
 import (
+	"context"
 	"crypto/subtle"
 	"fmt"
 	"net/http"
@@ -13,33 +14,74 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
-	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 const ingestServiceContextKey = "auditServiceName"
 
-func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
-	authMiddleware := keycloakTokenVerifier.KeycloakMiddleware
+// RegisterCapture registers the auto-capture middleware on the API group so
+// every mutating core route is recorded. Gin snapshots the middleware chain when
+// a route or subgroup is registered, so this MUST run before any module (in
+// particular initKeycloak) registers its routes; otherwise those routes keep the
+// pre-audit chain and their mutations are never captured. It is a no-op unless
+// the AUDIT_ENABLED feature toggle is set.
+func RegisterCapture(api *gin.RouterGroup, service *AuditLogService) {
+	if !audit.Enabled() {
+		log.Info("audit logging disabled (AUDIT_ENABLED not set)")
+		return
+	}
+
+	api.Use(audit.Middleware(NewDBSink(service.queries),
+		audit.WithActorExtractor(CoreActorExtractor),
+		audit.WithSourceService("core")))
+}
+
+// getAuditLogStatus godoc
+// @Summary Audit log status
+// @Description Reports whether audit logging is enabled for this deployment.
+// @Tags auditLog
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} auditLogDTO.AuditLogStatus
+// @Router /audit-log/status [get]
+func getAuditLogStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, auditLogDTO.AuditLogStatus{Enabled: audit.Enabled()})
+}
+
+// RegisterRoutes mounts the audit read and ingest endpoints and starts the
+// retention pruner. Only the status probe is mounted unless AUDIT_ENABLED is
+// set; it pairs with RegisterCapture.
+func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService, authMiddleware func() gin.HandlerFunc, checkCoursePermission permissionValidation.PermissionCheck) {
+	// The feature-toggle probe is registered even when audit logging is off, so
+	// the client can hide the UI instead of requesting routes that do not exist.
+	api.GET("/audit-log/status", authMiddleware(), getAuditLogStatus)
+
+	if !audit.Enabled() {
+		return
+	}
 
 	// Platform-wide log (admins only).
 	api.GET("/audit-log",
 		authMiddleware(),
 		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin),
-		listGlobalAuditLog)
+		service.listGlobalAuditLog)
 
 	// Per-course log (course lecturers of that course, or admins).
 	api.GET("/courses/:uuid/audit-log",
 		authMiddleware(),
-		permissionValidation.CheckAccessControlByID(permissionValidation.CheckCoursePermission, "uuid",
+		permissionValidation.CheckAccessControlByID(checkCoursePermission, "uuid",
 			permissionValidation.CourseLecturer, permissionValidation.PromptAdmin),
-		listCourseAuditLog)
+		service.listCourseAuditLog)
 
 	// Ingest endpoint for phase services, authenticated by a per-service shared
 	// secret (not a user/Keycloak token).
 	keys := parseIngestKeys(sdkUtils.GetEnv("AUDIT_INGEST_KEYS", ""))
-	api.POST("/audit", ingestAuth(keys), ingestAuditEvent(sink))
+	api.POST("/audit", ingestAuth(keys), ingestAuditEvent(NewDBSink(service.queries)))
+
+	service.StartRetentionPruner(context.Background())
+	log.Info("audit logging enabled")
 }
 
 // listGlobalAuditLog godoc
@@ -48,7 +90,7 @@ func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
 // @Tags auditLog
 // @Produce json
 // @Param actorRole query string false "Filter by actor role"
-// @Param outcome query string false "Filter by outcome (success|denied)"
+// @Param outcome query string false "Filter by outcome (success|denied|error)"
 // @Param actionKey query string false "Filter by action key (e.g. POST /api/.../slots)"
 // @Param entityType query string false "Filter by entity type"
 // @Param sourceService query string false "Filter by source service (e.g. core)"
@@ -63,13 +105,13 @@ func setupAuditLogRouter(api *gin.RouterGroup, sink *DBSink) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /audit-log [get]
-func listGlobalAuditLog(c *gin.Context) {
+func (s *AuditLogService) listGlobalAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
-	page, err := AuditLogServiceSingleton.ListAuditLog(c.Request.Context(), filters)
+	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
 		return
@@ -84,7 +126,7 @@ func listGlobalAuditLog(c *gin.Context) {
 // @Produce json
 // @Param uuid path string true "Course UUID"
 // @Param actorRole query string false "Filter by actor role"
-// @Param outcome query string false "Filter by outcome (success|denied)"
+// @Param outcome query string false "Filter by outcome (success|denied|error)"
 // @Param actionKey query string false "Filter by action key (e.g. POST /api/.../slots)"
 // @Param entityType query string false "Filter by entity type"
 // @Param sourceService query string false "Filter by source service (e.g. core)"
@@ -99,14 +141,14 @@ func listGlobalAuditLog(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/audit-log [get]
-func listCourseAuditLog(c *gin.Context) {
+func (s *AuditLogService) listCourseAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	filters.CourseID = c.Param("uuid")
-	page, err := AuditLogServiceSingleton.ListAuditLog(c.Request.Context(), filters)
+	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
 		return
@@ -126,12 +168,12 @@ func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 		}
 		// source_service is authoritative (from the matched key), never the body.
 		e.SourceService = c.GetString(ingestServiceContextKey)
-		// outcome is a closed enum; reject anything else rather than persisting a
-		// forged value into the append-only log.
-		switch e.Outcome {
-		case "", audit.OutcomeSuccess, audit.OutcomeDenied:
-		default:
-			c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: "invalid outcome"})
+		if err := validateIngestEvent(e); err != nil {
+			// The event payload and the token never reach the log; only why the
+			// delivery was refused and which service it came from.
+			log.WithFields(log.Fields{"service": e.SourceService, "reason": err.Error()}).
+				Warn("audit: rejected ingested event")
+			c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
 			return
 		}
 		if err := sink.Record(c.Request.Context(), e); err != nil {
@@ -140,6 +182,39 @@ func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 		}
 		c.Status(http.StatusCreated)
 	}
+}
+
+// validateIngestEvent rejects an event that could not be stored faithfully.
+// Silently coercing a malformed value would corrupt the append-only log: an
+// unparseable course phase would be persisted as an unscoped NULL, hiding a
+// course action from that course's log for good.
+func validateIngestEvent(e audit.Event) error {
+	// outcome is a closed enum; reject anything else rather than persisting a
+	// forged value.
+	switch e.Outcome {
+	case "", audit.OutcomeSuccess, audit.OutcomeDenied, audit.OutcomeError:
+	default:
+		return fmt.Errorf("invalid outcome")
+	}
+	if strings.TrimSpace(e.Action) == "" {
+		return fmt.Errorf("action must not be empty")
+	}
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{"actorID", e.ActorID},
+		{"courseID", e.CourseID},
+		{"coursePhaseID", e.CoursePhaseID},
+	} {
+		if field.value == "" {
+			continue
+		}
+		if _, err := uuid.Parse(field.value); err != nil {
+			return fmt.Errorf("invalid %s", field.name)
+		}
+	}
+	return nil
 }
 
 // ingestAuth validates the per-service shared secret on the ingest endpoint. A
@@ -201,7 +276,7 @@ func parseIngestKeys(raw string) map[string][]string {
 // values are reported as an error (surfaced as 400) rather than silently
 // dropped: a malformed "from"/"to" would otherwise return the full unfiltered
 // log with a 200, and a malformed "cursorTs" would ignore the cursor and re-serve
-// the first page forever, so "Load more" would loop on duplicate rows.
+// the first page forever, so paging would loop on duplicate rows.
 func parseListFilters(c *gin.Context) (auditLogDTO.ListFilters, error) {
 	f := auditLogDTO.ListFilters{
 		ActorRole:     c.Query("actorRole"),
@@ -209,8 +284,16 @@ func parseListFilters(c *gin.Context) (auditLogDTO.ListFilters, error) {
 		ActionKey:     c.Query("actionKey"),
 		EntityType:    c.Query("entityType"),
 		SourceService: c.Query("sourceService"),
-		CoursePhaseID: c.Query("coursePhaseID"),
 		Search:        c.Query("search"),
+	}
+
+	// An unparseable phase id must not fall through as "no phase filter": that
+	// would answer a typo with the full unfiltered log and a 200.
+	if v := c.Query("coursePhaseID"); v != "" {
+		if _, err := uuid.Parse(v); err != nil {
+			return f, fmt.Errorf("invalid coursePhaseID: %w", err)
+		}
+		f.CoursePhaseID = v
 	}
 
 	var err error

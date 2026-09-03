@@ -1,6 +1,6 @@
 import { useKeycloak } from '@core/keycloak/useKeycloak'
-import { checkCourseCopyable } from '@core/network/mutations/checkCourseCopyable'
-import { copyCourse } from '@core/network/mutations/copyCourse'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -26,28 +26,22 @@ export const useCopyCourse = (
     isLoading: isCheckingCopyability,
     error: copyabilityError,
   } = useQuery({
-    queryKey: ['course-copyability', courseId],
-    queryFn: () => checkCourseCopyable(courseId),
+    queryKey: coreKeys.courses.copyability(courseId),
+    queryFn: () => coreApi.courses.copyability(courseId),
     enabled: currentStep === 'warning' && !!courseId,
   })
 
   const { mutate: mutateCopyCourse, isPending: isCopying } = useMutation({
     mutationFn: (courseData: CopyCourse) => {
-      return copyCourse(courseId ?? '', courseData)
+      return coreApi.courses.copy(courseId ?? '', courseData)
     },
     onSuccess: (data: string | undefined) => {
       toast({
         title: 'Successfully Copied Course',
       })
       forceTokenRefresh() // refresh token to get permission for new course
-        .then(() => {
-          // Invalidate course queries
-          return queryClient.invalidateQueries({ queryKey: ['courses'] })
-        })
-        .then(() => {
-          // Wait for courses to be refetched
-          return queryClient.refetchQueries({ queryKey: ['courses'] })
-        })
+        // The navigation below needs the new course in the list, not merely marked stale
+        .then(() => coreCache.courseCreated(queryClient))
         .then(() => {
           // Close the window and navigate
           navigate(`/management/course/${data}`)

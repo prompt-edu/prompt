@@ -18,6 +18,8 @@ type OpenApplication struct {
 	UniversityLoginAvailable bool        `json:"universityLoginAvailable"`
 	ShortDescription         *string     `json:"shortDescription,omitempty"`
 	LongDescription          *string     `json:"longDescription,omitempty"`
+	// WelcomeText is instructor-authored HTML shown above the application form.
+	WelcomeText *string `json:"welcomeText,omitempty"`
 }
 
 func GetOpenApplicationPhaseDTO(dbModel db.GetAllOpenApplicationPhasesRow) OpenApplication {

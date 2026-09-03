@@ -15,18 +15,20 @@ const uploadPresignTTL = 15 * time.Minute
 const downloadPresignTTL = 5 * time.Minute
 const objectKeyFormat = "%s/prompt_%s_%s.zip" // {exportRequestID}/prompt_{exportRequestID[:6]}_{serviceName}.zip
 
-var adapter storage.StorageAdapter
-
-// InitWithAdapter sets the storage adapter directly. Intended for testing.
-func InitWithAdapter(a storage.StorageAdapter) {
-	adapter = a
+// ExportStorage stores the GDPR export ZIPs of the privacy module.
+type ExportStorage struct {
+	adapter storage.StorageAdapter
 }
 
-// Init initializes the privacy export storage adapter.
+// NewExportStorage wraps an already built storage adapter.
+func NewExportStorage(adapter storage.StorageAdapter) *ExportStorage {
+	return &ExportStorage{adapter: adapter}
+}
+
+// NewExportStorageFromEnv builds the privacy export storage adapter.
 // It reuses the same S3 credentials and endpoint as the main storage module
 // but targets a dedicated bucket (S3_PRIVACY_EXPORT_BUCKET, default "prompt-privacy-exports").
-// Call this once at server startup.
-func Init() error {
+func NewExportStorageFromEnv() (*ExportStorage, error) {
 	bucket := sdkUtils.GetEnv("S3_PRIVACY_EXPORT_BUCKET", "prompt-privacy-exports")
 	region := sdkUtils.GetEnv("S3_REGION", "us-east-1")
 	endpoint := sdkUtils.GetEnv("S3_ENDPOINT", "http://localhost:8334")
@@ -45,15 +47,13 @@ func Init() error {
 			secretKey = "admin123"
 		}
 	} else if accessKey == "" || secretKey == "" {
-		return fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
+		return nil, fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
 	}
 
 	s3Adapter, err := storage.NewS3Adapter(bucket, region, endpoint, publicEndpoint, accessKey, secretKey, forcePathStyle)
 	if err != nil {
-		return fmt.Errorf("failed to create privacy export S3 adapter: %w", err)
+		return nil, fmt.Errorf("failed to create privacy export S3 adapter: %w", err)
 	}
-
-	adapter = s3Adapter
 
 	log.WithFields(log.Fields{
 		"bucket":   bucket,
@@ -62,7 +62,7 @@ func Init() error {
 		"downloadTTL": downloadPresignTTL,
 	}).Info("Privacy export storage adapter initialized")
 
-	return nil
+	return NewExportStorage(s3Adapter), nil
 }
 
 func MakeObjectURL(exportRequestID string, serviceName string) string {
@@ -71,40 +71,40 @@ func MakeObjectURL(exportRequestID string, serviceName string) string {
 
 // GetUploadURL generates a presigned S3 PUT URL for a microservice to upload
 // its GDPR export ZIP. The URL is valid for 15 minutes.
-func GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (string, error) {
-	if adapter == nil {
+func (s *ExportStorage) GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (string, error) {
+	if s.adapter == nil {
 		return "", fmt.Errorf("privacy export storage not initialized")
 	}
 
 	key := MakeObjectURL(exportRequestID, serviceName)
-	return adapter.GetUploadURL(ctx, key, "application/zip", int(uploadPresignTTL.Seconds()))
+	return s.adapter.GetUploadURL(ctx, key, "application/zip", int(uploadPresignTTL.Seconds()))
 }
 
 // GetDownloadURL generates a presigned S3 GET URL for downloading a GDPR export ZIP.
 // The URL is valid for 5 minutes.
-func GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
-	if adapter == nil {
+func (s *ExportStorage) GetDownloadURL(ctx context.Context, objectKey string) (string, error) {
+	if s.adapter == nil {
 		return "", fmt.Errorf("privacy export storage not initialized")
 	}
 
-	return adapter.GetURL(ctx, objectKey, int(downloadPresignTTL.Seconds()))
+	return s.adapter.GetURL(ctx, objectKey, int(downloadPresignTTL.Seconds()))
 }
 
 // DeleteFile removes a GDPR export ZIP from storage.
-func DeleteFile(ctx context.Context, objectKey string) error {
-	if adapter == nil {
+func (s *ExportStorage) DeleteFile(ctx context.Context, objectKey string) error {
+	if s.adapter == nil {
 		return fmt.Errorf("privacy export storage not initialized")
 	}
-	return adapter.Delete(ctx, objectKey)
+	return s.adapter.Delete(ctx, objectKey)
 }
 
 // GetFileSize returns the size of the stored object in bytes.
-func GetFileSize(ctx context.Context, objectKey string) (int64, error) {
-	if adapter == nil {
+func (s *ExportStorage) GetFileSize(ctx context.Context, objectKey string) (int64, error) {
+	if s.adapter == nil {
 		return 0, fmt.Errorf("privacy export storage not initialized")
 	}
 
-	meta, err := adapter.GetMetadata(ctx, objectKey)
+	meta, err := s.adapter.GetMetadata(ctx, objectKey)
 	if err != nil {
 		return 0, err
 	}

@@ -11,11 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
 
-	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getAllAllocations)
-	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getAllocationByCourseParticipationID)
+	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getAllAllocations)
+	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getAllocationByCourseParticipationID)
 }
 
 // getAllAllocations godoc
@@ -29,14 +29,14 @@ func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation [get]
-func getAllAllocations(c *gin.Context) {
+func (s *AllocationService) getAllAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	allocations, err := GetAllAllocations(c, coursePhaseID)
+	allocations, err := s.GetAllAllocations(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -58,7 +58,7 @@ func getAllAllocations(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]
-func getAllocationByCourseParticipationID(c *gin.Context) {
+func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -71,7 +71,7 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	allocation, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	allocation, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			handleError(c, http.StatusNotFound, err)

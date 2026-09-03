@@ -5,36 +5,53 @@ import {
   ManagementPageHeader,
   PromptTable,
 } from '@tumaet/prompt-ui-components'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
+import { AUDIT_PAGE_SIZE } from './auditLogPaging'
 import { AuditLogFilterBar } from './components/AuditLogFilterBar'
 import { getAuditLogColumns } from './components/auditLogColumns'
-import type { AuditEntry, AuditLogFilters, AuditLogPage } from './interfaces/auditLog'
+import type { AuditLogFilters, AuditLogPage } from './interfaces/auditLog'
 
 interface AuditLogViewProps {
   title: string
-  pages?: AuditLogPage[]
+  page?: AuditLogPage
+  isDisabled: boolean
   isLoading: boolean
   isError: boolean
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  onLoadMore: () => void
+  isFetching: boolean
+  hasNewer: boolean
+  hasOlder: boolean
+  onNewer: () => void
+  onOlder: () => void
   filters: AuditLogFilters
   onFiltersChange: (filters: AuditLogFilters) => void
 }
 
 export const AuditLogView = ({
   title,
-  pages,
+  page,
+  isDisabled,
   isLoading,
   isError,
-  hasNextPage,
-  isFetchingNextPage,
-  onLoadMore,
+  isFetching,
+  hasNewer,
+  hasOlder,
+  onNewer,
+  onOlder,
   filters,
   onFiltersChange,
 }: AuditLogViewProps) => {
-  const entries: AuditEntry[] = useMemo(() => pages?.flatMap((page) => page.entries) ?? [], [pages])
+  const entries = page?.entries ?? []
   const columns = useMemo(() => getAuditLogColumns(), [])
+
+  if (isDisabled) {
+    return (
+      <div className='space-y-6'>
+        <ManagementPageHeader>{title}</ManagementPageHeader>
+        <p className='text-muted-foreground'>Audit logging is turned off for this deployment.</p>
+      </div>
+    )
+  }
 
   return (
     <div className='space-y-6'>
@@ -48,17 +65,16 @@ export const AuditLogView = ({
         <LoadingPage />
       ) : (
         <>
-          {/*
-            The audit log is paged server-side via "Load more"; keep every
-            loaded row on a single PromptTable page (pageSize = row count) so its
-            client-side pager does not split the accumulated rows and make the
-            button appear to do nothing.
-          */}
-          <PromptTable data={entries} columns={columns} pageSize={Math.max(entries.length, 1)} />
-          {hasNextPage && (
-            <div className='flex justify-center'>
-              <Button variant='outline' onClick={onLoadMore} disabled={isFetchingNextPage}>
-                {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          <PromptTable data={entries} columns={columns} pageSize={AUDIT_PAGE_SIZE} />
+          {(hasNewer || hasOlder) && (
+            <div className='flex items-center justify-center gap-2'>
+              <Button variant='outline' onClick={onNewer} disabled={!hasNewer || isFetching}>
+                <ChevronLeft className='mr-1 h-4 w-4' />
+                Newer entries
+              </Button>
+              <Button variant='outline' onClick={onOlder} disabled={!hasOlder || isFetching}>
+                Older entries
+                <ChevronRight className='ml-1 h-4 w-4' />
               </Button>
             </div>
           )}

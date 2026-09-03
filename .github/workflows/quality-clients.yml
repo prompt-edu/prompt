@@ -35,7 +35,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: yarn install
       - name: Type check ${{ matrix.module }}
         run: yarn tsc -p "${{ matrix.module }}/tsconfig.json" --noEmit --pretty false
       - name: Lint components in ${{ matrix.module }}
@@ -51,6 +50,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: yarn install
       - name: Run client unit tests
-        run: yarn test
+        run: yarn test --reporter=default --reporter=github-actions --reporter=junit --outputFile.junit=TestResults-clients.xml
+      - name: Upload client test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Vitest-results-clients
+          path: ./clients/TestResults-clients.xml
+
+  nginx-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate the shipped client nginx config
+        run: |
+          docker run --rm \
+            -v "$PWD/clients/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            -v "$PWD/clients/nginx/spa.conf:/etc/nginx/spa.conf:ro" \
+            nginx:stable-alpine nginx -t
+      - name: Validate the template repository's client nginx config
+        run: |
+          docker run --rm \
+            -v "$PWD/template-repository/repo/client.nginx.conf:/etc/nginx/conf.d/default.conf:ro" \
+            nginx:stable-alpine nginx -t

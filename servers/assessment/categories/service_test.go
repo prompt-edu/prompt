@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -15,6 +14,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
@@ -23,7 +23,7 @@ type CategoryServiceTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
-	categoryService CategoryService
+	categoryService *CategoryService
 }
 
 func (suite *CategoryServiceTestSuite) SetupTest() {
@@ -38,17 +38,9 @@ func (suite *CategoryServiceTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.categoryService = CategoryService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CategoryServiceSingleton = &suite.categoryService
-
-	// Initialize other service modules needed for schema copy logic
-	router := gin.New()
-	group := router.Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, schemaService)
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, coursePhaseConfigService, *testDB.Queries), coursePhaseConfigService)
 }
 
 func (suite *CategoryServiceTestSuite) TearDownTest() {
@@ -61,7 +53,7 @@ func (suite *CategoryServiceTestSuite) TearDownTest() {
 }
 
 func (suite *CategoryServiceTestSuite) TestListCategories() {
-	categories, err := ListCategories(suite.suiteCtx)
+	categories, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(categories), 0, "Expected at least one category")
 	for _, c := range categories {
@@ -73,7 +65,7 @@ func (suite *CategoryServiceTestSuite) TestListCategories() {
 
 func (suite *CategoryServiceTestSuite) TestGetCategory() {
 	id := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
-	c, err := GetCategory(suite.suiteCtx, id)
+	c, err := suite.categoryService.GetCategory(suite.suiteCtx, id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), id, c.ID, "Category ID should match")
 	assert.Equal(suite.T(), "Version Control", c.Name, "Category name should match")
@@ -81,7 +73,7 @@ func (suite *CategoryServiceTestSuite) TestGetCategory() {
 
 func (suite *CategoryServiceTestSuite) TestGetCategoryNotFound() {
 	nonExistent := uuid.New()
-	_, err := GetCategory(suite.suiteCtx, nonExistent)
+	_, err := suite.categoryService.GetCategory(suite.suiteCtx, nonExistent)
 	assert.Error(suite.T(), err, "Expected error for non-existent category")
 }
 
@@ -96,11 +88,11 @@ func (suite *CategoryServiceTestSuite) TestCreateCategory() {
 		Weight:             5,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	created, err := CreateCategory(suite.suiteCtx, coursePhaseID, req)
+	created, err := suite.categoryService.CreateCategory(suite.suiteCtx, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Creating category should not produce an error")
 	assert.NotEqual(suite.T(), uuid.Nil, created.ID, "Created category should return its ID")
 
-	cats, err := ListCategories(suite.suiteCtx)
+	cats, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	found := false
 	for _, c := range cats {
@@ -126,10 +118,10 @@ func (suite *CategoryServiceTestSuite) TestUpdateCategory() {
 		Weight:             2,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	err := UpdateCategory(suite.suiteCtx, id, coursePhaseID, req)
+	err := suite.categoryService.UpdateCategory(suite.suiteCtx, id, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Updating category should not produce an error")
 
-	categories, err := ListCategoriesForCoursePhase(suite.suiteCtx, coursePhaseID)
+	categories, err := suite.categoryService.ListCategoriesForCoursePhase(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	foundUpdated := false
@@ -156,7 +148,7 @@ func (suite *CategoryServiceTestSuite) TestUpdateNonExistentCategory() {
 		Weight:             1,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	err := UpdateCategory(suite.suiteCtx, id, coursePhaseID, req)
+	err := suite.categoryService.UpdateCategory(suite.suiteCtx, id, coursePhaseID, req)
 	assert.NoError(suite.T(), err, "Updating non-existent category should not error")
 }
 
@@ -171,10 +163,10 @@ func (suite *CategoryServiceTestSuite) TestDeleteCategory() {
 		Weight:             1,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	_, err := CreateCategory(suite.suiteCtx, coursePhaseID, reqCreate)
+	_, err := suite.categoryService.CreateCategory(suite.suiteCtx, coursePhaseID, reqCreate)
 	assert.NoError(suite.T(), err)
 
-	cats, err := ListCategories(suite.suiteCtx)
+	cats, err := suite.categoryService.ListCategories(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	var toDeleteID uuid.UUID
 	for _, c := range cats {
@@ -183,16 +175,16 @@ func (suite *CategoryServiceTestSuite) TestDeleteCategory() {
 			break
 		}
 	}
-	err = DeleteCategory(suite.suiteCtx, toDeleteID, coursePhaseID)
+	err = suite.categoryService.DeleteCategory(suite.suiteCtx, toDeleteID, coursePhaseID)
 	assert.NoError(suite.T(), err, "Deleting category should not produce an error")
-	_, err = GetCategory(suite.suiteCtx, toDeleteID)
+	_, err = suite.categoryService.GetCategory(suite.suiteCtx, toDeleteID)
 	assert.Error(suite.T(), err, "Getting deleted category should produce an error")
 }
 
 func (suite *CategoryServiceTestSuite) TestDeleteNonExistentCategory() {
 	nonExistent := uuid.New()
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	err := DeleteCategory(suite.suiteCtx, nonExistent, coursePhaseID)
+	err := suite.categoryService.DeleteCategory(suite.suiteCtx, nonExistent, coursePhaseID)
 	assert.NoError(suite.T(), err, "Deleting non-existent category should not error")
 }
 
@@ -200,7 +192,7 @@ func (suite *CategoryServiceTestSuite) TestGetCategoriesWithCompetencies() {
 	// Use a known course phase ID from the test data
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02") // Dev Application phase
 
-	catsWithComp, err := GetCategoriesWithCompetencies(suite.suiteCtx, coursePhaseID)
+	catsWithComp, err := suite.categoryService.GetCategoriesWithCompetencies(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), len(catsWithComp), 0, "Should return categories with competencies")
 

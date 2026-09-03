@@ -82,5 +82,10 @@ Capabilities: map[string]bool{
 },
 ```
 
-Then set `AUDIT_ENABLED` and `AUDIT_INGEST_KEY` for the service (see the admin guide). When the toggle
-or key is missing, the middleware is a no-op, so wiring it in is always safe.
+Then set `AUDIT_ENABLED` and `AUDIT_INGEST_KEY` for the service (see the admin guide). In
+`docker-compose.yml` and `docker-compose.prod.yml` the service's `environment:` block forwards
+`AUDIT_ENABLED` and maps its own `AUDIT_INGEST_KEY_<SERVICE>` variable onto `AUDIT_INGEST_KEY`, so
+no two phases share a key; `docker-compose.e2e.yml` pins `AUDIT_ENABLED=true` in the compose file
+instead of forwarding it. That key also has to be listed in core's `AUDIT_INGEST_KEYS` under the
+service name passed to `NewCoreSink`. When the toggle or key is missing, the middleware is a no-op,
+so wiring it in is always safe.

@@ -115,7 +115,7 @@ Keep in mind:
 
 PROMPT integrates with a mail service to, for example, send confirmation emails to students or enable instructors to send emails to all accepted/declined students. The AET Chair uses a Postfix container (refer to `docker-compose.prod.yml`).
 
-You can use any SMTP server by adjusting your environment file with the corresponding SMTP settings (see the details in section [3.1 Adjust Environment Variables](#adjust-environment-variables)).
+You can use any SMTP server by adjusting your environment file with the corresponding SMTP settings (see the details in section [3.1 Adjust Environment Variables](#31-adjust-environment-variables)).
 
 ---
 

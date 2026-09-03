@@ -22,10 +22,14 @@ github.com/getsentry/sentry-go v0.47.0 h1:AnSMSyrYA5qZCIN/2xpgAAwv63sVULV+vBq37a
 github.com/getsentry/sentry-go v0.47.0/go.mod h1:h+b4VHpKnK7aUXB5wc+KDnPgp9ZtfliRD4eV85FbiSA=
 github.com/getsentry/sentry-go v0.48.0 h1:FRZNr7Uk1C86ev1bSJmYlUkL9oyivQA6YOcdYfaaMmY=
 github.com/getsentry/sentry-go v0.48.0/go.mod h1:E5UkA5wp1qR2+MDydNYlVeUiNN2xEdjYMidkgf0Qoss=
+github.com/getsentry/sentry-go v0.49.0 h1:Ehejknu1l023Ub7QoRBVLAI7g3Jnhqku4oWx4B4Sh5s=
+github.com/getsentry/sentry-go v0.49.0/go.mod h1:nuMJAoCfe1u0Bts2ocyNI+TW8HT84vRMqwA5Qq/SKUI=
 github.com/getsentry/sentry-go/gin v0.47.0 h1:1iTlex5MXVyqlEVBmuMsh1XhZjLxroVAuTSDmolYo8M=
 github.com/getsentry/sentry-go/gin v0.47.0/go.mod h1:eOKUeEmb/9ckWrmDSzZH8AKRNF5sPTBkmaeCwU3DvCE=
 github.com/getsentry/sentry-go/gin v0.48.0 h1:AT5zU/GZqgD4m4mzCRnY3qckeb2L423aihAGWtsCMqk=
 github.com/getsentry/sentry-go/gin v0.48.0/go.mod h1:MqdZe63I4Bwu3J8SiHaPIGP86/d0uZjOFfsOPZecRjU=
+github.com/getsentry/sentry-go/gin v0.49.0 h1:PGvRtmaQvDTspf5ltbpyAO3f2B3TfHRIlciPd/Bjxt4=
+github.com/getsentry/sentry-go/gin v0.49.0/go.mod h1:jSZV8BST6coCpwWUMWJzFy74t1xoKL0kJPWFPCAr3Yo=
 github.com/getsentry/sentry-go/logrus v0.47.0 h1:GJ0X+PnvPyOTQNEPgDE6KhyWe/s7hXW7DdjF8nyWd/s=
 github.com/getsentry/sentry-go/logrus v0.47.0/go.mod h1:YyETTezOW0eAgsCrW82l/FKwpgxnkHryhXbrzxw3M54=
 github.com/getsentry/sentry-go/logrus v0.48.0 h1:GmbLhkBj4OIJtgpYPS+ATxP1fKavoQu6X7BqsBjnJEk=
@@ -124,6 +128,8 @@ github.com/prompt-edu/prompt-sdk v1.3.0 h1:f4SVNJFk8mFY43N9y0rjdHrqYZYIqao4DO2mt
 github.com/prompt-edu/prompt-sdk v1.3.0/go.mod h1:YQ7zx49hYt4c58RNFQdJNhxmFx9f35FoXGMrr+MlsIQ=
 github.com/prompt-edu/prompt-sdk v1.3.1 h1:kMQwBlJn/I39xJcNwkcXGGX/tVxLWkyTLzaRaZK5G90=
 github.com/prompt-edu/prompt-sdk v1.3.1/go.mod h1:SXSL24ajrQbpgY9Rjx0IGYS9CgZkBjOBcMKJ2Ovy3vU=
+github.com/prompt-edu/prompt-sdk v1.3.2 h1:BBOr3ATQ7ue3FB8/5wUF/ZTCfgG2V7MLawiDKwJIyQ4=
+github.com/prompt-edu/prompt-sdk v1.3.2/go.mod h1:b88M41+IhE2ZmwtnJHow/9GBxLsxt8dIugp4WVIBAm4=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
 github.com/quic-go/qpack v0.6.0/go.mod h1:lUpLKChi8njB4ty2bFLX2x4gzDqXwUpaO1DP9qMDZII=
 github.com/quic-go/quic-go v0.59.1 h1:0Gmua0HW1Tv7ANR7hUYwRyD0MG5OJfgvYSZasGZzBic=

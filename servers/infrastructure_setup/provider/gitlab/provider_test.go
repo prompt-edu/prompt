@@ -510,3 +510,113 @@ func TestGitLabInitializesProjectWhenAsked(t *testing.T) {
 		t.Fatalf("initialize_with_readme = %v, want true when opted in", projectPayload["initialize_with_readme"])
 	}
 }
+
+// A retried instance re-attaches to the group it already points at. Resolving the
+// current template instead would create a second group whenever the name changed and
+// abandon the first one with the members already in it.
+func TestGitLabReattachesGroupByRecordedID(t *testing.T) {
+	rec := &requestRecorder{}
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost:
+			t.Errorf("unexpected create for an instance that already has a group: %s", r.URL)
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v4/groups/77":
+			_, _ = w.Write([]byte(`{"id":77,"full_path":"ios2526/team-a","web_url":"https://gitlab.test/groups/ios2526/team-a"}`))
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			t.Errorf("resolved the group by path although the instance records its ID")
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:               "team-b",
+		ResourceType:       "group",
+		ExistingExternalID: "77",
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if resource.ExternalID != "77" {
+		t.Fatalf("externalID = %q, want the recorded group 77", resource.ExternalID)
+	}
+}
+
+// A group that was deleted upstream must not wedge the retry: resolution falls back to
+// the path, which creates it again.
+func TestGitLabFallsBackWhenRecordedGroupIsGone(t *testing.T) {
+	rec := &requestRecorder{}
+	created := false
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v4/groups/77":
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"404 Group Not Found"}`))
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			_, _ = w.Write([]byte(`[]`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/groups":
+			created = true
+			_, _ = w.Write([]byte(`{"id":78,"full_path":"ios2526/team-b","web_url":"https://gitlab.test/groups/ios2526/team-b"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:               "team-b",
+		ResourceType:       "group",
+		ExistingExternalID: "77",
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if !created {
+		t.Fatal("the group was not re-created after the recorded one turned out to be gone")
+	}
+	if resource.ExternalID != "78" {
+		t.Fatalf("externalID = %q, want the newly created group 78", resource.ExternalID)
+	}
+}
+
+// The project is re-attached by ID, but the subgroup and its members are still resolved:
+// re-inviting the members is what heals a partial instance.
+func TestGitLabReattachesProjectByRecordedID(t *testing.T) {
+	rec := &requestRecorder{}
+	invited := false
+	provider := newGitLabServer(t, rec, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/projects":
+			t.Errorf("unexpected project create for an instance that already has one")
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/subgroups"):
+			_, _ = w.Write([]byte(`[{"id":50,"path":"ios2526-team-1","full_path":"ios2526/ios2526-team-1","web_url":"https://gitlab.test/g"}]`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v4/groups/50/invitations":
+			invited = true
+			_, _ = w.Write([]byte(`{"status":"success"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v4/projects/88":
+			_, _ = w.Write([]byte(`{"id":88,"web_url":"https://gitlab.test/ios2526/ios2526-team-1/old-name"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+	provider.cfg.ParentGroupID = "42"
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:               "renamed-app",
+		ResourceType:       "project",
+		ExtraConfig:        map[string]interface{}{"parent_group_template": "ios2526-team-1"},
+		Members:            []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping:  map[string]string{"student": "developer"},
+		ExistingExternalID: "88",
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if resource.ExternalID != "88" {
+		t.Fatalf("externalID = %q, want the recorded project 88", resource.ExternalID)
+	}
+	if !invited {
+		t.Fatal("members were not re-invited on a re-attached project")
+	}
+}

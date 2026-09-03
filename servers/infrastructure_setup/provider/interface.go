@@ -39,8 +39,10 @@ type CreateResourceInput struct {
 	// PROMPT and to prove ownership before adopting a resource by name.
 	StableKey string
 	// ExistingExternalID is the ID already recorded for this instance, set when a
-	// partial or failed instance is retried. When present a provider must re-attach by
-	// ID rather than looking the resource up by name.
+	// partial or failed instance is retried. A provider that can resolve its resource by
+	// ID re-attaches to it, so a changed name template does not abandon the resource the
+	// instance points at; gitlab and outline do. The rest fall back to adoption by name,
+	// which is correct as long as the name did not change in between.
 	ExistingExternalID string
 }
 

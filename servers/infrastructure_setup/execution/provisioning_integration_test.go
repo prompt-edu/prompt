@@ -336,6 +336,10 @@ func TestProvisioningRecordsPartialAndHealsOnRetry(t *testing.T) {
 
 	gitlab := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		// The retry re-attaches by the ID the partial instance recorded, which GitLab
+		// answers with the group itself rather than a search result list.
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v4/groups/600":
+			_, _ = w.Write([]byte(`{"id":600,"path":"ios2526-team-1","full_path":"ios2526-team-1","web_url":"https://gitlab.test/groups/ios2526-team-1"}`))
 		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/groups"):
 			_, _ = w.Write([]byte(`[{"id":600,"path":"ios2526-team-1","full_path":"ios2526-team-1","web_url":"https://gitlab.test/groups/ios2526-team-1"}]`))
 		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/invitations"):

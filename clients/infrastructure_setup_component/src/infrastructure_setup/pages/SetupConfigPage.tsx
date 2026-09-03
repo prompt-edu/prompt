@@ -11,7 +11,7 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Info, Save, Settings } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { updateSetupConfig } from '../network/mutations/updateSetupConfig'
 import { getSetupConfig } from '../network/queries/getSetupConfig'
@@ -28,7 +28,10 @@ export const SetupConfigPage = () => {
 
   const course = courses.find((c) => c.id === courseId)
 
-  const [semesterTag, setSemesterTag] = useState('')
+  // Null means "not edited yet", so the field shows the stored config. Seeding state
+  // from the query instead would overwrite what the lecturer is typing on any refetch,
+  // and React Query refetches on window focus.
+  const [editedTag, setEditedTag] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['setup-config', coursePhaseID],
@@ -36,13 +39,9 @@ export const SetupConfigPage = () => {
     enabled: !!coursePhaseID,
   })
 
-  // Seed the field once the stored config arrives, falling back to the parent course's
-  // tag when the phase has none yet. This runs only on a new response: refilling
-  // whenever the field is empty would make an intentionally cleared tag unsavable.
-  useEffect(() => {
-    if (!data) return
-    setSemesterTag(data.semesterTag || (course?.semesterTag ?? ''))
-  }, [data, course])
+  // The parent course's tag is the default for a phase that has none of its own.
+  const storedTag = data?.semesterTag || (course?.semesterTag ?? '')
+  const semesterTag = editedTag ?? storedTag
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: () =>
@@ -50,6 +49,8 @@ export const SetupConfigPage = () => {
         semesterTag: semesterTag.trim(),
       }),
     onSuccess: () => {
+      // Hand the field back to the query: what it refetches is now what was saved.
+      setEditedTag(null)
       queryClient.invalidateQueries({ queryKey: ['setup-config', coursePhaseID] })
       toast({ title: 'Setup configuration saved' })
     },
@@ -96,7 +97,7 @@ export const SetupConfigPage = () => {
         <Input
           id='semesterTag'
           value={semesterTag}
-          onChange={(event) => setSemesterTag(event.target.value)}
+          onChange={(event) => setEditedTag(event.target.value)}
           placeholder='ios26'
         />
         <p className='text-xs text-muted-foreground'>

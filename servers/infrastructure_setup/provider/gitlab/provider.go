@@ -134,6 +134,19 @@ func (p *Provider) createGroup(ctx context.Context, input provider.CreateResourc
 		return nil, err
 	}
 
+	// A retry re-attaches to the group this instance already points at. Looking it up by
+	// the current template instead would create a second group whenever the name changed
+	// and leave the first one behind with the members already in it.
+	if groupID, groupURL, found, err := p.findGroupByID(ctx, input.ExistingExternalID); err != nil {
+		return nil, err
+	} else if found {
+		return &provider.Resource{
+			ExternalID:  strconv.Itoa(groupID),
+			ExternalURL: groupURL,
+			Warnings:    p.addMembers(ctx, groupID, input),
+		}, nil
+	}
+
 	groupID, _, groupURL, err := p.findOrCreateGroup(ctx, name, slug, parentID, hasParent)
 	if err != nil {
 		return nil, err
@@ -275,6 +288,33 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, par
 	return created.ID, fullPath, created.WebURL, nil
 }
 
+// findGroupByID resolves the group an instance already points at. A missing or unusable
+// ID, or a group that no longer exists, is reported as not-found so the caller falls
+// back to resolving by path.
+func (p *Provider) findGroupByID(ctx context.Context, externalID string) (int, string, bool, error) {
+	id, err := strconv.Atoi(strings.TrimSpace(externalID))
+	if err != nil || id <= 0 {
+		return 0, "", false, nil
+	}
+
+	body, err := p.get(ctx, fmt.Sprintf("/api/v4/groups/%d", id))
+	if err != nil {
+		if strings.Contains(err.Error(), "HTTP 404") {
+			return 0, "", false, nil
+		}
+		return 0, "", false, err
+	}
+
+	var found struct {
+		ID     int    `json:"id"`
+		WebURL string `json:"web_url"`
+	}
+	if err := json.Unmarshal(body, &found); err != nil {
+		return 0, "", false, err
+	}
+	return found.ID, found.WebURL, true, nil
+}
+
 // findGroup looks for a group whose path matches slug exactly.
 //
 // GitLab's search is a substring match, so "ios-team-1" also matches "ios-team-10".
@@ -331,6 +371,15 @@ func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, has
 // answers 409 with a flat array of sentences. The create error is only used as a signal
 // to re-run the exact lookup.
 func (p *Provider) findOrCreateProject(ctx context.Context, groupID int, groupFullPath, projectName, projectSlug string, input provider.CreateResourceInput) (int, string, error) {
+	// A retry re-attaches to the project this instance already points at, so a changed
+	// name template does not leave a second project behind. The subgroup and its members
+	// are resolved either way, which is what heals a partial instance.
+	if id, webURL, found, err := p.findProjectByID(ctx, input.ExistingExternalID); err != nil {
+		return 0, "", err
+	} else if found {
+		return id, webURL, nil
+	}
+
 	// The lookup needs the project's namespaced path, so it is built from the group's
 	// full path. The subgroup slug alone would address a top-level namespace that does
 	// not exist, and the 404 would make every run create the project again.
@@ -370,6 +419,17 @@ func (p *Provider) findOrCreateProject(ctx context.Context, groupID int, groupFu
 		return 0, "", err
 	}
 	return created.ID, created.WebURL, nil
+}
+
+// findProjectByID resolves the project an instance already points at. A missing or
+// unusable ID, or a project that no longer exists, is reported as not-found so the
+// caller falls back to resolving by path.
+func (p *Provider) findProjectByID(ctx context.Context, externalID string) (int, string, bool, error) {
+	id, err := strconv.Atoi(strings.TrimSpace(externalID))
+	if err != nil || id <= 0 {
+		return 0, "", false, nil
+	}
+	return p.findProject(ctx, strconv.Itoa(id))
 }
 
 // findProject resolves a project by its namespaced path. The path has to be URL-encoded

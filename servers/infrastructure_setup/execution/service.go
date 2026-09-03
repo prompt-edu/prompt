@@ -177,15 +177,12 @@ func (s *Service) StartStaleClaimSweeper(ctx context.Context) {
 
 // ListInstances returns all resource instances for a course phase. The slice is never
 // nil, so the endpoint answers with [] rather than null when nothing is provisioned.
-func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]db.ResourceInstance, error) {
+func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]ResourceInstanceResponse, error) {
 	instances, err := s.queries.ListResourceInstances(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
-	if instances == nil {
-		return []db.ResourceInstance{}, nil
-	}
-	return instances, nil
+	return GetResourceInstanceDTOsFromDBModels(instances), nil
 }
 
 // RetryInstance resets a failed or partial instance back to pending and starts the worker.

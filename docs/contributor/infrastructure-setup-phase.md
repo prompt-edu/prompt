@@ -25,7 +25,7 @@ mappings.
 
 ```text
 servers/infrastructure_setup/
-├── main.go                            # routes, provider registry, startup recovery
+├── main.go                            # routes, provider registry, claim recovery
 ├── sqlc.yaml
 ├── db/
 │   ├── migration/
@@ -43,7 +43,8 @@ servers/infrastructure_setup/
 ├── resourceconfig/                    # what to provision, per phase
 ├── phaseconfig/                       # the phase's own settings (semester tag)
 ├── execution/                         # instance lifecycle: trigger, worker, templates
-└── copy/                              # PhaseCopyHandler and the SDK config endpoint
+├── copy/                              # the SDK PhaseCopyHandler
+└── config/                            # the SDK PhaseConfigHandler (setup completeness)
 ```
 
 ### Frontend: `clients/infrastructure_setup_component/` (React, TypeScript, port 3012)
@@ -178,7 +179,9 @@ Mechanics:
 - `collections.add_group` always sends the permission explicitly: Outline defaults that call to
   `read_write`.
 
-A provider declares which resource kinds it supports; the API rejects any other value, and the
+A provider declares which resource kinds it supports and which extra-config keys a kind cannot be
+created without, so a GitLab `project` without a `parent_group_template` is rejected when it is
+saved rather than once per instance during a run. The API rejects any other resource type, and the
 resource config dialog offers only the supported kinds.
 
 ---
@@ -271,6 +274,9 @@ the first credential write.
 openssl rand -base64 32
 ```
 
+The `.env` templates ship a placeholder key so a fresh checkout starts. It is committed,
+so replace it anywhere real provider credentials are stored.
+
 The API never returns credentials. `GET /provider-configs` exposes only the provider type and a
 `configured` boolean. Rotating the key requires re-encrypting every `provider_config.credentials`
 row by hand.
@@ -293,6 +299,11 @@ row by hand.
 aliases. Anything else is **rejected**: when the resource config is saved, and again before the
 worker calls a provider, so an unresolved `{{...}}` can never end up in the name of a real
 resource.
+
+A placeholder the config's scope does not fill is rejected too. Resolution replaces it with an empty
+string, so a `per_team` config named `team-{{studentLogin}}` would resolve to the same `team` for
+every team and put all of them into one external resource. The scope each placeholder belongs to is
+declared once, in the table `execution/template.go` resolves from.
 
 Values are sanitized generically and then again per provider (a Slack channel name is slugified and
 truncated to 80 characters, a GitLab path is turned into a slug). A name that sanitizes to an empty
@@ -318,7 +329,13 @@ processes up to 5 instances concurrently. Each one resolves its name, calls
 `provider.CreateResource`, and is recorded as `created`, `partial` or `failed`. Provider calls are
 retried up to 3 times with exponential backoff (1s, 2s, 4s) plus jitter.
 
-**Startup recovery:** anything left `in_progress` by a crash is reset to `pending` at boot.
+**Claim recovery:** a claim is only ever released by the process that took it. If resolving the
+configs or the targets fails after the instances were claimed, that run marks them `failed` with the
+reason, so the phase can be triggered again and the lecturer can retry. A crash cannot do that, so a
+sweeper (at boot and every 10 minutes) marks any instance claimed longer than the worker's own
+timeout as `failed` too. The age cutoff is what keeps the sweep off another replica's live work, and
+`failed` rather than `pending` because nothing picks a pending row up on its own: the worker needs
+the lecturer's token to resolve targets.
 
 **Retry** (`POST .../instances/:instanceID/retry`) accepts `failed` and `partial` instances. An
 unknown instance is a 404; one that is `created` or already queued is a 409. Since providers are
@@ -336,6 +353,11 @@ tell whether a group it points at was created for this course or already belonge
 deleting could remove a shared resource. Deleting a resource config or a provider config cascades to
 the instance rows in SQL, which would bypass any per-instance cleanup anyway. `external_id` and
 `external_url` are kept on the instance so the resource can be found and removed by hand.
+
+Because those rows are the only record of resources nothing else will clean up, deleting a resource
+config that still has provisioned instances takes an explicit `confirm=true`; without it the
+endpoint answers **409**. The UI sends it once the lecturer has confirmed the dialog, which spells
+out that the external resources stay behind.
 
 The same applies to **memberships**: nothing is ever removed from a group, a channel or a
 collection. Reconciling PROMPT's team data against upstream memberships is a separate feature with
@@ -482,3 +504,6 @@ in production.
 - **Slack, Outline and Rancher have not been exercised against real tenants.** They are covered by
   mocked HTTP tests written against the published API contracts. GitLab and Keycloak are the two
   reasoned through end to end.
+- **Only GitLab and Outline re-attach by recorded ID.** Retrying an instance whose name template
+  changed re-uses the resource it points at there; Slack, Keycloak and Rancher resolve by name, so
+  a renamed resource is adopted only if the name still matches.

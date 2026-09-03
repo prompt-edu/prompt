@@ -72,7 +72,6 @@ const config = (env = {}) => {
         exposes: {
           './routes': './routes',
           './sidebar': './sidebar',
-          './provide': './src/provide',
         },
         shared: {
           react: { singleton: true, requiredVersion: deps.react },

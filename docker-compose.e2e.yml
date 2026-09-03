@@ -185,7 +185,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION}
     # Distroless image (no shell/wget), so no container healthcheck.
@@ -260,7 +260,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_EXAMPLE_SERVER}
     # Distroless image (no shell/wget), so no container healthcheck.
@@ -332,7 +332,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_ASSESSMENT}
     # Distroless image (no shell/wget), so no container healthcheck.
@@ -428,7 +428,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_INTERVIEW}
     # Distroless image (no shell/wget), so no container healthcheck.
@@ -505,7 +505,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_CERTIFICATE}
     # Distroless image (no shell/wget), so no container healthcheck.
@@ -577,7 +577,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_PRESENTATION}
       - S3_BUCKET
@@ -655,7 +655,7 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
-      # Audit log enabled so this phase's events reach core in the e2e run.
+      # Audit key provisioned so this phase reports to core once it wires a sink.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_TEAM_ALLOCATION}
     # Distroless image (no shell/wget), so no container healthcheck.

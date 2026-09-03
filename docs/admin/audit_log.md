@@ -47,9 +47,10 @@ trustworthy (derived from which key matched).
    makes the recorded `source` trustworthy.
 2. List every service and its key in core's `AUDIT_INGEST_KEYS`, using the name the service reports
    on its info endpoint (left column below).
-3. Give each phase its own key. In the Docker Compose stacks the per-service variables below are
-   mapped onto the single `AUDIT_INGEST_KEY` each service reads, so one `.env` file can hold all of
-   them without two containers ever sharing a key.
+3. Give each phase its own key. In the dev, production and e2e Compose stacks the per-service
+   variables below are mapped onto the single `AUDIT_INGEST_KEY` each service reads, so one `.env`
+   file can hold all of them without two containers ever sharing a key. The `minimal` and
+   `extern.prod` stacks carry no audit configuration at all, on core or on the phases.
 
 | Reported service name | Compose variable |
 | --- | --- |
@@ -60,11 +61,11 @@ trustworthy (derived from which key matched).
 | `presentation` | `AUDIT_INGEST_KEY_PRESENTATION` |
 | `self-team-allocation` | `AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION` |
 | `team-allocation` | `AUDIT_INGEST_KEY_TEAM_ALLOCATION` |
-| `intro-course` | none (external phase, see below) |
+| `intro-course` | none (externally deployed, see below) |
 
-`intro-course` is deployed from its own repository, so it has no container in this stack. List its
-key in core's `AUDIT_INGEST_KEYS` like any other service, then set `AUDIT_ENABLED=true` and
-`AUDIT_INGEST_KEY` in that deployment's own environment.
+Externally deployed phases such as `intro-course` have no container in this stack. List the key in
+core's `AUDIT_INGEST_KEYS` under the name that phase reports on its info endpoint, then set
+`AUDIT_ENABLED=true` and `AUDIT_INGEST_KEY` in that deployment's own environment.
 
 A service with no key configured simply does not report: its sink stays disabled and the
 middleware is a no-op, so the phase keeps working without audit entries. Keys may be rolled out one

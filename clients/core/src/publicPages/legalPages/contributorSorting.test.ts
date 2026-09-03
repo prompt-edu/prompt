@@ -61,7 +61,8 @@ describe('byPinnedThenCommits', () => {
         contributor('prolific', 747),
         contributor('nocommits', 0, 2),
         contributor('lead', 500),
+        contributor('alsoPinned', 0, 1),
       ]),
-    ).toEqual(['nocommits', 'prolific', 'lead'])
+    ).toEqual(['alsoPinned', 'nocommits', 'prolific', 'lead'])
   })
 })

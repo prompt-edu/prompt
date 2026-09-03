@@ -40,7 +40,7 @@ export const MissingUniversityData = ({ student }: MissingUniversityDataProps) =
       return coreApi.students.update(modifiedStudent)
     },
     onSuccess: () => {
-      coreCache.studentUniversityDataChanged(queryClient)
+      coreCache.studentUniversityDataChanged(queryClient, student.id)
       setIsAddingData(false)
     },
   })

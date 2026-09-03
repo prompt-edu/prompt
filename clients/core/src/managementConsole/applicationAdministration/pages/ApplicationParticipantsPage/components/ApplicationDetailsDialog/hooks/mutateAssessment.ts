@@ -19,7 +19,7 @@ export const useModifyAssessment = (courseParticipationID: string) => {
       )
     },
     onSuccess: () => {
-      coreCache.applicationAssessmentSaved(queryClient)
+      coreCache.applicationAssessmentSaved(queryClient, phaseId)
     },
     onError: () => {
       toast({

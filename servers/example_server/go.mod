@@ -3,12 +3,12 @@ module github.com/prompt-edu/prompt/servers/example_server
 go 1.27.0
 
 require (
-	github.com/getsentry/sentry-go v0.48.0
-	github.com/getsentry/sentry-go/gin v0.48.0
+	github.com/getsentry/sentry-go v0.49.0
+	github.com/getsentry/sentry-go/gin v0.49.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/prompt-edu/prompt-sdk v1.3.1
+	github.com/prompt-edu/prompt-sdk v1.3.2
 	github.com/sirupsen/logrus v1.10.2
 	github.com/swaggo/swag v1.16.6
 )
@@ -21,7 +21,7 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/coreos/go-oidc/v3 v3.20.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
-	github.com/getsentry/sentry-go/logrus v0.48.0 // indirect
+	github.com/getsentry/sentry-go/logrus v0.49.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-openapi/jsonpointer v0.22.4 // indirect

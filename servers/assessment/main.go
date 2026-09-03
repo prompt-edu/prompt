@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
@@ -100,6 +101,14 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("/assessment/api")
+
+	// The audit auto-capture middleware must wrap every module's routes. Gin
+	// snapshots the middleware chain when a route or subgroup is registered, so
+	// it has to be registered before coursePhaseApi and all module routes below;
+	// otherwise those routes keep the pre-audit chain and their mutations are
+	// never captured. It is a no-op unless the AUDIT_ENABLED toggle is set.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "assessment")))
+
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
@@ -143,7 +152,10 @@ func main() {
 	copyService := copy.NewCopyService(*query, conn)
 	privacyService := privacy.NewPrivacyService(*query, conn)
 
-	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
+	// The SDK registrar owns the POST /copy route itself and has no per-route
+	// slot for the audit label, so it is attached through a group. An empty
+	// relative path leaves the registered route path unchanged.
+	copy.RegisterRoutes(api.Group("", audit.Describe("Copied assessment phase")), copyService, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
@@ -154,6 +166,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

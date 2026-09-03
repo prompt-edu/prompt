@@ -9,6 +9,7 @@ export type Role =
   | 'course-editor'
   | 'student'
   | 'student2'
+  | 'privacy-student'
 
 export interface RoleAccount {
   username: string
@@ -56,6 +57,14 @@ export const ROLES: Record<Role, RoleAccount> = {
     permission: 'PROMPT_Student',
     email: 'second_student@example.com',
   },
+  // Exists only to be deleted by the privacy deletion-approval spec, which is the
+  // one journey that genuinely removes its subject. Never use it elsewhere.
+  'privacy-student': {
+    username: 'privacy-student',
+    password: 'privacy-student',
+    permission: 'PROMPT_Student',
+    email: 'privacy_subject@example.com',
+  },
 }
 
 // Roles we pre-authenticate in global-setup (storageState reused by tests).
@@ -66,4 +75,5 @@ export const SEEDED_ROLES: Role[] = [
   'course-editor',
   'student',
   'student2',
+  'privacy-student',
 ]

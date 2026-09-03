@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
@@ -160,7 +161,7 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 	config, err := s.getTemplateConfig(c, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, errTemplateNotConfigured) {
-			c.JSON(http.StatusOK, gin.H{
+			respondCertificateStatus(c, config.StudentPageText, gin.H{
 				"available":     false,
 				"hasDownloaded": false,
 				"message":       "Certificate template not configured",
@@ -182,7 +183,7 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 	// Admins, lecturers, and editors don't have student enrollment records,
 	// so we return a simple "available" status for them.
 	if user.Roles[promptSDK.PromptAdmin] || user.Roles[promptSDK.CourseLecturer] || user.Roles[promptSDK.CourseEditor] {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     true,
 			"hasDownloaded": false,
 		})
@@ -191,7 +192,7 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 
 	// Check release date for students
 	if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     false,
 			"hasDownloaded": false,
 			"message":       "Certificate will be available after " + config.ReleaseDate.Time.Format("02.01.2006 15:04"),
@@ -215,7 +216,7 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     true,
 			"hasDownloaded": false,
 		})
@@ -228,7 +229,7 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 		lastDownload = &t
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	respondCertificateStatus(c, config.StudentPageText, gin.H{
 		"available":     true,
 		"hasDownloaded": true,
 		"lastDownload":  lastDownload,
@@ -271,6 +272,16 @@ func (s *GeneratorService) previewCertificate(c *gin.Context) {
 // sanitizeFilename escapes backslashes and double quotes for use in Content-Disposition headers.
 func sanitizeFilename(name string) string {
 	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(name)
+}
+
+// respondCertificateStatus adds the instructor's download-page text to a status
+// payload. It is attached to every status, including "not configured" and "not
+// yet released", because that is exactly where an instructor explains the wait.
+func respondCertificateStatus(c *gin.Context, studentPageText pgtype.Text, status gin.H) {
+	if studentPageText.Valid && studentPageText.String != "" {
+		status["studentPageText"] = studentPageText.String
+	}
+	c.JSON(http.StatusOK, status)
 }
 
 // errTemplateNotConfigured signals that the phase has no certificate template — a normal,

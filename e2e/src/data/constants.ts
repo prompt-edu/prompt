@@ -1,5 +1,7 @@
-// Known values from the seed dump (e2e/seed/e2e_seed.sql). When the seed
-// changes, update these. IDs survive the migrate-up upgrade applied on startup.
+// Known values from the shared seed (seed/core.sql, applied by the stack's
+// `seed` service once the servers have migrated). When the seed changes, update
+// these. Course phase TYPE ids are not listed: the core server creates those at
+// startup with random UUIDs, so they are resolved by name at runtime.
 
 export const SEEDED_COURSES = {
   iPraktikum: {
@@ -27,12 +29,35 @@ export const SEEDED_COURSES = {
   },
 }
 
-// Total non-template courses present in the seed.
-export const SEEDED_COURSE_COUNT = 4
+// Total non-template courses present in the seed: the four fixture courses below,
+// `iPraktikumWelcome` (which owns the welcome-text Application phase), and
+// `iPraktikumDemo`, the populated demo course the seed adds for local
+// development. No spec asserts against the demo course.
+export const SEEDED_COURSE_COUNT = 6
 
 // An open Application phase on iPraktikum (applicationEndDate in the far future),
 // so the application file-upload endpoints accept uploads.
 export const OPEN_APPLICATION_PHASE_ID = 'aaaa1111-0000-0000-0000-0000000000a1'
+
+// Application phase on its own course (only one initial phase is allowed per
+// course), owned by the welcome-text spec because that spec edits the phase's
+// welcomeText and would otherwise clobber the shared application fixtures.
+export const WELCOME_TEXT_COURSE_ID = 'c0000003-0000-0000-0000-000000000003'
+export const WELCOME_TEXT_PHASE_ID = 'd0000030-0000-0000-0000-000000000030'
+
+// The seeded welcomeText, including the markup DOMPurify must strip. `html` is
+// the literal seeded in seed/core.sql, so a spec that edits it can restore it.
+export const SEEDED_WELCOME_TEXT = {
+  paragraph: 'Welcome to the PROMPT e2e welcome course.',
+  linkName: 'Course handbook',
+  linkHref: 'https://example.com/handbook',
+  xssMarker: '__welcomeTextXss',
+  html:
+    '<p>Welcome to the PROMPT e2e welcome course.</p>' +
+    '<p><a href="https://example.com/handbook">Course handbook</a></p>' +
+    '<script>window.__welcomeTextXss=1</script>' +
+    '<img src="x" onerror="window.__welcomeTextXss=1">',
+}
 
 export const SEEDED_STUDENT = {
   id: '3869f209-9a21-4595-ae0e-bc6d6a3e2d63',
@@ -131,10 +156,12 @@ export const CERTIFICATE_PHASES = {
 // URL). One phase per mutating spec file so template/release-date state and
 // download recording never leak between parallel Playwright files:
 // `lecturer` hosts the lecturer journey (template + release + participants),
-// `student` the student self-download journey (Stan participates in both).
+// `student` the student self-download journey, and `studentPageText` the
+// instructor download-page message (Stan participates in all three).
 export const CERTIFICATE_FIXTURE_PHASES = {
   lecturer: 'd000000a-0000-0000-0000-00000000000a',
   student: 'd000000b-0000-0000-0000-00000000000b',
+  studentPageText: 'd0000016-0000-0000-0000-000000000016',
 }
 
 // Certificate phase on TestCourse with NO participants: requests by the e2e
@@ -219,4 +246,27 @@ export const CUSTOM_SCORES_APPLICATION = {
   scoreName: 'Exercise Score',
   scoredApplicant: { email: 'pgdp_enjoyer@example.com', score: '87.5' },
   unscoredApplicant: { email: 'second_student@example.com' },
+}
+
+// Privacy (GDPR) fixtures. Both subjects are owned exclusively by the privacy
+// suite, because those journeys delete the subject they operate on.
+export const PRIVACY_SUBJECTS = {
+  // Maps to the Keycloak user `privacy-student`; the deletion-approval spec
+  // requests its own deletion and an admin approves it, so it disappears.
+  deletionApproval: {
+    id: 'e0000009-0000-0000-0000-000000000009',
+    firstName: 'Priya',
+    lastName: 'Vacy',
+    name: 'Priya Vacy',
+    email: 'privacy_subject@example.com',
+  },
+  // No Keycloak account. last_modified is 2015, so it is the only student the
+  // "not modified in N years" filter can select.
+  inactive: {
+    id: 'e0000010-0000-0000-0000-000000000010',
+    firstName: 'Ida',
+    lastName: 'Inactive',
+    name: 'Ida Inactive',
+    email: 'inactive_subject@example.com',
+  },
 }

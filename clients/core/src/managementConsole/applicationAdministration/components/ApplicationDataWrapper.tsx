@@ -1,8 +1,8 @@
-import { getAdditionalScoreNames } from '@core/network/queries/additionalScoreNames'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCoursePhase } from '@tumaet/prompt-shared-state'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useGetApplicationParticipations } from '../hooks/useGetApplicationParticipations'
@@ -23,8 +23,8 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
     isError: isAdditionalScoresError,
     refetch: refetchScores,
   } = useQuery<AdditionalScore[]>({
-    queryKey: ['application_participations', phaseId],
-    queryFn: () => getAdditionalScoreNames(phaseId ?? ''),
+    queryKey: coreKeys.applications.additionalScores(phaseId),
+    queryFn: () => coreApi.applications.additionalScoreNames(phaseId ?? ''),
   })
 
   const {
@@ -68,17 +68,5 @@ export const ApplicationDataWrapper = ({ children }: ApplicationDataWrapperProps
     }
   }, [fetchedCoursePhase, setCoursePhase])
 
-  return (
-    <>
-      {isError ? (
-        <ErrorPage onRetry={refetch} />
-      ) : isPending ? (
-        <div className='flex justify-center items-center grow'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
-      ) : (
-        children
-      )}
-    </>
-  )
+  return <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : children}</>
 }

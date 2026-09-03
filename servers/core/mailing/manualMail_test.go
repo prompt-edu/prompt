@@ -3,7 +3,6 @@ package mailing
 import (
 	"context"
 	"errors"
-	"net/mail"
 	"sort"
 	"strings"
 	"testing"
@@ -34,6 +33,7 @@ type ManualMailServiceTestSuite struct {
 	suite.Suite
 	ctx        context.Context
 	cleanup    func()
+	service    *MailingService
 	phaseID    uuid.UUID
 	recipient1 uuid.UUID
 	recipient2 uuid.UUID
@@ -71,38 +71,31 @@ func (suite *ManualMailServiceTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
-	MailingServiceSingleton = &MailingService{
-		senderEmail: mail.Address{
-			Name:    "Reminder Test",
-			Address: "noreply@example.com",
-		},
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewMailingService(*testDB.Queries, "", "", "", "", "Reminder Test", "noreply@example.com", "")
 
-	suite.oldSendMailFn = sendMailFn
-	suite.oldNowFn = nowFn
+	suite.oldSendMailFn = suite.service.sendMail
+	suite.oldNowFn = suite.service.now
 }
 
 func (suite *ManualMailServiceTestSuite) TearDownSuite() {
-	sendMailFn = suite.oldSendMailFn
-	nowFn = suite.oldNowFn
+	suite.service.sendMail = suite.oldSendMailFn
+	suite.service.now = suite.oldNowFn
 	if suite.cleanup != nil {
 		suite.cleanup()
 	}
 }
 
 func (suite *ManualMailServiceTestSuite) SetupTest() {
-	sendMailFn = suite.oldSendMailFn
-	nowFn = suite.oldNowFn
+	suite.service.sendMail = suite.oldSendMailFn
+	suite.service.now = suite.oldNowFn
 }
 
 func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 	fixedNow := time.Date(2026, time.January, 10, 8, 30, 0, 0, time.UTC)
-	nowFn = func() time.Time { return fixedNow }
+	suite.service.now = func() time.Time { return fixedNow }
 
 	sentMails := make([]capturedMail, 0)
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -114,7 +107,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 		return nil
 	}
 
-	report, err := SendManualMailToParticipants(
+	report, err := suite.service.SendManualMailToParticipants(
 		suite.ctx,
 		suite.phaseID,
 		mailingDTO.SendManualMailRequest{
@@ -150,12 +143,12 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailHappyPath() {
 }
 
 func (suite *ManualMailServiceTestSuite) TestSendManualMailCoursePhaseLinkPlaceholder() {
-	oldClientURL := MailingServiceSingleton.clientURL
-	MailingServiceSingleton.clientURL = "https://prompt.example.com"
-	defer func() { MailingServiceSingleton.clientURL = oldClientURL }()
+	oldClientURL := suite.service.clientURL
+	suite.service.clientURL = "https://prompt.example.com"
+	defer func() { suite.service.clientURL = oldClientURL }()
 
 	sentMails := make([]capturedMail, 0)
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -163,7 +156,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailCoursePhaseLinkPlaceh
 		return nil
 	}
 
-	report, err := SendManualMailToParticipants(
+	report, err := suite.service.SendManualMailToParticipants(
 		suite.ctx,
 		suite.phaseID,
 		mailingDTO.SendManualMailRequest{
@@ -183,10 +176,10 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailCoursePhaseLinkPlaceh
 
 func (suite *ManualMailServiceTestSuite) TestSendManualMailNoRecipients() {
 	fixedNow := time.Date(2026, time.January, 14, 8, 0, 0, 0, time.UTC)
-	nowFn = func() time.Time { return fixedNow }
+	suite.service.now = func() time.Time { return fixedNow }
 
 	sendCalls := 0
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -194,7 +187,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailNoRecipients() {
 		return nil
 	}
 
-	report, err := SendManualMailToParticipants(
+	report, err := suite.service.SendManualMailToParticipants(
 		suite.ctx,
 		suite.phaseID,
 		mailingDTO.SendManualMailRequest{
@@ -211,7 +204,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailNoRecipients() {
 
 func (suite *ManualMailServiceTestSuite) TestSendManualMailTemplateMissing() {
 	sendWasCalled := false
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -219,7 +212,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailTemplateMissing() {
 		return nil
 	}
 
-	_, err := SendManualMailToParticipants(
+	_, err := suite.service.SendManualMailToParticipants(
 		suite.ctx,
 		suite.phaseID,
 		mailingDTO.SendManualMailRequest{
@@ -235,7 +228,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailTemplateMissing() {
 }
 
 func (suite *ManualMailServiceTestSuite) TestSendManualMailPartialSendFailure() {
-	sendMailFn = func(
+	suite.service.sendMail = func(
 		courseMailingSettings mailingDTO.CourseMailingSettings,
 		recipientAddress, subject, htmlBody string,
 	) error {
@@ -245,7 +238,7 @@ func (suite *ManualMailServiceTestSuite) TestSendManualMailPartialSendFailure() 
 		return nil
 	}
 
-	report, err := SendManualMailToParticipants(
+	report, err := suite.service.SendManualMailToParticipants(
 		suite.ctx,
 		suite.phaseID,
 		mailingDTO.SendManualMailRequest{

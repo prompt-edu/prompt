@@ -6,8 +6,9 @@ import { certificateUrl } from '../certificate/helpers'
 // The certificate server is reached on the browser origin through the e2e
 // nginx proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
 // both for missing tokens and for valid tokens lacking the required role.
-// All checks are side-effect-free (GET only) on the graph-tail certificate
-// phase, which the journeys never touch.
+// Every check runs on the graph-tail certificate phase, which the journeys never
+// touch, and is side-effect-free: the writes below are all expected to be
+// rejected before they reach the database.
 const PHASE_ID = CERTIFICATE_PHASES.graphTail
 
 test.describe('certificate API auth', () => {
@@ -51,6 +52,26 @@ test.describe('certificate API auth', () => {
     const api = await apiAs('student')
     const res = await api.get(certificateUrl(PHASE_ID, 'certificate/status'))
     expect(res.status()).toBe(200)
+  })
+
+  test('rejects a student on the config endpoint', async ({ apiAs }) => {
+    // The config payload carries the full Typst template, so students are not
+    // admitted; their page reads the instructor text from certificate/status.
+    const api = await apiAs('student')
+    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    expect(res.status()).toBe(401)
+  })
+
+  test('rejects a student and a course editor on the student page text endpoint', async ({
+    apiAs,
+  }) => {
+    for (const role of ['student', 'course-editor'] as const) {
+      const api = await apiAs(role)
+      const res = await api.put(certificateUrl(PHASE_ID, 'config/student-page-text'), {
+        data: { studentPageText: 'nope' },
+      })
+      expect(res.status(), `role ${role}`).toBe(401)
+    }
   })
 
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {

@@ -1,7 +1,11 @@
 import { CopyCourseDialog } from '@core/managementConsole/courseOverview/components/CopyCourseDialog'
 import { ArchiveCourseConfirmationDialog } from '@core/managementConsole/shared/components/ArchiveCourseConfirmationDialog'
-import { deleteCourse } from '@core/network/mutations/deleteCourse'
-import { archiveCourses, unarchiveCourses } from '@core/network/mutations/updateCourseArchiveStatus'
+import {
+  archiveCourses,
+  unarchiveCourses,
+} from '@core/managementConsole/shared/hooks/courseArchive'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type Course, useCourseStore } from '@tumaet/prompt-shared-state'
 import { Button, DeleteConfirmation, SettingsCard, useToast } from '@tumaet/prompt-ui-components'
@@ -57,9 +61,9 @@ export default function CourseDangerZone() {
   const isTemplate = templateStatus?.isTemplate || false
 
   const { mutate: mutateDeleteCourse } = useMutation({
-    mutationFn: () => deleteCourse(courseId ?? ''),
+    mutationFn: () => coreApi.courses.remove(courseId ?? ''),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      coreCache.coursesChanged(queryClient)
       navigate('/management/courses')
     },
     onError: () => {

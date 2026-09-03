@@ -15,8 +15,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 )
 
@@ -25,7 +28,7 @@ type FeedbackItemRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
-	service  FeedbackItemService
+	service  *FeedbackItemService
 }
 
 func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
@@ -36,11 +39,13 @@ func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.service = FeedbackItemService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	FeedbackItemServiceSingleton = &suite.service
+	suite.service = NewFeedbackItemService(*testDB.Queries, testDB.Conn,
+		evaluationCompletion.NewEvaluationCompletionService(
+			*testDB.Queries,
+			testDB.Conn,
+			coursePhaseConfig.GetTeamsForCoursePhase,
+			coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		))
 
 	suite.router = gin.Default()
 
@@ -59,7 +64,7 @@ func (suite *FeedbackItemRouterTestSuite) SetupSuite() {
 	}
 
 	// Setup router with middleware
-	setupFeedbackItemRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 }
 
 func (suite *FeedbackItemRouterTestSuite) TearDownSuite() {
@@ -83,7 +88,7 @@ func (suite *FeedbackItemRouterTestSuite) createLecturerRouter() *gin.Engine {
 	lecturerMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "1234", "lecturer_id")
 	}
-	setupFeedbackItemRouter(api, lecturerMiddleware)
+	RegisterRoutes(api, suite.service, lecturerMiddleware)
 	return router
 }
 
@@ -278,7 +283,7 @@ func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemValid() {
 	resp := suite.updateRequest(phaseID, feedbackItemID)
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
 
-	updated, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	updated, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Rewritten feedback text", updated.FeedbackText)
 	assert.Equal(suite.T(), db.FeedbackTypePositive, updated.FeedbackType)
@@ -291,7 +296,7 @@ func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemNotAuthor() {
 	resp := suite.updateRequest(phaseID, feedbackItemID)
 	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
 
-	unchanged, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	unchanged, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Need to improve time management", unchanged.FeedbackText)
 	assert.Equal(suite.T(), uuid.MustParse("ea42e447-60f9-4fe0-b297-2dae3f924fd7"), unchanged.AuthorCourseParticipationID)
@@ -305,7 +310,7 @@ func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemWrongPhase() {
 	resp := suite.updateRequest(otherPhaseID, feedbackItemID)
 	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 
-	unchanged, err := GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	unchanged, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Original feedback text", unchanged.FeedbackText)
 }

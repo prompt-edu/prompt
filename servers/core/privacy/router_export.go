@@ -14,21 +14,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupPrivacyRouter sets up the privacy endpoints for the privacy export features
 // @Summary Privacy Endpoints
 // @Description Endpoints for managing GDPR data exports and deletion requests
 // @Tags privacy
 // @Security BearerAuth
-func setupPrivacyExportRouter(privacyRouter *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	privacyRouter.POST("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), handleNewSubjectDataExport)
-	privacyRouter.GET("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestExport)
+func (h *privacyHandler) registerExportRoutes(privacyRouter *gin.RouterGroup, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	privacyRouter.POST("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.handleNewSubjectDataExport)
+	privacyRouter.GET("/data-export", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.getLatestExport)
 
-	privacyRouter.GET("/data-export/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExport)
-	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getExportDocDownloadURL)
+	privacyRouter.GET("/data-export/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.getExport)
+	privacyRouter.GET("/data-export/:uuid/docs/:docID/download-url", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.getExportDocDownloadURL)
 
 	// Admin-only routes
-	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllExports)
-	privacyRouter.DELETE("/admin/data-exports/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), deleteExport)
+	privacyRouter.GET("/admin/data-exports", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.getAllExports)
+	privacyRouter.DELETE("/admin/data-exports/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.deleteExport)
 }
 
 // deleteExport removes an export's files from S3 and marks the export and its
@@ -43,7 +42,7 @@ func setupPrivacyExportRouter(privacyRouter *gin.RouterGroup, authMiddleware fun
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-exports/{uuid} [delete]
-func deleteExport(c *gin.Context) {
+func (h *privacyHandler) deleteExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -52,7 +51,7 @@ func deleteExport(c *gin.Context) {
 
 	resetRateLimit := c.Query("reset_rate_limit") == "true"
 
-	exp, err := service.GetExportWithDocs(c, exportID)
+	exp, err := h.service.GetExportWithDocs(c, exportID)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
@@ -62,14 +61,14 @@ func deleteExport(c *gin.Context) {
 		return
 	}
 
-	if err := service.ArchiveExport(c, exportID); err != nil {
+	if err := h.service.ArchiveExport(c, exportID); err != nil {
 		log.WithError(err).Error("failed to delete export")
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if resetRateLimit {
-		if err := service.ResetExportRateLimit(c, exportID); err != nil {
+		if err := h.service.ResetExportRateLimit(c, exportID); err != nil {
 			log.WithError(err).Error("failed to reset rate limit")
 			handleError(c, http.StatusInternalServerError, err)
 			return
@@ -92,23 +91,23 @@ func deleteExport(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
-func handleNewSubjectDataExport(c *gin.Context) {
+func (h *privacyHandler) handleNewSubjectDataExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if valErr := service.ValidateNoValidExportExists(c, userID); valErr != nil {
+	if valErr := h.service.ValidateNoValidExportExists(c, userID); valErr != nil {
 		handleError(c, http.StatusConflict, valErr)
 		return
 	}
-	if valErr := service.ValidateNotRateLimited(c, userID); valErr != nil {
+	if valErr := h.service.ValidateNotRateLimited(c, userID); valErr != nil {
 		handleError(c, http.StatusTooManyRequests, valErr)
 		return
 	}
 
-	export, err := service.PrepareDataExport(c)
+	export, err := h.service.PrepareDataExport(c)
 	if err != nil {
 		log.Error("student data export failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -121,7 +120,7 @@ func handleNewSubjectDataExport(c *gin.Context) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), service.ExportRunTimeout)
 		defer cancel()
-		service.RunDataExport(ctx, authHeader, export)
+		h.service.RunDataExport(ctx, authHeader, export)
 	}()
 }
 
@@ -138,14 +137,14 @@ func handleNewSubjectDataExport(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [get]
-func getLatestExport(c *gin.Context) {
+func (h *privacyHandler) getLatestExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	availability, exp, err := service.GetExportAvailability(c, userID)
+	availability, exp, err := h.service.GetExportAvailability(c, userID)
 	if err != nil {
 		log.Error("get latest export failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -178,7 +177,7 @@ func getLatestExport(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid}/docs/{docID}/download-url [get]
-func getExportDocDownloadURL(c *gin.Context) {
+func (h *privacyHandler) getExportDocDownloadURL(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -191,22 +190,22 @@ func getExportDocDownloadURL(c *gin.Context) {
 		return
 	}
 
-	if valErr := service.ValidateExportBelongsToRequester(c, exportID); valErr != nil {
+	if valErr := h.service.ValidateExportBelongsToRequester(c, exportID); valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	if valErr := service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
+	if valErr := h.service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+	if valErr := h.service.ValidateExportValid(c, exportID); valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	downloadURL, err := service.GetDownloadURLForDoc(c, docID)
+	downloadURL, err := h.service.GetDownloadURLForDoc(c, docID)
 	if err != nil {
 		log.Error("get export doc download URL failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -225,8 +224,8 @@ func getExportDocDownloadURL(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-exports [get]
-func getAllExports(c *gin.Context) {
-	exports, err := service.GetAllExports(c)
+func (h *privacyHandler) getAllExports(c *gin.Context) {
+	exports, err := h.service.GetAllExports(c)
 	if err != nil {
 		log.Error("get all exports failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -249,25 +248,25 @@ func getAllExports(c *gin.Context) {
 // @Failure 500 {object} coreutils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid} [get]
-func getExport(c *gin.Context) {
+func (h *privacyHandler) getExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	valErr := service.ValidateExportBelongsToRequester(c, exportID)
+	valErr := h.service.ValidateExportBelongsToRequester(c, exportID)
 	if valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	if valErr := service.ValidateExportValid(c, exportID); valErr != nil {
+	if valErr := h.service.ValidateExportValid(c, exportID); valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	expWithDocs, expErr := service.GetExportWithDocs(c, exportID)
+	expWithDocs, expErr := h.service.GetExportWithDocs(c, exportID)
 	if expErr != nil {
 		handleError(c, http.StatusInternalServerError, expErr)
 		return

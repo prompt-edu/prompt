@@ -16,7 +16,7 @@ type TeamServiceTestSuite struct {
 	suite.Suite
 	suiteCtx    context.Context
 	cleanup     func()
-	teamService TeamsService
+	teamService *TeamsService
 }
 
 func (suite *TeamServiceTestSuite) SetupSuite() {
@@ -26,11 +26,7 @@ func (suite *TeamServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.teamService = TeamsService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	TeamsServiceSingleton = &suite.teamService
+	suite.teamService = NewTeamsService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *TeamServiceTestSuite) TearDownSuite() {
@@ -42,7 +38,7 @@ func (suite *TeamServiceTestSuite) TearDownSuite() {
 func (suite *TeamServiceTestSuite) TestGetAllTeams() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
-	teams, err := GetAllTeams(suite.suiteCtx, coursePhaseID)
+	teams, err := suite.teamService.GetAllTeams(suite.suiteCtx, coursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), len(teams), 0, "Expected at least zero teams")
 
@@ -55,7 +51,7 @@ func (suite *TeamServiceTestSuite) TestGetAllTeams() {
 func (suite *TeamServiceTestSuite) TestGetAllTeamsNonExistentCoursePhase() {
 	nonExistentID := uuid.New()
 
-	teams, err := GetAllTeams(suite.suiteCtx, nonExistentID)
+	teams, err := suite.teamService.GetAllTeams(suite.suiteCtx, nonExistentID)
 	assert.NoError(suite.T(), err, "Should not error for non-existent course phase")
 	assert.Equal(suite.T(), 0, len(teams), "Should return empty list for non-existent course phase")
 }
@@ -64,7 +60,7 @@ func (suite *TeamServiceTestSuite) TestGetTeamByID() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	teamID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-	team, err := GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
+	team, err := suite.teamService.GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), teamID, team.ID, "Team ID should match")
 	assert.Equal(suite.T(), "Team Alpha", team.Name, "Team name should match")
@@ -74,7 +70,7 @@ func (suite *TeamServiceTestSuite) TestGetTeamByIDNotFound() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	nonExistentID := uuid.New()
 
-	_, err := GetTeamByID(suite.suiteCtx, coursePhaseID, nonExistentID)
+	_, err := suite.teamService.GetTeamByID(suite.suiteCtx, coursePhaseID, nonExistentID)
 	assert.Error(suite.T(), err, "Should error for non-existent team")
 }
 
@@ -82,7 +78,7 @@ func (suite *TeamServiceTestSuite) TestCreateNewTeams() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	newTeamNames := []string{"Team Epsilon", "Team Zeta", "Team Eta"}
 
-	err := CreateNewTeams(suite.suiteCtx, newTeamNames, coursePhaseID)
+	err := suite.teamService.CreateNewTeams(suite.suiteCtx, newTeamNames, coursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	// Note: We can't easily verify the teams were created without calling GetAllTeams
@@ -93,7 +89,7 @@ func (suite *TeamServiceTestSuite) TestCreateNewTeamsEmptyList() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	emptyTeamNames := []string{}
 
-	err := CreateNewTeams(suite.suiteCtx, emptyTeamNames, coursePhaseID)
+	err := suite.teamService.CreateNewTeams(suite.suiteCtx, emptyTeamNames, coursePhaseID)
 	assert.NoError(suite.T(), err, "Should not error for empty team list")
 }
 
@@ -102,11 +98,11 @@ func (suite *TeamServiceTestSuite) TestUpdateTeamName() {
 	teamID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	newTeamName := "Updated Team Alpha"
 
-	err := UpdateTeam(suite.suiteCtx, coursePhaseID, teamID, newTeamName)
+	err := suite.teamService.UpdateTeam(suite.suiteCtx, coursePhaseID, teamID, newTeamName)
 	assert.NoError(suite.T(), err)
 
 	// Verify the team was updated
-	team, err := GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
+	team, err := suite.teamService.GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newTeamName, team.Name, "Team name should be updated")
 }
@@ -116,7 +112,7 @@ func (suite *TeamServiceTestSuite) TestUpdateTeamNameNonExistent() {
 	nonExistentID := uuid.New()
 	newTeamName := "Non-existent Team"
 
-	err := UpdateTeam(suite.suiteCtx, coursePhaseID, nonExistentID, newTeamName)
+	err := suite.teamService.UpdateTeam(suite.suiteCtx, coursePhaseID, nonExistentID, newTeamName)
 	assert.NoError(suite.T(), err, "UpdateTeam does not return error for non-existent team")
 }
 
@@ -125,15 +121,15 @@ func (suite *TeamServiceTestSuite) TestDeleteTeam() {
 	teamID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 	// Verify team exists first
-	_, err := GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
+	_, err := suite.teamService.GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
 	assert.NoError(suite.T(), err, "Team should exist before deletion")
 
 	// Delete the team
-	err = DeleteTeam(suite.suiteCtx, coursePhaseID, teamID)
+	err = suite.teamService.DeleteTeam(suite.suiteCtx, coursePhaseID, teamID)
 	assert.NoError(suite.T(), err)
 
 	// Verify team is deleted
-	_, err = GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
+	_, err = suite.teamService.GetTeamByID(suite.suiteCtx, coursePhaseID, teamID)
 	assert.Error(suite.T(), err, "Team should not exist after deletion")
 }
 
@@ -141,7 +137,7 @@ func (suite *TeamServiceTestSuite) TestDeleteTeamNonExistent() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	nonExistentID := uuid.New()
 
-	err := DeleteTeam(suite.suiteCtx, coursePhaseID, nonExistentID)
+	err := suite.teamService.DeleteTeam(suite.suiteCtx, coursePhaseID, nonExistentID)
 	assert.NoError(suite.T(), err, "DeleteTeam does not return error for non-existent team")
 }
 

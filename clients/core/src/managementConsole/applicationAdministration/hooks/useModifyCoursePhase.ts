@@ -1,4 +1,5 @@
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import { useParams } from 'react-router-dom'
@@ -9,10 +10,10 @@ export const useModifyCoursePhase = (onSuccess: () => void, onError: () => void)
 
   return useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => {
-      return updateCoursePhase(coursePhase)
+      return coreApi.coursePhases.update(coursePhase)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      coreCache.coursePhaseChanged(queryClient, phaseId)
       onSuccess()
     },
     onError: () => {

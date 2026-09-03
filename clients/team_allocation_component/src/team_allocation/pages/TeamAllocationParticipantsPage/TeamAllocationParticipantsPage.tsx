@@ -4,9 +4,9 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
+  LoadingPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Allocation } from '../../interfaces/allocation'
@@ -135,12 +135,7 @@ export const TeamAllocationParticipantsPage = () => {
   if (!phaseId) return <ErrorPage onRetry={refetch} description='Invalid course phase ID' />
   if (isError)
     return <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
-  if (isPending)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+  if (isPending) return <LoadingPage />
 
   return (
     <div id='table-view' className='relative flex flex-col'>

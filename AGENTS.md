@@ -61,11 +61,14 @@ make server
 # Start every server (core + all microservices)
 make servers
 
-# Start database and Keycloak (detached)
+# Start every service database and Keycloak (detached)
 make db
 
-# Stop database and Keycloak
+# Stop every service database and Keycloak
 make db-down
+
+# Load the demo course into every service database (start the servers first)
+make seed
 
 # Run linting
 make lint
@@ -141,6 +144,11 @@ phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
 
+**Seed data:** `make seed` loads one fully populated demo course into all eight databases from
+`seed/` (see `docs/contributor/guide/seeding.md`). It is data only and runs after the servers have
+migrated; never insert `course_phase_type` rows, resolve them by name. `make seed-check` verifies
+the ids that cross service boundaries.
+
 Run `make lint` and `make test` before completing a change. Client unit tests run on Vitest from
 `clients/` (`make test-clients`); Go tests use `testcontainers-go`; end-to-end tests use Playwright
 and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md`.
@@ -171,7 +179,7 @@ make test-e2e-down                     # stop the stack and remove volumes
 - Playwright suite lives in `e2e/`; see **`e2e/README.md`** for how to run it
   (including interactive UI mode) and how to add tests
 - Boots core server + client + Keycloak + Postgres + SeaweedFS via `docker-compose.e2e.yml`
-- Uses the seeded Keycloak users and a fixed DB seed (`e2e/seed/e2e_seed.sql`)
+- Uses the seeded Keycloak users and the shared DB seed (`seed/`, see `make seed`)
 - Runs on non-default host ports (client 4000 / API 18090 / Keycloak 18081), so
   it coexists with a running dev stack
 

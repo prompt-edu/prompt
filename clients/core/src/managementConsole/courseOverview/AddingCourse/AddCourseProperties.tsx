@@ -1,4 +1,4 @@
-import { checkCourseNameExists } from '@core/network/queries/checkCourseNameExists'
+import { coreApi } from '@core/network/api'
 import { type CourseFormValues, courseFormSchema } from '@core/validations/course'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
@@ -74,7 +74,7 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
     const semesterTag = form.getValues('semesterTag')
     if (!name || !semesterTag) return
     try {
-      const exists = await checkCourseNameExists(name, semesterTag)
+      const exists = await coreApi.courses.nameExists(name, semesterTag)
       if (exists) {
         form.setError('name', {
           type: 'manual',

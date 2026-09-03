@@ -18,14 +18,20 @@ import (
 // and persist them under the target phase ID.
 // It is also the functionality called when a course is templated to set up
 // a new phase based on an existing one.
+//
+// The service implements promptTypes.PhaseCopyHandler itself, so `RegisterRoutes`
+// passes it straight to the SDK and there is no separate handler type to keep in sync.
 type CopyService struct {
 	queries db.Queries
 	conn    *pgxpool.Pool
 }
 
-var CopyServiceSingleton *CopyService
-
-type ExampleServerCopyHandler struct{}
+func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
+	return &CopyService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 // HandlePhaseCopy godoc
 // @Summary Copy course phase data
@@ -40,8 +46,9 @@ type ExampleServerCopyHandler struct{}
 // @Router /copy [post]
 // HandlePhaseCopy is a placeholder implementation demonstrating the expected
 // method signature for phase copy handlers. It currently returns 404 until
-// the actual functionality is implemented.
-func (h *ExampleServerCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+// the actual functionality is implemented. Copy inside a transaction taken from
+// the receiver's pool (`s.conn`), never through a global.
+func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	c.AbortWithStatus(http.StatusNotFound)
 	return nil
 }

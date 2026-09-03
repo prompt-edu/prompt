@@ -13,21 +13,20 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
-	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
 const maxAllocationBodyBytes = 4 << 10
 
-func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, queries db.Queries) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(queries))
+	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(service.queries))
 
-	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllAllocations)
-	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, getAllocationByCourseParticipationID)
-	allocationRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, updateAllocation)
-	allocationRouter.DELETE("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, deleteAllocation)
+	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
+	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
+	allocationRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, service.updateAllocation)
+	allocationRouter.DELETE("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, service.deleteAllocation)
 }
 
 // getAllAllocations godoc
@@ -41,14 +40,14 @@ func setupAllocationRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation [get]
-func getAllAllocations(c *gin.Context) {
+func (s *AllocationService) getAllAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	allocations, err := GetAllAllocations(c, coursePhaseID)
+	allocations, err := s.GetAllAllocations(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -75,7 +74,7 @@ func getAllAllocations(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [get]
-func getAllocationByCourseParticipationID(c *gin.Context) {
+func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -88,7 +87,7 @@ func getAllocationByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	teamID, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	teamID, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			handleError(c, http.StatusNotFound, err)
@@ -134,7 +133,7 @@ func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipa
 // @Failure 502 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [put]
-func updateAllocation(c *gin.Context) {
+func (s *AllocationService) updateAllocation(c *gin.Context) {
 	coursePhaseID, courseParticipationID, ok := parseAllocationParams(c)
 	if !ok {
 		return
@@ -158,7 +157,7 @@ func updateAllocation(c *gin.Context) {
 		return
 	}
 
-	err := UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, expectedTeamID)
+	err := s.UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, expectedTeamID)
 	switch {
 	case err == nil:
 		c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: request.TeamID})
@@ -188,7 +187,7 @@ func updateAllocation(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation/{courseParticipationID} [delete]
-func deleteAllocation(c *gin.Context) {
+func (s *AllocationService) deleteAllocation(c *gin.Context) {
 	coursePhaseID, courseParticipationID, ok := parseAllocationParams(c)
 	if !ok {
 		return
@@ -199,12 +198,12 @@ func deleteAllocation(c *gin.Context) {
 		return
 	}
 
-	err := DeleteAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID)
+	err := s.DeleteAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID)
 	switch {
 	case err == nil:
 		c.Status(http.StatusNoContent)
 	case errors.Is(err, ErrAllocationNotFound):
-		if isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID) {
+		if s.isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID) {
 			denyAllocationWrite(c)
 			return
 		}
@@ -265,11 +264,11 @@ func authorizeAllocationWrite(c *gin.Context) (pgtype.UUID, bool) {
 
 // isForeignTeamAllocation classifies a delete that affected no rows. It only picks
 // the status code, it never grants access: the scoped delete has already not happened.
-func isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) bool {
+func (s *AllocationService) isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) bool {
 	if !expectedTeamID.Valid {
 		return false
 	}
-	_, err := GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	_, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	return err == nil
 }
 

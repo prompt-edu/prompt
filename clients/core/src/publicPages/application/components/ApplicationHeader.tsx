@@ -2,6 +2,7 @@ import type { OpenApplicationDetails } from '@core/interfaces/application/openAp
 import { Button } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
+import { ApplicationWelcomeText } from './ApplicationWelcomeText'
 
 interface ApplicationHeaderProps {
   applicationPhase: OpenApplicationDetails
@@ -34,6 +35,7 @@ export const ApplicationHeader = ({ applicationPhase, onBackClick }: Application
             {applicationPhase.longDescription}
           </p>
         )}
+        <ApplicationWelcomeText welcomeText={applicationPhase.welcomeText} />
       </div>
     </div>
   )

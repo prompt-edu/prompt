@@ -2,7 +2,7 @@ import {
   type AdminExportDoc,
   type AdminPrivacyExport,
   ExportStatus,
-} from '@core/network/queries/privacyStudentDataExport'
+} from '@core/interfaces/privacy'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Archive, CircleCheck, CircleX, Info, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'

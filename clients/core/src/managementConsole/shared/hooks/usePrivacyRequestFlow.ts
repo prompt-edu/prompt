@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 
 interface UsePrivacyRequestFlowOptions<
@@ -28,12 +29,12 @@ export function usePrivacyRequestFlow<
   pollIntervalMs = 3000,
 }: UsePrivacyRequestFlowOptions<TLatest, TCreated, TStatus>) {
   const latestQuery = useQuery({
-    queryKey: ['privacy', `${resource}-latest`],
+    queryKey: coreKeys.privacy.latest(resource),
     queryFn: getLatest,
   })
 
   const createQuery = useQuery({
-    queryKey: ['privacy', `${resource}-create`],
+    queryKey: coreKeys.privacy.create(resource),
     queryFn: createRequest,
     enabled: false,
   })
@@ -41,7 +42,7 @@ export function usePrivacyRequestFlow<
   const id = createQuery.data?.id ?? extractIdFromLatest(latestQuery.data)
 
   const statusQuery = useQuery({
-    queryKey: ['privacy', `${resource}-status`, id],
+    queryKey: coreKeys.privacy.status(resource, id),
     queryFn: () => getStatus(id!),
     enabled: !!id,
     refetchInterval: (query) => {

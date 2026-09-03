@@ -18,11 +18,11 @@ import (
 var errInvalidAllocation = errors.New("invalid allocation")
 
 // GetTeaseWorkspace returns the persisted workspace for a course phase.
-func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
+func (s *TeaseService) GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	row, err := TeaseServiceSingleton.queries.GetTeaseWorkspace(ctxWithTimeout, coursePhaseID)
+	row, err := s.queries.GetTeaseWorkspace(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return teaseDTO.TeaseWorkspace{
@@ -40,13 +40,13 @@ func GetTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID) (teaseDTO.T
 }
 
 // UpsertTeaseWorkspace saves a draft workspace without publishing allocations.
-func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
+func (s *TeaseService) UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseWorkspaceRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	params := upsertParamsFromRequest(coursePhaseID, req, updatedBy)
 
-	row, err := TeaseServiceSingleton.queries.UpsertTeaseWorkspace(ctxWithTimeout, params)
+	row, err := s.queries.UpsertTeaseWorkspace(ctxWithTimeout, params)
 	if err != nil {
 		log.Error("could not upsert tease workspace: ", err)
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not upsert tease workspace: %w", err)
@@ -58,7 +58,7 @@ func UpsertTeaseWorkspace(ctx context.Context, coursePhaseID uuid.UUID, req teas
 // SaveTeaseWorkspaceAndAllocations publishes a workspace and replaces allocations.
 // The payload is a whole-phase draft, so it overwrites any allocation written
 // directly through the allocation endpoints since the draft was loaded.
-func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
+func (s *TeaseService) SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	if err := validateAllocations(req.Allocations); err != nil {
 		return teaseDTO.TeaseWorkspace{}, err
 	}
@@ -66,13 +66,13 @@ func SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UU
 	ctx, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	tx, err := TeaseServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return teaseDTO.TeaseWorkspace{}, fmt.Errorf("could not begin transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := TeaseServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	allocationsDraft, err := json.Marshal(req.Allocations)
 	if err != nil {

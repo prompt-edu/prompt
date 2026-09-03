@@ -1,10 +1,5 @@
-import {
-  ExportStatus,
-  getLatestStudentDataExport,
-  getStudentDataExportStatus,
-  type LatestExportResponse,
-  requestStudentDataExport,
-} from '@core/network/queries/privacyStudentDataExport'
+import { ExportStatus, type LatestExportResponse } from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
 import { Button, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -28,10 +23,10 @@ export function PrivacyDataExportPage() {
 
   const requestFlow = usePrivacyRequestFlow({
     resource: 'data-export',
-    getLatest: getLatestStudentDataExport,
+    getLatest: coreApi.privacy.latestExport,
     extractIdFromLatest: getExportIDFromLatest,
-    createRequest: requestStudentDataExport,
-    getStatus: getStudentDataExportStatus,
+    createRequest: coreApi.privacy.requestExport,
+    getStatus: coreApi.privacy.exportStatus,
     isEndState,
   })
 

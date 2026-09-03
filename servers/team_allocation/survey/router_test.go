@@ -24,7 +24,7 @@ type SurveyRouterTestSuite struct {
 	router        *gin.Engine
 	suiteCtx      context.Context
 	cleanup       func()
-	surveyService SurveyService
+	surveyService *SurveyService
 }
 
 func (suite *SurveyRouterTestSuite) SetupSuite() {
@@ -34,11 +34,7 @@ func (suite *SurveyRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.surveyService = SurveyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	SurveyServiceSingleton = &suite.surveyService
+	suite.surveyService = NewSurveyService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
@@ -48,7 +44,7 @@ func (suite *SurveyRouterTestSuite) SetupSuite() {
 			inner(c)
 		}
 	}
-	setupSurveyRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.surveyService, testMiddleware)
 }
 
 func (suite *SurveyRouterTestSuite) TearDownSuite() {
@@ -167,7 +163,7 @@ func (suite *SurveyRouterTestSuite) TestSetSurveyTimeframe() {
 	// Use a local router to avoid overwriting the shared suite router
 	localRouter := gin.Default()
 	api := localRouter.Group("/api/course_phase/:coursePhaseID")
-	setupSurveyRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.surveyService, testMiddleware)
 
 	timeframeReq := surveyDTO.SurveyTimeframe{
 		SurveyStart:    time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC),

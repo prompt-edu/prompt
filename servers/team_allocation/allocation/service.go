@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests"
@@ -42,14 +41,18 @@ func DefaultParticipantResolver() participantResolver {
 
 type AllocationService struct {
 	queries             db.Queries
-	conn                *pgxpool.Pool
 	resolveParticipants participantResolver
 }
 
-var AllocationServiceSingleton *AllocationService
+func NewAllocationService(queries db.Queries) *AllocationService {
+	return &AllocationService{
+		queries:             queries,
+		resolveParticipants: DefaultParticipantResolver(),
+	}
+}
 
-func GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocationDTO.AllocationWithParticipation, error) {
-	dbAllocations, err := AllocationServiceSingleton.queries.GetAllocationsByCoursePhase(ctx, coursePhaseID)
+func (s *AllocationService) GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocationDTO.AllocationWithParticipation, error) {
+	dbAllocations, err := s.queries.GetAllocationsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("Error fetching allocations from database: ", err)
 		return []allocationDTO.AllocationWithParticipation{}, err
@@ -59,8 +62,8 @@ func GetAllAllocations(ctx context.Context, coursePhaseID uuid.UUID) ([]allocati
 	return allocations, nil
 }
 
-func GetAllocationByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (uuid.UUID, error) {
-	allocation, err := AllocationServiceSingleton.queries.GetAllocationForStudent(ctx, db.GetAllocationForStudentParams{
+func (s *AllocationService) GetAllocationByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (uuid.UUID, error) {
+	allocation, err := s.queries.GetAllocationForStudent(ctx, db.GetAllocationForStudentParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -77,8 +80,8 @@ func GetAllocationByCourseParticipationID(ctx context.Context, courseParticipati
 
 // UpsertAllocation assigns a participant to a team. expectedTeamID scopes the
 // write to a source team; an unset value writes unconditionally.
-func UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, teamID uuid.UUID, expectedTeamID pgtype.UUID) error {
-	participants, err := AllocationServiceSingleton.resolveParticipants(authHeader, coursePhaseID)
+func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, teamID uuid.UUID, expectedTeamID pgtype.UUID) error {
+	participants, err := s.resolveParticipants(authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch course phase participants from core: ", err)
 		return ErrParticipantLookup
@@ -89,7 +92,7 @@ func UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, cou
 		return ErrParticipantNotInPhase
 	}
 
-	if _, err := AllocationServiceSingleton.queries.GetTeamByCoursePhaseAndTeamID(ctx, db.GetTeamByCoursePhaseAndTeamIDParams{
+	if _, err := s.queries.GetTeamByCoursePhaseAndTeamID(ctx, db.GetTeamByCoursePhaseAndTeamIDParams{
 		ID:            teamID,
 		CoursePhaseID: coursePhaseID,
 	}); err != nil {
@@ -99,7 +102,7 @@ func UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, cou
 		return fmt.Errorf("could not verify the team of the course phase: %w", err)
 	}
 
-	rows, err := AllocationServiceSingleton.queries.UpsertAllocationForParticipant(ctx, db.UpsertAllocationForParticipantParams{
+	rows, err := s.queries.UpsertAllocationForParticipant(ctx, db.UpsertAllocationForParticipantParams{
 		ID:                    uuid.New(),
 		CourseParticipationID: courseParticipationID,
 		TeamID:                teamID,
@@ -123,8 +126,8 @@ func UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, cou
 
 // DeleteAllocation removes a participant's allocation. expectedTeamID scopes the
 // delete to a source team; an unset value deletes unconditionally.
-func DeleteAllocation(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) error {
-	rows, err := AllocationServiceSingleton.queries.DeleteAllocationForParticipant(ctx, db.DeleteAllocationForParticipantParams{
+func (s *AllocationService) DeleteAllocation(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) error {
+	rows, err := s.queries.DeleteAllocationForParticipant(ctx, db.DeleteAllocationForParticipantParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 		ExpectedTeamID:        expectedTeamID,

@@ -105,7 +105,7 @@ func stubParticipants(courseParticipationIDs ...string) participantResolver {
 func (suite *AllocationRouterTestSuite) routerAs(login string) *gin.Engine {
 	router := gin.New()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupAllocationRouter(api, tutorAuthMiddleware(login), suite.allocationService.queries)
+	RegisterRoutes(api, suite.allocationService, tutorAuthMiddleware(login))
 	return router
 }
 
@@ -114,7 +114,7 @@ type AllocationRouterTestSuite struct {
 	router            *gin.Engine
 	suiteCtx          context.Context
 	cleanup           func()
-	allocationService AllocationService
+	allocationService *AllocationService
 }
 
 func (suite *AllocationRouterTestSuite) SetupSuite() {
@@ -124,18 +124,14 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.allocationService = AllocationService{
-		queries:             *testDB.Queries,
-		conn:                testDB.Conn,
-		resolveParticipants: stubParticipants(tutorFreeParticip, deltaParticip, epsilonParticip, staffFreeParticip),
-	}
-	AllocationServiceSingleton = &suite.allocationService
+	suite.allocationService = NewAllocationService(*testDB.Queries)
+	suite.allocationService.resolveParticipants = stubParticipants(tutorFreeParticip, deltaParticip, epsilonParticip, staffFreeParticip)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "admin@example.com", "03711111", "ab12cde")
 	}
-	setupAllocationRouter(api, testMiddleware, *testDB.Queries)
+	RegisterRoutes(api, suite.allocationService, testMiddleware)
 }
 
 func (suite *AllocationRouterTestSuite) TearDownSuite() {
@@ -274,7 +270,7 @@ func (suite *AllocationRouterTestSuite) deleteAllocation(router *gin.Engine, cou
 }
 
 func (suite *AllocationRouterTestSuite) storedTeam(courseParticipationID string) (uuid.UUID, error) {
-	return GetAllocationByCourseParticipationID(suite.suiteCtx, uuid.MustParse(courseParticipationID), uuid.MustParse(writePhase))
+	return suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, uuid.MustParse(courseParticipationID), uuid.MustParse(writePhase))
 }
 
 func (suite *AllocationRouterTestSuite) TestAdminAssignsParticipantToAnyTeam() {
@@ -289,7 +285,7 @@ func (suite *AllocationRouterTestSuite) TestAdminAssignsParticipantToAnyTeam() {
 func (suite *AllocationRouterTestSuite) TestCourseLecturerMovesParticipantBetweenTeams() {
 	router := gin.New()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupAllocationRouter(api, lecturerAuthMiddleware(), suite.allocationService.queries)
+	RegisterRoutes(api, suite.allocationService, lecturerAuthMiddleware())
 
 	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
@@ -418,7 +414,7 @@ func (suite *AllocationRouterTestSuite) TestUpdateAllocationRejectsInvalidIDs() 
 func (suite *AllocationRouterTestSuite) routerWith(authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
 	router := gin.New()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupAllocationRouter(api, authMiddleware, suite.allocationService.queries)
+	RegisterRoutes(api, suite.allocationService, authMiddleware)
 	return router
 }
 

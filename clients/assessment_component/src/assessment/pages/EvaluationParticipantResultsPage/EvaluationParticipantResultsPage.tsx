@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, CardContent, ErrorPage, getStudentName } from '@tumaet/prompt-ui-components'
-import { Loader2, Printer } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  ErrorPage,
+  getStudentName,
+  LoadingPage,
+} from '@tumaet/prompt-ui-components'
+import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -139,11 +146,7 @@ export const EvaluationParticipantResultsPage = ({
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   if (!participant) {

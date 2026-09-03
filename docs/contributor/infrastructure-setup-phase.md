@@ -461,8 +461,9 @@ with the migrations.
 - **execution/template** — every placeholder and alias, sanitization, and rejection of unknown
   placeholders.
 - **execution/worker** — created, partial (with the external ID preserved), retry to exhaustion,
-  success after a transient failure, a vanished target, an unresolvable template, and startup
-  recovery. Two workers racing on one phase call the provider exactly once.
+  success after a transient failure, a vanished target, an unresolvable template, a resolver failure
+  handing the claimed instances back, and the sweep over abandoned claims. Two workers racing on one
+  phase call the provider exactly once.
 - **execution/service** — instances per team and per student, 409 for a second trigger, two
   concurrent triggers on separate connections creating one run, and retry returning 404/409.
 - **execution/target_resolver** — malformed upstream payloads are skipped, not fatal.
@@ -471,8 +472,9 @@ with the migrations.
 - **providerconfig / resourceconfig** — credentials are encrypted at rest and never returned,
   non-string and unknown credential fields are rejected, and resource types are validated against
   the provider.
-- **copy / phaseconfig** — a copied phase reports its semester tag and resource configs but not its
-  providers, and copying twice does not duplicate anything.
+- **copy / config / phaseconfig** — the copy endpoint answers with exactly one JSON body, a copied
+  phase reports its semester tag and resource configs but not its providers, copying twice does not
+  duplicate anything, and a phase with no config row reads as unconfigured rather than failing.
 
 End-to-end coverage lives in `e2e/tests/infrastructure-setup/`.
 

@@ -5,9 +5,23 @@ import { coreKeys } from './keys'
 type Id = string | undefined
 type CacheKeys = readonly (readonly unknown[])[]
 
+/**
+ * The part of a key that is safe to invalidate.
+ *
+ * Keys are built from route params, so a scoping id can be `undefined`. `invalidateQueries` matches
+ * by prefix and compares every segment, so a key holding `undefined` matches nothing cached and the
+ * invalidation silently reaches no cache at all. Truncating at the missing segment over-invalidates
+ * instead, which costs a refetch, where the full key would leave stale data on screen. Every key in
+ * `coreKeys` opens with a literal, so the result is never the whole cache.
+ */
+const definedPrefixOf = (queryKey: readonly unknown[]): readonly unknown[] => {
+  const missing = queryKey.indexOf(undefined)
+  return missing === -1 ? queryKey : queryKey.slice(0, missing)
+}
+
 const invalidate = (queryClient: QueryClient, keys: CacheKeys): void => {
   for (const queryKey of keys) {
-    queryClient.invalidateQueries({ queryKey })
+    queryClient.invalidateQueries({ queryKey: definedPrefixOf(queryKey) })
   }
 }
 

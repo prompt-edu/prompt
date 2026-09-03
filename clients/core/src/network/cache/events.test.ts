@@ -164,6 +164,28 @@ describe('applicationAssessmentSaved', () => {
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(false)
   })
+
+  // The phase id comes from `useParams`, so a route that stops providing it must not turn the
+  // invalidation into a no-op
+  it('falls back to every phase when the phase id is missing', () => {
+    seed(
+      coreKeys.applications.participations.inPhase(PHASE),
+      coreKeys.applications.participations.inPhase(OTHER_PHASE),
+    )
+
+    coreCache.applicationAssessmentSaved(queryClient, undefined)
+
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
+  })
+
+  it('still leaves the applications alone when the phase id is missing', () => {
+    seed(coreKeys.applications.ofParticipation(PARTICIPATION))
+
+    coreCache.applicationAssessmentSaved(queryClient, undefined)
+
+    expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(false)
+  })
 })
 
 describe('studentUniversityDataChanged', () => {
@@ -290,5 +312,32 @@ describe('privacy events', () => {
     coreCache.privacyExportsChanged(queryClient)
 
     expect(isInvalidated(coreKeys.privacy.admin.exports())).toBe(true)
+  })
+})
+
+// Every id-scoped event routes through the same `invalidate` helper, so this covers the class
+describe('a key whose scoping id is missing', () => {
+  it('is truncated at the missing segment rather than matching nothing', () => {
+    seed(
+      coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN),
+      coreKeys.mailCampaigns.byId(COURSE, 'campaign-2'),
+    )
+
+    coreCache.mailCampaignChanged(queryClient, COURSE, undefined)
+
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN))).toBe(true)
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, 'campaign-2'))).toBe(true)
+  })
+
+  it('keeps the segments before the missing one, so other ids stay untouched', () => {
+    seed(
+      coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN),
+      coreKeys.mailCampaigns.byId(OTHER_COURSE, CAMPAIGN),
+    )
+
+    coreCache.mailCampaignChanged(queryClient, COURSE, undefined)
+
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN))).toBe(true)
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(OTHER_COURSE, CAMPAIGN))).toBe(false)
   })
 })

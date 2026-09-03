@@ -74,6 +74,16 @@ func (p *Provider) SupportedResourceTypes() []string { return []string{"group", 
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return []string{"parent_group_template"} }
 
+// A project is created inside the team's subgroup, so it has no namespace without the
+// template naming that subgroup. A group needs none: it is created under the provider's
+// parent group.
+func (p *Provider) RequiredExtraConfigKeys(resourceType string) []string {
+	if resourceType == resourceTypeProject {
+		return []string{extraKeyParentGroupTemplate}
+	}
+	return nil
+}
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	if _, _, err := p.parentGroupID(); err != nil {
 		return err
@@ -124,7 +134,7 @@ func (p *Provider) createGroup(ctx context.Context, input provider.CreateResourc
 		return nil, err
 	}
 
-	groupID, groupURL, err := p.findOrCreateGroup(ctx, name, slug, parentID, hasParent)
+	groupID, _, groupURL, err := p.findOrCreateGroup(ctx, name, slug, parentID, hasParent)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +180,7 @@ func (p *Provider) createProject(ctx context.Context, input provider.CreateResou
 			extraKeyParentGroupTemplate)
 	}
 
-	groupID, _, err := p.findOrCreateGroup(ctx, groupName, groupSlug, parentID, hasParent)
+	groupID, groupFullPath, _, err := p.findOrCreateGroup(ctx, groupName, groupSlug, parentID, hasParent)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +189,7 @@ func (p *Provider) createProject(ctx context.Context, input provider.CreateResou
 	// warning and the instance stays retryable rather than losing the group.
 	warnings := p.addMembers(ctx, groupID, input)
 
-	projectID, projectURL, err := p.findOrCreateProject(ctx, groupID, groupSlug, projectName, projectSlug, input)
+	projectID, projectURL, err := p.findOrCreateProject(ctx, groupID, groupFullPath, projectName, projectSlug, input)
 	if err != nil {
 		return nil, err
 	}
@@ -213,16 +223,21 @@ func (p *Provider) addMembers(ctx context.Context, groupID int, input provider.C
 	return warnings
 }
 
-// findOrCreateGroup returns the group ID and URL for a group, creating it if necessary.
+// findOrCreateGroup returns the group ID, its namespaced full path and its URL,
+// creating the group if necessary.
 //
 // With a parent configured we search that parent's subgroups and compare the path
 // exactly. Matching on a full_path suffix across all visible groups would also match
 // another course's group of the same name and add students to it.
-func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, parentID int, hasParent bool) (int, string, error) {
-	if id, webURL, found, err := p.findGroup(ctx, slug, parentID, hasParent); err != nil {
-		return 0, "", err
+//
+// The full path is what a project inside the group is addressed by, so it is returned
+// rather than reconstructed from the slug: under a parent the slug is only the last
+// segment of the path GitLab knows the group as.
+func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, parentID int, hasParent bool) (int, string, string, error) {
+	if id, fullPath, webURL, found, err := p.findGroup(ctx, slug, parentID, hasParent); err != nil {
+		return 0, "", "", err
 	} else if found {
-		return id, webURL, nil
+		return id, fullPath, webURL, nil
 	}
 
 	// Create the group.
@@ -238,21 +253,26 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, par
 	if err != nil {
 		// A concurrent run, or a group the search could not see, may have taken the
 		// path already. Re-resolve instead of failing the instance.
-		if id, webURL, found, findErr := p.findGroup(ctx, slug, parentID, hasParent); findErr == nil && found {
-			return id, webURL, nil
+		if id, fullPath, webURL, found, findErr := p.findGroup(ctx, slug, parentID, hasParent); findErr == nil && found {
+			return id, fullPath, webURL, nil
 		}
-		return 0, "", err
+		return 0, "", "", err
 	}
 
 	var created struct {
-		ID     int    `json:"id"`
-		WebURL string `json:"web_url"`
+		ID       int    `json:"id"`
+		FullPath string `json:"full_path"`
+		WebURL   string `json:"web_url"`
 	}
 	if err := json.Unmarshal(createBody, &created); err != nil {
-		return 0, "", err
+		return 0, "", "", err
 	}
 
-	return created.ID, created.WebURL, nil
+	fullPath := created.FullPath
+	if fullPath == "" {
+		fullPath = slug
+	}
+	return created.ID, fullPath, created.WebURL, nil
 }
 
 // findGroup looks for a group whose path matches slug exactly.
@@ -260,7 +280,7 @@ func (p *Provider) findOrCreateGroup(ctx context.Context, name, slug string, par
 // GitLab's search is a substring match, so "ios-team-1" also matches "ios-team-10".
 // The result is paginated to make sure an exact match on a later page is still found;
 // concluding "absent" would make the create fail on a taken path.
-func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, hasParent bool) (int, string, bool, error) {
+func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, hasParent bool) (int, string, string, bool, error) {
 	for page := 1; ; page++ {
 		var searchPath string
 		if hasParent {
@@ -273,7 +293,7 @@ func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, has
 
 		body, err := p.get(ctx, searchPath)
 		if err != nil {
-			return 0, "", false, err
+			return 0, "", "", false, err
 		}
 
 		var groups []struct {
@@ -283,21 +303,21 @@ func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, has
 			WebURL   string `json:"web_url"`
 		}
 		if err := json.Unmarshal(body, &groups); err != nil {
-			return 0, "", false, err
+			return 0, "", "", false, err
 		}
 
 		for _, g := range groups {
 			if hasParent {
 				if g.Path == slug {
-					return g.ID, g.WebURL, true, nil
+					return g.ID, g.FullPath, g.WebURL, true, nil
 				}
 			} else if g.FullPath == slug {
-				return g.ID, g.WebURL, true, nil
+				return g.ID, g.FullPath, g.WebURL, true, nil
 			}
 		}
 
 		if len(groups) < gitlabPageSize {
-			return 0, "", false, nil
+			return 0, "", "", false, nil
 		}
 	}
 }
@@ -310,8 +330,11 @@ func (p *Provider) findGroup(ctx context.Context, slug string, parentID int, has
 // surface: create answers 400 with a field-keyed message map, while the fork endpoint
 // answers 409 with a flat array of sentences. The create error is only used as a signal
 // to re-run the exact lookup.
-func (p *Provider) findOrCreateProject(ctx context.Context, groupID int, groupSlug, projectName, projectSlug string, input provider.CreateResourceInput) (int, string, error) {
-	fullPath := groupSlug + "/" + projectSlug
+func (p *Provider) findOrCreateProject(ctx context.Context, groupID int, groupFullPath, projectName, projectSlug string, input provider.CreateResourceInput) (int, string, error) {
+	// The lookup needs the project's namespaced path, so it is built from the group's
+	// full path. The subgroup slug alone would address a top-level namespace that does
+	// not exist, and the 404 would make every run create the project again.
+	fullPath := groupFullPath + "/" + projectSlug
 
 	if id, webURL, found, err := p.findProject(ctx, fullPath); err != nil {
 		return 0, "", err

@@ -64,6 +64,16 @@ func SupportedResourceTypes(providerType string) ([]string, error) {
 	return descriptor.SupportedResourceTypes(), nil
 }
 
+// RequiredExtraConfigKeys returns the extra-config keys a provider cannot create the
+// resource type without, so a config missing one is rejected before it is stored.
+func RequiredExtraConfigKeys(providerType, resourceType string) ([]string, error) {
+	descriptor, err := descriptorFor(providerType)
+	if err != nil {
+		return nil, err
+	}
+	return descriptor.RequiredExtraConfigKeys(resourceType), nil
+}
+
 // TemplatedExtraConfigKeys returns the extra-config keys a provider treats as name
 // templates, so they can be validated before they are stored.
 func TemplatedExtraConfigKeys(providerType string) ([]string, error) {

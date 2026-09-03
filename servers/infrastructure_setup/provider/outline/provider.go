@@ -64,6 +64,9 @@ func (p *Provider) SupportedResourceTypes() []string { return []string{"collecti
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return []string{"group_name_template"} }
 
+// The group name template is optional: it defaults to the collection name.
+func (p *Provider) RequiredExtraConfigKeys(string) []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK   bool `json:"ok"`

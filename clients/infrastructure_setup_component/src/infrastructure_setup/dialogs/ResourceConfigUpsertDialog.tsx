@@ -32,6 +32,7 @@ import type {
 import { createResourceConfig } from '../network/mutations/createResourceConfig'
 import { updateResourceConfig } from '../network/mutations/updateResourceConfig'
 import { getProviderResourceTypes } from '../network/queries/getProviderResourceTypes'
+import { describeError } from '../utils/describeError'
 
 interface Props {
   coursePhaseID: string
@@ -174,7 +175,7 @@ export const ResourceConfigUpsertDialog = ({
     onError: (err: unknown) => {
       toast({
         title: 'Failed to save resource config',
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: describeError(err),
         variant: 'destructive',
       })
     },

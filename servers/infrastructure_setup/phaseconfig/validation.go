@@ -2,6 +2,7 @@ package phaseconfig
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -15,24 +16,29 @@ const maxSemesterTagLength = 32
 // into provider resource names that often disallow spaces or special characters.
 var semesterTagPattern = regexp.MustCompile(`^[a-z0-9]+$`)
 
+// ErrValidation marks a rejected request so the router can answer 400 instead of 500.
+var ErrValidation = errors.New("invalid infrastructure setup configuration")
+
 // validateUpsertRequest checks that the semester tag, when provided, is in a format
-// the execution worker can safely interpolate into provider resource names.
+// the execution worker can safely interpolate into provider resource names. It returns
+// the tag as it must be stored: the surrounding whitespace is what was validated, so
+// keeping it would put a space into every templated resource name.
 // An empty tag is allowed - phases that do not yet use templated names skip this check.
-func validateUpsertRequest(req phaseconfigDTO.UpsertRequest) error {
+func validateUpsertRequest(req phaseconfigDTO.UpsertRequest) (string, error) {
 	tag := strings.TrimSpace(req.SemesterTag)
 	if tag == "" {
-		return nil
+		return "", nil
 	}
 	if len(tag) > maxSemesterTagLength {
-		return logAndReturnError("semesterTag is too long")
+		return "", logAndReturnError("semesterTag is too long")
 	}
 	if !semesterTagPattern.MatchString(tag) {
-		return logAndReturnError("semesterTag must contain only lowercase letters and digits")
+		return "", logAndReturnError("semesterTag must contain only lowercase letters and digits")
 	}
-	return nil
+	return tag, nil
 }
 
 func logAndReturnError(msg string) error {
 	log.Error(msg)
-	return errors.New(msg)
+	return fmt.Errorf("%w: %s", ErrValidation, msg)
 }

@@ -7,11 +7,22 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
+
+// failingTargetResolver stands in for core being unreachable.
+type failingTargetResolver struct {
+	err error
+}
+
+func (f failingTargetResolver) ResolveTargets(_ context.Context, _ string, _ uuid.UUID, _ db.ResourceScope) ([]ProvisioningTarget, error) {
+	return nil, f.err
+}
 
 // fakeProvider records how often it was asked to create a resource and returns a
 // scripted outcome.
@@ -27,6 +38,7 @@ func (f *fakeProvider) GetAuthFields() []provider.AuthField       { return nil }
 func (f *fakeProvider) SupportedResourceTypes() []string          { return []string{"group"} }
 func (f *fakeProvider) ValidateCredentials(context.Context) error { return nil }
 func (f *fakeProvider) TemplatedExtraConfigKeys() []string        { return nil }
+func (f *fakeProvider) RequiredExtraConfigKeys(string) []string   { return nil }
 
 func (f *fakeProvider) CreateResource(_ context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	call := f.calls.Add(1)
@@ -291,8 +303,41 @@ func TestWorkerFailsInstanceOnBadNameTemplate(t *testing.T) {
 	}
 }
 
-// Instances left in_progress by a crash are returned to pending at startup.
-func TestResetInProgressToPendingRecoversStuckInstances(t *testing.T) {
+// A resolver failure after the instances were claimed must hand them back: an
+// instance left in_progress makes every later trigger answer 409 and cannot be
+// retried either, so the phase would be stuck until the row is deleted.
+func TestWorkerFailsClaimedInstancesWhenTargetResolutionFails(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	fake := &fakeProvider{}
+	registerFakeProvider(t, fake)
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, failingTargetResolver{err: errors.New("core is unreachable")})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err == nil {
+		t.Fatal("processPhase = nil error, want the resolver failure")
+	}
+
+	got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID)
+	if got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed so the phase can be triggered again", got.Status)
+	}
+	if got.ErrorMessage == nil || *got.ErrorMessage == "" {
+		t.Fatal("error message is empty, want the resolver failure recorded on the instance")
+	}
+	if fake.calls.Load() != 0 {
+		t.Fatal("provider was called although no target could be resolved")
+	}
+}
+
+// Instances left claimed by a crashed process are marked failed, which is terminal
+// (so the phase can run again) and retryable by the lecturer.
+func TestFailStaleClaimsRecoversAbandonedInstances(t *testing.T) {
 	testDB, cleanup := setupExecutionTestDB(t)
 	defer cleanup()
 
@@ -309,11 +354,42 @@ func TestResetInProgressToPendingRecoversStuckInstances(t *testing.T) {
 		t.Fatalf("claimed = %d, want 1", len(claimed))
 	}
 
-	if err := testDB.Queries.ResetInProgressToPending(context.Background()); err != nil {
-		t.Fatalf("reset in progress: %v", err)
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{})
+
+	// A claim younger than the cutoff may belong to a run that is still going.
+	if recovered, err := worker.FailStaleClaims(context.Background()); err != nil {
+		t.Fatalf("FailStaleClaims: %v", err)
+	} else if recovered != 0 {
+		t.Fatalf("recovered = %d for a fresh claim, want 0", recovered)
 	}
-	if got := getInstance(t, testDB.Queries, coursePhaseID, claimed[0].ID); got.Status != db.ResourceStatusPending {
-		t.Fatalf("status = %s, want pending", got.Status)
+	if got := getInstance(t, testDB.Queries, coursePhaseID, claimed[0].ID); got.Status != db.ResourceStatusInProgress {
+		t.Fatalf("status = %s, want a fresh claim left in_progress", got.Status)
+	}
+
+	ageClaim(t, testDB.Conn, claimed[0].ID)
+
+	if recovered, err := worker.FailStaleClaims(context.Background()); err != nil {
+		t.Fatalf("FailStaleClaims: %v", err)
+	} else if recovered != 1 {
+		t.Fatalf("recovered = %d, want 1", recovered)
+	}
+	got := getInstance(t, testDB.Queries, coursePhaseID, claimed[0].ID)
+	if got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed", got.Status)
+	}
+	if got.ErrorMessage == nil || *got.ErrorMessage != staleClaimMessage {
+		t.Fatalf("error message = %v, want %q", got.ErrorMessage, staleClaimMessage)
+	}
+}
+
+// ageClaim backdates the claim so the sweep sees it as abandoned.
+func ageClaim(t *testing.T, pool *pgxpool.Pool, instanceID uuid.UUID) {
+	t.Helper()
+	if _, err := pool.Exec(context.Background(),
+		"UPDATE resource_instance SET updated_at = NOW() - $2::interval WHERE id = $1",
+		instanceID, fmt.Sprintf("%d seconds", int((staleClaimAge+time.Minute).Seconds())),
+	); err != nil {
+		t.Fatalf("age claim: %v", err)
 	}
 }
 

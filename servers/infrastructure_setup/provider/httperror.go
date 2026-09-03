@@ -33,8 +33,8 @@ func HTTPError(providerType, method, path string, status int, body []byte) error
 	return fmt.Errorf("%s %s %s: HTTP %d", providerType, method, path, status)
 }
 
-// maxUpstreamReasonLength bounds a reason quoted from an upstream payload.
-const maxUpstreamReasonLength = 200
+// maxUpstreamReasonRunes bounds a reason quoted from an upstream payload.
+const maxUpstreamReasonRunes = 200
 
 // UpstreamReason sanitises a per-item failure reason taken from a response payload so it
 // can be shown to a lecturer.
@@ -54,8 +54,12 @@ func UpstreamReason(reason string) string {
 	}, reason)
 	cleaned = strings.Join(strings.Fields(cleaned), " ")
 
-	if len(cleaned) > maxUpstreamReasonLength {
-		return cleaned[:maxUpstreamReasonLength] + "..."
+	// Truncation is by rune, not by byte: a cut inside a multi-byte rune leaves invalid
+	// UTF-8, and this string is stored in a text column, which Postgres would reject -
+	// leaving the instance unmarked and stuck in_progress.
+	runes := []rune(cleaned)
+	if len(runes) > maxUpstreamReasonRunes {
+		return string(runes[:maxUpstreamReasonRunes]) + "..."
 	}
 	return cleaned
 }

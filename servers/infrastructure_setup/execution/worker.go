@@ -20,7 +20,19 @@ const (
 	maxWorkers  = 5
 	maxRetries  = 3
 	baseBackoff = time.Second
+
+	// workerTimeout caps how long one run may keep its instances claimed.
+	workerTimeout = 30 * time.Minute
+	// staleClaimAge is how long an instance may stay claimed before a sweep treats it
+	// as abandoned. It exceeds workerTimeout, so a sweep never takes work another
+	// process is still doing.
+	staleClaimAge = workerTimeout + 15*time.Minute
+	// staleSweepInterval is how often the sweeper looks for abandoned claims.
+	staleSweepInterval = 10 * time.Minute
 )
+
+// staleClaimMessage is what the lecturer sees on an instance whose run died.
+const staleClaimMessage = "the run was interrupted before this resource finished; retry it"
 
 // Registry maps provider type strings to provider factory functions.
 // Populated by main.go during startup.
@@ -49,7 +61,7 @@ func NewWorkerWithResolver(pool *pgxpool.Pool, resolver TargetResolver) *Worker 
 // Spawning is done in a goroutine so the HTTP handler returns immediately.
 func (w *Worker) RunPendingInstances(authHeader string, coursePhaseID uuid.UUID) {
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), workerTimeout)
 		defer cancel()
 
 		if err := w.processPhase(ctx, authHeader, coursePhaseID); err != nil {
@@ -68,14 +80,18 @@ func (w *Worker) processPhase(ctx context.Context, authHeader string, coursePhas
 		return nil
 	}
 
+	// Everything below runs on instances that are already claimed, so a failure here
+	// has to hand them back. Leaving them in_progress would keep the phase from ever
+	// being triggered again (a non-terminal instance answers 409) and put them out of
+	// reach of Retry, which only takes a terminal instance.
 	configs, err := w.resourceConfigsByID(ctx, coursePhaseID)
 	if err != nil {
-		return err
+		return w.failClaimed(ctx, instances, err)
 	}
 
 	targets, err := w.targetsByScope(ctx, authHeader, coursePhaseID, instances, configs)
 	if err != nil {
-		return err
+		return w.failClaimed(ctx, instances, err)
 	}
 
 	var wg sync.WaitGroup
@@ -284,6 +300,53 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 		}).Warn("execution worker: retry")
 	}
 	return nil, lastErr
+}
+
+// failClaimed marks every instance this run had claimed as failed, carrying the reason
+// so the lecturer sees why, and returns the original error.
+func (w *Worker) failClaimed(ctx context.Context, instances []db.ResourceInstance, cause error) error {
+	message := cause.Error()
+	for _, inst := range instances {
+		if err := w.failInstance(ctx, inst.ID, message); err != nil {
+			log.WithError(err).WithField("instanceID", inst.ID).
+				Error("execution worker: releasing a claimed instance failed")
+		}
+	}
+	return cause
+}
+
+// FailStaleClaims marks instances left claimed by a crashed process as failed, so the
+// phase can be triggered again and the lecturer can retry them. Only claims older than
+// staleClaimAge are touched, which keeps a live run's instances untouched.
+func (w *Worker) FailStaleClaims(ctx context.Context) (int64, error) {
+	message := staleClaimMessage
+	return w.queries.FailStaleInProgressInstances(ctx, db.FailStaleInProgressInstancesParams{
+		ErrorMessage:       &message,
+		MaxClaimAgeSeconds: staleClaimAge.Seconds(),
+	})
+}
+
+// StartStaleClaimSweeper sweeps abandoned claims once and then on a ticker until ctx
+// is done. A crash can leave a claim behind at any point, and a startup-only sweep
+// would have to reach into claims young enough to belong to another replica.
+func (w *Worker) StartStaleClaimSweeper(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(staleSweepInterval)
+		defer ticker.Stop()
+		for {
+			if recovered, err := w.FailStaleClaims(ctx); err != nil {
+				log.WithError(err).Warn("execution worker: sweeping stale claims failed")
+			} else if recovered > 0 {
+				log.WithField("instances", recovered).
+					Info("execution worker: marked abandoned claims as failed")
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 }
 
 func (w *Worker) failInstance(ctx context.Context, id uuid.UUID, msg string) error {

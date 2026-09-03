@@ -880,7 +880,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Deletes a resource configuration and cascades to its resource instances.",
+                "description": "Deletes a resource configuration and cascades to its resource instances. A configuration with provisioned instances requires confirm=true, because the instances are PROMPT's only record of the external resources, which are never deleted.",
                 "produces": [
                     "application/json"
                 ],
@@ -902,6 +902,12 @@ const docTemplate = `{
                         "name": "resourceConfigID",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Confirm dropping the records of provisioned instances",
+                        "name": "confirm",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -910,6 +916,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { updateSetupConfig } from '../network/mutations/updateSetupConfig'
 import { getSetupConfig } from '../network/queries/getSetupConfig'
+import { describeError } from '../utils/describeError'
 
 export const SetupConfigPage = () => {
   const { courseId, phaseId: coursePhaseID } = useParams<{
@@ -55,7 +56,7 @@ export const SetupConfigPage = () => {
     onError: (err: unknown) => {
       toast({
         title: 'Failed to save setup configuration',
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: describeError(err),
         variant: 'destructive',
       })
     },

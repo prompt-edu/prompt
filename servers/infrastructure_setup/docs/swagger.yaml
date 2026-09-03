@@ -661,6 +661,9 @@ paths:
   /course_phase/{coursePhaseID}/resource-configs/{resourceConfigID}:
     delete:
       description: Deletes a resource configuration and cascades to its resource instances.
+        A configuration with provisioned instances requires confirm=true, because
+        the instances are PROMPT's only record of the external resources, which are
+        never deleted.
       parameters:
       - description: Course phase ID
         in: path
@@ -672,6 +675,10 @@ paths:
         name: resourceConfigID
         required: true
         type: string
+      - description: Confirm dropping the records of provisioned instances
+        in: query
+        name: confirm
+        type: boolean
       produces:
       - application/json
       responses:
@@ -679,6 +686,12 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             additionalProperties:
               type: string

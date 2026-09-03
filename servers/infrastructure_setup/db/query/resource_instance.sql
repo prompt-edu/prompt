@@ -75,11 +75,21 @@ WHERE id IN (
 )
 RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at;
 
--- name: ResetInProgressToPending :exec
+-- name: FailStaleInProgressInstances :execrows
+-- Recovers instances a crashed process left claimed. They are marked failed rather
+-- than pending: nothing picks a pending row up on its own (the worker needs the
+-- lecturer's auth header to resolve targets), while a failed one is terminal, visible
+-- in the UI and retryable. The cutoff keeps the sweep off work another replica is
+-- still doing - a worker's context is capped well below it.
+-- The cutoff is computed from the database clock, not the caller's: updated_at is a
+-- timestamp without a time zone, so a client-side cutoff would be off by the server's
+-- UTC offset.
 UPDATE resource_instance
-SET status = 'pending',
+SET status = 'failed',
+    error_message = sqlc.arg(error_message),
     updated_at = NOW()
-WHERE status = 'in_progress';
+WHERE status = 'in_progress'
+  AND updated_at < CURRENT_TIMESTAMP - make_interval(secs => sqlc.arg(max_claim_age_seconds)::double precision);
 
 -- name: ResetInstanceToPending :one
 UPDATE resource_instance

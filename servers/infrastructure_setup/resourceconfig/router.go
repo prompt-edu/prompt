@@ -3,6 +3,7 @@ package resourceconfig
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -162,13 +163,15 @@ func updateResourceConfig(svc *Service) gin.HandlerFunc {
 
 // deleteResourceConfig godoc
 // @Summary Delete resource configuration
-// @Description Deletes a resource configuration and cascades to its resource instances.
+// @Description Deletes a resource configuration and cascades to its resource instances. A configuration with provisioned instances requires confirm=true, because the instances are PROMPT's only record of the external resources, which are never deleted.
 // @Tags resource-configs
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param resourceConfigID path string true "Resource configuration ID"
+// @Param confirm query bool false "Confirm dropping the records of provisioned instances"
 // @Success 204
 // @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/resource-configs/{resourceConfigID} [delete]
@@ -184,19 +187,28 @@ func deleteResourceConfig(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resourceConfigID"})
 			return
 		}
-		if err := svc.DeleteResourceConfig(c.Request.Context(), coursePhaseID, id); err != nil {
-			log.WithError(err).Error("delete resource config")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		confirmed, err := strconv.ParseBool(c.DefaultQuery("confirm", "false"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "confirm must be a boolean"})
+			return
+		}
+		if err := svc.DeleteResourceConfig(c.Request.Context(), coursePhaseID, id, confirmed); err != nil {
+			respondWithError(c, "delete resource config", err)
 			return
 		}
 		c.JSON(http.StatusNoContent, nil)
 	}
 }
 
-// respondWithError answers 400 for a rejected request and 500 for anything else.
+// respondWithError answers 400 for a rejected request, 409 for one that needs
+// confirmation, and 500 for anything else.
 func respondWithError(c *gin.Context, action string, err error) {
 	if errors.Is(err, ErrValidation) || errors.Is(err, ErrProviderNotConfigured) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if errors.Is(err, ErrConfirmationRequired) {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 	log.WithError(err).Error(action)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -48,9 +49,15 @@ func NewCoreTargetResolver(queries *db.Queries) *CoreTargetResolver {
 }
 
 func (r *CoreTargetResolver) ResolveTargets(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, scope db.ResourceScope) ([]ProvisioningTarget, error) {
+	// A phase whose setup page was never saved has no config row, and the only thing
+	// the row carries is the optional semester tag. Treat it as an empty config: the
+	// alternative refuses to provision anything until the lecturer saves a page they
+	// have no reason to visit.
 	cfg, err := r.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
-	if err != nil {
-		return nil, fmt.Errorf("infrastructure setup config missing: %w", err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		cfg = db.CoursePhaseConfig{CoursePhaseID: coursePhaseID}
+	} else if err != nil {
+		return nil, fmt.Errorf("load infrastructure setup config: %w", err)
 	}
 
 	switch scope {

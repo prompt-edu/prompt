@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig/resourceconfigDTO"
@@ -51,6 +52,11 @@ func (s *Service) CreateResourceConfig(ctx context.Context, coursePhaseID uuid.U
 		ResourceExtraConfig: extraJSON,
 	})
 	if err != nil {
+		if isUniqueViolation(err, resourceConfigIdentityConstraint) {
+			return resourceconfigDTO.ResourceConfigResponse{}, fmt.Errorf(
+				"%w: a resource configuration with this provider, resource type, scope and name template already exists in this phase",
+				ErrValidation)
+		}
 		return resourceconfigDTO.ResourceConfigResponse{}, err
 	}
 	return resourceconfigDTO.GetResourceConfigDTOFromDBModel(rc), nil
@@ -139,6 +145,11 @@ func (s *Service) UpdateResourceConfig(ctx context.Context, coursePhaseID, id uu
 		ResourceExtraConfig: extraJSON,
 	})
 	if err != nil {
+		if isUniqueViolation(err, resourceConfigIdentityConstraint) {
+			return resourceconfigDTO.ResourceConfigResponse{}, fmt.Errorf(
+				"%w: another resource configuration in this phase already has this provider, resource type, scope and name template",
+				ErrValidation)
+		}
 		return resourceconfigDTO.ResourceConfigResponse{}, err
 	}
 	return resourceconfigDTO.GetResourceConfigDTOFromDBModel(rc), nil
@@ -164,9 +175,32 @@ func (s *Service) assertNoLiveInstances(ctx context.Context, resourceConfigID uu
 }
 
 // DeleteResourceConfig removes a resource configuration.
-func (s *Service) DeleteResourceConfig(ctx context.Context, coursePhaseID, id uuid.UUID) error {
+//
+// The delete cascades to the config's instances, and those rows are the only record
+// PROMPT keeps of the external resources: it never deletes them, so the GitLab groups
+// and Slack channels stay behind with nothing pointing at them. A config that still has
+// provisioned instances is therefore only deleted when the caller says so explicitly.
+func (s *Service) DeleteResourceConfig(ctx context.Context, coursePhaseID, id uuid.UUID, confirmed bool) error {
+	if !confirmed {
+		live, err := s.queries.CountLiveInstancesForConfig(ctx, id)
+		if err != nil {
+			return err
+		}
+		if live > 0 {
+			return fmt.Errorf("%w: this configuration has %d provisioned instance(s); deleting it drops PROMPT's record of the external resources they point at, and those are not removed",
+				ErrConfirmationRequired, live)
+		}
+	}
+
 	return s.queries.DeleteResourceConfig(ctx, db.DeleteResourceConfigParams{
 		ID:            id,
 		CoursePhaseID: coursePhaseID,
 	})
+}
+
+// isUniqueViolation reports whether err is a Postgres unique violation on a named
+// constraint, so a duplicate can be answered as a bad request rather than a 500.
+func isUniqueViolation(err error, constraint string) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode && pgErr.ConstraintName == constraint
 }

@@ -1,6 +1,7 @@
 package phaseconfig
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -72,6 +73,10 @@ func upsertConfig(svc *Service) gin.HandlerFunc {
 
 		resp, err := svc.Upsert(c.Request.Context(), coursePhaseID, req)
 		if err != nil {
+			if errors.Is(err, ErrValidation) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 			log.WithError(err).Error("upsert infrastructure setup config")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

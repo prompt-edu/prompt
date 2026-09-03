@@ -12,6 +12,7 @@ import { useState } from 'react'
 
 import type { ResourceConfig } from '../interfaces/resourceConfig'
 import { deleteResourceConfig } from '../network/mutations/deleteResourceConfig'
+import { describeError } from '../utils/describeError'
 
 interface Props {
   coursePhaseID: string
@@ -25,7 +26,9 @@ export const ResourceConfigCard = ({ coursePhaseID, config, onEdit }: Props) => 
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const { mutate: remove, isPending: isDeleting } = useMutation({
-    mutationFn: () => deleteResourceConfig(coursePhaseID, config.id),
+    // The lecturer confirmed in the dialog below, which is what the server's confirm
+    // flag stands for: it warns that the records of provisioned instances go with it.
+    mutationFn: () => deleteResourceConfig(coursePhaseID, config.id, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
       toast({ title: 'Resource config deleted' })
@@ -34,7 +37,7 @@ export const ResourceConfigCard = ({ coursePhaseID, config, onEdit }: Props) => 
     onError: (err: unknown) => {
       toast({
         title: 'Failed to delete resource config',
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: describeError(err),
         variant: 'destructive',
       })
     },
@@ -82,7 +85,7 @@ export const ResourceConfigCard = ({ coursePhaseID, config, onEdit }: Props) => 
           isOpen={confirmOpen}
           setOpen={setConfirmOpen}
           deleteMessage='Delete this resource configuration?'
-          customWarning='Existing provisioned instances created from this config will be cascade-deleted.'
+          customWarning="PROMPT's record of every instance provisioned from this config goes with it. The external resources themselves are never deleted, so they stay behind with nothing pointing at them."
           onClick={(confirmed) => {
             if (confirmed) remove()
           }}

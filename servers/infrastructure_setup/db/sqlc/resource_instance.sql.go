@@ -144,6 +144,36 @@ func (q *Queries) DeleteResourceInstance(ctx context.Context, arg DeleteResource
 	return err
 }
 
+const failStaleInProgressInstances = `-- name: FailStaleInProgressInstances :execrows
+UPDATE resource_instance
+SET status = 'failed',
+    error_message = $1,
+    updated_at = NOW()
+WHERE status = 'in_progress'
+  AND updated_at < CURRENT_TIMESTAMP - make_interval(secs => $2::double precision)
+`
+
+type FailStaleInProgressInstancesParams struct {
+	ErrorMessage       *string `json:"errorMessage"`
+	MaxClaimAgeSeconds float64 `json:"maxClaimAgeSeconds"`
+}
+
+// Recovers instances a crashed process left claimed. They are marked failed rather
+// than pending: nothing picks a pending row up on its own (the worker needs the
+// lecturer's auth header to resolve targets), while a failed one is terminal, visible
+// in the UI and retryable. The cutoff keeps the sweep off work another replica is
+// still doing - a worker's context is capped well below it.
+// The cutoff is computed from the database clock, not the caller's: updated_at is a
+// timestamp without a time zone, so a client-side cutoff would be off by the server's
+// UTC offset.
+func (q *Queries) FailStaleInProgressInstances(ctx context.Context, arg FailStaleInProgressInstancesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, failStaleInProgressInstances, arg.ErrorMessage, arg.MaxClaimAgeSeconds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getResourceInstance = `-- name: GetResourceInstance :one
 SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
 FROM resource_instance
@@ -276,18 +306,6 @@ func (q *Queries) MarkInstancePartial(ctx context.Context, arg MarkInstanceParti
 		arg.ExternalUrl,
 		arg.ErrorMessage,
 	)
-	return err
-}
-
-const resetInProgressToPending = `-- name: ResetInProgressToPending :exec
-UPDATE resource_instance
-SET status = 'pending',
-    updated_at = NOW()
-WHERE status = 'in_progress'
-`
-
-func (q *Queries) ResetInProgressToPending(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, resetInProgressToPending)
 	return err
 }
 

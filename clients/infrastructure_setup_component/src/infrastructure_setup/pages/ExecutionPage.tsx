@@ -1,23 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
-import { isAxiosError } from 'axios'
 import { Play, RefreshCw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { InstanceRow } from '../components/InstanceRow'
 import { triggerExecution } from '../network/mutations/triggerExecution'
 import { getInstances } from '../network/queries/getInstances'
+import { describeError, hasStatus } from '../utils/describeError'
 
 const isPollingStatus = (status: string) => status === 'pending' || status === 'in_progress'
 
-const isConflict = (err: unknown) => isAxiosError(err) && err.response?.status === 409
-
-const describeError = (err: unknown) => {
-  if (isAxiosError(err)) {
-    const responseError = (err.response?.data as { error?: string } | undefined)?.error
-    return responseError ?? err.message
-  }
-  return err instanceof Error ? err.message : 'Unknown error'
-}
+const isConflict = (err: unknown) => hasStatus(err, 409)
 
 export const ExecutionPage = () => {
   const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()

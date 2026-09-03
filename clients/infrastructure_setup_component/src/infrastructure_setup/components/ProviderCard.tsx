@@ -7,13 +7,13 @@ import {
   DeleteConfirmation,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import axios from 'axios'
 import { AlertTriangle, CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import type { ProviderConfig } from '../interfaces/providerConfig'
 import { deleteProviderConfig } from '../network/mutations/deleteProviderConfig'
 import { validateProviderConfig } from '../network/mutations/validateProviderConfig'
+import { describeError } from '../utils/describeError'
 
 interface Props {
   coursePhaseID: string
@@ -25,13 +25,6 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  const describeError = (err: unknown, fallback: string) =>
-    axios.isAxiosError(err) && err.response?.data?.error
-      ? String(err.response.data.error)
-      : err instanceof Error
-        ? err.message
-        : fallback
 
   const { mutate: validate, isPending: isValidating } = useMutation({
     mutationFn: () => validateProviderConfig(coursePhaseID, provider.providerType),

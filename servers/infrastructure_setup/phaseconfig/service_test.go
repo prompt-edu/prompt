@@ -2,6 +2,7 @@ package phaseconfig
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -67,5 +68,50 @@ func TestUpsertCreatesAndUpdatesConfig(t *testing.T) {
 	}
 	if updated.SemesterTag != "ss27" {
 		t.Fatalf("updated semester tag = %q, want ss27", updated.SemesterTag)
+	}
+}
+
+// The tag is interpolated into provider resource names, where a stray space would
+// become a separator: validation trims it, so storage has to keep the trimmed form.
+func TestUpsertStoresTheTrimmedSemesterTag(t *testing.T) {
+	testDB, cleanup := setupPhaseConfigTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	service := NewService(testDB.Conn)
+
+	created, err := service.Upsert(context.Background(), coursePhaseID, phaseconfigDTO.UpsertRequest{
+		SemesterTag: "  ios26  ",
+	})
+	if err != nil {
+		t.Fatalf("Upsert returned error: %v", err)
+	}
+	if created.SemesterTag != "ios26" {
+		t.Fatalf("stored semester tag = %q, want ios26", created.SemesterTag)
+	}
+
+	reread, err := service.Get(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("Get returned error: %v", err)
+	}
+	if reread.SemesterTag != "ios26" {
+		t.Fatalf("re-read semester tag = %q, want ios26", reread.SemesterTag)
+	}
+}
+
+func TestUpsertRejectsAnInvalidSemesterTagAsValidation(t *testing.T) {
+	testDB, cleanup := setupPhaseConfigTestDB(t)
+	defer cleanup()
+
+	service := NewService(testDB.Conn)
+
+	_, err := service.Upsert(context.Background(), uuid.New(), phaseconfigDTO.UpsertRequest{
+		SemesterTag: "WS 25/26",
+	})
+	if err == nil {
+		t.Fatal("Upsert accepted a semester tag with spaces and slashes")
+	}
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("error = %v, want it to wrap ErrValidation so the router answers 400", err)
 	}
 }

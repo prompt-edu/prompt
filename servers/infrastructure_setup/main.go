@@ -12,8 +12,8 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/config"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
-	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/encryption"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/execution"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig"
@@ -82,12 +82,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Recover instances stuck in_progress from a previous crash.
-	queries := db.New(conn)
-	if err := queries.ResetInProgressToPending(context.Background()); err != nil {
-		log.WithError(err).Warn("startup recovery: ResetInProgressToPending failed")
-	}
-
 	if err := encryption.ValidateKey(); err != nil {
 		log.Fatalf("Invalid ENCRYPTION_KEY: %v", err)
 	}
@@ -113,13 +107,18 @@ func main() {
 	providerconfig.RegisterRoutes(api, providerconfig.NewService(conn))
 	resourceconfig.RegisterRoutes(api, resourceconfig.NewService(conn))
 	phaseconfig.RegisterRoutes(api, phaseconfig.NewService(conn))
-	execution.RegisterRoutes(api, execution.NewService(conn))
+	executionService := execution.NewService(conn)
+	execution.RegisterRoutes(api, executionService)
+
+	// Recover instances a crashed process left claimed, now and periodically.
+	executionService.StartStaleClaimSweeper(context.Background())
 
 	// Copy endpoint (global, not phase-scoped). The config endpoint is phase-scoped but
 	// brings its own auth middleware from the SDK, so it gets a group without one.
 	copyApi := router.Group("infrastructure-setup/api")
 	configApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID")
-	copy.InitCopyModule(copyApi, configApi, conn)
+	copy.RegisterRoutes(copyApi, copy.NewService(conn), authMw)
+	config.RegisterRoutes(configApi, config.NewService(conn), authMw)
 
 	// Public /info endpoint consumed by the management console's System Status page.
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{

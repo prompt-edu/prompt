@@ -26,6 +26,7 @@ import {
 } from '../interfaces/providerConfig'
 import { upsertProviderConfig } from '../network/mutations/upsertProviderConfig'
 import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
+import { describeError } from '../utils/describeError'
 
 interface Props {
   coursePhaseID: string
@@ -91,7 +92,7 @@ export const ProviderUpsertDialog = ({
     onError: (err: unknown) => {
       toast({
         title: 'Failed to save provider',
-        description: err instanceof Error ? err.message : 'Unknown error',
+        description: describeError(err),
         variant: 'destructive',
       })
     },

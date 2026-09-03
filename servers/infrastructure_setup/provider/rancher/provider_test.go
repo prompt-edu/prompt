@@ -67,8 +67,9 @@ func TestRancherDoesNotBindUnrelatedUser(t *testing.T) {
 	})
 
 	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
-		Name:    "Team A",
-		Members: []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "project-member"},
 	})
 	if err != nil {
 		t.Fatalf("CreateResource: %v", err)
@@ -100,8 +101,9 @@ func TestRancherUsesPrincipalFromResponse(t *testing.T) {
 	})
 
 	if _, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
-		Name:    "Team A",
-		Members: []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "project-member"},
 	}); err != nil {
 		t.Fatalf("CreateResource: %v", err)
 	}
@@ -127,5 +129,99 @@ func TestRancherPrincipalMatchesEmail(t *testing.T) {
 				t.Fatalf("principalMatchesEmail = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// A role the permission mapping does not cover must be reported, not bound with a
+// permission nobody configured.
+func TestRancherWarnsAboutUnmappedRole(t *testing.T) {
+	provider := newRancherServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v3/projects"):
+			_, _ = w.Write([]byte(rancherProjectResponse))
+		case r.URL.Path == "/v3/projectroletemplatebindings":
+			t.Errorf("bound a member whose role has no permission mapped")
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "tutor@example.com", Role: "tutor"}},
+		PermissionMapping: map[string]string{"student": "project-member"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 1 {
+		t.Fatalf("warnings = %v, want one warning for the unmapped role", resource.Warnings)
+	}
+}
+
+// roleTemplateId stays the configured fallback for roles the mapping does not cover.
+func TestRancherFallsBackToConfiguredRoleTemplate(t *testing.T) {
+	var boundRole string
+	provider := newRancherServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v3/projects"):
+			_, _ = w.Write([]byte(rancherProjectResponse))
+		case r.URL.Path == "/v3/principals":
+			_, _ = w.Write([]byte(`{"data":[{"id":"local://user-1","loginName":"tutor@example.com","name":"Tutor","principalType":"user"}]}`))
+		case r.URL.Path == "/v3/projectroletemplatebindings":
+			body, _ := io.ReadAll(r.Body)
+			var payload map[string]interface{}
+			_ = json.Unmarshal(body, &payload)
+			boundRole, _ = payload["roleTemplateId"].(string)
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:        "Team A",
+		Members:     []providerpkg.Member{{Email: "tutor@example.com", Role: "tutor"}},
+		ExtraConfig: map[string]interface{}{"roleTemplateId": "project-owner"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none", resource.Warnings)
+	}
+	if boundRole != "project-owner" {
+		t.Fatalf("bound role = %q, want the configured fallback", boundRole)
+	}
+}
+
+// Retrying a partial instance re-binds members that are already bound. Rancher answers
+// that with a conflict, which must not become a warning - the instance would stay
+// partial forever.
+func TestRancherToleratesAnExistingBinding(t *testing.T) {
+	provider := newRancherServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v3/projects"):
+			_, _ = w.Write([]byte(rancherProjectResponse))
+		case r.URL.Path == "/v3/principals":
+			_, _ = w.Write([]byte(`{"data":[{"id":"local://user-1","loginName":"student@example.com","name":"Student","principalType":"user"}]}`))
+		case r.URL.Path == "/v3/projectroletemplatebindings":
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"message":"projectroletemplatebinding already exists"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "project-member"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none for a binding that already exists", resource.Warnings)
 	}
 }

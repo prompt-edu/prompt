@@ -13,6 +13,7 @@ import { useState } from 'react'
 import type { ResourceInstance } from '../interfaces/resourceInstance'
 import { deleteInstance } from '../network/mutations/deleteInstance'
 import { retryInstance } from '../network/mutations/retryInstance'
+import { describeError } from '../utils/describeError'
 import { StatusBadge } from './StatusBadge'
 
 interface Props {
@@ -29,7 +30,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const onMutationError = (action: string) => (err: unknown) => {
     toast({
       title: `Failed to ${action} instance`,
-      description: err instanceof Error ? err.message : 'Unknown error',
+      description: describeError(err),
       variant: 'destructive',
     })
   }

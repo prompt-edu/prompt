@@ -62,3 +62,18 @@ func TestSetupConfigRouteRejectsInvalidCoursePhaseID(t *testing.T) {
 		t.Fatalf("status = %d, want %d", resp.Code, http.StatusBadRequest)
 	}
 }
+
+func TestSetupConfigRouteRejectsInvalidSemesterTagWith400(t *testing.T) {
+	testDB, cleanup := setupPhaseConfigTestDB(t)
+	defer cleanup()
+
+	router := newPhaseConfigTestRouter(NewService(testDB.Conn))
+	body := []byte(`{"semesterTag":"WS 25/26"}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/course_phase/"+uuid.NewString()+"/setup-config", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", resp.Code, http.StatusBadRequest, resp.Body.String())
+	}
+}

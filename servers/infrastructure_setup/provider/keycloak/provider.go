@@ -71,6 +71,8 @@ func (p *Provider) SupportedResourceTypes() []string { return []string{"group"} 
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
 
+func (p *Provider) RequiredExtraConfigKeys(string) []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	token, err := p.getAccessToken(ctx)
 	if err != nil {

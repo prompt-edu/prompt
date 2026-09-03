@@ -35,13 +35,14 @@ func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (phaseconfig
 
 // Upsert creates or updates phase configuration.
 func (s *Service) Upsert(ctx context.Context, coursePhaseID uuid.UUID, req phaseconfigDTO.UpsertRequest) (phaseconfigDTO.Response, error) {
-	if err := validateUpsertRequest(req); err != nil {
+	semesterTag, err := validateUpsertRequest(req)
+	if err != nil {
 		return phaseconfigDTO.Response{}, err
 	}
 
 	cfg, err := s.queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
 		CoursePhaseID: coursePhaseID,
-		SemesterTag:   req.SemesterTag,
+		SemesterTag:   semesterTag,
 	})
 	if err != nil {
 		return phaseconfigDTO.Response{}, err

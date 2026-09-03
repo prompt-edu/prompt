@@ -67,6 +67,10 @@ type Provider interface {
 	// templates. Only these have their placeholders resolved and validated; every other
 	// extra-config value stays literal, so a provider setting can still contain braces.
 	TemplatedExtraConfigKeys() []string
+	// RequiredExtraConfigKeys returns the extra-config keys a resource type cannot be
+	// created without, so a config missing one is rejected when the lecturer saves it
+	// instead of failing per instance in the middle of a run.
+	RequiredExtraConfigKeys(resourceType string) []string
 	// CreateResource creates the external resource and returns its ID and URL.
 	// Implementations must be idempotent: if the resource already exists, return it.
 	// A member that cannot be granted access is reported through Resource.Warnings,

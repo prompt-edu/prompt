@@ -169,6 +169,12 @@ func createResourceInstanceParams(cfg db.ResourceConfig, coursePhaseID uuid.UUID
 	}
 }
 
+// StartStaleClaimSweeper recovers instances a crashed process left claimed. See
+// Worker.StartStaleClaimSweeper.
+func (s *Service) StartStaleClaimSweeper(ctx context.Context) {
+	s.worker.StartStaleClaimSweeper(ctx)
+}
+
 // ListInstances returns all resource instances for a course phase. The slice is never
 // nil, so the endpoint answers with [] rather than null when nothing is provisioned.
 func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]db.ResourceInstance, error) {

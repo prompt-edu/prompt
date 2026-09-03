@@ -1,6 +1,10 @@
 package execution
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -130,4 +134,30 @@ func instanceForTeam(teamID uuid.UUID) db.ResourceInstance {
 
 func instanceForStudent(participationID uuid.UUID) db.ResourceInstance {
 	return db.ResourceInstance{CourseParticipationID: &participationID}
+}
+
+// A phase whose setup page was never saved has no course_phase_config row. The only
+// thing that row carries is the optional semester tag, so resolution must go ahead
+// with an empty one instead of refusing to provision anything.
+func TestResolveTargetsWithoutAConfigRow(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/participations") {
+			t.Errorf("unexpected core request: %s %s", r.Method, r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"participations":[],"resolutions":[]}`))
+	}))
+	defer core.Close()
+
+	resolver := &CoreTargetResolver{queries: testDB.Queries, coreURL: core.URL}
+	targets, err := resolver.ResolveTargets(context.Background(), "Bearer test", coursePhaseID, db.ResourceScopePerStudent)
+	if err != nil {
+		t.Fatalf("ResolveTargets returned error: %v", err)
+	}
+	if len(targets) != 0 {
+		t.Fatalf("targets = %d, want 0 for a phase without participants", len(targets))
+	}
 }

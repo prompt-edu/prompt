@@ -1,22 +1,16 @@
-import { parseURL } from '@tumaet/prompt-shared-state'
-import axios from 'axios'
+import { createAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 
-// INFRASTRUCTURE_SETUP_HOST is injected via core's env.js but not yet part of the
-// @tumaet/prompt-shared-state EnvType, so it is read from window.env directly.
-const infrastructureSetupServer =
-  (window.env as { INFRASTRUCTURE_SETUP_HOST?: string }).INFRASTRUCTURE_SETUP_HOST ?? ''
+// INFRASTRUCTURE_SETUP_HOST is injected by core's env.js. It is read off window.env
+// rather than through the shared `env` object because that object normalizes away every
+// key it does not know, and the @tumaet/prompt-shared-state EnvType does not carry this
+// host yet - the presentation remote reads its own host the same way.
+const infrastructureSetupHost =
+  typeof window === 'undefined'
+    ? ''
+    : ((window.env as { INFRASTRUCTURE_SETUP_HOST?: string }).INFRASTRUCTURE_SETUP_HOST ?? '')
 
-const serverBaseUrl = parseURL(infrastructureSetupServer)
+// The shared helper resolves the base URL inside the request interceptor and injects the
+// JWT, so a host that only becomes available after this module is evaluated still applies.
+const infrastructureSetupAxiosInstance = createAuthenticatedAxiosInstance(infrastructureSetupHost)
 
-const authenticatedAxiosInstance = axios.create({
-  baseURL: serverBaseUrl,
-})
-
-authenticatedAxiosInstance.interceptors.request.use((config) => {
-  if (localStorage.getItem('jwt_token') && localStorage.getItem('jwt_token') !== '') {
-    config.headers.Authorization = `Bearer ${localStorage.getItem('jwt_token') ?? ''}`
-  }
-  return config
-})
-
-export { authenticatedAxiosInstance as infrastructureSetupAxiosInstance }
+export { infrastructureSetupAxiosInstance }

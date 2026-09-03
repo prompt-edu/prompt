@@ -416,8 +416,11 @@ func TestGitLabAdoptsExistingProject(t *testing.T) {
 			looked = path
 		}
 	}
-	if !strings.Contains(looked, "ios2526-team-1%2Fapp") {
-		t.Fatalf("project lookup = %q, want the namespaced path URL-encoded", looked)
+	// The subgroup lives under the configured parent, so its namespaced path carries
+	// that parent: looking up "ios2526-team-1/app" would 404 and re-create the project
+	// on every run.
+	if !strings.Contains(looked, "ios2526%2Fios2526-team-1%2Fapp") {
+		t.Fatalf("project lookup = %q, want the group's full path plus the project slug, URL-encoded", looked)
 	}
 }
 

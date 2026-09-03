@@ -3,6 +3,7 @@ package provider
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // The error message is persisted on the instance and rendered in the UI, so the upstream
@@ -32,10 +33,15 @@ func TestUpstreamReasonIsSanitised(t *testing.T) {
 		t.Fatalf("UpstreamReason = %q, want control characters removed", got)
 	}
 	long := UpstreamReason(strings.Repeat("x", 500))
-	if len(long) > maxUpstreamReasonLength+3 {
+	if utf8.RuneCountInString(long) > maxUpstreamReasonRunes+3 {
 		t.Fatalf("UpstreamReason length = %d, want it truncated", len(long))
 	}
 	if !strings.HasSuffix(long, "...") {
 		t.Fatalf("UpstreamReason = %q, want a truncation marker", long[len(long)-10:])
+	}
+	// A cut inside a multi-byte rune would produce a string Postgres refuses to store
+	// in the text column the reason ends up in.
+	if truncated := UpstreamReason(strings.Repeat("ü", 500)); !utf8.ValidString(truncated) {
+		t.Fatalf("UpstreamReason = %q, want valid UTF-8 after truncation", truncated)
 	}
 }

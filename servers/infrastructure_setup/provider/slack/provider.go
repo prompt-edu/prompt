@@ -49,6 +49,8 @@ func (p *Provider) SupportedResourceTypes() []string { return []string{"channel"
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
 
+func (p *Provider) RequiredExtraConfigKeys(string) []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	var resp struct {
 		OK    bool   `json:"ok"`

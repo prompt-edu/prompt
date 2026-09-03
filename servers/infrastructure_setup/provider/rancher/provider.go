@@ -15,6 +15,10 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 )
 
+// extraKeyRoleTemplateID names the extra config key holding the role template to bind
+// members with when the permission mapping does not cover their role.
+const extraKeyRoleTemplateID = "roleTemplateId"
+
 // Config holds credentials for the Rancher provider.
 type Config struct {
 	RancherURL string `json:"rancher_url"`
@@ -53,13 +57,19 @@ func (p *Provider) SupportedResourceTypes() []string { return []string{"project"
 
 func (p *Provider) TemplatedExtraConfigKeys() []string { return nil }
 
+func (p *Provider) RequiredExtraConfigKeys(string) []string { return nil }
+
 func (p *Provider) ValidateCredentials(ctx context.Context) error {
 	_, err := p.get(ctx, "/v3")
 	return err
 }
 
 // CreateResource creates a Rancher project and adds members.
-// The roleTemplateId (e.g. "project-member") is read from ExtraConfig.
+//
+// A member's role template comes from the permission mapping. The extra config key
+// roleTemplateId (e.g. "project-member") is the fallback for roles the mapping does not
+// cover, and only when the lecturer set it: a hardcoded default would grant every
+// unmapped role a permission nobody configured, where every other provider warns.
 func (p *Provider) CreateResource(ctx context.Context, input provider.CreateResourceInput) (*provider.Resource, error) {
 	if strings.TrimSpace(input.Name) == "" {
 		return nil, fmt.Errorf("rancher: resource name is empty")
@@ -70,16 +80,19 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		return nil, err
 	}
 
-	roleTemplateID := "project-member"
-	if rt, ok := input.ExtraConfig["roleTemplateId"].(string); ok && rt != "" {
-		roleTemplateID = rt
-	}
+	defaultRoleTemplateID, _ := input.ExtraConfig[extraKeyRoleTemplateID].(string)
+	defaultRoleTemplateID = strings.TrimSpace(defaultRoleTemplateID)
 
 	var warnings []string
 	for _, member := range input.Members {
 		perm, ok := input.PermissionMapping[member.Role]
 		if !ok {
-			perm = roleTemplateID
+			perm = defaultRoleTemplateID
+		}
+		if perm == "" {
+			warnings = append(warnings, fmt.Sprintf("%s: no role template mapped for role %q, and no %s in the extra config",
+				member.Email, member.Role, extraKeyRoleTemplateID))
+			continue
 		}
 		if err := p.addMember(ctx, projectID, member.Email, perm); err != nil {
 			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
@@ -151,8 +164,23 @@ func (p *Provider) addMember(ctx context.Context, projectID, email, roleTemplate
 		"userPrincipalId": principalID,
 		"roleTemplateId":  roleTemplateID,
 	}
-	_, err = p.post(ctx, "/v3/projectroletemplatebindings", payload)
-	return err
+	if _, err := p.post(ctx, "/v3/projectroletemplatebindings", payload); err != nil {
+		// The binding already exists. Rancher reports that as a conflict on the unique
+		// binding, which is the state a retry of a partial instance starts from - without
+		// tolerating it, such an instance could never reach created.
+		if isAlreadyBound(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// isAlreadyBound reports whether a binding POST failed only because the principal is
+// already bound to the project.
+func isAlreadyBound(err error) bool {
+	message := err.Error()
+	return strings.Contains(message, "HTTP 409") || strings.Contains(message, "HTTP 422")
 }
 
 // lookupUserPrincipal resolves the Rancher principal ID for an email address.

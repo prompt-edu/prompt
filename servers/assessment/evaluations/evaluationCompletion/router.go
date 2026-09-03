@@ -24,10 +24,10 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationCompletionS
 
 	evaluationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listEvaluationCompletionsByCoursePhase)
 
-	evaluationRouter.POST("/my-completion", authMiddleware(promptSDK.CourseStudent), audit.Describe("Saved own evaluation completion"), service.createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.PUT("/my-completion", authMiddleware(promptSDK.CourseStudent), audit.Describe("Saved own evaluation completion"), service.createOrUpdateMyEvaluationCompletion)
-	evaluationRouter.POST("/my-completion/mark-complete", authMiddleware(promptSDK.CourseStudent), audit.Describe("Marked own evaluation as completed"), service.markMyEvaluationAsCompleted)
-	evaluationRouter.PUT("/my-completion/unmark", authMiddleware(promptSDK.CourseStudent), audit.Describe("Unmarked own evaluation completion"), service.unmarkMyEvaluationAsCompleted)
+	evaluationRouter.POST("/my-completion", audit.Describe("Saved own evaluation completion"), authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.PUT("/my-completion", audit.Describe("Saved own evaluation completion"), authMiddleware(promptSDK.CourseStudent), service.createOrUpdateMyEvaluationCompletion)
+	evaluationRouter.POST("/my-completion/mark-complete", audit.Describe("Marked own evaluation as completed"), authMiddleware(promptSDK.CourseStudent), service.markMyEvaluationAsCompleted)
+	evaluationRouter.PUT("/my-completion/unmark", audit.Describe("Unmarked own evaluation completion"), authMiddleware(promptSDK.CourseStudent), service.unmarkMyEvaluationAsCompleted)
 	evaluationRouter.GET("/my-completions", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationCompletions)
 
 }

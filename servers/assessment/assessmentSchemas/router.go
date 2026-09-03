@@ -24,9 +24,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentSchemaServi
 	schemaRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllAssessmentSchemas)
 	schemaRouter.GET("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentSchema)
 	schemaRouter.GET("/:schemaID/has-assessment-data", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.checkSchemaHasAssessmentData)
-	schemaRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), audit.Describe("Created assessment schema"), service.createAssessmentSchema)
-	schemaRouter.PUT("/:schemaID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), audit.Describe("Updated assessment schema"), service.updateAssessmentSchema)
-	schemaRouter.DELETE("/:schemaID", authMiddleware(promptSDK.PromptAdmin), audit.Describe("Deleted assessment schema"), service.deleteAssessmentSchema)
+	schemaRouter.POST("", audit.Describe("Created assessment schema"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createAssessmentSchema)
+	schemaRouter.PUT("/:schemaID", audit.Describe("Updated assessment schema"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateAssessmentSchema)
+	schemaRouter.DELETE("/:schemaID", audit.Describe("Deleted assessment schema"), authMiddleware(promptSDK.PromptAdmin), service.deleteAssessmentSchema)
 }
 
 // getAllAssessmentSchemas godoc

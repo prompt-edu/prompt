@@ -26,7 +26,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, gu
 	assessmentRouter := routerGroup.Group("/student-assessment")
 
 	assessmentRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByCoursePhase)
-	assessmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), audit.Describe("Saved student assessment"), service.createOrUpdateAssessment)
+	assessmentRouter.POST("", audit.Describe("Saved student assessment"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
 	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.exportStudentAssessment)
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)

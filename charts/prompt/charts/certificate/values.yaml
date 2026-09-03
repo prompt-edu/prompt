@@ -1,0 +1,17 @@
+# Overridden by the umbrella `certificate:` block; defaults for standalone use.
+enabled: true
+server:
+  enabled: true
+  image: prompt-server-certificate
+  replicas: 1
+  port: 8080
+  apiPath: /certificate/api
+  dbKey: certificate
+  rateLimited: true
+client:
+  enabled: true
+  image: prompt-clients-certificate-component
+  replicas: 1
+  port: 80
+  path: /certificate
+  stripPrefix: true

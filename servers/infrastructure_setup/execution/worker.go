@@ -29,6 +29,8 @@ const (
 	staleClaimAge = workerTimeout + 15*time.Minute
 	// staleSweepInterval is how often the sweeper looks for abandoned claims.
 	staleSweepInterval = 10 * time.Minute
+	// releaseClaimTimeout bounds the writes that hand claimed instances back.
+	releaseClaimTimeout = 30 * time.Second
 )
 
 // staleClaimMessage is what the lecturer sees on an instance whose run died.
@@ -305,9 +307,14 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 // failClaimed marks every instance this run had claimed as failed, carrying the reason
 // so the lecturer sees why, and returns the original error.
 func (w *Worker) failClaimed(ctx context.Context, instances []db.ResourceInstance, cause error) error {
+	// The cause may be the run's context expiring, and marking with a dead context
+	// would leave the claims behind - exactly what this exists to prevent.
+	markCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), releaseClaimTimeout)
+	defer cancel()
+
 	message := cause.Error()
 	for _, inst := range instances {
-		if err := w.failInstance(ctx, inst.ID, message); err != nil {
+		if err := w.failInstance(markCtx, inst.ID, message); err != nil {
 			log.WithError(err).WithField("instanceID", inst.ID).
 				Error("execution worker: releasing a claimed instance failed")
 		}

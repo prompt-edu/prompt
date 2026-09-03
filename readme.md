@@ -125,16 +125,13 @@ cp .env.dev.template .env.dev  # Local development overrides
 
 The `.env` file contains Docker/production configuration. The `.env.dev` file contains local development overrides (localhost instead of Docker hostnames) and is loaded by `make server`.
 
-#### 3. Start Dependencies (Database, Keycloak, SeaweedFS)
+#### 3. Start Database, Keycloak and File Storage
 
 ```bash
-make deps
-```
-
-This starts the core database, Keycloak, and all SeaweedFS services (master, volume, filer, S3 gateway) in detached mode. To stop them later:
-
-```bash
-make deps-down
+# every service database and Keycloak (make db-down stops them again)
+make db
+# object storage
+docker compose up -d seaweedfs-volume seaweedfs-s3
 ```
 
 #### 4. Configure Keycloak (first time only)
@@ -325,8 +322,9 @@ hooks for a single commit, use `git commit --no-verify`.
 | Team Allocation Server           | 8083 |
 | Self Team Allocation Server      | 8084 |
 | Assessment Server                | 8085 |
-| Template Server                  | 8086 |
+| Example Server                   | 8086 |
 | Certificate Server               | 8088 |
+| Presentation Server              | 8089 |
 | Infrastructure Setup Server      | 8091 |
 | PostgreSQL (core)                | 5432 |
 | PostgreSQL (infrastructure setup)| 5441 |

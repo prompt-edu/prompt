@@ -103,3 +103,27 @@ RETURNING id, resource_config_id, course_phase_id, team_id, course_participation
 -- Transaction-scoped advisory lock keyed on the course phase. Held only while the
 -- trigger counts and inserts instances, never across provider calls.
 SELECT pg_try_advisory_xact_lock(hashtextextended(sqlc.arg(course_phase_id)::text, 0));
+
+-- name: GetResourceInstancesByCourseParticipationIDs :many
+-- Everything the service stores about one subject: the resources provisioned for them
+-- personally. The config is joined in so the export names what was created rather than
+-- an opaque config id. Team-scoped instances are course data, not subject data.
+SELECT instance.id,
+       instance.course_phase_id,
+       instance.status,
+       instance.external_id,
+       instance.external_url,
+       instance.error_message,
+       instance.created_at,
+       instance.updated_at,
+       config.provider_type,
+       config.resource_type,
+       config.name_template
+FROM resource_instance AS instance
+    JOIN resource_config AS config ON config.id = instance.resource_config_id
+WHERE instance.course_participation_id = ANY(sqlc.arg(course_participation_ids)::uuid[])
+ORDER BY instance.created_at;
+
+-- name: DeleteResourceInstancesByCourseParticipationIDs :exec
+DELETE FROM resource_instance
+WHERE course_participation_id = ANY(sqlc.arg(course_participation_ids)::uuid[]);

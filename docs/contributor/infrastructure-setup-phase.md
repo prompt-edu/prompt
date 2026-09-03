@@ -44,7 +44,9 @@ servers/infrastructure_setup/
 ├── phaseconfig/                       # the phase's own settings (semester tag)
 ├── execution/                         # instance lifecycle: trigger, worker, templates
 ├── copy/                              # the SDK PhaseCopyHandler
-└── config/                            # the SDK PhaseConfigHandler (setup completeness)
+├── config/                            # the SDK PhaseConfigHandler (setup completeness)
+├── privacy/                           # the SDK privacy export and deletion handlers
+└── coursePhaseDeletion/               # the SDK CoursePhaseDeletionHandler
 ```
 
 ### Frontend: `clients/infrastructure_setup_component/` (React, TypeScript, port 3012)
@@ -359,6 +361,19 @@ config that still has provisioned instances takes an explicit `confirm=true`; wi
 endpoint answers **409**. The UI sends it once the lecturer has confirmed the dialog, which spells
 out that the external resources stay behind.
 
+### Privacy and phase deletion
+
+Core fans a privacy request out to every phase type of the courses a subject is in, so these
+endpoints are not optional: without them one unanswered service marks the whole deletion request
+failed. What the phase stores about a person is the instances of its `per_student` configs, so the
+export carries those rows (with their provider and resource type joined in) and the deletion removes
+them. A team-scoped instance stays: it belongs to the team, not to one member.
+
+Deleting the phase itself removes every row the service holds for it, the encrypted provider
+credentials included. Both deletions stop at PROMPT's own records: the external resources survive,
+so a group named after a student outlives their deletion request and has to be removed in the
+provider by hand.
+
 The same applies to **memberships**: nothing is ever removed from a group, a channel or a
 collection. Reconciling PROMPT's team data against upstream memberships is a separate feature with
 its own questions (which side is authoritative, what happens to a member somebody added by hand),
@@ -420,12 +435,15 @@ deliberately **not** granted access.
 | POST | `/instances/:instanceID/retry` | Re-queue a failed or partial instance |
 | DELETE | `/instances/:instanceID` | Delete the PROMPT row; the external resource is untouched |
 | GET | `/config` | Readiness flags consumed by core |
+| POST | `/delete` | Drop everything stored for the phase, called when core deletes it |
 
-Two routes are not phase-scoped:
+The SDK-registered routes below are not phase-scoped and protect themselves:
 
 | Method | Path | Description |
 |---|---|---|
 | POST | `/infrastructure-setup/api/copy` | Phase copy handler |
+| POST | `/infrastructure-setup/api/privacy/data-export` | Privacy export, called by core per phase type |
+| POST | `/infrastructure-setup/api/privacy/data-deletion` | Privacy deletion, admin token only |
 | GET | `/infrastructure-setup/api/info` | Public service info consumed by the management console |
 
 ---
@@ -472,6 +490,9 @@ with the migrations.
 - **providerconfig / resourceconfig** — credentials are encrypted at rest and never returned,
   non-string and unknown credential fields are rejected, and resource types are validated against
   the provider.
+- **privacy / coursePhaseDeletion** — the export and deletion cover the subject's own instances and
+  leave the team's alone; deleting a phase empties every table it owns (counted on the raw tables,
+  so a weakened cascade fails) and is idempotent.
 - **copy / config / phaseconfig** — the copy endpoint answers with exactly one JSON body, a copied
   phase reports its semester tag and resource configs but not its providers, copying twice does not
   duplicate anything, and a phase with no config row reads as unconfigured rather than failing.

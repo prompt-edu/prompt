@@ -14,9 +14,11 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/config"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/coursePhaseDeletion"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/encryption"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/execution"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/phaseconfig"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/privacy"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig"
@@ -113,6 +115,11 @@ func main() {
 	// Recover instances a crashed process left claimed, now and periodically.
 	executionService.StartStaleClaimSweeper(context.Background())
 
+	// Phase deletion. The SDK protects the endpoint itself, and it reads the phase from
+	// the path, so it goes on a phase-scoped group without a group-level middleware.
+	deletionApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID")
+	coursePhaseDeletion.RegisterRoutes(deletionApi, coursePhaseDeletion.NewCoursePhaseDeletionService(conn))
+
 	// Copy endpoint (global, not phase-scoped). The config endpoint is phase-scoped but
 	// brings its own auth middleware from the SDK, so it gets a group without one.
 	copyApi := router.Group("infrastructure-setup/api")
@@ -120,16 +127,27 @@ func main() {
 	copy.RegisterRoutes(copyApi, copy.NewService(conn), authMw)
 	config.RegisterRoutes(configApi, config.NewService(conn), authMw)
 
+	// Privacy export and deletion. Core addresses these per phase type at
+	// <base URL>/privacy/..., and both bring their own middleware from the SDK.
+	privacy.RegisterRoutes(copyApi, privacy.NewPrivacyService(conn))
+
 	// Public /info endpoint consumed by the management console's System Status page.
 	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
 		ServiceName: "infrastructure-setup",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
-			promptTypes.CapabilityPhaseCopy:   true,
-			promptTypes.CapabilityPhaseConfig: true,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
+			promptTypes.CapabilityPrivacyExport:   true,
+			promptTypes.CapabilityPrivacyDeletion: true,
 		},
 	}, func() bool {
-		return conn.Ping(context.Background()) == nil
+		// A health probe must answer even when the database does not: bound the ping
+		// rather than letting /info hang on an unreachable database.
+		pingCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		defer cancel()
+		return conn.Ping(pingCtx) == nil
 	})
 
 	// Health check.

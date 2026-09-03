@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -144,6 +145,16 @@ func (q *Queries) DeleteResourceInstance(ctx context.Context, arg DeleteResource
 	return err
 }
 
+const deleteResourceInstancesByCourseParticipationIDs = `-- name: DeleteResourceInstancesByCourseParticipationIDs :exec
+DELETE FROM resource_instance
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteResourceInstancesByCourseParticipationIDs(ctx context.Context, courseParticipationIds []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteResourceInstancesByCourseParticipationIDs, courseParticipationIds)
+	return err
+}
+
 const failStaleInProgressInstances = `-- name: FailStaleInProgressInstances :execrows
 UPDATE resource_instance
 SET status = 'failed',
@@ -202,6 +213,73 @@ func (q *Queries) GetResourceInstance(ctx context.Context, arg GetResourceInstan
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getResourceInstancesByCourseParticipationIDs = `-- name: GetResourceInstancesByCourseParticipationIDs :many
+SELECT instance.id,
+       instance.course_phase_id,
+       instance.status,
+       instance.external_id,
+       instance.external_url,
+       instance.error_message,
+       instance.created_at,
+       instance.updated_at,
+       config.provider_type,
+       config.resource_type,
+       config.name_template
+FROM resource_instance AS instance
+    JOIN resource_config AS config ON config.id = instance.resource_config_id
+WHERE instance.course_participation_id = ANY($1::uuid[])
+ORDER BY instance.created_at
+`
+
+type GetResourceInstancesByCourseParticipationIDsRow struct {
+	ID            uuid.UUID      `json:"id"`
+	CoursePhaseID uuid.UUID      `json:"coursePhaseId"`
+	Status        ResourceStatus `json:"status"`
+	ExternalID    *string        `json:"externalId"`
+	ExternalUrl   *string        `json:"externalUrl"`
+	ErrorMessage  *string        `json:"errorMessage"`
+	CreatedAt     time.Time      `json:"createdAt"`
+	UpdatedAt     time.Time      `json:"updatedAt"`
+	ProviderType  ProviderType   `json:"providerType"`
+	ResourceType  string         `json:"resourceType"`
+	NameTemplate  string         `json:"nameTemplate"`
+}
+
+// Everything the service stores about one subject: the resources provisioned for them
+// personally. The config is joined in so the export names what was created rather than
+// an opaque config id. Team-scoped instances are course data, not subject data.
+func (q *Queries) GetResourceInstancesByCourseParticipationIDs(ctx context.Context, courseParticipationIds []uuid.UUID) ([]GetResourceInstancesByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getResourceInstancesByCourseParticipationIDs, courseParticipationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetResourceInstancesByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetResourceInstancesByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CoursePhaseID,
+			&i.Status,
+			&i.ExternalID,
+			&i.ExternalUrl,
+			&i.ErrorMessage,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ProviderType,
+			&i.ResourceType,
+			&i.NameTemplate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listResourceInstances = `-- name: ListResourceInstances :many

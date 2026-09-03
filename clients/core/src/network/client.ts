@@ -29,8 +29,8 @@ const describeError = (error: unknown): { status?: number; message: string } => 
 }
 
 /**
- * Logs once, sanitized, and rethrows the original error, so the `onError` handlers that read
- * `error.response.data.error` keep working.
+ * Logs an unexpected failure, sanitized, and rethrows the original error, so the `onError` handlers
+ * that read `error.response.data.error` keep working.
  *
  * This wraps each call rather than installing an interceptor: `axiosInstance` is a Module
  * Federation singleton shared with every remote, and core has no business logging their requests.
@@ -39,17 +39,23 @@ const send = async <T>(
   instance: AxiosInstance,
   description: string,
   config: AxiosRequestConfig,
+  quietStatuses: readonly number[] = [],
 ): Promise<AxiosResponse<T>> => {
   try {
     return await instance.request<T>(config)
   } catch (error) {
-    console.error(`${description} request failed`, describeError(error))
+    const failure = describeError(error)
+    if (failure.status === undefined || !quietStatuses.includes(failure.status)) {
+      console.error(`${description} request failed`, failure)
+    }
     throw error
   }
 }
 
 interface RequestOptions {
   params?: Record<string, string | number | boolean>
+  /** Statuses the caller answers itself, so `send` does not log them. */
+  quietStatuses?: readonly number[]
 }
 
 /** `data` stays off `RequestOptions` so it cannot silently override a `post`/`put` body. */
@@ -58,45 +64,32 @@ interface DeleteOptions extends RequestOptions {
   data?: unknown
 }
 
-const requestsThrough = (instance: AxiosInstance, description: string) => ({
-  get: async <T>(url: string, options?: RequestOptions): Promise<T> =>
-    (await send<T>(instance, description, { method: 'get', url, ...options })).data,
+const requestsThrough = (instance: AxiosInstance, description: string) => {
+  const request = <T>(
+    config: AxiosRequestConfig,
+    options: RequestOptions = {},
+  ): Promise<AxiosResponse<T>> => {
+    const { quietStatuses, ...axiosOptions } = options
+    return send<T>(instance, description, { ...config, ...axiosOptions }, quietStatuses)
+  }
 
-  getResponse: <T>(url: string, options?: RequestOptions): Promise<AxiosResponse<T>> =>
-    send<T>(instance, description, { method: 'get', url, ...options }),
+  return {
+    get: async <T>(url: string, options?: RequestOptions): Promise<T> =>
+      (await request<T>({ method: 'get', url }, options)).data,
 
-  post: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
-    (
-      await send<T>(instance, description, {
-        method: 'post',
-        url,
-        data,
-        headers: JSON_HEADERS,
-        ...options,
-      })
-    ).data,
+    getResponse: <T>(url: string, options?: RequestOptions): Promise<AxiosResponse<T>> =>
+      request<T>({ method: 'get', url }, options),
 
-  put: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
-    (
-      await send<T>(instance, description, {
-        method: 'put',
-        url,
-        data,
-        headers: JSON_HEADERS,
-        ...options,
-      })
-    ).data,
+    post: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
+      (await request<T>({ method: 'post', url, data, headers: JSON_HEADERS }, options)).data,
 
-  del: async <T = void>(url: string, options?: DeleteOptions): Promise<T> =>
-    (
-      await send<T>(instance, description, {
-        method: 'delete',
-        url,
-        headers: JSON_HEADERS,
-        ...options,
-      })
-    ).data,
-})
+    put: async <T = void>(url: string, data?: unknown, options?: RequestOptions): Promise<T> =>
+      (await request<T>({ method: 'put', url, data, headers: JSON_HEADERS }, options)).data,
+
+    del: async <T = void>(url: string, options?: DeleteOptions): Promise<T> =>
+      (await request<T>({ method: 'delete', url, headers: JSON_HEADERS }, options)).data,
+  }
+}
 
 /** The authenticated instance, which carries the Keycloak token. */
 export const coreRequest = requestsThrough(axiosInstance, 'Core')

@@ -24,6 +24,7 @@ export const CERTIFICATE_API = '/certificate/api'
 export const PRESENTATION_API = '/presentation/api'
 export const TEAM_ALLOCATION_API = '/team-allocation/api'
 export const EXAMPLE_API = '/example-service/api'
+export const INFRASTRUCTURE_SETUP_API = '/infrastructure-setup/api'
 
 export const tokenEndpoint = () =>
   `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`

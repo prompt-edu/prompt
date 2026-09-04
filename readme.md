@@ -128,7 +128,10 @@ The `.env` file contains Docker/production configuration. The `.env.dev` file co
 #### 3. Start Database, Keycloak and File Storage
 
 ```bash
-docker compose up -d db keycloak seaweedfs-volume seaweedfs-s3
+# every service database and Keycloak (make db-down stops them again)
+make db
+# object storage
+docker compose up -d seaweedfs-volume seaweedfs-s3
 ```
 
 #### 4. Configure Keycloak (first time only)
@@ -309,12 +312,25 @@ hooks for a single commit, use `git commit --no-verify`.
 
 ### Ports Reference
 
-| Service     | Port |
-| ----------- | ---- |
-| Core Client | 3000 |
-| Keycloak    | 8081 |
-| Core Server | 8080 |
-| PostgreSQL  | 5432 |
+| Service                          | Port |
+| -------------------------------- | ---- |
+| Core Client                      | 3000 |
+| Infrastructure Setup Client      | 3012 |
+| Keycloak                         | 8081 |
+| Core Server                      | 8080 |
+| Interview Server                 | 8087 |
+| Team Allocation Server           | 8083 |
+| Self Team Allocation Server      | 8084 |
+| Assessment Server                | 8085 |
+| Example Server                   | 8086 |
+| Certificate Server               | 8088 |
+| Presentation Server              | 8089 |
+| Infrastructure Setup Server      | 8091 |
+| PostgreSQL (core)                | 5432 |
+| PostgreSQL (infrastructure setup)| 5441 |
+| SeaweedFS Master                 | 9333 |
+| SeaweedFS Volume                 | 8888 |
+| SeaweedFS S3 Gateway             | 8333 |
 
 ---
 

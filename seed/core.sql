@@ -330,6 +330,12 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- existing course lifecycle fixtures remain unchanged.
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000014-0000-0000-0000-000000000014', 'c0000001-0000-0000-0000-000000000001', 'Presentation', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Presentation'), '{}');
+-- Standalone Infrastructure Setup phase on fullCourse (no graph edge, route by
+-- URL). The lecturer journey drives it through its own API and needs no graph
+-- inputs: its per_student resource configs resolve from the phase's own
+-- participations.
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('d0000017-0000-0000-0000-000000000017', 'c0000001-0000-0000-0000-000000000001', 'Infrastructure Setup', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Infrastructure Setup'), '{}');
 -- Standalone interview fixture phase (no graph edge, see above):
 -- aaaa6666 = TestCourse negative-auth fixture for the interview API (no
 -- participants; the e2e users hold no TestCourse roles).
@@ -494,6 +500,13 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
 -- published allocation via the API.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'b3000003-0000-0000-0000-000000000003', '{}', 'not_assessed', '{}');
+-- Standalone Infrastructure Setup phase (see the course_phase inserts below):
+-- two students, so a per_student resource config resolves to a non-empty set of
+-- provisioning targets.
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
+    VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000017-0000-0000-0000-000000000017', '{}', 'passed', '{}');
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
+    VALUES ('a0000002-0000-0000-0000-000000000002', 'd0000017-0000-0000-0000-000000000017', '{}', 'passed', '{}');
 
 -- Required text question on the iPraktikumFull Application phase, so the
 -- application journey exercises the configurable form (answersText round-trip).

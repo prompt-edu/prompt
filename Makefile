@@ -2,15 +2,15 @@
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate server-presentation \
+	server-certificate server-presentation server-infrastructure-setup \
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate test-presentation \
+	test-certificate test-presentation test-infrastructure-setup \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate sqlc-presentation \
+	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
 
@@ -43,6 +43,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-presentation &
+	@$(MAKE) server-infrastructure-setup &
 	@wait
 	@echo "All servers started."
 
@@ -70,6 +71,9 @@ server-certificate: ## Start certificate server (port 8088)
 server-presentation: ## Start presentation server (port 8089)
 	cd servers/presentation && go run main.go
 
+server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
+	cd servers/infrastructure_setup && go run main.go
+
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
 
@@ -92,7 +96,8 @@ client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
-	db-example-server db-interview db-certificate db-presentation
+	db-example-server db-interview db-certificate db-presentation \
+	db-infrastructure-setup
 
 db: ## Start every service database and Keycloak
 	docker compose up -d $(DB_SERVICES) keycloak
@@ -114,6 +119,7 @@ lint: lint-clients lint-servers ## Lint all code
 
 lint-clients: ## Lint all clients
 	cd clients && yarn biome check
+	./scripts/check-remote-styles.sh
 
 lint-servers: ## Run go vet on all servers
 	cd servers/core && go vet ./...
@@ -124,10 +130,11 @@ lint-servers: ## Run go vet on all servers
 	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
 	cd servers/presentation && go vet ./...
+	cd servers/infrastructure_setup && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
@@ -155,6 +162,9 @@ test-certificate: ## Run certificate server tests
 
 test-presentation: ## Run presentation server tests
 	cd servers/presentation && go test ./...
+
+test-infrastructure-setup: ## Run infrastructure setup server tests
+	cd servers/infrastructure_setup && go test ./...
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
@@ -211,7 +221,7 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -236,6 +246,9 @@ sqlc-certificate: ## Generate sqlc code for certificate server
 
 sqlc-presentation: ## Generate sqlc code for presentation server
 	cd servers/presentation && sqlc generate
+
+sqlc-infrastructure-setup: ## Generate sqlc code for infrastructure setup server
+	cd servers/infrastructure_setup && sqlc generate
 
 swagger: ## Generate swagger docs for core server
 	cd servers/core && swag init

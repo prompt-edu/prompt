@@ -62,6 +62,11 @@ func (s *CoursePhaseTypeService) InitializePhaseTypes() {
 	if err != nil {
 		log.Fatal("failed to init presentation phase type: ", err)
 	}
+
+	err = s.initInfrastructureSetup()
+	if err != nil {
+		log.Fatal("failed to init infrastructure setup phase type: ", err)
+	}
 }
 
 func getScoreLevelSpecificationBytes() ([]byte, error) {
@@ -677,6 +682,66 @@ func (s *CoursePhaseTypeService) initPresentation() error {
 		Optional:          true,
 	}); err != nil {
 		log.Error("failed to create optional team allocation input: ", err)
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (s *CoursePhaseTypeService) initInfrastructureSetup() error {
+	ctx := context.Background()
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer sdkUtils.DeferRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	baseURL := "{CORE_HOST}/infrastructure-setup/api"
+	if s.isDevEnvironment {
+		baseURL = "http://localhost:8091/infrastructure-setup/api"
+	}
+
+	infrastructureSetupPhaseID := uuid.New()
+	infrastructureSetupPhase, err := qtx.GetCoursePhaseTypeByName(ctx, "Infrastructure Setup")
+	switch {
+	case err == nil:
+		infrastructureSetupPhaseID = infrastructureSetupPhase.ID
+		log.Debug("infrastructure setup phase type already exists; ensuring its input descriptors")
+	case errors.Is(err, pgx.ErrNoRows):
+		newInfrastructureSetupPhase := db.CreateCoursePhaseTypeParams{
+			ID:           infrastructureSetupPhaseID,
+			Name:         "Infrastructure Setup",
+			InitialPhase: false,
+			BaseUrl:      baseURL,
+			Description:  pgtype.Text{String: "Automated provisioning of external resources (GitLab, Slack, Outline, etc.) per team or student.", Valid: true},
+		}
+		if err := qtx.CreateCoursePhaseType(ctx, newInfrastructureSetupPhase); err != nil {
+			log.Error("failed to create infrastructure setup phase type: ", err)
+			return err
+		}
+	default:
+		log.Error("failed to get infrastructure setup phase type: ", err)
+		return err
+	}
+
+	if err := qtx.InsertTeamRequiredInput(ctx, db.InsertTeamRequiredInputParams{
+		CoursePhaseTypeID: infrastructureSetupPhaseID,
+		Optional:          false,
+	}); err != nil {
+		log.Error("failed to create required team input: ", err)
+		return err
+	}
+
+	if err := qtx.InsertTeamAllocationRequiredInput(ctx, db.InsertTeamAllocationRequiredInputParams{
+		CoursePhaseTypeID: infrastructureSetupPhaseID,
+		Optional:          false,
+	}); err != nil {
+		log.Error("failed to create required team allocation input: ", err)
 		return err
 	}
 

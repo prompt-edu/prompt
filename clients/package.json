@@ -34,7 +34,7 @@
     "@radix-ui/react-toolbar": "^1.1.19",
     "@rspack/core": "^2.2.1",
     "@tailwindcss/typography": "^0.5.20",
-    "@tanstack/react-query": "^5.102.7",
+    "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/core": "^3.30.5",
     "@tiptap/extension-code-block": "^3.30.5",
@@ -57,7 +57,7 @@
     "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "css-loader": "^7.1.4",
+    "css-loader": "^7.1.5",
     "date-fns": "^4.4.0",
     "dayjs": "^1.11.23",
     "dompurify": "^3.4.14",
@@ -66,7 +66,7 @@
     "jwt-decode": "^4.0.0",
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
-    "lucide-react": "^1.34.0",
+    "lucide-react": "^1.37.0",
     "motion": "^13.1.1",
     "postcss": "^8.5.26",
     "postcss-loader": "8.2.1",
@@ -74,7 +74,7 @@
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.86.0",
     "react-medium-image-zoom": "^5.4.9",
-    "react-router-dom": "^7.18.2",
+    "react-router-dom": "^7.18.3",
     "sass-loader": "^17.0.0",
     "sonner": "^2.0.8",
     "style-loader": "^4.0.0",
@@ -83,7 +83,7 @@
     "ts-node": "^10.9.2",
     "ts-node-register": "^1.0.0",
     "use-debounce": "^10.1.1",
-    "zod": "^4.4.3",
+    "zod": "^4.5.2",
     "zustand": "^5.0.15"
   },
   "resolutions": {
@@ -95,7 +95,7 @@
     "js-yaml": "^5.4.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.10",
+    "@biomejs/biome": "2.5.11",
     "@module-federation/runtime-tools": "^2.9.0",
     "@rspack/cli": "^2.2.1",
     "@rspack/dev-server": "^2.2.1",

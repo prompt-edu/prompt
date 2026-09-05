@@ -5,7 +5,7 @@
 # `yarn install` only re-runs when a manifest or the lockfile changes. A source
 # edit then only invalidates the final `COPY . ./`.
 # Requires BuildKit (Docker 23+) for the cache mount below.
-FROM node:24.19.0 AS base
+FROM node:24.20.0 AS base
 
 RUN corepack enable
 RUN yarn config set httpTimeout 300000 --home

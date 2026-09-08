@@ -1,4 +1,3 @@
-import { coreCache } from '@core/network/cache'
 import type { UseMutateAsyncFunction } from '@tanstack/react-query'
 import type { CreateCoursePhase, UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import type { Edge, Node } from '@xyflow/react'
@@ -18,7 +17,6 @@ interface HandleSaveProps {
   mutateCoursePhaseGraph: UseMutateAsyncFunction<void, Error, CoursePhaseGraphUpdate, unknown>
   mutateParticipationDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
   mutatePhaseDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
-  queryClient: any
   setIsModified: (val: boolean) => void
 }
 
@@ -33,7 +31,6 @@ export async function handleSave({
   mutateCoursePhaseGraph,
   mutateParticipationDataGraph,
   mutatePhaseDataGraph,
-  queryClient,
   setIsModified,
 }: HandleSaveProps) {
   const idReplacementMap: { [key: string]: string } = {}
@@ -162,7 +159,6 @@ export async function handleSave({
 
   try {
     await mutateParticipationDataGraph(participationDataGraph)
-    coreCache.coursePhaseGraphSaved(queryClient)
     setIsModified(false)
     // Optionally reload if needed
     // window.location.reload()

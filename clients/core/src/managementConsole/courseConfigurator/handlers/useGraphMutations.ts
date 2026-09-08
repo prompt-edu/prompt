@@ -34,7 +34,7 @@ export function useMutations() {
       mutationFn: (updatedGraph: MetaDataGraphItem[]) =>
         coreApi.courseGraphs.saveParticipationData(courseId ?? '', updatedGraph),
       onSuccess: () => {
-        // this is the last executed mutation and on this we want to reload!
+        // Reload to replace temporary phase IDs with persisted IDs before another save.
         window.location.reload()
       },
     })

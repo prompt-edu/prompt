@@ -5,9 +5,23 @@ import { coreKeys } from './keys'
 type Id = string | undefined
 type CacheKeys = readonly (readonly unknown[])[]
 
+/**
+ * The part of a key that is safe to invalidate.
+ *
+ * Keys are built from route params, so a scoping id can be `undefined`. `invalidateQueries` matches
+ * by prefix and compares every segment, so a key holding `undefined` matches nothing cached and the
+ * invalidation silently reaches no cache at all. Truncating at the missing segment over-invalidates
+ * instead, which costs a refetch, where the full key would leave stale data on screen. Every key in
+ * `coreKeys` opens with a literal, so the result is never the whole cache.
+ */
+const definedPrefixOf = (queryKey: readonly unknown[]): readonly unknown[] => {
+  const missing = queryKey.indexOf(undefined)
+  return missing === -1 ? queryKey : queryKey.slice(0, missing)
+}
+
 const invalidate = (queryClient: QueryClient, keys: CacheKeys): void => {
   for (const queryKey of keys) {
-    queryClient.invalidateQueries({ queryKey })
+    queryClient.invalidateQueries({ queryKey: definedPrefixOf(queryKey) })
   }
 }
 
@@ -41,20 +55,6 @@ export const coreCache = {
   coursePhaseChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [coreKeys.coursePhases.byId(phaseId)]),
 
-  // One composite key rather than one key per graph, which is what the configurator has always
-  // sent. `invalidateQueries` matches by prefix, so nothing caches under it and nothing is
-  // invalidated; the configurator reloads its graphs by other means.
-  coursePhaseGraphSaved: (queryClient: QueryClient): void =>
-    invalidate(queryClient, [
-      [
-        'courses',
-        'participation_data_phase_graph',
-        'phase_data_phase_graph',
-        'course_phase_types',
-        'course_phase_graph',
-      ],
-    ]),
-
   applicationsImported: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [
       coreKeys.applications.additionalScores(phaseId),
@@ -70,16 +70,18 @@ export const coreCache = {
   applicationParticipantsChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
-  // Unscoped, so it reaches every phase rather than the one that was assessed
-  applicationAssessmentSaved: (queryClient: QueryClient): void =>
-    invalidate(queryClient, [coreKeys.applications.participations.all()]),
+  applicationAssessmentSaved: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [coreKeys.applications.participations.inPhase(phaseId)]),
 
-  // A student gaining a university account changes the applications that name them and the
-  // participation rows that render them, in every phase
-  studentUniversityDataChanged: (queryClient: QueryClient): void =>
+  // The whole student record is written, and the student's rows render in the applications and
+  // participations of every phase, which the call site does not know
+  studentUniversityDataChanged: (queryClient: QueryClient, studentId: Id): void =>
     invalidate(queryClient, [
+      coreKeys.students.byId(studentId),
       coreKeys.applications.all(),
       coreKeys.applications.participations.all(),
+      // Unscoped, so every cached search re-runs: the write sets the fields they search
+      coreKeys.applications.universityUsers.all(),
     ]),
 
   applicationFormChanged: (queryClient: QueryClient, phaseId: Id): void =>

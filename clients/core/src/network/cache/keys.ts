@@ -53,8 +53,11 @@ export const coreKeys = {
     },
     form: (phaseId: Id) => ['application_form', phaseId] as const,
     exportedAnswers: (phaseId: Id) => ['application_exported_answers', phaseId] as const,
-    universityUsers: (searchString: string, phaseId: Id) =>
-      ['university_users', searchString, phaseId] as const,
+    universityUsers: {
+      all: () => ['university_users'] as const,
+      forSearch: (searchString: string, phaseId: Id) =>
+        ['university_users', searchString, phaseId] as const,
+    },
   },
 
   // The public application pages, which read a different endpoint than `applications.form`

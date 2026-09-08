@@ -148,6 +148,7 @@ func (s *GeneratorService) downloadStudentCertificate(c *gin.Context) {
 		Action:        "Downloaded a student's certificate",
 		EntityType:    "certificate",
 		EntityID:      studentID.String(),
+		EntityName:    strings.TrimSpace(student.FirstName + " " + student.LastName),
 		CoursePhaseID: coursePhaseID.String(),
 	})
 

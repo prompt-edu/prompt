@@ -71,9 +71,11 @@ func auditActorMiddleware() gin.HandlerFunc {
 	}
 }
 
-// auditRouter mirrors main.go's wiring: the audit middleware is attached to the
-// api group before the course phase subgroup exists, because gin snapshots the
-// handler chain when a subgroup is created.
+// auditRouter rebuilds main.go's group layout, with the audit middleware
+// attached to the api group before the course phase subgroup exists, because
+// gin snapshots the handler chain when a subgroup is created. The actor
+// middleware stands in for a token that authenticates but lacks the role the
+// route requires, which is the denial the audit middleware is meant to capture.
 func auditRouter(sink audit.Sink) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()

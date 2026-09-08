@@ -9,5 +9,5 @@ export interface Contributor {
 export interface ContributorWithInfo extends Contributor {
   name: string
   contribution: string
-  position: number
+  pinnedPosition?: number
 }

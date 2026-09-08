@@ -4,11 +4,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 	db "github.com/prompt-edu/prompt/servers/example_server/db/sqlc"
 )
+
+// auditCopyAction labels the copy route on both the denied and the completed
+// path, so filtering the audit log by action finds every attempt.
+const auditCopyAction = "Copied course phase"
 
 // CopyService handles phase-level data duplication.
 //
@@ -50,15 +55,25 @@ func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
 // the actual functionality is implemented. Copy inside a transaction taken from
 // the receiver's pool (`s.conn`), never through a global.
 func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
-	// The route sits outside :coursePhaseID, so only an explicit event carries the phase.
+	recordCopyAudit(c, req)
+
+	c.AbortWithStatus(http.StatusNotFound)
+	return nil
+}
+
+// recordCopyAudit scopes the event to the target phase. The route sits outside
+// :coursePhaseID, so an automatically captured event would carry no phase and
+// never reach the course audit log. A blank target is left to that automatic
+// entry rather than pinning the log to the nil phase.
+func recordCopyAudit(c *gin.Context, req promptTypes.PhaseCopyRequest) {
+	if req.TargetCoursePhaseID == uuid.Nil {
+		return
+	}
 	audit.Record(c, audit.Event{
-		Action:        "Copied course phase",
+		Action:        auditCopyAction,
 		EntityType:    "coursePhase",
 		EntityID:      req.TargetCoursePhaseID.String(),
 		CoursePhaseID: req.TargetCoursePhaseID.String(),
 		Metadata:      map[string]any{"sourceCoursePhaseID": req.SourceCoursePhaseID.String()},
 	})
-
-	c.AbortWithStatus(http.StatusNotFound)
-	return nil
 }

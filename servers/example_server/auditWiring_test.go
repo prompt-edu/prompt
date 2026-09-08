@@ -191,3 +191,16 @@ func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	require.Len(t, sink.snapshot(), 1)
 }
+
+func TestHandlePhaseCopySkipsBlankTarget(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink, passThroughAuthMiddleware)
+
+	resp := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/example-service/api/copy", bytes.NewReader([]byte("{}")))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(resp, request)
+
+	time.Sleep(300 * time.Millisecond)
+	require.Empty(t, sink.snapshot())
+}

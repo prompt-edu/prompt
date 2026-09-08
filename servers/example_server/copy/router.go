@@ -9,6 +9,6 @@ import (
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *CopyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	// RegisterCopyEndpoint takes a single middleware, so the label rides on a zero-length group.
-	promptTypes.RegisterCopyEndpoint(routerGroup.Group("", audit.Describe("Copied course phase")),
+	promptTypes.RegisterCopyEndpoint(routerGroup.Group("", audit.Describe(auditCopyAction)),
 		authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
 }

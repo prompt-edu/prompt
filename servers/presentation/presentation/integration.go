@@ -16,8 +16,8 @@ import (
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 )
 
-// AuditCopyAction labels the copy route on both the denied and the completed path, so
-// filtering the audit log by action finds every attempt.
+// AuditCopyAction names the copy route and the event its handler records, so both
+// describe the same action in the audit log.
 const AuditCopyAction = "Copied course phase"
 
 type CopyHandler struct {
@@ -25,6 +25,13 @@ type CopyHandler struct {
 }
 
 func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseCopyRequest) error {
+	// Core probes this endpoint by posting a copy of a phase onto itself to find out
+	// whether the service supports copying. Copying in place clears the target first, so
+	// it would wipe the phase's own slots, presentations and uploaded material.
+	if request.SourceCoursePhaseID == request.TargetCoursePhaseID {
+		audit.Suppress(c)
+		return nil
+	}
 	recordCopyAudit(c, request)
 
 	sourceConfig, err := h.Service.queries.GetCoursePhaseConfig(c, request.SourceCoursePhaseID)
@@ -92,12 +99,6 @@ func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseC
 // the course audit log. A blank target is left to that automatic entry rather than pinning
 // the log to the nil phase.
 func recordCopyAudit(c *gin.Context, request promptTypes.PhaseCopyRequest) {
-	// Core probes this endpoint with source == target to find out whether it exists, so
-	// such a request is not a copy and belongs in no audit log.
-	if request.SourceCoursePhaseID == request.TargetCoursePhaseID {
-		audit.Suppress(c)
-		return
-	}
 	if request.TargetCoursePhaseID == uuid.Nil {
 		return
 	}

@@ -312,6 +312,27 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 // reports an unconfigured source phase, which is the handler's earliest return.
 type noRowsDB struct{}
 
+// countingDB records whether the handler reached the database at all.
+type countingDB struct {
+	noRowsDB
+	calls int
+}
+
+func (d *countingDB) Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error) {
+	d.calls++
+	return d.noRowsDB.Exec(ctx, sql, args...)
+}
+
+func (d *countingDB) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
+	d.calls++
+	return d.noRowsDB.Query(ctx, sql, args...)
+}
+
+func (d *countingDB) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
+	d.calls++
+	return d.noRowsDB.QueryRow(ctx, sql, args...)
+}
+
 func (noRowsDB) Exec(context.Context, string, ...any) (pgconn.CommandTag, error) {
 	return pgconn.CommandTag{}, pgx.ErrNoRows
 }
@@ -328,13 +349,17 @@ func (noRowsRow) Scan(...any) error { return pgx.ErrNoRows }
 
 // auditCopyRouter reaches the copy handler itself, which the denied path never does.
 func auditCopyRouter(sink audit.Sink) *gin.Engine {
+	return auditCopyRouterWithDB(sink, noRowsDB{})
+}
+
+func auditCopyRouterWithDB(sink audit.Sink, queries db.DBTX) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
 	api := router.Group("/presentation/api")
 	api.Use(audit.Middleware(sink))
 	api.Use(auditActorMiddleware())
-	service := presentation.NewService(db.New(noRowsDB{}), nil, nil, "", 0, 0, 0, nil)
+	service := presentation.NewService(db.New(queries), nil, nil, "", 0, 0, 0, nil)
 	promptTypes.RegisterCopyEndpoint(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
 		func(c *gin.Context) { c.Next() },
@@ -386,13 +411,16 @@ func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 }
 
 // Core detects whether a phase service supports copying by posting a request whose source
-// and target are the same phase, which is no copy and belongs in no audit log.
+// and target are the same phase. Copying in place clears the target first, so the handler
+// has to return before it touches the database, and there is no copy to audit.
 func TestHandlePhaseCopyIgnoresTheCopyabilityProbe(t *testing.T) {
 	sink := &recordingSink{}
-	response := postCopyRequest(t, auditCopyRouter(sink),
+	queried := &countingDB{}
+	response := postCopyRequest(t, auditCopyRouterWithDB(sink, queried),
 		copyRequestBody(t, auditCoursePhaseID, auditCoursePhaseID))
 	require.Equal(t, http.StatusOK, response.Code)
 
+	require.Zero(t, queried.calls)
 	time.Sleep(300 * time.Millisecond)
 	require.Empty(t, sink.snapshot())
 }

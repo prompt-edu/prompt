@@ -192,6 +192,28 @@ func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 	require.Len(t, sink.snapshot(), 1)
 }
 
+// Core checks whether a phase service supports copying by posting a request
+// whose source and target are the same phase, which must not be audited.
+func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink, passThroughAuthMiddleware)
+
+	phase := uuid.MustParse(auditCoursePhaseID)
+	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
+		SourceCoursePhaseID: phase,
+		TargetCoursePhaseID: phase,
+	})
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/example-service/api/copy", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(resp, request)
+
+	time.Sleep(300 * time.Millisecond)
+	require.Empty(t, sink.snapshot())
+}
+
 func TestHandlePhaseCopySkipsBlankTarget(t *testing.T) {
 	sink := &recordingSink{}
 	router := auditRouter(sink, passThroughAuthMiddleware)

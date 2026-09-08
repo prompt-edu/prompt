@@ -66,6 +66,12 @@ func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyR
 // never reach the course audit log. A blank target is left to that automatic
 // entry rather than pinning the log to the nil phase.
 func recordCopyAudit(c *gin.Context, req promptTypes.PhaseCopyRequest) {
+	// Core probes this endpoint with source == target to find out whether it
+	// exists, so such a request is not a copy and belongs in no audit log.
+	if req.SourceCoursePhaseID == req.TargetCoursePhaseID {
+		audit.Suppress(c)
+		return
+	}
 	if req.TargetCoursePhaseID == uuid.Nil {
 		return
 	}

@@ -210,9 +210,9 @@ func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 	require.Len(t, sink.snapshot(), 1)
 }
 
-// A blank target skips the explicit event, so the request falls back to the
-// automatic backstop: one entry carrying the Describe label but no phase scope.
-func TestHandlePhaseCopyBlankTargetRecordsUnscopedBackstop(t *testing.T) {
+// An empty body leaves source and target both blank, which reads as core's
+// copyability probe rather than a copy.
+func TestHandlePhaseCopyBlankBodyRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
 	router := auditRouter(sink, passThroughAuthMiddleware)
 
@@ -222,13 +222,29 @@ func TestHandlePhaseCopyBlankTargetRecordsUnscopedBackstop(t *testing.T) {
 	router.ServeHTTP(resp, request)
 	require.Equal(t, http.StatusOK, resp.Code)
 
-	events := sink.waitForEvents(1)
-	require.Len(t, events, 1)
-	require.Equal(t, "Copied course phase", events[0].Action)
-	require.Empty(t, events[0].CoursePhaseID)
-	require.Empty(t, events[0].EntityType)
-	require.Equal(t, audit.OutcomeSuccess, events[0].Outcome)
+	time.Sleep(300 * time.Millisecond)
+	require.Empty(t, sink.snapshot())
+}
+
+// Core checks whether a phase service supports copying by posting a request
+// whose source and target are the same phase, which must not be audited.
+func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink, passThroughAuthMiddleware)
+
+	phase := uuid.MustParse(auditCoursePhaseID)
+	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
+		SourceCoursePhaseID: phase,
+		TargetCoursePhaseID: phase,
+	})
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, auditCopyRoute, bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(resp, request)
+	require.Equal(t, http.StatusOK, resp.Code)
 
 	time.Sleep(300 * time.Millisecond)
-	require.Len(t, sink.snapshot(), 1)
+	require.Empty(t, sink.snapshot())
 }

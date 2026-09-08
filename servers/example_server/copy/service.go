@@ -11,8 +11,8 @@ import (
 	db "github.com/prompt-edu/prompt/servers/example_server/db/sqlc"
 )
 
-// auditCopyAction labels the copy route on both the denied and the completed
-// path, so filtering the audit log by action finds every attempt.
+// auditCopyAction names the copy route and the event its handler records, so
+// both describe the same action in the audit log.
 const auditCopyAction = "Copied course phase"
 
 // CopyService handles phase-level data duplication.

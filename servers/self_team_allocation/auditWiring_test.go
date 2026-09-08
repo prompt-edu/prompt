@@ -239,63 +239,15 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	require.Empty(t, sink.snapshot())
 }
 
-func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
+// The module carries nothing over, so a copy must not appear in the audit log
+// claiming that it did.
+func TestHandlePhaseCopyRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
 	router := auditRouter(sink, passThroughAuthMiddleware)
 
 	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.MustParse(auditSourceCoursePhaseID),
 		TargetCoursePhaseID: uuid.MustParse(auditCoursePhaseID),
-	})
-	require.NoError(t, err)
-
-	resp := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, auditCopyRoute, bytes.NewReader(body))
-	request.Header.Set("Content-Type", "application/json")
-	router.ServeHTTP(resp, request)
-	require.Equal(t, http.StatusOK, resp.Code)
-
-	events := sink.waitForEvents(1)
-	require.Len(t, events, 1)
-	require.Equal(t, "Copied course phase", events[0].Action)
-	require.Equal(t, "coursePhase", events[0].EntityType)
-	require.Equal(t, auditCoursePhaseID, events[0].EntityID)
-	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
-	require.Equal(t, auditSourceCoursePhaseID, events[0].Metadata["sourceCoursePhaseID"])
-	require.Equal(t, auditActorID, events[0].ActorID)
-	require.Equal(t, audit.OutcomeSuccess, events[0].Outcome)
-	require.Equal(t, http.StatusOK, events[0].HTTPStatus)
-
-	time.Sleep(300 * time.Millisecond)
-	require.Len(t, sink.snapshot(), 1)
-}
-
-// An empty body leaves source and target both blank, which reads as core's
-// copyability probe rather than a copy.
-func TestHandlePhaseCopyBlankBodyRecordsNothing(t *testing.T) {
-	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
-
-	resp := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, auditCopyRoute, bytes.NewReader([]byte("{}")))
-	request.Header.Set("Content-Type", "application/json")
-	router.ServeHTTP(resp, request)
-	require.Equal(t, http.StatusOK, resp.Code)
-
-	time.Sleep(300 * time.Millisecond)
-	require.Empty(t, sink.snapshot())
-}
-
-// Core checks whether a phase service supports copying by posting a request
-// whose source and target are the same phase, which must not be audited.
-func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
-	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
-
-	phase := uuid.MustParse(auditCoursePhaseID)
-	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
-		SourceCoursePhaseID: phase,
-		TargetCoursePhaseID: phase,
 	})
 	require.NoError(t, err)
 

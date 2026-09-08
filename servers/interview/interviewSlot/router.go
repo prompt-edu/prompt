@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewSlotService,
 
 	// Admin routes - manage interview slots
 	interviewRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewSlot)
-	interviewRouter.POST("/batch", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewSlotsBatch)
+	interviewRouter.POST("/batch", audit.Describe("Created interview slots in bulk"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewSlotsBatch)
 	interviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getAllInterviewSlots)
 	interviewRouter.GET("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getInterviewSlot)
 	interviewRouter.PUT("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.updateInterviewSlot)

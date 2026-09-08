@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 	db "github.com/prompt-edu/prompt/servers/example_server/db/sqlc"
 )
@@ -49,6 +50,15 @@ func NewCopyService(queries db.Queries, conn *pgxpool.Pool) *CopyService {
 // the actual functionality is implemented. Copy inside a transaction taken from
 // the receiver's pool (`s.conn`), never through a global.
 func (s *CopyService) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+	// The route sits outside :coursePhaseID, so only an explicit event carries the phase.
+	audit.Record(c, audit.Event{
+		Action:        "Copied course phase",
+		EntityType:    "coursePhase",
+		EntityID:      req.TargetCoursePhaseID.String(),
+		CoursePhaseID: req.TargetCoursePhaseID.String(),
+		Metadata:      map[string]any{"sourceCoursePhaseID": req.SourceCoursePhaseID.String()},
+	})
+
 	c.AbortWithStatus(http.StatusNotFound)
 	return nil
 }

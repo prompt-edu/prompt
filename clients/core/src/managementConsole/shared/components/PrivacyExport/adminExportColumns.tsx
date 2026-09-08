@@ -3,7 +3,7 @@ import {
   type AdminPrivacyExport,
   ExportStatus,
 } from '@core/interfaces/privacy'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import { Archive, CircleCheck, CircleX, Info, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
@@ -89,7 +89,7 @@ function ExportStatusBadge({ status }: { status: ExportStatus }) {
   )
 }
 
-export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
+export const adminExportColumns: PromptTableColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
@@ -104,7 +104,7 @@ export const adminExportColumns: ColumnDef<AdminPrivacyExport>[] = [
   {
     accessorKey: 'date_created',
     header: 'Requested',
-    cell: (info) => new Date(info.getValue<string>()).toLocaleString(),
+    cell: (info) => new Date(info.getValue() as string).toLocaleString(),
   },
   {
     accessorKey: 'valid_until',

@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
@@ -82,6 +83,8 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("/team-allocation/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "team-allocation")))
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -104,17 +107,15 @@ func main() {
 	survey.RegisterRoutes(coursePhaseApi, surveyService, promptSDK.AuthenticationMiddleware)
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 
-	tease.RegisterRoutes(router.Group("team-allocation/api"), teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
-
-	copyApi := router.Group("team-allocation/api")
-	copy.RegisterRoutes(copyApi, copyService, promptSDK.AuthenticationMiddleware)
+	tease.RegisterRoutes(api, teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
+	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
 
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 
 	privacy.RegisterRoutes(api, privacyService)
 	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 
-	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
@@ -123,6 +124,7 @@ func main() {
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
 			promptTypes.CapabilityPhaseDeletion:   true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation"
@@ -80,6 +81,8 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("self-team-allocation/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "self-team-allocation")))
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -113,6 +116,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		ctt, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)

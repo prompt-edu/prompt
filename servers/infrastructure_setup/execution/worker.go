@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -299,17 +300,41 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 			return resource, nil
 		}
 		lastErr = err
+
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if !worthRetrying(err) {
+			return nil, err
+		}
+
 		log.WithFields(log.Fields{
 			"instanceID": instanceID,
 			"attempt":    attempt + 1,
 			"error":      err,
 		}).Warn("execution worker: retry")
-
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
 	}
 	return nil, lastErr
+}
+
+// worthRetrying reports whether another attempt could plausibly succeed.
+//
+// An upstream 4xx describes the request, not the moment: a revoked token, an invalid
+// name or a parent group that does not exist answers the same way three times over. With
+// 90 instances at five workers, retrying those turns one configuration mistake into
+// minutes of provider load before the phase reports it. Rate limiting and a request
+// timeout are the exceptions, and an error carrying no status at all (a dial failure, a
+// timeout, a parse error) is retried as before.
+func worthRetrying(err error) bool {
+	status, ok := provider.StatusOf(err)
+	if !ok {
+		return true
+	}
+	switch status {
+	case http.StatusTooManyRequests, http.StatusRequestTimeout:
+		return true
+	}
+	return status < 400 || status >= 500
 }
 
 // createOnce gives one provider call a deadline of its own, so a provider that never

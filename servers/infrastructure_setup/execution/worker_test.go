@@ -562,3 +562,55 @@ func TestWorkerCarriesTargetWarningsOntoTheInstance(t *testing.T) {
 		t.Fatalf("error message = %v, want the dropped tutor named", got.ErrorMessage)
 	}
 }
+
+// A 4xx describes the request, not the moment. Retrying a revoked token or an invalid
+// name three times per instance turns one configuration mistake into minutes of provider
+// load across a whole course before the failure is reported.
+func TestWorkerDoesNotRetryATerminalUpstreamFailure(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	fake := &fakeProvider{err: provider.HTTPError("gitlab", "POST", "/api/v4/groups", 401, nil)}
+	registerFakeProvider(t, fake)
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{
+		{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TemplateData: TemplateData{TeamName: "Team A"}},
+	}})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	if calls := fake.calls.Load(); calls != 1 {
+		t.Fatalf("provider calls = %d, want a single attempt for an unauthorized request", calls)
+	}
+	if got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID); got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed", got.Status)
+	}
+}
+
+func TestWorthRetrying(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "no status", err: errors.New("dial tcp: connection refused"), want: true},
+		{name: "unauthorized", err: provider.HTTPError("gitlab", "POST", "/groups", 401, nil), want: false},
+		{name: "bad request", err: provider.HTTPError("gitlab", "POST", "/groups", 400, nil), want: false},
+		{name: "rate limited", err: provider.HTTPError("gitlab", "POST", "/groups", 429, nil), want: true},
+		{name: "request timeout", err: provider.HTTPError("gitlab", "POST", "/groups", 408, nil), want: true},
+		{name: "server error", err: provider.HTTPError("gitlab", "POST", "/groups", 503, nil), want: true},
+		{name: "wrapped 403", err: fmt.Errorf("adding member: %w", provider.HTTPError("keycloak", "POST", "/groups", 403, nil)), want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := worthRetrying(tc.err); got != tc.want {
+				t.Fatalf("worthRetrying(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
+}

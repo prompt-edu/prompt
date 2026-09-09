@@ -3,6 +3,7 @@ import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-comp
 import { Play, RefreshCw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { InstanceRow } from '../components/InstanceRow'
+import { describeTriggerSummary } from '../interfaces/triggerSummary'
 import { triggerExecution } from '../network/mutations/triggerExecution'
 import { getInstances } from '../network/queries/getInstances'
 import { describeError, hasStatus } from '../utils/describeError'
@@ -31,9 +32,13 @@ export const ExecutionPage = () => {
 
   const { mutate: execute, isPending: isExecuting } = useMutation({
     mutationFn: () => triggerExecution(coursePhaseID!),
-    onSuccess: () => {
+    onSuccess: (summary) => {
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      toast({ title: 'Execution started' })
+      const startedWork = summary.queued + summary.requeued > 0
+      toast({
+        title: startedWork ? 'Execution started' : 'Nothing left to provision',
+        description: describeTriggerSummary(summary),
+      })
     },
     onError: (err: unknown) => {
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })

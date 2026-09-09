@@ -24,6 +24,44 @@ var ErrInstanceNotFound = errors.New("resource instance not found")
 // ErrProviderNotConfigured is returned when a referenced provider has no credentials.
 var ErrProviderNotConfigured = errors.New("provider credentials are missing")
 
+// ErrNothingConfigured is returned when the phase has no resource config to provision.
+var ErrNothingConfigured = errors.New("no resource is configured for this course phase")
+
+// TriggerSummary reports what one trigger did. A run's most common first outcome is a
+// mix of successes and failures, so the endpoint has to say whether pressing the button
+// again actually queued anything rather than reporting success over a no-op.
+type TriggerSummary struct {
+	// Queued counts targets that had no instance yet.
+	Queued int `json:"queued"`
+	// Requeued counts failed or partial instances reset for another attempt.
+	Requeued int `json:"requeued"`
+	// UpToDate counts targets whose resource was already created.
+	UpToDate int `json:"upToDate"`
+}
+
+// Started reports whether the trigger handed any work to the worker.
+func (s TriggerSummary) Started() bool {
+	return s.Queued+s.Requeued > 0
+}
+
+// instanceKey identifies the (resource config, target) pair one instance stands for.
+// A config has exactly one scope, so a target is either a team or a participation.
+type instanceKey struct {
+	configID uuid.UUID
+	targetID uuid.UUID
+}
+
+func targetKey(configID uuid.UUID, teamID, courseParticipationID *uuid.UUID) instanceKey {
+	switch {
+	case teamID != nil:
+		return instanceKey{configID: configID, targetID: *teamID}
+	case courseParticipationID != nil:
+		return instanceKey{configID: configID, targetID: *courseParticipationID}
+	default:
+		return instanceKey{configID: configID}
+	}
+}
+
 // Service handles resource instance lifecycle.
 type Service struct {
 	queries  *db.Queries
@@ -54,36 +92,43 @@ func NewServiceWithResolver(pool *pgxpool.Pool, resolver TargetResolver) *Servic
 	}
 }
 
-// TriggerExecution creates pending resource instances for all resource configs in a
-// course phase and then starts the async worker.
+// TriggerExecution converges the phase's resource instances on its resource configs and
+// then starts the async worker. A target without an instance gets one, a failed or
+// partial instance is queued for another attempt, and an already created resource is
+// left alone.
 //
 // Targets are resolved first, outside the transaction, because resolution calls core
 // over HTTP. The transaction then takes a per-phase advisory lock so the in-progress
-// check and the inserts cannot interleave with a second trigger.
-func (s *Service) TriggerExecution(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) error {
+// check and the writes cannot interleave with a second trigger.
+func (s *Service) TriggerExecution(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (TriggerSummary, error) {
+	var summary TriggerSummary
+
 	configs, err := s.queries.ListResourceConfigs(ctx, coursePhaseID)
 	if err != nil {
-		return err
+		return summary, err
 	}
 	if len(configs) == 0 {
-		return nil
+		return summary, ErrNothingConfigured
 	}
 
 	if err := s.assertProvidersConfigured(ctx, coursePhaseID, configs); err != nil {
-		return err
+		return summary, err
 	}
 
 	targetsByScope, err := s.resolveScopes(ctx, authHeader, coursePhaseID, configs)
 	if err != nil {
-		return err
+		return summary, err
 	}
 
-	if err := s.createInstances(ctx, coursePhaseID, configs, targetsByScope); err != nil {
-		return err
+	summary, err = s.queueInstances(ctx, coursePhaseID, configs, targetsByScope)
+	if err != nil {
+		return summary, err
 	}
 
-	s.worker.RunPendingInstances(authHeader, coursePhaseID)
-	return nil
+	if summary.Started() {
+		s.worker.RunPendingInstances(authHeader, coursePhaseID)
+	}
+	return summary, nil
 }
 
 // assertProvidersConfigured rejects a run whose providers lost their credentials, which
@@ -122,42 +167,88 @@ func (s *Service) resolveScopes(ctx context.Context, authHeader string, coursePh
 	return targetsByScope, nil
 }
 
-func (s *Service) createInstances(ctx context.Context, coursePhaseID uuid.UUID, configs []db.ResourceConfig, targetsByScope map[db.ResourceScope][]ProvisioningTarget) error {
+// queueInstances brings the phase's instances in line with its configs and targets.
+// Every (config, target) pair carries exactly one instance for the lifetime of the
+// phase, so a re-trigger converges on the row that is already there instead of adding a
+// second one beside it.
+func (s *Service) queueInstances(ctx context.Context, coursePhaseID uuid.UUID, configs []db.ResourceConfig, targetsByScope map[db.ResourceScope][]ProvisioningTarget) (TriggerSummary, error) {
+	var summary TriggerSummary
+
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return summary, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
 	locked, err := qtx.TryLockPhaseExecution(ctx, coursePhaseID.String())
 	if err != nil {
-		return err
+		return summary, err
 	}
 	if !locked {
-		return ErrExecutionInProgress
+		return summary, ErrExecutionInProgress
 	}
 
 	nonTerminal, err := qtx.CountNonTerminalInstances(ctx, coursePhaseID)
 	if err != nil {
-		return err
+		return summary, err
 	}
 	if nonTerminal > 0 {
-		return ErrExecutionInProgress
+		return summary, ErrExecutionInProgress
+	}
+
+	existing, err := s.instancesByTarget(ctx, qtx, coursePhaseID)
+	if err != nil {
+		return summary, err
 	}
 
 	for _, cfg := range configs {
 		for _, target := range targetsByScope[cfg.Scope] {
-			if _, err := qtx.CreateResourceInstance(ctx, createResourceInstanceParams(cfg, coursePhaseID, target)); err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					continue
+			instance, ok := existing[targetKey(cfg.ID, target.TeamID, target.CourseParticipationID)]
+			if !ok {
+				if _, err := qtx.CreateResourceInstance(ctx, createResourceInstanceParams(cfg, coursePhaseID, target)); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						continue
+					}
+					return summary, err
 				}
-				return err
+				summary.Queued++
+				continue
 			}
+
+			if !isRetryable(instance.Status) {
+				summary.UpToDate++
+				continue
+			}
+
+			if _, err := qtx.ResetInstanceToPending(ctx, db.ResetInstanceToPendingParams{
+				ID:            instance.ID,
+				CoursePhaseID: coursePhaseID,
+			}); err != nil {
+				return summary, err
+			}
+			summary.Requeued++
 		}
 	}
 
-	return tx.Commit(ctx)
+	return summary, tx.Commit(ctx)
+}
+
+func (s *Service) instancesByTarget(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (map[instanceKey]db.ResourceInstance, error) {
+	instances, err := qtx.ListResourceInstances(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	byTarget := make(map[instanceKey]db.ResourceInstance, len(instances))
+	for _, instance := range instances {
+		byTarget[targetKey(instance.ResourceConfigID, instance.TeamID, instance.CourseParticipationID)] = instance
+	}
+	return byTarget, nil
+}
+
+// isRetryable mirrors ResetInstanceToPending's WHERE clause.
+func isRetryable(status db.ResourceStatus) bool {
+	return status == db.ResourceStatusFailed || status == db.ResourceStatusPartial
 }
 
 func createResourceInstanceParams(cfg db.ResourceConfig, coursePhaseID uuid.UUID, target ProvisioningTarget) db.CreateResourceInstanceParams {

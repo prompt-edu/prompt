@@ -51,7 +51,7 @@ func listInstances(svc *Service) gin.HandlerFunc {
 // @Tags execution
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 202 {object} map[string]string
+// @Success 202 {object} TriggerSummary
 // @Failure 400 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -64,11 +64,12 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
 			return
 		}
-		if err := svc.TriggerExecution(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID); err != nil {
+		summary, err := svc.TriggerExecution(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID)
+		if err != nil {
 			switch {
 			case errors.Is(err, ErrExecutionInProgress):
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			case errors.Is(err, ErrProviderNotConfigured):
+			case errors.Is(err, ErrProviderNotConfigured), errors.Is(err, ErrNothingConfigured):
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			default:
 				log.WithError(err).Error("trigger execution")
@@ -76,7 +77,7 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			}
 			return
 		}
-		c.JSON(http.StatusAccepted, gin.H{"message": "execution started"})
+		c.JSON(http.StatusAccepted, summary)
 	}
 }
 

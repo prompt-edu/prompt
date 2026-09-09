@@ -60,16 +60,22 @@ func createResourceConfig(t *testing.T, queries *db.Queries, coursePhaseID uuid.
 	return cfg
 }
 
-// createInstances runs the transactional part of a trigger without spawning the
+// queueInstances runs the transactional part of a trigger without spawning the
 // background worker, which would need a real provider.
-func createInstances(t *testing.T, service *Service, coursePhaseID uuid.UUID, cfg db.ResourceConfig, targets []ProvisioningTarget) error {
+func queueInstances(t *testing.T, service *Service, coursePhaseID uuid.UUID, cfg db.ResourceConfig, targets []ProvisioningTarget) (TriggerSummary, error) {
 	t.Helper()
-	return service.createInstances(
+	return service.queueInstances(
 		context.Background(),
 		coursePhaseID,
 		[]db.ResourceConfig{cfg},
 		map[db.ResourceScope][]ProvisioningTarget{cfg.Scope: targets},
 	)
+}
+
+func createInstances(t *testing.T, service *Service, coursePhaseID uuid.UUID, cfg db.ResourceConfig, targets []ProvisioningTarget) error {
+	t.Helper()
+	_, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+	return err
 }
 
 func TestTriggerCreatesOneInstancePerTeam(t *testing.T) {
@@ -407,5 +413,213 @@ func TestDeleteAndRetryAreScopedByCoursePhase(t *testing.T) {
 	}
 	if len(instances) != 0 {
 		t.Fatalf("instances after correct delete = %d, want 0", len(instances))
+	}
+}
+
+// markInstance drives an instance into a terminal state the way the worker would.
+func markInstance(t *testing.T, queries *db.Queries, instanceID uuid.UUID, status db.ResourceStatus) {
+	t.Helper()
+	externalID := "ext-1"
+	externalURL := "https://example.test/ext-1"
+	message := "one member could not be added"
+
+	var err error
+	switch status {
+	case db.ResourceStatusFailed:
+		err = queries.MarkInstanceFailed(context.Background(), db.MarkInstanceFailedParams{
+			ID: instanceID, ErrorMessage: &message,
+		})
+	case db.ResourceStatusPartial:
+		err = queries.MarkInstancePartial(context.Background(), db.MarkInstancePartialParams{
+			ID: instanceID, ExternalID: &externalID, ExternalUrl: &externalURL, ErrorMessage: &message,
+		})
+	case db.ResourceStatusCreated:
+		err = queries.MarkInstanceCreated(context.Background(), db.MarkInstanceCreatedParams{
+			ID: instanceID, ExternalID: &externalID, ExternalUrl: &externalURL,
+		})
+	default:
+		t.Fatalf("markInstance does not handle %s", status)
+	}
+	if err != nil {
+		t.Fatalf("mark %s: %v", status, err)
+	}
+}
+
+// The common first outcome of a run is a mix of successes and failures, so triggering
+// again has to converge on the rows that are already there: requeue what did not
+// finish, leave what did alone, and never put a second row beside an existing one.
+func TestTriggerConvergesOnExistingInstances(t *testing.T) {
+	for _, tc := range []struct {
+		status   db.ResourceStatus
+		requeued int
+		upToDate int
+		want     db.ResourceStatus
+	}{
+		{status: db.ResourceStatusFailed, requeued: 1, want: db.ResourceStatusPending},
+		{status: db.ResourceStatusPartial, requeued: 1, want: db.ResourceStatusPending},
+		{status: db.ResourceStatusCreated, upToDate: 1, want: db.ResourceStatusCreated},
+	} {
+		t.Run(string(tc.status), func(t *testing.T) {
+			testDB, cleanup := setupExecutionTestDB(t)
+			defer cleanup()
+
+			coursePhaseID := uuid.New()
+			teamID := uuid.New()
+			cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+			targets := []ProvisioningTarget{{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TeamName: "Team A"}}
+			service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{targets: targets})
+
+			first, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+			if err != nil {
+				t.Fatalf("first trigger: %v", err)
+			}
+			if first.Queued != 1 {
+				t.Fatalf("first trigger queued = %d, want 1", first.Queued)
+			}
+
+			instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+			if err != nil {
+				t.Fatalf("list instances: %v", err)
+			}
+			markInstance(t, testDB.Queries, instances[0].ID, tc.status)
+
+			second, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+			if err != nil {
+				t.Fatalf("second trigger: %v", err)
+			}
+			if second.Queued != 0 {
+				t.Fatalf("second trigger queued = %d, want 0 new instances", second.Queued)
+			}
+			if second.Requeued != tc.requeued || second.UpToDate != tc.upToDate {
+				t.Fatalf("summary = %+v, want requeued %d and upToDate %d", second, tc.requeued, tc.upToDate)
+			}
+
+			after, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+			if err != nil {
+				t.Fatalf("list instances: %v", err)
+			}
+			if len(after) != 1 {
+				t.Fatalf("instances = %d, want the one row converged on", len(after))
+			}
+			if after[0].Status != tc.want {
+				t.Fatalf("status = %s, want %s", after[0].Status, tc.want)
+			}
+		})
+	}
+}
+
+// A trigger that queued nothing must say so. Reporting "execution started" over a no-op
+// is what let a lecturer believe a phase full of partial instances was being retried.
+func TestTriggerSummaryReportsWhetherWorkWasQueued(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	targets := []ProvisioningTarget{{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TeamName: "Team A"}}
+	service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{targets: targets})
+
+	summary, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+	if err != nil {
+		t.Fatalf("first trigger: %v", err)
+	}
+	if !summary.Started() {
+		t.Fatalf("summary = %+v, want a started run", summary)
+	}
+
+	instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	markInstance(t, testDB.Queries, instances[0].ID, db.ResourceStatusCreated)
+
+	summary, err = queueInstances(t, service, coursePhaseID, cfg, targets)
+	if err != nil {
+		t.Fatalf("second trigger: %v", err)
+	}
+	if summary.Started() {
+		t.Fatalf("summary = %+v, want nothing queued for an already provisioned phase", summary)
+	}
+}
+
+// A target new to the phase joins the existing instances rather than waiting for the
+// others to be deleted first.
+func TestTriggerQueuesOnlyTheNewTarget(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamA := uuid.New()
+	teamB := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	targets := []ProvisioningTarget{{Scope: db.ResourceScopePerTeam, TeamID: &teamA, TeamName: "Team A"}}
+	service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{targets: targets})
+
+	if _, err := queueInstances(t, service, coursePhaseID, cfg, targets); err != nil {
+		t.Fatalf("first trigger: %v", err)
+	}
+	instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	markInstance(t, testDB.Queries, instances[0].ID, db.ResourceStatusCreated)
+
+	targets = append(targets, ProvisioningTarget{Scope: db.ResourceScopePerTeam, TeamID: &teamB, TeamName: "Team B"})
+	summary, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+	if err != nil {
+		t.Fatalf("second trigger: %v", err)
+	}
+	if summary.Queued != 1 || summary.UpToDate != 1 {
+		t.Fatalf("summary = %+v, want one queued and one up to date", summary)
+	}
+}
+
+// The one-instance-per-target rule is the database's, not the trigger's: a second row
+// for the same target is what made a stale failed row collide with its replacement the
+// moment either was retried.
+func TestDatabaseRefusesASecondInstanceForTheSameTarget(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+
+	first, err := testDB.Queries.CreateResourceInstance(context.Background(), db.CreateResourceInstanceParams{
+		ResourceConfigID: cfg.ID,
+		CoursePhaseID:    coursePhaseID,
+		TeamID:           &teamID,
+	})
+	if err != nil {
+		t.Fatalf("create instance: %v", err)
+	}
+	markInstance(t, testDB.Queries, first.ID, db.ResourceStatusFailed)
+
+	// ON CONFLICT DO NOTHING makes the second insert a no-op rather than an error.
+	if _, err := testDB.Queries.CreateResourceInstance(context.Background(), db.CreateResourceInstanceParams{
+		ResourceConfigID: cfg.ID,
+		CoursePhaseID:    coursePhaseID,
+		TeamID:           &teamID,
+	}); !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("second insert error = %v, want no row inserted", err)
+	}
+
+	instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("list instances: %v", err)
+	}
+	if len(instances) != 1 {
+		t.Fatalf("instances = %d, want 1 even though the first one failed", len(instances))
+	}
+}
+
+func TestTriggerRejectsAPhaseWithoutResourceConfigs(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{})
+	if _, err := service.TriggerExecution(context.Background(), "Bearer test", uuid.New()); !errors.Is(err, ErrNothingConfigured) {
+		t.Fatalf("error = %v, want ErrNothingConfigured", err)
 	}
 }

@@ -37,10 +37,7 @@
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/execution.TriggerSummary"
                         }
                     },
                     "400": {
@@ -1106,6 +1103,23 @@
                 },
                 "updatedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "execution.TriggerSummary": {
+            "type": "object",
+            "properties": {
+                "queued": {
+                    "description": "Queued counts targets that had no instance yet.",
+                    "type": "integer"
+                },
+                "requeued": {
+                    "description": "Requeued counts failed or partial instances reset for another attempt.",
+                    "type": "integer"
+                },
+                "upToDate": {
+                    "description": "UpToDate counts targets whose resource was already created.",
+                    "type": "integer"
                 }
             }
         },

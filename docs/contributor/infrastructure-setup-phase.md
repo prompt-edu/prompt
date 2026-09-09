@@ -243,14 +243,14 @@ CREATE TABLE resource_instance (
     updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- No duplicate non-failed instances per (config, team) and (config, student).
+-- Exactly one instance per (config, team) and (config, student), whatever its status.
 CREATE UNIQUE INDEX uq_resource_instance_team
     ON resource_instance (resource_config_id, team_id)
-    WHERE team_id IS NOT NULL AND status != 'failed';
+    WHERE team_id IS NOT NULL;
 
 CREATE UNIQUE INDEX uq_resource_instance_student
     ON resource_instance (resource_config_id, course_participation_id)
-    WHERE course_participation_id IS NOT NULL AND status != 'failed';
+    WHERE course_participation_id IS NOT NULL;
 ```
 
 ### Instance statuses
@@ -317,13 +317,42 @@ identifier is an error rather than a request.
 
 `POST .../execute`:
 
-1. Loads the phase's resource configs and refuses to run if any of their providers has no
-   credentials (the state a copied phase starts in).
+1. Loads the phase's resource configs. A phase with none answers **400**, and so does one whose
+   providers have no credentials (the state a copied phase starts in).
 2. Resolves targets from core, once per scope. This is HTTP, so it happens before the transaction.
 3. Opens a transaction, takes a per-phase advisory lock, checks that no non-terminal instance
-   exists, and inserts the pending rows. The lock makes the check and the insert atomic: a second
-   trigger arriving at the same time gets **409** instead of creating a duplicate run.
-4. Commits, then starts the background worker.
+   exists, and converges the instances on the configs. The lock makes the check and the writes
+   atomic: a second trigger arriving at the same time gets **409** instead of starting a second run.
+4. Commits, then starts the background worker if anything was queued.
+
+### Convergence
+
+A `(resource config, target)` pair carries **exactly one instance** for the life of the phase, and
+the database enforces it. Triggering again therefore converges on the rows that are already there:
+
+| Existing instance | What the trigger does |
+|---|---|
+| none | creates a pending instance |
+| `failed` | queues it for another attempt |
+| `partial` | queues it for another attempt |
+| `created` | leaves it alone |
+| `pending` / `in_progress` | nothing: the phase answers **409**, a run is already going |
+
+This matters because the usual first outcome of a run is a mix: a fresh cohort lands `partial`
+until the students have signed in once. Pressing the button again retries exactly those and leaves
+the finished resources untouched. A target that appeared since the last run (a team added later)
+gets its instance without touching the others.
+
+The response says what happened, so a trigger that had nothing to do reports that rather than
+success:
+
+```json
+{ "queued": 3, "requeued": 12, "upToDate": 15 }
+```
+
+Membership is still not reconciled: an instance that is already `created` is not re-run, so a
+student who joins a team after a successful run does not reach the resource. See
+[Outline access](#outline-access).
 
 The worker claims all pending instances of the phase in a single
 `UPDATE ... FOR UPDATE SKIP LOCKED`, so two workers can never process the same row. It then
@@ -346,7 +375,8 @@ the lecturer's token to resolve targets.
 
 **Retry** (`POST .../instances/:instanceID/retry`) accepts `failed` and `partial` instances. An
 unknown instance is a 404; one that is `created` or already queued is a 409. Since providers are
-idempotent, retrying a `partial` instance heals it once the missing users exist upstream.
+idempotent, retrying a `partial` instance heals it once the missing users exist upstream. It is the
+single-instance form of what a trigger does to every unfinished instance at once.
 
 ---
 

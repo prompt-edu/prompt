@@ -1,5 +1,27 @@
 basePath: /infrastructure-setup/api
 definitions:
+  db.ProviderType:
+    enum:
+    - gitlab
+    - slack
+    - outline
+    - rancher
+    - keycloak
+    type: string
+    x-enum-varnames:
+    - ProviderTypeGitlab
+    - ProviderTypeSlack
+    - ProviderTypeOutline
+    - ProviderTypeRancher
+    - ProviderTypeKeycloak
+  db.ResourceScope:
+    enum:
+    - per_team
+    - per_student
+    type: string
+    x-enum-varnames:
+    - ResourceScopePerTeam
+    - ResourceScopePerStudent
   db.ResourceStatus:
     enum:
     - pending
@@ -30,10 +52,28 @@ definitions:
         type: string
       id:
         type: string
+      nameTemplate:
+        type: string
+      providerType:
+        $ref: '#/definitions/db.ProviderType'
+      resolvedName:
+        description: |-
+          ResolvedName is the name the provider was asked to create, so a failed row still
+          says which resource it was.
+        type: string
       resourceConfigId:
         type: string
+      resourceType:
+        type: string
+      scope:
+        $ref: '#/definitions/db.ResourceScope'
       status:
         $ref: '#/definitions/db.ResourceStatus'
+      targetName:
+        description: |-
+          TargetName names the team or student the row is about, as core resolved it when the
+          instance last ran. Empty until then.
+        type: string
       teamId:
         type: string
       updatedAt:

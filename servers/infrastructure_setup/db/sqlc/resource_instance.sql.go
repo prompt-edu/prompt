@@ -21,7 +21,7 @@ WHERE id IN (
     WHERE pending.course_phase_id = $1 AND pending.status = 'pending'
     FOR UPDATE SKIP LOCKED
 )
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 `
 
 // Atomically takes ownership of every pending instance in one statement, so two
@@ -47,6 +47,8 @@ func (q *Queries) ClaimPendingInstances(ctx context.Context, coursePhaseID uuid.
 			&i.ErrorMessage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.TargetName,
+			&i.ResolvedName,
 		); err != nil {
 			return nil, err
 		}
@@ -106,11 +108,12 @@ INSERT INTO resource_instance (
     resource_config_id,
     course_phase_id,
     team_id,
-    course_participation_id
+    course_participation_id,
+    target_name
 )
-VALUES (gen_random_uuid(), $1, $2, $3, $4)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
 ON CONFLICT DO NOTHING
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 `
 
 type CreateResourceInstanceParams struct {
@@ -118,6 +121,7 @@ type CreateResourceInstanceParams struct {
 	CoursePhaseID         uuid.UUID  `json:"coursePhaseId"`
 	TeamID                *uuid.UUID `json:"teamId"`
 	CourseParticipationID *uuid.UUID `json:"courseParticipationId"`
+	TargetName            string     `json:"targetName"`
 }
 
 func (q *Queries) CreateResourceInstance(ctx context.Context, arg CreateResourceInstanceParams) (ResourceInstance, error) {
@@ -126,6 +130,7 @@ func (q *Queries) CreateResourceInstance(ctx context.Context, arg CreateResource
 		arg.CoursePhaseID,
 		arg.TeamID,
 		arg.CourseParticipationID,
+		arg.TargetName,
 	)
 	var i ResourceInstance
 	err := row.Scan(
@@ -140,6 +145,8 @@ func (q *Queries) CreateResourceInstance(ctx context.Context, arg CreateResource
 		&i.ErrorMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TargetName,
+		&i.ResolvedName,
 	)
 	return i, err
 }
@@ -200,7 +207,7 @@ func (q *Queries) FailStaleInProgressInstances(ctx context.Context, arg FailStal
 }
 
 const getResourceInstance = `-- name: GetResourceInstance :one
-SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 FROM resource_instance
 WHERE id = $1 AND course_phase_id = $2
 `
@@ -225,6 +232,8 @@ func (q *Queries) GetResourceInstance(ctx context.Context, arg GetResourceInstan
 		&i.ErrorMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TargetName,
+		&i.ResolvedName,
 	)
 	return i, err
 }
@@ -297,7 +306,7 @@ func (q *Queries) GetResourceInstancesByCourseParticipationIDs(ctx context.Conte
 }
 
 const listResourceInstances = `-- name: ListResourceInstances :many
-SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 FROM resource_instance
 WHERE course_phase_id = $1
 ORDER BY created_at DESC
@@ -324,6 +333,92 @@ func (q *Queries) ListResourceInstances(ctx context.Context, coursePhaseID uuid.
 			&i.ErrorMessage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.TargetName,
+			&i.ResolvedName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listResourceInstancesWithConfig = `-- name: ListResourceInstancesWithConfig :many
+SELECT instance.id,
+       instance.resource_config_id,
+       instance.course_phase_id,
+       instance.team_id,
+       instance.course_participation_id,
+       instance.status,
+       instance.external_id,
+       instance.external_url,
+       instance.error_message,
+       instance.created_at,
+       instance.updated_at,
+       instance.target_name,
+       instance.resolved_name,
+       config.provider_type,
+       config.resource_type,
+       config.scope,
+       config.name_template
+FROM resource_instance AS instance
+    JOIN resource_config AS config ON config.id = instance.resource_config_id
+WHERE instance.course_phase_id = $1
+ORDER BY config.provider_type, config.resource_type, instance.target_name, instance.created_at
+`
+
+type ListResourceInstancesWithConfigRow struct {
+	ID                    uuid.UUID      `json:"id"`
+	ResourceConfigID      uuid.UUID      `json:"resourceConfigId"`
+	CoursePhaseID         uuid.UUID      `json:"coursePhaseId"`
+	TeamID                *uuid.UUID     `json:"teamId"`
+	CourseParticipationID *uuid.UUID     `json:"courseParticipationId"`
+	Status                ResourceStatus `json:"status"`
+	ExternalID            *string        `json:"externalId"`
+	ExternalUrl           *string        `json:"externalUrl"`
+	ErrorMessage          *string        `json:"errorMessage"`
+	CreatedAt             time.Time      `json:"createdAt"`
+	UpdatedAt             time.Time      `json:"updatedAt"`
+	TargetName            string         `json:"targetName"`
+	ResolvedName          string         `json:"resolvedName"`
+	ProviderType          ProviderType   `json:"providerType"`
+	ResourceType          string         `json:"resourceType"`
+	Scope                 ResourceScope  `json:"scope"`
+	NameTemplate          string         `json:"nameTemplate"`
+}
+
+// The list the execution page renders. The config is joined in so a row names the
+// provider and the resource kind rather than only a config id.
+func (q *Queries) ListResourceInstancesWithConfig(ctx context.Context, coursePhaseID uuid.UUID) ([]ListResourceInstancesWithConfigRow, error) {
+	rows, err := q.db.Query(ctx, listResourceInstancesWithConfig, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListResourceInstancesWithConfigRow
+	for rows.Next() {
+		var i ListResourceInstancesWithConfigRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResourceConfigID,
+			&i.CoursePhaseID,
+			&i.TeamID,
+			&i.CourseParticipationID,
+			&i.Status,
+			&i.ExternalID,
+			&i.ExternalUrl,
+			&i.ErrorMessage,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TargetName,
+			&i.ResolvedName,
+			&i.ProviderType,
+			&i.ResourceType,
+			&i.Scope,
+			&i.NameTemplate,
 		); err != nil {
 			return nil, err
 		}
@@ -407,7 +502,7 @@ SET status = 'pending',
     error_message = NULL,
     updated_at = NOW()
 WHERE id = $1 AND course_phase_id = $2 AND status IN ('failed', 'partial')
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 `
 
 type ResetInstanceToPendingParams struct {
@@ -430,6 +525,8 @@ func (q *Queries) ResetInstanceToPending(ctx context.Context, arg ResetInstanceT
 		&i.ErrorMessage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TargetName,
+		&i.ResolvedName,
 	)
 	return i, err
 }
@@ -445,4 +542,24 @@ func (q *Queries) TryLockPhaseExecution(ctx context.Context, coursePhaseID strin
 	var pg_try_advisory_xact_lock bool
 	err := row.Scan(&pg_try_advisory_xact_lock)
 	return pg_try_advisory_xact_lock, err
+}
+
+const updateInstanceLabels = `-- name: UpdateInstanceLabels :exec
+UPDATE resource_instance
+SET target_name = $2,
+    resolved_name = $3
+WHERE id = $1
+`
+
+type UpdateInstanceLabelsParams struct {
+	ID           uuid.UUID `json:"id"`
+	TargetName   string    `json:"targetName"`
+	ResolvedName string    `json:"resolvedName"`
+}
+
+// Records what the row is about, so the list can name the team and the resource even
+// for an instance that failed before anything was created upstream.
+func (q *Queries) UpdateInstanceLabels(ctx context.Context, arg UpdateInstanceLabelsParams) error {
+	_, err := q.db.Exec(ctx, updateInstanceLabels, arg.ID, arg.TargetName, arg.ResolvedName)
+	return err
 }

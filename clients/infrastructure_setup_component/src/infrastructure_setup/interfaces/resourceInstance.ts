@@ -11,6 +11,13 @@ export interface ResourceInstance {
   externalId?: string
   externalUrl?: string
   errorMessage?: string
+  // Empty until the instance has run at least once.
+  targetName: string
+  resolvedName: string
+  providerType: string
+  resourceType: string
+  scope: 'per_team' | 'per_student'
+  nameTemplate: string
   createdAt: string
   updatedAt: string
 }

@@ -54,7 +54,9 @@ CREATE TABLE resource_instance (
     external_url            text,
     error_message           text,
     created_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    target_name             text NOT NULL DEFAULT '',
+    resolved_name           text NOT NULL DEFAULT ''
 );
 
 CREATE UNIQUE INDEX uq_resource_instance_team

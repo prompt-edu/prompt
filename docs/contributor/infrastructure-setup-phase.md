@@ -57,7 +57,9 @@ servers/infrastructure_setup/
 - **ResourceConfigPage** — CRUD for resource configs: provider, resource type, scope, name
   template, permission mapping.
 - **ExecutionPage** — trigger provisioning and monitor instances. Polls every 3s while any
-  instance is `pending` or `in_progress`.
+  instance is `pending` or `in_progress`. Each row names the team or student, the provider, the
+  resource kind and the resolved resource name; the status counts double as filters and a search box
+  narrows the list, which is what makes 30 teams times three configs readable.
 
 ---
 
@@ -240,7 +242,12 @@ CREATE TABLE resource_instance (
     external_url            text,
     error_message           text,
     created_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at              timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Labels for the execution list: the team or student the row is about, and the name
+    -- the provider was last asked to create. Both are resolved at run time and would
+    -- otherwise cost the list an HTTP round trip to core on every poll.
+    target_name             text NOT NULL DEFAULT '',
+    resolved_name           text NOT NULL DEFAULT ''
 );
 
 -- Exactly one instance per (config, team) and (config, student), whatever its status.

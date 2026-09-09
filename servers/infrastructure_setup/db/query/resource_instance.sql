@@ -4,22 +4,56 @@ INSERT INTO resource_instance (
     resource_config_id,
     course_phase_id,
     team_id,
-    course_participation_id
+    course_participation_id,
+    target_name
 )
-VALUES (gen_random_uuid(), $1, $2, $3, $4)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
 ON CONFLICT DO NOTHING
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at;
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name;
 
 -- name: GetResourceInstance :one
-SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 FROM resource_instance
 WHERE id = $1 AND course_phase_id = $2;
 
 -- name: ListResourceInstances :many
-SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at
+SELECT id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 FROM resource_instance
 WHERE course_phase_id = $1
 ORDER BY created_at DESC;
+
+-- name: ListResourceInstancesWithConfig :many
+-- The list the execution page renders. The config is joined in so a row names the
+-- provider and the resource kind rather than only a config id.
+SELECT instance.id,
+       instance.resource_config_id,
+       instance.course_phase_id,
+       instance.team_id,
+       instance.course_participation_id,
+       instance.status,
+       instance.external_id,
+       instance.external_url,
+       instance.error_message,
+       instance.created_at,
+       instance.updated_at,
+       instance.target_name,
+       instance.resolved_name,
+       config.provider_type,
+       config.resource_type,
+       config.scope,
+       config.name_template
+FROM resource_instance AS instance
+    JOIN resource_config AS config ON config.id = instance.resource_config_id
+WHERE instance.course_phase_id = $1
+ORDER BY config.provider_type, config.resource_type, instance.target_name, instance.created_at;
+
+-- name: UpdateInstanceLabels :exec
+-- Records what the row is about, so the list can name the team and the resource even
+-- for an instance that failed before anything was created upstream.
+UPDATE resource_instance
+SET target_name = $2,
+    resolved_name = $3
+WHERE id = $1;
 
 -- name: MarkInstanceCreated :exec
 UPDATE resource_instance
@@ -79,7 +113,7 @@ WHERE id IN (
     WHERE pending.course_phase_id = $1 AND pending.status = 'pending'
     FOR UPDATE SKIP LOCKED
 )
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at;
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name;
 
 -- name: FailStaleInProgressInstances :execrows
 -- Recovers instances a crashed process left claimed. They are marked failed rather
@@ -103,7 +137,7 @@ SET status = 'pending',
     error_message = NULL,
     updated_at = NOW()
 WHERE id = $1 AND course_phase_id = $2 AND status IN ('failed', 'partial')
-RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at;
+RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name;
 
 -- name: TryLockPhaseExecution :one
 -- Transaction-scoped advisory lock keyed on the course phase. Held only while the

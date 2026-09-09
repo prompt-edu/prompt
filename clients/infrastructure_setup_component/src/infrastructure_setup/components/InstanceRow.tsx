@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -57,11 +58,11 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const hasError = !!instance.errorMessage && instance.errorMessage.length > 0
   const isPartial = instance.status === 'partial'
   const isRetryable = instance.status === 'failed' || isPartial
-  const target = instance.teamId
-    ? `team ${instance.teamId.slice(0, 8)}…`
-    : instance.courseParticipationId
-      ? `student ${instance.courseParticipationId.slice(0, 8)}…`
-      : 'unassigned'
+  const targetKind = instance.scope === 'per_team' ? 'team' : 'student'
+  const targetID = instance.teamId ?? instance.courseParticipationId
+  const target = instance.targetName || (targetID ? `${targetKind} ${targetID}` : 'unassigned')
+  // Both names are only filled once the worker has run the instance.
+  const resourceName = instance.resolvedName || instance.nameTemplate
 
   return (
     <>
@@ -71,10 +72,17 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
             <div className='space-y-1'>
               <div className='flex flex-wrap items-center gap-2'>
                 <StatusBadge status={instance.status} />
-                <span className='font-mono text-xs text-muted-foreground'>{instance.id}</span>
+                <p className='font-medium'>{target}</p>
+                <Badge variant='secondary'>{instance.providerType}</Badge>
+                <Badge variant='outline'>{instance.resourceType}</Badge>
               </div>
               <div className='text-sm'>
-                target: <span className='font-mono'>{target}</span>
+                <span className='font-mono'>{resourceName}</span>
+                {!instance.resolvedName && (
+                  <span className='ml-2 text-xs text-muted-foreground'>
+                    (name template, not provisioned yet)
+                  </span>
+                )}
               </div>
               {instance.externalUrl && (
                 <a
@@ -143,7 +151,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
         <DeleteConfirmation
           isOpen={confirmOpen}
           setOpen={setConfirmOpen}
-          deleteMessage='Delete this resource instance?'
+          deleteMessage={`Delete the ${instance.resourceType} instance for ${target}?`}
           customWarning='This only removes the row in PROMPT. The external resource (if any) is NOT deleted.'
           onClick={(confirmed) => {
             if (confirmed) remove()

@@ -249,6 +249,8 @@ func (w *Worker) processInstance(
 		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve extra config: %v", err))
 	}
 
+	w.recordLabels(ctx, inst.ID, target.DisplayName(), resolvedName)
+
 	input := provider.CreateResourceInput{
 		Name:               resolvedName,
 		ResourceType:       config.ResourceType,
@@ -361,6 +363,23 @@ func (w *Worker) StartStaleClaimSweeper(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// recordLabels stores what the instance is about, so the execution list can name the
+// team and the resource even when the run fails before anything exists upstream. A
+// display detail must not fail the run, so a write error is only logged.
+func (w *Worker) recordLabels(ctx context.Context, id uuid.UUID, targetName, resolvedName string) {
+	writeCtx, cancel := statusWriteContext(ctx)
+	defer cancel()
+
+	if err := w.queries.UpdateInstanceLabels(writeCtx, db.UpdateInstanceLabelsParams{
+		ID:           id,
+		TargetName:   targetName,
+		ResolvedName: resolvedName,
+	}); err != nil {
+		log.WithError(err).WithField("instanceID", id).
+			Warn("execution worker: recording the instance labels failed")
+	}
 }
 
 // statusWriteContext detaches a status write from the run's context. The reason a run

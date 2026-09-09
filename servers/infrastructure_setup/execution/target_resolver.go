@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,6 +25,22 @@ type ProvisioningTarget struct {
 	Student               *promptTypes.Student
 	Members               []provider.Member
 	TemplateData          TemplateData
+}
+
+// DisplayName names the target the way a lecturer would recognise it in the execution
+// list, which otherwise only has a team or participation UUID to show.
+func (t ProvisioningTarget) DisplayName() string {
+	if t.TeamName != "" {
+		return t.TeamName
+	}
+	if t.Student != nil {
+		name := strings.TrimSpace(t.Student.FirstName + " " + t.Student.LastName)
+		if name != "" {
+			return name
+		}
+		return t.Student.Email
+	}
+	return ""
 }
 
 // TargetResolver resolves PROMPT course data into provisioning targets.

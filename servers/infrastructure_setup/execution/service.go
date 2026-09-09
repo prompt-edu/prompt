@@ -311,6 +311,7 @@ func createResourceInstanceParams(cfg db.ResourceConfig, coursePhaseID uuid.UUID
 		CoursePhaseID:         coursePhaseID,
 		TeamID:                target.TeamID,
 		CourseParticipationID: target.CourseParticipationID,
+		TargetName:            target.DisplayName(),
 	}
 }
 
@@ -323,7 +324,7 @@ func (s *Service) StartStaleClaimSweeper(ctx context.Context) {
 // ListInstances returns all resource instances for a course phase. The slice is never
 // nil, so the endpoint answers with [] rather than null when nothing is provisioned.
 func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]ResourceInstanceResponse, error) {
-	instances, err := s.queries.ListResourceInstances(ctx, coursePhaseID)
+	instances, err := s.queries.ListResourceInstancesWithConfig(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}

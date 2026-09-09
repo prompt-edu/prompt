@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, ErrorPage, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
+import { Button, cn, ErrorPage, Input, LoadingPage, useToast } from '@tumaet/prompt-ui-components'
 import { Play, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { InstanceRow } from '../components/InstanceRow'
+import type { ResourceStatus } from '../interfaces/resourceInstance'
 import { describeTriggerSummary } from '../interfaces/triggerSummary'
 import { triggerExecution } from '../network/mutations/triggerExecution'
 import { getInstances } from '../network/queries/getInstances'
@@ -12,10 +14,14 @@ const isPollingStatus = (status: string) => status === 'pending' || status === '
 
 const isConflict = (err: unknown) => hasStatus(err, 409)
 
+const STATUS_ORDER: ResourceStatus[] = ['failed', 'partial', 'in_progress', 'pending', 'created']
+
 export const ExecutionPage = () => {
   const { phaseId: coursePhaseID } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const [statusFilter, setStatusFilter] = useState<ResourceStatus | 'all'>('all')
+  const [search, setSearch] = useState('')
 
   const {
     data: instances,
@@ -52,6 +58,24 @@ export const ExecutionPage = () => {
 
   const hasRunningWork = (instances ?? []).some((i) => isPollingStatus(i.status))
 
+  const counts = STATUS_ORDER.reduce<Record<ResourceStatus, number>>(
+    (acc, status) => {
+      acc[status] = (instances ?? []).filter((i) => i.status === status).length
+      return acc
+    },
+    { pending: 0, in_progress: 0, created: 0, partial: 0, failed: 0 },
+  )
+
+  const needle = search.trim().toLowerCase()
+  const visible = (instances ?? []).filter(
+    (instance) =>
+      (statusFilter === 'all' || instance.status === statusFilter) &&
+      (needle === '' ||
+        instance.targetName.toLowerCase().includes(needle) ||
+        instance.resolvedName.toLowerCase().includes(needle) ||
+        instance.nameTemplate.toLowerCase().includes(needle)),
+  )
+
   if (isLoading) {
     return <LoadingPage />
   }
@@ -86,11 +110,43 @@ export const ExecutionPage = () => {
           No execution instances found. Trigger an execution to get started.
         </div>
       ) : (
-        <div className='space-y-2'>
-          {instances.map((instance) => (
-            <InstanceRow key={instance.id} coursePhaseID={coursePhaseID!} instance={instance} />
-          ))}
-        </div>
+        <>
+          <div className='flex flex-wrap items-center gap-2'>
+            {STATUS_ORDER.filter((status) => counts[status] > 0).map((status) => (
+              <button
+                key={status}
+                type='button'
+                onClick={() => setStatusFilter(statusFilter === status ? 'all' : status)}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-sm',
+                  statusFilter === status
+                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                    : 'border-transparent bg-muted',
+                )}
+              >
+                {counts[status]} {status.replace('_', ' ')}
+              </button>
+            ))}
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder='Filter by team, student or resource name'
+              className='ml-auto max-w-xs'
+            />
+          </div>
+
+          {visible.length === 0 ? (
+            <div className='rounded-lg border-2 border-dashed border-gray-300 p-4 text-muted-foreground'>
+              No instance matches the current filter.
+            </div>
+          ) : (
+            <div className='space-y-2'>
+              {visible.map((instance) => (
+                <InstanceRow key={instance.id} coursePhaseID={coursePhaseID!} instance={instance} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

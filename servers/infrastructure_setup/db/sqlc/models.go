@@ -181,4 +181,6 @@ type ResourceInstance struct {
 	ErrorMessage          *string        `json:"errorMessage"`
 	CreatedAt             time.Time      `json:"createdAt"`
 	UpdatedAt             time.Time      `json:"updatedAt"`
+	TargetName            string         `json:"targetName"`
+	ResolvedName          string         `json:"resolvedName"`
 }

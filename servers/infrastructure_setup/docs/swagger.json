@@ -1051,6 +1051,34 @@
         }
     },
     "definitions": {
+        "db.ProviderType": {
+            "type": "string",
+            "enum": [
+                "gitlab",
+                "slack",
+                "outline",
+                "rancher",
+                "keycloak"
+            ],
+            "x-enum-varnames": [
+                "ProviderTypeGitlab",
+                "ProviderTypeSlack",
+                "ProviderTypeOutline",
+                "ProviderTypeRancher",
+                "ProviderTypeKeycloak"
+            ]
+        },
+        "db.ResourceScope": {
+            "type": "string",
+            "enum": [
+                "per_team",
+                "per_student"
+            ],
+            "x-enum-varnames": [
+                "ResourceScopePerTeam",
+                "ResourceScopePerStudent"
+            ]
+        },
         "db.ResourceStatus": {
             "type": "string",
             "enum": [
@@ -1092,11 +1120,31 @@
                 "id": {
                     "type": "string"
                 },
+                "nameTemplate": {
+                    "type": "string"
+                },
+                "providerType": {
+                    "$ref": "#/definitions/db.ProviderType"
+                },
+                "resolvedName": {
+                    "description": "ResolvedName is the name the provider was asked to create, so a failed row still\nsays which resource it was.",
+                    "type": "string"
+                },
                 "resourceConfigId": {
                     "type": "string"
                 },
+                "resourceType": {
+                    "type": "string"
+                },
+                "scope": {
+                    "$ref": "#/definitions/db.ResourceScope"
+                },
                 "status": {
                     "$ref": "#/definitions/db.ResourceStatus"
+                },
+                "targetName": {
+                    "description": "TargetName names the team or student the row is about, as core resolved it when the\ninstance last ran. Empty until then.",
+                    "type": "string"
                 },
                 "teamId": {
                     "type": "string"

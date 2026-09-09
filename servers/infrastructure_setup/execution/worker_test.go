@@ -498,3 +498,33 @@ func getInstance(t *testing.T, queries *db.Queries, coursePhaseID, instanceID uu
 	}
 	return instance
 }
+
+// The execution list has only the row to render, so it must carry what the row is
+// about: 30 teams times three configs is 90 rows, and a UUID prefix does not say which
+// team failed or what it was called.
+func TestWorkerRecordsWhatTheInstanceIsAbout(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	registerFakeProvider(t, &fakeProvider{})
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{
+		{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TeamName: "Team A", TemplateData: TemplateData{TeamName: "Team A"}},
+	}})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID)
+	if got.TargetName != "Team A" {
+		t.Fatalf("targetName = %q, want the team's name", got.TargetName)
+	}
+	if got.ResolvedName != "team-a" {
+		t.Fatalf("resolvedName = %q, want the name the provider was asked for", got.ResolvedName)
+	}
+}

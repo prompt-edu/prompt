@@ -126,9 +126,11 @@ func (p *Provider) findOrCreateChannel(ctx context.Context, name string) (string
 // lookupChannelByName finds an existing channel by name using conversations.list.
 //
 // Archived channels are included: they still hold the name, so excluding them turned
-// a name conflict into a permanent "not found". The response struct is declared inside
-// the loop because a page without response_metadata would otherwise leave the previous
-// cursor in place and the loop would request the same page until the context expired.
+// a name conflict into a permanent "not found". Public channels are listed too, not to
+// adopt one, but so a name taken by a public channel can be reported as that rather
+// than as a channel that does not exist. The response struct is declared inside the loop
+// because a page without response_metadata would otherwise leave the previous cursor in
+// place and the loop would request the same page until the context expired.
 func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string, string, error) {
 	cursor := ""
 	for {
@@ -139,6 +141,7 @@ func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string
 				ID         string `json:"id"`
 				Name       string `json:"name"`
 				IsArchived bool   `json:"is_archived"`
+				IsPrivate  bool   `json:"is_private"`
 			} `json:"channels"`
 			ResponseMetadata struct {
 				NextCursor string `json:"next_cursor"`
@@ -146,7 +149,7 @@ func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string
 		}
 
 		params := map[string]interface{}{
-			"types":            "private_channel",
+			"types":            "private_channel,public_channel",
 			"exclude_archived": false,
 			"limit":            200,
 		}
@@ -168,12 +171,18 @@ func (p *Provider) lookupChannelByName(ctx context.Context, name string) (string
 			if ch.IsArchived {
 				return "", "", fmt.Errorf("slack channel %q exists but is archived; unarchive or rename it", name)
 			}
+			if !ch.IsPrivate {
+				return "", "", fmt.Errorf("slack channel %q already exists as a public channel; this phase provisions private channels, so rename one of the two", name)
+			}
 			channelURL := fmt.Sprintf("https://slack.com/app_redirect?channel=%s", ch.ID)
 			return ch.ID, channelURL, nil
 		}
 
 		if listResp.ResponseMetadata.NextCursor == "" {
-			return "", "", fmt.Errorf("slack channel %q not found after name conflict", name)
+			// Slack lists a private channel only to an app that is a member of it, so a
+			// private channel somebody else created holds the name without ever showing
+			// up here. There is no bot-token call that reveals it.
+			return "", "", fmt.Errorf("slack channel %q is taken but not visible to this app: a private channel created by someone else is only listed once the app has been added to it, so add the app to that channel or rename it", name)
 		}
 		cursor = listResp.ResponseMetadata.NextCursor
 	}

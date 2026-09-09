@@ -89,11 +89,11 @@ func TestSlackPaginationStopsWithoutCursor(t *testing.T) {
 				return
 			}
 			if listCalls == 1 {
-				_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C9","name":"other"}],"response_metadata":{"next_cursor":"page2"}}`))
+				_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C9","name":"other","is_private":true}],"response_metadata":{"next_cursor":"page2"}}`))
 				return
 			}
 			// Second page carries no response_metadata at all.
-			_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C2","name":"team-a"}]}`))
+			_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C2","name":"team-a","is_private":true}]}`))
 		default:
 			t.Errorf("unexpected call: %s", r.URL.Path)
 		}
@@ -123,7 +123,7 @@ func TestSlackReportsArchivedChannelHoldingTheName(t *testing.T) {
 		if r.PostForm.Get("exclude_archived") != "false" {
 			t.Errorf("exclude_archived = %q, want false so the archived channel is visible", r.PostForm.Get("exclude_archived"))
 		}
-		_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C3","name":"team-a","is_archived":true}]}`))
+		_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C3","name":"team-a","is_archived":true,"is_private":true}]}`))
 	})
 
 	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "Team A"})
@@ -163,5 +163,44 @@ func TestSlackRejectsNameThatSanitizesToEmpty(t *testing.T) {
 	})
 	if _, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "---"}); err == nil {
 		t.Fatal("CreateResource returned no error for a name that sanitizes to empty")
+	}
+}
+
+// Slack lists a private channel only to an app that belongs to it, so a private channel
+// somebody else created holds the name and never appears. There is no bot-token call
+// that reveals it, so the error has to say what to do about it.
+func TestSlackExplainsAnInvisibleChannelHoldingTheName(t *testing.T) {
+	provider := newSlackProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "conversations.create") {
+			_, _ = w.Write([]byte(`{"ok":false,"error":"name_taken"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"ok":true,"channels":[]}`))
+	})
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "Team A"})
+	if err == nil {
+		t.Fatal("CreateResource = nil error, want the name conflict explained")
+	}
+	if !strings.Contains(err.Error(), "add the app") {
+		t.Fatalf("error = %v, want it to say how to resolve the conflict", err)
+	}
+}
+
+// A public channel holding the name is not adopted: this phase provisions private
+// channels, and adopting a public one would quietly widen who can read the team's
+// material.
+func TestSlackRefusesToAdoptAPublicChannel(t *testing.T) {
+	provider := newSlackProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "conversations.create") {
+			_, _ = w.Write([]byte(`{"ok":false,"error":"name_taken"}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"ok":true,"channels":[{"id":"C4","name":"team-a","is_private":false}]}`))
+	})
+
+	_, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{Name: "Team A"})
+	if err == nil || !strings.Contains(err.Error(), "public channel") {
+		t.Fatalf("error = %v, want the public channel named", err)
 	}
 }

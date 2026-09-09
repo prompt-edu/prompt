@@ -68,7 +68,7 @@ servers/infrastructure_setup/
 | Provider | Resource types | Credentials | Notes |
 |---|---|---|---|
 | GitLab | `group`, `project` | `base_url`, `private_token`, optional `parent_group_id` | Members are added through the group **invitations** endpoint, which works with a non-admin PAT and covers users who have not signed in yet. With a parent configured, only that parent's subgroups are searched. `parent_group_id` is entered as a string and parsed, like every other credential. |
-| Slack | `channel` | `bot_token` | Creates private channels. Requests are form-encoded, which is what the Web API documents for its read methods. |
+| Slack | `channel` | `bot_token` | Creates private channels. Requests are form-encoded, which is what the Web API documents for its read methods. Adoption is limited: see [Slack adoption](#slack-adoption). |
 | Outline | `collection` | `api_key`, optional `base_url` | Creates a **private** collection and grants access through a bound group. See [Outline access](#outline-access). |
 | Rancher | `project` | `rancher_url`, `access_key`, `secret_key`, `cluster_id` | Users are resolved through the principals search endpoint and confirmed against the requested address; the returned principal ID is used as-is. A duplicate binding is recognised by status 409 or a 422 carrying `NotUnique`; any other 422 (an unknown `roleTemplateId`, a malformed principal) is reported as a member warning. |
 | Keycloak | `group` | `keycloak_url`, `realm`, `client_id`, `client_secret` | The service account needs the `realm-management` roles **`manage-users`** and **`view-users`**, not `realm-admin`. Realm users only exist after their first sign-in, so a fresh cohort commonly lands `partial` until the students have logged in once. |
@@ -76,8 +76,21 @@ servers/infrastructure_setup/
 All providers are **idempotent**: a re-run adopts what already exists rather than creating a
 duplicate. Adoption is by exact name or path within a scope the course owns, except for Outline,
 where a collection is adopted only if PROMPT created it (collections share one flat workspace
-namespace). Because PROMPT can rarely prove ownership, it never deletes a resource (see
-[Delete semantics](#delete-semantics)).
+namespace), and Slack, which cannot see every channel that holds a name (see
+[Slack adoption](#slack-adoption)). Because PROMPT can rarely prove ownership, it never deletes a
+resource (see [Delete semantics](#delete-semantics)).
+
+### Slack adoption
+
+Slack lists a private channel **only to an app that is a member of it**. There is no bot-token call
+that reveals the rest, so a private channel a human created holds the name without PROMPT ever
+seeing it: `conversations.create` answers `name_taken` and the lookup that follows finds nothing.
+That is reported as a failed instance naming the channel and saying to add the app to it or rename
+it, which is the whole of what can be done from here.
+
+A **public** channel with the same name is found and deliberately **not** adopted: this phase
+provisions private channels, and taking over a public one would quietly widen who can read the
+team's material. Rename one of the two.
 
 ### Templated extra config
 

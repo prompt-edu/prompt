@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -349,6 +350,46 @@ func TestWorkerFailsClaimedInstancesWhenTargetResolutionFails(t *testing.T) {
 	}
 	if fake.calls.Load() != 0 {
 		t.Fatal("provider was called although no target could be resolved")
+	}
+}
+
+// One provider that never answers must cost its own instance an attempt, not the whole
+// run: without a per-attempt deadline the call parks a worker goroutine until the run's
+// 30-minute context expires, and the retry logic is never reached.
+func TestWorkerGivesUpOnAnUnresponsiveProvider(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	previous := attemptTimeout
+	attemptTimeout = 100 * time.Millisecond
+	t.Cleanup(func() { attemptTimeout = previous })
+
+	blocking := &blockingProvider{fakeProvider: &fakeProvider{}}
+	registerProvider(t, blocking)
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{
+		{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TemplateData: TemplateData{TeamName: "Team A"}},
+	}})
+
+	// The run's own context stays wide open: the attempt deadline has to end this.
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID)
+	if got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed", got.Status)
+	}
+	if got.ErrorMessage == nil || !strings.Contains(*got.ErrorMessage, "did not answer") {
+		t.Fatalf("error message = %v, want the unanswered call named", got.ErrorMessage)
+	}
+	if calls := blocking.calls.Load(); calls != maxRetries {
+		t.Fatalf("provider calls = %d, want %d retried attempts", calls, maxRetries)
 	}
 }
 

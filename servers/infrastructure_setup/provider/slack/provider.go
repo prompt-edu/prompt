@@ -33,7 +33,7 @@ type Provider struct {
 
 // New creates a Slack provider from decoded credentials.
 func New(cfg Config) *Provider {
-	return &Provider{cfg: cfg, client: &http.Client{}, baseURL: slackAPIBase}
+	return &Provider{cfg: cfg, client: provider.NewHTTPClient(), baseURL: slackAPIBase}
 }
 
 func (p *Provider) GetType() string { return "slack" }

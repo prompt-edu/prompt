@@ -54,7 +54,7 @@ type Provider struct {
 
 // New creates a GitLab provider from decoded credentials.
 func New(cfg Config) *Provider {
-	return &Provider{cfg: cfg, client: &http.Client{}}
+	return &Provider{cfg: cfg, client: provider.NewHTTPClient()}
 }
 
 func (p *Provider) GetType() string { return "gitlab" }

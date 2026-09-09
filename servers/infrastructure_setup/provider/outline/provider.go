@@ -46,7 +46,7 @@ func New(cfg Config) *Provider {
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = "https://app.getoutline.com/api"
 	}
-	return &Provider{cfg: cfg, client: &http.Client{}}
+	return &Provider{cfg: cfg, client: provider.NewHTTPClient()}
 }
 
 func (p *Provider) GetType() string { return "outline" }

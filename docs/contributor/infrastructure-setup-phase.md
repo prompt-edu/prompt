@@ -331,6 +331,11 @@ processes up to 5 instances concurrently. Each one resolves its name, calls
 `provider.CreateResource`, and is recorded as `created`, `partial` or `failed`. Provider calls are
 retried up to 3 times with exponential backoff (1s, 2s, 4s) plus jitter.
 
+**Timeouts:** every upstream request has a 30s client timeout and every `CreateResource` attempt a
+5 minute deadline of its own. A provider host that accepts the connection and never answers would
+otherwise hold a worker goroutine until the run's own 30 minute context expired, so one unreachable
+provider would consume the whole run without ever reaching the retry logic.
+
 **Claim recovery:** a claim is only ever released by the process that took it. If resolving the
 configs or the targets fails after the instances were claimed, that run marks them `failed` with the
 reason, so the phase can be triggered again and the lecturer can retry. A crash cannot do that, so a

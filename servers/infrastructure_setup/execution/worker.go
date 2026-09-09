@@ -33,6 +33,11 @@ const (
 	statusWriteTimeout = 30 * time.Second
 )
 
+// attemptTimeout bounds one provider call. A resource with many members issues one
+// request per member, so the providers' per-request timeout alone still lets a single
+// slow provider eat the whole run. Shortened by tests.
+var attemptTimeout = 5 * time.Minute
+
 // staleClaimMessage is what the lecturer sees on an instance whose run died.
 const staleClaimMessage = "the run was interrupted before this resource finished; retry it"
 
@@ -280,7 +285,7 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 			}
 		}
 
-		resource, err := prov.CreateResource(ctx, input)
+		resource, err := w.createOnce(ctx, prov, input)
 		if err == nil {
 			return resource, nil
 		}
@@ -290,8 +295,25 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 			"attempt":    attempt + 1,
 			"error":      err,
 		}).Warn("execution worker: retry")
+
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 	}
 	return nil, lastErr
+}
+
+// createOnce gives one provider call a deadline of its own, so a provider that never
+// answers costs this instance an attempt instead of the whole run.
+func (w *Worker) createOnce(ctx context.Context, prov provider.Provider, input provider.CreateResourceInput) (*provider.Resource, error) {
+	attemptCtx, cancel := context.WithTimeout(ctx, attemptTimeout)
+	defer cancel()
+
+	resource, err := prov.CreateResource(attemptCtx, input)
+	if err != nil && ctx.Err() == nil && attemptCtx.Err() != nil {
+		return nil, fmt.Errorf("the provider did not answer within %s", attemptTimeout)
+	}
+	return resource, err
 }
 
 // failClaimed marks every instance this run had claimed as failed, carrying the reason

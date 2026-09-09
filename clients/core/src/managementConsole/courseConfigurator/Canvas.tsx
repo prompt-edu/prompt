@@ -10,7 +10,6 @@ import {
 } from '@xyflow/react'
 import { useCallback, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   getPermissionString,
   Role,
@@ -52,7 +51,6 @@ export function CourseConfigurator() {
       getPermissionString(Role.COURSE_LECTURER, course?.name, course?.semesterTag),
     ) || permissions.includes(Role.PROMPT_ADMIN)
 
-  const queryClient = useQueryClient()
   const { coursePhases, removeUnsavedCoursePhases, setCoursePhases } = useCourseConfigurationState()
 
   // ---------- Layout and Flow States ----------
@@ -100,7 +98,6 @@ export function CourseConfigurator() {
       mutateCoursePhaseGraph,
       mutateParticipationDataGraph,
       mutatePhaseDataGraph,
-      queryClient,
       setIsModified,
     })
   }

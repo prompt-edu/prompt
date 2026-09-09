@@ -39,7 +39,7 @@ export const StudentSearch = ({ onSelect, existingApplications }: StudentSearchP
     error,
     refetch,
   } = useQuery({
-    queryKey: coreKeys.applications.universityUsers(enteredSearchString, phaseId),
+    queryKey: coreKeys.applications.universityUsers.forSearch(enteredSearchString, phaseId),
     queryFn: () => coreApi.students.search(enteredSearchString),
     enabled: searchQuery.length > 2,
   })

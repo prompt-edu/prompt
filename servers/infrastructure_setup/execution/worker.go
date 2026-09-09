@@ -29,8 +29,8 @@ const (
 	staleClaimAge = workerTimeout + 15*time.Minute
 	// staleSweepInterval is how often the sweeper looks for abandoned claims.
 	staleSweepInterval = 10 * time.Minute
-	// releaseClaimTimeout bounds the writes that hand claimed instances back.
-	releaseClaimTimeout = 30 * time.Second
+	// statusWriteTimeout bounds the writes that record an instance's outcome.
+	statusWriteTimeout = 30 * time.Second
 )
 
 // staleClaimMessage is what the lecturer sees on an instance whose run died.
@@ -260,20 +260,10 @@ func (w *Worker) processInstance(
 	}
 
 	if len(resource.Warnings) > 0 {
-		message := strings.Join(resource.Warnings, "; ")
-		return w.queries.MarkInstancePartial(ctx, db.MarkInstancePartialParams{
-			ID:           inst.ID,
-			ExternalID:   &resource.ExternalID,
-			ExternalUrl:  &resource.ExternalURL,
-			ErrorMessage: &message,
-		})
+		return w.markPartial(ctx, inst.ID, resource, strings.Join(resource.Warnings, "; "))
 	}
 
-	return w.queries.MarkInstanceCreated(ctx, db.MarkInstanceCreatedParams{
-		ID:          inst.ID,
-		ExternalID:  &resource.ExternalID,
-		ExternalUrl: &resource.ExternalURL,
-	})
+	return w.markCreated(ctx, inst.ID, resource)
 }
 
 func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, input provider.CreateResourceInput, instanceID uuid.UUID) (*provider.Resource, error) {
@@ -307,14 +297,9 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 // failClaimed marks every instance this run had claimed as failed, carrying the reason
 // so the lecturer sees why, and returns the original error.
 func (w *Worker) failClaimed(ctx context.Context, instances []db.ResourceInstance, cause error) error {
-	// The cause may be the run's context expiring, and marking with a dead context
-	// would leave the claims behind - exactly what this exists to prevent.
-	markCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), releaseClaimTimeout)
-	defer cancel()
-
 	message := cause.Error()
 	for _, inst := range instances {
-		if err := w.failInstance(markCtx, inst.ID, message); err != nil {
+		if err := w.failInstance(ctx, inst.ID, message); err != nil {
 			log.WithError(err).WithField("instanceID", inst.ID).
 				Error("execution worker: releasing a claimed instance failed")
 		}
@@ -356,10 +341,44 @@ func (w *Worker) StartStaleClaimSweeper(ctx context.Context) {
 	}()
 }
 
+// statusWriteContext detaches a status write from the run's context. The reason a run
+// ends is often that very context expiring, and a write on a dead context would leave
+// the instance claimed: in_progress answers 409 on every trigger and is out of Retry's
+// reach, so the phase would be stuck until the stale-claim sweeper picks it up.
+func statusWriteContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), statusWriteTimeout)
+}
+
 func (w *Worker) failInstance(ctx context.Context, id uuid.UUID, msg string) error {
-	return w.queries.MarkInstanceFailed(ctx, db.MarkInstanceFailedParams{
+	writeCtx, cancel := statusWriteContext(ctx)
+	defer cancel()
+
+	return w.queries.MarkInstanceFailed(writeCtx, db.MarkInstanceFailedParams{
 		ID:           id,
 		ErrorMessage: &msg,
+	})
+}
+
+func (w *Worker) markPartial(ctx context.Context, id uuid.UUID, resource *provider.Resource, message string) error {
+	writeCtx, cancel := statusWriteContext(ctx)
+	defer cancel()
+
+	return w.queries.MarkInstancePartial(writeCtx, db.MarkInstancePartialParams{
+		ID:           id,
+		ExternalID:   &resource.ExternalID,
+		ExternalUrl:  &resource.ExternalURL,
+		ErrorMessage: &message,
+	})
+}
+
+func (w *Worker) markCreated(ctx context.Context, id uuid.UUID, resource *provider.Resource) error {
+	writeCtx, cancel := statusWriteContext(ctx)
+	defer cancel()
+
+	return w.queries.MarkInstanceCreated(writeCtx, db.MarkInstanceCreatedParams{
+		ID:          id,
+		ExternalID:  &resource.ExternalID,
+		ExternalUrl: &resource.ExternalURL,
 	})
 }
 

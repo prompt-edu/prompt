@@ -55,11 +55,28 @@ func (f *fakeProvider) CreateResource(_ context.Context, input provider.CreateRe
 	}, nil
 }
 
+// blockingProvider never answers on its own, which is what an unresponsive provider
+// host looks like from the worker: the run's context expires while it waits.
+type blockingProvider struct {
+	*fakeProvider
+}
+
+func (b *blockingProvider) CreateResource(ctx context.Context, _ provider.CreateResourceInput) (*provider.Resource, error) {
+	b.calls.Add(1)
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
 // registerFakeProvider installs the fake in the package-level registry for one test.
 func registerFakeProvider(t *testing.T, fake *fakeProvider) {
 	t.Helper()
+	registerProvider(t, fake)
+}
+
+func registerProvider(t *testing.T, prov provider.Provider) {
+	t.Helper()
 	previous := Registry["gitlab"]
-	Registry["gitlab"] = func([]byte) (provider.Provider, error) { return fake, nil }
+	Registry["gitlab"] = func([]byte) (provider.Provider, error) { return prov, nil }
 	t.Cleanup(func() {
 		if previous == nil {
 			delete(Registry, "gitlab")
@@ -332,6 +349,42 @@ func TestWorkerFailsClaimedInstancesWhenTargetResolutionFails(t *testing.T) {
 	}
 	if fake.calls.Load() != 0 {
 		t.Fatal("provider was called although no target could be resolved")
+	}
+}
+
+// The run's context expiring is the very reason an instance fails, so recording that
+// outcome must not depend on it. A write on the dead context would leave the instance
+// in_progress: every later trigger answers 409, Retry refuses a non-terminal instance,
+// and the phase is stuck until the stale-claim sweeper runs three quarters of an hour
+// later.
+func TestWorkerRecordsFailureWhenTheRunContextExpires(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	blocking := &blockingProvider{fakeProvider: &fakeProvider{}}
+	registerProvider(t, blocking)
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{
+		{Scope: db.ResourceScopePerTeam, TeamID: &teamID, TemplateData: TemplateData{TeamName: "Team A"}},
+	}})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	if err := worker.processPhase(ctx, "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID)
+	if got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed so the phase can be triggered again", got.Status)
+	}
+	if got.ErrorMessage == nil || *got.ErrorMessage == "" {
+		t.Fatal("error message is empty, want the expiry recorded on the instance")
 	}
 }
 

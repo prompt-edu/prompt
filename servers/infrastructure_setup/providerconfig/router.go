@@ -44,7 +44,11 @@ func deleteProviderConfig(svc *Service) gin.HandlerFunc {
 		providerType := c.Param("providerType")
 		if err := svc.DeleteProviderConfig(c.Request.Context(), coursePhaseID, providerType); err != nil {
 			log.WithError(err).Error("delete provider config")
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			if errors.Is(err, ErrValidation) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusNoContent, nil)

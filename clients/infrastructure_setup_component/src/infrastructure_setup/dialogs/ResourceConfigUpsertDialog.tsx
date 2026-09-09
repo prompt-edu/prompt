@@ -49,6 +49,13 @@ interface Props {
   availableProviderTypes: ProviderType[]
 }
 
+// The roles the server assigns to a member (execution.SupportedMemberRoles). A mapping
+// keyed on anything else reaches nobody.
+const MEMBER_ROLES = ['student', 'tutor']
+
+// Providers that grant every member the same access, so a permission mapping does nothing.
+const PROVIDERS_WITHOUT_PERMISSIONS = ['keycloak', 'slack']
+
 interface RoleRow {
   id: number
   role: string
@@ -330,24 +337,45 @@ export const ResourceConfigUpsertDialog = ({
                 </Button>
               </div>
               <p className='text-xs text-muted-foreground'>
-                Maps a logical role (e.g. <code>student</code>, <code>tutor</code>) to a
-                provider-specific permission level.
+                Maps a role the phase assigns to a member (<code>student</code>, <code>tutor</code>)
+                to a provider-specific permission level. A role that is not one of those two is
+                never assigned to anybody, so its row has no effect.
               </p>
+              {providerType && PROVIDERS_WITHOUT_PERMISSIONS.includes(providerType) && (
+                <p className='text-xs text-amber-700'>
+                  {providerType} grants every member the same access, so the permission mapping is
+                  not used for this provider.
+                </p>
+              )}
               {permissionRows.length === 0 ? (
                 <p className='text-sm text-muted-foreground'>No permissions mapped.</p>
               ) : (
                 <div className='space-y-2'>
                   {permissionRows.map((row, idx) => (
                     <div key={row.id} className='flex items-center gap-2'>
-                      <Input
+                      <Select
                         value={row.role}
-                        onChange={(e) =>
+                        onValueChange={(value) =>
                           setPermissionRows((prev) =>
-                            prev.map((r, i) => (i === idx ? { ...r, role: e.target.value } : r)),
+                            prev.map((r, i) => (i === idx ? { ...r, role: value } : r)),
                           )
                         }
-                        placeholder='role (e.g. student)'
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder='role' />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* A saved config may name a role the phase no longer assigns; it stays
+                              selectable so editing the row does not silently rewrite it. */}
+                          {[...new Set([...MEMBER_ROLES, ...(row.role ? [row.role] : [])])].map(
+                            (role) => (
+                              <SelectItem key={role} value={role}>
+                                {role}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
                       <Input
                         value={row.permission}
                         onChange={(e) =>

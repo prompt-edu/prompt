@@ -43,7 +43,7 @@ func descriptorFor(providerType string) (provider.Provider, error) {
 	case "keycloak":
 		return &keycloak.Provider{}, nil
 	}
-	return nil, fmt.Errorf("unknown provider type: %s", providerType)
+	return nil, fmt.Errorf("%w: unknown provider type: %s", ErrValidation, providerType)
 }
 
 // GetAuthFields returns the auth fields for a provider type.

@@ -273,6 +273,17 @@ CREATE UNIQUE INDEX uq_resource_instance_student
     WHERE course_participation_id IS NOT NULL;
 ```
 
+### Permission mapping
+
+A permission mapping is keyed on the roles resolution assigns, and there are exactly two:
+`student` and `tutor`. A row keyed on anything else is never matched, so it silently does nothing;
+the resource config dialog therefore offers only those two.
+
+`keycloak` and `slack` ignore the mapping altogether: a group member and a channel member have no
+per-member permission level. GitLab, Outline and Rancher use it, and a member whose role the mapping
+does not cover becomes an instance warning (Rancher falls back to the `roleTemplateId` extra config
+first).
+
 ### Members that cannot be granted access
 
 Emails are resolved from **this phase's** participations. A team member or tutor who is not a

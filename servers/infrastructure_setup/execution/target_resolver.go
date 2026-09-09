@@ -30,6 +30,18 @@ type ProvisioningTarget struct {
 	Warnings []string
 }
 
+// The roles resolution assigns to a member. A permission mapping is keyed on these, so
+// anything else in a mapping reaches nobody.
+const (
+	RoleStudent = "student"
+	RoleTutor   = "tutor"
+)
+
+// SupportedMemberRoles lists the roles a permission mapping can be keyed on.
+func SupportedMemberRoles() []string {
+	return []string{RoleStudent, RoleTutor}
+}
+
 // DisplayName names the target the way a lecturer would recognise it in the execution
 // list, which otherwise only has a team or participation UUID to show.
 func (t ProvisioningTarget) DisplayName() string {
@@ -106,7 +118,7 @@ func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHead
 		if student.Email == "" {
 			warnings = append(warnings, fmt.Sprintf("%s has no email address, so nobody was granted access", personLabel(student.FirstName, student.LastName, participationID)))
 		} else {
-			members = append(members, provider.Member{Email: student.Email, Role: "student"})
+			members = append(members, provider.Member{Email: student.Email, Role: RoleStudent})
 		}
 
 		targets = append(targets, ProvisioningTarget{
@@ -155,7 +167,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 		var warnings []string
 
 		for _, person := range team.Members {
-			member, warning := resolveMember(person, "student", studentsByParticipationID)
+			member, warning := resolveMember(person, RoleStudent, studentsByParticipationID)
 			if warning != "" {
 				warnings = append(warnings, warning)
 				continue
@@ -163,7 +175,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 			members = append(members, member)
 		}
 		for _, person := range team.Tutors {
-			member, warning := resolveMember(person, "tutor", studentsByParticipationID)
+			member, warning := resolveMember(person, RoleTutor, studentsByParticipationID)
 			if warning != "" {
 				warnings = append(warnings, warning)
 				continue

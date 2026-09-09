@@ -3,6 +3,7 @@ package encryption
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"testing"
 )
 
@@ -109,5 +110,26 @@ func TestEncryptWithoutKeyFails(t *testing.T) {
 	_, err := Encrypt([]byte("data"))
 	if err == nil {
 		t.Error("expected Encrypt to fail without key, but it succeeded")
+	}
+}
+
+// The .env templates ship a working key so a fresh checkout starts, and it is committed.
+// A deployment created with `cp .env.template .env` would otherwise encrypt real
+// provider tokens with a key anyone can read out of the repository.
+func TestPlaceholderKeyIsRefusedOutsideDebug(t *testing.T) {
+	t.Setenv("ENCRYPTION_KEY", placeholderKey)
+	t.Setenv("DEBUG", "false")
+
+	if err := ValidateKey(); !errors.Is(err, ErrPlaceholderKey) {
+		t.Fatalf("ValidateKey = %v, want ErrPlaceholderKey", err)
+	}
+	if _, err := Encrypt([]byte("token")); !errors.Is(err, ErrPlaceholderKey) {
+		t.Fatalf("Encrypt = %v, want ErrPlaceholderKey", err)
+	}
+
+	// Local development keeps starting on it.
+	t.Setenv("DEBUG", "true")
+	if err := ValidateKey(); err != nil {
+		t.Fatalf("ValidateKey with DEBUG=true: %v", err)
 	}
 }

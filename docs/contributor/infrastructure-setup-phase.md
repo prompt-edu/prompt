@@ -294,8 +294,10 @@ the first credential write.
 openssl rand -base64 32
 ```
 
-The `.env` templates ship a placeholder key so a fresh checkout starts. It is committed,
-so replace it anywhere real provider credentials are stored.
+The `.env` templates ship a placeholder key so a fresh checkout starts. Because it is committed and
+therefore public, the service **refuses it unless `DEBUG=true`**: a deployment created with
+`cp .env.template .env` would otherwise encrypt GitLab tokens, Slack bot tokens and Rancher secret
+keys with a key anyone can read out of the repository.
 
 The API never returns credentials. `GET /provider-configs` exposes only the provider type and a
 `configured` boolean. Rotating the key requires re-encrypting every `provider_config.credentials`

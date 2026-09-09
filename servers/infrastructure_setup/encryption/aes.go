@@ -23,6 +23,15 @@ var ErrEmptyKey = errors.New("ENCRYPTION_KEY environment variable is not set")
 // ErrShortCiphertext is returned when the ciphertext is too short to contain a nonce.
 var ErrShortCiphertext = errors.New("ciphertext too short")
 
+// ErrPlaceholderKey is returned when the deployment still uses the key the .env
+// templates ship.
+var ErrPlaceholderKey = errors.New("ENCRYPTION_KEY is still the placeholder from .env.template, which is public; generate one with: openssl rand -base64 32")
+
+// placeholderKey is the value the .env templates carry so a fresh checkout starts. It is
+// committed, so anyone can read it: outside a debug deployment it is refused rather than
+// used to encrypt GitLab tokens, Slack bot tokens and Rancher secret keys.
+const placeholderKey = "bG9jYWwtZGV2LWtleS1ub3QtYS1yZWFsLXNlY3JldCE="
+
 // ValidateKey reports whether a usable encryption key is configured. Call it at
 // startup so a misconfigured deployment fails immediately instead of on the first
 // credential write.
@@ -36,6 +45,9 @@ func getKey() ([]byte, error) {
 	raw := promptSDK.GetEnv("ENCRYPTION_KEY", "")
 	if raw == "" {
 		return nil, ErrEmptyKey
+	}
+	if raw == placeholderKey && promptSDK.GetEnv("DEBUG", "false") != "true" {
+		return nil, ErrPlaceholderKey
 	}
 	key, err := base64.StdEncoding.DecodeString(raw)
 	if err != nil {

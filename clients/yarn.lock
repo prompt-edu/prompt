@@ -7759,8 +7759,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "infrastructure_setup_component@workspace:infrastructure_setup_component"
   dependencies:
-    "@rspack/cli": "npm:^2.2.0"
-    "@rspack/core": "npm:^2.2.0"
+    "@rspack/cli": "npm:^2.2.2"
+    "@rspack/core": "npm:^2.2.2"
   languageName: unknown
   linkType: soft
 

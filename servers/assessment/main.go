@@ -155,7 +155,7 @@ func main() {
 	// The SDK registrar owns the POST /copy route itself and has no per-route
 	// slot for the audit label, so it is attached through a group. An empty
 	// relative path leaves the registered route path unchanged.
-	copy.RegisterRoutes(api.Group("", audit.Describe("Copied assessment phase")), copyService, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{

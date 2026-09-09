@@ -33,7 +33,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationService, au
 	// Student endpoints - access to own evaluations only
 	evaluationRouter.GET("/my-evaluations", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluations)
 	evaluationRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationResults)
-	evaluationRouter.POST("", audit.Describe("Saved evaluation"), authMiddleware(promptSDK.CourseStudent), service.createOrUpdateEvaluation)
+	// The evaluation form posts on every field change, so auditing this route would
+	// bury the log and start dropping events. Completion transitions are audited instead.
+	evaluationRouter.POST("", audit.Skip(), authMiddleware(promptSDK.CourseStudent), service.createOrUpdateEvaluation)
 	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), service.deleteEvaluation)
 }
 

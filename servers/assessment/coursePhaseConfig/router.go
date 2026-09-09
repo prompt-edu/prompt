@@ -24,7 +24,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CoursePhaseConfigServ
 	coursePhaseRouter := routerGroup.Group("/config")
 
 	coursePhaseRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getCoursePhaseConfig)
-	coursePhaseRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createOrUpdateCoursePhaseConfig)
+	coursePhaseRouter.PUT("", audit.Describe("Updated the assessment configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createOrUpdateCoursePhaseConfig)
 	coursePhaseRouter.POST("/release", audit.Describe("Released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.releaseResults)
 	coursePhaseRouter.POST("/unrelease", audit.Describe("Withdrew released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.unreleaseResults)
 	coursePhaseRouter.GET("/reminders/incomplete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getIncompleteReminderRecipients)

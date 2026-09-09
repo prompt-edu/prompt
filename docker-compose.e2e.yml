@@ -59,8 +59,11 @@ services:
       - KEYCLOAK_ID_OF_CLIENT
       - KEYCLOAK_AUTHORIZED_PARTY
       - DEBUG
-      # Audit log enabled for e2e coverage of the audit-log pages.
+      # Audit log enabled for e2e coverage of the audit-log pages. The phase
+      # services report over HTTP with this shared test key, which is a fixture,
+      # not a secret: every deployed stack sets a distinct key per service.
       - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEYS=assessment:e2e-audit-ingest-key,certificate:e2e-audit-ingest-key,example-service:e2e-audit-ingest-key,interview:e2e-audit-ingest-key,presentation:e2e-audit-ingest-key,self-team-allocation:e2e-audit-ingest-key,team-allocation:e2e-audit-ingest-key
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -181,6 +184,8 @@ services:
       - DB_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
       - DB_HOST_SELF_TEAM_ALLOCATION=${DB_SELF_TEAM_ALLOCATION_HOST}
       - DB_PORT_SELF_TEAM_ALLOCATION=${DB_SELF_TEAM_ALLOCATION_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -253,6 +258,8 @@ services:
       - DB_NAME=${DB_EXAMPLE_NAME}
       - DB_HOST_EXAMPLE_SERVER=${DB_EXAMPLE_HOST}
       - DB_PORT_EXAMPLE_SERVER=${DB_EXAMPLE_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -322,6 +329,8 @@ services:
       - DB_NAME=${DB_ASSESSMENT_NAME}
       - DB_HOST_ASSESSMENT=${DB_ASSESSMENT_HOST}
       - DB_PORT_ASSESSMENT=${DB_ASSESSMENT_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -415,6 +424,8 @@ services:
       - DB_NAME=${DB_INTERVIEW_NAME}
       - DB_HOST_INTERVIEW=${DB_INTERVIEW_HOST}
       - DB_PORT_INTERVIEW=${DB_INTERVIEW_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -489,6 +500,8 @@ services:
       - DB_NAME=${DB_CERTIFICATE_NAME}
       - DB_HOST_CERTIFICATE=${DB_CERTIFICATE_HOST}
       - DB_PORT_CERTIFICATE=${DB_CERTIFICATE_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -558,6 +571,8 @@ services:
       - DB_NAME=${DB_PRESENTATION_NAME}
       - DB_HOST_PRESENTATION=${DB_PRESENTATION_HOST}
       - DB_PORT_PRESENTATION=${DB_PRESENTATION_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
@@ -633,6 +648,8 @@ services:
       - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
       - DB_HOST_TEAM_ALLOCATION=${DB_TEAM_ALLOCATION_HOST}
       - DB_PORT_TEAM_ALLOCATION=${DB_TEAM_ALLOCATION_PORT}
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=e2e-audit-ingest-key
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG

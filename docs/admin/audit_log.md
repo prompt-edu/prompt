@@ -35,6 +35,30 @@ Keycloak on this path** — each phase authenticates with its own shared secret:
   without downtime.
 - On **each phase**, set `AUDIT_ENABLED=true` and `AUDIT_INGEST_KEY=<that service's key>`.
 
+The SDK reads one fixed name, `AUDIT_INGEST_KEY`, so forwarding that variable to every container
+would hand all of them the same secret. The compose files therefore give each service its own
+variable and map it onto the name the SDK reads:
+
+| Service (as reported in `/info`) | Provision as |
+| --- | --- |
+| `assessment` | `AUDIT_INGEST_KEY_ASSESSMENT` |
+| `certificate` | `AUDIT_INGEST_KEY_CERTIFICATE` |
+| `example-service` | `AUDIT_INGEST_KEY_EXAMPLE_SERVICE` |
+| `interview` | `AUDIT_INGEST_KEY_INTERVIEW` |
+| `presentation` | `AUDIT_INGEST_KEY_PRESENTATION` |
+| `self-team-allocation` | `AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION` |
+| `team-allocation` | `AUDIT_INGEST_KEY_TEAM_ALLOCATION` |
+
+Generate one random value per service (for example `openssl rand -hex 32`), set it in the variable
+above **and** add `<service>:<value>` to core's `AUDIT_INGEST_KEYS`. Both sides must agree: if a
+service's key is missing or does not match, core answers its events with a 401 and the events are
+lost, with nothing but a log line on the phase side to show for it. On a GitHub Actions deployment
+each of these is an environment *secret* of the same name; `example-service` is not deployed to
+production and has no secret.
+
+Nothing here is required to enable auditing on core itself. A phase whose key is missing simply
+reports nothing, so keys can be added one service at a time.
+
 Because keys are per-service, a leaked key only affects one service, and the reported `source` is
 trustworthy (derived from which key matched).
 

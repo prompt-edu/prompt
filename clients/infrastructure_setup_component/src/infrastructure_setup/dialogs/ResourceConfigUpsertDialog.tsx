@@ -115,6 +115,9 @@ export const ResourceConfigUpsertDialog = ({
     }
   }, [resourceTypes, resourceType, existing])
 
+  // Seeded when the dialog opens, and only then: availableProviderTypes is rebuilt on
+  // every parent render, and re-running this would discard what is being edited.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (!open) return
     setProviderType(existing?.providerType ?? availableProviderTypes[0])
@@ -124,7 +127,7 @@ export const ResourceConfigUpsertDialog = ({
     setPermissionRows(toRoleRows(existing?.permissionMapping))
     setExtraConfigRaw(JSON.stringify(existing?.resourceExtraConfig ?? {}, null, 2))
     setExtraConfigError(null)
-  }, [open, existing, availableProviderTypes])
+  }, [open])
 
   const parseExtraConfig = (): Record<string, unknown> | null => {
     const raw = extraConfigRaw.trim()

@@ -59,11 +59,14 @@ export const ProviderUpsertDialog = ({
   )
   const [values, setValues] = useState<Record<string, string>>({})
 
+  // Seeded when the dialog opens, and only then: availableTypes is rebuilt on every
+  // parent render, and re-running this would clear a half-typed access token.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (!open) return
     setSelectedType(existingProvider?.providerType ?? availableTypes[0])
     setValues({})
-  }, [open, existingProvider, availableTypes])
+  }, [open])
 
   const {
     data: authFields,

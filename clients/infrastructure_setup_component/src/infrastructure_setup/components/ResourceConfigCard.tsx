@@ -34,6 +34,9 @@ export const ResourceConfigCard = ({ coursePhaseID, config, isProvisioned, onEdi
     mutationFn: () => deleteResourceConfig(coursePhaseID, config.id, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
+      // The delete cascades to this config's instances; without this the execution list
+      // keeps rendering them, with live retry and delete buttons.
+      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
       toast({ title: 'Resource config deleted' })
       setConfirmOpen(false)
     },

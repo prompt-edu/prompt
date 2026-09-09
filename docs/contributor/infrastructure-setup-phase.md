@@ -302,6 +302,11 @@ aliases. Anything else is **rejected**: when the resource config is saved, and a
 worker calls a provider, so an unresolved `{{...}}` can never end up in the name of a real
 resource.
 
+A template that uses `{{semesterTag}}` is refused at trigger time (**400**) while the phase has no
+semester tag saved. The setup page prefills the field from the parent course as a *suggestion*, not
+as a value: without this guard a phase whose setup page was never saved would name a team's GitLab
+group `-ios-team-1`, since resolution replaces the empty tag with nothing.
+
 A placeholder the config's scope does not fill is rejected too. Resolution replaces it with an empty
 string, so a `per_team` config named `team-{{studentLogin}}` would resolve to the same `team` for
 every team and put all of them into one external resource. The scope each placeholder belongs to is

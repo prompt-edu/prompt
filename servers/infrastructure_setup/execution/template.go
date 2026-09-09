@@ -119,6 +119,25 @@ func ResolveName(tmpl string, data TemplateData) (string, error) {
 	return result, nil
 }
 
+// SemesterTagPlaceholder is the canonical spelling of the phase's semester tag.
+const SemesterTagPlaceholder = "{{semesterTag}}"
+
+// UsesPlaceholder reports whether a template references a placeholder under any of the
+// spellings that resolve to it.
+func UsesPlaceholder(tmpl, canonical string) bool {
+	for _, p := range placeholders {
+		if p.canonical != canonical {
+			continue
+		}
+		for _, token := range p.tokens() {
+			if strings.Contains(tmpl, token) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // SupportedPlaceholders lists the placeholders a name template may use.
 func SupportedPlaceholders() []string {
 	supported := make([]string, 0, len(placeholders))

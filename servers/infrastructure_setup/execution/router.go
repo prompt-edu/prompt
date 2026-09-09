@@ -69,7 +69,9 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			switch {
 			case errors.Is(err, ErrExecutionInProgress):
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			case errors.Is(err, ErrProviderNotConfigured), errors.Is(err, ErrNothingConfigured):
+			case errors.Is(err, ErrProviderNotConfigured),
+				errors.Is(err, ErrNothingConfigured),
+				errors.Is(err, ErrSemesterTagMissing):
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			default:
 				log.WithError(err).Error("trigger execution")

@@ -39,9 +39,13 @@ export const SetupConfigPage = () => {
     enabled: !!coursePhaseID,
   })
 
-  // The parent course's tag is the default for a phase that has none of its own.
-  const storedTag = data?.semesterTag || (course?.semesterTag ?? '')
+  // The course's tag is only ever a suggestion. Showing it as the field's value made an
+  // unsaved phase look configured, while the server kept resolving {{semesterTag}} to
+  // nothing and naming a team's GitLab group "-ios-team-1".
+  const storedTag = data?.semesterTag ?? ''
+  const suggestedTag = course?.semesterTag ?? ''
   const semesterTag = editedTag ?? storedTag
+  const isUnsaved = semesterTag.trim() !== storedTag
 
   const { mutate: save, isPending } = useMutation({
     mutationFn: () =>
@@ -98,11 +102,33 @@ export const SetupConfigPage = () => {
           id='semesterTag'
           value={semesterTag}
           onChange={(event) => setEditedTag(event.target.value)}
-          placeholder='ios26'
+          placeholder={suggestedTag || 'ios26'}
         />
         <p className='text-xs text-muted-foreground'>
           Used as <code>{`{{semesterTag}}`}</code> in resource name templates.
         </p>
+        {storedTag === '' && (
+          <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900'>
+            <p>
+              No semester tag is saved for this phase, so provisioning is refused for any template
+              that uses <code>{`{{semesterTag}}`}</code>.
+            </p>
+            {suggestedTag && (
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='mt-2'
+                onClick={() => setEditedTag(suggestedTag)}
+              >
+                Use the course tag ({suggestedTag})
+              </Button>
+            )}
+          </div>
+        )}
+        {isUnsaved && semesterTag.trim() !== '' && (
+          <p className='text-xs text-amber-700'>Not saved yet. Press Save to apply it.</p>
+        )}
       </div>
     </div>
   )

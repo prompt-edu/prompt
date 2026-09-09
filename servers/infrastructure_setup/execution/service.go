@@ -27,6 +27,10 @@ var ErrProviderNotConfigured = errors.New("provider credentials are missing")
 // ErrNothingConfigured is returned when the phase has no resource config to provision.
 var ErrNothingConfigured = errors.New("no resource is configured for this course phase")
 
+// ErrSemesterTagMissing is returned when a template needs the semester tag and the phase
+// has none saved.
+var ErrSemesterTagMissing = errors.New("a template uses {{semesterTag}}, but this phase has no semester tag saved; set it on the Setup page")
+
 // TriggerSummary reports what one trigger did. A run's most common first outcome is a
 // mix of successes and failures, so the endpoint has to say whether pressing the button
 // again actually queued anything rather than reporting success over a no-op.
@@ -115,6 +119,10 @@ func (s *Service) TriggerExecution(ctx context.Context, authHeader string, cours
 		return summary, err
 	}
 
+	if err := s.assertSemesterTagAvailable(ctx, coursePhaseID, configs); err != nil {
+		return summary, err
+	}
+
 	targetsByScope, err := s.resolveScopes(ctx, authHeader, coursePhaseID, configs)
 	if err != nil {
 		return summary, err
@@ -150,6 +158,52 @@ func (s *Service) assertProvidersConfigured(ctx context.Context, coursePhaseID u
 		}
 	}
 	return nil
+}
+
+// assertSemesterTagAvailable refuses to run templates that need a semester tag the phase
+// does not have.
+//
+// Resolution replaces a placeholder it cannot fill with an empty string, so
+// "{{semesterTag}}-{{teamName}}" would name a real GitLab group "-ios-team-1" (or
+// "ios-team-1", once a provider trims the leading separator). The setup page prefills the
+// field from the course, which makes it easy to believe a tag is stored when nothing was
+// ever saved.
+func (s *Service) assertSemesterTagAvailable(ctx context.Context, coursePhaseID uuid.UUID, configs []db.ResourceConfig) error {
+	if !needsSemesterTag(configs) {
+		return nil
+	}
+
+	phaseConfig, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrSemesterTagMissing
+	}
+	if err != nil {
+		return err
+	}
+	if phaseConfig.SemesterTag == "" {
+		return ErrSemesterTagMissing
+	}
+	return nil
+}
+
+// needsSemesterTag reports whether any config would resolve the placeholder, in its name
+// template or in an extra-config value a provider treats as a template.
+func needsSemesterTag(configs []db.ResourceConfig) bool {
+	for _, cfg := range configs {
+		if UsesPlaceholder(cfg.NameTemplate, SemesterTagPlaceholder) {
+			return true
+		}
+		extra, err := ParseExtraConfig(cfg.ResourceExtraConfig)
+		if err != nil {
+			continue
+		}
+		for _, value := range extra {
+			if text, ok := value.(string); ok && UsesPlaceholder(text, SemesterTagPlaceholder) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Service) resolveScopes(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, configs []db.ResourceConfig) (map[db.ResourceScope][]ProvisioningTarget, error) {

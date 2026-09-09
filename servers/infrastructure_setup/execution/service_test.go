@@ -623,3 +623,46 @@ func TestTriggerRejectsAPhaseWithoutResourceConfigs(t *testing.T) {
 		t.Fatalf("error = %v, want ErrNothingConfigured", err)
 	}
 }
+
+// The setup page prefills the semester tag from the course, which makes it easy to
+// believe a tag is stored when nothing was saved. Resolution would then name a team's
+// group "-ios-team-1", so the run is refused instead.
+func TestTriggerRefusesATemplateNeedingAnUnsavedSemesterTag(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	if _, err := testDB.Queries.UpsertProviderConfig(context.Background(), db.UpsertProviderConfigParams{
+		CoursePhaseID: coursePhaseID,
+		ProviderType:  db.ProviderTypeGitlab,
+		Credentials:   []byte("encrypted"),
+	}); err != nil {
+		t.Fatalf("upsert provider config: %v", err)
+	}
+	if _, err := testDB.Queries.CreateResourceConfig(context.Background(), db.CreateResourceConfigParams{
+		CoursePhaseID:       coursePhaseID,
+		ProviderType:        db.ProviderTypeGitlab,
+		ResourceType:        "group",
+		Scope:               db.ResourceScopePerTeam,
+		NameTemplate:        "{{semesterTag}}-{{teamName}}",
+		PermissionMapping:   []byte(`{}`),
+		ResourceExtraConfig: []byte(`{}`),
+	}); err != nil {
+		t.Fatalf("create resource config: %v", err)
+	}
+
+	service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{})
+	if _, err := service.TriggerExecution(context.Background(), "Bearer test", coursePhaseID); !errors.Is(err, ErrSemesterTagMissing) {
+		t.Fatalf("error = %v, want ErrSemesterTagMissing", err)
+	}
+
+	if _, err := testDB.Queries.UpsertCoursePhaseConfig(context.Background(), db.UpsertCoursePhaseConfigParams{
+		CoursePhaseID: coursePhaseID,
+		SemesterTag:   "ios26",
+	}); err != nil {
+		t.Fatalf("upsert phase config: %v", err)
+	}
+	if _, err := service.TriggerExecution(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("TriggerExecution with a saved tag: %v", err)
+	}
+}

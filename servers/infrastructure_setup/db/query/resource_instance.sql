@@ -57,6 +57,12 @@ SELECT COUNT(*)
 FROM resource_instance
 WHERE resource_config_id = $1 AND status != 'failed';
 
+-- name: CountRunningInstancesForConfig :one
+-- Counts the instances of one config a worker is about to touch or is touching.
+SELECT COUNT(*)
+FROM resource_instance
+WHERE resource_config_id = $1 AND status IN ('pending', 'in_progress');
+
 -- name: CountNonTerminalInstances :one
 SELECT COUNT(*)
 FROM resource_instance

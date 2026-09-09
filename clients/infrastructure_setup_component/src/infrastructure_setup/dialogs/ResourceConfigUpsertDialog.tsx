@@ -39,6 +39,11 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   existing?: ResourceConfig
+  // True when the config already has a resource upstream. What that resource is called
+  // and where it lives can no longer change, because the instance would keep pointing at
+  // the old object; the permission mapping still can, which is how an unmapped role that
+  // left a run partial gets fixed.
+  identityLocked?: boolean
   // Provider types the course phase has credentials for — used as the options for the
   // provider select when creating a new resource config.
   availableProviderTypes: ProviderType[]
@@ -71,6 +76,7 @@ export const ResourceConfigUpsertDialog = ({
   open,
   onOpenChange,
   existing,
+  identityLocked = false,
   availableProviderTypes,
 }: Props) => {
   const queryClient = useQueryClient()
@@ -209,6 +215,15 @@ export const ResourceConfigUpsertDialog = ({
           </DialogHeader>
 
           <div className='space-y-4 py-4'>
+            {identityLocked && (
+              <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900'>
+                This configuration has already provisioned a resource, so its resource type, scope,
+                name template and extra config are fixed: the instance would keep pointing at the
+                resource that exists while this described a different one. The permission mapping
+                can still change, and a retry picks it up. To change the rest, delete the
+                configuration&apos;s instances first.
+              </div>
+            )}
             <div className='space-y-1'>
               <Label htmlFor='providerType'>Provider</Label>
               {existing ? (
@@ -241,7 +256,7 @@ export const ResourceConfigUpsertDialog = ({
               <Select
                 value={resourceType}
                 onValueChange={setResourceType}
-                disabled={resourceTypes.length === 0}
+                disabled={identityLocked || resourceTypes.length === 0}
               >
                 <SelectTrigger id='resourceType'>
                   <SelectValue placeholder='Select a resource type' />
@@ -264,6 +279,7 @@ export const ResourceConfigUpsertDialog = ({
               <RadioGroup
                 value={scope}
                 onValueChange={(v) => setScope(v as Scope)}
+                disabled={identityLocked}
                 className='flex gap-6'
               >
                 <Label className='flex items-center gap-2 font-normal'>
@@ -282,6 +298,7 @@ export const ResourceConfigUpsertDialog = ({
                 value={nameTemplate}
                 onChange={(e) => setNameTemplate(e.target.value)}
                 placeholder='{{semesterTag}}-{{teamName}}'
+                disabled={identityLocked}
                 className='font-mono'
               />
               <p className='text-xs text-muted-foreground'>
@@ -367,6 +384,7 @@ export const ResourceConfigUpsertDialog = ({
                 }}
                 onBlur={() => parseExtraConfig()}
                 rows={6}
+                disabled={identityLocked}
                 className='font-mono text-xs'
               />
               {extraConfigError && (

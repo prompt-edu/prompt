@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom'
 import { ResourceConfigCard } from '../components/ResourceConfigCard'
 import { ResourceConfigUpsertDialog } from '../dialogs/ResourceConfigUpsertDialog'
 import type { ResourceConfig } from '../interfaces/resourceConfig'
+import { getInstances } from '../network/queries/getInstances'
 import { getProviderConfigs } from '../network/queries/getProviderConfigs'
 import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 
@@ -36,18 +37,32 @@ export const ResourceConfigPage = () => {
     enabled: !!coursePhaseID,
   })
 
-  if (isLoading || providersLoading) {
+  const {
+    data: instances,
+    isLoading: instancesLoading,
+    isError: instancesError,
+    refetch: refetchInstances,
+  } = useQuery({
+    queryKey: ['instances', coursePhaseID],
+    queryFn: () => getInstances(coursePhaseID!),
+    enabled: !!coursePhaseID,
+  })
+
+  if (isLoading || providersLoading || instancesLoading) {
     return <LoadingPage />
   }
-  if (isError || providersError) {
-    // Both are needed before the page can say anything true: without the providers the
-    // banner would claim none are configured and the create button would stay disabled.
+  if (isError || providersError || instancesError) {
+    // All three are needed before the page can say anything true: without the providers
+    // the banner would claim none are configured and the create button would stay
+    // disabled, and without the instances a config whose resource already exists would
+    // offer edits the server refuses.
     return (
       <ErrorPage
         description='Failed to load resource configurations.'
         onRetry={() => {
           refetch()
           refetchProviders()
+          refetchInstances()
         }}
       />
     )
@@ -68,6 +83,11 @@ export const ResourceConfigPage = () => {
   const availableProviderTypes = (providers ?? [])
     .filter((p) => p.configured)
     .map((p) => p.providerType)
+
+  // A failed instance never created anything, so it does not pin the config's identity.
+  const provisionedConfigIDs = new Set(
+    (instances ?? []).filter((i) => i.status !== 'failed').map((i) => i.resourceConfigId),
+  )
 
   const outlineConfigs = (resourceConfigs ?? []).filter((c) => c.providerType === 'outline')
   const keycloakScopes = new Set(
@@ -130,6 +150,7 @@ export const ResourceConfigPage = () => {
               key={config.id}
               coursePhaseID={coursePhaseID!}
               config={config}
+              isProvisioned={provisionedConfigIDs.has(config.id)}
               onEdit={openEdit}
             />
           ))}
@@ -142,6 +163,7 @@ export const ResourceConfigPage = () => {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           existing={editing}
+          identityLocked={!!editing && provisionedConfigIDs.has(editing.id)}
           availableProviderTypes={availableProviderTypes}
         />
       )}

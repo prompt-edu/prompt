@@ -86,6 +86,20 @@ func (q *Queries) CountNonTerminalInstances(ctx context.Context, coursePhaseID u
 	return count, err
 }
 
+const countRunningInstancesForConfig = `-- name: CountRunningInstancesForConfig :one
+SELECT COUNT(*)
+FROM resource_instance
+WHERE resource_config_id = $1 AND status IN ('pending', 'in_progress')
+`
+
+// Counts the instances of one config a worker is about to touch or is touching.
+func (q *Queries) CountRunningInstancesForConfig(ctx context.Context, resourceConfigID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countRunningInstancesForConfig, resourceConfigID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createResourceInstance = `-- name: CreateResourceInstance :one
 INSERT INTO resource_instance (
     id,

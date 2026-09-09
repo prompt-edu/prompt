@@ -17,10 +17,13 @@ import { describeError } from '../utils/describeError'
 interface Props {
   coursePhaseID: string
   config: ResourceConfig
+  // True once the config has an instance that is not failed, which fixes what the
+  // resource is called and leaves only the permission mapping editable.
+  isProvisioned: boolean
   onEdit: (config: ResourceConfig) => void
 }
 
-export const ResourceConfigCard = ({ coursePhaseID, config, onEdit }: Props) => {
+export const ResourceConfigCard = ({ coursePhaseID, config, isProvisioned, onEdit }: Props) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -60,6 +63,7 @@ export const ResourceConfigCard = ({ coursePhaseID, config, onEdit }: Props) => 
                   {permissionCount} permission{permissionCount === 1 ? '' : 's'}
                 </Badge>
               )}
+              {isProvisioned && <Badge variant='outline'>provisioned</Badge>}
             </div>
             <p className='font-mono text-xs text-muted-foreground'>{config.id}</p>
           </div>

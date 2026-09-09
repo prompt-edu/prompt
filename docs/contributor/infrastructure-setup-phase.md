@@ -416,14 +416,25 @@ and it is not implemented.
 
 ## Editing a configuration after a run
 
-A resource config cannot be edited once it has a non-failed instance; delete the instances first.
+Once a config has an instance that is not `failed`, the resource may exist upstream and **what it is
+called and where it lives is fixed**: `resource_type`, `scope`, `name_template` and
+`resource_extra_config` can no longer change. The instance would keep pointing at the object that
+exists while the config described a differently named one, with nothing in the UI to reveal the
+mismatch.
 
-A live instance blocks a second instance for the same target, so an edited config would never
-re-provision: the row would describe one resource while a differently named one existed upstream,
-with nothing in the UI to reveal the mismatch. A permission-mapping edit is refused for the same
-reason, since it cannot reach memberships that were already granted. Because the resource-config
-uniqueness constraint covers `(course_phase_id, provider_type, resource_type, scope, name_template)`
-and not the extra config, two configs that differ only by `parent_group_template` are also rejected.
+The **permission mapping stays editable** as long as no instance of that config is `pending` or
+`in_progress`. A role the mapping does not cover becomes a member warning, which is the most common
+reason a first run comes back `partial`, and a retry re-reads the stored mapping: refusing that edit
+would mean deleting every instance of the config to fix a typo. It does not reach memberships that
+were already granted, so it heals the members that were missed, not the ones added under the old
+mapping.
+
+The dialog says which fields are locked and the config card is badged *provisioned*. To change the
+rest, delete the config's instances first.
+
+Because the resource-config uniqueness constraint covers
+`(course_phase_id, provider_type, resource_type, scope, name_template)` and not the extra config,
+two configs that differ only by `parent_group_template` are rejected as duplicates.
 
 ---
 

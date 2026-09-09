@@ -3,6 +3,7 @@ package resourceconfig
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -257,5 +258,139 @@ func TestDeleteResourceConfigWithInstancesNeedsConfirmation(t *testing.T) {
 	}
 	if len(list) != 0 {
 		t.Fatalf("resource configs after a confirmed delete = %d, want 0", len(list))
+	}
+}
+
+// seedProvisionedInstance gives a config one instance in a terminal, provisioned state.
+func seedProvisionedInstance(t *testing.T, queries *db.Queries, coursePhaseID, resourceConfigID uuid.UUID, status db.ResourceStatus) uuid.UUID {
+	t.Helper()
+	teamID := uuid.New()
+	instance, err := queries.CreateResourceInstance(context.Background(), db.CreateResourceInstanceParams{
+		ResourceConfigID: resourceConfigID,
+		CoursePhaseID:    coursePhaseID,
+		TeamID:           &teamID,
+	})
+	if err != nil {
+		t.Fatalf("create instance: %v", err)
+	}
+
+	externalID := "42"
+	externalURL := "https://gitlab.example.com/groups/team-a"
+	message := "tutor@example.com: no permission mapped for role tutor"
+	switch status {
+	case db.ResourceStatusPartial:
+		err = queries.MarkInstancePartial(context.Background(), db.MarkInstancePartialParams{
+			ID: instance.ID, ExternalID: &externalID, ExternalUrl: &externalURL, ErrorMessage: &message,
+		})
+	case db.ResourceStatusCreated:
+		err = queries.MarkInstanceCreated(context.Background(), db.MarkInstanceCreatedParams{
+			ID: instance.ID, ExternalID: &externalID, ExternalUrl: &externalURL,
+		})
+	default:
+		t.Fatalf("seedProvisionedInstance does not handle %s", status)
+	}
+	if err != nil {
+		t.Fatalf("mark %s: %v", status, err)
+	}
+	return instance.ID
+}
+
+func createGroupConfig(t *testing.T, service *Service, coursePhaseID uuid.UUID) resourceconfigDTO.ResourceConfigResponse {
+	t.Helper()
+	created, err := service.CreateResourceConfig(context.Background(), coursePhaseID, resourceconfigDTO.CreateRequest{
+		ProviderType:        "gitlab",
+		ResourceType:        "group",
+		Scope:               "per_team",
+		NameTemplate:        "{{teamName}}",
+		PermissionMapping:   map[string]string{"student": "developer"},
+		ResourceExtraConfig: map[string]interface{}{},
+	})
+	if err != nil {
+		t.Fatalf("CreateResourceConfig returned error: %v", err)
+	}
+	return created
+}
+
+// An unmapped role is the most common reason a first run comes back partial, and a retry
+// re-reads the stored mapping. Fixing the mapping must not require deleting every
+// instance of the config first.
+func TestUpdateResourceConfigAllowsAPermissionMappingFixAfterARun(t *testing.T) {
+	testDB, cleanup := setupResourceConfigTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	createProviderForResourceConfigTest(t, testDB.Queries, coursePhaseID)
+	service := NewService(testDB.Conn)
+	created := createGroupConfig(t, service, coursePhaseID)
+	seedProvisionedInstance(t, testDB.Queries, coursePhaseID, created.ID, db.ResourceStatusPartial)
+
+	updated, err := service.UpdateResourceConfig(context.Background(), coursePhaseID, created.ID, resourceconfigDTO.UpdateRequest{
+		ResourceType:        "group",
+		Scope:               "per_team",
+		NameTemplate:        "{{teamName}}",
+		PermissionMapping:   map[string]string{"student": "developer", "tutor": "maintainer"},
+		ResourceExtraConfig: map[string]interface{}{},
+	})
+	if err != nil {
+		t.Fatalf("UpdateResourceConfig returned error: %v", err)
+	}
+	if !strings.Contains(string(updated.PermissionMapping), "maintainer") {
+		t.Fatalf("permission mapping = %s, want the added tutor role", updated.PermissionMapping)
+	}
+}
+
+// What the resource is called stays fixed once it exists: the instance would keep
+// pointing at one external object while the config described another.
+func TestUpdateResourceConfigRefusesToRenameAProvisionedResource(t *testing.T) {
+	testDB, cleanup := setupResourceConfigTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	createProviderForResourceConfigTest(t, testDB.Queries, coursePhaseID)
+	service := NewService(testDB.Conn)
+	created := createGroupConfig(t, service, coursePhaseID)
+	seedProvisionedInstance(t, testDB.Queries, coursePhaseID, created.ID, db.ResourceStatusCreated)
+
+	_, err := service.UpdateResourceConfig(context.Background(), coursePhaseID, created.ID, resourceconfigDTO.UpdateRequest{
+		ResourceType:        "group",
+		Scope:               "per_team",
+		NameTemplate:        "{{semesterTag}}-{{teamName}}",
+		PermissionMapping:   map[string]string{"student": "developer"},
+		ResourceExtraConfig: map[string]interface{}{},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("error = %v, want it to wrap ErrValidation", err)
+	}
+}
+
+// A queued instance is about to be provisioned from the stored config, so even the
+// permission mapping has to wait for the run to finish.
+func TestUpdateResourceConfigRefusesAnEditWhileARunIsQueued(t *testing.T) {
+	testDB, cleanup := setupResourceConfigTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	createProviderForResourceConfigTest(t, testDB.Queries, coursePhaseID)
+	service := NewService(testDB.Conn)
+	created := createGroupConfig(t, service, coursePhaseID)
+
+	if _, err := testDB.Queries.CreateResourceInstance(context.Background(), db.CreateResourceInstanceParams{
+		ResourceConfigID: created.ID,
+		CoursePhaseID:    coursePhaseID,
+		TeamID:           &teamID,
+	}); err != nil {
+		t.Fatalf("create instance: %v", err)
+	}
+
+	_, err := service.UpdateResourceConfig(context.Background(), coursePhaseID, created.ID, resourceconfigDTO.UpdateRequest{
+		ResourceType:        "group",
+		Scope:               "per_team",
+		NameTemplate:        "{{teamName}}",
+		PermissionMapping:   map[string]string{"student": "maintainer"},
+		ResourceExtraConfig: map[string]interface{}{},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("error = %v, want it to wrap ErrValidation", err)
 	}
 }

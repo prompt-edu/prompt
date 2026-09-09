@@ -225,3 +225,65 @@ func TestRancherToleratesAnExistingBinding(t *testing.T) {
 		t.Fatalf("warnings = %v, want none for a binding that already exists", resource.Warnings)
 	}
 }
+
+// Rancher answers 422 both for a duplicate binding and for a validation error, so the
+// duplicate has to be recognised by its code. A 422 carrying it is the state a retry of
+// a partial instance starts from.
+func TestRancherToleratesADuplicateReportedAs422(t *testing.T) {
+	provider := newRancherServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v3/projects"):
+			_, _ = w.Write([]byte(rancherProjectResponse))
+		case r.URL.Path == "/v3/principals":
+			_, _ = w.Write([]byte(`{"data":[{"id":"local://user-1","loginName":"student@example.com","name":"Student","principalType":"user"}]}`))
+		case r.URL.Path == "/v3/projectroletemplatebindings":
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"type":"error","status":422,"code":"NotUnique","message":"binding already exists"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "project-member"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 0 {
+		t.Fatalf("warnings = %v, want none for a binding that already exists", resource.Warnings)
+	}
+}
+
+// A 422 that is not a duplicate is a real failure: an unknown roleTemplateId, a
+// malformed principal. Reporting it as success left the project created with nobody
+// granted access and nothing in the UI to show it.
+func TestRancherReportsAValidationFailureAsAWarning(t *testing.T) {
+	provider := newRancherServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v3/projects"):
+			_, _ = w.Write([]byte(rancherProjectResponse))
+		case r.URL.Path == "/v3/principals":
+			_, _ = w.Write([]byte(`{"data":[{"id":"local://user-1","loginName":"student@example.com","name":"Student","principalType":"user"}]}`))
+		case r.URL.Path == "/v3/projectroletemplatebindings":
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"type":"error","status":422,"code":"InvalidReference","message":"roleTemplateId not found"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+		}
+	})
+
+	resource, err := provider.CreateResource(context.Background(), providerpkg.CreateResourceInput{
+		Name:              "Team A",
+		Members:           []providerpkg.Member{{Email: "student@example.com", Role: "student"}},
+		PermissionMapping: map[string]string{"student": "project-memeber"},
+	})
+	if err != nil {
+		t.Fatalf("CreateResource: %v", err)
+	}
+	if len(resource.Warnings) != 1 {
+		t.Fatalf("warnings = %v, want the rejected binding reported", resource.Warnings)
+	}
+}

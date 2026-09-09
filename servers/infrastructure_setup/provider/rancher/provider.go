@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -165,9 +166,8 @@ func (p *Provider) addMember(ctx context.Context, projectID, email, roleTemplate
 		"roleTemplateId":  roleTemplateID,
 	}
 	if _, err := p.post(ctx, "/v3/projectroletemplatebindings", payload); err != nil {
-		// The binding already exists. Rancher reports that as a conflict on the unique
-		// binding, which is the state a retry of a partial instance starts from - without
-		// tolerating it, such an instance could never reach created.
+		// The binding already exists, which is the state a retry of a partial instance
+		// starts from - without tolerating it, such an instance could never reach created.
 		if isAlreadyBound(err) {
 			return nil
 		}
@@ -176,11 +176,27 @@ func (p *Provider) addMember(ctx context.Context, projectID, email, roleTemplate
 	return nil
 }
 
+// notUniqueCode is what Rancher's API answers with when a create would duplicate an
+// existing object.
+const notUniqueCode = "NotUnique"
+
 // isAlreadyBound reports whether a binding POST failed only because the principal is
 // already bound to the project.
+//
+// Rancher answers 422 for a duplicate binding and for a validation error alike: an
+// unknown roleTemplateId, a malformed principal ID. Treating every 422 as "already
+// bound" reported those as success, so a typo in the role template left the instance
+// created with nobody granted access to the project.
 func isAlreadyBound(err error) bool {
-	message := err.Error()
-	return strings.Contains(message, "HTTP 409") || strings.Contains(message, "HTTP 422")
+	var statusErr *provider.StatusError
+	if !errors.As(err, &statusErr) {
+		return false
+	}
+	if statusErr.Status == http.StatusConflict {
+		return true
+	}
+	return statusErr.Status == http.StatusUnprocessableEntity &&
+		strings.EqualFold(statusErr.Code, notUniqueCode)
 }
 
 // lookupUserPrincipal resolves the Rancher principal ID for an email address.

@@ -483,7 +483,7 @@ func (p *Provider) addMember(ctx context.Context, groupID int, email string, acc
 	path := fmt.Sprintf("/api/v4/groups/%d/invitations", groupID)
 	body, err := p.post(ctx, path, payload)
 	if err != nil {
-		if strings.Contains(err.Error(), "HTTP 409") {
+		if provider.HasStatus(err, http.StatusConflict) {
 			return nil
 		}
 		return err

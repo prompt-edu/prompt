@@ -1,12 +1,46 @@
 package provider
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
 
 	log "github.com/sirupsen/logrus"
 )
+
+// StatusError describes a failed upstream request. Callers react to the status and code
+// rather than matching on the message, which is prose and changes.
+type StatusError struct {
+	Provider string
+	Method   string
+	Path     string
+	Status   int
+	// Code is the machine-readable error code the response body carried, when it had
+	// one. Rancher answers 422 for a duplicate and for a validation error alike, and the
+	// code is the only thing that separates them.
+	Code string
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("%s %s %s: HTTP %d", e.Provider, e.Method, e.Path, e.Status)
+}
+
+// StatusOf reports the upstream HTTP status carried by err, if it carries one.
+func StatusOf(err error) (int, bool) {
+	var statusErr *StatusError
+	if errors.As(err, &statusErr) {
+		return statusErr.Status, true
+	}
+	return 0, false
+}
+
+// HasStatus reports whether err came from an upstream response with the given status.
+func HasStatus(err error, status int) bool {
+	got, ok := StatusOf(err)
+	return ok && got == status
+}
 
 // maxLoggedBodyBytes bounds how much of an upstream response body reaches the log.
 const maxLoggedBodyBytes = 512
@@ -30,7 +64,26 @@ func HTTPError(providerType, method, path string, status int, body []byte) error
 		"body":     string(logged),
 	}).Debug("upstream request failed")
 
-	return fmt.Errorf("%s %s %s: HTTP %d", providerType, method, path, status)
+	return &StatusError{
+		Provider: providerType,
+		Method:   method,
+		Path:     path,
+		Status:   status,
+		Code:     upstreamCode(body),
+	}
+}
+
+// upstreamCode reads a machine-readable error code out of a JSON error body. Only a
+// top-level string code is taken; no free-form upstream text reaches the caller, since
+// this error is persisted on the instance and rendered in the UI.
+func upstreamCode(body []byte) string {
+	var decoded struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return ""
+	}
+	return decoded.Code
 }
 
 // maxUpstreamReasonRunes bounds a reason quoted from an upstream payload.

@@ -528,3 +528,37 @@ func TestWorkerRecordsWhatTheInstanceIsAbout(t *testing.T) {
 		t.Fatalf("resolvedName = %q, want the name the provider was asked for", got.ResolvedName)
 	}
 }
+
+// A member the phase could not resolve never reaches the provider, so the provider
+// cannot warn about them. The instance still has to come back partial rather than
+// reporting a clean success over a team nobody was added to.
+func TestWorkerCarriesTargetWarningsOntoTheInstance(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	registerFakeProvider(t, &fakeProvider{})
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{{
+		Scope:        db.ResourceScopePerTeam,
+		TeamID:       &teamID,
+		TeamName:     "Team A",
+		Warnings:     []string{"tutor Alan Turing is not a participant of this phase"},
+		TemplateData: TemplateData{TeamName: "Team A"},
+	}}})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID)
+	if got.Status != db.ResourceStatusPartial {
+		t.Fatalf("status = %s, want partial", got.Status)
+	}
+	if got.ErrorMessage == nil || !strings.Contains(*got.ErrorMessage, "Alan Turing") {
+		t.Fatalf("error message = %v, want the dropped tutor named", got.ErrorMessage)
+	}
+}

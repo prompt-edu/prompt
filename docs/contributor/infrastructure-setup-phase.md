@@ -260,6 +260,17 @@ CREATE UNIQUE INDEX uq_resource_instance_student
     WHERE course_participation_id IS NOT NULL;
 ```
 
+### Members that cannot be granted access
+
+Emails are resolved from **this phase's** participations. A team member or tutor who is not a
+participant of the phase (tutors are assigned at course level), or whose participation carries no
+email address, cannot be turned into a member. Those people are reported as instance warnings, so
+the resource is created, the instance comes back `partial` and `error_message` names them. They are
+never dropped silently: a `tutor` permission mapping that reaches nobody would otherwise look like a
+clean success.
+
+To grant a tutor access, add them to this phase's participants as well.
+
 ### Instance statuses
 
 | Status | Meaning |

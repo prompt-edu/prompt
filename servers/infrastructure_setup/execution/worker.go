@@ -266,8 +266,15 @@ func (w *Worker) processInstance(
 		return w.failInstance(ctx, inst.ID, err.Error())
 	}
 
-	if len(resource.Warnings) > 0 {
-		return w.markPartial(ctx, inst.ID, resource, strings.Join(resource.Warnings, "; "))
+	// A member the phase could not resolve at all never reaches the provider, so its
+	// warning has to be carried here or the instance would report a clean success. The
+	// slice is fresh: one target is shared by every config at its scope, and instances
+	// run concurrently.
+	warnings := make([]string, 0, len(target.Warnings)+len(resource.Warnings))
+	warnings = append(warnings, target.Warnings...)
+	warnings = append(warnings, resource.Warnings...)
+	if len(warnings) > 0 {
+		return w.markPartial(ctx, inst.ID, resource, strings.Join(warnings, "; "))
 	}
 
 	return w.markCreated(ctx, inst.ID, resource)

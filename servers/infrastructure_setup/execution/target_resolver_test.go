@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 )
 
@@ -159,5 +160,36 @@ func TestResolveTargetsWithoutAConfigRow(t *testing.T) {
 	}
 	if len(targets) != 0 {
 		t.Fatalf("targets = %d, want 0 for a phase without participants", len(targets))
+	}
+}
+
+// A tutor is assigned at course level, so one who does not take part in this phase has
+// no email here. Dropping them silently made a tutor permission mapping quietly do
+// nothing; the instance has to report it the way any un-grantable member is reported.
+func TestResolveMemberReportsWhoCouldNotBeResolved(t *testing.T) {
+	participating := uuid.New()
+	outsider := uuid.New()
+	noEmail := uuid.New()
+	students := map[uuid.UUID]promptTypes.Student{
+		participating: {FirstName: "Ada", LastName: "Byron", Email: "ada@example.com"},
+		noEmail:       {FirstName: "Grace", LastName: "Hopper"},
+	}
+
+	member, warning := resolveMember(promptTypes.Person{ID: participating, FirstName: "Ada", LastName: "Byron"}, "tutor", students)
+	if warning != "" {
+		t.Fatalf("warning = %q, want a resolved member", warning)
+	}
+	if member.Email != "ada@example.com" || member.Role != "tutor" {
+		t.Fatalf("member = %+v, want the tutor's address and role", member)
+	}
+
+	if _, warning = resolveMember(promptTypes.Person{ID: outsider, FirstName: "Alan", LastName: "Turing"}, "tutor", students); warning == "" {
+		t.Fatal("a tutor outside this phase was dropped without a warning")
+	} else if !strings.Contains(warning, "Alan Turing") || !strings.Contains(warning, "tutor") {
+		t.Fatalf("warning = %q, want the tutor named", warning)
+	}
+
+	if _, warning = resolveMember(promptTypes.Person{ID: noEmail, FirstName: "Grace", LastName: "Hopper"}, "student", students); warning == "" {
+		t.Fatal("a member without an email was dropped without a warning")
 	}
 }

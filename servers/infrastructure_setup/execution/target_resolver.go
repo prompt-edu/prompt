@@ -25,6 +25,9 @@ type ProvisioningTarget struct {
 	Student               *promptTypes.Student
 	Members               []provider.Member
 	TemplateData          TemplateData
+	// Warnings lists people this phase could not turn into a member, so they surface
+	// on the instance the way a provider's own member warnings do instead of vanishing.
+	Warnings []string
 }
 
 // DisplayName names the target the way a lecturer would recognise it in the execution
@@ -97,13 +100,21 @@ func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHead
 	for _, participation := range participations {
 		participationID := participation.CourseParticipationID
 		student := participation.Student
+
+		var members []provider.Member
+		var warnings []string
+		if student.Email == "" {
+			warnings = append(warnings, fmt.Sprintf("%s has no email address, so nobody was granted access", personLabel(student.FirstName, student.LastName, participationID)))
+		} else {
+			members = append(members, provider.Member{Email: student.Email, Role: "student"})
+		}
+
 		targets = append(targets, ProvisioningTarget{
 			Scope:                 db.ResourceScopePerStudent,
 			CourseParticipationID: &participationID,
 			Student:               &student,
-			Members: []provider.Member{
-				{Email: student.Email, Role: "student"},
-			},
+			Members:               members,
+			Warnings:              warnings,
 			TemplateData: TemplateData{
 				StudentFirstName: student.FirstName,
 				StudentLastName:  student.LastName,
@@ -140,16 +151,24 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 	targets := make([]ProvisioningTarget, 0, len(teams))
 	for _, team := range teams {
 		teamID := team.ID
-		members := make([]provider.Member, 0, len(team.Members))
-		for _, member := range team.Members {
-			if student, ok := studentsByParticipationID[member.ID]; ok && student.Email != "" {
-				members = append(members, provider.Member{Email: student.Email, Role: "student"})
+		members := make([]provider.Member, 0, len(team.Members)+len(team.Tutors))
+		var warnings []string
+
+		for _, person := range team.Members {
+			member, warning := resolveMember(person, "student", studentsByParticipationID)
+			if warning != "" {
+				warnings = append(warnings, warning)
+				continue
 			}
+			members = append(members, member)
 		}
-		for _, tutor := range team.Tutors {
-			if student, ok := studentsByParticipationID[tutor.ID]; ok && student.Email != "" {
-				members = append(members, provider.Member{Email: student.Email, Role: "tutor"})
+		for _, person := range team.Tutors {
+			member, warning := resolveMember(person, "tutor", studentsByParticipationID)
+			if warning != "" {
+				warnings = append(warnings, warning)
+				continue
 			}
+			members = append(members, member)
 		}
 
 		targets = append(targets, ProvisioningTarget{
@@ -157,10 +176,35 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 			TeamID:       &teamID,
 			TeamName:     team.Name,
 			Members:      members,
+			Warnings:     warnings,
 			TemplateData: TemplateData{TeamName: team.Name, SemesterTag: cfg.SemesterTag},
 		})
 	}
 	return targets, nil
+}
+
+// resolveMember turns a team member into a provider member, or explains why it could
+// not. Emails are resolved from this phase's participations, and a tutor is assigned to
+// the team at course level: one who does not take part in this phase has no email here.
+func resolveMember(person promptTypes.Person, role string, studentsByParticipationID map[uuid.UUID]promptTypes.Student) (provider.Member, string) {
+	label := personLabel(person.FirstName, person.LastName, person.ID)
+
+	student, ok := studentsByParticipationID[person.ID]
+	if !ok {
+		return provider.Member{}, fmt.Sprintf("%s %s is not a participant of this phase, so no email address could be resolved", role, label)
+	}
+	if student.Email == "" {
+		return provider.Member{}, fmt.Sprintf("%s %s has no email address", role, label)
+	}
+	return provider.Member{Email: student.Email, Role: role}, ""
+}
+
+func personLabel(firstName, lastName string, id uuid.UUID) string {
+	name := strings.TrimSpace(firstName + " " + lastName)
+	if name == "" {
+		return id.String()
+	}
+	return fmt.Sprintf("%s (%s)", name, id)
 }
 
 func (r *CoreTargetResolver) studentsByParticipationID(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (map[uuid.UUID]promptTypes.Student, error) {

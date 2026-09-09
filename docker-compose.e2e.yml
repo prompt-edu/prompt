@@ -60,8 +60,10 @@ services:
       - KEYCLOAK_AUTHORIZED_PARTY
       - DEBUG
       # Audit log enabled for e2e coverage of the audit-log pages. The phase
-      # services report over HTTP with this shared test key, which is a fixture,
-      # not a secret: every deployed stack sets a distinct key per service.
+      # containers carry the matching key below so that phase to core reporting
+      # works as soon as a phase registers the capture middleware; until then
+      # only core's own events are captured. The key is a fixture, not a secret:
+      # every deployed stack sets a distinct key per service.
       - AUDIT_ENABLED=true
       - AUDIT_INGEST_KEYS=assessment:e2e-audit-ingest-key,certificate:e2e-audit-ingest-key,example-service:e2e-audit-ingest-key,interview:e2e-audit-ingest-key,presentation:e2e-audit-ingest-key,self-team-allocation:e2e-audit-ingest-key,team-allocation:e2e-audit-ingest-key
       - S3_BUCKET

@@ -52,12 +52,18 @@ variable and map it onto the name the SDK reads:
 Generate one random value per service (for example `openssl rand -hex 32`), set it in the variable
 above **and** add `<service>:<value>` to core's `AUDIT_INGEST_KEYS`. Both sides must agree: if a
 service's key is missing or does not match, core answers its events with a 401 and the events are
-lost, with nothing but a log line on the phase side to show for it. On a GitHub Actions deployment
-each of these is an environment *secret* of the same name; `example-service` is not deployed to
-production and has no secret.
+lost, with nothing but a log line on the phase side to show for it. The two are separate settings on
+purpose, because phases hosted outside this repository (intro-course, github-challenge) also need an
+entry in `AUDIT_INGEST_KEYS` even though they have no `AUDIT_INGEST_KEY_*` variable here. On a
+GitHub Actions deployment each variable above is an environment *secret* of the same name;
+`example-service` is not deployed to production and has no secret.
 
 Nothing here is required to enable auditing on core itself. A phase whose key is missing simply
 reports nothing, so keys can be added one service at a time.
+
+If a service never appears in the log, check `GET /<service>/api/info` first: a phase reports only
+once it registers the capture middleware, and the `audit.log` capability tells you whether it does.
+That distinguishes a service that cannot report at all from one whose key does not match.
 
 Because keys are per-service, a leaked key only affects one service, and the reported `source` is
 trustworthy (derived from which key matched).

@@ -286,13 +286,6 @@ func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
 			actionKey: "POST " + auditCoursePhaseTemplate + "/config/reminders/send",
 		},
 		{
-			name:      "student assessment upsert",
-			method:    http.MethodPost,
-			path:      auditCoursePhaseRoute + "/student-assessment",
-			action:    "Saved a student assessment",
-			actionKey: "POST " + auditCoursePhaseTemplate + "/student-assessment",
-		},
-		{
 			name:      "category assessment upsert",
 			method:    http.MethodPost,
 			path:      auditCoursePhaseRoute + "/category-assessment",
@@ -412,4 +405,21 @@ func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
 	require.Equal(t, auditSourceCoursePhaseID, events[0].Metadata["sourceCoursePhaseID"])
 	require.Equal(t, auditActorID, events[0].ActorID)
+}
+
+// The grading and evaluation forms post on every interaction, so these two routes
+// are silenced: auditing them would bury the log and start dropping events.
+func TestAuditMiddlewareSkipsTheAutosaveRoutes(t *testing.T) {
+	for _, path := range []string{"/student-assessment", "/evaluation"} {
+		t.Run(path, func(t *testing.T) {
+			sink := &recordingSink{}
+			router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+
+			resp := httptest.NewRecorder()
+			router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, auditCoursePhaseRoute+path, nil))
+
+			time.Sleep(300 * time.Millisecond)
+			require.Empty(t, sink.snapshot())
+		})
+	}
 }

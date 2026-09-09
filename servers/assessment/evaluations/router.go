@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -32,7 +33,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationService, au
 	// Student endpoints - access to own evaluations only
 	evaluationRouter.GET("/my-evaluations", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluations)
 	evaluationRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyEvaluationResults)
-	evaluationRouter.POST("", authMiddleware(promptSDK.CourseStudent), service.createOrUpdateEvaluation)
+	// The evaluation form posts on every field change, so auditing this route would
+	// bury the log and start dropping events. Completion transitions are audited instead.
+	evaluationRouter.POST("", audit.Skip(), authMiddleware(promptSDK.CourseStudent), service.createOrUpdateEvaluation)
 	evaluationRouter.DELETE("/:evaluationID", authMiddleware(promptSDK.CourseStudent), service.deleteEvaluation)
 }
 

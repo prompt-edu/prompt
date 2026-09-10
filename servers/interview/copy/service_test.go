@@ -9,7 +9,7 @@ import (
 )
 
 func TestHandlePhaseCopyReturnsNoError(t *testing.T) {
-	handler := &interviewCopyHandler{}
+	handler := &InterviewCopyHandler{}
 	c, _ := gin.CreateTestContext(nil)
 
 	err := handler.HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{})

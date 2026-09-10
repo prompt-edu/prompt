@@ -17,10 +17,11 @@ SEED_DB_USER="${SEED_DB_USER:-prompt-postgres}"
 SEED_DB_PASSWORD="${SEED_DB_PASSWORD:-prompt-postgres}"
 SEED_TIMEOUT="${SEED_TIMEOUT:-300}"
 
-# The eight phase type names seed/core.sql resolves by name. Core creates them
-# on startup: the first seven in InitCoursePhaseTypeModule, Application later in
-# InitApplicationAdministrationModule, both before the router starts serving.
-CORE_PHASE_TYPES="'Application','Interview','Matching','Team Allocation','Self Team Allocation','Assessment','Certificate','Presentation'"
+# The nine phase type names seed/core.sql resolves by name. Core creates them on
+# startup: the first eight in CoursePhaseTypeService.InitializePhaseTypes,
+# Application later in InitApplicationAdministrationModule, both before the
+# router starts serving.
+CORE_PHASE_TYPES="'Application','Interview','Matching','Team Allocation','Self Team Allocation','Assessment','Certificate','Presentation','Infrastructure Setup'"
 
 # Every phase seed points at core-owned ids (course phases f……, participations
 # cd……) that only seed/core.sql creates, and nothing enforces those links across
@@ -93,7 +94,7 @@ wait_for() {
             if [ "$1" != core ]; then
                 return 0
             fi
-            if [ "$(query "$1" "SELECT count(*) FROM course_phase_type WHERE name IN ($CORE_PHASE_TYPES)")" = 8 ]; then
+            if [ "$(query "$1" "SELECT count(*) FROM course_phase_type WHERE name IN ($CORE_PHASE_TYPES)")" = 9 ]; then
                 return 0
             fi
         fi

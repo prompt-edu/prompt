@@ -24,6 +24,7 @@ const config = (env = {}) => {
   const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
   const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
   const presentationURL = IS_DEV ? `http://localhost:3011` : `/presentation`
+  const infrastructureSetupURL = IS_DEV ? `http://localhost:3012` : `/infrastructure-setup`
 
   return {
     target: 'web',
@@ -96,6 +97,7 @@ const config = (env = {}) => {
           self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
           certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
           presentation_component: `presentation_component@${presentationURL}/remoteEntry.js?${Date.now()}`,
+          infrastructure_setup_component: `infrastructure_setup_component@${infrastructureSetupURL}/remoteEntry.js?${Date.now()}`,
         },
         shared: federatedDependencies(),
       }),

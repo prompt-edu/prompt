@@ -39,6 +39,11 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
 | `presentation.sql` | presentation | phase config, feedback categories, slots, presentations |
 | `example_server.sql` | example_server | the module's single row |
 
+`infrastructure_setup` has no file: everything it stores is either encrypted
+provider credentials or a record of resources provisioned in a real external
+system, so there is nothing a seed can own. `core.sql` still creates the phase
+the e2e suite drives through the service's own API.
+
 ## Pinned id ranges
 
 Everything the seed creates has a fixed UUID so the files can reference each other

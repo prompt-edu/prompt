@@ -29,6 +29,9 @@ on:
       server_presentation_image_tag:
         description: "The tag of the presentation server image that was built"
         value: ${{ jobs.presentation.outputs.image_tag }}
+      server_infrastructure_setup_image_tag:
+        description: "The tag of the infrastructure setup server image that was built"
+        value: ${{ jobs.infrastructure-setup.outputs.image_tag }}
 
 permissions:
   contents: read
@@ -89,5 +92,13 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-presentation
       docker-file: servers/Dockerfile
       docker-context: ./servers/presentation
+      tags: ${{ inputs.release_tag }}
+    secrets: inherit
+  infrastructure-setup:
+    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
+    with:
+      image-name: ghcr.io/prompt-edu/prompt/prompt-server-infrastructure-setup
+      docker-file: servers/Dockerfile
+      docker-context: ./servers/infrastructure_setup
       tags: ${{ inputs.release_tag }}
     secrets: inherit

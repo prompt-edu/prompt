@@ -39,20 +39,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func getDatabaseURL() string {
-	dbUser := sdkUtils.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := sdkUtils.GetEnv("DB_HOST", "localhost")
-	dbPort := sdkUtils.GetEnv("DB_PORT", "5432")
-	dbName := sdkUtils.GetEnv("DB_NAME", "prompt")
-	sslMode := sdkUtils.GetEnv("SSL_MODE", "disable")
-	timeZone := sdkUtils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
+var dbUser string = sdkUtils.GetEnv("DB_USER", "prompt-postgres")
+var dbPassword string = sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
+var dbHost string = sdkUtils.GetEnv("DB_HOST", "localhost")
+var dbPort string = sdkUtils.GetEnv("DB_PORT", "5432")
+var dbName string = sdkUtils.GetEnv("DB_NAME", "prompt")
+var sslMode string = sdkUtils.GetEnv("SSL_MODE", "disable")
+var timeZone string = sdkUtils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
 
+func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
 
 func sanitizeDatabaseURL(input string) string {
-	dbPassword := sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
 	if dbPassword == "" {
 		return input
 	}
@@ -153,7 +152,7 @@ func main() {
 
 	// establish database connection
 	databaseURL := getDatabaseURL()
-	log.Debug("Connecting to database at:", databaseURL)
+	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
 
 	// run migrations
 	runMigrations(databaseURL)

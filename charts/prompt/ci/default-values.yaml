@@ -1,0 +1,6 @@
+# Baseline CI fixture: the in-cluster bundle with the values the chart requires.
+global:
+  host: prompt.ci.example.com
+  appSecrets:
+    data:
+      S3_SECRET_KEY: ci-s3-secret

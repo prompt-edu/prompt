@@ -1,0 +1,5 @@
+apiVersion: v2
+name: core
+description: PROMPT platform core - server-core (API) + client-core (app shell).
+type: application
+version: 0.1.0

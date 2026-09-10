@@ -1,0 +1,5 @@
+apiVersion: v2
+name: matching
+description: PROMPT matching micro-frontend (client only).
+type: application
+version: 0.1.0

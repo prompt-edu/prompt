@@ -1,0 +1,22 @@
+# Minimal install: core only, no Envoy-specific resources.
+global:
+  host: prompt.ci.example.com
+  gateway:
+    provider: none
+  appSecrets:
+    data:
+      S3_SECRET_KEY: ci-s3-secret
+assessment:
+  enabled: false
+interview:
+  enabled: false
+team-allocation:
+  enabled: false
+self-team-allocation:
+  enabled: false
+certificate:
+  enabled: false
+matching:
+  enabled: false
+example:
+  enabled: false

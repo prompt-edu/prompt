@@ -9,9 +9,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { ClipboardList, FileUp, TriangleAlert, UserRoundCheck } from 'lucide-react'
@@ -33,16 +32,12 @@ export const MatchingOverviewPage = () => {
   const { parseFileXLSX } = useUploadAndParseXLSX()
   const { parseFileCSV } = useUploadAndParseCSV()
 
-  const {
-    data: resolvedParticipations,
-    isPending: isCoursePhaseParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useQuery<ResolvedParticipations>({
+  const participationsQuery = useQuery<ResolvedParticipations>({
     queryKey: ['participants', phaseId],
     queryFn: () => getResolvedCoursePhaseParticipations(phaseId ?? ''),
   })
 
+  const resolvedParticipations = participationsQuery.data
   const failedResolutions = resolvedParticipations?.failedResolutions ?? []
 
   useEffect(() => {
@@ -54,11 +49,7 @@ export const MatchingOverviewPage = () => {
   return (
     <div>
       <ManagementPageHeader>Matching Data Export and Import</ManagementPageHeader>
-      {isParticipationsError ? (
-        <ErrorPage onRetry={refetchCoursePhaseParticipations} />
-      ) : isCoursePhaseParticipationsPending ? (
-        <LoadingPage />
-      ) : (
+      <QueryGate queries={[participationsQuery]}>
         <div>
           {failedResolutions.length > 0 && (
             <Alert variant='destructive' className='mb-8'>
@@ -134,7 +125,7 @@ export const MatchingOverviewPage = () => {
             </Card>
           </div>
         </div>
-      )}
+      </QueryGate>
     </div>
   )
 }

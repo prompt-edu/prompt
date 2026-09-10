@@ -3,9 +3,9 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
-  LoadingPage,
   ManagementPageHeader,
   type ParticipantRow,
+  QueryGate,
   type RowAction,
 } from '@tumaet/prompt-ui-components'
 import { CheckCircle2, Download, XCircle } from 'lucide-react'
@@ -23,16 +23,13 @@ export const ParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const queryClient = useQueryClient()
 
-  const {
-    data: participants,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery({
+  const participantsQuery = useQuery({
     queryKey: ['participants', phaseId],
     queryFn: () => getParticipants(phaseId ?? ''),
     enabled: !!phaseId,
   })
+
+  const participants = participantsQuery.data
 
   const handleDownload = useCallback(
     (studentId: string, lastName: string) => {
@@ -137,36 +134,39 @@ export const ParticipantsPage = () => {
     [handleDownload],
   )
 
-  if (isError) {
-    return <ErrorPage message='Error loading participants' onRetry={refetch} />
-  }
-
-  if (isPending) {
-    return <LoadingPage />
-  }
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
   const downloadedCount = participants?.filter((p) => p.hasDownloaded).length ?? 0
   const totalCount = participants?.length ?? 0
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>Certificate Participants</ManagementPageHeader>
-      <p className='text-muted-foreground'>View and download certificates for all participants.</p>
-
-      <div className='p-4 bg-muted rounded-lg'>
-        <p className='text-sm'>
-          <span className='font-medium'>{downloadedCount}</span> of{' '}
-          <span className='font-medium'>{totalCount}</span> participants have downloaded their
-          certificate.
+    <QueryGate
+      queries={[participantsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage message='Error loading participants' onRetry={refetch} />
+      )}
+    >
+      <div className='space-y-4'>
+        <ManagementPageHeader>Certificate Participants</ManagementPageHeader>
+        <p className='text-muted-foreground'>
+          View and download certificates for all participants.
         </p>
-      </div>
 
-      <CoursePhaseParticipationsTable
-        phaseId={phaseId!}
-        participants={participants ?? []}
-        extraColumns={extraColumns}
-        extraActions={extraActions}
-      />
-    </div>
+        <div className='p-4 bg-muted rounded-lg'>
+          <p className='text-sm'>
+            <span className='font-medium'>{downloadedCount}</span> of{' '}
+            <span className='font-medium'>{totalCount}</span> participants have downloaded their
+            certificate.
+          </p>
+        </div>
+
+        <CoursePhaseParticipationsTable
+          phaseId={phaseId}
+          participants={participants ?? []}
+          extraColumns={extraColumns}
+          extraActions={extraActions}
+        />
+      </div>
+    </QueryGate>
   )
 }

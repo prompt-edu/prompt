@@ -221,6 +221,7 @@ services:
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - PRESENTATION_HOST
+      - INFRASTRUCTURE_SETUP_HOST
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

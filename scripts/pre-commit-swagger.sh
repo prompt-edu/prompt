@@ -52,3 +52,4 @@ regenerate self_team_allocation
 regenerate team_allocation
 regenerate assessment
 regenerate interview
+regenerate infrastructure_setup

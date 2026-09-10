@@ -110,3 +110,5 @@ jobs:
       certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag }}
       presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag }}
       server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag }}
+      server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag }}
+      infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}

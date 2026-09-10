@@ -166,3 +166,11 @@ Schedules individual or team presentations, stores slot-scoped materials, and co
 
 - Presentation Slot, Presenter Assignment, Material, Feedback Category, Feedback Session, Feedback Release
 - Code: client `clients/presentation_component/`, server `servers/presentation/`
+### Infrastructure Setup
+
+Provisions external resources for each team or student: GitLab groups and projects, Slack
+channels, Outline collections, Rancher projects and Keycloak groups.
+
+- Provider Config (encrypted credentials), Resource Config (what to create), Resource
+  Instance (one provisioned resource and its status)
+- Code: client `clients/infrastructure_setup_component/`, server `servers/infrastructure_setup/`

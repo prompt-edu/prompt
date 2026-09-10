@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
@@ -17,9 +18,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMi
 	// Students are deliberately absent: the payload carries the full Typst
 	// template. The student page reads its instructor text from /certificate/status.
 	configRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getConfig)
-	configRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
-	configRouter.PUT("/release-date", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
-	configRouter.PUT("/student-page-text", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
+	configRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
+	configRouter.PUT("/release-date", audit.Describe("Updated the certificate release date"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
+	configRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
 	configRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
 }
 

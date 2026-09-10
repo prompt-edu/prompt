@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -142,6 +143,14 @@ func (s *GeneratorService) downloadStudentCertificate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate certificate"})
 		return
 	}
+
+	audit.Record(c, audit.Event{
+		Action:        "Downloaded a student's certificate",
+		EntityType:    "certificate",
+		EntityID:      studentID.String(),
+		EntityName:    strings.TrimSpace(student.FirstName + " " + student.LastName),
+		CoursePhaseID: coursePhaseID.String(),
+	})
 
 	filename := fmt.Sprintf("certificate_%s.pdf", studentID.String())
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))

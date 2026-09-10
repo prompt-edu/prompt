@@ -4091,7 +4091,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:3.31.3, @tiptap/core@npm:^3.31.0":
+"@tiptap/core@npm:3.31.3, @tiptap/core@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/core@npm:3.31.3"
   peerDependencies:
@@ -4193,7 +4193,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block-lowlight@npm:^3.31.0":
+"@tiptap/extension-code-block-lowlight@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-code-block-lowlight@npm:3.31.3"
   peerDependencies:
@@ -4216,7 +4216,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-code-block@npm:3.31.3, @tiptap/extension-code-block@npm:^3.31.0":
+"@tiptap/extension-code-block@npm:3.31.3, @tiptap/extension-code-block@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-code-block@npm:3.31.3"
   peerDependencies:
@@ -4253,7 +4253,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-color@npm:^3.31.0":
+"@tiptap/extension-color@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-color@npm:3.31.3"
   peerDependencies:
@@ -4354,7 +4354,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-heading@npm:3.31.3, @tiptap/extension-heading@npm:^3.31.0":
+"@tiptap/extension-heading@npm:3.31.3, @tiptap/extension-heading@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-heading@npm:3.31.3"
   peerDependencies:
@@ -4373,7 +4373,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-horizontal-rule@npm:3.31.3, @tiptap/extension-horizontal-rule@npm:^3.31.0":
+"@tiptap/extension-horizontal-rule@npm:3.31.3, @tiptap/extension-horizontal-rule@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-horizontal-rule@npm:3.31.3"
   peerDependencies:
@@ -4392,7 +4392,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-image@npm:^3.31.0":
+"@tiptap/extension-image@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-image@npm:3.31.3"
   peerDependencies:
@@ -4431,7 +4431,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-link@npm:3.31.3, @tiptap/extension-link@npm:^3.31.0":
+"@tiptap/extension-link@npm:3.31.3, @tiptap/extension-link@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-link@npm:3.31.3"
   dependencies:
@@ -4544,7 +4544,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-placeholder@npm:^3.31.0":
+"@tiptap/extension-placeholder@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-placeholder@npm:3.31.3"
   peerDependencies:
@@ -4580,7 +4580,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-text-style@npm:^3.31.0":
+"@tiptap/extension-text-style@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-text-style@npm:3.31.3"
   peerDependencies:
@@ -4616,7 +4616,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-typography@npm:^3.31.0":
+"@tiptap/extension-typography@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-typography@npm:3.31.3"
   peerDependencies:
@@ -4634,7 +4634,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extension-underline@npm:3.31.3, @tiptap/extension-underline@npm:^3.31.0":
+"@tiptap/extension-underline@npm:3.31.3, @tiptap/extension-underline@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extension-underline@npm:3.31.3"
   peerDependencies:
@@ -4653,7 +4653,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/extensions@npm:3.31.3, @tiptap/extensions@npm:^3.31.0":
+"@tiptap/extensions@npm:3.31.3, @tiptap/extensions@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/extensions@npm:3.31.3"
   peerDependencies:
@@ -4684,7 +4684,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/pm@npm:3.31.3, @tiptap/pm@npm:^3.31.0":
+"@tiptap/pm@npm:3.31.3, @tiptap/pm@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/pm@npm:3.31.3"
   dependencies:
@@ -4730,7 +4730,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/react@npm:^3.31.0":
+"@tiptap/react@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/react@npm:3.31.3"
   dependencies:
@@ -4787,7 +4787,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/starter-kit@npm:^3.31.0":
+"@tiptap/starter-kit@npm:^3.31.2":
   version: 3.31.3
   resolution: "@tiptap/starter-kit@npm:3.31.3"
   dependencies:
@@ -5173,12 +5173,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^19.2.5":
-  version: 19.2.5
-  resolution: "@types/react-dom@npm:19.2.5"
+"@types/react-dom@npm:^19.2.7":
+  version: 19.3.0
+  resolution: "@types/react-dom@npm:19.3.0"
   peerDependencies:
-    "@types/react": ^19.2.0
-  checksum: 10c0/7a59467b043debf392d109daa1ba672e791f20ce6f24ae81fb54715f890f8119d24967e61e3644b6307428603b695b7d59e69eaf531bd1963a74a6cb462f5f49
+    "@types/react": ^19.3.0
+  checksum: 10c0/ce0066d28b62bc6afdd17ca84756b8fbe0f6ffc0c8b1e60739abc30e81510da2edbc1007e6ab3d974d30f5a8c25bb0f7de8d7ce09736c909fe84c0f9aed0b946
   languageName: node
   linkType: hard
 
@@ -8458,6 +8458,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lucide-react@npm:^1.40.0":
+  version: 1.44.0
+  resolution: "lucide-react@npm:1.44.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/37e810e863b6bc72afc9d21545669b3c76965a9cfaed795eb95af69934544149e357a0d6a60ef8929ed80247d4a9bd8122c51ce89d60b3868e705ff5c297f4e3
+  languageName: node
+  linkType: hard
+
 "magic-string@npm:^0.30.21":
   version: 0.30.21
   resolution: "magic-string@npm:0.30.21"
@@ -10057,28 +10066,28 @@ __metadata:
     "@tailwindcss/typography": "npm:^0.5.20"
     "@tanstack/react-query": "npm:^5.102.8"
     "@tanstack/react-table": "npm:^9.2.4"
-    "@tiptap/core": "npm:^3.31.0"
-    "@tiptap/extension-code-block": "npm:^3.31.0"
-    "@tiptap/extension-code-block-lowlight": "npm:^3.31.0"
-    "@tiptap/extension-color": "npm:^3.31.0"
-    "@tiptap/extension-heading": "npm:^3.31.0"
-    "@tiptap/extension-horizontal-rule": "npm:^3.31.0"
-    "@tiptap/extension-image": "npm:^3.31.0"
-    "@tiptap/extension-link": "npm:^3.31.0"
-    "@tiptap/extension-placeholder": "npm:^3.31.0"
-    "@tiptap/extension-text-style": "npm:^3.31.0"
-    "@tiptap/extension-typography": "npm:^3.31.0"
-    "@tiptap/extension-underline": "npm:^3.31.0"
-    "@tiptap/extensions": "npm:^3.31.0"
-    "@tiptap/pm": "npm:^3.31.0"
-    "@tiptap/react": "npm:^3.31.0"
-    "@tiptap/starter-kit": "npm:^3.31.0"
+    "@tiptap/core": "npm:^3.31.2"
+    "@tiptap/extension-code-block": "npm:^3.31.2"
+    "@tiptap/extension-code-block-lowlight": "npm:^3.31.2"
+    "@tiptap/extension-color": "npm:^3.31.2"
+    "@tiptap/extension-heading": "npm:^3.31.2"
+    "@tiptap/extension-horizontal-rule": "npm:^3.31.2"
+    "@tiptap/extension-image": "npm:^3.31.2"
+    "@tiptap/extension-link": "npm:^3.31.2"
+    "@tiptap/extension-placeholder": "npm:^3.31.2"
+    "@tiptap/extension-text-style": "npm:^3.31.2"
+    "@tiptap/extension-typography": "npm:^3.31.2"
+    "@tiptap/extension-underline": "npm:^3.31.2"
+    "@tiptap/extensions": "npm:^3.31.2"
+    "@tiptap/pm": "npm:^3.31.2"
+    "@tiptap/react": "npm:^3.31.2"
+    "@tiptap/starter-kit": "npm:^3.31.2"
     "@tumaet/prompt-shared-state": "npm:1.3.0"
     "@tumaet/prompt-ui-components": "npm:1.3.0"
     "@types/node": "npm:^25.9.5"
     "@types/react": "npm:^19.2.18"
     "@types/react-beautiful-dnd": "npm:^13.1.8"
-    "@types/react-dom": "npm:^19.2.5"
+    "@types/react-dom": "npm:^19.2.7"
     axios: "npm:^1.20.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
@@ -10092,7 +10101,7 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.0.1"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.39.0"
+    lucide-react: "npm:^1.40.0"
     motion: "npm:^13.2.0"
     postcss: "npm:^8.5.27"
     postcss-loader: "npm:8.2.1"
@@ -11052,7 +11061,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"smol-toml@npm:^1.7.1":
+"smol-toml@npm:^1.8.0":
   version: 1.8.0
   resolution: "smol-toml@npm:1.8.0"
   checksum: 10c0/4e01dbfb7c7af142176b037ebedaccccafb8229cc873feaa47c184ee31073d86e30b4b1b0fe9a5a6d083ed3ce21615eda9e81d1f5d779ad8b2e2e9459b900aea

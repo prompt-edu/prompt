@@ -96,7 +96,7 @@
     "js-yaml": "^5.4.1",
     "smol-toml": "^1.7.1",
     "nx/brace-expansion": "^5.0.9",
-    "pacote": "^21.5.1"
+    "pacote": "^22.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",

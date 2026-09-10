@@ -18,7 +18,7 @@ func TestCopyPhaseRoute(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.Default()
-	api := router.Group("/api/course_phase/:coursePhaseID")
+	api := router.Group("/interview/api")
 	RegisterRoutes(api, func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware(allowedRoles)
 	})
@@ -28,7 +28,7 @@ func TestCopyPhaseRoute(t *testing.T) {
 		TargetCoursePhaseID: uuid.MustParse("22222222-2222-2222-2222-222222222222"),
 	})
 
-	req, _ := http.NewRequest("POST", "/api/course_phase/11111111-1111-1111-1111-111111111111/copy", bytes.NewBuffer(payload))
+	req, _ := http.NewRequest("POST", "/interview/api/copy", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 

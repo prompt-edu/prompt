@@ -67,6 +67,14 @@ func (s *recordingSink) waitForEvents(n int) []audit.Event {
 	}
 }
 
+// requireNoEvents fails as soon as an event arrives within the window. The
+// middleware delivers from a background goroutine, so an event that must not
+// exist has to be ruled out over time rather than at a single instant.
+func requireNoEvents(t *testing.T, sink *recordingSink) {
+	t.Helper()
+	require.Never(t, func() bool { return len(sink.snapshot()) > 0 }, time.Second, 25*time.Millisecond)
+}
+
 // auditActorMiddleware populates the token user the default actor extractor
 // reads. The SDK's MockAuthMiddleware is unusable here: it sets an empty ID,
 // which the extractor rejects.
@@ -235,8 +243,7 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/team", nil))
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
 
-	time.Sleep(300 * time.Millisecond)
-	require.Empty(t, sink.snapshot())
+	requireNoEvents(t, sink)
 }
 
 // The module carries nothing over, so a copy must not appear in the audit log
@@ -257,6 +264,5 @@ func TestHandlePhaseCopyRecordsNothing(t *testing.T) {
 	router.ServeHTTP(resp, request)
 	require.Equal(t, http.StatusOK, resp.Code)
 
-	time.Sleep(300 * time.Millisecond)
-	require.Empty(t, sink.snapshot())
+	requireNoEvents(t, sink)
 }

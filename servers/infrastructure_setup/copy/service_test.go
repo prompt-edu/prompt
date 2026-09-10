@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 )
@@ -29,14 +30,28 @@ func setupCopyTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
 
 // The endpoint is exercised through the SDK registration rather than by calling the
 // method: the SDK writes the response itself, so only the real route catches a handler
-// that writes one of its own on top.
+// that writes one of its own on top. RegisterRoutes wires the real SDK auth middleware,
+// which no request here carries a token for, so the registrar is called directly;
+// TestRegisterRoutesRequiresAuthentication covers the wiring.
 func newCopyTestRouter(svc *Service) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	RegisterRoutes(router.Group("/api"), svc, func(allowedRoles ...string) gin.HandlerFunc {
-		return sdkTestUtils.MockPermissionMiddleware(allowedRoles...)
-	})
+	promptTypes.RegisterCopyEndpoint(router.Group("/api"), func(c *gin.Context) { c.Next() }, svc)
 	return router
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	RegisterRoutes(router.Group("/api"), NewService(nil))
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, "/api/copy", nil))
+
+	if resp.Code != http.StatusUnauthorized {
+		t.Fatalf("expected %d, got %d", http.StatusUnauthorized, resp.Code)
+	}
 }
 
 func TestHandlePhaseCopyCopiesProviderStubsAndResourceConfigs(t *testing.T) {

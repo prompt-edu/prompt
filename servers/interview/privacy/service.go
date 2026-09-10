@@ -14,13 +14,13 @@ import (
 )
 
 type PrivacyService struct {
-	Queries db.Queries
+	queries db.Queries
 	conn    *pgxpool.Pool
 }
 
 func NewPrivacyService(queries db.Queries, conn *pgxpool.Pool) *PrivacyService {
 	return &PrivacyService{
-		Queries: queries,
+		queries: queries,
 		conn:    conn,
 	}
 }
@@ -59,10 +59,10 @@ func toInterviewReviewExports(reviews []db.InterviewReview) []interviewReviewExp
 
 func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, subject sdkAuth.SubjectIdentifiers) error {
 	exp.AddJSON("Interview Assignments", "interview_assignments.json", func() (any, error) {
-		return s.Queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
+		return s.queries.GetInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs)
 	})
 	exp.AddJSON("Interview Reviews", "interview_reviews.json", func() (any, error) {
-		reviews, err := s.Queries.GetInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
+		reviews, err := s.queries.GetInterviewReviewsByParticipationIDs(c, subject.CourseParticipationIDs)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,7 @@ func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.Sub
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, c)
-	qtx := s.Queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	if err := qtx.DeleteInterviewAssignmentsByParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
 		return err

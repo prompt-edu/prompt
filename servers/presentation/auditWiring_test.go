@@ -99,10 +99,11 @@ func auditRouter(sink audit.Sink) *gin.Engine {
 
 	service := presentation.NewService(db.New(nil), nil, nil, "", 0, 0, 0, nil)
 	presentation.RegisterRoutes(coursePhaseAPI, service)
-	promptTypes.RegisterCopyEndpoint(
+	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
-		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer),
 		&presentation.CopyHandler{Service: service},
+		promptSDK.PromptAdmin,
+		promptSDK.CourseLecturer,
 	)
 	return router
 }

@@ -1,5 +1,5 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { ErrorPage } from '@tumaet/prompt-ui-components'
+import { QueryGate } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
@@ -13,6 +13,12 @@ import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
+
+const AssessmentResultsLoader = () => (
+  <div className='flex justify-center items-center h-64'>
+    <Loader2 className='h-12 w-12 animate-spin text-primary' />
+  </div>
+)
 
 interface AssessmentResultsSectionProps {
   onReadyChange?: (ready: boolean) => void
@@ -35,19 +41,17 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
 
   const shouldFetch = isStudent && resultsReleased
   const shouldFetchCategories = shouldFetch && gradingSheetVisible
-  const {
-    data: results,
-    isPending,
-    isError,
-    refetch,
-  } = useGetMyAssessmentResults({ enabled: shouldFetch })
+  const resultsQuery = useGetMyAssessmentResults({ enabled: shouldFetch })
+  const assessmentCategoriesQuery = useGetAllCategoriesWithCompetencies({
+    enabled: shouldFetchCategories,
+  })
 
+  const { data: results, isPending, isError } = resultsQuery
   const {
     data: assessmentCategories = [],
     isPending: isAssessmentCategoriesPending,
     isError: isAssessmentCategoriesError,
-    refetch: refetchAssessmentCategories,
-  } = useGetAllCategoriesWithCompetencies({ enabled: shouldFetchCategories })
+  } = assessmentCategoriesQuery
 
   useEffect(() => {
     if (!results) return
@@ -87,51 +91,48 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   }, [myParticipation, setAssessmentParticipation, teams])
 
   if (!resultsReleased || !isStudent) return null
-  if (isError || isAssessmentCategoriesError) {
-    return (
-      <ErrorPage
-        onRetry={() => {
-          refetch()
-          refetchAssessmentCategories()
-        }}
-      />
-    )
-  }
-
-  if (isPending || (isAssessmentCategoriesPending && gradingSheetVisible) || !results)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
 
   return (
-    <>
-      <div className='space-y-4 print:hidden'>
-        {gradingSheetVisible &&
-          assessmentCategories.map((category) => (
-            <CategoryAssessment
-              key={category.id}
-              category={category}
-              assessments={results.assessments.filter((assessment) =>
-                category.competencies
-                  .map((competency) => competency.id)
-                  .includes(assessment.competencyID),
-              )}
-              completed={true}
-              courseParticipationID={results.courseParticipationID}
-              peerEvaluationResults={results.peerEvaluationResults}
-              selfEvaluationResults={results.selfEvaluationResults}
-              hidePeerEvaluationDetails={true}
+    <QueryGate
+      queries={[resultsQuery, assessmentCategoriesQuery]}
+      loadingFallback={<AssessmentResultsLoader />}
+    >
+      {() => {
+        if (!results) return <AssessmentResultsLoader />
+
+        return (
+          <>
+            <div className='space-y-4 print:hidden'>
+              {gradingSheetVisible &&
+                assessmentCategories.map((category) => (
+                  <CategoryAssessment
+                    key={category.id}
+                    category={category}
+                    assessments={results.assessments.filter((assessment) =>
+                      category.competencies
+                        .map((competency) => competency.id)
+                        .includes(assessment.competencyID),
+                    )}
+                    completed={true}
+                    courseParticipationID={results.courseParticipationID}
+                    peerEvaluationResults={results.peerEvaluationResults}
+                    selfEvaluationResults={results.selfEvaluationResults}
+                    hidePeerEvaluationDetails={true}
+                  />
+                ))}
+
+              {actionItemsVisible || gradeSuggestionVisible ? (
+                <AssessmentCompletion readOnly actionItems={results.actionItems} />
+              ) : null}
+            </div>
+
+            <AssessmentPrintReport
+              categories={assessmentCategories}
+              actionItems={results.actionItems}
             />
-          ))}
-
-        {actionItemsVisible || gradeSuggestionVisible ? (
-          <AssessmentCompletion readOnly actionItems={results.actionItems} />
-        ) : null}
-      </div>
-
-      <AssessmentPrintReport categories={assessmentCategories} actionItems={results.actionItems} />
-    </>
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

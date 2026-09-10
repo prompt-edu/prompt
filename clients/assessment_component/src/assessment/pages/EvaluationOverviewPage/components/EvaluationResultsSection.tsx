@@ -1,5 +1,5 @@
 import { mapNumberToScoreLevel, type ScoreLevel, useCourseStore } from '@tumaet/prompt-shared-state'
-import { Card, CardContent, ErrorPage } from '@tumaet/prompt-ui-components'
+import { Card, CardContent, QueryGate } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -76,6 +76,12 @@ const buildPrintSection = (
   })),
 })
 
+const EvaluationResultsLoader = () => (
+  <div className='flex h-64 items-center justify-center'>
+    <Loader2 className='h-12 w-12 animate-spin text-primary' />
+  </div>
+)
+
 const ResultCategoryList = ({ categories }: { categories: EvaluationResultCategory[] }) => (
   <div className='space-y-4'>
     {categories.map((category) => (
@@ -111,14 +117,10 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
   const peerEvaluationEnabled = coursePhaseConfig?.peerEvaluationEnabled ?? false
 
   const shouldFetch = isStudent && resultsReleased
-  const {
-    data: results,
-    isPending,
-    isError,
-    refetch,
-  } = useGetMyEvaluationResults({
+  const resultsQuery = useGetMyEvaluationResults({
     enabled: shouldFetch,
   })
+  const { data: results, isPending, isError } = resultsQuery
 
   const { data: selfCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
@@ -173,51 +175,49 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
   }, [isReportReady, onReadyChange])
 
   if (!resultsReleased || !isStudent) return null
-  if (isError) return <ErrorPage onRetry={refetch} />
-  if (isPending) {
-    return (
-      <div className='flex h-64 items-center justify-center'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
-  }
-
-  if (!hasContent) {
-    return (
-      <Card>
-        <CardContent className='p-6'>
-          <p className='text-sm text-muted-foreground'>
-            No evaluation results are available for you in this phase yet.
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <>
-      <div className='space-y-6 print:hidden'>
-        {selfSections.length > 0 && (
-          <div className='space-y-3'>
-            <h2 className='text-lg font-semibold'>Your self-evaluation</h2>
-            <ResultCategoryList categories={selfSections} />
-          </div>
-        )}
+    <QueryGate queries={[resultsQuery]} loadingFallback={<EvaluationResultsLoader />}>
+      {() => {
+        if (!hasContent) {
+          return (
+            <Card>
+              <CardContent className='p-6'>
+                <p className='text-sm text-muted-foreground'>
+                  No evaluation results are available for you in this phase yet.
+                </p>
+              </CardContent>
+            </Card>
+          )
+        }
 
-        {peerSections.length > 0 && (
-          <div className='space-y-3'>
-            <div className='space-y-1'>
-              <h2 className='text-lg font-semibold'>Peer feedback</h2>
-              <p className='text-sm text-muted-foreground'>
-                Averaged across your teammates. Competencies rated by only one peer are not shown.
-              </p>
+        return (
+          <>
+            <div className='space-y-6 print:hidden'>
+              {selfSections.length > 0 && (
+                <div className='space-y-3'>
+                  <h2 className='text-lg font-semibold'>Your self-evaluation</h2>
+                  <ResultCategoryList categories={selfSections} />
+                </div>
+              )}
+
+              {peerSections.length > 0 && (
+                <div className='space-y-3'>
+                  <div className='space-y-1'>
+                    <h2 className='text-lg font-semibold'>Peer feedback</h2>
+                    <p className='text-sm text-muted-foreground'>
+                      Averaged across your teammates. Competencies rated by only one peer are not
+                      shown.
+                    </p>
+                  </div>
+                  <ResultCategoryList categories={peerSections} />
+                </div>
+              )}
             </div>
-            <ResultCategoryList categories={peerSections} />
-          </div>
-        )}
-      </div>
 
-      <EvaluationPrintReport self={selfPrintSection} peer={peerPrintSection} />
-    </>
+            <EvaluationPrintReport self={selfPrintSection} peer={peerPrintSection} />
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

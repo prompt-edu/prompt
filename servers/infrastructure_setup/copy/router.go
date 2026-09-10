@@ -6,8 +6,8 @@ import (
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-// RegisterRoutes mounts the SDK copy endpoint. The group is not phase-scoped, so the
-// auth middleware is applied per route here.
-func RegisterRoutes(rg *gin.RouterGroup, svc *Service, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterCopyEndpoint(rg, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), svc)
+// RegisterRoutes mounts the SDK copy module. The group is not phase-scoped, so the
+// module applies the auth middleware per route rather than on the group.
+func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
+	promptTypes.RegisterCopyModule(rg, svc, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 }

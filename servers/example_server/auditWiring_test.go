@@ -104,10 +104,33 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 
 	config.RegisterRoutes(coursePhaseApi, configService)
 	example.RegisterRoutes(coursePhaseApi, exampleService, authMiddleware)
-	copy.RegisterRoutes(api, copyService, authMiddleware)
+	copy.RegisterRoutes(api, copyService)
 
 	// The service has no mutating course phase route yet, so this stands in for one.
 	coursePhaseApi.POST(auditProbePath, authMiddleware(promptSDK.PromptAdmin), func(c *gin.Context) {})
+
+	return router
+}
+
+// auditCopyRouter reaches the copy handler itself, which the denied path never
+// does: copy.RegisterRoutes wires the real SDK auth middleware, so a request
+// without a bearer token stops before the handler. The group layout and the
+// audit label mirror what copy.RegisterRoutes builds.
+func auditCopyRouter(sink audit.Sink) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("example-service/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+
+	var conn *pgxpool.Pool
+	copyService := copy.NewCopyService(*db.New(nil), conn)
+	promptTypes.RegisterCopyEndpoint(
+		api.Group("", audit.Describe("Copied course phase")),
+		passThroughAuthMiddleware(),
+		copyService,
+	)
 
 	return router
 }
@@ -163,7 +186,7 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 
 func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink)
 
 	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.MustParse(auditSourceCoursePhaseID),
@@ -196,7 +219,7 @@ func TestHandlePhaseCopyRecordsExplicitEvent(t *testing.T) {
 // whose source and target are the same phase, which must not be audited.
 func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink)
 
 	phase := uuid.MustParse(auditCoursePhaseID)
 	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
@@ -216,7 +239,7 @@ func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
 
 func TestHandlePhaseCopySkipsBlankTarget(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink)
 
 	resp := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/example-service/api/copy", bytes.NewReader([]byte("{}")))

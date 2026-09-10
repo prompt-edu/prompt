@@ -108,7 +108,7 @@ func main() {
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 
 	tease.RegisterRoutes(api, teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
-	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api, copyService)
 
 	config.RegisterRoutes(coursePhaseApi, configService)
 

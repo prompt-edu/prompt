@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,9 +18,10 @@ func TestCopyPhaseRoute(t *testing.T) {
 
 	router := gin.Default()
 	api := router.Group("/interview/api")
-	RegisterRoutes(api, func(allowedRoles ...string) gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddleware(allowedRoles)
-	})
+	// RegisterRoutes wires the real SDK auth middleware, which no request here
+	// carries a token for, so the handler is reached through the SDK registrar
+	// directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
+	promptTypes.RegisterCopyEndpoint(api, func(c *gin.Context) { c.Next() }, &InterviewCopyHandler{})
 
 	payload, _ := json.Marshal(promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
@@ -35,4 +35,16 @@ func TestCopyPhaseRoute(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusOK, resp.Code)
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.Default()
+	RegisterRoutes(router.Group("/interview/api"))
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest("POST", "/interview/api/copy", nil))
+
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
 }

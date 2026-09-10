@@ -109,7 +109,7 @@ func main() {
 	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
 	interviewReviewService := interview_review.NewInterviewReviewService(*query)
 
-	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api)
 	privacy.RegisterRoutes(api, privacyService)
 
 	config.RegisterRoutes(coursePhaseApi)

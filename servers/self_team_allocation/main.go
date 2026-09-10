@@ -100,7 +100,7 @@ func main() {
 	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)
 	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, promptSDK.AuthenticationMiddleware)
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
-	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api)
 	privacy.RegisterRoutes(api, privacyService)
 
 	config.RegisterRoutes(coursePhaseApi, configService)

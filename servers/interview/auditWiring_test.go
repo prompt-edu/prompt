@@ -106,7 +106,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*queries, conn)
 	interviewReviewService := interview_review.NewInterviewReviewService(*queries)
 
-	copy.RegisterRoutes(api, authMiddleware)
+	copy.RegisterRoutes(api)
 	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, authMiddleware)
 	interview_assignment.RegisterRoutes(coursePhaseApi, interviewAssignmentService, authMiddleware)
 	interview_review.RegisterRoutes(coursePhaseApi, interviewReviewService, authMiddleware)
@@ -179,11 +179,26 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	require.Empty(t, sink.snapshot())
 }
 
+// auditCopyRouter reaches the copy handler itself, which the denied paths never
+// do: copy.RegisterRoutes wires the real SDK auth middleware, so a request
+// without a bearer token stops before the handler.
+func auditCopyRouter(sink audit.Sink) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("interview/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	promptTypes.RegisterCopyEndpoint(api, passThroughAuthMiddleware(), &copy.InterviewCopyHandler{})
+
+	return router
+}
+
 // Interview slots and reviews are tied to their phase, so a copy carries nothing
 // over and must not appear in the audit log claiming that it did.
 func TestHandlePhaseCopyRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink)
 
 	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.MustParse(auditSourceCoursePhaseID),

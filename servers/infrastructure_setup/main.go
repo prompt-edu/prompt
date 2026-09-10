@@ -124,7 +124,7 @@ func main() {
 	// brings its own auth middleware from the SDK, so it gets a group without one.
 	copyApi := router.Group("infrastructure-setup/api")
 	configApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID")
-	copy.RegisterRoutes(copyApi, copy.NewService(conn), authMw)
+	copy.RegisterRoutes(copyApi, copy.NewService(conn))
 	config.RegisterRoutes(configApi, config.NewService(conn))
 
 	// Privacy export and deletion. Core addresses these per phase type at

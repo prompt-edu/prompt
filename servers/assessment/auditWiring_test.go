@@ -151,7 +151,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, authMiddleware)
 	feedbackItem.RegisterRoutes(coursePhaseApi, feedbackItemService, authMiddleware)
 
-	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService, authMiddleware)
+	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService)
 	privacy.RegisterRoutes(api, privacy.NewPrivacyService(*queries, conn))
 
 	return router
@@ -367,11 +367,31 @@ func postCopyRequest(t *testing.T, router *gin.Engine, source, target uuid.UUID)
 	return resp
 }
 
+// auditCopyRouter reaches the copy handler itself, which the denied paths never
+// do: copy.RegisterRoutes wires the real SDK auth middleware, so a request
+// without a bearer token stops before the handler. The group layout and the
+// audit label mirror what main.go and copy.RegisterRoutes build.
+func auditCopyRouter(sink audit.Sink, copyService *copy.CopyService) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("/assessment/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	promptTypes.RegisterCopyEndpoint(
+		api.Group("", audit.Describe(copy.AuditCopyAction)),
+		passThroughAuthMiddleware(),
+		copyService,
+	)
+
+	return router
+}
+
 // Core detects copy support by posting a copy of a phase onto itself, forwarding the
 // caller's token, so that probe must leave no trace in the audit log.
 func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink, copy.NewCopyService(*db.New(nil), nil))
 
 	phaseID := uuid.MustParse(auditCoursePhaseID)
 	require.Equal(t, http.StatusOK, postCopyRequest(t, router, phaseID, phaseID).Code)
@@ -392,7 +412,7 @@ func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware, copy.NewCopyService(*testDB.Queries, testDB.Conn))
+	router := auditCopyRouter(sink, copy.NewCopyService(*testDB.Queries, testDB.Conn))
 
 	require.Equal(t, http.StatusOK, postCopyRequest(t, router, source, target).Code)
 

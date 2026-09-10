@@ -127,7 +127,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	allocation.RegisterRoutes(coursePhaseApi, allocationService, authMiddleware)
 
 	tease.RegisterRoutes(api, teaseService, authMiddleware)
-	copy.RegisterRoutes(api, copyService, authMiddleware)
+	copy.RegisterRoutes(api, copyService)
 
 	config.RegisterRoutes(coursePhaseApi, configService)
 
@@ -346,11 +346,31 @@ func postCopyRequest(t *testing.T, router *gin.Engine, source, target uuid.UUID)
 	return resp
 }
 
+// auditCopyRouter reaches the copy handler itself, which the denied paths never
+// do: copy.RegisterRoutes wires the real SDK auth middleware, so a request
+// without a bearer token stops before the handler. The group layout and the
+// audit label mirror what copy.RegisterRoutes builds.
+func auditCopyRouter(sink audit.Sink, copyService *copy.CopyService) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("/team-allocation/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	promptTypes.RegisterCopyEndpoint(
+		api.Group("", audit.Describe("Copied course phase")),
+		passThroughAuthMiddleware(),
+		copyService,
+	)
+
+	return router
+}
+
 // Core detects copy support by posting a copy of a phase onto itself, forwarding the
 // caller's token, so that probe must leave no trace in the audit log.
 func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink, copy.NewCopyService(*db.New(nil), nil))
 
 	phaseID := uuid.MustParse(auditCoursePhaseID)
 	require.Equal(t, http.StatusOK, postCopyRequest(t, router, phaseID, phaseID).Code)
@@ -366,7 +386,7 @@ func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	defer cleanup()
 
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware, copy.NewCopyService(*testDB.Queries, testDB.Conn))
+	router := auditCopyRouter(sink, copy.NewCopyService(*testDB.Queries, testDB.Conn))
 
 	source := uuid.MustParse(auditSourceCoursePhaseID)
 	target := uuid.MustParse(auditCoursePhaseID)

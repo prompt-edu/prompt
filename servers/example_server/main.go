@@ -83,7 +83,7 @@ func main() {
 	copyService := copy.NewCopyService(*query, conn)
 	exampleService := example.NewExampleService(*query, conn)
 
-	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api, copyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "example-service",

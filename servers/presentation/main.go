@@ -165,10 +165,11 @@ func main() {
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
 	presentation.RegisterRoutes(coursePhaseAPI, service)
 
-	promptTypes.RegisterCopyEndpoint(
+	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
-		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer),
 		&presentation.CopyHandler{Service: service},
+		promptSDK.PromptAdmin,
+		promptSDK.CourseLecturer,
 	)
 	promptTypes.RegisterPrivacyDataExportEndpoint(api, service.PrivacyExportHandler, []string{})
 	promptTypes.RegisterPrivacyDataDeletionEndpoint(api, service.PrivacyDeletionHandler)

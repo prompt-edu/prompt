@@ -61,6 +61,7 @@ services:
       - DEBUG
       # Audit log enabled for e2e coverage of the audit-log pages.
       - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEYS
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -184,6 +185,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /self-team-allocation/api/info through the client-core proxy.
@@ -256,6 +260,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_EXAMPLE_SERVER}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /example-service/api/info through the client-core proxy.
@@ -325,6 +332,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_ASSESSMENT}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /assessment/api/info through the client-core proxy.
@@ -418,6 +428,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_INTERVIEW}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /interview/api/info through the client-core proxy.
@@ -492,6 +505,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_CERTIFICATE}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /certificate/api/info through the client-core proxy.
@@ -561,6 +577,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_PRESENTATION}
       - S3_BUCKET
       - S3_REGION
       - S3_ENDPOINT
@@ -636,6 +655,9 @@ services:
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - DEBUG
+      # Audit key provisioned so this phase reports to core once it wires a sink.
+      - AUDIT_ENABLED=true
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_TEAM_ALLOCATION}
     # Distroless image (no shell/wget), so no container healthcheck.
     # Readiness is polled by the runner's global-setup via
     # /team-allocation/api/info through the client-core proxy.

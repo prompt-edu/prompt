@@ -22,8 +22,10 @@ Enabling requires setting `AUDIT_ENABLED=true`. Missing configuration fails safe
 
 On a GitHub Actions deployment, these reach the container through the deploy workflow: set
 `AUDIT_ENABLED` and `AUDIT_RETENTION_DAYS` as environment *variables* and `AUDIT_INGEST_KEYS` as an
-environment *secret*. While the feature is off, the management console hides the audit log pages
-instead of linking to endpoints that are not mounted.
+environment *secret*. Every phase's own key is a secret as well, one per service and named after the
+compose variable it feeds (`AUDIT_INGEST_KEY_TEAM_ALLOCATION` and friends, listed below). While the
+feature is off, the management console hides the audit log pages instead of linking to endpoints
+that are not mounted.
 
 ## Phase services (reporting from course phases)
 
@@ -38,6 +40,37 @@ Keycloak on this path** — each phase authenticates with its own shared secret:
 Because keys are per-service, a leaked key only affects one service, and the reported `source` is
 trustworthy (derived from which key matched).
 
+### Provisioning the keys
+
+1. Generate one key per reporting service, each a long random string (for example
+   `openssl rand -hex 32`). Never reuse a key across services: a distinct key per service is what
+   makes the recorded `source` trustworthy.
+2. List every service and its key in core's `AUDIT_INGEST_KEYS`, using the name the service reports
+   on its info endpoint (left column below).
+3. Give each phase its own key. In the dev, production and e2e Compose stacks the per-service
+   variables below are mapped onto the single `AUDIT_INGEST_KEY` each service reads, so one `.env`
+   file can hold all of them without two containers ever sharing a key. The `minimal` and
+   `extern.prod` stacks carry no audit configuration at all, on core or on the phases.
+
+| Reported service name | Compose variable |
+| --- | --- |
+| `assessment` | `AUDIT_INGEST_KEY_ASSESSMENT` |
+| `certificate` | `AUDIT_INGEST_KEY_CERTIFICATE` |
+| `example-service` | `AUDIT_INGEST_KEY_EXAMPLE_SERVER` (local stack only) |
+| `interview` | `AUDIT_INGEST_KEY_INTERVIEW` |
+| `presentation` | `AUDIT_INGEST_KEY_PRESENTATION` |
+| `self-team-allocation` | `AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION` |
+| `team-allocation` | `AUDIT_INGEST_KEY_TEAM_ALLOCATION` |
+| `intro-course` | none (externally deployed, see below) |
+
+Externally deployed phases such as `intro-course` have no container in this stack. List the key in
+core's `AUDIT_INGEST_KEYS` under the name that phase reports on its info endpoint, then set
+`AUDIT_ENABLED=true` and `AUDIT_INGEST_KEY` in that deployment's own environment.
+
+A service with no key configured simply does not report: its sink stays disabled and the
+middleware is a no-op, so the phase keeps working without audit entries. Keys may be rolled out one
+service at a time.
+
 **Transport security.** The shared secret travels in the `X-Audit-Token` header. Keep phase→core
 traffic on the internal network (the default `SERVER_CORE_HOST=http://server-core:8080` stays inside
 the container network, the same channel the user token already uses). If it must cross an untrusted
@@ -51,7 +84,8 @@ A phase reports whether audit is enabled through its status endpoint (`GET /info
 ## Rotation
 
 To rotate a service's key, add the new key alongside the old one in `AUDIT_INGEST_KEYS`, deploy the
-phase with the new `AUDIT_INGEST_KEY`, then remove the old value from core.
+phase with the new `AUDIT_INGEST_KEY` (its `AUDIT_INGEST_KEY_<SERVICE>` value in the compose
+stacks), then remove the old value from core.
 
 ## Privacy / GDPR
 

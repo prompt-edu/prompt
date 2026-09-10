@@ -171,8 +171,7 @@ func main() {
 		promptSDK.PromptAdmin,
 		promptSDK.CourseLecturer,
 	)
-	promptTypes.RegisterPrivacyDataExportEndpoint(api, service.PrivacyExportHandler, []string{})
-	promptTypes.RegisterPrivacyDataDeletionEndpoint(api, service.PrivacyDeletionHandler)
+	promptTypes.RegisterPrivacyModule(api, service.PrivacyExportHandler, service.PrivacyDeletionHandler, []string{})
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "presentation",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),

@@ -1,0 +1,268 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/copy"
+	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
+	teams "github.com/prompt-edu/prompt/servers/self_team_allocation/team"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	auditActorID             = "44444444-4444-4444-4444-444444444444"
+	auditCoursePhaseID       = "10000000-0000-0000-0000-000000000001"
+	auditSourceCoursePhaseID = "10000000-0000-0000-0000-000000000002"
+	auditTeamID              = "10000000-0000-0000-0000-000000000003"
+	auditTutorID             = "10000000-0000-0000-0000-000000000004"
+	auditCoursePhaseRoute    = "/self-team-allocation/api/course_phase/" + auditCoursePhaseID
+	auditCoursePhaseTemplate = "/self-team-allocation/api/course_phase/:coursePhaseID"
+	auditCopyRoute           = "/self-team-allocation/api/copy"
+)
+
+type recordingSink struct {
+	mutex  sync.Mutex
+	events []audit.Event
+}
+
+func (s *recordingSink) Record(_ context.Context, e audit.Event) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.events = append(s.events, e)
+	return nil
+}
+
+func (s *recordingSink) snapshot() []audit.Event {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return append([]audit.Event(nil), s.events...)
+}
+
+// waitForEvents polls until at least n events arrived: the audit middleware
+// delivers to the sink from a background goroutine.
+func (s *recordingSink) waitForEvents(n int) []audit.Event {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		events := s.snapshot()
+		if len(events) >= n || time.Now().After(deadline) {
+			return events
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+// requireNoEvents fails as soon as an event arrives within the window. The
+// middleware delivers from a background goroutine, so an event that must not
+// exist has to be ruled out over time rather than at a single instant.
+func requireNoEvents(t *testing.T, sink *recordingSink) {
+	t.Helper()
+	require.Never(t, func() bool { return len(sink.snapshot()) > 0 }, time.Second, 25*time.Millisecond)
+}
+
+// auditActorMiddleware populates the token user the default actor extractor
+// reads. The SDK's MockAuthMiddleware is unusable here: it sets an empty ID,
+// which the extractor rejects.
+func auditActorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+			ID:        auditActorID,
+			FirstName: "Ada",
+			LastName:  "Lovelace",
+			Email:     "ada@tum.de",
+			Roles:     map[string]bool{promptSDK.PromptAdmin: true},
+		})
+		c.Next()
+	}
+}
+
+func passThroughAuthMiddleware(_ ...string) gin.HandlerFunc {
+	return func(c *gin.Context) { c.Next() }
+}
+
+// auditRouter rebuilds main.go's group layout, with the audit middleware
+// attached to the api group before the course phase subgroup exists, because
+// gin snapshots the handler chain when a subgroup is created. The actor
+// middleware stands in for a token that authenticates but lacks the role the
+// route requires, which is the denial the audit middleware is meant to capture.
+func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("self-team-allocation/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
+
+	queries := db.New(nil)
+	var conn *pgxpool.Pool
+	timeframeService := timeframe.NewTimeframeService(*queries)
+	teamsService := teams.NewTeamsService(*queries, conn, timeframeService)
+	assignmentService := teams.NewAssignmentService(*queries)
+	allocationService := allocation.NewAllocationService(*queries)
+
+	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, authMiddleware)
+	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, authMiddleware)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, authMiddleware)
+	copy.RegisterRoutes(api, authMiddleware)
+
+	return router
+}
+
+func requireDeniedEvent(t *testing.T, method, url, action, actionKey string) {
+	t.Helper()
+
+	sink := &recordingSink{}
+	router := auditRouter(sink, promptSDK.AuthenticationMiddleware)
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest(method, url, nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	events := sink.waitForEvents(1)
+	require.Len(t, events, 1)
+	require.Equal(t, action, events[0].Action)
+	require.Equal(t, actionKey, events[0].ActionKey)
+	require.Equal(t, audit.OutcomeDenied, events[0].Outcome)
+	require.Equal(t, http.StatusUnauthorized, events[0].HTTPStatus)
+	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
+	require.Equal(t, auditActorID, events[0].ActorID)
+	require.Equal(t, "Ada Lovelace", events[0].ActorName)
+}
+
+func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
+	tests := []struct {
+		name      string
+		method    string
+		url       string
+		action    string
+		actionKey string
+	}{
+		{
+			name:      "join a team",
+			method:    http.MethodPut,
+			url:       auditCoursePhaseRoute + "/team/" + auditTeamID + "/assignment",
+			action:    "Joined a team",
+			actionKey: "PUT " + auditCoursePhaseTemplate + "/team/:teamID/assignment",
+		},
+		{
+			name:      "leave a team",
+			method:    http.MethodDelete,
+			url:       auditCoursePhaseRoute + "/team/" + auditTeamID + "/assignment",
+			action:    "Left a team",
+			actionKey: "DELETE " + auditCoursePhaseTemplate + "/team/:teamID/assignment",
+		},
+		{
+			name:      "tutor import",
+			method:    http.MethodPost,
+			url:       auditCoursePhaseRoute + "/team/tutors",
+			action:    "Imported tutors",
+			actionKey: "POST " + auditCoursePhaseTemplate + "/team/tutors",
+		},
+		{
+			name:      "manual tutor creation",
+			method:    http.MethodPost,
+			url:       auditCoursePhaseRoute + "/team/" + auditTeamID + "/tutor",
+			action:    "Added a tutor to a team",
+			actionKey: "POST " + auditCoursePhaseTemplate + "/team/:teamID/tutor",
+		},
+		{
+			name:      "timeframe update",
+			method:    http.MethodPut,
+			url:       auditCoursePhaseRoute + "/timeframe",
+			action:    "Updated the self team allocation timeframe",
+			actionKey: "PUT " + auditCoursePhaseTemplate + "/timeframe",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requireDeniedEvent(t, tt.method, tt.url, tt.action, tt.actionKey)
+		})
+	}
+}
+
+func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
+	tests := []struct {
+		name      string
+		method    string
+		url       string
+		action    string
+		actionKey string
+	}{
+		{
+			name:      "team creation",
+			method:    http.MethodPost,
+			url:       auditCoursePhaseRoute + "/team",
+			action:    "Created team",
+			actionKey: "POST " + auditCoursePhaseTemplate + "/team",
+		},
+		{
+			name:      "team deletion",
+			method:    http.MethodDelete,
+			url:       auditCoursePhaseRoute + "/team/" + auditTeamID,
+			action:    "Deleted team",
+			actionKey: "DELETE " + auditCoursePhaseTemplate + "/team/:teamID",
+		},
+		{
+			name:      "tutor deletion",
+			method:    http.MethodDelete,
+			url:       auditCoursePhaseRoute + "/team/tutor/" + auditTutorID,
+			action:    "Deleted tutor",
+			actionKey: "DELETE " + auditCoursePhaseTemplate + "/team/tutor/:tutorID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requireDeniedEvent(t, tt.method, tt.url, tt.action, tt.actionKey)
+		})
+	}
+}
+
+func TestAuditMiddlewareIgnoresReads(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink, promptSDK.AuthenticationMiddleware)
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/team", nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	requireNoEvents(t, sink)
+}
+
+// The module carries nothing over, so a copy must not appear in the audit log
+// claiming that it did.
+func TestHandlePhaseCopyRecordsNothing(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink, passThroughAuthMiddleware)
+
+	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
+		SourceCoursePhaseID: uuid.MustParse(auditSourceCoursePhaseID),
+		TargetCoursePhaseID: uuid.MustParse(auditCoursePhaseID),
+	})
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, auditCopyRoute, bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(resp, request)
+	require.Equal(t, http.StatusOK, resp.Code)
+
+	requireNoEvents(t, sink)
+}

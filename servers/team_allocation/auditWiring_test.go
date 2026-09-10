@@ -129,7 +129,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	tease.RegisterRoutes(api, teaseService, authMiddleware)
 	copy.RegisterRoutes(api, copyService, authMiddleware)
 
-	config.RegisterRoutes(coursePhaseApi, configService, authMiddleware)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
 	privacy.RegisterRoutes(api, privacyService)
 	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)

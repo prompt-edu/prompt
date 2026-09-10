@@ -112,7 +112,7 @@ func main() {
 	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
 
-	config.RegisterRoutes(coursePhaseApi, promptSDK.AuthenticationMiddleware)
+	config.RegisterRoutes(coursePhaseApi)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "interview",

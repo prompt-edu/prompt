@@ -110,7 +110,7 @@ func main() {
 	tease.RegisterRoutes(api, teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
 	copy.RegisterRoutes(api, copyService, promptSDK.AuthenticationMiddleware)
 
-	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
 	privacy.RegisterRoutes(api, privacyService)
 	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)

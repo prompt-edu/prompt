@@ -103,7 +103,7 @@ func main() {
 	copy.RegisterRoutes(api, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
 
-	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "self-team-allocation",

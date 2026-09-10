@@ -125,7 +125,7 @@ func main() {
 	copyApi := router.Group("infrastructure-setup/api")
 	configApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID")
 	copy.RegisterRoutes(copyApi, copy.NewService(conn), authMw)
-	config.RegisterRoutes(configApi, config.NewService(conn), authMw)
+	config.RegisterRoutes(configApi, config.NewService(conn))
 
 	// Privacy export and deletion. Core addresses these per phase type at
 	// <base URL>/privacy/..., and both bring their own middleware from the SDK.

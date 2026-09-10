@@ -101,7 +101,7 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
 	example.RegisterRoutes(coursePhaseApi, exampleService, promptSDK.AuthenticationMiddleware)
 

@@ -102,7 +102,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	copyService := copy.NewCopyService(*queries, conn)
 	exampleService := example.NewExampleService(*queries, conn)
 
-	config.RegisterRoutes(coursePhaseApi, configService, authMiddleware)
+	config.RegisterRoutes(coursePhaseApi, configService)
 	example.RegisterRoutes(coursePhaseApi, exampleService, authMiddleware)
 	copy.RegisterRoutes(api, copyService, authMiddleware)
 

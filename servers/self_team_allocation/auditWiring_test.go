@@ -100,7 +100,7 @@ func passThroughAuthMiddleware(_ ...string) gin.HandlerFunc {
 // gin snapshots the handler chain when a subgroup is created. The actor
 // middleware stands in for a token that authenticates but lacks the role the
 // route requires, which is the denial the audit middleware is meant to capture.
-func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
+func auditRouter(sink audit.Sink) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
@@ -116,10 +116,25 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	assignmentService := teams.NewAssignmentService(*queries)
 	allocationService := allocation.NewAllocationService(*queries)
 
-	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, authMiddleware)
-	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, authMiddleware)
-	allocation.RegisterRoutes(coursePhaseApi, allocationService, authMiddleware)
-	copy.RegisterRoutes(api, authMiddleware)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)
+	timeframe.RegisterRoutes(coursePhaseApi, timeframeService, promptSDK.AuthenticationMiddleware)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
+	copy.RegisterRoutes(api)
+
+	return router
+}
+
+// auditCopyRouter reaches the copy handler itself, which the denied paths never
+// do: copy.RegisterRoutes wires the real SDK auth middleware, so a request
+// without a bearer token stops before the handler.
+func auditCopyRouter(sink audit.Sink) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("self-team-allocation/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	promptTypes.RegisterCopyEndpoint(api, passThroughAuthMiddleware(), &copy.SelfTeamCopyHandler{})
 
 	return router
 }
@@ -128,7 +143,7 @@ func requireDeniedEvent(t *testing.T, method, url, action, actionKey string) {
 	t.Helper()
 
 	sink := &recordingSink{}
-	router := auditRouter(sink, promptSDK.AuthenticationMiddleware)
+	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(method, url, nil))
@@ -237,7 +252,7 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, promptSDK.AuthenticationMiddleware)
+	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/team", nil))
@@ -250,7 +265,7 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 // claiming that it did.
 func TestHandlePhaseCopyRecordsNothing(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink, passThroughAuthMiddleware)
+	router := auditCopyRouter(sink)
 
 	body, err := json.Marshal(promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: uuid.MustParse(auditSourceCoursePhaseID),

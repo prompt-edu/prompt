@@ -6,9 +6,9 @@ import (
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-type selfTeamCopyHandler struct{}
+type SelfTeamCopyHandler struct{}
 
-func (h *selfTeamCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+func (h *SelfTeamCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
 	// Teams, assignments, tutors and the timeframe are all scoped to the phase
 	// they were created for, so nothing is carried over and an audit entry would
 	// claim a copy that did not happen.

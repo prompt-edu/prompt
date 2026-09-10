@@ -30,7 +30,7 @@ func (suite *CopyRouterTestSuite) SetupSuite() {
 	// RegisterRoutes wires the real SDK auth middleware, which no request here
 	// carries a token for, so the handler is reached through the SDK registrar
 	// directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
-	promptTypes.RegisterCopyEndpoint(api, func(c *gin.Context) { c.Next() }, &selfTeamCopyHandler{})
+	promptTypes.RegisterCopyEndpoint(api, func(c *gin.Context) { c.Next() }, &SelfTeamCopyHandler{})
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpointSuccess() {

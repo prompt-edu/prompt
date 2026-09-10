@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup) {
-	promptTypes.RegisterCopyModule(routerGroup, &selfTeamCopyHandler{}, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
+	promptTypes.RegisterCopyModule(routerGroup, &SelfTeamCopyHandler{}, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 }

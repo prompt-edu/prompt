@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	interviewAssignmentDTO "github.com/prompt-edu/prompt/servers/interview/interviewAssignment/interviewAssignmentDTO"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ import (
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewAssignmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	assignmentRouter := routerGroup.Group("/interview-assignments")
 	assignmentRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.createInterviewAssignment)
-	assignmentRouter.POST("/admin", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewAssignmentAdmin)
+	assignmentRouter.POST("/admin", audit.Describe("Assigned a student to an interview slot"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewAssignmentAdmin)
 	assignmentRouter.GET("/my-assignment", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getMyInterviewAssignment)
 	assignmentRouter.DELETE("/:assignmentId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.deleteInterviewAssignment)
 }

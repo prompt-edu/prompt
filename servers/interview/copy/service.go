@@ -2,6 +2,7 @@ package copy
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
@@ -10,5 +11,7 @@ import (
 type interviewCopyHandler struct{}
 
 func (h *interviewCopyHandler) HandlePhaseCopy(c *gin.Context, req promptTypes.PhaseCopyRequest) error {
+	// Nothing is carried over, so an audit entry would claim a copy that did not happen.
+	audit.Suppress(c)
 	return nil
 }

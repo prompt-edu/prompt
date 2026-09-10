@@ -59,7 +59,7 @@ export const SelfTeamAllocationPage = () => {
         isStudent ? [participationQuery, teamsQuery, timeframeQuery] : [teamsQuery, timeframeQuery]
       }
       errorFallback={({ refetch }) =>
-        participationError?.message.includes('404') ? (
+        isStudent && participationError?.message.includes('404') ? (
           <UnauthorizedPage backUrl={`/management/course/${courseId}`} />
         ) : (
           <ErrorPage onRetry={refetch} />

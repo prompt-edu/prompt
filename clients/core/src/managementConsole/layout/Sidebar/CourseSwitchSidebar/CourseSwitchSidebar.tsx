@@ -65,7 +65,7 @@ export const CourseSwitchSidebar = () => {
         <div className='pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-sidebar to-transparent' />
       </div>
       {canAddCourse && (
-        <SidebarFooter className='px-0'>
+        <SidebarFooter>
           <SidebarMenu>
             <AddCourseButton />
           </SidebarMenu>

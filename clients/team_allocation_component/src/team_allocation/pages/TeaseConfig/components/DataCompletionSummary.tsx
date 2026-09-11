@@ -12,13 +12,9 @@ import type { ValidationResult } from '../../../interfaces/validationResult'
 const DataCompletionSummary = ({
   checks,
   students,
-  isLoading,
-  isError,
 }: {
   checks: ValidationResult[]
   students?: TeaseStudent[]
-  isLoading: boolean
-  isError: boolean
 }) => {
   const numberOfStudentsSubmitted =
     students?.filter((s) => s.projectPreferences.length > 0).length || 0
@@ -80,13 +76,13 @@ const DataCompletionSummary = ({
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
-                {!isLoading && !isError && numberOfStudents > 0
+                {numberOfStudents > 0
                   ? Math.round((numberOfStudentsSubmitted / numberOfStudents) * 100)
                   : 0}
                 %
               </div>
               <p className='text-xs text-muted-foreground'>
-                {!isLoading && !isError && numberOfStudents > 0 && (
+                {numberOfStudents > 0 && (
                   <>
                     {numberOfStudentsSubmitted} of {numberOfStudents} students have submitted
                   </>

@@ -4,8 +4,8 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -14,22 +14,15 @@ import { getAllTeams } from '../../network/queries/getAllTeams'
 export const SelfTeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: coursePhaseParticipations,
-    isPending: isCoursePhaseParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useGetCoursePhaseParticipants()
+  const participationsQuery = useGetCoursePhaseParticipants()
 
-  const {
-    data: teams,
-    isPending: isTeamsPending,
-    isError: isTeamsError,
-    refetch: refetchTeams,
-  } = useQuery<Team[]>({
+  const teamsQuery = useQuery<Team[]>({
     queryKey: ['self_team_allocations', phaseId],
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
+
+  const coursePhaseParticipations = participationsQuery.data
+  const teams = teamsQuery.data
 
   const extraColumns: ExtraParticipantColumn<string>[] = useMemo(() => {
     if (!teams) return []
@@ -82,31 +75,28 @@ export const SelfTeamAllocationParticipantsPage = () => {
     ]
   }, [coursePhaseParticipations?.participations, teams])
 
-  const refetch = () => {
-    refetchCoursePhaseParticipations()
-    refetchTeams()
-  }
-
-  const isError = isParticipationsError || isTeamsError
-  const isPending = isCoursePhaseParticipationsPending || isTeamsPending
-
-  if (isError)
-    return <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
-  if (isPending) return <LoadingPage />
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
   return (
-    <div id='table-view' className='relative flex flex-col'>
-      <ManagementPageHeader>Self Team Allocation Participants</ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        This table shows all participants and their allocated teams.
-      </p>
-      <div className='w-full'>
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
-          participants={coursePhaseParticipations.participations ?? []}
-          extraColumns={extraColumns}
-        />
+    <QueryGate
+      queries={[participationsQuery, teamsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
+      )}
+    >
+      <div id='table-view' className='relative flex flex-col'>
+        <ManagementPageHeader>Self Team Allocation Participants</ManagementPageHeader>
+        <p className='text-sm text-muted-foreground mb-4'>
+          This table shows all participants and their allocated teams.
+        </p>
+        <div className='w-full'>
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId}
+            participants={coursePhaseParticipations?.participations ?? []}
+            extraColumns={extraColumns}
+          />
+        </div>
       </div>
-    </div>
+    </QueryGate>
   )
 }

@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Download, FileCheck2, Loader2 } from 'lucide-react'
@@ -24,16 +24,13 @@ export const StudentOverviewPage = () => {
   const { toast } = useToast()
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const {
-    data: status,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const statusQuery = useQuery({
     queryKey: ['certificateStatus', phaseId],
     queryFn: () => getCertificateStatus(phaseId ?? ''),
     enabled: !!phaseId,
   })
+
+  const status = statusQuery.data
 
   const handleDownload = async () => {
     if (!phaseId) return
@@ -56,75 +53,76 @@ export const StudentOverviewPage = () => {
     }
   }
 
-  if (isError) {
-    return <ErrorPage message='Error loading certificate status' onRetry={refetch} />
-  }
-
-  if (isLoading) {
-    return <LoadingPage />
-  }
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
   return (
-    <div className='space-y-4'>
-      <ManagementPageHeader>Course Certificate</ManagementPageHeader>
-      <p className='text-muted-foreground'>Download your course completion certificate.</p>
+    <QueryGate
+      queries={[statusQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage message='Error loading certificate status' onRetry={refetch} />
+      )}
+    >
+      <div className='space-y-4'>
+        <ManagementPageHeader>Course Certificate</ManagementPageHeader>
+        <p className='text-muted-foreground'>Download your course completion certificate.</p>
 
-      {status?.studentPageText && (
-        <Card data-testid='certificate-student-page-text'>
-          <CardContent className='pt-6'>
-            <SanitizedHtml
-              html={status.studentPageText}
-              className='text-sm text-muted-foreground'
-            />
+        {status?.studentPageText && (
+          <Card data-testid='certificate-student-page-text'>
+            <CardContent className='pt-6'>
+              <SanitizedHtml
+                html={status.studentPageText}
+                className='text-sm text-muted-foreground'
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <FileCheck2 className='h-5 w-5' />
+              Certificate Status
+            </CardTitle>
+            <CardDescription>
+              {status?.available
+                ? 'Your certificate is ready for download.'
+                : 'Your certificate is not available yet.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {status?.available ? (
+              <div className='space-y-4'>
+                {status.hasDownloaded && status.lastDownload && (
+                  <p className='text-sm text-muted-foreground'>
+                    Last downloaded: {new Date(status.lastDownload).toLocaleDateString()}
+                    {status.downloadCount && status.downloadCount > 1 && (
+                      <span className='ml-2'>({status.downloadCount} total downloads)</span>
+                    )}
+                  </p>
+                )}
+                <Button onClick={handleDownload} disabled={isDownloading}>
+                  {isDownloading ? (
+                    <>
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className='mr-2 h-4 w-4' />
+                      Download Certificate
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <p className='text-amber-600'>
+                {status?.message ||
+                  'Your certificate is not available yet. Please wait for your instructor to configure the certificate template.'}
+              </p>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <FileCheck2 className='h-5 w-5' />
-            Certificate Status
-          </CardTitle>
-          <CardDescription>
-            {status?.available
-              ? 'Your certificate is ready for download.'
-              : 'Your certificate is not available yet.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {status?.available ? (
-            <div className='space-y-4'>
-              {status.hasDownloaded && status.lastDownload && (
-                <p className='text-sm text-muted-foreground'>
-                  Last downloaded: {new Date(status.lastDownload).toLocaleDateString()}
-                  {status.downloadCount && status.downloadCount > 1 && (
-                    <span className='ml-2'>({status.downloadCount} total downloads)</span>
-                  )}
-                </p>
-              )}
-              <Button onClick={handleDownload} disabled={isDownloading}>
-                {isDownloading ? (
-                  <>
-                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className='mr-2 h-4 w-4' />
-                    Download Certificate
-                  </>
-                )}
-              </Button>
-            </div>
-          ) : (
-            <p className='text-amber-600'>
-              {status?.message ||
-                'Your certificate is not available yet. Please wait for your instructor to configure the certificate template.'}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      </div>
+    </QueryGate>
   )
 }

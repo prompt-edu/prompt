@@ -1,0 +1,8 @@
+{
+  "label": "Kubernetes (Helm) Deployment",
+  "position": 2,
+  "link": {
+    "type": "doc",
+    "id": "kubernetes/index"
+  }
+}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: prompt-common
+description: Shared templates (component Deployment/Service/HTTPRoute, helpers) for PROMPT subcharts.
+type: library
+version: 0.1.0

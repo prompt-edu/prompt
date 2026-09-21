@@ -25,6 +25,7 @@ var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semes
 type CoursePhaseProvider interface {
 	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
 	CheckCoursePhasesBelongToCourse(ctx context.Context, courseID uuid.UUID, coursePhaseIDs []uuid.UUID) (bool, error)
+	DeleteModuleDataForCourse(ctx context.Context, authHeader string, courseID uuid.UUID) error
 }
 
 type CourseService struct {
@@ -455,8 +456,16 @@ func (s *CourseService) UpdateCourseData(ctx context.Context, courseID uuid.UUID
 	return nil
 }
 
-func (s *CourseService) DeleteCourse(ctx context.Context, courseID uuid.UUID) error {
-	// Delete the Keycloak groups and roles first: the group name is derived from
+func (s *CourseService) DeleteCourse(ctx context.Context, authHeader string, courseID uuid.UUID) error {
+	// Ask the phase modules before anything else: the course row cascades into its phases, and the
+	// module's own authorization resolves the course lecturer role through core, which needs both
+	// the phase row and the Keycloak roles. On failure nothing has been touched yet.
+	if err := s.coursePhases.DeleteModuleDataForCourse(ctx, authHeader, courseID); err != nil {
+		log.Error("Failed to delete course phase module data for course: ", err)
+		return errors.New("failed to delete the course phase data held by the phase modules")
+	}
+
+	// Delete the Keycloak groups and roles next: the group name is derived from
 	// the course row, which must still exist. On failure the course is kept so it
 	// stays deletable on a later retry instead of orphaning its Keycloak state.
 	if err := s.deleteCourseGroupsAndRoles(ctx, courseID); err != nil {

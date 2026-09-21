@@ -492,7 +492,7 @@ func (s *CourseService) deleteCourse(c *gin.Context) {
 		return
 	}
 
-	err = s.DeleteCourse(c, courseID)
+	err = s.DeleteCourse(c, c.GetHeader("Authorization"), courseID)
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))

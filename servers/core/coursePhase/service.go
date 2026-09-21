@@ -5,16 +5,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 // ResolutionReplacer rewrites the base URLs of course phase resolutions.
 type ResolutionReplacer interface {
 	ReplaceResolutionURLs(ctx context.Context, resolutions []resolutionDTO.Resolution) ([]resolutionDTO.Resolution, error)
+	ResolveBaseURL(baseURL string) string
 }
 
 type CoursePhaseService struct {
@@ -65,7 +66,13 @@ func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase 
 	return s.GetCoursePhaseByID(ctx, createdCoursePhase.ID)
 }
 
-func (s *CoursePhaseService) DeleteCoursePhase(ctx context.Context, id uuid.UUID) error {
+// DeleteCoursePhase removes the phase. The modules holding data for it are asked first, so a
+// module that cannot delete its data keeps the phase alive for a retry instead of orphaning it.
+func (s *CoursePhaseService) DeleteCoursePhase(ctx context.Context, authHeader string, id uuid.UUID) error {
+	if err := s.deleteModuleData(ctx, authHeader, []uuid.UUID{id}); err != nil {
+		return err
+	}
+
 	return s.queries.DeleteCoursePhase(ctx, id)
 }
 

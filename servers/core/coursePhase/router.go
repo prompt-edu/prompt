@@ -189,7 +189,7 @@ func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 		return
 	}
 
-	err = s.DeleteCoursePhase(c, id)
+	err = s.DeleteCoursePhase(c, c.GetHeader("Authorization"), id)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

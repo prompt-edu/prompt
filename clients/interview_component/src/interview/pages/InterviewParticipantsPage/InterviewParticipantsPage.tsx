@@ -1,6 +1,7 @@
 import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
+  ErrorPage,
   ManagementPageHeader,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
@@ -11,12 +12,14 @@ export const InterviewParticipantsPage = () => {
 
   const participationsQuery = useGetCoursePhaseParticipants()
 
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
+
   return (
     <div>
       <ManagementPageHeader>Interview Participants</ManagementPageHeader>
       <QueryGate queries={[participationsQuery]}>
         <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
+          phaseId={phaseId}
           participants={participationsQuery.data?.participations ?? []}
         />
       </QueryGate>

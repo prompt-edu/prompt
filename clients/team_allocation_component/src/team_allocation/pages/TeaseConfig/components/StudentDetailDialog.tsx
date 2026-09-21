@@ -59,30 +59,30 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
   )
 
   return (
-    <QueryGate
-      queries={[teamsQuery, skillsQuery]}
-      loadingFallback={
-        <div className='flex justify-center items-center h-64'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
-      }
-    >
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className=''>
-          <div className='flex flex-col h-full sm:max-w-[650px] max-h-[90vh] overflow-hidden'>
-            <DialogHeader className='bg-background z-5 pb-2'>
-              <DialogTitle className='text-xl flex items-center gap-2'>
-                <span className='font-semibold'>{getStudentName(student)}</span>
-                <Badge variant='outline' className='ml-2'>
-                  {student.email}
-                </Badge>
-              </DialogTitle>
-              <DialogDescription>Skills and Project Preferences Details</DialogDescription>
-            </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className=''>
+        <div className='flex flex-col h-full sm:max-w-[650px] max-h-[90vh] overflow-hidden'>
+          <DialogHeader className='bg-background z-5 pb-2'>
+            <DialogTitle className='text-xl flex items-center gap-2'>
+              <span className='font-semibold'>{getStudentName(student)}</span>
+              <Badge variant='outline' className='ml-2'>
+                {student.email}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>Skills and Project Preferences Details</DialogDescription>
+          </DialogHeader>
 
-            <Separator className='mt-2' />
+          <Separator className='mt-2' />
 
-            <div className='flex-1 pr-1 overflow-y-auto'>
+          <div className='flex-1 pr-1 overflow-y-auto'>
+            <QueryGate
+              queries={[teamsQuery, skillsQuery]}
+              loadingFallback={
+                <div className='flex justify-center items-center h-64'>
+                  <Loader2 className='h-12 w-12 animate-spin text-primary' />
+                </div>
+              }
+            >
               <div className='space-y-6 pr-2 mt-4'>
                 <div>
                   <div className='flex items-center gap-2 mb-3'>
@@ -150,10 +150,10 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
                   )}
                 </div>
               </div>
-            </div>
+            </QueryGate>
           </div>
-        </DialogContent>
-      </Dialog>
-    </QueryGate>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

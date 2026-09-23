@@ -184,6 +184,13 @@ Competencies are individual skills within categories:
 - **Edit Competencies**: Click the edit icon next to any competency
 - **Delete Items**: Click the trash icon (⚠️ this cannot be undone)
 
+### Exporting a Template
+
+Open the template from the Settings page and click **Export** above its categories:
+
+- **PDF / Print**: Prints the empty template in the same layout as an exported assessment, with every competency and its score level descriptions. Choose "Save as PDF" in the print dialog.
+- **JSON**: Downloads a machine-readable copy that **Import** accepts, for example to reuse the template in another phase.
+
 📺 **Video Tutorial**: Coming soon
 
 ---

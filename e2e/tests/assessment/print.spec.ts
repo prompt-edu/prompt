@@ -44,6 +44,8 @@ const reset = async () => {
 test.use({ role: 'lecturer' })
 
 test.describe('assessment: print report', () => {
+  let schemaId: string
+
   test.beforeAll(async () => {
     await reset()
     const lecturer = await apiAsRole('lecturer')
@@ -51,6 +53,7 @@ test.describe('assessment: print report', () => {
       // A graded, finalized and released assessment for Stan, so both the
       // grading view and the student results view render a print report.
       const schema = await createSchema(lecturer, PHASE_ID, SCHEMA_NAME)
+      schemaId = schema.id
       await putConfig(lecturer, PHASE_ID, { assessmentSchemaId: schema.id })
       await createCategory(lecturer, PHASE_ID, schema.id, 'Print Category')
       const category = (await getAssessmentCategories(lecturer, PHASE_ID))[0]
@@ -220,5 +223,37 @@ test.describe('assessment: print report', () => {
     // are skipped rather than printed empty.
     await expect(phase.printReport()).toHaveCount(1)
     await expect(phase.printReport()).toContainText(STUDENT_NAME)
+  })
+
+  test('the schema details page exports the schema without results as PDF and JSON', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.print = () => console.info('E2E_PRINT_INVOKED')
+    })
+
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, `/settings/schema/${schemaId}`)
+    const exportButton = page.getByRole('button', { name: 'Export' })
+    await expect(exportButton).toBeVisible({ timeout: 15_000 })
+
+    await exportButton.click()
+    const download = page.waitForEvent('download')
+    await page.getByRole('menuitem', { name: 'JSON' }).click()
+    expect((await download).suggestedFilename()).toBe('e2e-print-rubric-template.json')
+
+    const printInvoked = page.waitForEvent('console', {
+      predicate: (message) => message.text().includes('E2E_PRINT_INVOKED'),
+      timeout: 5_000,
+    })
+    await exportButton.click()
+    await page.getByRole('menuitem', { name: 'PDF / Print' }).click()
+    await printInvoked
+
+    // The schema report lists every score level's guidance instead of a grade.
+    await phase.expectPrintReportFillsPage()
+    await expect(phase.printReport()).toContainText(SCHEMA_NAME)
+    await expect(phase.printReport()).toContainText(COMPETENCY_NAME)
+    await expect(phase.printReport()).toContainText('Far below expectations')
+    await expect(phase.printReport()).toContainText('Far above expectations')
+    await expect(phase.printReport()).not.toContainText('Not assessed')
   })
 })

@@ -30,6 +30,7 @@ type CoursePhaseConfig struct {
 	ActionItemsVisible       bool      `json:"actionItemsVisible"`
 	ResultsReleased          bool      `json:"resultsReleased"`
 	GradingSheetVisible      bool      `json:"gradingSheetVisible"`
+	TutorDisplayName         string    `json:"tutorDisplayName"`
 }
 
 func MapDBCoursePhaseConfigToDTOCoursePhaseConfig(dbConfig db.CoursePhaseConfig) CoursePhaseConfig {
@@ -56,5 +57,6 @@ func MapDBCoursePhaseConfigToDTOCoursePhaseConfig(dbConfig db.CoursePhaseConfig)
 		ActionItemsVisible:       dbConfig.ActionItemsVisible,
 		ResultsReleased:          dbConfig.ResultsReleased,
 		GradingSheetVisible:      dbConfig.GradingSheetVisible,
+		TutorDisplayName:         dbConfig.TutorDisplayName.String,
 	}
 }

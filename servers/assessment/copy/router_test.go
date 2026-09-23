@@ -84,6 +84,7 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 		GradeSuggestionVisible:   pgtype.Bool{Bool: true, Valid: true},
 		ActionItemsVisible:       pgtype.Bool{Bool: true, Valid: true},
 		GradingSheetVisible:      pgtype.Bool{Bool: false, Valid: true},
+		TutorDisplayName:         pgtype.Text{String: "Coach", Valid: true},
 	})
 	assert.NoError(suite.T(), err)
 
@@ -108,6 +109,7 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 	assert.Equal(suite.T(), targetCoursePhaseID, targetConfig.CoursePhaseID)
 	assert.Equal(suite.T(), true, targetConfig.SelfEvaluationEnabled)
 	assert.Equal(suite.T(), selfEvalSchemaID, targetConfig.SelfEvaluationSchema)
+	assert.Equal(suite.T(), "Coach", targetConfig.TutorDisplayName.String)
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpoint_InvalidJSON() {

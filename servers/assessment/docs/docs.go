@@ -5213,6 +5213,9 @@ const docTemplate = `{
                 "start": {
                     "type": "string"
                 },
+                "tutorDisplayName": {
+                    "type": "string"
+                },
                 "tutorEvaluationDeadline": {
                     "type": "string"
                 },
@@ -5280,6 +5283,10 @@ const docTemplate = `{
                 },
                 "start": {
                     "type": "string"
+                },
+                "tutorDisplayName": {
+                    "type": "string",
+                    "maxLength": 50
                 },
                 "tutorEvaluationDeadline": {
                     "type": "string"

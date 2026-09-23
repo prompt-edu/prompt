@@ -211,7 +211,7 @@ DB_EXAMPLE_NAME=prompt
 DB_EXAMPLE_PASSWORD=prompt-postgres
 DB_EXAMPLE_USER=prompt-postgres
 DB_HOST_EXAMPLE_SERVER=db-example-server
-DB_PORT_EXAMPLE_SERVER=5437
+DB_PORT_EXAMPLE_SERVER=5432
 
 # ============================================================================
 # INTERVIEW DATABASE CONFIGURATION
@@ -219,7 +219,7 @@ DB_PORT_EXAMPLE_SERVER=5437
 # Database for interview scheduling functionality
 
 DB_HOST_INTERVIEW=db-interview
-DB_PORT_INTERVIEW=5438
+DB_PORT_INTERVIEW=5432
 DB_INTERVIEW_NAME=prompt
 DB_INTERVIEW_USER=prompt-postgres
 DB_INTERVIEW_PASSWORD=prompt-postgres

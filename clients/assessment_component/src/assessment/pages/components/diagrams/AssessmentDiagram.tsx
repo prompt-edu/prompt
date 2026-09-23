@@ -14,6 +14,7 @@ import { Label, Pie, PieChart } from 'recharts'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CompetencyScoreCompletion } from '../../../interfaces/competencyScoreCompletion'
 import type { ScoreLevelWithParticipation } from '../../../interfaces/scoreLevelWithParticipation'
+import { useTutorLabel } from '../../hooks/useTutorLabel'
 
 const chartConfig = {
   notAssessed: {
@@ -43,13 +44,14 @@ export const AssessmentDiagram = ({
   completions,
   assessmentType = AssessmentType.ASSESSMENT,
 }: AssessmentDiagramProps) => {
+  const tutorLabel = useTutorLabel()
   const noun =
     assessmentType === AssessmentType.SELF
       ? 'self evaluations'
       : assessmentType === AssessmentType.PEER
         ? 'peer evaluations'
         : assessmentType === AssessmentType.TUTOR
-          ? 'tutor evaluations'
+          ? `${tutorLabel} evaluations`
           : 'assessments'
 
   const centerLabel = `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`
@@ -93,7 +95,7 @@ export const AssessmentDiagram = ({
               case AssessmentType.PEER:
                 return 'Peer Evaluation'
               case AssessmentType.TUTOR:
-                return 'Tutor Evaluation'
+                return `${tutorLabel} Evaluation`
               default:
                 return 'Assessments'
             }
@@ -107,7 +109,7 @@ export const AssessmentDiagram = ({
               case AssessmentType.PEER:
                 return 'peer evaluations '
               case AssessmentType.TUTOR:
-                return 'tutor evaluations '
+                return `${tutorLabel} evaluations `
               default:
                 return 'assessments '
             }

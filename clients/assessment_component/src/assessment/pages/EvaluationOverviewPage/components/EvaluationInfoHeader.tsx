@@ -4,6 +4,7 @@ import { AlertCircle, ArrowRight, Calendar, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
+import { getTutorLabel } from '../../hooks/useTutorLabel'
 
 interface EvaluationInfoHeaderProps {
   allEvaluationsCompleted: boolean
@@ -60,7 +61,7 @@ export const EvaluationInfoHeader = ({
     }
     return (
       'Assessment results have been released and are now available. ' +
-      'You will receive further information about your assessment from your tutor / instructor.'
+      `You will receive further information about your assessment from your ${getTutorLabel(coursePhaseConfig)} / instructor.`
     )
   }
 

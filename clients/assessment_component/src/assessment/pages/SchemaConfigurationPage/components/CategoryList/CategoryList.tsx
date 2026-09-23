@@ -13,7 +13,8 @@ import type { CategoryWithCompetencies } from '../../../../interfaces/category'
 import { useGetAllCategoriesWithCompetencies } from '../../../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetEvaluationCategoriesWithCompetencies'
-import { schemaSectionContent } from '../../../schemaSectionContent'
+import { useTutorLabel } from '../../../hooks/useTutorLabel'
+import { getSchemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
 import { CreateCategoryForm } from './components/CreateCategoryForm'
@@ -71,7 +72,7 @@ export const CategoryList = ({
           ? tutorEvaluationCategories
           : assessmentCategories
 
-  const content = schemaSectionContent[assessmentType]
+  const content = getSchemaSectionContent(useTutorLabel())[assessmentType]
 
   return (
     <Card className='overflow-hidden border-border p-6 shadow-xs'>

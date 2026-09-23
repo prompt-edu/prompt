@@ -6,6 +6,7 @@ import type {
   AssessmentReminderMetaData,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
+import { getTutorLabel } from '../../../hooks/useTutorLabel'
 import type { ReminderTypeConfig } from './interfaces/ReminderTypeConfig'
 
 export const EMPTY_REMINDER_META: AssessmentReminderMetaData = {
@@ -87,7 +88,7 @@ export const getReminderTypes = (
   if (coursePhaseConfig?.tutorEvaluationEnabled) {
     activeReminderTypes.push({
       type: 'tutor',
-      label: 'Tutor Evaluation',
+      label: `${getTutorLabel(coursePhaseConfig)} Evaluation`,
       deadline: coursePhaseConfig.tutorEvaluationDeadline,
     })
   }

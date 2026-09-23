@@ -18,6 +18,7 @@ import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import { getTutorLabel } from '../hooks/useTutorLabel'
 import {
   createGradeSuggestionColumn,
   createPeerEvalStatusColumn,
@@ -128,6 +129,7 @@ export const AssessmentParticipantsPage = () => {
         teams,
         participations,
         coursePhaseConfig?.tutorEvaluationEnabled ?? false,
+        getTutorLabel(coursePhaseConfig),
       ),
     ]
 

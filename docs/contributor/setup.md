@@ -482,11 +482,13 @@ docker compose up -d db-assessment db-interview
 
 The host ports are `5434` (team allocation), `5435` (assessment), `5436` (self team allocation), `5437` (example), `5438` (interview), `5439` (certificate), and `5440` (presentation) — the same values `.env.dev` already points at.
 
-File uploads (application documents, certificates, presentation materials) are stored through the SeaweedFS S3 gateway. The servers start without it, but every upload and download fails until it runs:
+File uploads (application documents, certificates, presentation materials) are stored through the SeaweedFS S3 gateway. It is **required** — start it before the servers in step 5:
 
 ```bash
 docker compose up -d seaweedfs-volume seaweedfs-s3
 ```
+
+Without it the core and presentation servers exit during startup instead of coming up degraded: both check that their bucket exists while building the S3 adapter, and abort on the connection error with `Failed to initialize prompt file storage` (core) or `Unable to initialize presentation material storage` (presentation).
 
 ### 4. Configure Keycloak (only on initial setup)
 
@@ -502,6 +504,8 @@ The `prompt` realm is **imported automatically** from `keycloakConfig.json` when
 4. Paste the secret into `KEYCLOAK_CLIENT_SECRET`:
    - in **`.env.dev`** for servers you start with `make server` / `make servers`,
    - in **`.env`** for servers you run through `docker compose`.
+
+   `.env.template` ships the line as `KEYCLOAK_CLIENT_SECRET= # FIXME: Set your Keycloak client secret here`. Delete the trailing comment instead of pasting in front of it: the Makefile `include`s `.env`, and the space before the `#` stays in the value, so Keycloak rejects the secret with `invalid_client`.
 
 :::warning
 `.env.dev` is loaded *after* `.env`, and an **empty** assignment still overrides. If you set the secret only in `.env` while `.env.dev` keeps `KEYCLOAK_CLIENT_SECRET=`, the Makefile-started servers come up without a secret and log `Failed to initialize keycloak`; everything that talks to Keycloak (course creation, role management) then fails.
@@ -545,7 +549,7 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | `certificate_component` | 3010 |
 | `presentation_component` | 3011 |
 
-To run only a subset, use the per-client targets (`make client-core`, `make client-assessment`, …) or run `yarn dev` inside the corresponding folder:
+To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation) have no target; run `yarn dev` inside the corresponding folder:
 
 ```bash
 cd clients/core && yarn dev

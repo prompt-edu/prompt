@@ -95,7 +95,7 @@ Follow these steps:
 
 ### Option 2: Use a Standalone Keycloak Instance for PROMPT
 
-For this option, refer to the [Contributor Setup Guide](/contributor/setup) on how to configure a standalone Keycloak instance and the `keycloakConfig.json`.
+For this option, refer to the [Keycloak Local Development Guide](/contributor/keycloak-dev) on how to configure a standalone Keycloak instance and the `keycloakConfig.json`.
 
 Keep in mind:
 

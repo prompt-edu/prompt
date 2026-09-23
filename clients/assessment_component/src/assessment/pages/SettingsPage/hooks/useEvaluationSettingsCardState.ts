@@ -19,6 +19,8 @@ type EvaluationCardModel = Omit<SchemaConfigurationCardProps, 'schemas' | 'disab
 interface UseEvaluationSettingsCardStateResult {
   isSaving: boolean
   card: EvaluationCardModel
+  tutorDisplayName: string
+  onTutorDisplayNameChange: (tutorDisplayName: string) => void
 }
 
 export const useEvaluationSettingsCardState = (
@@ -29,7 +31,9 @@ export const useEvaluationSettingsCardState = (
   const [schema, setSchema] = useState<string>('')
   const [start, setStart] = useState<Date | undefined>(undefined)
   const [deadline, setDeadline] = useState<Date | undefined>(undefined)
+  const [tutorDisplayName, setTutorDisplayName] = useState<string>('')
   const { data: originalConfig } = useGetCoursePhaseConfig()
+  const originalTutorDisplayName = originalConfig?.tutorDisplayName ?? ''
 
   const originalSnapshot = useMemo(
     () => getEvaluationOriginalSnapshot(originalConfig, assessmentType),
@@ -48,6 +52,8 @@ export const useEvaluationSettingsCardState = (
     originalSnapshot.start,
   ])
 
+  useEffect(() => setTutorDisplayName(originalTutorDisplayName), [originalTutorDisplayName])
+
   const configMutation = useCreateOrUpdateCoursePhaseConfig({
     onSuccess: () => setError(undefined),
     onError: setError,
@@ -60,6 +66,7 @@ export const useEvaluationSettingsCardState = (
 
   const hasChanges = useMemo(
     () =>
+      tutorDisplayName !== originalTutorDisplayName ||
       hasEvaluationCardChanges(
         {
           enabled,
@@ -69,7 +76,15 @@ export const useEvaluationSettingsCardState = (
         },
         originalSnapshot,
       ),
-    [deadline, enabled, originalSnapshot, schema, start],
+    [
+      deadline,
+      enabled,
+      originalSnapshot,
+      originalTutorDisplayName,
+      schema,
+      start,
+      tutorDisplayName,
+    ],
   )
 
   const card: EvaluationCardModel = {
@@ -107,6 +122,7 @@ export const useEvaluationSettingsCardState = (
           start,
           deadline,
         }),
+        tutorDisplayName,
       })
     },
     canSave: (!enabled || Boolean(schema)) && Boolean(baseRequest),
@@ -116,5 +132,7 @@ export const useEvaluationSettingsCardState = (
   return {
     isSaving: configMutation.isPending,
     card,
+    tutorDisplayName,
+    onTutorDisplayNameChange: setTutorDisplayName,
   }
 }

@@ -92,6 +92,14 @@ Each evaluation type has its own:
 
 > ⚠️ **Note**: All timestamps use **system time (Europe/Berlin) with deadlines ending at 23:59**.
 
+#### Renaming Tutors
+
+If your course calls its tutors something else, such as coaches or project leads, set the **Display
+name** in the **Tutor-Evaluation** settings card. The phase then uses that name instead of "Tutor" in
+the settings, the tutor overview and results pages, the participants table, the students' evaluation
+page and the reminder emails. Leave the field empty to go back to "Tutor". The sidebar entry keeps
+the name **Tutor Overview**.
+
 #### Evaluation-Only Phases
 
 Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the

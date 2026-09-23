@@ -127,6 +127,7 @@ CREATE TABLE public.course_phase_config (
     results_released boolean NOT NULL DEFAULT false,
     grading_sheet_visible boolean NOT NULL DEFAULT false,
     assessment_enabled boolean NOT NULL DEFAULT true,
+    tutor_display_name text,
     FOREIGN KEY (assessment_schema_id) REFERENCES assessment_schema (id) ON DELETE CASCADE,
     FOREIGN KEY (self_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,
     FOREIGN KEY (peer_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,

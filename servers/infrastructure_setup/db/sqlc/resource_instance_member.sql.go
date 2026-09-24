@@ -136,3 +136,67 @@ func (q *Queries) ListInstanceMembersByCoursePhase(ctx context.Context, coursePh
 	}
 	return items, nil
 }
+
+const listInstancesForParticipant = `-- name: ListInstancesForParticipant :many
+SELECT instance.id,
+       instance.resource_config_id,
+       instance.status,
+       instance.external_url,
+       instance.target_name,
+       instance.resolved_name,
+       member.granted
+FROM resource_instance AS instance
+    LEFT JOIN resource_instance_member AS member
+        ON member.resource_instance_id = instance.id
+       AND member.course_participation_id = $1
+WHERE instance.course_phase_id = $2
+  AND (instance.course_participation_id = $1
+       OR member.course_participation_id IS NOT NULL)
+ORDER BY instance.created_at
+`
+
+type ListInstancesForParticipantParams struct {
+	CourseParticipationID uuid.UUID `json:"courseParticipationId"`
+	CoursePhaseID         uuid.UUID `json:"coursePhaseId"`
+}
+
+type ListInstancesForParticipantRow struct {
+	ID               uuid.UUID      `json:"id"`
+	ResourceConfigID uuid.UUID      `json:"resourceConfigId"`
+	Status           ResourceStatus `json:"status"`
+	ExternalUrl      *string        `json:"externalUrl"`
+	TargetName       string         `json:"targetName"`
+	ResolvedName     string         `json:"resolvedName"`
+	Granted          *bool          `json:"granted"`
+}
+
+// The instances a student sees: the ones provisioned for them personally and the ones
+// whose latest run was for them as a member, their team's included. granted is null
+// for an instance whose run predates member tracking.
+func (q *Queries) ListInstancesForParticipant(ctx context.Context, arg ListInstancesForParticipantParams) ([]ListInstancesForParticipantRow, error) {
+	rows, err := q.db.Query(ctx, listInstancesForParticipant, arg.CourseParticipationID, arg.CoursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInstancesForParticipantRow
+	for rows.Next() {
+		var i ListInstancesForParticipantRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ResourceConfigID,
+			&i.Status,
+			&i.ExternalUrl,
+			&i.TargetName,
+			&i.ResolvedName,
+			&i.Granted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

@@ -36,6 +36,71 @@ definitions:
     - ResourceStatusCreated
     - ResourceStatusFailed
     - ResourceStatusPartial
+  execution.InstanceMemberResponse:
+    properties:
+      courseParticipationId:
+        type: string
+      granted:
+        type: boolean
+    type: object
+  execution.MyResourceResponse:
+    properties:
+      granted:
+        description: |-
+          Granted says whether the latest run let the student in. It is null when there is no
+          instance, or when its run predates member tracking.
+        type: boolean
+      name:
+        description: Name is the name of the resource the provider was asked to create.
+        type: string
+      providerType:
+        $ref: '#/definitions/db.ProviderType'
+      resourceConfigId:
+        type: string
+      resourceType:
+        type: string
+      scope:
+        $ref: '#/definitions/db.ResourceScope'
+      status:
+        allOf:
+        - $ref: '#/definitions/db.ResourceStatus'
+        description: |-
+          Status is the status of the student's instance, or null when nothing has been
+          provisioned for them from this config yet.
+      teamName:
+        description: TeamName names the team a per_team resource belongs to.
+        type: string
+      url:
+        description: URL links to the resource, when there is anything there a student
+          can open.
+        type: string
+    type: object
+  execution.ProvisioningPreview:
+    properties:
+      queued:
+        description: Queued counts targets that have no instance yet.
+        type: integer
+      requeued:
+        description: Requeued counts failed or partial instances a trigger would retry.
+        type: integer
+      running:
+        description: |-
+          Running counts instances a run is still working on. While it is above zero a
+          trigger is refused.
+        type: integer
+      students:
+        description: |-
+          Students counts the students resolved, or is null when no resource config is
+          per_student.
+        type: integer
+      teams:
+        description: Teams counts the teams resolved, or is null when no resource
+          config is per_team.
+        type: integer
+      upToDate:
+        description: UpToDate counts targets whose resource is already created.
+        type: integer
+    type: object
   execution.ResourceInstanceResponse:
     properties:
       courseParticipationId:
@@ -52,6 +117,13 @@ definitions:
         type: string
       id:
         type: string
+      members:
+        description: |-
+          Members lists the people the instance's latest run was for, and whether each was
+          granted access. Empty until the instance has run.
+        items:
+          $ref: '#/definitions/execution.InstanceMemberResponse'
+        type: array
       nameTemplate:
         type: string
       providerType:
@@ -265,6 +337,41 @@ paths:
       summary: Trigger infrastructure provisioning
       tags:
       - execution
+  /course_phase/{coursePhaseID}/execute/preview:
+    get:
+      description: Runs the checks of a trigger and resolves its targets without writing
+        anything, and reports how many instances a trigger would create, retry and
+        leave alone.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/execution.ProvisioningPreview'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Preview infrastructure provisioning
+      tags:
+      - execution
   /course_phase/{coursePhaseID}/instances:
     get:
       description: Lists provisioned resource instances and their lifecycle status
@@ -389,6 +496,50 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Retry failed resource instance
+      tags:
+      - execution
+  /course_phase/{coursePhaseID}/my-resources:
+    get:
+      description: 'Lists every resource config of the phase as the calling student
+        sees it: the instances provisioned for them or their team, with whether they
+        were granted access, and configs that have provisioned nothing for them yet.
+        Error details are never included.'
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/execution.MyResourceResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List the caller's resources
       tags:
       - execution
   /course_phase/{coursePhaseID}/provider-configs:

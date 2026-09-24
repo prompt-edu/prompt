@@ -112,6 +112,13 @@ func main() {
 	executionService := execution.NewService(conn)
 	execution.RegisterRoutes(api, executionService)
 
+	// What a student of the phase sees: the resources provisioned for them. It carries
+	// neither credentials nor error details, and answers for the caller's own
+	// participation only.
+	studentApi := router.Group("infrastructure-setup/api/course_phase/:coursePhaseID",
+		authMw(promptSDK.CourseStudent))
+	execution.RegisterStudentRoutes(studentApi, executionService)
+
 	// Recover instances a crashed process left claimed, now and periodically.
 	executionService.StartStaleClaimSweeper(context.Background())
 

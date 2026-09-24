@@ -39,3 +39,23 @@ ORDER BY instance.created_at;
 -- name: DeleteInstanceMembersByCourseParticipationIDs :exec
 DELETE FROM resource_instance_member
 WHERE course_participation_id = ANY(sqlc.arg(course_participation_ids)::uuid[]);
+
+-- name: ListInstancesForParticipant :many
+-- The instances a student sees: the ones provisioned for them personally and the ones
+-- whose latest run was for them as a member, their team's included. granted is null
+-- for an instance whose run predates member tracking.
+SELECT instance.id,
+       instance.resource_config_id,
+       instance.status,
+       instance.external_url,
+       instance.target_name,
+       instance.resolved_name,
+       member.granted
+FROM resource_instance AS instance
+    LEFT JOIN resource_instance_member AS member
+        ON member.resource_instance_id = instance.id
+       AND member.course_participation_id = sqlc.arg(course_participation_id)
+WHERE instance.course_phase_id = sqlc.arg(course_phase_id)
+  AND (instance.course_participation_id = sqlc.arg(course_participation_id)
+       OR member.course_participation_id IS NOT NULL)
+ORDER BY instance.created_at;

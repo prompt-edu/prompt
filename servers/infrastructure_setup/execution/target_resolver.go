@@ -161,7 +161,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 
 	teamsRaw, ok := phaseData["teams"]
 	if !ok {
-		return nil, errors.New("teams input not wired - configure the phase data graph to feed teams into this phase")
+		return nil, ErrTeamsNotWired
 	}
 	teams, err := parseTeams(teamsRaw)
 	if err != nil {

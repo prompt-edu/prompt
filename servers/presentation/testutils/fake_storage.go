@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/prompt-edu/prompt/servers/presentation/storage"
@@ -13,6 +14,8 @@ type FakeStorage struct {
 	mu      sync.Mutex
 	objects map[string]storage.Metadata
 	Deleted []string
+	// DeletePrefixErr, when set, makes DeletePrefix fail without deleting anything.
+	DeletePrefixErr error
 }
 
 func NewFakeStorage() *FakeStorage {
@@ -56,5 +59,20 @@ func (f *FakeStorage) Delete(_ context.Context, key string) error {
 	defer f.mu.Unlock()
 	delete(f.objects, key)
 	f.Deleted = append(f.Deleted, key)
+	return nil
+}
+
+func (f *FakeStorage) DeletePrefix(_ context.Context, prefix string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.DeletePrefixErr != nil {
+		return f.DeletePrefixErr
+	}
+	for key := range f.objects {
+		if strings.HasPrefix(key, prefix) {
+			delete(f.objects, key)
+			f.Deleted = append(f.Deleted, key)
+		}
+	}
 	return nil
 }

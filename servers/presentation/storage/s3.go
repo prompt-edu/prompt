@@ -125,3 +125,28 @@ func (a *S3Adapter) Delete(ctx context.Context, key string) error {
 	}
 	return nil
 }
+
+// DeletePrefix lists the objects and deletes them one by one rather than through
+// DeleteObjects: the single-object call is the one already proven against the deployed
+// S3-compatible store.
+func (a *S3Adapter) DeletePrefix(ctx context.Context, prefix string) error {
+	// An empty prefix matches the whole bucket, which no caller can mean.
+	if prefix == "" {
+		return errors.New("delete S3 objects: empty prefix")
+	}
+	pages := s3.NewListObjectsV2Paginator(a.client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(a.bucket), Prefix: aws.String(prefix),
+	})
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("list S3 objects under %q: %w", prefix, err)
+		}
+		for _, object := range page.Contents {
+			if err := a.Delete(ctx, aws.ToString(object.Key)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

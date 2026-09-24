@@ -89,59 +89,11 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
     queryKey: ['setup-config', coursePhaseID],
     queryFn: () => getSetupConfig(coursePhaseID),
   })
-  // The server's answer to "what would a trigger do now". It resolves the teams and
-  // students through core, so it also catches what the phase's own data cannot show,
-  // such as a phase no teams reach. A 400 is an answer, not a failure worth retrying.
-  const previewQuery = useQuery({
-    queryKey: ['provisioning-preview', coursePhaseID],
-    queryFn: () => getProvisioningPreview(coursePhaseID),
-    retry: (count, err) => !hasStatus(err, 400) && count < 2,
-  })
-
-  const { mutate: provision, isPending: isProvisioning } = useMutation({
-    mutationFn: () => triggerExecution(coursePhaseID),
-    onSuccess: (triggered) => {
-      const startedWork = triggered.queued + triggered.requeued > 0
-      toast({
-        title: startedWork ? 'Provisioning started' : 'Nothing left to provision',
-        description: describeTriggerSummary(triggered),
-      })
-    },
-    onError: (err: unknown) => {
-      toast({
-        title: hasStatus(err, 409)
-          ? 'A run is already in progress'
-          : 'Failed to start provisioning',
-        description: describeError(err),
-        variant: 'destructive',
-      })
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
-    },
-  })
-
-  if (providersQuery.isLoading || resourcesQuery.isLoading || setupQuery.isLoading) {
-    return <Skeleton className='h-64 w-full' />
-  }
-  if (providersQuery.isError || resourcesQuery.isError || setupQuery.isError) {
-    return (
-      <SectionError
-        message='Failed to load the configuration of this phase.'
-        onRetry={() => {
-          providersQuery.refetch()
-          resourcesQuery.refetch()
-          setupQuery.refetch()
-        }}
-      />
-    )
-  }
-
+  // The phase's own checks come from data already loaded, so they are known before the
+  // dry run is asked: the server would only refuse it for the same reasons.
   const providers = providersQuery.data ?? []
   const resources = resourcesQuery.data ?? []
   const semesterTag = setupQuery.data?.semesterTag ?? ''
-  const preview = previewQuery.data
 
   const configured = providers.filter((p) => p.configured).map((p) => p.providerType)
   const needed = [...new Set(resources.map((r) => r.providerType))]
@@ -206,6 +158,58 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
   const ownChecksPass = [providerCheck, resourceCheck, semesterTagCheck].every(
     (check) => check.state !== 'blocked',
   )
+
+  // The server's answer to "what would a trigger do now". It resolves the teams and
+  // students through core, so it also catches what the phase's own data cannot show,
+  // such as a phase no teams reach. A 400 is an answer, not a failure worth retrying.
+  const previewQuery = useQuery({
+    queryKey: ['provisioning-preview', coursePhaseID],
+    queryFn: () => getProvisioningPreview(coursePhaseID),
+    enabled: !!providersQuery.data && !!resourcesQuery.data && !!setupQuery.data && ownChecksPass,
+    retry: (count, err) => !hasStatus(err, 400) && count < 2,
+  })
+
+  const { mutate: provision, isPending: isProvisioning } = useMutation({
+    mutationFn: () => triggerExecution(coursePhaseID),
+    onSuccess: (triggered) => {
+      const startedWork = triggered.queued + triggered.requeued > 0
+      toast({
+        title: startedWork ? 'Provisioning started' : 'Nothing left to provision',
+        description: describeTriggerSummary(triggered),
+      })
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: hasStatus(err, 409)
+          ? 'A run is already in progress'
+          : 'Failed to start provisioning',
+        description: describeError(err),
+        variant: 'destructive',
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+    },
+  })
+
+  if (providersQuery.isLoading || resourcesQuery.isLoading || setupQuery.isLoading) {
+    return <Skeleton className='h-64 w-full' />
+  }
+  if (providersQuery.isError || resourcesQuery.isError || setupQuery.isError) {
+    return (
+      <SectionError
+        message='Failed to load the configuration of this phase.'
+        onRetry={() => {
+          providersQuery.refetch()
+          resourcesQuery.refetch()
+          setupQuery.refetch()
+        }}
+      />
+    )
+  }
+
+  const preview = previewQuery.data
 
   // The server refuses for the same reasons the items above report, so until they are
   // fixed its message would only repeat one of them.

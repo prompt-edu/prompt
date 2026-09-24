@@ -37,6 +37,8 @@ export const ResourceConfigCard = ({ coursePhaseID, config, isProvisioned, onEdi
       // The delete cascades to this config's instances; without this the provisioning list
       // keeps rendering them, with live retry and delete buttons.
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({ title: 'Resource deleted' })
       setConfirmOpen(false)
     },

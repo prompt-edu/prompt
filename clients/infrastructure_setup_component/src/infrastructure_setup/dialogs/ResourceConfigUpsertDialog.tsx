@@ -183,6 +183,8 @@ export const ResourceConfigUpsertDialog = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({
         title: existing ? 'Resource updated' : 'Resource added',
       })

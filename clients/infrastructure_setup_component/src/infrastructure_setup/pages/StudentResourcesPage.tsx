@@ -123,6 +123,8 @@ export const StudentResourcesPage = () => {
     enabled: !!phaseId && !isStudent && canPreview,
   })
 
+  if (!courseId || !phaseId) return null
+
   const shown = isStudent ? myResources : preview
   if (shown.isLoading) {
     return <LoadingPage />

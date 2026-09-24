@@ -50,6 +50,8 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
       // Resource configs cascade-delete when a provider is removed; refresh that list too.
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({ title: `${provider.providerType} provider removed` })
       setConfirmOpen(false)
     },

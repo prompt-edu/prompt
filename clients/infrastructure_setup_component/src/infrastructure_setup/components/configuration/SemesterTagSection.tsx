@@ -44,6 +44,8 @@ export const SemesterTagSection = ({ courseId, coursePhaseID }: Props) => {
       // Hand the field back to the query: what it refetches is now what was saved.
       setEditedTag(null)
       queryClient.invalidateQueries({ queryKey: ['setup-config', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({ title: 'Semester tag saved' })
     },
     onError: (err: unknown) => {

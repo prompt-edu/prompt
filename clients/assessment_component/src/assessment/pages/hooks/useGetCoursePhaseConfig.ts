@@ -8,7 +8,6 @@ import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 export interface CoursePhaseConfigQueryOptions {
   // The sidebar renders outside the phase routes, so it passes the phase ID explicitly.
   coursePhaseID?: string
-  enabled?: boolean
 }
 
 export const useGetCoursePhaseConfig = (options: CoursePhaseConfigQueryOptions = {}) => {
@@ -18,7 +17,6 @@ export const useGetCoursePhaseConfig = (options: CoursePhaseConfigQueryOptions =
   return useQuery<CoursePhaseConfig>({
     queryKey: assessmentKeys.coursePhaseConfig(phaseId),
     queryFn: () => assessmentApi.config.get(phaseId ?? ''),
-    enabled: options.enabled,
     staleTime: SHELL_QUERY_STALE_TIME,
   })
 }

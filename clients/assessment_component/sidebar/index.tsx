@@ -3,10 +3,8 @@ import {
   LECTURER_ROLES,
   Role,
   type SidebarMenuItemProps,
-  useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import { ClipboardList } from 'lucide-react'
-import { useParams } from 'react-router-dom'
 import { useTutorLabel } from '../src/assessment/pages/hooks/useTutorLabel'
 
 const sidebarItems: SidebarMenuItemProps = {
@@ -54,11 +52,8 @@ const sidebarItems: SidebarMenuItemProps = {
 }
 
 // Swaps in the phase's configured tutor display name, which a static title cannot know.
-// Students never see the tutor overview entry, so they skip the config request.
 export const useSidebarElement = (coursePhaseID: string): SidebarMenuItemProps => {
-  const { courseId } = useParams<{ courseId: string }>()
-  const isStudent = useCourseStore().isStudentOfCourse(courseId ?? '')
-  const tutorLabel = useTutorLabel({ coursePhaseID, enabled: !isStudent })
+  const tutorLabel = useTutorLabel({ coursePhaseID })
 
   return {
     ...sidebarItems,

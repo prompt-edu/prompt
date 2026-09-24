@@ -172,9 +172,10 @@ func (suite *ModuleDeletionTestSuite) TestProbesOnceForPhasesSharingAModule() {
 	first := suite.newPhase(phaseTypeID, courseID)
 	second := suite.newPhase(phaseTypeID, courseID)
 
-	err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
+	cleaned, err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
 
 	assert.NoError(suite.T(), err)
+	assert.ElementsMatch(suite.T(), []uuid.UUID{first, second}, cleaned)
 	assert.Equal(suite.T(), 1, module.infoCalls, "one capability probe per module, not per phase")
 	assert.ElementsMatch(suite.T(), []string{first.String(), second.String()}, module.deletedIDs)
 }
@@ -189,7 +190,7 @@ func (suite *ModuleDeletionTestSuite) TestDeletesEveryModuleOfACourse() {
 	firstPhase := suite.newPhase(suite.newPhaseType(first.server.URL), courseID)
 	secondPhase := suite.newPhase(suite.newPhaseType(second.server.URL), courseID)
 
-	err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
+	_, err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), []string{firstPhase.String()}, first.deletedIDs)

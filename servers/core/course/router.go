@@ -483,6 +483,7 @@ func (s *CourseService) updateCourseData(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid} [delete]
 func (s *CourseService) deleteCourse(c *gin.Context) {
@@ -493,6 +494,10 @@ func (s *CourseService) deleteCourse(c *gin.Context) {
 	}
 
 	err = s.DeleteCourse(c, c.GetHeader("Authorization"), courseID)
+	if errors.Is(err, ErrCourseChangedDuringDeletion) {
+		handleError(c, http.StatusConflict, err)
+		return
+	}
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))

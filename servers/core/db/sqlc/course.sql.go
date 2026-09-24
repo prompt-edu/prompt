@@ -366,6 +366,20 @@ func (q *Queries) GetOwnCourses(ctx context.Context, arg GetOwnCoursesParams) ([
 	return items, nil
 }
 
+const lockCourseForDeletion = `-- name: LockCourseForDeletion :one
+SELECT id
+FROM course
+WHERE id = $1
+FOR UPDATE
+`
+
+func (q *Queries) LockCourseForDeletion(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, lockCourseForDeletion, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const updateCourse = `-- name: UpdateCourse :exec
 UPDATE course
 SET restricted_data       = restricted_data || $2,

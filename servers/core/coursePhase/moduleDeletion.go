@@ -74,15 +74,14 @@ func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader st
 	return errors.Join(failures...)
 }
 
-// DeleteModuleDataForCourse drops the module-held data of every phase of the course. It is the
-// course deletion counterpart of DeleteCoursePhase: the course row cascades into its phases, which
-// leaves the modules no chance to be asked afterwards.
-func (s *CoursePhaseService) DeleteModuleDataForCourse(ctx context.Context, authHeader string, courseID uuid.UUID) error {
-	// A phase created between this query and the cascading delete is removed without its module
-	// being asked. That needs a lock held across the module calls to close, which is out of scope.
+// DeleteModuleDataForCourse drops the module-held data of every phase of the course and returns the
+// phases it covered. It is the course deletion counterpart of DeleteCoursePhase: the course row
+// cascades into its phases, which leaves the modules no chance to be asked afterwards. The caller
+// must check under a course row lock that no phase was added since, before deleting the course.
+func (s *CoursePhaseService) DeleteModuleDataForCourse(ctx context.Context, authHeader string, courseID uuid.UUID) ([]uuid.UUID, error) {
 	phases, err := s.queries.GetAllCoursePhaseForCourse(ctx, courseID)
 	if err != nil {
-		return fmt.Errorf("failed to load course phases: %w", err)
+		return nil, fmt.Errorf("failed to load course phases: %w", err)
 	}
 
 	coursePhaseIDs := make([]uuid.UUID, 0, len(phases))
@@ -90,7 +89,10 @@ func (s *CoursePhaseService) DeleteModuleDataForCourse(ctx context.Context, auth
 		coursePhaseIDs = append(coursePhaseIDs, phase.ID)
 	}
 
-	return s.deleteModuleData(ctx, authHeader, coursePhaseIDs)
+	if err := s.deleteModuleData(ctx, authHeader, coursePhaseIDs); err != nil {
+		return nil, err
+	}
+	return coursePhaseIDs, nil
 }
 
 // deleteModuleDataAt asks one module to delete the data of each of its phases, once it has reported

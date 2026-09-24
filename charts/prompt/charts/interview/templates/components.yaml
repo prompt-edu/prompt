@@ -1,0 +1,3 @@
+{{ include "prompt.server" (dict "root" . "name" "interview" "comp" .Values.server) }}
+---
+{{ include "prompt.client" (dict "root" . "name" "interview" "comp" .Values.client) }}

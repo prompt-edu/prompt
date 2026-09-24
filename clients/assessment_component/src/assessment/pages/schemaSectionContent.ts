@@ -3,6 +3,8 @@ import type { TutorLabel } from './hooks/useTutorLabel'
 
 export interface SchemaSectionContent {
   title: string
+  // The title as it reads mid-sentence; only the built-in words are lowercased.
+  inlineTitle: string
   summary: string
   toggleLabel: string
   toggleHint: string
@@ -19,6 +21,7 @@ export const getSchemaSectionContent = (
 ): Record<AssessmentType, SchemaSectionContent> => ({
   [AssessmentType.ASSESSMENT]: {
     title: 'Assessment',
+    inlineTitle: 'assessment',
     summary:
       'Configure the final assessment that lecturers use to grade students in this course phase.',
     toggleLabel: 'Assessment enabled',
@@ -36,6 +39,7 @@ export const getSchemaSectionContent = (
   },
   [AssessmentType.SELF]: {
     title: 'Self-Evaluation',
+    inlineTitle: 'self-evaluation',
     summary:
       'Configure the reflective self-evaluation students complete before their final assessment is reviewed.',
     toggleLabel: 'Self-evaluation enabled',
@@ -51,6 +55,7 @@ export const getSchemaSectionContent = (
   },
   [AssessmentType.PEER]: {
     title: 'Peer-Evaluation',
+    inlineTitle: 'peer-evaluation',
     summary:
       'Configure the peer feedback form used when students evaluate teammates or collaborators.',
     toggleLabel: 'Peer-evaluation enabled',
@@ -66,6 +71,7 @@ export const getSchemaSectionContent = (
   },
   [AssessmentType.TUTOR]: {
     title: `${tutorLabel.title}-Evaluation`,
+    inlineTitle: `${tutorLabel.text}-evaluation`,
     summary: `Configure the feedback form students use to evaluate their ${tutorLabel.text} in this course phase.`,
     toggleLabel: `${tutorLabel.title}-evaluation enabled`,
     toggleHint: `Turn this on when students should submit structured feedback about their ${tutorLabel.text} in this phase.`,

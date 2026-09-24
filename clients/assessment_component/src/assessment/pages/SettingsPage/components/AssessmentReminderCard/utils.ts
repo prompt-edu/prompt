@@ -73,6 +73,7 @@ export const getReminderTypes = (
     activeReminderTypes.push({
       type: 'self',
       label: 'Self Evaluation',
+      inlineLabel: 'self evaluation',
       deadline: coursePhaseConfig.selfEvaluationDeadline,
     })
   }
@@ -81,14 +82,17 @@ export const getReminderTypes = (
     activeReminderTypes.push({
       type: 'peer',
       label: 'Peer Evaluation',
+      inlineLabel: 'peer evaluation',
       deadline: coursePhaseConfig.peerEvaluationDeadline,
     })
   }
 
   if (coursePhaseConfig?.tutorEvaluationEnabled) {
+    const tutorLabel = getTutorLabel(coursePhaseConfig)
     activeReminderTypes.push({
       type: 'tutor',
-      label: `${getTutorLabel(coursePhaseConfig).title} Evaluation`,
+      label: `${tutorLabel.title} Evaluation`,
+      inlineLabel: `${tutorLabel.text} evaluation`,
       deadline: coursePhaseConfig.tutorEvaluationDeadline,
     })
   }

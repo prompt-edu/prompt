@@ -114,8 +114,8 @@ export const CategoryList = ({
           </div>
 
           <p className='text-sm leading-6 text-muted-foreground'>
-            Review the {content.title.toLowerCase()} structure, category weights, competency
-            descriptions, and score-level guidance below.
+            Review the {content.inlineTitle} structure, category weights, competency descriptions,
+            and score-level guidance below.
           </p>
         </div>
 

@@ -15,6 +15,7 @@ describe('federatedDependencies', () => {
       'react-router-dom': rootVersion('react-router-dom'),
       '@tanstack/react-query': rootVersion('@tanstack/react-query'),
       '@tumaet/prompt-shared-state': rootVersion('@tumaet/prompt-shared-state'),
+      '@tumaet/prompt-ui-components': rootVersion('@tumaet/prompt-ui-components'),
     })
   })
 })

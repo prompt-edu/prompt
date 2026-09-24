@@ -76,6 +76,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/execute/preview": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Runs the checks of a trigger and resolves its targets without writing anything, and reports how many instances a trigger would create, retry and leave alone.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "execution"
+                ],
+                "summary": "Preview infrastructure provisioning",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/execution.ProvisioningPreview"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/instances": {
             "get": {
                 "security": [
@@ -248,6 +300,70 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/my-resources": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Lists every resource config of the phase as the calling student sees it: the instances provisioned for them or their team, with whether they were granted access, and configs that have provisioned nothing for them yet. Error details are never included.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "execution"
+                ],
+                "summary": "List the caller's resources",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/execution.MyResourceResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1102,6 +1218,87 @@ const docTemplate = `{
                 "ResourceStatusPartial"
             ]
         },
+        "execution.InstanceMemberResponse": {
+            "type": "object",
+            "properties": {
+                "courseParticipationId": {
+                    "type": "string"
+                },
+                "granted": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "execution.MyResourceResponse": {
+            "type": "object",
+            "properties": {
+                "granted": {
+                    "description": "Granted says whether the latest run let the student in. It is null when there is no\ninstance, or when its run predates member tracking.",
+                    "type": "boolean"
+                },
+                "name": {
+                    "description": "Name is the name of the resource the provider was asked to create.",
+                    "type": "string"
+                },
+                "providerType": {
+                    "$ref": "#/definitions/db.ProviderType"
+                },
+                "resourceConfigId": {
+                    "type": "string"
+                },
+                "resourceType": {
+                    "type": "string"
+                },
+                "scope": {
+                    "$ref": "#/definitions/db.ResourceScope"
+                },
+                "status": {
+                    "description": "Status is the status of the student's instance, or null when nothing has been\nprovisioned for them from this config yet.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/db.ResourceStatus"
+                        }
+                    ]
+                },
+                "teamName": {
+                    "description": "TeamName names the team a per_team resource belongs to.",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "URL links to the resource, when there is anything there a student can open.",
+                    "type": "string"
+                }
+            }
+        },
+        "execution.ProvisioningPreview": {
+            "type": "object",
+            "properties": {
+                "queued": {
+                    "description": "Queued counts targets that have no instance yet.",
+                    "type": "integer"
+                },
+                "requeued": {
+                    "description": "Requeued counts failed or partial instances a trigger would retry.",
+                    "type": "integer"
+                },
+                "running": {
+                    "description": "Running counts instances a run is still working on. While it is above zero a\ntrigger is refused.",
+                    "type": "integer"
+                },
+                "students": {
+                    "description": "Students counts the students resolved, or is null when no resource config is\nper_student.",
+                    "type": "integer"
+                },
+                "teams": {
+                    "description": "Teams counts the teams resolved, or is null when no resource config is per_team.",
+                    "type": "integer"
+                },
+                "upToDate": {
+                    "description": "UpToDate counts targets whose resource is already created.",
+                    "type": "integer"
+                }
+            }
+        },
         "execution.ResourceInstanceResponse": {
             "type": "object",
             "properties": {
@@ -1125,6 +1322,13 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "members": {
+                    "description": "Members lists the people the instance's latest run was for, and whether each was\ngranted access. Empty until the instance has run.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/execution.InstanceMemberResponse"
+                    }
                 },
                 "nameTemplate": {
                     "type": "string"

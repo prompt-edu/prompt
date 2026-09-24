@@ -29,7 +29,11 @@ var ErrNothingConfigured = errors.New("no resource is configured for this course
 
 // ErrSemesterTagMissing is returned when a template needs the semester tag and the phase
 // has none saved.
-var ErrSemesterTagMissing = errors.New("a template uses {{semesterTag}}, but this phase has no semester tag saved; set it on the Setup page")
+var ErrSemesterTagMissing = errors.New("a template uses {{semesterTag}}, but this phase has no semester tag saved; set it on the Configuration page")
+
+// ErrTeamsNotWired is returned when a per_team config runs in a phase that no teams
+// reach through the course's phase graph.
+var ErrTeamsNotWired = errors.New("no teams reach this phase: connect a Team Allocation or Self Team Allocation phase to it in the course configurator")
 
 // TriggerSummary reports what one trigger did. A run's most common first outcome is a
 // mix of successes and failures, so the endpoint has to say whether pressing the button
@@ -105,30 +109,12 @@ func NewServiceWithResolver(pool *pgxpool.Pool, resolver TargetResolver) *Servic
 // over HTTP. The transaction then takes a per-phase advisory lock so the in-progress
 // check and the writes cannot interleave with a second trigger.
 func (s *Service) TriggerExecution(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (TriggerSummary, error) {
-	var summary TriggerSummary
-
-	configs, err := s.queries.ListResourceConfigs(ctx, coursePhaseID)
+	configs, targetsByScope, err := s.prepareRun(ctx, authHeader, coursePhaseID)
 	if err != nil {
-		return summary, err
-	}
-	if len(configs) == 0 {
-		return summary, ErrNothingConfigured
+		return TriggerSummary{}, err
 	}
 
-	if err := s.assertProvidersConfigured(ctx, coursePhaseID, configs); err != nil {
-		return summary, err
-	}
-
-	if err := s.assertSemesterTagAvailable(ctx, coursePhaseID, configs); err != nil {
-		return summary, err
-	}
-
-	targetsByScope, err := s.resolveScopes(ctx, authHeader, coursePhaseID, configs)
-	if err != nil {
-		return summary, err
-	}
-
-	summary, err = s.queueInstances(ctx, coursePhaseID, configs, targetsByScope)
+	summary, err := s.queueInstances(ctx, coursePhaseID, configs, targetsByScope)
 	if err != nil {
 		return summary, err
 	}
@@ -137,6 +123,68 @@ func (s *Service) TriggerExecution(ctx context.Context, authHeader string, cours
 		s.worker.RunPendingInstances(authHeader, coursePhaseID)
 	}
 	return summary, nil
+}
+
+// PreviewExecution reports what TriggerExecution would do right now, refusing for the
+// same reasons, without writing anything. It is what lets the provisioning page say
+// how many resources a click creates before anyone clicks.
+func (s *Service) PreviewExecution(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (ProvisioningPreview, error) {
+	var preview ProvisioningPreview
+
+	configs, targetsByScope, err := s.prepareRun(ctx, authHeader, coursePhaseID)
+	if err != nil {
+		return preview, err
+	}
+
+	existing, err := s.instancesByTarget(ctx, s.queries, coursePhaseID)
+	if err != nil {
+		return preview, err
+	}
+	running, err := s.queries.CountNonTerminalInstances(ctx, coursePhaseID)
+	if err != nil {
+		return preview, err
+	}
+
+	plan := planInstances(coursePhaseID, configs, targetsByScope, existing)
+	preview.Queued = len(plan.create)
+	preview.Requeued = len(plan.requeue)
+	preview.UpToDate = plan.upToDate
+	preview.Running = int(running)
+	if targets, ok := targetsByScope[db.ResourceScopePerTeam]; ok {
+		count := len(targets)
+		preview.Teams = &count
+	}
+	if targets, ok := targetsByScope[db.ResourceScopePerStudent]; ok {
+		count := len(targets)
+		preview.Students = &count
+	}
+	return preview, nil
+}
+
+// prepareRun loads the phase's resource configs, refuses a run that could not succeed,
+// and resolves the targets of every scope in use.
+func (s *Service) prepareRun(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]db.ResourceConfig, map[db.ResourceScope][]ProvisioningTarget, error) {
+	configs, err := s.queries.ListResourceConfigs(ctx, coursePhaseID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(configs) == 0 {
+		return nil, nil, ErrNothingConfigured
+	}
+
+	if err := s.assertProvidersConfigured(ctx, coursePhaseID, configs); err != nil {
+		return nil, nil, err
+	}
+
+	if err := s.assertSemesterTagAvailable(ctx, coursePhaseID, configs); err != nil {
+		return nil, nil, err
+	}
+
+	targetsByScope, err := s.resolveScopes(ctx, authHeader, coursePhaseID, configs)
+	if err != nil {
+		return nil, nil, err
+	}
+	return configs, targetsByScope, nil
 }
 
 // assertProvidersConfigured rejects a run whose providers lost their credentials, which
@@ -256,36 +304,82 @@ func (s *Service) queueInstances(ctx context.Context, coursePhaseID uuid.UUID, c
 		return summary, err
 	}
 
+	// A queued instance already names the people it is for, so a team's members see it
+	// being set up instead of finding nothing until its run finishes. Nobody is let in
+	// yet; the run replaces these rows with what it actually did.
+	plan := planInstances(coursePhaseID, configs, targetsByScope, existing)
+	for _, planned := range plan.create {
+		instance, err := qtx.CreateResourceInstance(ctx, planned.params)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			return summary, err
+		}
+		ids, granted := memberAccess(planned.target, nil, false)
+		if err := writeMembers(ctx, qtx, instance.ID, ids, granted); err != nil {
+			return summary, err
+		}
+		summary.Queued++
+	}
+	for _, planned := range plan.requeue {
+		if _, err := qtx.ResetInstanceToPending(ctx, db.ResetInstanceToPendingParams{
+			ID:            planned.instanceID,
+			CoursePhaseID: coursePhaseID,
+		}); err != nil {
+			return summary, err
+		}
+		ids, granted := memberAccess(planned.target, nil, false)
+		if err := writeMembers(ctx, qtx, planned.instanceID, ids, granted); err != nil {
+			return summary, err
+		}
+		summary.Requeued++
+	}
+	summary.UpToDate = plan.upToDate
+
+	return summary, tx.Commit(ctx)
+}
+
+// instancePlan is what converging the phase's instances on its configs and targets
+// takes: instances to create, failed or partial ones to queue again, and how many
+// targets are already provisioned.
+type instancePlan struct {
+	create   []plannedCreate
+	requeue  []plannedRequeue
+	upToDate int
+}
+
+type plannedCreate struct {
+	params db.CreateResourceInstanceParams
+	target ProvisioningTarget
+}
+
+type plannedRequeue struct {
+	instanceID uuid.UUID
+	target     ProvisioningTarget
+}
+
+// planInstances decides, for every (config, target) pair, what a trigger does. It
+// writes nothing, so the preview and the trigger share one answer.
+func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targetsByScope map[db.ResourceScope][]ProvisioningTarget, existing map[instanceKey]db.ResourceInstance) instancePlan {
+	var plan instancePlan
 	for _, cfg := range configs {
 		for _, target := range targetsByScope[cfg.Scope] {
 			instance, ok := existing[targetKey(cfg.ID, target.TeamID, target.CourseParticipationID)]
-			if !ok {
-				if _, err := qtx.CreateResourceInstance(ctx, createResourceInstanceParams(cfg, coursePhaseID, target)); err != nil {
-					if errors.Is(err, pgx.ErrNoRows) {
-						continue
-					}
-					return summary, err
-				}
-				summary.Queued++
-				continue
+			switch {
+			case !ok:
+				plan.create = append(plan.create, plannedCreate{
+					params: createResourceInstanceParams(cfg, coursePhaseID, target),
+					target: target,
+				})
+			case isRetryable(instance.Status):
+				plan.requeue = append(plan.requeue, plannedRequeue{instanceID: instance.ID, target: target})
+			default:
+				plan.upToDate++
 			}
-
-			if !isRetryable(instance.Status) {
-				summary.UpToDate++
-				continue
-			}
-
-			if _, err := qtx.ResetInstanceToPending(ctx, db.ResetInstanceToPendingParams{
-				ID:            instance.ID,
-				CoursePhaseID: coursePhaseID,
-			}); err != nil {
-				return summary, err
-			}
-			summary.Requeued++
 		}
 	}
-
-	return summary, tx.Commit(ctx)
+	return plan
 }
 
 func (s *Service) instancesByTarget(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (map[instanceKey]db.ResourceInstance, error) {
@@ -321,14 +415,89 @@ func (s *Service) StartStaleClaimSweeper(ctx context.Context) {
 	s.worker.StartStaleClaimSweeper(ctx)
 }
 
-// ListInstances returns all resource instances for a course phase. The slice is never
-// nil, so the endpoint answers with [] rather than null when nothing is provisioned.
+// ListInstances returns all resource instances for a course phase, each with the people
+// its latest run was for. The slice is never nil, so the endpoint answers with [] rather
+// than null when nothing is provisioned.
 func (s *Service) ListInstances(ctx context.Context, coursePhaseID uuid.UUID) ([]ResourceInstanceResponse, error) {
 	instances, err := s.queries.ListResourceInstancesWithConfig(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
-	return GetResourceInstanceDTOsFromDBModels(instances), nil
+	members, err := s.queries.ListInstanceMembersByCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	return GetResourceInstanceDTOsFromDBModels(instances, members), nil
+}
+
+// ListMyResources returns every resource config of the phase as the given student sees
+// it: each instance provisioned for them or their team, and one entry without a status
+// for a config that has provisioned nothing for them yet. The slice is never nil.
+func (s *Service) ListMyResources(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) ([]MyResourceResponse, error) {
+	configs, err := s.queries.ListResourceConfigs(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	instances, err := s.queries.ListInstancesForParticipant(ctx, db.ListInstancesForParticipantParams{
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: courseParticipationID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	instancesByConfig := make(map[uuid.UUID][]db.ListInstancesForParticipantRow, len(configs))
+	for _, instance := range instances {
+		instancesByConfig[instance.ResourceConfigID] = append(instancesByConfig[instance.ResourceConfigID], instance)
+	}
+
+	resources := make([]MyResourceResponse, 0, len(configs))
+	for _, cfg := range configs {
+		entry := MyResourceResponse{
+			ResourceConfigID: cfg.ID,
+			ProviderType:     cfg.ProviderType,
+			ResourceType:     cfg.ResourceType,
+			Scope:            cfg.Scope,
+		}
+		matches := instancesByConfig[cfg.ID]
+		if len(matches) == 0 {
+			resources = append(resources, entry)
+			continue
+		}
+		// Someone on two teams sees both teams' resources.
+		for _, instance := range matches {
+			status := instance.Status
+			provisioned := entry
+			provisioned.Status = &status
+			provisioned.Granted = instance.Granted
+			provisioned.Name = instance.ResolvedName
+			provisioned.URL = studentFacingURL(cfg.ProviderType, instance.ExternalUrl)
+			if cfg.Scope == db.ResourceScopePerTeam {
+				provisioned.TeamName = instance.TargetName
+			}
+			resources = append(resources, provisioned)
+		}
+	}
+	return resources, nil
+}
+
+// studentLinkProviders lists the providers whose resource URL a student can open.
+// Keycloak is left out: its link points into the admin console, where a student has no
+// account, and a Keycloak group only matters through the services that sign in with it.
+// A provider added later shows no link until it is listed here.
+var studentLinkProviders = map[db.ProviderType]bool{
+	db.ProviderTypeGitlab:  true,
+	db.ProviderTypeSlack:   true,
+	db.ProviderTypeOutline: true,
+	db.ProviderTypeRancher: true,
+}
+
+// studentFacingURL drops links a student cannot use.
+func studentFacingURL(providerType db.ProviderType, url *string) *string {
+	if !studentLinkProviders[providerType] || url == nil || *url == "" {
+		return nil
+	}
+	return url
 }
 
 // RetryInstance resets a failed or partial instance back to pending and starts the worker.

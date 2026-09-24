@@ -6,6 +6,7 @@ const SINGLETON_PACKAGES = [
   'react-router-dom',
   '@tanstack/react-query',
   '@tumaet/prompt-shared-state',
+  '@tumaet/prompt-ui-components',
 ]
 
 export const federatedDependencies = () =>

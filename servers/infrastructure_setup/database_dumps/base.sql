@@ -1,5 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+DROP TABLE IF EXISTS resource_instance_member CASCADE;
 DROP TABLE IF EXISTS resource_instance CASCADE;
 DROP TABLE IF EXISTS resource_config CASCADE;
 DROP TABLE IF EXISTS provider_config CASCADE;
@@ -66,3 +67,13 @@ CREATE UNIQUE INDEX uq_resource_instance_team
 CREATE UNIQUE INDEX uq_resource_instance_student
     ON resource_instance (resource_config_id, course_participation_id)
     WHERE course_participation_id IS NOT NULL;
+
+CREATE TABLE resource_instance_member (
+    resource_instance_id    uuid    NOT NULL REFERENCES resource_instance(id) ON DELETE CASCADE,
+    course_participation_id uuid    NOT NULL,
+    granted                 boolean NOT NULL,
+    PRIMARY KEY (resource_instance_id, course_participation_id)
+);
+
+CREATE INDEX idx_resource_instance_member_participation
+    ON resource_instance_member (course_participation_id);

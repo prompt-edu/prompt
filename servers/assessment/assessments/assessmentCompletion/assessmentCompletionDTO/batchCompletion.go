@@ -2,8 +2,10 @@ package assessmentCompletionDTO
 
 import "github.com/google/uuid"
 
+// BatchCompletionRequest caps the selection at 1000 IDs, since every ID costs several queries
+// inside one transaction.
 type BatchCompletionRequest struct {
-	CourseParticipationIDs []uuid.UUID `json:"courseParticipationIDs" binding:"required,min=1"`
+	CourseParticipationIDs []uuid.UUID `json:"courseParticipationIDs" binding:"required,min=1,max=1000"`
 }
 
 type SkipReason string

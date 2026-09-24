@@ -4776,6 +4776,7 @@ const docTemplate = `{
             "properties": {
                 "courseParticipationIDs": {
                     "type": "array",
+                    "maxItems": 1000,
                     "minItems": 1,
                     "items": {
                         "type": "string"

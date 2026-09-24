@@ -236,7 +236,7 @@ func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context)
 		return
 	}
 	var req assessmentCompletionDTO.BatchCompletionRequest
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -279,7 +279,7 @@ func (s *AssessmentCompletionService) unmarkAssessmentsAsCompleted(c *gin.Contex
 		return
 	}
 	var req assessmentCompletionDTO.BatchCompletionRequest
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}

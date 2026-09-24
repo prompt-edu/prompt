@@ -687,6 +687,31 @@ func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentsAsCompleted
 	}
 }
 
+func (suite *AssessmentCompletionRouterTestSuite) TestBatchCompletionRejectsOversizedSelection() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	ids := make([]uuid.UUID, 1001)
+	for i := range ids {
+		ids[i] = uuid.New()
+	}
+	body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: ids})
+
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{method: "POST", path: "/mark-complete/batch"},
+		{method: "PUT", path: "/unmark/batch"},
+	}
+	for _, route := range routes {
+		req, _ := http.NewRequest(route.method, "/api/course_phase/"+phaseID.String()+"/student-assessment/completed"+route.path, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		suite.router.ServeHTTP(resp, req)
+		assert.Equal(suite.T(), http.StatusBadRequest, resp.Code, "route %s %s", route.method, route.path)
+	}
+}
+
 func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentsAsCompletedBatchEndpoint() {
 	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	final := uuid.New()

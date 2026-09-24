@@ -97,8 +97,10 @@ Each evaluation type has its own:
 If your course calls its tutors something else, such as coaches or project leads, set the **Display
 name** in the **Tutor-Evaluation** settings card. The phase then uses that name instead of "Tutor" in
 the settings, the tutor overview and results pages, the participants table, the students' evaluation
-page and the reminder emails. Leave the field empty to go back to "Tutor". The sidebar entry keeps
-the name **Tutor Overview**.
+page and the reminder emails. The sidebar entry is renamed as well, so with the display name "Coach"
+it reads **Coach Overview**. The name is shown exactly as you enter it, also in the middle of a
+sentence, so an abbreviation such as "PL" stays uppercase. Leave the field empty to go back to
+"Tutor" and **Tutor Overview**.
 
 #### Evaluation-Only Phases
 

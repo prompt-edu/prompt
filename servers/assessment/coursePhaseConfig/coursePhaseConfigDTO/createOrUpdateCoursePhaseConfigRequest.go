@@ -28,4 +28,5 @@ type CreateOrUpdateCoursePhaseConfigRequest struct {
 	GradeSuggestionVisible   *bool     `json:"gradeSuggestionVisible,omitempty"`
 	ActionItemsVisible       *bool     `json:"actionItemsVisible,omitempty"`
 	GradingSheetVisible      *bool     `json:"gradingSheetVisible,omitempty"`
+	TutorDisplayName         *string   `json:"tutorDisplayName,omitempty" binding:"omitempty,max=50"`
 }

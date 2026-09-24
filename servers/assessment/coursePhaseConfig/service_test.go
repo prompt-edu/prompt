@@ -463,6 +463,25 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	assert.False(suite.T(), config.AssessmentEnabled, "Omitted AssessmentEnabled should preserve the stored value")
 }
 
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_TutorDisplayName() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	save := func(tutorDisplayName *string) string {
+		req := createTestCoursePhaseConfigRequest(schemaID, testID)
+		req.TutorDisplayName = tutorDisplayName
+		assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+		config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
+		assert.NoError(suite.T(), err)
+		return config.TutorDisplayName
+	}
+	coach, blank := "  Coach ", "   "
+
+	assert.Equal(suite.T(), "", save(nil), "An unset name should stay empty")
+	assert.Equal(suite.T(), "Coach", save(&coach), "The name should be stored trimmed")
+	assert.Equal(suite.T(), "Coach", save(nil), "An omitted name should preserve the stored value")
+	assert.Equal(suite.T(), "", save(&blank), "A blank name should reset to the default")
+}
+
 // seedAssessmentCompetency creates the category/competency pair assessment rows need.
 func (suite *CoursePhaseConfigServiceTestSuite) seedAssessmentCompetency(schemaID uuid.UUID) uuid.UUID {
 	categoryID := uuid.New()

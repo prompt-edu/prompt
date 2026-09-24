@@ -251,6 +251,7 @@ type CoursePhaseConfig struct {
 	ResultsReleased          bool               `json:"results_released"`
 	GradingSheetVisible      bool               `json:"grading_sheet_visible"`
 	AssessmentEnabled        bool               `json:"assessment_enabled"`
+	TutorDisplayName         pgtype.Text        `json:"tutor_display_name"`
 }
 
 type Evaluation struct {

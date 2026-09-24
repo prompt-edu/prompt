@@ -1,4 +1,5 @@
 import { Button, Input, Label, Textarea } from '@tumaet/prompt-ui-components'
+import { useTutorLabel } from '../../../../hooks/useTutorLabel'
 
 interface ReminderTemplateEditorProps {
   subject: string
@@ -21,12 +22,14 @@ export function ReminderTemplateEditor({
   isSaving,
   isModified,
 }: ReminderTemplateEditorProps) {
+  const tutorLabel = useTutorLabel()
+
   return (
     <div className='space-y-5'>
       <div className='space-y-1'>
         <h3 className='text-base font-semibold text-foreground'>Reminder template</h3>
         <p className='text-sm leading-6 text-muted-foreground'>
-          One shared template is used for self, peer, and tutor evaluation reminders.
+          {`One shared template is used for self, peer, and ${tutorLabel.text} evaluation reminders.`}
         </p>
       </div>
 

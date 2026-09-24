@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -228,6 +229,12 @@ func (s *CoursePhaseConfigService) CreateOrUpdateCoursePhaseConfig(ctx context.C
 		assessmentEnabled = *req.AssessmentEnabled
 	}
 
+	tutorDisplayName := existingConfig.TutorDisplayName
+	if req.TutorDisplayName != nil {
+		trimmed := strings.TrimSpace(*req.TutorDisplayName)
+		tutorDisplayName = pgtype.Text{String: trimmed, Valid: trimmed != ""}
+	}
+
 	params := db.CreateOrUpdateCoursePhaseConfigParams{
 		AssessmentSchemaID:       req.AssessmentSchemaID,
 		CoursePhaseID:            coursePhaseID,
@@ -251,6 +258,7 @@ func (s *CoursePhaseConfigService) CreateOrUpdateCoursePhaseConfig(ctx context.C
 		ResultsReleased:          resultsReleased,
 		GradingSheetVisible:      gradingSheetVisible,
 		AssessmentEnabled:        assessmentEnabled,
+		TutorDisplayName:         tutorDisplayName,
 	}
 
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)

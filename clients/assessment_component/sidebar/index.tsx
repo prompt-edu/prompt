@@ -5,6 +5,7 @@ import {
   type SidebarMenuItemProps,
 } from '@tumaet/prompt-shared-state'
 import { ClipboardList } from 'lucide-react'
+import { useTutorLabel } from '../src/assessment/pages/hooks/useTutorLabel'
 
 const sidebarItems: SidebarMenuItemProps = {
   title: 'Assessment Component',
@@ -48,6 +49,20 @@ const sidebarItems: SidebarMenuItemProps = {
       requiredPermissions: LECTURER_ROLES,
     },
   ],
+}
+
+// Swaps in the phase's configured tutor display name, which a static title cannot know.
+export const useSidebarElement = (coursePhaseID: string): SidebarMenuItemProps => {
+  const tutorLabel = useTutorLabel({ coursePhaseID })
+
+  return {
+    ...sidebarItems,
+    subitems: sidebarItems.subitems?.map((subitem) =>
+      subitem.goToPath === '/tutors'
+        ? { ...subitem, title: `${tutorLabel.title} Overview` }
+        : subitem,
+    ),
+  }
 }
 
 export default sidebarItems

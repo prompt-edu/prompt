@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -338,4 +339,10 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 
 func TestReminderRecipientsServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ReminderRecipientsServiceTestSuite))
+}
+
+func TestGetEvaluationTypeLabelUsesTutorDisplayName(t *testing.T) {
+	assert.Equal(t, "Tutor Evaluation", getEvaluationTypeLabel(assessmentType.Tutor, pgtype.Text{}))
+	assert.Equal(t, "Coach Evaluation", getEvaluationTypeLabel(assessmentType.Tutor, pgtype.Text{String: "Coach", Valid: true}))
+	assert.Equal(t, "Peer Evaluation", getEvaluationTypeLabel(assessmentType.Peer, pgtype.Text{String: "Coach", Valid: true}))
 }

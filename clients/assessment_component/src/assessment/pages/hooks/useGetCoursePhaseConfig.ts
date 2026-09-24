@@ -5,8 +5,14 @@ import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
 import { SHELL_QUERY_STALE_TIME } from './queryConfig'
 
-export const useGetCoursePhaseConfig = () => {
-  const { phaseId } = useParams<{ phaseId: string }>()
+export interface CoursePhaseConfigQueryOptions {
+  // The sidebar renders outside the phase routes, so it passes the phase ID explicitly.
+  coursePhaseID?: string
+}
+
+export const useGetCoursePhaseConfig = (options: CoursePhaseConfigQueryOptions = {}) => {
+  const { phaseId: routePhaseId } = useParams<{ phaseId: string }>()
+  const phaseId = options.coursePhaseID ?? routePhaseId
 
   return useQuery<CoursePhaseConfig>({
     queryKey: assessmentKeys.coursePhaseConfig(phaseId),

@@ -2,6 +2,7 @@ import { Card, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { getTutorLabel } from '../hooks/useTutorLabel'
 import { AssessmentReminderCard } from './components/AssessmentReminderCard/AssessmentReminderCard'
 import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/AssessmentSettingsCard'
 import { ReleaseResultsSection } from './components/AssessmentSettingsCard/components/ReleaseResultsSection'
@@ -29,7 +30,7 @@ export const SettingsPage = () => {
       />
       <EvaluationSettingsCard
         assessmentType={AssessmentType.TUTOR}
-        distinctionText='Feedback from students about their tutors in this phase.'
+        distinctionText={`Feedback from students about their ${getTutorLabel(coursePhaseConfig).text} in this phase.`}
       />
 
       {/* Outside the assessment card: evaluation-only phases release results too */}

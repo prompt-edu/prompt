@@ -10,6 +10,7 @@ import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvalu
 import { useGetMyEvaluationCompletions } from '../hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from '../hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
+import { getTutorLabel } from '../hooks/useTutorLabel'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
 import { EvaluationSection } from './components/EvaluationSection'
 
@@ -163,7 +164,7 @@ export const EvaluationOverviewPage = () => {
 
         {tutorEvaluationStarted && team && (
           <EvaluationSection
-            title='Tutor Evaluation'
+            title={`${getTutorLabel(coursePhaseConfig).title} Evaluation`}
             icon={<GraduationCap className='h-5 w-5 text-purple-600 dark:text-purple-400' />}
             assessmentType={AssessmentType.TUTOR}
             deadline={coursePhaseConfig?.tutorEvaluationDeadline}

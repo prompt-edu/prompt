@@ -26,6 +26,11 @@ var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semes
 // was asking the phase modules to drop their data. Retrying the deletion covers the new phase.
 var ErrCourseChangedDuringDeletion = errors.New("a course phase was added while the course was being deleted, please retry")
 
+// courseDeletionTimeout bounds the transaction that deletes a course. It holds the course row lock
+// and a pool connection while the Keycloak groups and roles are deleted over the network, so it is
+// longer than the default query timeout.
+const courseDeletionTimeout = 30 * time.Second
+
 // CoursePhaseProvider reads the course phases a course graph refers to.
 type CoursePhaseProvider interface {
 	GetCoursePhaseByID(ctx context.Context, id uuid.UUID) (coursePhaseDTO.CoursePhase, error)
@@ -470,23 +475,28 @@ func (s *CourseService) DeleteCourse(ctx context.Context, authHeader string, cou
 		return fmt.Errorf("failed to delete the course phase module data of course %s: %w", courseID, err)
 	}
 
-	tx, err := s.conn.Begin(ctx)
+	// The request context has no deadline, and the row lock taken below must not outlive a stalled
+	// Keycloak or database call.
+	txCtx, cancel := context.WithTimeout(ctx, courseDeletionTimeout)
+	defer cancel()
+
+	tx, err := s.conn.Begin(txCtx)
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
 	}
-	defer sdkUtils.DeferRollback(tx, ctx)
+	defer sdkUtils.DeferRollback(tx, txCtx)
 	qtx := s.queries.WithTx(tx)
 
 	// Lock the course row until the delete commits. Inserting a phase takes a key share lock on
 	// its course, so no phase can be added from here on. A phase added while the modules were
 	// asked would be cascaded away without its module being asked, so the deletion is refused.
-	if _, err := qtx.LockCourseForDeletion(ctx, courseID); err != nil {
+	if _, err := qtx.LockCourseForDeletion(txCtx, courseID); err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
 	}
 
-	phases, err := qtx.GetAllCoursePhaseForCourse(ctx, courseID)
+	phases, err := qtx.GetAllCoursePhaseForCourse(txCtx, courseID)
 	if err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
@@ -501,17 +511,17 @@ func (s *CourseService) DeleteCourse(ctx context.Context, authHeader string, cou
 	// Delete the Keycloak groups and roles next: the group name is derived from
 	// the course row, which must still exist. On failure the course is kept so it
 	// stays deletable on a later retry instead of orphaning its Keycloak state.
-	if err := s.deleteCourseGroupsAndRoles(ctx, courseID); err != nil {
+	if err := s.deleteCourseGroupsAndRoles(txCtx, courseID); err != nil {
 		log.Error("Failed to delete keycloak groups and roles for course: ", err)
 		return errors.New("failed to delete keycloak groups and roles")
 	}
 
-	if err := qtx.DeleteCourse(ctx, courseID); err != nil {
+	if err := qtx.DeleteCourse(txCtx, courseID); err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(txCtx); err != nil {
 		log.Error(err)
 		return errors.New("failed to delete course")
 	}

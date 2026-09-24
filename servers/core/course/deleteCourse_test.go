@@ -89,11 +89,15 @@ func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanup()
 
+	// The Keycloak deletion runs while the course row is locked, so it must see the deadline that
+	// bounds the transaction.
+	keycloakHadDeadline := false
 	newService := func(cleaned []uuid.UUID, keycloakDeleted *bool) *CourseService {
 		return NewCourseService(*testDB.Queries, testDB.Conn, stubPhaseProvider{cleaned: cleaned},
 			func(context.Context, string, string, string) error { return nil },
-			func(context.Context, uuid.UUID) error {
+			func(ctx context.Context, _ uuid.UUID) error {
 				*keycloakDeleted = true
+				_, keycloakHadDeadline = ctx.Deadline()
 				return nil
 			},
 		)
@@ -117,6 +121,7 @@ func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, keycloakDeleted)
+		assert.True(t, keycloakHadDeadline, "the transaction holding the course lock must be bounded")
 		_, err = testDB.Queries.GetCourse(ctx, seededCourseID)
 		assert.Error(t, err, "the course must be gone")
 	})

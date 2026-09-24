@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
@@ -755,4 +756,38 @@ func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentsAsComplet
 
 func TestAssessmentCompletionRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentCompletionRouterTestSuite))
+}
+
+func TestAuthorNameFallsBackWhenTheTokenHasNoName(t *testing.T) {
+	tests := []struct {
+		name      string
+		tokenUser keycloakTokenVerifier.TokenUser
+		want      string
+	}{
+		{
+			name:      "full name",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: "Ada", LastName: "Lovelace", UniversityLogin: "ab12cde", Email: "ada@tum.de"},
+			want:      "Ada Lovelace",
+		},
+		{
+			name:      "first name only",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: "Ada", UniversityLogin: "ab12cde"},
+			want:      "Ada",
+		},
+		{
+			name:      "no name",
+			tokenUser: keycloakTokenVerifier.TokenUser{UniversityLogin: "ab12cde", Email: "ada@tum.de"},
+			want:      "ab12cde",
+		},
+		{
+			name:      "blank name and login",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: " ", UniversityLogin: " ", Email: "ada@tum.de"},
+			want:      "ada@tum.de",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, authorName(tt.tokenUser))
+		})
+	}
 }

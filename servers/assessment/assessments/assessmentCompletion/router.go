@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -245,9 +246,7 @@ func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context)
 		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
-	author := tokenUser.FirstName + " " + tokenUser.LastName
-
-	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, author)
+	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, authorName(tokenUser))
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
@@ -451,6 +450,18 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// authorName is the name stored on a completion, falling back to the university login and then
+// the email when the token carries no first or last name.
+func authorName(tokenUser keycloakTokenVerifier.TokenUser) string {
+	if name := strings.TrimSpace(tokenUser.FirstName + " " + tokenUser.LastName); name != "" {
+		return name
+	}
+	if login := strings.TrimSpace(tokenUser.UniversityLogin); login != "" {
+		return login
+	}
+	return strings.TrimSpace(tokenUser.Email)
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

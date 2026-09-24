@@ -19,8 +19,8 @@ interface PrintReportProps {
   title: string
   subtitle?: string
   meta?: ReactNode
-  categories: CategoryWithCompetencies[]
-  scores: PrintReportScore[]
+  categories?: CategoryWithCompetencies[]
+  scores?: PrintReportScore[]
   categoryComments?: Record<string, string>
   feedbackItems?: FeedbackItem[]
   className?: string
@@ -34,8 +34,8 @@ export const PrintReport = ({
   title,
   subtitle,
   meta,
-  categories,
-  scores,
+  categories = [],
+  scores = [],
   categoryComments,
   feedbackItems = [],
   className,

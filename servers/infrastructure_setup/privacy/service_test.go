@@ -39,9 +39,10 @@ func setupPrivacyTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()
 	return testDB, cleanup
 }
 
-// seedStudentAndTeamInstances creates one instance for the subject and one for a team,
-// so a test can tell subject data from course data.
-func seedStudentAndTeamInstances(t *testing.T, queries *db.Queries, coursePhaseID, participationID, teamID uuid.UUID) {
+// seedStudentAndTeamInstances creates one instance for the subject and one for a team
+// the subject and a teammate are members of, so a test can tell subject data from course
+// data.
+func seedStudentAndTeamInstances(t *testing.T, queries *db.Queries, coursePhaseID, participationID, teammateID, teamID uuid.UUID) {
 	t.Helper()
 	ctx := context.Background()
 
@@ -96,12 +97,20 @@ func seedStudentAndTeamInstances(t *testing.T, queries *db.Queries, coursePhaseI
 		t.Fatalf("mark student instance created: %v", err)
 	}
 
-	if _, err := queries.CreateResourceInstance(ctx, db.CreateResourceInstanceParams{
+	teamInstance, err := queries.CreateResourceInstance(ctx, db.CreateResourceInstanceParams{
 		ResourceConfigID: teamConfig.ID,
 		CoursePhaseID:    coursePhaseID,
 		TeamID:           &teamID,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("create team instance: %v", err)
+	}
+	if err := queries.InsertInstanceMembers(ctx, db.InsertInstanceMembersParams{
+		ResourceInstanceID:     teamInstance.ID,
+		CourseParticipationIds: []uuid.UUID{participationID, teammateID},
+		Granted:                []bool{true, false},
+	}); err != nil {
+		t.Fatalf("record team members: %v", err)
 	}
 }
 
@@ -111,7 +120,7 @@ func TestExportReturnsTheSubjectsProvisionedResources(t *testing.T) {
 
 	coursePhaseID := uuid.New()
 	participationID := uuid.New()
-	seedStudentAndTeamInstances(t, testDB.Queries, coursePhaseID, participationID, uuid.New())
+	seedStudentAndTeamInstances(t, testDB.Queries, coursePhaseID, participationID, uuid.New(), uuid.New())
 
 	rows, err := testDB.Queries.GetResourceInstancesByCourseParticipationIDs(context.Background(), []uuid.UUID{participationID})
 	if err != nil {
@@ -127,6 +136,16 @@ func TestExportReturnsTheSubjectsProvisionedResources(t *testing.T) {
 	if rows[0].ProviderType != db.ProviderTypeGitlab || rows[0].ResourceType != "group" {
 		t.Fatalf("row = %+v, want the provider and resource type resolved", rows[0])
 	}
+
+	// Being a member of the team's resource is about the subject too, even though the
+	// resource itself belongs to the team.
+	memberships, err := testDB.Queries.GetInstanceMembershipsByCourseParticipationIDs(context.Background(), []uuid.UUID{participationID})
+	if err != nil {
+		t.Fatalf("membership export query: %v", err)
+	}
+	if len(memberships) != 1 || memberships[0].Scope != db.ResourceScopePerTeam || !memberships[0].Granted {
+		t.Fatalf("memberships = %+v, want the subject's granted team membership only", memberships)
+	}
 }
 
 // A deletion removes what the phase stored about the subject and leaves the team's
@@ -138,7 +157,8 @@ func TestDeletionRemovesOnlyTheSubjectsInstances(t *testing.T) {
 
 	coursePhaseID := uuid.New()
 	participationID := uuid.New()
-	seedStudentAndTeamInstances(t, testDB.Queries, coursePhaseID, participationID, uuid.New())
+	teammateID := uuid.New()
+	seedStudentAndTeamInstances(t, testDB.Queries, coursePhaseID, participationID, teammateID, uuid.New())
 
 	service := NewPrivacyService(testDB.Conn)
 	c, subject := deletionRequest(participationID)
@@ -155,6 +175,15 @@ func TestDeletionRemovesOnlyTheSubjectsInstances(t *testing.T) {
 	}
 	if remaining[0].CourseParticipationID != nil {
 		t.Fatalf("remaining instance = %+v, want no per-student instance left", remaining[0])
+	}
+
+	// The subject's membership in the team's resource goes, their teammate's stays.
+	members, err := testDB.Queries.ListInstanceMembersByCoursePhase(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("list members: %v", err)
+	}
+	if len(members) != 1 || members[0].CourseParticipationID != teammateID {
+		t.Fatalf("remaining members = %+v, want only the teammate", members)
 	}
 }
 

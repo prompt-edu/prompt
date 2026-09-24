@@ -24,10 +24,22 @@ type ProvisioningTarget struct {
 	CourseParticipationID *uuid.UUID
 	Student               *promptTypes.Student
 	Members               []provider.Member
-	TemplateData          TemplateData
+	// People lists everyone the target stands for, including those who could not be
+	// turned into a member. The worker records them on the instance, which is how a
+	// student finds their team's resources and learns whether they were let in.
+	People       []TargetPerson
+	TemplateData TemplateData
 	// Warnings lists people this phase could not turn into a member, so they surface
 	// on the instance the way a provider's own member warnings do instead of vanishing.
 	Warnings []string
+}
+
+// TargetPerson is one person a target is provisioned for.
+type TargetPerson struct {
+	CourseParticipationID uuid.UUID
+	// Email is how a provider knows the person. It is empty when none could be
+	// resolved, which leaves them without access.
+	Email string
 }
 
 // The roles resolution assigns to a member. A permission mapping is keyed on these, so
@@ -126,6 +138,7 @@ func (r *CoreTargetResolver) resolveStudentTargets(ctx context.Context, authHead
 			CourseParticipationID: &participationID,
 			Student:               &student,
 			Members:               members,
+			People:                []TargetPerson{{CourseParticipationID: participationID, Email: student.Email}},
 			Warnings:              warnings,
 			TemplateData: TemplateData{
 				StudentFirstName: student.FirstName,
@@ -164,10 +177,12 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 	for _, team := range teams {
 		teamID := team.ID
 		members := make([]provider.Member, 0, len(team.Members)+len(team.Tutors))
+		people := make([]TargetPerson, 0, len(team.Members)+len(team.Tutors))
 		var warnings []string
 
 		for _, person := range team.Members {
 			member, warning := resolveMember(person, RoleStudent, studentsByParticipationID)
+			people = append(people, TargetPerson{CourseParticipationID: person.ID, Email: member.Email})
 			if warning != "" {
 				warnings = append(warnings, warning)
 				continue
@@ -176,6 +191,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 		}
 		for _, person := range team.Tutors {
 			member, warning := resolveMember(person, RoleTutor, studentsByParticipationID)
+			people = append(people, TargetPerson{CourseParticipationID: person.ID, Email: member.Email})
 			if warning != "" {
 				warnings = append(warnings, warning)
 				continue
@@ -188,6 +204,7 @@ func (r *CoreTargetResolver) resolveTeamTargets(ctx context.Context, authHeader 
 			TeamID:       &teamID,
 			TeamName:     team.Name,
 			Members:      members,
+			People:       people,
 			Warnings:     warnings,
 			TemplateData: TemplateData{TeamName: team.Name, SemesterTag: cfg.SemesterTag},
 		})

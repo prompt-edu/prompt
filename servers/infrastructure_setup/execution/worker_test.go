@@ -30,7 +30,7 @@ func (f failingTargetResolver) ResolveTargets(_ context.Context, _ string, _ uui
 type fakeProvider struct {
 	calls    atomic.Int32
 	failures int32
-	warnings []string
+	warnings []provider.Warning
 	err      error
 }
 
@@ -134,7 +134,7 @@ func TestWorkerMarksInstancePartialOnMemberWarning(t *testing.T) {
 	testDB, cleanup := setupExecutionTestDB(t)
 	defer cleanup()
 
-	registerFakeProvider(t, &fakeProvider{warnings: []string{"ghost@example.com: not found"}})
+	registerFakeProvider(t, &fakeProvider{warnings: []provider.Warning{provider.MemberWarning("ghost@example.com", "not found")}})
 
 	coursePhaseID := uuid.New()
 	teamID := uuid.New()
@@ -560,6 +560,193 @@ func TestWorkerCarriesTargetWarningsOntoTheInstance(t *testing.T) {
 	}
 	if got.ErrorMessage == nil || !strings.Contains(*got.ErrorMessage, "Alan Turing") {
 		t.Fatalf("error message = %v, want the dropped tutor named", got.ErrorMessage)
+	}
+}
+
+func instanceMembers(t *testing.T, queries *db.Queries, coursePhaseID, instanceID uuid.UUID) map[uuid.UUID]bool {
+	t.Helper()
+	rows, err := queries.ListInstanceMembersByCoursePhase(context.Background(), coursePhaseID)
+	if err != nil {
+		t.Fatalf("list instance members: %v", err)
+	}
+	members := make(map[uuid.UUID]bool)
+	for _, row := range rows {
+		if row.ResourceInstanceID == instanceID {
+			members[row.CourseParticipationID] = row.Granted
+		}
+	}
+	return members
+}
+
+// A student is told whether they, specifically, can reach their team's resource. That
+// needs the run to record everyone it was for: the members who got in, the one the
+// provider refused, and the one no email could be resolved for.
+func TestWorkerRecordsWhoWasGrantedAccess(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	registerFakeProvider(t, &fakeProvider{warnings: []provider.Warning{
+		provider.MemberWarning("Ghost@Example.com", "no such user"),
+	}})
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	alice, ghost, unreachable := uuid.New(), uuid.New(), uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{{
+		Scope:  db.ResourceScopePerTeam,
+		TeamID: &teamID,
+		Members: []provider.Member{
+			{Email: "alice@example.com", Role: RoleStudent},
+			{Email: "ghost@example.com", Role: RoleStudent},
+		},
+		People: []TargetPerson{
+			{CourseParticipationID: alice, Email: "alice@example.com"},
+			{CourseParticipationID: ghost, Email: "ghost@example.com"},
+			{CourseParticipationID: unreachable},
+		},
+		Warnings:     []string{"student Una Reachable has no email address"},
+		TemplateData: TemplateData{TeamName: "Team A"},
+	}}})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	if got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID); got.Status != db.ResourceStatusPartial {
+		t.Fatalf("status = %s, want partial", got.Status)
+	}
+	want := map[uuid.UUID]bool{alice: true, ghost: false, unreachable: false}
+	got := instanceMembers(t, testDB.Queries, coursePhaseID, instance.ID)
+	if len(got) != len(want) {
+		t.Fatalf("members = %v, want %v", got, want)
+	}
+	for id, granted := range want {
+		if access, ok := got[id]; !ok || access != granted {
+			t.Fatalf("member %s: granted = %v (recorded %v), want %v", id, access, ok, granted)
+		}
+	}
+}
+
+// A failed run still names who it was for, so a team's members see that their
+// resource failed instead of finding nothing at all. Nobody is let in.
+func TestWorkerRecordsMembersOfAFailedRun(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	registerFakeProvider(t, &fakeProvider{err: provider.HTTPError("gitlab", "POST", "/api/v4/groups", 403, nil)})
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	alice := uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{{
+		Scope:        db.ResourceScopePerTeam,
+		TeamID:       &teamID,
+		Members:      []provider.Member{{Email: "alice@example.com", Role: RoleStudent}},
+		People:       []TargetPerson{{CourseParticipationID: alice, Email: "alice@example.com"}},
+		TemplateData: TemplateData{TeamName: "Team A"},
+	}}})
+	if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+		t.Fatalf("processPhase: %v", err)
+	}
+
+	if got := getInstance(t, testDB.Queries, coursePhaseID, instance.ID); got.Status != db.ResourceStatusFailed {
+		t.Fatalf("status = %s, want failed", got.Status)
+	}
+	got := instanceMembers(t, testDB.Queries, coursePhaseID, instance.ID)
+	if granted, ok := got[alice]; !ok || granted {
+		t.Fatalf("members = %v, want alice recorded without access", got)
+	}
+}
+
+// The rows describe the latest run: a retry that lets a member in updates their row,
+// and someone who left the team since is no longer listed.
+func TestWorkerReplacesMembersOnTheNextRun(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamID := uuid.New()
+	alice, bob, carol := uuid.New(), uuid.New(), uuid.New()
+	cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+	instance := seedPendingInstance(t, testDB.Queries, cfg, coursePhaseID, teamID)
+
+	run := func(people []TargetPerson, warnings []provider.Warning) {
+		t.Helper()
+		registerFakeProvider(t, &fakeProvider{warnings: warnings})
+		worker := NewWorkerWithResolver(testDB.Conn, fakeTargetResolver{targets: []ProvisioningTarget{{
+			Scope:        db.ResourceScopePerTeam,
+			TeamID:       &teamID,
+			People:       people,
+			TemplateData: TemplateData{TeamName: "Team A"},
+		}}})
+		if err := worker.processPhase(context.Background(), "Bearer test", coursePhaseID); err != nil {
+			t.Fatalf("processPhase: %v", err)
+		}
+	}
+
+	run([]TargetPerson{
+		{CourseParticipationID: alice, Email: "alice@example.com"},
+		{CourseParticipationID: bob, Email: "bob@example.com"},
+	}, []provider.Warning{provider.MemberWarning("bob@example.com", "has not signed in yet")})
+
+	if _, err := testDB.Queries.ResetInstanceToPending(context.Background(), db.ResetInstanceToPendingParams{
+		ID:            instance.ID,
+		CoursePhaseID: coursePhaseID,
+	}); err != nil {
+		t.Fatalf("reset instance: %v", err)
+	}
+
+	run([]TargetPerson{
+		{CourseParticipationID: bob, Email: "bob@example.com"},
+		{CourseParticipationID: carol, Email: "carol@example.com"},
+	}, nil)
+
+	want := map[uuid.UUID]bool{bob: true, carol: true}
+	got := instanceMembers(t, testDB.Queries, coursePhaseID, instance.ID)
+	if len(got) != len(want) || !got[bob] || !got[carol] {
+		t.Fatalf("members = %v, want only bob and carol, both granted", got)
+	}
+}
+
+func TestMemberAccess(t *testing.T) {
+	alice, bob := uuid.New(), uuid.New()
+	target := ProvisioningTarget{People: []TargetPerson{
+		{CourseParticipationID: alice, Email: "alice@example.com"},
+		{CourseParticipationID: bob, Email: "bob@example.com"},
+		// Bob is on the team as a member and as its tutor.
+		{CourseParticipationID: bob, Email: "bob@example.com"},
+	}}
+	groupFailure := provider.MembersWarning(
+		[]provider.Member{{Email: "ALICE@example.com"}},
+		"group %q: binding refused", "team-a",
+	)
+
+	for _, tc := range []struct {
+		name           string
+		warnings       []provider.Warning
+		resourceExists bool
+		want           map[uuid.UUID]bool
+	}{
+		{name: "everyone in", resourceExists: true, want: map[uuid.UUID]bool{alice: true, bob: true}},
+		{name: "a group warning names its members", warnings: []provider.Warning{groupFailure}, resourceExists: true, want: map[uuid.UUID]bool{alice: false, bob: true}},
+		{name: "no resource, nobody in", resourceExists: false, want: map[uuid.UUID]bool{alice: false, bob: false}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ids, granted := memberAccess(target, tc.warnings, tc.resourceExists)
+			if len(ids) != len(tc.want) {
+				t.Fatalf("ids = %v, want %d people, each once", ids, len(tc.want))
+			}
+			for i, id := range ids {
+				if granted[i] != tc.want[id] {
+					t.Fatalf("%s: granted = %v, want %v", id, granted[i], tc.want[id])
+				}
+			}
+		})
 	}
 }
 

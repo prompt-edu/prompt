@@ -34,10 +34,13 @@ func deletionRequest() *gin.Context {
 }
 
 // seedPhase fills every table the service owns for one phase.
-func seedPhase(t *testing.T, queries *db.Queries, coursePhaseID uuid.UUID) {
+// seedPhase fills every table of the phase and returns the participation recorded as a
+// member of its instance.
+func seedPhase(t *testing.T, queries *db.Queries, coursePhaseID uuid.UUID) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
 	teamID := uuid.New()
+	memberID := uuid.New()
 
 	if _, err := queries.UpsertCoursePhaseConfig(ctx, db.UpsertCoursePhaseConfigParams{
 		CoursePhaseID: coursePhaseID,
@@ -64,13 +67,22 @@ func seedPhase(t *testing.T, queries *db.Queries, coursePhaseID uuid.UUID) {
 	if err != nil {
 		t.Fatalf("create resource config: %v", err)
 	}
-	if _, err := queries.CreateResourceInstance(ctx, db.CreateResourceInstanceParams{
+	instance, err := queries.CreateResourceInstance(ctx, db.CreateResourceInstanceParams{
 		ResourceConfigID: config.ID,
 		CoursePhaseID:    coursePhaseID,
 		TeamID:           &teamID,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("create resource instance: %v", err)
 	}
+	if err := queries.InsertInstanceMembers(ctx, db.InsertInstanceMembersParams{
+		ResourceInstanceID:     instance.ID,
+		CourseParticipationIds: []uuid.UUID{memberID},
+		Granted:                []bool{true},
+	}); err != nil {
+		t.Fatalf("record instance member: %v", err)
+	}
+	return memberID
 }
 
 // countRows counts the raw tables rather than going through the generated queries: a
@@ -92,8 +104,8 @@ func TestDeletionRemovesEveryTableOfThePhase(t *testing.T) {
 
 	coursePhaseID := uuid.New()
 	otherPhaseID := uuid.New()
-	seedPhase(t, testDB.Queries, coursePhaseID)
-	seedPhase(t, testDB.Queries, otherPhaseID)
+	memberID := seedPhase(t, testDB.Queries, coursePhaseID)
+	otherMemberID := seedPhase(t, testDB.Queries, otherPhaseID)
 
 	service := NewCoursePhaseDeletionService(testDB.Conn)
 	if err := service.HandleCoursePhaseDeletion(deletionRequest(), coursePhaseID); err != nil {
@@ -109,6 +121,25 @@ func TestDeletionRemovesEveryTableOfThePhase(t *testing.T) {
 			t.Fatalf("%s rows of the untouched phase = %d, want 1", table, got)
 		}
 	}
+
+	// The member table carries no phase id, so it is counted by the seeded member.
+	if got := countMemberRows(t, testDB.Conn, memberID); got != 0 {
+		t.Fatalf("resource_instance_member rows after deletion = %d, want 0", got)
+	}
+	if got := countMemberRows(t, testDB.Conn, otherMemberID); got != 1 {
+		t.Fatalf("resource_instance_member rows of the untouched phase = %d, want 1", got)
+	}
+}
+
+func countMemberRows(t *testing.T, pool *pgxpool.Pool, courseParticipationID uuid.UUID) int {
+	t.Helper()
+	var count int
+	if err := pool.QueryRow(context.Background(),
+		"SELECT count(*) FROM resource_instance_member WHERE course_participation_id = $1", courseParticipationID,
+	).Scan(&count); err != nil {
+		t.Fatalf("count resource_instance_member: %v", err)
+	}
+	return count
 }
 
 // Core calls this endpoint whether or not the phase was ever configured, and may retry

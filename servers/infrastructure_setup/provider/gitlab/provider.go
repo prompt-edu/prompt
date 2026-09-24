@@ -216,21 +216,21 @@ func (p *Provider) createProject(ctx context.Context, input provider.CreateResou
 
 // addMembers grants every member access to a group, reporting per-member failures as
 // warnings so the instance becomes partial rather than failing outright.
-func (p *Provider) addMembers(ctx context.Context, groupID int, input provider.CreateResourceInput) []string {
-	var warnings []string
+func (p *Provider) addMembers(ctx context.Context, groupID int, input provider.CreateResourceInput) []provider.Warning {
+	var warnings []provider.Warning
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
 		if !ok {
-			warnings = append(warnings, fmt.Sprintf("%s: no permission mapped for role %q", member.Email, member.Role))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "no permission mapped for role %q", member.Role))
 			continue
 		}
 		accessLevel, err := gitlabAccessLevel(permission)
 		if err != nil {
-			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 			continue
 		}
 		if err := p.addMember(ctx, groupID, member.Email, accessLevel); err != nil {
-			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 		}
 	}
 	return warnings

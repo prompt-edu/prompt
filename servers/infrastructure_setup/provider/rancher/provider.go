@@ -84,19 +84,19 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 	defaultRoleTemplateID, _ := input.ExtraConfig[extraKeyRoleTemplateID].(string)
 	defaultRoleTemplateID = strings.TrimSpace(defaultRoleTemplateID)
 
-	var warnings []string
+	var warnings []provider.Warning
 	for _, member := range input.Members {
 		perm, ok := input.PermissionMapping[member.Role]
 		if !ok {
 			perm = defaultRoleTemplateID
 		}
 		if perm == "" {
-			warnings = append(warnings, fmt.Sprintf("%s: no role template mapped for role %q, and no %s in the extra config",
-				member.Email, member.Role, extraKeyRoleTemplateID))
+			warnings = append(warnings, provider.MemberWarning(member.Email,
+				"no role template mapped for role %q, and no %s in the extra config", member.Role, extraKeyRoleTemplateID))
 			continue
 		}
 		if err := p.addMember(ctx, projectID, member.Email, perm); err != nil {
-			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 		}
 	}
 

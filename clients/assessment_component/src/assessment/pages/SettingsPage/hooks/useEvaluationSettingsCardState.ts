@@ -34,6 +34,8 @@ export const useEvaluationSettingsCardState = (
   const [tutorDisplayName, setTutorDisplayName] = useState<string>('')
   const { data: originalConfig } = useGetCoursePhaseConfig()
   const originalTutorDisplayName = originalConfig?.tutorDisplayName ?? ''
+  // The server trims the name, so compare and submit the trimmed value.
+  const trimmedTutorDisplayName = tutorDisplayName.trim()
 
   const originalSnapshot = useMemo(
     () => getEvaluationOriginalSnapshot(originalConfig, assessmentType),
@@ -66,7 +68,7 @@ export const useEvaluationSettingsCardState = (
 
   const hasChanges = useMemo(
     () =>
-      tutorDisplayName !== originalTutorDisplayName ||
+      trimmedTutorDisplayName !== originalTutorDisplayName ||
       hasEvaluationCardChanges(
         {
           enabled,
@@ -83,7 +85,7 @@ export const useEvaluationSettingsCardState = (
       originalTutorDisplayName,
       schema,
       start,
-      tutorDisplayName,
+      trimmedTutorDisplayName,
     ],
   )
 
@@ -122,7 +124,7 @@ export const useEvaluationSettingsCardState = (
           start,
           deadline,
         }),
-        tutorDisplayName,
+        tutorDisplayName: trimmedTutorDisplayName,
       })
     },
     canSave: (!enabled || Boolean(schema)) && Boolean(baseRequest),

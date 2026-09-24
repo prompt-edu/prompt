@@ -130,9 +130,8 @@ func (a *S3Adapter) Delete(ctx context.Context, key string) error {
 // DeleteObjects: the single-object call is the one already proven against the deployed
 // S3-compatible store.
 func (a *S3Adapter) DeletePrefix(ctx context.Context, prefix string) error {
-	// An empty prefix matches the whole bucket, which no caller can mean.
-	if prefix == "" {
-		return errors.New("delete S3 objects: empty prefix")
+	if err := ValidateDeletePrefix(prefix); err != nil {
+		return fmt.Errorf("delete S3 objects: %w", err)
 	}
 	pages := s3.NewListObjectsV2Paginator(a.client, &s3.ListObjectsV2Input{
 		Bucket: aws.String(a.bucket), Prefix: aws.String(prefix),

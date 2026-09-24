@@ -63,6 +63,9 @@ func (f *FakeStorage) Delete(_ context.Context, key string) error {
 }
 
 func (f *FakeStorage) DeletePrefix(_ context.Context, prefix string) error {
+	if err := storage.ValidateDeletePrefix(prefix); err != nil {
+		return err
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.DeletePrefixErr != nil {

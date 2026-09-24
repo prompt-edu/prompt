@@ -32,6 +32,8 @@ services:
       - DB_NAME=${DB_CORE_NAME}
       - SSL_MODE
       - SERVER_ADDRESS
+      # Reported as the service version on /info; the minimal stack builds from source.
+      - SERVER_IMAGE_TAG=local
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - KEYCLOAK_CLIENT_ID
@@ -114,6 +116,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - DB_HOST_TEAM_ALLOCATION
       - DB_PORT_TEAM_ALLOCATION
       - DB_NAME=${DB_TEAM_ALLOCATION_NAME}
@@ -177,6 +180,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - DB_HOST_SELF_TEAM_ALLOCATION
       - DB_PORT_SELF_TEAM_ALLOCATION
       - DB_NAME=${DB_SELF_TEAM_ALLOCATION_NAME}
@@ -240,6 +244,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - DB_HOST_ASSESSMENT
       - DB_PORT_ASSESSMENT
       - DB_NAME=${DB_ASSESSMENT_NAME}
@@ -303,6 +308,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - DB_HOST_INTERVIEW
       - DB_PORT_INTERVIEW
       - DB_NAME=${DB_INTERVIEW_NAME}
@@ -368,6 +374,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - DB_HOST_PRESENTATION
       - DB_PORT_PRESENTATION
       - DB_NAME=${DB_PRESENTATION_NAME}

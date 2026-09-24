@@ -6,7 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -483,7 +485,10 @@ func (s *CourseService) updateCourseData(c *gin.Context) {
 // @Param uuid path string true "Course UUID"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Failure 502 {object} utils.ErrorResponse
 // @Router /courses/{uuid} [delete]
 func (s *CourseService) deleteCourse(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
@@ -492,7 +497,20 @@ func (s *CourseService) deleteCourse(c *gin.Context) {
 		return
 	}
 
-	err = s.DeleteCourse(c, courseID)
+	err = s.DeleteCourse(c, c.GetHeader("Authorization"), courseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		handleError(c, http.StatusNotFound, errors.New("course not found"))
+		return
+	}
+	if errors.Is(err, ErrCourseChangedDuringDeletion) {
+		handleError(c, http.StatusConflict, err)
+		return
+	}
+	if errors.Is(err, coursePhase.ErrModuleDeletionFailed) {
+		log.Error(err)
+		handleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
+		return
+	}
 	if err != nil {
 		log.Error(err)
 		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))

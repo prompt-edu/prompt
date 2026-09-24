@@ -12,17 +12,19 @@ export const InterviewParticipantsPage = () => {
 
   const participationsQuery = useGetCoursePhaseParticipants()
 
-  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
-
   return (
     <div>
       <ManagementPageHeader>Interview Participants</ManagementPageHeader>
-      <QueryGate queries={[participationsQuery]}>
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId}
-          participants={participationsQuery.data?.participations ?? []}
-        />
-      </QueryGate>
+      {!phaseId ? (
+        <ErrorPage description='Invalid course phase ID' />
+      ) : (
+        <QueryGate queries={[participationsQuery]}>
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId}
+            participants={participationsQuery.data?.participations ?? []}
+          />
+        </QueryGate>
+      )}
     </div>
   )
 }

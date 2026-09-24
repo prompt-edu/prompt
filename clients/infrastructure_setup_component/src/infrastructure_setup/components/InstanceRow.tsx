@@ -36,10 +36,16 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
     })
   }
 
+  // Both change what the next run does, which the provisioning preview reports.
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+    queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+  }
+
   const { mutate: retry, isPending: isRetrying } = useMutation({
     mutationFn: () => retryInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      invalidate()
       toast({ title: 'Retry started' })
     },
     onError: onMutationError('retry'),
@@ -48,7 +54,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const { mutate: remove, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      invalidate()
       toast({ title: 'Instance deleted' })
       setConfirmOpen(false)
     },

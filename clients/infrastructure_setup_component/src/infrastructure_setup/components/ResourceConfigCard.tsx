@@ -34,15 +34,15 @@ export const ResourceConfigCard = ({ coursePhaseID, config, isProvisioned, onEdi
     mutationFn: () => deleteResourceConfig(coursePhaseID, config.id, true),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
-      // The delete cascades to this config's instances; without this the execution list
+      // The delete cascades to this config's instances; without this the provisioning list
       // keeps rendering them, with live retry and delete buttons.
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      toast({ title: 'Resource config deleted' })
+      toast({ title: 'Resource deleted' })
       setConfirmOpen(false)
     },
     onError: (err: unknown) => {
       toast({
-        title: 'Failed to delete resource config',
+        title: 'Failed to delete the resource',
         description: describeError(err),
         variant: 'destructive',
       })
@@ -91,7 +91,7 @@ export const ResourceConfigCard = ({ coursePhaseID, config, isProvisioned, onEdi
         <DeleteConfirmation
           isOpen={confirmOpen}
           setOpen={setConfirmOpen}
-          deleteMessage='Delete this resource configuration?'
+          deleteMessage='Delete this resource?'
           customWarning="PROMPT's record of every instance provisioned from this config goes with it. The external resources themselves are never deleted, so they stay behind with nothing pointing at them."
           onClick={(confirmed) => {
             if (confirmed) remove()

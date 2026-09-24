@@ -1,35 +1,34 @@
 import { Role, type SidebarMenuItemProps } from '@tumaet/prompt-shared-state'
 import { Server } from 'lucide-react'
 
+// The same roles as the management routes: the phase's API admits admins and lecturers.
+const MANAGER_ROLES = [Role.PROMPT_ADMIN, Role.COURSE_LECTURER]
+
 const sidebarItems: SidebarMenuItemProps = {
   title: 'Infrastructure Setup',
   icon: <Server />,
   goToPath: '',
+  requiredPermissions: [
+    Role.PROMPT_ADMIN,
+    Role.COURSE_LECTURER,
+    Role.COURSE_EDITOR,
+    Role.COURSE_STUDENT,
+  ],
   subitems: [
     {
-      title: 'Overview',
-      goToPath: '',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      title: 'Participants',
+      goToPath: '/participants',
+      requiredPermissions: MANAGER_ROLES,
     },
     {
-      title: 'Setup',
-      goToPath: '/setup',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      title: 'Configuration',
+      goToPath: '/configuration',
+      requiredPermissions: MANAGER_ROLES,
     },
     {
-      title: 'Providers',
-      goToPath: '/providers',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
-    },
-    {
-      title: 'Resource Configs',
-      goToPath: '/resource-configs',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
-    },
-    {
-      title: 'Execution',
-      goToPath: '/execution',
-      requiredPermissions: [Role.PROMPT_ADMIN, Role.COURSE_LECTURER],
+      title: 'Provisioning',
+      goToPath: '/provisioning',
+      requiredPermissions: MANAGER_ROLES,
     },
   ],
 }

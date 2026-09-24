@@ -113,8 +113,8 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
           setOpen={setConfirmOpen}
           deleteMessage={`Remove the ${provider.providerType} provider?`}
           customWarning={
-            'This also deletes every resource configuration and resource instance ' +
-            'that uses this provider for this course phase. Provisioned external ' +
+            'This also deletes every resource of this provider in this phase, and ' +
+            "PROMPT's record of what was provisioned for it. Provisioned external " +
             'resources (groups, channels, …) are NOT touched.'
           }
           onClick={(confirmed) => {

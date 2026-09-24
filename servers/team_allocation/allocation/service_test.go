@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
@@ -27,6 +28,7 @@ func (suite *AllocationServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	suite.allocationService = NewAllocationService(*testDB.Queries)
+	suite.allocationService.resolveParticipants = stubParticipants(tutorFreeParticip, deltaParticip, epsilonParticip, staffFreeParticip)
 }
 
 func (suite *AllocationServiceTestSuite) TearDownSuite() {
@@ -80,6 +82,80 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 
 	_, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, courseParticipationID, wrongCoursePhaseID)
 	assert.Error(suite.T(), err, "Should error for wrong course phase")
+}
+
+func (suite *AllocationServiceTestSuite) TestUpsertAllocationCreatesAndMoves() {
+	phaseID := uuid.MustParse(writePhase)
+	participantID := uuid.MustParse(staffFreeParticip)
+
+	err := suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, participantID, uuid.MustParse(teamDelta), pgtype.UUID{})
+	assert.NoError(suite.T(), err)
+
+	teamID, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, participantID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamDelta), teamID)
+
+	err = suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, participantID, uuid.MustParse(teamEpsilon), pgtype.UUID{})
+	assert.NoError(suite.T(), err)
+
+	teamID, err = suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, participantID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID)
+}
+
+func (suite *AllocationServiceTestSuite) TestUpsertAllocationScopedGuardBlocksForeignSourceTeam() {
+	phaseID := uuid.MustParse(writePhase)
+	guard := pgtype.UUID{Bytes: uuid.MustParse(teamDelta), Valid: true}
+
+	err := suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, uuid.MustParse(epsilonParticip), uuid.MustParse(teamDelta), guard)
+	assert.ErrorIs(suite.T(), err, ErrTeamWriteDenied)
+
+	teamID, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, uuid.MustParse(epsilonParticip), phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID)
+}
+
+func (suite *AllocationServiceTestSuite) TestUpsertAllocationScopedGuardAllowsUnallocatedAndOwnTeam() {
+	phaseID := uuid.MustParse(writePhase)
+	guard := pgtype.UUID{Bytes: uuid.MustParse(teamDelta), Valid: true}
+
+	err := suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, uuid.MustParse(tutorFreeParticip), uuid.MustParse(teamDelta), guard)
+	assert.NoError(suite.T(), err, "an unallocated participant may be picked up")
+
+	err = suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, uuid.MustParse(tutorFreeParticip), uuid.MustParse(teamDelta), guard)
+	assert.NoError(suite.T(), err, "a participant already in the scoped team may be rewritten")
+}
+
+func (suite *AllocationServiceTestSuite) TestUpsertAllocationRejectsUnknownTeamAndParticipant() {
+	phaseID := uuid.MustParse(writePhase)
+
+	err := suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, uuid.MustParse(staffFreeParticip), uuid.New(), pgtype.UUID{})
+	assert.ErrorIs(suite.T(), err, ErrInvalidTeamForPhase)
+
+	err = suite.allocationService.UpsertAllocation(suite.suiteCtx, "", phaseID, uuid.New(), uuid.MustParse(teamDelta), pgtype.UUID{})
+	assert.ErrorIs(suite.T(), err, ErrParticipantNotInPhase)
+}
+
+func (suite *AllocationServiceTestSuite) TestDeleteAllocationRemovesRowAndReportsMissing() {
+	phaseID := uuid.MustParse(writePhase)
+
+	err := suite.allocationService.DeleteAllocation(suite.suiteCtx, phaseID, uuid.MustParse(deltaParticip), pgtype.UUID{})
+	assert.NoError(suite.T(), err)
+
+	err = suite.allocationService.DeleteAllocation(suite.suiteCtx, phaseID, uuid.MustParse(deltaParticip), pgtype.UUID{})
+	assert.ErrorIs(suite.T(), err, ErrAllocationNotFound)
+}
+
+func (suite *AllocationServiceTestSuite) TestDeleteAllocationScopedGuardBlocksForeignTeam() {
+	phaseID := uuid.MustParse(writePhase)
+	guard := pgtype.UUID{Bytes: uuid.MustParse(teamDelta), Valid: true}
+
+	err := suite.allocationService.DeleteAllocation(suite.suiteCtx, phaseID, uuid.MustParse(epsilonParticip), guard)
+	assert.ErrorIs(suite.T(), err, ErrAllocationNotFound)
+
+	teamID, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.suiteCtx, uuid.MustParse(epsilonParticip), phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID, "the foreign allocation must survive")
 }
 
 func TestAllocationServiceTestSuite(t *testing.T) {

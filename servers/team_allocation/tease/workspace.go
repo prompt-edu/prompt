@@ -56,6 +56,8 @@ func (s *TeaseService) UpsertTeaseWorkspace(ctx context.Context, coursePhaseID u
 }
 
 // SaveTeaseWorkspaceAndAllocations publishes a workspace and replaces allocations.
+// The payload is a whole-phase draft, so it overwrites any allocation written
+// directly through the allocation endpoints since the draft was loaded.
 func (s *TeaseService) SaveTeaseWorkspaceAndAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teaseDTO.TeaseSaveRequest, updatedBy uuid.UUID) (teaseDTO.TeaseWorkspace, error) {
 	if err := validateAllocations(req.Allocations); err != nil {
 		return teaseDTO.TeaseWorkspace{}, err

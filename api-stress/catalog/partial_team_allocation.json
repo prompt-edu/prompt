@@ -198,6 +198,28 @@
     "bodyType": null
   },
   {
+    "id": "team_allocation.put.allocation-courseParticipationID",
+    "service": "team_allocation",
+    "method": "PUT",
+    "path": "/team-allocation/api/course_phase/{coursePhaseID}/allocation/{courseParticipationID}",
+    "pathParams": ["coursePhaseID", "courseParticipationID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "write",
+    "handler": "updateAllocation",
+    "bodyType": "allocationDTO.UpdateAllocationRequest"
+  },
+  {
+    "id": "team_allocation.delete.allocation-courseParticipationID",
+    "service": "team_allocation",
+    "method": "DELETE",
+    "path": "/team-allocation/api/course_phase/{coursePhaseID}/allocation/{courseParticipationID}",
+    "pathParams": ["coursePhaseID", "courseParticipationID"],
+    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "category": "destructive",
+    "handler": "deleteAllocation",
+    "bodyType": null
+  },
+  {
     "id": "team_allocation.get.tease-course-phases",
     "service": "team_allocation",
     "method": "GET",

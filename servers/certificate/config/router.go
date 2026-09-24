@@ -8,11 +8,16 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	// The standardized GET /config reports which required settings are in place. The settings
+	// themselves are served under /settings, which the certificate client reads and writes.
+	promptTypes.RegisterConfigModule(routerGroup, service, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
+
 	settingsRouter := routerGroup.Group("/settings")
 
 	// Students are deliberately absent: the payload carries the full Typst

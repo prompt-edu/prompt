@@ -14,10 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -171,6 +173,38 @@ func (s *ConfigRouterTestSuite) TestGetTemplate_NoTemplate() {
 	s.router.ServeHTTP(resp, req)
 
 	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
+}
+
+func (s *ConfigRouterTestSuite) TestGetPhaseConfig() {
+	// RegisterRoutes wires the standardized endpoint behind the real SDK auth middleware, so this
+	// router reaches the handler directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
+	router := gin.New()
+	promptTypes.RegisterConfigEndpoint(router.Group("/api/course_phase/:coursePhaseID"), func(c *gin.Context) { c.Next() }, s.service)
+
+	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID), nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(s.T(), http.StatusOK, resp.Code)
+	var phaseConfig map[string]bool
+	assert.NoError(s.T(), json.Unmarshal(resp.Body.Bytes(), &phaseConfig))
+	assert.Equal(s.T(), map[string]bool{"template": true}, phaseConfig)
+
+	invalid, _ := http.NewRequest(http.MethodGet, "/api/course_phase/not-a-uuid/config", nil)
+	invalidResp := httptest.NewRecorder()
+	router.ServeHTTP(invalidResp, invalid)
+	assert.Equal(s.T(), http.StatusInternalServerError, invalidResp.Code)
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	RegisterRoutes(router.Group("/api/course_phase/:coursePhaseID"), NewConfigService(db.Queries{}), sdkTestUtils.MockPermissionMiddleware)
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "/api/course_phase/"+uuid.NewString()+"/config", nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
 }
 
 func TestConfigRouterTestSuite(t *testing.T) {

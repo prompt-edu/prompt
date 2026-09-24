@@ -62,6 +62,23 @@ test.describe('certificate API auth', () => {
     expect(res.status()).toBe(401)
   })
 
+  test('reports the unconfigured template on the standardized config endpoint', async ({
+    apiAs,
+  }) => {
+    // The prompt-sdk phase config contract: a map of required settings to
+    // whether they are in place. The graph-tail phase has no template.
+    const api = await apiAs('lecturer')
+    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    expect(res.status()).toBe(200)
+    expect(await res.json()).toEqual({ template: false })
+  })
+
+  test('rejects a student on the standardized config endpoint', async ({ apiAs }) => {
+    const api = await apiAs('student')
+    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    expect(res.status()).toBe(401)
+  })
+
   test('rejects a student and a course editor on the student page text endpoint', async ({
     apiAs,
   }) => {

@@ -155,6 +155,12 @@ available yet.
   release date has passed, so it is a good place to explain a wait.
 - Leaving the editor empty shows no extra message at all.
 
+### Copying a Course
+
+When you copy a course, the certificate template and the student download page text are copied into
+the new certificate phase. The release date and the download records are not, so the copied
+certificates stay unreleased until you set a release date.
+
 ---
 
 ## For Students

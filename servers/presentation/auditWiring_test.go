@@ -18,6 +18,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/presentation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/presentation"
 	"github.com/stretchr/testify/require"
@@ -99,6 +100,7 @@ func auditRouter(sink audit.Sink) *gin.Engine {
 
 	service := presentation.NewService(db.New(nil), nil, nil, "", 0, 0, 0, nil)
 	presentation.RegisterRoutes(coursePhaseAPI, service)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(nil, nil, nil))
 	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
 		&presentation.CopyHandler{Service: service},
@@ -288,6 +290,13 @@ func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
 				auditCoursePhaseID)
 		})
 	}
+}
+
+func TestAuditMiddlewareLabelsThePhaseDeletionRoute(t *testing.T) {
+	requireDeniedEvent(t, http.MethodDelete, auditCoursePhaseRoute,
+		coursePhaseDeletion.AuditAction,
+		"DELETE "+auditCoursePhaseTemplate,
+		auditCoursePhaseID)
 }
 
 func TestAuditMiddlewareLabelsTheCopyRoute(t *testing.T) {

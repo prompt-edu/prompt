@@ -125,3 +125,46 @@ func (a *S3Adapter) Delete(ctx context.Context, key string) error {
 	}
 	return nil
 }
+
+// maxDeleteObjectsKeys is the most keys one DeleteObjects call accepts.
+const maxDeleteObjectsKeys = 1000
+
+// DeletePrefix removes each listed page with a single DeleteObjects call. Pages are capped at
+// the batch limit, so a phase with many materials takes one request per thousand objects
+// rather than one per object, and stays well within core's per-module deletion timeout.
+func (a *S3Adapter) DeletePrefix(ctx context.Context, prefix string) error {
+	if err := ValidateDeletePrefix(prefix); err != nil {
+		return fmt.Errorf("delete S3 objects: %w", err)
+	}
+	pages := s3.NewListObjectsV2Paginator(a.client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(a.bucket), Prefix: aws.String(prefix), MaxKeys: aws.Int32(maxDeleteObjectsKeys),
+	})
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("list S3 objects under %q: %w", prefix, err)
+		}
+		if len(page.Contents) == 0 {
+			continue
+		}
+		objects := make([]types.ObjectIdentifier, 0, len(page.Contents))
+		for _, object := range page.Contents {
+			objects = append(objects, types.ObjectIdentifier{Key: object.Key})
+		}
+		response, err := a.client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(a.bucket),
+			Delete: &types.Delete{Objects: objects, Quiet: aws.Bool(true)},
+		})
+		if err != nil {
+			return fmt.Errorf("delete S3 objects under %q: %w", prefix, err)
+		}
+		// A successful response can still report keys it failed to delete.
+		if len(response.Errors) > 0 {
+			first := response.Errors[0]
+			return fmt.Errorf("delete S3 objects under %q: %d of %d failed, first %q: %s %s",
+				prefix, len(response.Errors), len(objects),
+				aws.ToString(first.Key), aws.ToString(first.Code), aws.ToString(first.Message))
+		}
+	}
+	return nil
+}

@@ -16,6 +16,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	auditMarkBatchAction   = "Marked assessments as completed"
+	auditUnmarkBatchAction = "Unmarked assessment completions"
+)
+
 // RegisterRoutes sets up assessment completion endpoints.
 // @Summary Assessment Completion Endpoints
 // @Description Manage assessment completion and grades.
@@ -36,8 +41,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionS
 	assessmentCompletionRouter.POST("", audit.Describe("Saved assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
 	assessmentCompletionRouter.PUT("", audit.Describe("Saved assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
 	assessmentCompletionRouter.POST("/mark-complete", audit.Describe("Marked assessment as completed"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentAsCompleted)
-	assessmentCompletionRouter.POST("/mark-complete/batch", audit.Describe("Marked assessments as completed"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentsAsCompleted)
-	assessmentCompletionRouter.PUT("/unmark/batch", audit.Describe("Unmarked assessment completions"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentsAsCompleted)
+	assessmentCompletionRouter.POST("/mark-complete/batch", audit.Describe(auditMarkBatchAction), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentsAsCompleted)
+	assessmentCompletionRouter.PUT("/unmark/batch", audit.Describe(auditUnmarkBatchAction), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentsAsCompleted)
 	assessmentCompletionRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentCompletion)
 	assessmentCompletionRouter.PUT("/course-participation/:courseParticipationID/unmark", audit.Describe("Unmarked assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentAsCompleted)
 	assessmentCompletionRouter.DELETE("/course-participation/:courseParticipationID", audit.Describe("Deleted assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteAssessmentCompletion)
@@ -255,6 +260,7 @@ func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context)
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
+	recordBatchAudit(c, auditMarkBatchAction, coursePhaseID, result.Marked)
 	c.JSON(http.StatusOK, result)
 }
 
@@ -292,6 +298,7 @@ func (s *AssessmentCompletionService) unmarkAssessmentsAsCompleted(c *gin.Contex
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
+	recordBatchAudit(c, auditUnmarkBatchAction, coursePhaseID, result.Unmarked)
 	c.JSON(http.StatusOK, result)
 }
 
@@ -450,6 +457,21 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// recordBatchAudit lists the changed participations on the audit entry, since the automatic
+// entry only knows the route and the IDs arrive in the request body.
+func recordBatchAudit(c *gin.Context, action string, coursePhaseID uuid.UUID, changed []uuid.UUID) {
+	courseParticipationIDs := make([]string, len(changed))
+	for i, id := range changed {
+		courseParticipationIDs[i] = id.String()
+	}
+	audit.Record(c, audit.Event{
+		Action:        action,
+		EntityType:    "assessmentCompletion",
+		CoursePhaseID: coursePhaseID.String(),
+		Metadata:      map[string]any{"courseParticipationIDs": courseParticipationIDs},
+	})
 }
 
 // authorName is the name stored on a completion, falling back to the university login and then

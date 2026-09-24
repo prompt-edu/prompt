@@ -2,12 +2,16 @@ package course
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/stretchr/testify/assert"
@@ -32,13 +36,28 @@ func (p stubPhaseProvider) DeleteModuleDataForCourse(context.Context, string, uu
 	return p.cleaned, p.err
 }
 
+func newDeleteCourseRouter(service *CourseService) *gin.Engine {
+	router := gin.New()
+	setupCourseRouter(router.Group("/api"), service, func() gin.HandlerFunc {
+		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin"})
+	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
+	return router
+}
+
+func deleteCourseRequest(router *gin.Engine, courseID uuid.UUID) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodDelete, "/api/courses/"+courseID.String(), nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	return resp
+}
+
 // A module that cannot drop its data must stop the course deletion before anything else is
 // touched, so the whole operation stays retryable. The queries and the pool are unset on
 // purpose: reaching either of them would mean the short circuit did not work.
 func TestDeleteCourseStopsWhenAModuleFails(t *testing.T) {
 	keycloakDeleted := false
-	provider := stubPhaseProvider{err: errors.New("the team allocation module could not delete its data")}
-	service := NewCourseService(db.Queries{}, nil, provider,
+	moduleErr := fmt.Errorf("%w: http://team-allocation:8083/api/course_phase/x answered 500: secret detail", coursePhase.ErrModuleDeletionFailed)
+	service := NewCourseService(db.Queries{}, nil, stubPhaseProvider{err: moduleErr},
 		func(context.Context, string, string, string) error { return nil },
 		func(context.Context, uuid.UUID) error {
 			keycloakDeleted = true
@@ -46,9 +65,11 @@ func TestDeleteCourseStopsWhenAModuleFails(t *testing.T) {
 		},
 	)
 
-	err := service.DeleteCourse(context.Background(), "Bearer token", uuid.New())
+	resp := deleteCourseRequest(newDeleteCourseRouter(service), uuid.New())
 
-	require.Error(t, err)
+	assert.Equal(t, http.StatusBadGateway, resp.Code, "a module failure is an upstream failure")
+	assert.NotContains(t, resp.Body.String(), "team-allocation", "the module URL must not reach the client")
+	assert.NotContains(t, resp.Body.String(), "secret detail", "the module's answer must not reach the client")
 	assert.False(t, keycloakDeleted, "the Keycloak groups must survive a failed module deletion")
 }
 

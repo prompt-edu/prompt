@@ -467,8 +467,7 @@ func (s *CourseService) DeleteCourse(ctx context.Context, authHeader string, cou
 	// the phase row and the Keycloak roles. On failure nothing has been touched yet.
 	cleanedPhaseIDs, err := s.coursePhases.DeleteModuleDataForCourse(ctx, authHeader, courseID)
 	if err != nil {
-		log.Error("Failed to delete course phase module data for course: ", err)
-		return errors.New("failed to delete the course phase data held by the phase modules")
+		return fmt.Errorf("failed to delete the course phase module data of course %s: %w", courseID, err)
 	}
 
 	tx, err := s.conn.Begin(ctx)

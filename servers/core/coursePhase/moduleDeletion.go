@@ -30,6 +30,11 @@ const (
 	moduleRequestTimeout = 10 * time.Second
 )
 
+// ErrModuleDeletionFailed marks a phase module that could not be asked or did not delete its data,
+// as opposed to a failure within core. The wrapped details name the module URL and quote the
+// module's answer, so they belong in the log and not in a response.
+var ErrModuleDeletionFailed = errors.New("a course phase module failed to delete its data")
+
 // moduleClient never follows redirects: a 3xx must surface as a failed deletion instead of being
 // replayed as a GET whose 200 would look like success.
 var moduleClient = &http.Client{
@@ -77,7 +82,10 @@ func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader st
 	}
 	wg.Wait()
 
-	return errors.Join(failures...)
+	if len(failures) > 0 {
+		return fmt.Errorf("%w: %w", ErrModuleDeletionFailed, errors.Join(failures...))
+	}
+	return nil
 }
 
 // DeleteModuleDataForCourse drops the module-held data of every phase of the course and returns the

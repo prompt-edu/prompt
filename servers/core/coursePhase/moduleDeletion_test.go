@@ -227,10 +227,25 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheDeletionFails() {
 
 			err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
-			assert.Error(suite.T(), err)
+			assert.ErrorIs(suite.T(), err, ErrModuleDeletionFailed)
 			assert.True(suite.T(), suite.phaseExists(phaseID), "the phase must survive so the deletion can be retried")
 		})
 	}
+}
+
+func (suite *ModuleDeletionTestSuite) TestAnswersAModuleFailureWithAGenericBadGateway() {
+	module := newFakeModule(supportsDeletion, http.StatusInternalServerError)
+	defer module.server.Close()
+	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/course_phases/"+phaseID.String(), nil)
+	req.Header.Set("Authorization", testAuthHeader)
+	resp := httptest.NewRecorder()
+	setupRouter(suite.service).ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusBadGateway, resp.Code, "a module failure is an upstream failure")
+	assert.NotContains(suite.T(), resp.Body.String(), module.server.URL, "the module URL must not reach the client")
+	assert.True(suite.T(), suite.phaseExists(phaseID))
 }
 
 func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheCapabilityIsUnknown() {

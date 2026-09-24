@@ -35,7 +35,8 @@ func (s *ConfigService) HandlePhaseConfig(c *gin.Context) (map[string]bool, erro
 }
 
 // GetPhaseConfig reports the configuration a certificate phase needs before students can download.
-// Only the template is required: without a release date the certificate is available immediately.
+// Only the template is required. The release date is deliberately not a setup key: without one
+// the phase is complete but stays unreleased.
 // Unlike GetCoursePhaseConfig, it never creates the config row, so it stays a pure read.
 func (s *ConfigService) GetPhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (map[string]bool, error) {
 	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)

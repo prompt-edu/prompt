@@ -135,7 +135,7 @@ func TestCopyServiceTestSuite(t *testing.T) {
 }
 
 // The probe core sends to detect copy support never reaches the database.
-func TestHandlePhaseCopyProbeReturnsNoError(t *testing.T) {
+func TestCopyPhaseProbeReturnsNoError(t *testing.T) {
 	phaseID := uuid.New()
 	require.NoError(t, NewCopyService(*db.New(nil)).CopyPhase(context.Background(), phaseID, phaseID))
 }

@@ -317,14 +317,14 @@ func (s *GeneratorService) getTemplateConfig(c *gin.Context, coursePhaseID uuid.
 	return config, nil
 }
 
-// ensureTemplateConfigured writes the response and returns ok=false when the template is missing
-// (404) or the config lookup fails (500). The fetched config is returned for reuse on success.
 // isReleased reports whether students may download: a certificate is released only once a release
 // date is set and has passed. Without a release date the phase is unreleased.
 func isReleased(config db.CoursePhaseConfig, now time.Time) bool {
 	return config.ReleaseDate.Valid && !config.ReleaseDate.Time.After(now)
 }
 
+// ensureTemplateConfigured writes the response and returns ok=false when the template is missing
+// (404) or the config lookup fails (500). The fetched config is returned for reuse on success.
 func (s *GeneratorService) ensureTemplateConfigured(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, bool) {
 	config, err := s.getTemplateConfig(c, coursePhaseID)
 	if err != nil {

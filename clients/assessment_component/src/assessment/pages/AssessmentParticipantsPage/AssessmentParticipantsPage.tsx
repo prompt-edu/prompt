@@ -2,8 +2,8 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { useMemo, useRef } from 'react'
@@ -43,46 +43,18 @@ export const AssessmentParticipantsPage = () => {
     navigate(target)
   }
 
-  const {
-    data: coursePhaseConfig,
-    isPending: isCoursePhaseConfigPending,
-    isError: isCoursePhaseConfigError,
-    refetch: refetchCoursePhaseConfig,
-  } = useGetCoursePhaseConfig()
+  const coursePhaseConfigQuery = useGetCoursePhaseConfig()
+  const coursePhaseConfig = coursePhaseConfigQuery.data
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
   const { data: teams } = useGetAllTeams()
 
-  const {
-    data: assessmentCompletions,
-    isPending: isAssessmentCompletionsPending,
-    isError: isAssessmentCompletionsError,
-    refetch: refetchAssessmentCompletions,
-  } = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
+  const assessmentCompletionsQuery = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
+  const evaluationCompletionsQuery = useGetAllEvaluationCompletions()
 
-  const {
-    data: evaluationCompletions,
-    isPending: isEvaluationCompletionsPending,
-    isError: isEvaluationCompletionsError,
-    refetch: refetchEvaluationCompletions,
-  } = useGetAllEvaluationCompletions()
-
-  const isError =
-    isCoursePhaseConfigError ||
-    (assessmentEnabled && isAssessmentCompletionsError) ||
-    isEvaluationCompletionsError
-  const isPending =
-    isCoursePhaseConfigPending ||
-    (assessmentEnabled && isAssessmentCompletionsPending) ||
-    isEvaluationCompletionsPending
-  const refetch = () => {
-    refetchCoursePhaseConfig()
-    refetchEvaluationCompletions()
-    if (assessmentEnabled) {
-      refetchAssessmentCompletions()
-    }
-  }
+  const assessmentCompletions = assessmentCompletionsQuery.data
+  const evaluationCompletions = evaluationCompletionsQuery.data
 
   const selfEvaluationCompletions = useMemo(() => {
     return (
@@ -153,53 +125,53 @@ export const AssessmentParticipantsPage = () => {
     },
   ]
 
-  if (isError) {
-    return <ErrorPage message='Error loading assessments' onRetry={refetch} />
-  }
-  if (isPending) {
-    return <LoadingPage />
-  }
-
   return (
-    <div id='table-view' className='relative flex flex-col'>
-      <ManagementPageHeader>
-        {assessmentEnabled ? 'Assessment Participants' : 'Evaluation Participants'}
-      </ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        {assessmentEnabled
-          ? 'Click on a participant to view/edit their assessment. Cmd/Ctrl-click to open it in a new tab.'
-          : 'Assessment is disabled for this phase. This table tracks evaluation progress only.'}
-      </p>
-      {assessmentEnabled && (
-        <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
-          <AssessmentDiagram
-            participations={participations}
-            scoreLevels={scoreLevels}
-            completions={assessmentCompletions}
-          />
-          <GradeDistributionDiagram participations={participations} grades={completedGrades} />
-          <ScoreLevelDistributionDiagram
-            participations={participations}
-            scoreLevels={scoreLevels}
+    <QueryGate
+      queries={[coursePhaseConfigQuery, assessmentCompletionsQuery, evaluationCompletionsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage message='Error loading assessments' onRetry={refetch} />
+      )}
+    >
+      <div id='table-view' className='relative flex flex-col'>
+        <ManagementPageHeader>
+          {assessmentEnabled ? 'Assessment Participants' : 'Evaluation Participants'}
+        </ManagementPageHeader>
+        <p className='text-sm text-muted-foreground mb-4'>
+          {assessmentEnabled
+            ? 'Click on a participant to view/edit their assessment. Cmd/Ctrl-click to open it in a new tab.'
+            : 'Assessment is disabled for this phase. This table tracks evaluation progress only.'}
+        </p>
+        {assessmentEnabled && (
+          <div className='grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 mb-6'>
+            <AssessmentDiagram
+              participations={participations}
+              scoreLevels={scoreLevels}
+              completions={assessmentCompletions}
+            />
+            <GradeDistributionDiagram participations={participations} grades={completedGrades} />
+            <ScoreLevelDistributionDiagram
+              participations={participations}
+              scoreLevels={scoreLevels}
+            />
+          </div>
+        )}
+        <div
+          className='w-full'
+          onClickCapture={(e) => {
+            openInNewTabRef.current = e.metaKey || e.ctrlKey
+          }}
+        >
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId!}
+            participants={participations ?? []}
+            extraColumns={extraColumns}
+            extraFilters={extraFilters}
+            onClickRowAction={
+              assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
+            }
           />
         </div>
-      )}
-      <div
-        className='w-full'
-        onClickCapture={(e) => {
-          openInNewTabRef.current = e.metaKey || e.ctrlKey
-        }}
-      >
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
-          participants={participations ?? []}
-          extraColumns={extraColumns}
-          extraFilters={extraFilters}
-          onClickRowAction={
-            assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
-          }
-        />
       </div>
-    </div>
+    </QueryGate>
   )
 }

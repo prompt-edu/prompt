@@ -4,7 +4,7 @@ import {
   AlertDescription,
   AlertTitle,
   ErrorPage,
-  LoadingPage,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
@@ -26,112 +26,46 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
   const { courseId } = useParams<{ courseId: string; phaseId: string }>()
   const isStudent = isStudentOfCourse(courseId ?? '')
 
-  const {
-    data: coursePhaseConfig,
-    isPending: isCoursePhaseConfigPending,
-    isError: isCoursePhaseConfigError,
-    refetch: refetchCoursePhaseConfig,
-  } = useGetCoursePhaseConfig()
+  const coursePhaseConfigQuery = useGetCoursePhaseConfig()
+  const coursePhaseConfig = coursePhaseConfigQuery.data
 
-  const {
-    isPending: isSelfEvaluationCategoriesPending,
-    isError: isSelfEvaluationCategoriesError,
-    refetch: refetchSelfEvaluationCategories,
-  } = useGetEvaluationCategoriesWithCompetencies(
+  const selfEvaluationCategories = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
     coursePhaseConfig?.selfEvaluationEnabled ?? false,
   )
-
-  const {
-    isPending: isPeerEvaluationCategoriesPending,
-    isError: isPeerEvaluationCategoriesError,
-    refetch: refetchPeerEvaluationCategories,
-  } = useGetEvaluationCategoriesWithCompetencies(
+  const peerEvaluationCategories = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.PEER,
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
-
-  const {
-    isPending: isTutorEvaluationCategoriesPending,
-    isError: isTutorEvaluationCategoriesError,
-    refetch: refetchTutorEvaluationCategories,
-  } = useGetEvaluationCategoriesWithCompetencies(
+  const tutorEvaluationCategories = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.TUTOR,
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 
-  const {
-    isPending: isTeamsPending,
-    isError: isTeamsError,
-    refetch: refetchTeams,
-  } = useGetAllTeams()
-
-  const {
-    isPending: isParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useGetMyParticipation({ enabled: isStudent })
-
-  const {
-    isPending: isCompletionPending,
-    isError: isCompletionError,
-    refetch: refetchCompletion,
-  } = useGetMyEvaluationCompletions({ enabled: isStudent })
-
-  const {
-    isPending: isMyEvaluationsPending,
-    isError: isMyEvaluationsError,
-    refetch: refetchMyEvaluations,
-  } = useGetMyEvaluations({ enabled: isStudent })
-
-  const isError =
-    (coursePhaseConfig?.selfEvaluationEnabled && isSelfEvaluationCategoriesError) ||
-    (coursePhaseConfig?.peerEvaluationEnabled && isPeerEvaluationCategoriesError) ||
-    (coursePhaseConfig?.tutorEvaluationEnabled && isTutorEvaluationCategoriesError) ||
-    isTeamsError ||
-    isCoursePhaseConfigError ||
-    (isStudent && isParticipationsError) ||
-    (isStudent && isCompletionError) ||
-    (isStudent && isMyEvaluationsError)
-  const isPending =
-    (coursePhaseConfig?.selfEvaluationEnabled && isSelfEvaluationCategoriesPending) ||
-    (coursePhaseConfig?.peerEvaluationEnabled && isPeerEvaluationCategoriesPending) ||
-    (coursePhaseConfig?.tutorEvaluationEnabled && isTutorEvaluationCategoriesPending) ||
-    isTeamsPending ||
-    isCoursePhaseConfigPending ||
-    (isStudent && isParticipationsPending) ||
-    (isStudent && isCompletionPending) ||
-    (isStudent && isMyEvaluationsPending)
-  const refetch = () => {
-    if (coursePhaseConfig?.selfEvaluationEnabled) {
-      refetchSelfEvaluationCategories()
-    }
-    if (coursePhaseConfig?.peerEvaluationEnabled) {
-      refetchPeerEvaluationCategories()
-    }
-    if (coursePhaseConfig?.tutorEvaluationEnabled) {
-      refetchTutorEvaluationCategories()
-    }
-    refetchTeams()
-    refetchCoursePhaseConfig()
-    if (isStudent) {
-      refetchCoursePhaseParticipations()
-      refetchCompletion()
-      refetchMyEvaluations()
-    }
-  }
-
-  if (isError)
-    return (
-      <ErrorPage
-        onRetry={refetch}
-        description='Could not fetch self, peer, or tutor evaluation categories'
-      />
-    )
-  if (isPending) return <LoadingPage />
+  const teams = useGetAllTeams()
+  const myParticipation = useGetMyParticipation({ enabled: isStudent })
+  const myEvaluationCompletions = useGetMyEvaluationCompletions({ enabled: isStudent })
+  const myEvaluations = useGetMyEvaluations({ enabled: isStudent })
 
   return (
-    <>
+    <QueryGate
+      queries={[
+        coursePhaseConfigQuery,
+        selfEvaluationCategories,
+        peerEvaluationCategories,
+        tutorEvaluationCategories,
+        teams,
+        myParticipation,
+        myEvaluationCompletions,
+        myEvaluations,
+      ]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage
+          onRetry={refetch}
+          description='Could not fetch self, peer, or tutor evaluation categories'
+        />
+      )}
+    >
       {!isStudent && (
         <Alert>
           <TriangleAlert className='h-4 w-4' />
@@ -144,6 +78,6 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
         </Alert>
       )}
       {children}
-    </>
+    </QueryGate>
   )
 }

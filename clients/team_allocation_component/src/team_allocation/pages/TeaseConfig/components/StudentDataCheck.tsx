@@ -3,8 +3,7 @@ import {
   Button,
   Card,
   CardContent,
-  ErrorPage,
-  LoadingPage,
+  QueryGate,
   Tabs,
   TabsContent,
   TabsList,
@@ -26,15 +25,12 @@ export const StudentDataCheck = () => {
 
   const [checks, setChecks] = useState<ValidationResult[] | null>(null)
 
-  const {
-    data: students,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery<TeaseStudent[]>({
+  const studentsQuery = useQuery<TeaseStudent[]>({
     queryKey: ['tease_students', phaseId],
     queryFn: () => getAllTeaseStudents(phaseId ?? ''),
   })
+
+  const students = studentsQuery.data
 
   useEffect(() => {
     if (!students || students.length === 0) return
@@ -77,109 +73,99 @@ export const StudentDataCheck = () => {
     setChecks(results)
   }, [students])
 
-  if (isPending) {
-    return <LoadingPage />
-  }
-
-  if (isError) {
-    return (
-      <ErrorPage
-        onRetry={() => {
-          refetch()
-        }}
-      />
-    )
-  }
-
-  if (!checks || checks.length === 0) {
-    return (
-      <Card>
-        <CardContent className='p-6 text-center'>
-          <Users className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-          <h3 className='text-lg font-medium mb-2'>No student data available</h3>
-          <p className='text-muted-foreground'>
-            There are no students enrolled in this phase yet, or the data hasn`t been loaded.
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Group checks by category
-  const deviceChecks = checks.filter((check) => check.category === 'devices')
-  const commentChecks = checks.filter((check) => check.category === 'comments')
-  const scoreChecks = checks.filter((check) => check.category === 'score')
-  const languageChecks = checks.filter((check) => check.category === 'language')
-
   return (
-    <div className='space-y-6'>
-      <DataCompletionSummary
-        checks={checks}
-        students={students}
-        isLoading={isPending}
-        isError={isError}
-      />
+    <QueryGate queries={[studentsQuery]}>
+      {() => {
+        if (!checks || checks.length === 0) {
+          return (
+            <Card>
+              <CardContent className='p-6 text-center'>
+                <Users className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
+                <h3 className='text-lg font-medium mb-2'>No student data available</h3>
+                <p className='text-muted-foreground'>
+                  There are no students enrolled in this phase yet, or the data hasn`t been loaded.
+                </p>
+              </CardContent>
+            </Card>
+          )
+        }
 
-      <Tabs defaultValue='previous' className='w-full'>
-        <TabsList className='grid grid-cols-2 mb-4'>
-          <TabsTrigger value='previous'>Previous Phases</TabsTrigger>
-          <TabsTrigger value='survey'>Survey Results</TabsTrigger>
-        </TabsList>
+        const deviceChecks = checks.filter((check) => check.category === 'devices')
+        const commentChecks = checks.filter((check) => check.category === 'comments')
+        const scoreChecks = checks.filter((check) => check.category === 'score')
+        const languageChecks = checks.filter((check) => check.category === 'language')
 
-        <TabsContent value='previous' className='space-y-4'>
+        return (
           <div className='space-y-6'>
-            {deviceChecks.map((check, index) => (
-              <CheckItem key={index} check={check} />
-            ))}
+            <DataCompletionSummary checks={checks} students={students} />
+
+            <Tabs defaultValue='previous' className='w-full'>
+              <TabsList className='grid grid-cols-2 mb-4'>
+                <TabsTrigger value='previous'>Previous Phases</TabsTrigger>
+                <TabsTrigger value='survey'>Survey Results</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value='previous' className='space-y-4'>
+                <div className='space-y-6'>
+                  {deviceChecks.map((check, index) => (
+                    <CheckItem key={index} check={check} />
+                  ))}
+                </div>
+
+                <div className='space-y-6'>
+                  {commentChecks.map((check, index) => (
+                    <CheckItem key={index} check={check} />
+                  ))}
+                </div>
+
+                <div className='space-y-6'>
+                  {scoreChecks.map((check, index) => (
+                    <CheckItem key={index} check={check} />
+                  ))}
+                </div>
+
+                <div className='space-y-6'>
+                  {languageChecks.map((check, index) => (
+                    <CheckItem key={index} check={check} />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value='survey' className='space-y-6'>
+                <SurveySubmissionOverview students={students || []} />
+              </TabsContent>
+            </Tabs>
+
+            {!checks?.every((c) => c.isValid) && (
+              <p className='text-sm text-muted-foreground mt-2 text-left'>
+                <span className='font-semibold'>
+                  Please ensure all student data fields are completed before proceeding to TEASE!{' '}
+                </span>
+              </p>
+            )}
+            <div className='mt-4 w-full'>
+              {phaseId ? (
+                <Button asChild className='gap-2 w-full'>
+                  <a
+                    href={`/tease?coursePhaseId=${phaseId}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    Launch Tease to Matchmake
+                    <ArrowRight className='ml-2 h-4 w-4' />
+                  </a>
+                </Button>
+              ) : (
+                <Button disabled className='gap-2 w-full'>
+                  Launch Tease to Matchmake
+                  <ArrowRight className='ml-2 h-4 w-4' />
+                </Button>
+              )}
+            </div>
           </div>
-
-          <div className='space-y-6'>
-            {commentChecks.map((check, index) => (
-              <CheckItem key={index} check={check} />
-            ))}
-          </div>
-
-          <div className='space-y-6'>
-            {scoreChecks.map((check, index) => (
-              <CheckItem key={index} check={check} />
-            ))}
-          </div>
-
-          <div className='space-y-6'>
-            {languageChecks.map((check, index) => (
-              <CheckItem key={index} check={check} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value='survey' className='space-y-6'>
-          <SurveySubmissionOverview students={students || []} />
-        </TabsContent>
-      </Tabs>
-
-      {!checks?.every((c) => c.isValid) && (
-        <p className='text-sm text-muted-foreground mt-2 text-left'>
-          <span className='font-semibold'>
-            Please ensure all student data fields are completed before proceeding to TEASE!{' '}
-          </span>
-        </p>
-      )}
-      <div className='mt-4 w-full'>
-        {phaseId ? (
-          <Button asChild className='gap-2 w-full'>
-            <a href={`/tease?coursePhaseId=${phaseId}`} target='_blank' rel='noopener noreferrer'>
-              Launch Tease to Matchmake
-              <ArrowRight className='ml-2 h-4 w-4' />
-            </a>
-          </Button>
-        ) : (
-          <Button disabled className='gap-2 w-full'>
-            Launch Tease to Matchmake
-            <ArrowRight className='ml-2 h-4 w-4' />
-          </Button>
-        )}
-      </div>
-    </div>
+        )
+      }}
+    </QueryGate>
   )
 }
 

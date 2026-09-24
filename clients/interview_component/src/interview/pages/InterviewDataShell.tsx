@@ -5,7 +5,7 @@ import {
   getCoursePhase,
   getCoursePhaseParticipations,
 } from '@tumaet/prompt-shared-state'
-import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
+import { QueryGate } from '@tumaet/prompt-ui-components'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewReview } from '../interfaces/InterviewReview'
@@ -23,33 +23,18 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const { setParticipations, setInterviewSlots, setInterviewReviews } = useParticipationStore()
   const { setCoursePhase } = useCoursePhaseStore()
-  const {
-    data: coursePhaseParticipations,
-    isPending: isCoursePhaseParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useQuery<CoursePhaseParticipationsWithResolution>({
+  const coursePhaseParticipationsQuery = useQuery<CoursePhaseParticipationsWithResolution>({
     queryKey: ['participants', phaseId],
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
   })
 
-  const {
-    data: coursePhase,
-    isPending: isCoursePhasePending,
-    isError: isCoursePhaseError,
-    refetch: refetchCoursePhase,
-  } = useQuery<CoursePhaseWithMetaData>({
+  const coursePhaseQuery = useQuery<CoursePhaseWithMetaData>({
     queryKey: ['course_phase', phaseId],
     queryFn: () => getCoursePhase(phaseId ?? ''),
   })
 
   // Fetch interview slots with assignments from the interview server
-  const {
-    data: interviewSlotsWithAssignments,
-    isPending: isInterviewSlotsPending,
-    isError: isInterviewSlotsError,
-    refetch: refetchInterviewSlots,
-  } = useQuery<InterviewSlotWithAssignments[]>({
+  const interviewSlotsQuery = useQuery<InterviewSlotWithAssignments[]>({
     queryKey: ['interviewSlotsWithAssignments', phaseId],
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
@@ -61,30 +46,16 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
   })
 
   // Fetch interview reviews (score, interviewer, answers) from the interview server
-  const {
-    data: interviewReviews,
-    isPending: isInterviewReviewsPending,
-    isError: isInterviewReviewsError,
-    refetch: refetchInterviewReviews,
-  } = useQuery<InterviewReview[]>({
+  const interviewReviewsQuery = useQuery<InterviewReview[]>({
     queryKey: ['interviewReviews', phaseId],
     queryFn: () => getInterviewReviews(phaseId ?? ''),
     enabled: !!phaseId,
   })
 
-  const isError =
-    isParticipationsError || isCoursePhaseError || isInterviewSlotsError || isInterviewReviewsError
-  const isPending =
-    isCoursePhaseParticipationsPending ||
-    isCoursePhasePending ||
-    isInterviewSlotsPending ||
-    isInterviewReviewsPending
-  const refetch = () => {
-    refetchCoursePhaseParticipations()
-    refetchCoursePhase()
-    refetchInterviewSlots()
-    refetchInterviewReviews()
-  }
+  const { data: coursePhaseParticipations } = coursePhaseParticipationsQuery
+  const { data: coursePhase } = coursePhaseQuery
+  const { data: interviewSlotsWithAssignments } = interviewSlotsQuery
+  const { data: interviewReviews } = interviewReviewsQuery
 
   useEffect(() => {
     if (coursePhaseParticipations) {
@@ -125,5 +96,16 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     }
   }, [interviewReviews, setInterviewReviews])
 
-  return <>{isError ? <ErrorPage onRetry={refetch} /> : isPending ? <LoadingPage /> : children}</>
+  return (
+    <QueryGate
+      queries={[
+        coursePhaseParticipationsQuery,
+        coursePhaseQuery,
+        interviewSlotsQuery,
+        interviewReviewsQuery,
+      ]}
+    >
+      {children}
+    </QueryGate>
+  )
 }

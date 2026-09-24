@@ -6,8 +6,8 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { TriangleAlert } from 'lucide-react'
 import { useMemo } from 'react'
@@ -18,17 +18,13 @@ import type { ResolvedParticipations } from '../../network/resolveParticipations
 export const MatchingParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: resolvedParticipations,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery<ResolvedParticipations>({
+  const participationsQuery = useQuery<ResolvedParticipations>({
     queryKey: ['participants', phaseId],
     queryFn: () => getResolvedCoursePhaseParticipations(phaseId ?? ''),
     enabled: !!phaseId,
   })
 
+  const resolvedParticipations = participationsQuery.data
   const participations = resolvedParticipations?.participations
   const failedResolutions = resolvedParticipations?.failedResolutions ?? []
 
@@ -55,12 +51,10 @@ export const MatchingParticipantsPage = () => {
   return (
     <div>
       <ManagementPageHeader>Matching Participants</ManagementPageHeader>
-      {isError ? (
-        <ErrorPage onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingPage />
+      {!phaseId ? (
+        <ErrorPage description='Invalid course phase ID' />
       ) : (
-        <>
+        <QueryGate queries={[participationsQuery]}>
           {failedResolutions.length > 0 && (
             <Alert variant='destructive' className='mb-4'>
               <TriangleAlert className='h-4 w-4' />
@@ -73,12 +67,12 @@ export const MatchingParticipantsPage = () => {
             </Alert>
           )}
           <CoursePhaseParticipationsTable
-            phaseId={phaseId!}
+            phaseId={phaseId}
             participants={participations ?? []}
             extraColumns={[interviewScoreColumn]}
             exportDeps={{ prevDataKeys: ['score'] }}
           />
-        </>
+        </QueryGate>
       )}
     </div>
   )

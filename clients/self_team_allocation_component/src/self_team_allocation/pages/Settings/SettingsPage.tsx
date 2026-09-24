@@ -4,6 +4,7 @@ import {
   ManagementPageHeader,
   MissingSettings,
   type MissingSettingsItem,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -15,34 +16,20 @@ import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTime
 
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const {
-    data: timeframe,
-    isPending: isTimeframePending,
-    isError: isTimeframeError,
-    refetch: refetchTimeframe,
-  } = useQuery<Timeframe>({
+  const timeframeQuery = useQuery<Timeframe>({
     queryKey: ['timeframe', phaseId],
     queryFn: () => getTimeframe(phaseId ?? ''),
   })
 
-  const {
-    data: fetchedConfig,
-    isPending: isConfigPending,
-    isError: isConfigError,
-    refetch: refetchConfig,
-  } = useQuery<Record<string, boolean>>({
+  const configQuery = useQuery<Record<string, boolean>>({
     queryKey: ['team_allocation_config', phaseId],
     queryFn: () => getConfig(phaseId ?? ''),
   })
 
-  const [missingConfigs, setMissingConfigs] = useState<MissingSettingsItem[]>([])
+  const timeframe = timeframeQuery.data
+  const fetchedConfig = configQuery.data
 
-  const isPending = isTimeframePending || isConfigPending
-  const isError = isTimeframeError || isConfigError
-  const refetch = () => {
-    refetchTimeframe()
-    refetchConfig()
-  }
+  const [missingConfigs, setMissingConfigs] = useState<MissingSettingsItem[]>([])
 
   const configToReadableTitle = (key: string): string => {
     switch (key) {
@@ -77,23 +64,26 @@ export const SettingsPage = () => {
     setMissingConfigs(items)
   }, [fetchedConfig])
 
-  if (isPending) {
-    return (
-      <div className='flex items-center justify-center h-full'>
-        <Loader2 className='animate-spin' />
-      </div>
-    )
-  }
-
-  if (isError) {
-    return <ErrorPage onRetry={refetch} />
-  }
-
   return (
-    <div>
-      <ManagementPageHeader>Settings</ManagementPageHeader>
-      <MissingSettings elements={missingConfigs} />
-      <TeamAllocationTimeframeSettings teamAllocationTimeframe={timeframe} />
-    </div>
+    <QueryGate
+      queries={[timeframeQuery, configQuery]}
+      loadingFallback={
+        <div className='flex items-center justify-center h-full'>
+          <Loader2 className='animate-spin' />
+        </div>
+      }
+    >
+      {() =>
+        !timeframe ? (
+          <ErrorPage description='Could not fetch the team allocation timeframe' />
+        ) : (
+          <div>
+            <ManagementPageHeader>Settings</ManagementPageHeader>
+            <MissingSettings elements={missingConfigs} />
+            <TeamAllocationTimeframeSettings teamAllocationTimeframe={timeframe} />
+          </div>
+        )
+      }
+    </QueryGate>
   )
 }

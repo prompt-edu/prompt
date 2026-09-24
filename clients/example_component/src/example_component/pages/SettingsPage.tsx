@@ -3,8 +3,8 @@ import {
   Card,
   CardContent,
   ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { getExampleInfo } from '../network/queries/getExampleInfo'
@@ -12,34 +12,30 @@ import { getExampleInfo } from '../network/queries/getExampleInfo'
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: exampleInfo,
-    isPending: isExampleInfoPending,
-    isError: isExampleInfoError,
-    refetch: refetchExampleInfo,
-  } = useQuery<string>({
+  const exampleInfoQuery = useQuery<string>({
     queryKey: ['exampleInfo', phaseId],
     queryFn: () => getExampleInfo(phaseId ?? ''),
   })
 
-  if (isExampleInfoError)
-    return (
-      <ErrorPage onRetry={refetchExampleInfo} description='Could not fetch example information' />
-    )
-  if (isExampleInfoPending) return <LoadingPage />
-
   return (
-    <div>
-      <ManagementPageHeader>Example Component Settings</ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        This is the settings page for the Example Component.
-      </p>
-      <Card className='w-full max-w-md'>
-        <CardContent className='pt-6'>
-          <p className='text-center'>{exampleInfo}</p>
-        </CardContent>
-      </Card>
-    </div>
+    <QueryGate
+      queries={[exampleInfoQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage onRetry={refetch} description='Could not fetch example information' />
+      )}
+    >
+      <div>
+        <ManagementPageHeader>Example Component Settings</ManagementPageHeader>
+        <p className='text-sm text-muted-foreground mb-4'>
+          This is the settings page for the Example Component.
+        </p>
+        <Card className='w-full max-w-md'>
+          <CardContent className='pt-6'>
+            <p className='text-center'>{exampleInfoQuery.data}</p>
+          </CardContent>
+        </Card>
+      </div>
+    </QueryGate>
   )
 }
 

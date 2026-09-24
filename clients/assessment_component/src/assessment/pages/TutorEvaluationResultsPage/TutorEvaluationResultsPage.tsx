@@ -4,7 +4,7 @@ import {
   CardContent,
   ErrorPage,
   getStudentName,
-  LoadingPage,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 import { useMemo } from 'react'
@@ -35,29 +35,15 @@ export const TutorEvaluationResultsPage = () => {
     coursePhaseConfig?.tutorEvaluationEnabled ?? false,
   )
 
-  const {
-    data: tutorEvaluations = [],
-    isPending: isEvaluationsPending,
-    isError: isEvaluationsError,
-    refetch: refetchEvaluations,
-  } = useGetEvaluationsForTutorInPhase(tutorId ?? '', {
+  const evaluationsQuery = useGetEvaluationsForTutorInPhase(tutorId ?? '', {
     enabled: !!tutorId,
   })
-  const {
-    data: feedbackItems = [],
-    isPending: isFeedbackItemsPending,
-    isError: isFeedbackItemsError,
-    refetch: refetchFeedbackItems,
-  } = useGetFeedbackItemsForTutorInPhase(tutorId ?? '', {
+  const feedbackItemsQuery = useGetFeedbackItemsForTutorInPhase(tutorId ?? '', {
     enabled: !!tutorId,
   })
 
-  const isPending = isEvaluationsPending || isFeedbackItemsPending
-  const isError = isEvaluationsError || isFeedbackItemsError
-  const refetch = () => {
-    refetchEvaluations()
-    refetchFeedbackItems()
-  }
+  const tutorEvaluations = evaluationsQuery.data ?? []
+  const feedbackItems = feedbackItemsQuery.data ?? []
 
   const tutor = useMemo(() => {
     for (const team of teams) {
@@ -98,112 +84,115 @@ export const TutorEvaluationResultsPage = () => {
     [tutorEvaluations],
   )
 
-  if (isError) return <ErrorPage onRetry={refetch} />
-  if (isPending) return <LoadingPage />
-
-  if (!tutor) {
-    return <ErrorPage message='The requested tutor could not be found.' />
-  }
-
   return (
-    <>
-      <div className='space-y-4 print:hidden'>
-        <EvaluationHeader
-          previousAction={
-            prevTutor && (
-              <Button
-                variant='outline'
-                className='h-10 shrink-0'
-                aria-label={`Navigate to previous tutor: ${getStudentName(prevTutor)}`}
-                onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
-              >
-                <ChevronLeft className='h-4 w-4' />
-                <span className='hidden md:inline'>{getStudentName(prevTutor)}</span>
-              </Button>
-            )
-          }
-          nextAction={
-            nextTutor && (
-              <Button
-                variant='outline'
-                className='h-10 shrink-0'
-                aria-label={`Navigate to next tutor: ${getStudentName(nextTutor)}`}
-                onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
-              >
-                <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
-                <ChevronRight className='h-4 w-4' />
-              </Button>
-            )
-          }
-        >
-          Tutor Evaluation Results for {getStudentName(tutor)}
-        </EvaluationHeader>
-
-        {tutorEvaluationCategories.length === 0 ? (
-          <Card>
-            <CardContent className='p-6'>
-              <p className='text-center text-muted-foreground'>
-                No evaluation categories configured yet.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className='space-y-6'>
-            <div className='space-y-4'>
-              {tutorEvaluationCategories.map((category) => {
-                return (
-                  <CategoryEvaluation
-                    key={category.id}
-                    category={category}
-                    evaluations={tutorEvaluations.filter((evaluation) =>
-                      category.competencies
-                        .map((competency) => competency.id)
-                        .includes(evaluation.competencyID),
-                    )}
-                  />
-                )
-              })}
-            </div>
-
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-              <FeedbackItemDisplayPanel
-                feedbackItems={negativeFeedbackItems}
-                feedbackType='negative'
-                studentName={tutor.firstName}
-              />
-              <FeedbackItemDisplayPanel
-                feedbackItems={positiveFeedbackItems}
-                feedbackType='positive'
-                studentName={tutor.firstName}
-              />
-            </div>
-          </div>
-        )}
-
-        {tutorEvaluationCategories.length > 0 && (
-          <div className='flex justify-end pt-4'>
-            <Button variant='outline' onClick={printPage} className='gap-2'>
-              <Printer className='h-4 w-4' />
-              PDF / Print
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <PrintReport
-        title={`Tutor Evaluation Results for ${getStudentName(tutor)}`}
-        subtitle={tutor.teamName}
-        meta={
-          evaluatorCount > 1 ? (
-            <span>
-              <strong>Evaluators:</strong> {evaluatorCount}
-            </span>
-          ) : undefined
+    <QueryGate queries={[evaluationsQuery, feedbackItemsQuery]}>
+      {() => {
+        if (!tutor) {
+          return <ErrorPage message='The requested tutor could not be found.' />
         }
-        categories={tutorEvaluationCategories}
-        scores={reportScores}
-        feedbackItems={feedbackItems}
-      />
-    </>
+
+        return (
+          <>
+            <div className='space-y-4 print:hidden'>
+              <EvaluationHeader
+                previousAction={
+                  prevTutor && (
+                    <Button
+                      variant='outline'
+                      className='h-10 shrink-0'
+                      aria-label={`Navigate to previous tutor: ${getStudentName(prevTutor)}`}
+                      onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
+                    >
+                      <ChevronLeft className='h-4 w-4' />
+                      <span className='hidden md:inline'>{getStudentName(prevTutor)}</span>
+                    </Button>
+                  )
+                }
+                nextAction={
+                  nextTutor && (
+                    <Button
+                      variant='outline'
+                      className='h-10 shrink-0'
+                      aria-label={`Navigate to next tutor: ${getStudentName(nextTutor)}`}
+                      onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
+                    >
+                      <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
+                      <ChevronRight className='h-4 w-4' />
+                    </Button>
+                  )
+                }
+              >
+                Tutor Evaluation Results for {getStudentName(tutor)}
+              </EvaluationHeader>
+
+              {tutorEvaluationCategories.length === 0 ? (
+                <Card>
+                  <CardContent className='p-6'>
+                    <p className='text-center text-muted-foreground'>
+                      No evaluation categories configured yet.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className='space-y-6'>
+                  <div className='space-y-4'>
+                    {tutorEvaluationCategories.map((category) => {
+                      return (
+                        <CategoryEvaluation
+                          key={category.id}
+                          category={category}
+                          evaluations={tutorEvaluations.filter((evaluation) =>
+                            category.competencies
+                              .map((competency) => competency.id)
+                              .includes(evaluation.competencyID),
+                          )}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+                    <FeedbackItemDisplayPanel
+                      feedbackItems={negativeFeedbackItems}
+                      feedbackType='negative'
+                      studentName={tutor.firstName}
+                    />
+                    <FeedbackItemDisplayPanel
+                      feedbackItems={positiveFeedbackItems}
+                      feedbackType='positive'
+                      studentName={tutor.firstName}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {tutorEvaluationCategories.length > 0 && (
+                <div className='flex justify-end pt-4'>
+                  <Button variant='outline' onClick={printPage} className='gap-2'>
+                    <Printer className='h-4 w-4' />
+                    PDF / Print
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <PrintReport
+              title={`Tutor Evaluation Results for ${getStudentName(tutor)}`}
+              subtitle={tutor.teamName}
+              meta={
+                evaluatorCount > 1 ? (
+                  <span>
+                    <strong>Evaluators:</strong> {evaluatorCount}
+                  </span>
+                ) : undefined
+              }
+              categories={tutorEvaluationCategories}
+              scores={reportScores}
+              feedbackItems={feedbackItems}
+            />
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

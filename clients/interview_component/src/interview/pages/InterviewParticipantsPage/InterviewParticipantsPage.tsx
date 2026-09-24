@@ -2,33 +2,28 @@ import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 
 export const InterviewParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: coursePhaseParticipations,
-    isPending,
-    isError,
-    refetch,
-  } = useGetCoursePhaseParticipants()
+  const participationsQuery = useGetCoursePhaseParticipants()
 
   return (
     <div>
       <ManagementPageHeader>Interview Participants</ManagementPageHeader>
-      {isError ? (
-        <ErrorPage onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingPage />
+      {!phaseId ? (
+        <ErrorPage description='Invalid course phase ID' />
       ) : (
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
-          participants={coursePhaseParticipations.participations ?? []}
-        />
+        <QueryGate queries={[participationsQuery]}>
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId}
+            participants={participationsQuery.data?.participations ?? []}
+          />
+        </QueryGate>
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, Loader2, MessageCircle, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -48,12 +49,9 @@ export function FeedbackItemPanel({
 
   const { studentName } = useStudentEvaluationStore()
 
-  const {
-    feedbackItems: allFeedbackItems,
-    isLoading: isGetFeedbackItemsPending,
-    isError,
-    refetch,
-  } = useGetMyFeedbackItems({ enabled: isStudent })
+  const feedbackItemsQuery = useGetMyFeedbackItems({ enabled: isStudent })
+  const { feedbackItems: allFeedbackItems, isLoading: isGetFeedbackItemsPending } =
+    feedbackItemsQuery
 
   const feedbackItems = allFeedbackItems.filter(
     (item) =>
@@ -164,20 +162,18 @@ export function FeedbackItemPanel({
         ? `What did ${studentName} do particularly well?`
         : `What could ${studentName} improve?`
 
-  if (isError) {
-    return <ErrorPage message='Error loading feedback items' onRetry={refetch} />
-  }
-
-  if (isGetFeedbackItemsPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
-  }
-
   return (
-    <>
+    <QueryGate
+      queries={[feedbackItemsQuery]}
+      loadingFallback={
+        <div className='flex justify-center items-center h-64'>
+          <Loader2 className='h-12 w-12 animate-spin text-primary' />
+        </div>
+      }
+      errorFallback={({ refetch }) => (
+        <ErrorPage message='Error loading feedback items' onRetry={refetch} />
+      )}
+    >
       <Card>
         <CardHeader>
           <CardTitle className='flex items-center gap-2'>
@@ -237,6 +233,6 @@ export function FeedbackItemPanel({
         onCancel={cancelDelete}
         isDeleting={isDeletePending}
       />
-    </>
+    </QueryGate>
   )
 }

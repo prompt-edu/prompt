@@ -56,12 +56,63 @@ definitions:
       gradeSuggestion:
         type: number
     type: object
+  assessmentCompletionDTO.BatchCompletionRequest:
+    properties:
+      courseParticipationIDs:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - courseParticipationIDs
+    type: object
+  assessmentCompletionDTO.BatchMarkResult:
+    properties:
+      marked:
+        items:
+          type: string
+        type: array
+      skipped:
+        items:
+          $ref: '#/definitions/assessmentCompletionDTO.SkippedCompletion'
+        type: array
+    type: object
+  assessmentCompletionDTO.BatchUnmarkResult:
+    properties:
+      skipped:
+        items:
+          $ref: '#/definitions/assessmentCompletionDTO.SkippedCompletion'
+        type: array
+      unmarked:
+        items:
+          type: string
+        type: array
+    type: object
   assessmentCompletionDTO.GradeWithParticipation:
     properties:
       courseParticipationID:
         type: string
       grade:
         type: number
+    type: object
+  assessmentCompletionDTO.SkipReason:
+    enum:
+    - no_completion
+    - remaining_assessments
+    - already_completed
+    - not_completed
+    type: string
+    x-enum-varnames:
+    - SkipReasonNoCompletion
+    - SkipReasonRemainingAssessments
+    - SkipReasonAlreadyCompleted
+    - SkipReasonNotCompleted
+  assessmentCompletionDTO.SkippedCompletion:
+    properties:
+      courseParticipationID:
+        type: string
+      reason:
+        $ref: '#/definitions/assessmentCompletionDTO.SkipReason'
     type: object
   assessmentDTO.AggregatedEvaluationResult:
     properties:
@@ -3773,6 +3824,58 @@ paths:
       summary: Mark assessment as completed
       tags:
       - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/mark-complete/batch:
+    post:
+      consumes:
+      - application/json
+      description: Mark several assessments as completed. Assessments that cannot
+        be marked yet are skipped and reported with a reason.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participations to mark
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentCompletionDTO.BatchCompletionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentCompletionDTO.BatchMarkResult'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark assessments as completed
+      tags:
+      - assessment_completions
   /course_phase/{coursePhaseID}/student-assessment/completed/my-grade-suggestion:
     get:
       description: Get grade suggestion for the current student.
@@ -3812,6 +3915,52 @@ paths:
               type: string
             type: object
       summary: Get my grade suggestion
+      tags:
+      - assessment_completions
+  /course_phase/{coursePhaseID}/student-assessment/completed/unmark/batch:
+    put:
+      consumes:
+      - application/json
+      description: Unmark several assessment completions. Assessments that are not
+        completed are skipped and reported.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Course participations to unmark
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentCompletionDTO.BatchCompletionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/assessmentCompletionDTO.BatchUnmarkResult'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Unmark assessments as completed
       tags:
       - assessment_completions
   /course_phase/{coursePhaseID}/student-assessment/course-participation/{courseParticipationID}:

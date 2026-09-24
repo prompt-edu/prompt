@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
 type AssessmentCompletionServiceTestSuite struct {
@@ -311,6 +312,120 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetStudentGradeWithInvali
 	assert.NoError(suite.T(), err)
 	// Should return 0 when no grade exists for invalid participation
 	assert.Equal(suite.T(), 0.0, grade)
+}
+
+// openPhaseID has started and its deadline lies in the future, so completions can be toggled.
+var openPhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+
+func (suite *AssessmentCompletionServiceTestSuite) seedCompletion(phaseID, partID uuid.UUID, completed bool) {
+	err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+		CourseParticipationID: partID,
+		CoursePhaseID:         phaseID,
+		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		Author:                "Seed Author",
+		GradeSuggestion:       utils.MapFloat64ToNumeric(2.0),
+		Completed:             completed,
+	})
+	suite.Require().NoError(err)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) assessAllCompetencies(phaseID, partID uuid.UUID) {
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
+		SELECT gen_random_uuid(), $1, $2, c.id, 'good'
+		FROM competency c
+		         INNER JOIN category_course_phase ccp ON c.category_id = ccp.category_id
+		WHERE ccp.course_phase_id = $2`, partID, phaseID)
+	suite.Require().NoError(err)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestMarkAssessmentsAsCompleted() {
+	eligible := uuid.New()
+	suite.seedCompletion(openPhaseID, eligible, false)
+	suite.assessAllCompetencies(openPhaseID, eligible)
+
+	incomplete := uuid.New()
+	suite.seedCompletion(openPhaseID, incomplete, false)
+
+	alreadyFinal := uuid.New()
+	suite.seedCompletion(openPhaseID, alreadyFinal, true)
+
+	missing := uuid.New()
+
+	result, err := suite.service.MarkAssessmentsAsCompleted(suite.suiteCtx, openPhaseID, []uuid.UUID{eligible, incomplete, alreadyFinal, missing, eligible}, "Batch Author")
+	suite.Require().NoError(err)
+
+	assert.Equal(suite.T(), []uuid.UUID{eligible}, result.Marked, "duplicates must only be marked once")
+	assert.ElementsMatch(suite.T(), []assessmentCompletionDTO.SkippedCompletion{
+		{CourseParticipationID: incomplete, Reason: assessmentCompletionDTO.SkipReasonRemainingAssessments},
+		{CourseParticipationID: alreadyFinal, Reason: assessmentCompletionDTO.SkipReasonAlreadyCompleted},
+		{CourseParticipationID: missing, Reason: assessmentCompletionDTO.SkipReasonNoCompletion},
+	}, result.Skipped)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, eligible, openPhaseID)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), completion.Completed)
+	assert.Equal(suite.T(), "Batch Author", completion.Author)
+
+	completion, err = suite.service.GetAssessmentCompletion(suite.suiteCtx, incomplete, openPhaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+	assert.Equal(suite.T(), "Seed Author", completion.Author)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestMarkAssessmentsAsCompletedBeforeStart() {
+	phaseID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start)
+		VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() + INTERVAL '1 day')`, phaseID)
+	suite.Require().NoError(err)
+
+	partID := uuid.New()
+	suite.seedCompletion(phaseID, partID, false)
+	suite.assessAllCompetencies(phaseID, partID)
+
+	_, err = suite.service.MarkAssessmentsAsCompleted(suite.suiteCtx, phaseID, []uuid.UUID{partID}, "Batch Author")
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrNotStarted)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestUnmarkAssessmentsAsCompleted() {
+	final := uuid.New()
+	suite.seedCompletion(openPhaseID, final, true)
+
+	draft := uuid.New()
+	suite.seedCompletion(openPhaseID, draft, false)
+
+	missing := uuid.New()
+
+	result, err := suite.service.UnmarkAssessmentsAsCompleted(suite.suiteCtx, openPhaseID, []uuid.UUID{final, draft, missing, final})
+	suite.Require().NoError(err)
+
+	assert.Equal(suite.T(), []uuid.UUID{final}, result.Unmarked, "duplicates must only be unmarked once")
+	assert.ElementsMatch(suite.T(), []assessmentCompletionDTO.SkippedCompletion{
+		{CourseParticipationID: draft, Reason: assessmentCompletionDTO.SkipReasonNotCompleted},
+		{CourseParticipationID: missing, Reason: assessmentCompletionDTO.SkipReasonNotCompleted},
+	}, result.Skipped)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, final, openPhaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestUnmarkAssessmentsAsCompletedAfterDeadline() {
+	phaseID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
+	partID := uuid.New()
+	suite.seedCompletion(phaseID, partID, true)
+
+	_, err := suite.service.UnmarkAssessmentsAsCompleted(suite.suiteCtx, phaseID, []uuid.UUID{partID})
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrDeadlinePassed)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), completion.Completed)
 }
 
 func TestAssessmentCompletionServiceTestSuite(t *testing.T) {

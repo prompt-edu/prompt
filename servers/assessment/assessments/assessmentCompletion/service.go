@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -235,6 +236,172 @@ func (s *AssessmentCompletionService) MarkAssessmentAsCompleted(ctx context.Cont
 	}
 
 	return nil
+}
+
+// MarkAssessmentsAsCompleted marks every eligible assessment in the batch as final and reports the
+// others as skipped, so one unfinished assessment does not block the rest of the selection.
+func (s *AssessmentCompletionService) MarkAssessmentsAsCompleted(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, author string) (assessmentCompletionDTO.BatchMarkResult, error) {
+	result := assessmentCompletionDTO.BatchMarkResult{
+		Marked:  []uuid.UUID{},
+		Skipped: []assessmentCompletionDTO.SkippedCompletion{},
+	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return result, err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	open, err := qtx.IsAssessmentOpen(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not check if assessment is open: ", err)
+		return result, errors.New("could not check if assessment is open")
+	}
+	if !open {
+		return result, coursePhaseConfig.ErrNotStarted
+	}
+
+	completedAt := pgtype.Timestamptz{Time: time.Now(), Valid: true}
+	for _, courseParticipationID := range uniqueIDs(courseParticipationIDs) {
+		reason, err := markCompletedSkipReason(ctx, qtx, courseParticipationID, coursePhaseID)
+		if err != nil {
+			return result, err
+		}
+		if reason != "" {
+			result.Skipped = append(result.Skipped, assessmentCompletionDTO.SkippedCompletion{
+				CourseParticipationID: courseParticipationID,
+				Reason:                reason,
+			})
+			continue
+		}
+
+		err = qtx.MarkAssessmentAsFinished(ctx, db.MarkAssessmentAsFinishedParams{
+			CourseParticipationID: courseParticipationID,
+			CoursePhaseID:         coursePhaseID,
+			CompletedAt:           completedAt,
+			Author:                author,
+		})
+		if err != nil {
+			log.Error("could not mark assessment as finished: ", err)
+			return result, errors.New("could not mark assessment as finished")
+		}
+		result.Marked = append(result.Marked, courseParticipationID)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("could not commit assessment completions: ", err)
+		return result, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return result, nil
+}
+
+// markCompletedSkipReason returns why an assessment cannot be marked as final, or an empty reason
+// when it can.
+func markCompletedSkipReason(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) (assessmentCompletionDTO.SkipReason, error) {
+	completion, err := qtx.GetAssessmentCompletion(ctx, db.GetAssessmentCompletionParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return assessmentCompletionDTO.SkipReasonNoCompletion, nil
+	}
+	if err != nil {
+		log.Error("could not get assessment completion: ", err)
+		return "", errors.New("could not get assessment completion")
+	}
+	if completion.Completed {
+		return assessmentCompletionDTO.SkipReasonAlreadyCompleted, nil
+	}
+
+	remaining, err := qtx.CountRemainingAssessmentsForStudent(ctx, db.CountRemainingAssessmentsForStudentParams{
+		CourseParticipationID: courseParticipationID,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if err != nil {
+		log.Error("could not count remaining assessments: ", err)
+		return "", errors.New("could not count remaining assessments")
+	}
+	if remaining.RemainingAssessments > 0 {
+		return assessmentCompletionDTO.SkipReasonRemainingAssessments, nil
+	}
+
+	return "", nil
+}
+
+// UnmarkAssessmentsAsCompleted reopens every final assessment in the batch and reports the others
+// as skipped.
+func (s *AssessmentCompletionService) UnmarkAssessmentsAsCompleted(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID) (assessmentCompletionDTO.BatchUnmarkResult, error) {
+	result := assessmentCompletionDTO.BatchUnmarkResult{
+		Unmarked: []uuid.UUID{},
+		Skipped:  []assessmentCompletionDTO.SkippedCompletion{},
+	}
+
+	deadlinePassed, err := s.coursePhaseConfig.IsAssessmentDeadlinePassed(ctx, coursePhaseID)
+	if err != nil {
+		return result, err
+	}
+	if deadlinePassed {
+		return result, coursePhaseConfig.ErrDeadlinePassed
+	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return result, err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	for _, courseParticipationID := range uniqueIDs(courseParticipationIDs) {
+		completion, err := qtx.GetAssessmentCompletion(ctx, db.GetAssessmentCompletionParams{
+			CourseParticipationID: courseParticipationID,
+			CoursePhaseID:         coursePhaseID,
+		})
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			log.Error("could not get assessment completion: ", err)
+			return result, errors.New("could not get assessment completion")
+		}
+		if err != nil || !completion.Completed {
+			result.Skipped = append(result.Skipped, assessmentCompletionDTO.SkippedCompletion{
+				CourseParticipationID: courseParticipationID,
+				Reason:                assessmentCompletionDTO.SkipReasonNotCompleted,
+			})
+			continue
+		}
+
+		err = qtx.UnmarkAssessmentAsFinished(ctx, db.UnmarkAssessmentAsFinishedParams{
+			CourseParticipationID: courseParticipationID,
+			CoursePhaseID:         coursePhaseID,
+		})
+		if err != nil {
+			log.Error("could not unmark assessment as finished: ", err)
+			return result, errors.New("could not unmark assessment as finished")
+		}
+		result.Unmarked = append(result.Unmarked, courseParticipationID)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("could not commit assessment completions: ", err)
+		return result, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return result, nil
+}
+
+func uniqueIDs(ids []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	unique := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	return unique
 }
 
 func (s *AssessmentCompletionService) UnmarkAssessmentAsCompleted(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) error {

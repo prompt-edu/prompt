@@ -304,21 +304,33 @@ func (s *Service) queueInstances(ctx context.Context, coursePhaseID uuid.UUID, c
 		return summary, err
 	}
 
+	// A queued instance already names the people it is for, so a team's members see it
+	// being set up instead of finding nothing until its run finishes. Nobody is let in
+	// yet; the run replaces these rows with what it actually did.
 	plan := planInstances(coursePhaseID, configs, targetsByScope, existing)
-	for _, params := range plan.create {
-		if _, err := qtx.CreateResourceInstance(ctx, params); err != nil {
+	for _, planned := range plan.create {
+		instance, err := qtx.CreateResourceInstance(ctx, planned.params)
+		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				continue
 			}
 			return summary, err
 		}
+		ids, granted := memberAccess(planned.target, nil, false)
+		if err := writeMembers(ctx, qtx, instance.ID, ids, granted); err != nil {
+			return summary, err
+		}
 		summary.Queued++
 	}
-	for _, instanceID := range plan.requeue {
+	for _, planned := range plan.requeue {
 		if _, err := qtx.ResetInstanceToPending(ctx, db.ResetInstanceToPendingParams{
-			ID:            instanceID,
+			ID:            planned.instanceID,
 			CoursePhaseID: coursePhaseID,
 		}); err != nil {
+			return summary, err
+		}
+		ids, granted := memberAccess(planned.target, nil, false)
+		if err := writeMembers(ctx, qtx, planned.instanceID, ids, granted); err != nil {
 			return summary, err
 		}
 		summary.Requeued++
@@ -332,9 +344,19 @@ func (s *Service) queueInstances(ctx context.Context, coursePhaseID uuid.UUID, c
 // takes: instances to create, failed or partial ones to queue again, and how many
 // targets are already provisioned.
 type instancePlan struct {
-	create   []db.CreateResourceInstanceParams
-	requeue  []uuid.UUID
+	create   []plannedCreate
+	requeue  []plannedRequeue
 	upToDate int
+}
+
+type plannedCreate struct {
+	params db.CreateResourceInstanceParams
+	target ProvisioningTarget
+}
+
+type plannedRequeue struct {
+	instanceID uuid.UUID
+	target     ProvisioningTarget
 }
 
 // planInstances decides, for every (config, target) pair, what a trigger does. It
@@ -346,9 +368,12 @@ func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targets
 			instance, ok := existing[targetKey(cfg.ID, target.TeamID, target.CourseParticipationID)]
 			switch {
 			case !ok:
-				plan.create = append(plan.create, createResourceInstanceParams(cfg, coursePhaseID, target))
+				plan.create = append(plan.create, plannedCreate{
+					params: createResourceInstanceParams(cfg, coursePhaseID, target),
+					target: target,
+				})
 			case isRetryable(instance.Status):
-				plan.requeue = append(plan.requeue, instance.ID)
+				plan.requeue = append(plan.requeue, plannedRequeue{instanceID: instance.ID, target: target})
 			default:
 				plan.upToDate++
 			}
@@ -456,11 +481,20 @@ func (s *Service) ListMyResources(ctx context.Context, coursePhaseID, coursePart
 	return resources, nil
 }
 
-// studentFacingURL drops links a student cannot use. Keycloak's points into the admin
-// console, where a student has no account: a Keycloak group only matters through the
-// services that sign in with it.
+// studentLinkProviders lists the providers whose resource URL a student can open.
+// Keycloak is left out: its link points into the admin console, where a student has no
+// account, and a Keycloak group only matters through the services that sign in with it.
+// A provider added later shows no link until it is listed here.
+var studentLinkProviders = map[db.ProviderType]bool{
+	db.ProviderTypeGitlab:  true,
+	db.ProviderTypeSlack:   true,
+	db.ProviderTypeOutline: true,
+	db.ProviderTypeRancher: true,
+}
+
+// studentFacingURL drops links a student cannot use.
 func studentFacingURL(providerType db.ProviderType, url *string) *string {
-	if providerType == db.ProviderTypeKeycloak || url == nil || *url == "" {
+	if !studentLinkProviders[providerType] || url == nil || *url == "" {
 		return nil
 	}
 	return url

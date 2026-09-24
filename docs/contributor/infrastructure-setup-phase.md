@@ -315,10 +315,13 @@ the people its target stands for in `resource_instance_member`, replacing the pr
   lookup or group binding) names every member of it.
 - A person is recorded as `granted` when the resource exists, an email could be resolved for them,
   and no warning names them. A failed run records its people with `granted = false`.
+- A trigger already writes the rows when it queues an instance, with `granted = false`, so a team's
+  members see their resource being set up while it waits for a worker instead of finding nothing.
 
 The student page and the participants columns derive one state per person and resource from the
-instance status and that flag. An instance whose run predates the table has no member rows, so a
-`created` one reads as ready and a `partial` one as *partly set up* until it runs again.
+instance status and that flag. An instance whose run predates the table has no member rows: a
+personal one reads by its status (a `partial` one as *partly set up*), and a team one reaches its
+members once it is retried or queued again.
 
 ### Permission mapping
 

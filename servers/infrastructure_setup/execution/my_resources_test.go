@@ -234,3 +234,39 @@ func TestMyResourcesRouteAnswersForTheCallersParticipation(t *testing.T) {
 		t.Fatalf("resources = %+v, want the caller's partial instance", got)
 	}
 }
+
+// A team's instance is its members' from the moment it is queued. Without that, a team
+// waiting for a free worker would read as never provisioned while a student with a
+// personal resource in the same state already sees it being set up.
+func TestQueuedTeamInstanceIsVisibleToItsMembers(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	me, teamID := uuid.New(), uuid.New()
+	cfg := createConfig(t, testDB.Queries, coursePhaseID, db.ProviderTypeGitlab, db.ResourceScopePerTeam, "{{teamName}}")
+	service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{})
+
+	if err := createInstances(t, service, coursePhaseID, cfg, []ProvisioningTarget{{
+		Scope:    db.ResourceScopePerTeam,
+		TeamID:   &teamID,
+		TeamName: "Team A",
+		People:   []TargetPerson{{CourseParticipationID: me, Email: "me@example.com"}},
+	}}); err != nil {
+		t.Fatalf("create instances: %v", err)
+	}
+
+	resources, err := service.ListMyResources(context.Background(), coursePhaseID, me)
+	if err != nil {
+		t.Fatalf("ListMyResources: %v", err)
+	}
+	if len(resources) != 1 || resources[0].Status == nil || *resources[0].Status != db.ResourceStatusPending {
+		t.Fatalf("resources = %+v, want my team's instance, pending", resources)
+	}
+	if resources[0].Granted == nil || *resources[0].Granted {
+		t.Fatalf("granted = %v, want false until the run has let anyone in", resources[0].Granted)
+	}
+	if resources[0].TeamName != "Team A" {
+		t.Fatalf("team name = %q, want my team", resources[0].TeamName)
+	}
+}

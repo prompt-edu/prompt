@@ -346,21 +346,27 @@ func (w *Worker) replaceMembers(ctx context.Context, id uuid.UUID, ids []uuid.UU
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := w.queries.WithTx(tx)
 
-	if err := qtx.DeleteInstanceMembers(ctx, id); err != nil {
+	if err := writeMembers(ctx, w.queries.WithTx(tx), id, ids, granted); err != nil {
 		return err
 	}
-	if len(ids) > 0 {
-		if err := qtx.InsertInstanceMembers(ctx, db.InsertInstanceMembersParams{
-			ResourceInstanceID:     id,
-			CourseParticipationIds: ids,
-			Granted:                granted,
-		}); err != nil {
-			return err
-		}
-	}
 	return tx.Commit(ctx)
+}
+
+// writeMembers replaces an instance's member rows. The caller owns the transaction, so
+// the old rows never stay beside the new ones.
+func writeMembers(ctx context.Context, q *db.Queries, id uuid.UUID, ids []uuid.UUID, granted []bool) error {
+	if err := q.DeleteInstanceMembers(ctx, id); err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return q.InsertInstanceMembers(ctx, db.InsertInstanceMembersParams{
+		ResourceInstanceID:     id,
+		CourseParticipationIds: ids,
+		Granted:                granted,
+	})
 }
 
 func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, input provider.CreateResourceInput, instanceID uuid.UUID) (*provider.Resource, error) {

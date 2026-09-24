@@ -157,7 +157,7 @@ func listMyResources(svc *Service) gin.HandlerFunc {
 		resources, err := svc.ListMyResources(c.Request.Context(), coursePhaseID, courseParticipationID)
 		if err != nil {
 			log.WithError(err).Error("list my resources")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load your resources"})
 			return
 		}
 		c.JSON(http.StatusOK, resources)

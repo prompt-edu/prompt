@@ -103,6 +103,15 @@ func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 		)
 	}
 
+	t.Run("a course that does not exist is not found", func(t *testing.T) {
+		keycloakDeleted := false
+
+		resp := deleteCourseRequest(newDeleteCourseRouter(newService(nil, &keycloakDeleted)), uuid.New())
+
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+		assert.False(t, keycloakDeleted, "there is no course whose Keycloak groups could be deleted")
+	})
+
 	t.Run("a phase the modules were not asked about keeps the course", func(t *testing.T) {
 		keycloakDeleted := false
 

@@ -2434,6 +2434,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {

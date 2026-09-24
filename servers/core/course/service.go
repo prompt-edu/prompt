@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -492,6 +493,9 @@ func (s *CourseService) DeleteCourse(ctx context.Context, authHeader string, cou
 	// its course, so no phase can be added from here on. A phase added while the modules were
 	// asked would be cascaded away without its module being asked, so the deletion is refused.
 	if _, err := qtx.LockCourseForDeletion(txCtx, courseID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("course %s does not exist: %w", courseID, err)
+		}
 		log.Error(err)
 		return errors.New("failed to delete course")
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
@@ -632,6 +635,262 @@ func (suite *AssessmentCompletionRouterTestSuite) TestGetMyGradeSuggestionBefore
 	assert.Equal(suite.T(), http.StatusNoContent, resp.Code)
 }
 
+func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentsAsCompletedBatchEndpoint() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	eligible := uuid.New()
+	incomplete := uuid.New()
+	for _, partID := range []uuid.UUID{eligible, incomplete} {
+		err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+			CoursePhaseID:         phaseID,
+			CourseParticipationID: partID,
+			Author:                "tester",
+			GradeSuggestion:       utils.MapFloat64ToNumeric(2.0),
+			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		})
+		suite.Require().NoError(err)
+	}
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
+		SELECT gen_random_uuid(), $1, $2, c.id, 'good'
+		FROM competency c
+		         INNER JOIN category_course_phase ccp ON c.category_id = ccp.category_id
+		WHERE ccp.course_phase_id = $2`, eligible, phaseID)
+	suite.Require().NoError(err)
+
+	body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: []uuid.UUID{eligible, incomplete}})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/mark-complete/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	suite.Require().Equal(http.StatusOK, resp.Code)
+
+	var result dto.BatchMarkResult
+	suite.Require().NoError(json.Unmarshal(resp.Body.Bytes(), &result))
+	assert.Equal(suite.T(), []uuid.UUID{eligible}, result.Marked)
+	assert.Equal(suite.T(), []dto.SkippedCompletion{
+		{CourseParticipationID: incomplete, Reason: dto.SkipReasonRemainingAssessments},
+	}, result.Skipped)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, eligible, phaseID)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), completion.Completed)
+	assert.Equal(suite.T(), "John Doe", completion.Author, "author must come from the token, not the client")
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestMarkAssessmentsAsCompletedBatchInvalidRequest() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	for _, payload := range []string{"invalid json", `{"courseParticipationIDs": []}`, `{}`} {
+		req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/mark-complete/batch", bytes.NewBufferString(payload))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		suite.router.ServeHTTP(resp, req)
+		assert.Equal(suite.T(), http.StatusBadRequest, resp.Code, "payload %q", payload)
+	}
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestBatchCompletionRejectsOversizedSelection() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	ids := make([]uuid.UUID, 1001)
+	for i := range ids {
+		ids[i] = uuid.New()
+	}
+	body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: ids})
+
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{method: "POST", path: "/mark-complete/batch"},
+		{method: "PUT", path: "/unmark/batch"},
+	}
+	for _, route := range routes {
+		req, _ := http.NewRequest(route.method, "/api/course_phase/"+phaseID.String()+"/student-assessment/completed"+route.path, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		suite.router.ServeHTTP(resp, req)
+		assert.Equal(suite.T(), http.StatusBadRequest, resp.Code, "route %s %s", route.method, route.path)
+	}
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentsAsCompletedBatchEndpoint() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	final := uuid.New()
+	err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+		CoursePhaseID:         phaseID,
+		CourseParticipationID: final,
+		Author:                "tester",
+		GradeSuggestion:       utils.MapFloat64ToNumeric(2.0),
+		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		Completed:             true,
+	})
+	suite.Require().NoError(err)
+	missing := uuid.New()
+
+	body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: []uuid.UUID{final, missing}})
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/unmark/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	suite.Require().Equal(http.StatusOK, resp.Code)
+
+	var result dto.BatchUnmarkResult
+	suite.Require().NoError(json.Unmarshal(resp.Body.Bytes(), &result))
+	assert.Equal(suite.T(), []uuid.UUID{final}, result.Unmarked)
+	assert.Equal(suite.T(), []dto.SkippedCompletion{
+		{CourseParticipationID: missing, Reason: dto.SkipReasonNotCompleted},
+	}, result.Skipped)
+}
+
+type recordingSink struct {
+	mutex  sync.Mutex
+	events []audit.Event
+}
+
+func (s *recordingSink) Record(_ context.Context, e audit.Event) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.events = append(s.events, e)
+	return nil
+}
+
+// waitForEvents polls until at least n events arrived: the audit middleware delivers to the
+// sink from a background goroutine.
+func (s *recordingSink) waitForEvents(n int) []audit.Event {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		s.mutex.Lock()
+		events := append([]audit.Event(nil), s.events...)
+		s.mutex.Unlock()
+		if len(events) >= n || time.Now().After(deadline) {
+			return events
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+// auditedRouter mounts the routes behind the audit middleware with a token user that carries an
+// ID, which the audit actor extractor requires and the SDK mock auth middleware leaves empty.
+func (suite *AssessmentCompletionRouterTestSuite) auditedRouter(sink audit.Sink) *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	api.Use(audit.Middleware(sink))
+	authMiddleware := func(_ ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				ID:        "44444444-4444-4444-4444-444444444444",
+				FirstName: "Ada",
+				LastName:  "Lovelace",
+				Email:     "ada@tum.de",
+			})
+			c.Next()
+		}
+	}
+	RegisterRoutes(api, suite.service, suite.coursePhaseConfigService, authMiddleware)
+	return router
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestBatchCompletionAuditListsTheChangedParticipations() {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	eligible := uuid.New()
+	incomplete := uuid.New()
+	for _, partID := range []uuid.UUID{eligible, incomplete} {
+		err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+			CoursePhaseID:         phaseID,
+			CourseParticipationID: partID,
+			Author:                "tester",
+			GradeSuggestion:       utils.MapFloat64ToNumeric(2.0),
+			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		})
+		suite.Require().NoError(err)
+	}
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
+		SELECT gen_random_uuid(), $1, $2, c.id, 'good'
+		FROM competency c
+		         INNER JOIN category_course_phase ccp ON c.category_id = ccp.category_id
+		WHERE ccp.course_phase_id = $2`, eligible, phaseID)
+	suite.Require().NoError(err)
+
+	routes := []struct {
+		method string
+		path   string
+		action string
+	}{
+		{method: "POST", path: "/mark-complete/batch", action: auditMarkBatchAction},
+		{method: "PUT", path: "/unmark/batch", action: auditUnmarkBatchAction},
+	}
+	for _, route := range routes {
+		sink := &recordingSink{}
+		router := suite.auditedRouter(sink)
+
+		body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: []uuid.UUID{eligible, incomplete}})
+		req, _ := http.NewRequest(route.method, "/api/course_phase/"+phaseID.String()+"/student-assessment/completed"+route.path, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+
+		router.ServeHTTP(resp, req)
+		suite.Require().Equal(http.StatusOK, resp.Code, "route %s %s", route.method, route.path)
+
+		events := sink.waitForEvents(1)
+		suite.Require().Len(events, 1, "route %s %s", route.method, route.path)
+		assert.Equal(suite.T(), route.action, events[0].Action)
+		assert.Equal(suite.T(), audit.OutcomeSuccess, events[0].Outcome)
+		assert.Equal(suite.T(), phaseID.String(), events[0].CoursePhaseID)
+		assert.Equal(suite.T(), "44444444-4444-4444-4444-444444444444", events[0].ActorID)
+		assert.Equal(suite.T(), []string{eligible.String()}, events[0].Metadata["courseParticipationIDs"],
+			"only the participation that changed belongs on the %s entry", route.action)
+	}
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestUnmarkAssessmentsAsCompletedBatchAfterDeadline() {
+	phaseID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
+	body, _ := json.Marshal(dto.BatchCompletionRequest{CourseParticipationIDs: []uuid.UUID{uuid.New()}})
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+phaseID.String()+"/student-assessment/completed/unmark/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+}
+
 func TestAssessmentCompletionRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentCompletionRouterTestSuite))
+}
+
+func TestAuthorNameFallsBackWhenTheTokenHasNoName(t *testing.T) {
+	tests := []struct {
+		name      string
+		tokenUser keycloakTokenVerifier.TokenUser
+		want      string
+	}{
+		{
+			name:      "full name",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: "Ada", LastName: "Lovelace", UniversityLogin: "ab12cde", Email: "ada@tum.de"},
+			want:      "Ada Lovelace",
+		},
+		{
+			name:      "first name only",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: "Ada", UniversityLogin: "ab12cde"},
+			want:      "Ada",
+		},
+		{
+			name:      "no name",
+			tokenUser: keycloakTokenVerifier.TokenUser{UniversityLogin: "ab12cde", Email: "ada@tum.de"},
+			want:      "ab12cde",
+		},
+		{
+			name:      "blank name and login",
+			tokenUser: keycloakTokenVerifier.TokenUser{FirstName: " ", UniversityLogin: " ", Email: "ada@tum.de"},
+			want:      "ada@tum.de",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, authorName(tt.tokenUser))
+		})
+	}
 }

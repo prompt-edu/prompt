@@ -1,5 +1,7 @@
 import type {
   AssessmentCompletion,
+  BatchMarkAssessmentCompletionsResult,
+  BatchUnmarkAssessmentCompletionsResult,
   CreateOrUpdateAssessmentCompletionRequest,
 } from '../../interfaces/assessmentCompletion'
 import { assessmentRequest, coursePhasePath } from '../client'
@@ -24,6 +26,20 @@ export const completions = {
     assessmentCompletion: CreateOrUpdateAssessmentCompletionRequest,
   ): Promise<void> =>
     assessmentRequest.post(`${path(coursePhaseID)}/mark-complete`, assessmentCompletion),
+
+  markCompleteBatch: (
+    coursePhaseID: string,
+    courseParticipationIDs: string[],
+  ): Promise<BatchMarkAssessmentCompletionsResult> =>
+    assessmentRequest.post(`${path(coursePhaseID)}/mark-complete/batch`, {
+      courseParticipationIDs,
+    }),
+
+  unmarkBatch: (
+    coursePhaseID: string,
+    courseParticipationIDs: string[],
+  ): Promise<BatchUnmarkAssessmentCompletionsResult> =>
+    assessmentRequest.put(`${path(coursePhaseID)}/unmark/batch`, { courseParticipationIDs }),
 
   unmark: (coursePhaseID: string, courseParticipationID: string): Promise<void> =>
     assessmentRequest.put(

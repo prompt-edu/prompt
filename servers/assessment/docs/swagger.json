@@ -4078,6 +4078,83 @@
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/student-assessment/completed/mark-complete/batch": {
+            "post": {
+                "description": "Mark several assessments as completed. Assessments that cannot be marked yet are skipped and reported with a reason.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessment_completions"
+                ],
+                "summary": "Mark assessments as completed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Course participations to mark",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/assessmentCompletionDTO.BatchCompletionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/assessmentCompletionDTO.BatchMarkResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/student-assessment/completed/my-grade-suggestion": {
             "get": {
                 "description": "Get grade suggestion for the current student.",
@@ -4108,6 +4185,74 @@
                         "description": "No Content",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/student-assessment/completed/unmark/batch": {
+            "put": {
+                "description": "Unmark several assessment completions. Assessments that are not completed are skipped and reported.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessment_completions"
+                ],
+                "summary": "Unmark assessments as completed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Course participations to unmark",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/assessmentCompletionDTO.BatchCompletionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/assessmentCompletionDTO.BatchUnmarkResult"
                         }
                     },
                     "400": {
@@ -4617,6 +4762,56 @@
                 }
             }
         },
+        "assessmentCompletionDTO.BatchCompletionRequest": {
+            "type": "object",
+            "required": [
+                "courseParticipationIDs"
+            ],
+            "properties": {
+                "courseParticipationIDs": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "assessmentCompletionDTO.BatchMarkResult": {
+            "type": "object",
+            "properties": {
+                "marked": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "skipped": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentCompletionDTO.SkippedCompletion"
+                    }
+                }
+            }
+        },
+        "assessmentCompletionDTO.BatchUnmarkResult": {
+            "type": "object",
+            "properties": {
+                "skipped": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentCompletionDTO.SkippedCompletion"
+                    }
+                },
+                "unmarked": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "assessmentCompletionDTO.GradeWithParticipation": {
             "type": "object",
             "properties": {
@@ -4625,6 +4820,32 @@
                 },
                 "grade": {
                     "type": "number"
+                }
+            }
+        },
+        "assessmentCompletionDTO.SkipReason": {
+            "type": "string",
+            "enum": [
+                "no_completion",
+                "remaining_assessments",
+                "already_completed",
+                "not_completed"
+            ],
+            "x-enum-varnames": [
+                "SkipReasonNoCompletion",
+                "SkipReasonRemainingAssessments",
+                "SkipReasonAlreadyCompleted",
+                "SkipReasonNotCompleted"
+            ]
+        },
+        "assessmentCompletionDTO.SkippedCompletion": {
+            "type": "object",
+            "properties": {
+                "courseParticipationID": {
+                    "type": "string"
+                },
+                "reason": {
+                    "$ref": "#/definitions/assessmentCompletionDTO.SkipReason"
                 }
             }
         },

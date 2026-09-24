@@ -3,7 +3,7 @@ import { certificateAxiosInstance } from '../certificateServerConfig'
 
 export const getConfig = async (coursePhaseId: string): Promise<CoursePhaseConfig> => {
   const response = await certificateAxiosInstance.get(
-    `certificate/api/course_phase/${coursePhaseId}/config`,
+    `certificate/api/course_phase/${coursePhaseId}/settings`,
   )
   return response.data
 }
@@ -13,7 +13,7 @@ export const updateConfig = async (
   templateContent: string,
 ): Promise<CoursePhaseConfig> => {
   const response = await certificateAxiosInstance.put(
-    `certificate/api/course_phase/${coursePhaseId}/config`,
+    `certificate/api/course_phase/${coursePhaseId}/settings`,
     { templateContent },
   )
   return response.data
@@ -24,7 +24,7 @@ export const updateReleaseDate = async (
   releaseDate: string | null,
 ): Promise<CoursePhaseConfig> => {
   const response = await certificateAxiosInstance.put(
-    `certificate/api/course_phase/${coursePhaseId}/config/release-date`,
+    `certificate/api/course_phase/${coursePhaseId}/settings/release-date`,
     { releaseDate },
   )
   return response.data
@@ -35,7 +35,7 @@ export const updateStudentPageText = async (
   studentPageText: string | null,
 ): Promise<CoursePhaseConfig> => {
   const response = await certificateAxiosInstance.put(
-    `certificate/api/course_phase/${coursePhaseId}/config/student-page-text`,
+    `certificate/api/course_phase/${coursePhaseId}/settings/student-page-text`,
     { studentPageText },
   )
   return response.data

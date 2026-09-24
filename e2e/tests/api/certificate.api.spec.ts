@@ -15,7 +15,7 @@ test.describe('certificate API auth', () => {
   test('rejects unauthenticated requests', async () => {
     const anon = await request.newContext()
     try {
-      const res = await anon.get(certificateUrl(PHASE_ID, 'config'))
+      const res = await anon.get(certificateUrl(PHASE_ID, 'settings'))
       expect(res.status()).toBe(401)
     } finally {
       await anon.dispose()
@@ -23,9 +23,9 @@ test.describe('certificate API auth', () => {
   })
 
   test('rejects a student on the template download endpoint', async ({ apiAs }) => {
-    // config/template is staff-only; students hold the Student role only.
+    // settings/template is staff-only; students hold the Student role only.
     const api = await apiAs('student')
-    const res = await api.get(certificateUrl(PHASE_ID, 'config/template'))
+    const res = await api.get(certificateUrl(PHASE_ID, 'settings/template'))
     expect(res.status()).toBe(401)
   })
 
@@ -54,11 +54,11 @@ test.describe('certificate API auth', () => {
     expect(res.status()).toBe(200)
   })
 
-  test('rejects a student on the config endpoint', async ({ apiAs }) => {
-    // The config payload carries the full Typst template, so students are not
+  test('rejects a student on the settings endpoint', async ({ apiAs }) => {
+    // The settings payload carries the full Typst template, so students are not
     // admitted; their page reads the instructor text from certificate/status.
     const api = await apiAs('student')
-    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    const res = await api.get(certificateUrl(PHASE_ID, 'settings'))
     expect(res.status()).toBe(401)
   })
 
@@ -67,7 +67,7 @@ test.describe('certificate API auth', () => {
   }) => {
     for (const role of ['student', 'course-editor'] as const) {
       const api = await apiAs(role)
-      const res = await api.put(certificateUrl(PHASE_ID, 'config/student-page-text'), {
+      const res = await api.put(certificateUrl(PHASE_ID, 'settings/student-page-text'), {
         data: { studentPageText: 'nope' },
       })
       expect(res.status(), `role ${role}`).toBe(401)

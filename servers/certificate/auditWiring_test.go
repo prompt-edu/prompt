@@ -106,21 +106,21 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 	}{
 		{
 			name:      "config update",
-			path:      "/config",
+			path:      "/settings",
 			action:    "Updated the certificate configuration",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings",
 		},
 		{
 			name:      "release date update",
-			path:      "/config/release-date",
+			path:      "/settings/release-date",
 			action:    "Updated the certificate release date",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config/release-date",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings/release-date",
 		},
 		{
 			name:      "student page text update",
-			path:      "/config/student-page-text",
+			path:      "/settings/student-page-text",
 			action:    "Updated the certificate student page text",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config/student-page-text",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings/student-page-text",
 		},
 	}
 
@@ -152,7 +152,7 @@ func TestAuditMiddlewareRecordsOneEventPerRequest(t *testing.T) {
 	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
-	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/config"
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodPut, url, nil))
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
 
@@ -166,7 +166,7 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
-	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/config"
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, url, nil))
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
 

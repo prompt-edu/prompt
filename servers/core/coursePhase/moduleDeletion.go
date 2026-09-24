@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,8 +53,12 @@ func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader st
 		}
 
 		baseURL := s.resolutions.ResolveBaseURL(target.BaseUrl)
-		if _, err := url.ParseRequestURI(baseURL); err != nil {
+		parsed, err := url.ParseRequestURI(baseURL)
+		if err != nil {
 			return fmt.Errorf("course phase type %q has an unusable base url %q: %w", target.CoursePhaseTypeName, baseURL, err)
+		}
+		if !mayCarryCredentials(parsed) {
+			return fmt.Errorf("course phase type %q has base url %q, which would send the caller's credentials unencrypted", target.CoursePhaseTypeName, baseURL)
 		}
 		byBaseURL[baseURL] = append(byBaseURL[baseURL], target)
 	}
@@ -114,6 +120,24 @@ func deleteModuleDataAt(ctx context.Context, authHeader, baseURL string, targets
 		}
 	}
 	return errors.Join(failures...)
+}
+
+// mayCarryCredentials reports whether the caller's Authorization header may be sent to the module.
+// Plain HTTP is only accepted for hosts that cannot be reached across the internet: loopback and
+// private addresses, and single-label names such as the Docker service names of the local stacks.
+func mayCarryCredentials(moduleURL *url.URL) bool {
+	if moduleURL.Scheme == "https" {
+		return true
+	}
+	if moduleURL.Scheme != "http" {
+		return false
+	}
+
+	host := moduleURL.Hostname()
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback() || ip.IsPrivate()
+	}
+	return host != "" && !strings.Contains(host, ".")
 }
 
 // moduleSupportsPhaseDeletion reads the module's advertised capabilities. Everything other than a

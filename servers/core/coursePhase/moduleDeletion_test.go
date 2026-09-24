@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -287,6 +288,34 @@ func (suite *ModuleDeletionTestSuite) TestAsksForEveryPhaseAfterAFailure() {
 	assert.Error(suite.T(), err)
 	assert.ElementsMatch(suite.T(), []string{first.String(), second.String()}, module.deletedIDs,
 		"one failed phase must not keep the module from being asked about the others")
+}
+
+func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLWouldLeakCredentials() {
+	phaseID := suite.newPhase(suite.newPhaseType("http://modules.example.com/api"), uuid.New())
+
+	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
+
+	assert.Error(suite.T(), err)
+	assert.True(suite.T(), suite.phaseExists(phaseID))
+}
+
+func TestMayCarryCredentials(t *testing.T) {
+	for rawURL, want := range map[string]bool{
+		"https://prompt.aet.cit.tum.de/assessment/api": true,
+		"http://localhost:8085/assessment/api":         true,
+		"http://127.0.0.1:8085/assessment/api":         true,
+		"http://10.0.0.12/assessment/api":              true,
+		"http://client-core/assessment/api":            true,
+		"http://prompt.aet.cit.tum.de/assessment/api":  false,
+		"http://8.8.8.8/assessment/api":                false,
+		"ftp://localhost/assessment/api":               false,
+	} {
+		t.Run(rawURL, func(t *testing.T) {
+			parsed, err := url.Parse(rawURL)
+			require.NoError(t, err)
+			assert.Equal(t, want, mayCarryCredentials(parsed))
+		})
+	}
 }
 
 func TestModuleDeletionTestSuite(t *testing.T) {

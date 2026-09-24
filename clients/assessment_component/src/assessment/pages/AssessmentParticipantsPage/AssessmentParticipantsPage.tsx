@@ -9,6 +9,7 @@ import {
   type TableFilter,
   useToast,
 } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { Lock, Unlock } from 'lucide-react'
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -43,7 +44,7 @@ import {
 const toParticipationIDs = (rows: ParticipantRow[]) => rows.map((row) => row.courseParticipationID)
 
 const serverErrorMessage = (error: unknown): string =>
-  (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+  (isAxiosError<{ error?: string }>(error) ? error.response?.data?.error : undefined) ??
   'Please try again.'
 
 export const AssessmentParticipantsPage = () => {

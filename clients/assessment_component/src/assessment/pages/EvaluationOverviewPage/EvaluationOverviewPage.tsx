@@ -164,7 +164,7 @@ export const EvaluationOverviewPage = () => {
 
         {tutorEvaluationStarted && team && (
           <EvaluationSection
-            title={`${getTutorLabel(coursePhaseConfig)} Evaluation`}
+            title={`${getTutorLabel(coursePhaseConfig).title} Evaluation`}
             icon={<GraduationCap className='h-5 w-5 text-purple-600 dark:text-purple-400' />}
             assessmentType={AssessmentType.TUTOR}
             deadline={coursePhaseConfig?.tutorEvaluationDeadline}

@@ -82,11 +82,11 @@ export const TutorOverviewPage = (): ReactNode => {
 
   return (
     <div className='space-y-4'>
-      <ManagementPageHeader>{tutorLabel} Overview</ManagementPageHeader>
+      <ManagementPageHeader>{tutorLabel.title} Overview</ManagementPageHeader>
 
       {coursePhaseConfig?.tutorEvaluationEnabled && (
         <p className='text-sm text-muted-foreground mb-4'>
-          Click on a {tutorLabel} to view their evaluation results from students.
+          Click on any {tutorLabel.text} to view their evaluation results from students.
         </p>
       )}
 
@@ -100,8 +100,8 @@ export const TutorOverviewPage = (): ReactNode => {
         <ScoreLevelDistributionDiagram
           participations={tutorParticipations}
           scoreLevels={tutorScoreLevels}
-          title={`${tutorLabel} Evaluation Distribution`}
-          description={`${tutorLabel} count per score level`}
+          title={`${tutorLabel.title} Evaluation Distribution`}
+          description={`Number of ${tutorLabel.text} evaluations per score level`}
         />
       </div>
 

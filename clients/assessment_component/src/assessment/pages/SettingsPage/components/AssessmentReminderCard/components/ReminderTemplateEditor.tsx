@@ -29,7 +29,7 @@ export function ReminderTemplateEditor({
       <div className='space-y-1'>
         <h3 className='text-base font-semibold text-foreground'>Reminder template</h3>
         <p className='text-sm leading-6 text-muted-foreground'>
-          {`One shared template is used for self, peer, and ${tutorLabel} evaluation reminders.`}
+          {`One shared template is used for self, peer, and ${tutorLabel.text} evaluation reminders.`}
         </p>
       </div>
 

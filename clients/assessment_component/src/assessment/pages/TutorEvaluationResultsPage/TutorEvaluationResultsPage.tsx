@@ -104,7 +104,7 @@ export const TutorEvaluationResultsPage = () => {
   if (isPending) return <LoadingPage />
 
   if (!tutor) {
-    return <ErrorPage message={`The requested ${tutorLabel} could not be found.`} />
+    return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
   }
 
   return (
@@ -116,7 +116,7 @@ export const TutorEvaluationResultsPage = () => {
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to previous ${tutorLabel}: ${getStudentName(prevTutor)}`}
+                aria-label={`Navigate to previous ${tutorLabel.text}: ${getStudentName(prevTutor)}`}
                 onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
               >
                 <ChevronLeft className='h-4 w-4' />
@@ -129,7 +129,7 @@ export const TutorEvaluationResultsPage = () => {
               <Button
                 variant='outline'
                 className='h-10 shrink-0'
-                aria-label={`Navigate to next ${tutorLabel}: ${getStudentName(nextTutor)}`}
+                aria-label={`Navigate to next ${tutorLabel.text}: ${getStudentName(nextTutor)}`}
                 onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
               >
                 <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
@@ -138,7 +138,7 @@ export const TutorEvaluationResultsPage = () => {
             )
           }
         >
-          {tutorLabel} Evaluation Results for {getStudentName(tutor)}
+          {tutorLabel.title} Evaluation Results for {getStudentName(tutor)}
         </EvaluationHeader>
 
         {tutorEvaluationCategories.length === 0 ? (
@@ -193,7 +193,7 @@ export const TutorEvaluationResultsPage = () => {
       </div>
 
       <PrintReport
-        title={`${tutorLabel} Evaluation Results for ${getStudentName(tutor)}`}
+        title={`${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`}
         subtitle={tutor.teamName}
         meta={
           evaluatorCount > 1 ? (

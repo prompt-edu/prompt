@@ -51,7 +51,7 @@ export const AssessmentDiagram = ({
       : assessmentType === AssessmentType.PEER
         ? 'peer evaluations'
         : assessmentType === AssessmentType.TUTOR
-          ? `${tutorLabel} evaluations`
+          ? `${tutorLabel.text} evaluations`
           : 'assessments'
 
   const centerLabel = `${noun.charAt(0).toUpperCase()}${noun.slice(1)}`
@@ -95,7 +95,7 @@ export const AssessmentDiagram = ({
               case AssessmentType.PEER:
                 return 'Peer Evaluation'
               case AssessmentType.TUTOR:
-                return `${tutorLabel} Evaluation`
+                return `${tutorLabel.title} Evaluation`
               default:
                 return 'Assessments'
             }
@@ -109,7 +109,7 @@ export const AssessmentDiagram = ({
               case AssessmentType.PEER:
                 return 'peer evaluations '
               case AssessmentType.TUTOR:
-                return `${tutorLabel} evaluations `
+                return `${tutorLabel.text} evaluations `
               default:
                 return 'assessments '
             }

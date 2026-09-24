@@ -1,4 +1,5 @@
 import { AssessmentType } from '../interfaces/assessmentType'
+import type { TutorLabel } from './hooks/useTutorLabel'
 
 export interface SchemaSectionContent {
   title: string
@@ -14,7 +15,7 @@ export interface SchemaSectionContent {
 }
 
 export const getSchemaSectionContent = (
-  tutorLabel: string,
+  tutorLabel: TutorLabel,
 ): Record<AssessmentType, SchemaSectionContent> => ({
   [AssessmentType.ASSESSMENT]: {
     title: 'Assessment',
@@ -64,15 +65,15 @@ export const getSchemaSectionContent = (
       'Review and edit the peer-evaluation categories, competencies, weights, and proficiency descriptions.',
   },
   [AssessmentType.TUTOR]: {
-    title: `${tutorLabel}-Evaluation`,
-    summary: `Configure the feedback form students use to evaluate their ${tutorLabel} in this course phase.`,
-    toggleLabel: `${tutorLabel}-evaluation enabled`,
-    toggleHint: `Turn this on when students should submit structured feedback about their ${tutorLabel} in this phase.`,
-    schemaLabel: `${tutorLabel}-evaluation schema`,
-    schemaHint: `Choose the schema students use to evaluate their ${tutorLabel}. Use the detail page to review categories and competency descriptions.`,
-    timeframeLabel: `${tutorLabel}-evaluation timeframe`,
-    timeframeHint: `This controls when students can evaluate their ${tutorLabel} and when submissions close.`,
-    detailTitle: `${tutorLabel}-Evaluation Schema`,
-    detailDescription: `Review and edit the ${tutorLabel}-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their ${tutorLabel}.`,
+    title: `${tutorLabel.title}-Evaluation`,
+    summary: `Configure the feedback form students use to evaluate their ${tutorLabel.text} in this course phase.`,
+    toggleLabel: `${tutorLabel.title}-evaluation enabled`,
+    toggleHint: `Turn this on when students should submit structured feedback about their ${tutorLabel.text} in this phase.`,
+    schemaLabel: `${tutorLabel.title}-evaluation schema`,
+    schemaHint: `Choose the schema students use to evaluate their ${tutorLabel.text}. Use the detail page to review categories and competency descriptions.`,
+    timeframeLabel: `${tutorLabel.title}-evaluation timeframe`,
+    timeframeHint: `This controls when students can evaluate their ${tutorLabel.text} and when submissions close.`,
+    detailTitle: `${tutorLabel.title}-Evaluation Schema`,
+    detailDescription: `Review and edit the ${tutorLabel.text}-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their ${tutorLabel.text}.`,
   },
 })

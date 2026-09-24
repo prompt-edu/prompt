@@ -126,7 +126,7 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
     return (
       <ErrorPage
         onRetry={refetch}
-        description={`Could not fetch self, peer, or ${getTutorLabel(coursePhaseConfig)} evaluation categories`}
+        description={`Could not fetch self, peer, or ${getTutorLabel(coursePhaseConfig).text} evaluation categories`}
       />
     )
   if (isPending) return <LoadingPage />

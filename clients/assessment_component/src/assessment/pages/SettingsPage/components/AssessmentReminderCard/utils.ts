@@ -88,7 +88,7 @@ export const getReminderTypes = (
   if (coursePhaseConfig?.tutorEvaluationEnabled) {
     activeReminderTypes.push({
       type: 'tutor',
-      label: `${getTutorLabel(coursePhaseConfig)} Evaluation`,
+      label: `${getTutorLabel(coursePhaseConfig).title} Evaluation`,
       deadline: coursePhaseConfig.tutorEvaluationDeadline,
     })
   }

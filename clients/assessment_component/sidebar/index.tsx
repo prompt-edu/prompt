@@ -63,7 +63,9 @@ export const useSidebarElement = (coursePhaseID: string): SidebarMenuItemProps =
   return {
     ...sidebarItems,
     subitems: sidebarItems.subitems?.map((subitem) =>
-      subitem.goToPath === '/tutors' ? { ...subitem, title: `${tutorLabel} Overview` } : subitem,
+      subitem.goToPath === '/tutors'
+        ? { ...subitem, title: `${tutorLabel.title} Overview` }
+        : subitem,
     ),
   }
 }

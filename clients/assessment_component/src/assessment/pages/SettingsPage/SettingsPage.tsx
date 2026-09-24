@@ -30,7 +30,7 @@ export const SettingsPage = () => {
       />
       <EvaluationSettingsCard
         assessmentType={AssessmentType.TUTOR}
-        distinctionText={`Feedback from students about their ${getTutorLabel(coursePhaseConfig)} in this phase.`}
+        distinctionText={`Feedback from students about their ${getTutorLabel(coursePhaseConfig).text} in this phase.`}
       />
 
       {/* Outside the assessment card: evaluation-only phases release results too */}

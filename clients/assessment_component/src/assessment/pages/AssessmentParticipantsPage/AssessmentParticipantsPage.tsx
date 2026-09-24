@@ -129,7 +129,7 @@ export const AssessmentParticipantsPage = () => {
         teams,
         participations,
         coursePhaseConfig?.tutorEvaluationEnabled ?? false,
-        getTutorLabel(coursePhaseConfig),
+        getTutorLabel(coursePhaseConfig).title,
       ),
     ]
 

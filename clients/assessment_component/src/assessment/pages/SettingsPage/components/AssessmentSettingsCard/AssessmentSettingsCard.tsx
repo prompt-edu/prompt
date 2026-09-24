@@ -63,7 +63,7 @@ export const AssessmentSettingsCard = () => {
             onCheckedChange={assessmentVisibility.setEvaluationResultsVisible}
             disabled={isSaving}
             title='Show evaluation results before submission'
-            description={`Assessment authors can review self-, peer-, and ${tutorLabel}-evaluation results before they finalize the assessment.`}
+            description={`Assessment authors can review self-, peer-, and student-to-${tutorLabel.text} evaluation results before they finalize the assessment.`}
           />
         </div>
       </div>

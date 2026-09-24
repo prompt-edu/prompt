@@ -61,7 +61,7 @@ export const EvaluationInfoHeader = ({
     }
     return (
       'Assessment results have been released and are now available. ' +
-      `You will receive further information about your assessment from your ${getTutorLabel(coursePhaseConfig)} / instructor.`
+      `You will receive further information about your assessment from your ${getTutorLabel(coursePhaseConfig).text} / instructor.`
     )
   }
 

@@ -2,18 +2,21 @@ import { useQuery } from '@tanstack/react-query'
 import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Badge,
+  Button,
   Card,
   CardContent,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogErrorDisplay,
   DialogHeader,
   DialogTitle,
   getStudentName,
   QueryGate,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { Award, BookOpen, Loader2 } from 'lucide-react'
+import { Award, BookOpen, Loader2, RefreshCw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
 import { getAllSkills } from '../../../network/queries/getAllSkills'
@@ -82,6 +85,19 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
                   <Loader2 className='h-12 w-12 animate-spin text-primary' />
                 </div>
               }
+              errorFallback={({ error, refetch, isFetching }) => (
+                <div className='flex flex-col items-center pb-4'>
+                  <DialogErrorDisplay
+                    error={
+                      error instanceof Error ? error : new Error('Could not load teams and skills')
+                    }
+                  />
+                  <Button variant='outline' onClick={refetch} disabled={isFetching}>
+                    <RefreshCw className={cn('mr-2 h-4 w-4', isFetching && 'animate-spin')} />
+                    {isFetching ? 'Retrying...' : 'Retry'}
+                  </Button>
+                </div>
+              )}
             >
               <div className='space-y-6 pr-2 mt-4'>
                 <div>

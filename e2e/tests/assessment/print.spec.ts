@@ -255,5 +255,20 @@ test.describe('assessment: print report', () => {
     await expect(phase.printReport()).toContainText('Far below expectations')
     await expect(phase.printReport()).toContainText('Far above expectations')
     await expect(phase.printReport()).not.toContainText('Not assessed')
+
+    // The schema editor is screen-only: under print media it gives way to the
+    // report instead of printing above it.
+    const editorHeading = page.getByRole('heading', { name: 'Categories and competencies' })
+    const addCategoryButton = page.getByRole('button', { name: 'Add category' })
+    await expect(editorHeading).toBeVisible()
+    await expect(addCategoryButton).toBeVisible()
+    await page.emulateMedia({ media: 'print' })
+    try {
+      await expect(editorHeading).toBeHidden()
+      await expect(addCategoryButton).toBeHidden()
+      await expect(exportButton).toBeHidden()
+    } finally {
+      await page.emulateMedia({ media: null })
+    }
   })
 })

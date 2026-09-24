@@ -4,8 +4,12 @@ import {
   type ExtraParticipantColumn,
   LoadingPage,
   ManagementPageHeader,
+  type ParticipantRow,
+  type RowAction,
   type TableFilter,
+  useToast,
 } from '@tumaet/prompt-ui-components'
+import { Lock, Unlock } from 'lucide-react'
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -26,6 +30,21 @@ import {
   createTeamColumn,
   createTutorEvalStatusColumn,
 } from './columns'
+import { useMarkAssessmentsAsCompleted } from './hooks/useMarkAssessmentsAsCompleted'
+import { useUnmarkAssessmentsAsCompleted } from './hooks/useUnmarkAssessmentsAsCompleted'
+import {
+  canMarkAnyAsCompleted,
+  canUnmarkAny,
+  pluralizeAssessments,
+  summarizeMarkResult,
+  summarizeUnmarkResult,
+} from './utils/completionActions'
+
+const toParticipationIDs = (rows: ParticipantRow[]) => rows.map((row) => row.courseParticipationID)
+
+const serverErrorMessage = (error: unknown): string =>
+  (error as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+  'Please try again.'
 
 export const AssessmentParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -144,6 +163,72 @@ export const AssessmentParticipantsPage = () => {
     tutorEvaluationCompletions,
   ])
 
+  const { toast } = useToast()
+  const { mutateAsync: markAsCompleted } = useMarkAssessmentsAsCompleted()
+  const { mutateAsync: unmarkAsCompleted } = useUnmarkAssessmentsAsCompleted()
+  const deadline = coursePhaseConfig?.deadline
+  const isDeadlinePassed = deadline ? new Date() > new Date(deadline) : false
+
+  const extraActions: RowAction<ParticipantRow>[] = useMemo(() => {
+    if (!assessmentEnabled) {
+      return []
+    }
+    return [
+      {
+        label: 'Mark as final',
+        icon: <Lock className='h-4 w-4' />,
+        disabled: (rows) => !canMarkAnyAsCompleted(toParticipationIDs(rows), assessmentCompletions),
+        confirm: {
+          title: 'Mark as final',
+          description: (count) =>
+            `Mark ${pluralizeAssessments(count)} as final? Final assessments can no longer be edited. Assessments with unassessed competencies or no grade suggestion are skipped.`,
+          confirmLabel: 'Mark as final',
+        },
+        onAction: async (rows) => {
+          try {
+            toast(summarizeMarkResult(await markAsCompleted(toParticipationIDs(rows))))
+          } catch (error) {
+            toast({
+              title: 'Marking as final failed',
+              description: serverErrorMessage(error),
+              variant: 'destructive',
+            })
+          }
+        },
+      },
+      {
+        label: 'Unmark final',
+        icon: <Unlock className='h-4 w-4' />,
+        disabled: (rows) =>
+          isDeadlinePassed || !canUnmarkAny(toParticipationIDs(rows), assessmentCompletions),
+        confirm: {
+          title: 'Unmark final',
+          description: (count) =>
+            `Reopen ${pluralizeAssessments(count)} for editing? Assessments that are not final are skipped.`,
+          confirmLabel: 'Unmark final',
+        },
+        onAction: async (rows) => {
+          try {
+            toast(summarizeUnmarkResult(await unmarkAsCompleted(toParticipationIDs(rows))))
+          } catch (error) {
+            toast({
+              title: 'Unmarking final failed',
+              description: serverErrorMessage(error),
+              variant: 'destructive',
+            })
+          }
+        },
+      },
+    ]
+  }, [
+    assessmentEnabled,
+    assessmentCompletions,
+    isDeadlinePassed,
+    markAsCompleted,
+    unmarkAsCompleted,
+    toast,
+  ])
+
   const extraFilters: TableFilter[] = [
     {
       type: 'select',
@@ -195,6 +280,7 @@ export const AssessmentParticipantsPage = () => {
           participants={participations ?? []}
           extraColumns={extraColumns}
           extraFilters={extraFilters}
+          extraActions={extraActions}
           onClickRowAction={
             assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
           }

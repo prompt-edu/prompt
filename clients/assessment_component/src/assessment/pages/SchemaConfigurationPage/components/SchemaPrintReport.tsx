@@ -52,7 +52,9 @@ export const SchemaPrintReport = ({
                 <span className='text-xs text-gray-600'>Weight: {competency.weight}</span>
               </div>
               {competency.description && (
-                <p className='mt-1 text-sm text-gray-700'>{competency.description}</p>
+                <p className='mt-1 whitespace-pre-wrap text-sm text-gray-700'>
+                  {competency.description}
+                </p>
               )}
               <dl className='mt-2 grid grid-cols-[auto_1fr] items-baseline justify-items-start gap-x-3 gap-y-1 text-xs'>
                 {Object.values(ScoreLevel).map((scoreLevel) => (
@@ -60,7 +62,7 @@ export const SchemaPrintReport = ({
                     <dt>
                       <ScoreChip scoreLevel={scoreLevel} />
                     </dt>
-                    <dd className='text-gray-700'>
+                    <dd className='whitespace-pre-wrap text-gray-700'>
                       {getScoreLevelDescription(scoreLevel, competency)}
                     </dd>
                   </Fragment>

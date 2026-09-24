@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
@@ -119,4 +120,24 @@ func TestGeneratePreviewCertificate_UsesMockData(t *testing.T) {
 	assert.Equal(t, []byte("%PDF-fake"), pdf)
 	assert.Equal(t, "Jane Doe", written.StudentName)
 	assert.Equal(t, "August 27, 2026", written.Date)
+}
+
+func TestIsReleased(t *testing.T) {
+	now := time.Date(2026, time.September, 24, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name        string
+		releaseDate pgtype.Timestamptz
+		released    bool
+	}{
+		{name: "no release date", releaseDate: pgtype.Timestamptz{}, released: false},
+		{name: "future release date", releaseDate: pgtype.Timestamptz{Time: now.Add(time.Minute), Valid: true}, released: false},
+		{name: "release date now", releaseDate: pgtype.Timestamptz{Time: now, Valid: true}, released: true},
+		{name: "past release date", releaseDate: pgtype.Timestamptz{Time: now.Add(-time.Minute), Valid: true}, released: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.released, isReleased(db.CoursePhaseConfig{ReleaseDate: tt.releaseDate}, now))
+		})
+	}
 }

@@ -2,9 +2,11 @@ package config
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -217,6 +219,37 @@ func (s *ConfigServiceTestSuite) TestUpsertCoursePhaseConfig() {
 	})
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), updatedTemplate, cfg2.TemplateContent.String)
+}
+
+func (s *ConfigServiceTestSuite) TestGetPhaseConfig() {
+	tests := []struct {
+		name          string
+		coursePhaseID uuid.UUID
+		template      bool
+	}{
+		{name: "template configured", coursePhaseID: uuid.MustParse("10000000-0000-0000-0000-000000000001"), template: true},
+		{name: "config row without template", coursePhaseID: uuid.MustParse("10000000-0000-0000-0000-000000000002"), template: false},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			phaseConfig, err := s.configService.GetPhaseConfig(s.suiteCtx, tt.coursePhaseID)
+			assert.NoError(s.T(), err)
+			assert.Equal(s.T(), map[string]bool{"template": tt.template}, phaseConfig)
+		})
+	}
+}
+
+func (s *ConfigServiceTestSuite) TestGetPhaseConfig_NoConfigRow() {
+	coursePhaseID := uuid.New()
+
+	phaseConfig, err := s.configService.GetPhaseConfig(s.suiteCtx, coursePhaseID)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), map[string]bool{"template": false}, phaseConfig)
+
+	// Reporting the status must not create the default row the settings read does.
+	_, err = s.configService.queries.GetCoursePhaseConfig(s.suiteCtx, coursePhaseID)
+	assert.True(s.T(), errors.Is(err, pgx.ErrNoRows))
 }
 
 func TestConfigServiceTestSuite(t *testing.T) {

@@ -16,6 +16,8 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
+	"github.com/prompt-edu/prompt/servers/certificate/copy"
+	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
@@ -81,11 +83,15 @@ func main() {
 	participantsService := participants.NewParticipantsService(*query, sdkUtils.GetCoreUrl())
 	generatorService := generator.NewGeneratorService(*query, configService, participantsService, participantsService)
 	privacyService := privacy.NewPrivacyService(*query)
+	copyService := copy.NewCopyService(*query)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
 	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
+	copy.RegisterRoutes(api, copyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "certificate",
@@ -93,8 +99,9 @@ func main() {
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: true,
-			promptTypes.CapabilityPhaseCopy:       false,
+			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {

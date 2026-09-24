@@ -54,9 +54,9 @@ func (s *GeneratorService) downloadOwnCertificate(c *gin.Context) {
 		return
 	}
 
-	// Check release date — students can only download after the release date
+	// Check release date — students can only download once the certificate is released
 	if !user.Roles[promptSDK.PromptAdmin] && !user.Roles[promptSDK.CourseLecturer] && !user.Roles[promptSDK.CourseEditor] {
-		if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
+		if !isReleased(config, s.now()) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Certificate is not yet available for download"})
 			return
 		}
@@ -200,11 +200,15 @@ func (s *GeneratorService) getCertificateStatus(c *gin.Context) {
 	}
 
 	// Check release date for students
-	if config.ReleaseDate.Valid && config.ReleaseDate.Time.After(time.Now()) {
+	if !isReleased(config, s.now()) {
+		message := "Your instructor has not released the certificates yet."
+		if config.ReleaseDate.Valid {
+			message = "Certificate will be available after " + config.ReleaseDate.Time.Format("02.01.2006 15:04")
+		}
 		respondCertificateStatus(c, config.StudentPageText, gin.H{
 			"available":     false,
 			"hasDownloaded": false,
-			"message":       "Certificate will be available after " + config.ReleaseDate.Time.Format("02.01.2006 15:04"),
+			"message":       message,
 		})
 		return
 	}
@@ -315,6 +319,12 @@ func (s *GeneratorService) getTemplateConfig(c *gin.Context, coursePhaseID uuid.
 
 // ensureTemplateConfigured writes the response and returns ok=false when the template is missing
 // (404) or the config lookup fails (500). The fetched config is returned for reuse on success.
+// isReleased reports whether students may download: a certificate is released only once a release
+// date is set and has passed. Without a release date the phase is unreleased.
+func isReleased(config db.CoursePhaseConfig, now time.Time) bool {
+	return config.ReleaseDate.Valid && !config.ReleaseDate.Time.After(now)
+}
+
 func (s *GeneratorService) ensureTemplateConfigured(c *gin.Context, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, bool) {
 	config, err := s.getTemplateConfig(c, coursePhaseID)
 	if err != nil {

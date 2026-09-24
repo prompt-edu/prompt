@@ -169,7 +169,7 @@ available yet.
 ### Certificate Availability
 
 - Certificates are available only after the instructor has released them (either by setting a release date that has passed, or by releasing immediately).
-- If certificates are not yet available, you will see a message indicating when they will be released.
+- If certificates are not yet available, you will see when they will be released, or that your instructor has not released them yet.
 - Your instructor may also add their own message to the page with further information.
 
 :::note

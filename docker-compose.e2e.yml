@@ -52,6 +52,8 @@ services:
       - DB_NAME=${DB_CORE_NAME}
       - SSL_MODE
       - SERVER_ADDRESS
+      # Reported as the service version on /info (asserted by tests/api/service-info).
+      - SERVER_IMAGE_TAG=local
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - KEYCLOAK_CLIENT_ID
@@ -179,6 +181,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.
@@ -254,6 +257,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.
@@ -326,6 +330,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.
@@ -422,6 +427,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.
@@ -499,6 +505,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.
@@ -573,6 +580,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       - DB_USER=${DB_PRESENTATION_USER}
       - DB_PASSWORD=${DB_PRESENTATION_PASSWORD}
@@ -648,6 +656,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       - DB_USER=${DB_INFRASTRUCTURE_SETUP_USER}
       - DB_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
@@ -716,6 +725,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
       - SSL_MODE
       # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
       # service-specific host/port vars.

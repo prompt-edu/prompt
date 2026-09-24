@@ -20,6 +20,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	"github.com/prompt-edu/prompt/servers/certificate/copy"
+	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
@@ -101,6 +102,7 @@ func auditRouter(sink audit.Sink) *gin.Engine {
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
 	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletion.NewCoursePhaseDeletionService(*queries, nil))
 
 	return router
 }
@@ -153,6 +155,25 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 			require.Equal(t, "Ada Lovelace", events[0].ActorName)
 		})
 	}
+}
+
+// The phase deletion route carries its own label: the module deletes only its own data, so the
+// derived "Deleted course phase" would mislead.
+func TestAuditMiddlewareRecordsPhaseDeletionRoute(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink)
+
+	resp := httptest.NewRecorder()
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodDelete, url, nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	events := sink.waitForEvents(1)
+	require.Len(t, events, 1)
+	require.Equal(t, "Deleted the certificate phase data", events[0].Action)
+	require.Equal(t, "DELETE /certificate/api/course_phase/:coursePhaseID", events[0].ActionKey)
+	require.Equal(t, audit.OutcomeDenied, events[0].Outcome)
+	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
 }
 
 func TestAuditMiddlewareRecordsOneEventPerRequest(t *testing.T) {

@@ -107,12 +107,13 @@ func deleteModuleDataAt(ctx context.Context, authHeader, baseURL string, targets
 		return nil
 	}
 
+	var failures []error
 	for _, target := range targets {
 		if err := deletePhaseDataAt(ctx, authHeader, baseURL, target.ID); err != nil {
-			return fmt.Errorf("course phase type %q failed to delete its data for phase %s: %w", target.CoursePhaseTypeName, target.ID, err)
+			failures = append(failures, fmt.Errorf("course phase type %q failed to delete its data for phase %s: %w", target.CoursePhaseTypeName, target.ID, err))
 		}
 	}
-	return nil
+	return errors.Join(failures...)
 }
 
 // moduleSupportsPhaseDeletion reads the module's advertised capabilities. Everything other than a

@@ -274,6 +274,21 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLIsUnusable(
 	assert.True(suite.T(), suite.phaseExists(phaseID))
 }
 
+func (suite *ModuleDeletionTestSuite) TestAsksForEveryPhaseAfterAFailure() {
+	module := newFakeModule(supportsDeletion, http.StatusInternalServerError)
+	defer module.server.Close()
+	phaseTypeID := suite.newPhaseType(module.server.URL)
+	courseID := uuid.New()
+	first := suite.newPhase(phaseTypeID, courseID)
+	second := suite.newPhase(phaseTypeID, courseID)
+
+	_, err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
+
+	assert.Error(suite.T(), err)
+	assert.ElementsMatch(suite.T(), []string{first.String(), second.String()}, module.deletedIDs,
+		"one failed phase must not keep the module from being asked about the others")
+}
+
 func TestModuleDeletionTestSuite(t *testing.T) {
 	suite.Run(t, new(ModuleDeletionTestSuite))
 }

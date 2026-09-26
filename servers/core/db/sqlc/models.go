@@ -821,6 +821,14 @@ type PrivacyExportWithDoc struct {
 	Documents            []byte             `json:"documents"`
 }
 
+type ProfilePicture struct {
+	UserID          uuid.UUID        `json:"user_id"`
+	UniversityLogin pgtype.Text      `json:"university_login"`
+	FileID          uuid.UUID        `json:"file_id"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+}
+
 type Student struct {
 	ID                   uuid.UUID        `json:"id"`
 	FirstName            pgtype.Text      `json:"first_name"`

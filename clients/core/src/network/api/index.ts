@@ -9,7 +9,6 @@ import { keycloak } from './keycloak'
 import { mailCampaigns } from './mailCampaigns'
 import { mailing } from './mailing'
 import { privacy } from './privacy'
-import { profilePictures } from './profilePictures'
 import { students } from './students'
 import { system } from './system'
 
@@ -29,7 +28,6 @@ export const coreApi = {
   mailCampaigns,
   mailing,
   privacy,
-  profilePictures,
   students,
   system,
 }

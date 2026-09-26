@@ -3,6 +3,7 @@ package profilePicture
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -126,7 +127,7 @@ func (suite *ProfilePictureServiceTestSuite) SetupTest() {
 	suite.store.put(instructorPictureKey, pictureContentType, validJPEG)
 
 	fileStore := files.NewStorageService(suite.queries, suite.conn, suite.store.adapter(), 50, []string{pictureContentType, "image/png"})
-	suite.service = NewProfilePictureService(suite.queries, fileStore)
+	suite.service = NewProfilePictureService(suite.queries, suite.conn, fileStore)
 }
 
 func (suite *ProfilePictureServiceTestSuite) TearDownSuite() {
@@ -195,6 +196,37 @@ func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_ReplacesAndDelet
 	assert.Contains(suite.T(), picture.URL, secondKey)
 	assert.True(suite.T(), suite.store.wasDeleted(firstKey), "the replaced picture must be removed from storage")
 	assert.False(suite.T(), suite.store.wasDeleted(secondKey))
+}
+
+func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_ConcurrentUploadsLeaveNoOrphan() {
+	userID := uuid.New()
+	keys := []string{
+		suite.upload(userID, pictureContentType, validJPEG),
+		suite.upload(userID, pictureContentType, validJPEG),
+	}
+
+	var wg sync.WaitGroup
+	errs := make([]error, len(keys))
+	for i, key := range keys {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, errs[i] = suite.service.CompleteUpload(suite.ctx, Uploader{UserID: userID}, key)
+		}()
+	}
+	wg.Wait()
+	require.NoError(suite.T(), errors.Join(errs...))
+
+	// Whichever upload won, the other file must be gone, not left behind unreferenced.
+	remaining, err := suite.queries.GetFilesByUploader(suite.ctx, db.GetFilesByUploaderParams{
+		UploadedByUserID: userID.String(),
+		Limit:            10,
+	})
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), remaining, 1)
+	own, err := suite.service.GetOwnPicture(suite.ctx, userID)
+	require.NoError(suite.T(), err)
+	assert.Contains(suite.T(), own.URL, remaining[0].StorageKey)
 }
 
 func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_IsIdempotent() {

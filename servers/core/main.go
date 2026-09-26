@@ -231,7 +231,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize prompt file storage: %v", err)
 	}
-	profilePictureService := profilePicture.NewProfilePictureService(*query, fileStorageService)
+	profilePictureService := profilePicture.NewProfilePictureService(*query, conn, fileStorageService)
 	profilePicture.RegisterRoutes(api, profilePictureService, tokenVerifier.KeycloakMiddleware)
 
 	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)

@@ -50,14 +50,18 @@ func (s *PrivacyService) ExecuteCoreDeletion(ctx context.Context, subject sdk.Su
 		return fmt.Errorf("commit deletion transaction: %w", err)
 	}
 
-	// applicationFiles
+	// The student record is already gone, so each file cleanup runs even when the other fails;
+	// a retry could no longer find these files through the student.
+	var cleanupErrs []error
 	if err := s.deleteApplicationFiles(ctx, fileIDs); err != nil {
-		return fmt.Errorf("delete application files: %w", err)
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("delete application files: %w", err))
 	}
-
-	// profile pictures; deleting the file cascades to its profile_picture row
+	// deleting a picture's file cascades to its profile_picture row
 	if err := s.deleteProfilePictureFiles(ctx, profilePictureFileIDs); err != nil {
-		return fmt.Errorf("delete profile pictures: %w", err)
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("delete profile pictures: %w", err))
+	}
+	if err := errors.Join(cleanupErrs...); err != nil {
+		return err
 	}
 
 	// Privacy Exports

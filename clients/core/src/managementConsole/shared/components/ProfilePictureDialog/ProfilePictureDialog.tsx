@@ -40,6 +40,7 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(MIN_ZOOM)
   const [croppedArea, setCroppedArea] = useState<Area | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // The object URL holds the whole chosen file in memory until it is revoked
   useEffect(() => {
@@ -69,6 +70,8 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
 
     const error = validatePictureFile(file)
     if (error) {
+      // Drop the previous choice, so Save cannot upload it after the replacement was rejected
+      reset()
       setFileError(error)
       return
     }
@@ -77,13 +80,17 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
   }
 
   const handleSave = async () => {
-    if (!imageUrl || !croppedArea) return
+    if (!imageUrl || !croppedArea || isSaving) return
+    // Covers the crop too, which runs before the upload mutation reports itself as pending
+    setIsSaving(true)
     try {
       const picture = await cropProfilePicture(imageUrl, croppedArea)
       await uploadPicture.mutateAsync(picture)
       handleOpenChange(false)
     } catch {
       // The mutation reports its own failure; a failed crop leaves the dialog open to retry
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -96,7 +103,7 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
     }
   }
 
-  const isBusy = uploadPicture.isPending || deletePicture.isPending
+  const isBusy = isSaving || deletePicture.isPending
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -197,7 +204,7 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
           </div>
           {imageUrl && (
             <Button onClick={handleSave} disabled={isBusy || !croppedArea}>
-              {uploadPicture.isPending && <Loader2 className='h-4 w-4 animate-spin' />}
+              {isSaving && <Loader2 className='h-4 w-4 animate-spin' />}
               Save
             </Button>
           )}

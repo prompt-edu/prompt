@@ -1,20 +1,17 @@
 import {
   type CoursePhaseParticipationWithStudent,
-  getGravatarUrl,
   getStatusColor,
   getStudyDegreeString,
   useCourseStore,
 } from '@tumaet/prompt-shared-state'
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   getStudentName,
+  ProfilePicture,
   Separator,
 } from '@tumaet/prompt-ui-components'
 import { format } from 'date-fns'
@@ -65,16 +62,13 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
       <div className={`h-16 ${getStatusColor(participation.passStatus)}`} />
 
       <div className='mb-8'>
-        <Avatar className='absolute w-24 h-24 border-4 border-background rounded-full transform left-3 -translate-y-1/2'>
-          <AvatarImage
-            src={getGravatarUrl(participation.student.email)}
-            alt={participation.student.lastName}
-          />
-          <AvatarFallback className='rounded-full font-bold text-lg'>
-            {participation.student.firstName[0]}
-            {participation.student.lastName[0]}
-          </AvatarFallback>
-        </Avatar>
+        <ProfilePicture
+          studentId={participation.student.id}
+          firstName={participation.student.firstName}
+          lastName={participation.student.lastName}
+          size='lg'
+          className='absolute border-4 border-background rounded-full transform left-3 -translate-y-1/2'
+        />
       </div>
 
       <CardHeader>

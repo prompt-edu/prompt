@@ -88,7 +88,12 @@ export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
 
       <RenderStudents
         className='mb-2 mt-1'
-        students={tutors.map((tutor) => ({ ...tutor, email: 'no@mail.example' }))}
+        // The tutor import stores the student id as the tutor's id
+        students={tutors.map((tutor) => ({
+          id: tutor.id,
+          firstName: tutor.firstName,
+          lastName: tutor.lastName,
+        }))}
         fallback={<p className='text-muted-foreground'>No tutors in this team</p>}
       />
 

@@ -143,6 +143,11 @@ describe('coreKeys', () => {
     expect(coreKeys.privacy.admin.deletions()).toEqual(['privacy', 'admin', 'deletions'])
   })
 
+  it('keeps the own profile picture outside the looked-up pictures owned by the lib', () => {
+    expect(coreKeys.profilePictures.own()).toEqual(['ownProfilePicture'])
+    expect(coreKeys.profilePictures.lookedUp()).toEqual(['profilePicture'])
+  })
+
   it('names each service info cache in one element, so core is not their prefix', () => {
     expect(coreKeys.serviceInfo.core()).toEqual(['serviceInfo-core'])
     expect(coreKeys.serviceInfo.ofService('assessment')).toEqual(['serviceInfo-assessment'])

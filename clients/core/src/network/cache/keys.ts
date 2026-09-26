@@ -102,6 +102,15 @@ export const coreKeys = {
     },
   },
 
+  profilePictures: {
+    // Not a child of `lookedUp`: the own picture is read from its own endpoint
+    own: () => ['ownProfilePicture'] as const,
+    // Owned by @tumaet/prompt-ui-components (`profilePictureQueryKeys.all`), which caches every
+    // looked-up picture below it: react-query is a Module Federation singleton, so this entry is
+    // shared with every remote and must keep its literal
+    lookedUp: () => ['profilePicture'] as const,
+  },
+
   serviceInfo: {
     core: () => ['serviceInfo-core'] as const,
     // The id sits inside the literal rather than in a second element, so these are not one prefix

@@ -159,9 +159,7 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
               </span>
             </button>
             <p className='text-sm text-muted-foreground'>
-              {ownPicture
-                ? 'This is your current picture. Click it to choose a new one.'
-                : 'You have no profile picture yet. Click the avatar to choose one.'}
+              {ownPicture ? 'This is your current picture.' : 'You have no profile picture yet.'}
             </p>
           </div>
         )}

@@ -1,7 +1,6 @@
 import { useCreateInstructorNote } from '@core/network/hooks/useInstructorNotes'
-import { useOwnProfilePicture } from '@core/network/hooks/useProfilePicture'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { getStudentName, ProfilePicture } from '@tumaet/prompt-ui-components'
+import { getStudentName, ProfilePicture, useOwnProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteComposer } from './InstructorNoteComposer'
 
 interface InstructorNotesCreateFormProps {

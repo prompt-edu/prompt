@@ -58,7 +58,6 @@ const coursesPath = `${CORE}/api/courses`
 const notesPath = `${CORE}/api/instructor-notes`
 const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
-const ownProfilePicturePath = `${CORE}/api/profile-pictures/me`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
 
@@ -598,32 +597,6 @@ const ROUTES: Route[] = [
   },
 
   {
-    name: 'profilePictures.own',
-    run: () => coreApi.profilePictures.own(),
-    method: 'get',
-    url: ownProfilePicturePath,
-  },
-  {
-    name: 'profilePictures.presignUpload',
-    run: () => coreApi.profilePictures.presignUpload(),
-    method: 'post',
-    url: `${ownProfilePicturePath}/presign`,
-  },
-  {
-    name: 'profilePictures.completeUpload',
-    run: () => coreApi.profilePictures.completeUpload('profile-picture/user-1/picture.jpg'),
-    method: 'post',
-    url: `${ownProfilePicturePath}/complete`,
-    data: { storageKey: 'profile-picture/user-1/picture.jpg' },
-  },
-  {
-    name: 'profilePictures.removeOwn',
-    run: () => coreApi.profilePictures.removeOwn(),
-    method: 'delete',
-    url: ownProfilePicturePath,
-  },
-
-  {
     name: 'students.byID',
     run: () => coreApi.students.byID(STUDENT),
     method: 'get',
@@ -781,14 +754,6 @@ describe('coreApi routes', () => {
 
     await expect(coreApi.courses.list()).resolves.toEqual([])
     await expect(coreApi.courses.listOwnIDs()).resolves.toEqual([])
-
-    expect(coreFailureLogs()).toHaveLength(0)
-  })
-
-  it('answers null without logging when the user has no profile picture', async () => {
-    axiosInstance.defaults.adapter = rejectingAdapter(404)
-
-    await expect(coreApi.profilePictures.own()).resolves.toBeNull()
 
     expect(coreFailureLogs()).toHaveLength(0)
   })

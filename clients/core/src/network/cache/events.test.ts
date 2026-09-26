@@ -315,18 +315,6 @@ describe('privacy events', () => {
   })
 })
 
-describe('ownProfilePictureChanged', () => {
-  it('invalidates the own picture and every picture the lib looked up', () => {
-    const lookedUpStudent = [...coreKeys.profilePictures.lookedUp(), 'student', STUDENT]
-    seed(coreKeys.profilePictures.own(), lookedUpStudent)
-
-    coreCache.ownProfilePictureChanged(queryClient)
-
-    expect(isInvalidated(coreKeys.profilePictures.own())).toBe(true)
-    expect(isInvalidated(lookedUpStudent)).toBe(true)
-  })
-})
-
 // Every id-scoped event routes through the same `invalidate` helper, so this covers the class
 describe('a key whose scoping id is missing', () => {
   it('is truncated at the missing segment rather than matching nothing', () => {

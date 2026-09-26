@@ -118,9 +118,4 @@ export const coreCache = {
 
   privacyExportsChanged: (queryClient: QueryClient): void =>
     invalidate(queryClient, [coreKeys.privacy.admin.exports()]),
-
-  // The user's picture also renders through the lib's lookup wherever they appear in a list, and
-  // each of those entries still holds the old URL
-  ownProfilePictureChanged: (queryClient: QueryClient): void =>
-    invalidate(queryClient, [coreKeys.profilePictures.own(), coreKeys.profilePictures.lookedUp()]),
 }

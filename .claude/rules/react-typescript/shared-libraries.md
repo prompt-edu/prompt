@@ -35,6 +35,10 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   (`userId`, `studentId` or `courseParticipationId`). It batches the lookups of one render into a
   single request, loads only avatars near the viewport, and falls back to initials. Never build
   avatar URLs yourself; `getGravatarUrl` is deprecated and returns no URL.
+  To ask students for a picture, put `ProfilePictureRequirementSetting` on the phase's settings
+  page (the phase stores the `off` / `optional` / `required` value in its own config) and
+  `ProfilePictureUploadPrompt` on the student page. The own picture is available through
+  `useOwnProfilePicture` and editable through `ProfilePictureDialog`.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
 - **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,

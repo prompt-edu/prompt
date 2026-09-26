@@ -46,3 +46,8 @@ SELECT pp.file_id
 FROM profile_picture pp
 JOIN student s ON s.university_login = pp.university_login
 WHERE s.id = $1;
+
+-- Serializes picture changes of one user until the transaction ends, so replacing a picture always
+-- sees the file it replaces, even for the first upload when no row exists to lock yet.
+-- name: LockProfilePictureOfUser :exec
+SELECT pg_advisory_xact_lock(hashtextextended(sqlc.arg(user_id)::uuid::text, 0));

@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/profilePicture/profilePictureDTO"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
@@ -56,12 +58,14 @@ type Uploader struct {
 
 type ProfilePictureService struct {
 	queries db.Queries
+	conn    *pgxpool.Pool
 	files   FileStore
 }
 
-func NewProfilePictureService(queries db.Queries, fileStore FileStore) *ProfilePictureService {
+func NewProfilePictureService(queries db.Queries, conn *pgxpool.Pool, fileStore FileStore) *ProfilePictureService {
 	return &ProfilePictureService{
 		queries: queries,
+		conn:    conn,
 		files:   fileStore,
 	}
 }
@@ -105,19 +109,36 @@ func (s *ProfilePictureService) CompleteUpload(ctx context.Context, uploader Upl
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	previous, err := s.queries.GetProfilePictureByUserID(ctxWithTimeout, uploader.UserID)
+	// Concurrent uploads of one user are serialized, so each one sees the file it replaces and
+	// no replaced file is left behind unreferenced.
+	tx, err := s.conn.Begin(ctxWithTimeout)
+	if err != nil {
+		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctxWithTimeout)
+	txQueries := s.queries.WithTx(tx)
+
+	if err := txQueries.LockProfilePictureOfUser(ctxWithTimeout, uploader.UserID); err != nil {
+		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to lock profile picture: %w", err)
+	}
+
+	previous, err := txQueries.GetProfilePictureByUserID(ctxWithTimeout, uploader.UserID)
 	hasPrevious := err == nil
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to load current profile picture: %w", err)
 	}
 
-	picture, err := s.queries.UpsertProfilePicture(ctxWithTimeout, db.UpsertProfilePictureParams{
+	picture, err := txQueries.UpsertProfilePicture(ctxWithTimeout, db.UpsertProfilePictureParams{
 		UserID:          uploader.UserID,
 		UniversityLogin: pgtype.Text{String: uploader.UniversityLogin, Valid: uploader.UniversityLogin != ""},
 		FileID:          file.ID,
 	})
 	if err != nil {
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to save profile picture: %w", err)
+	}
+
+	if err := tx.Commit(ctxWithTimeout); err != nil {
+		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to commit profile picture: %w", err)
 	}
 
 	if hasPrevious && previous.FileID != file.ID {
@@ -156,7 +177,18 @@ func (s *ProfilePictureService) DeleteOwnPicture(ctx context.Context, userID uui
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
-	picture, err := s.queries.GetProfilePictureByUserID(ctxWithTimeout, userID)
+	tx, err := s.conn.Begin(ctxWithTimeout)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctxWithTimeout)
+	txQueries := s.queries.WithTx(tx)
+
+	if err := txQueries.LockProfilePictureOfUser(ctxWithTimeout, userID); err != nil {
+		return fmt.Errorf("failed to lock profile picture: %w", err)
+	}
+
+	picture, err := txQueries.GetProfilePictureByUserID(ctxWithTimeout, userID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return fmt.Errorf("no profile picture: %w", ErrNotFound)
 	}
@@ -164,8 +196,12 @@ func (s *ProfilePictureService) DeleteOwnPicture(ctx context.Context, userID uui
 		return fmt.Errorf("failed to load profile picture: %w", err)
 	}
 
-	if err := s.queries.DeleteProfilePictureByUserID(ctxWithTimeout, userID); err != nil {
+	if err := txQueries.DeleteProfilePictureByUserID(ctxWithTimeout, userID); err != nil {
 		return fmt.Errorf("failed to delete profile picture: %w", err)
+	}
+
+	if err := tx.Commit(ctxWithTimeout); err != nil {
+		return fmt.Errorf("failed to commit profile picture removal: %w", err)
 	}
 
 	s.discardFile(ctx, picture.FileID)

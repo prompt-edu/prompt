@@ -179,6 +179,17 @@ func (q *Queries) GetProfilePictureStorageKeysByUserIDs(ctx context.Context, use
 	return items, nil
 }
 
+const lockProfilePictureOfUser = `-- name: LockProfilePictureOfUser :exec
+SELECT pg_advisory_xact_lock(hashtextextended($1::uuid::text, 0))
+`
+
+// Serializes picture changes of one user until the transaction ends, so replacing a picture always
+// sees the file it replaces, even for the first upload when no row exists to lock yet.
+func (q *Queries) LockProfilePictureOfUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockProfilePictureOfUser, userID)
+	return err
+}
+
 const upsertProfilePicture = `-- name: UpsertProfilePicture :one
 INSERT INTO profile_picture (user_id, university_login, file_id)
 VALUES ($1, $2, $3)

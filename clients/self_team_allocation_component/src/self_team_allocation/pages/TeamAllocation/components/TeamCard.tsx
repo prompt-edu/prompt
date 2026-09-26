@@ -9,8 +9,9 @@ import {
   CardHeader,
   CardTitle,
   getStudentName,
+  ProfilePicture,
 } from '@tumaet/prompt-ui-components'
-import { GraduationCap, LogOut, Trash2, UserPlus, Users } from 'lucide-react'
+import { LogOut, Trash2, UserPlus } from 'lucide-react'
 import type React from 'react'
 
 export interface TeamCardProps {
@@ -72,7 +73,12 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                     isCurrent ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground'
                   }`}
                 >
-                  <Users size={14} className={isCurrent ? 'text-primary' : ''} />
+                  <ProfilePicture
+                    courseParticipationId={m.id}
+                    firstName={m.firstName}
+                    lastName={m.lastName}
+                    size='sm'
+                  />
                   <span className='truncate'>{getStudentName(m)}</span>
                   {isCurrent && (
                     <Badge variant='outline' className='ml-auto text-xs'>
@@ -98,7 +104,13 @@ export const TeamCard: React.FC<TeamCardProps> = ({
                 key={idx}
                 className='flex items-center gap-2 p-1 rounded-md text-sm text-muted-foreground'
               >
-                <GraduationCap size={14} />
+                {/* The tutor import stores the student id as the tutor's id */}
+                <ProfilePicture
+                  studentId={tutor.id}
+                  firstName={tutor.firstName}
+                  lastName={tutor.lastName}
+                  size='sm'
+                />
                 <span className='truncate'>{getStudentName(tutor)}</span>
               </li>
             ))}

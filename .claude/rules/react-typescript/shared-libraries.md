@@ -28,12 +28,16 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
 - **Data table:** `PromptTable<T>` — sorting, filtering, row selection, column visibility, search,
   row actions. `PromptTableURL<T>` mirrors it with the table state kept in the URL.
 - **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`.
-- **Student/course UI:** `StudentProfile`, `StudentAvatar`, `StudentProfilePicture`, `SettingsCard`,
+- **Student/course UI:** `StudentProfile`, `StudentAvatar`, `ProfilePicture`, `SettingsCard`,
   `FilterBadge`, `DynamicIcon`, `MissingConfig`, `MissingSettings`, `ExportedApplicationAnswerTable`,
   `ThemeToggle`.
+- **Profile pictures:** render every person with `ProfilePicture`, passing whichever id you have
+  (`userId`, `studentId` or `courseParticipationId`). It batches the lookups of one render into a
+  single request, loads only avatars near the viewport, and falls back to initials. Never build
+  avatar URLs yourself; `getGravatarUrl` is deprecated and returns no URL.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
-- **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`, `getGravatarUrl`,
+- **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,
   `getCountries`, `formatFileSize`, `openFileDownload`. **Table types:** `WithId`, `RowAction<T>`,
   `TableFilter`, `SortableHeader`.
 

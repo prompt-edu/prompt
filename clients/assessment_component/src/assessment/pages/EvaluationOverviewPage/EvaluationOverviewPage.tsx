@@ -149,6 +149,11 @@ export const EvaluationOverviewPage = () => {
               return {
                 id: memberId,
                 name: getStudentName(member),
+                person: {
+                  courseParticipationId: member.id,
+                  firstName: member.firstName,
+                  lastName: member.lastName,
+                },
                 navigationPath: `${path}/peer-evaluation/${memberId}`,
                 completed:
                   peerEvaluationCompletions.find((c) => c.courseParticipationID === member.id)
@@ -174,6 +179,12 @@ export const EvaluationOverviewPage = () => {
               return {
                 id: tutorId,
                 name: getStudentName(tutor),
+                // Team allocation stores the student id as the tutor's id
+                person: {
+                  studentId: tutor.id,
+                  firstName: tutor.firstName,
+                  lastName: tutor.lastName,
+                },
                 navigationPath: `${path}/tutor-evaluation/${tutorId}`,
                 completed:
                   tutorEvaluationCompletions.find((c) => c.courseParticipationID === tutor.id)

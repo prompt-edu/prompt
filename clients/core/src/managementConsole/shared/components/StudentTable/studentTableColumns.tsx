@@ -26,7 +26,7 @@ export const studentTableColumns: PromptTableColumnDef<StudentWithCourses>[] = [
     header: '',
     cell: ({ row }) => (
       <ProfilePicture
-        email={row.original.email}
+        studentId={row.original.id}
         firstName={row.original.firstName}
         lastName={row.original.lastName}
         size='sm'

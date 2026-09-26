@@ -84,7 +84,7 @@ export function PrivacyDeletionReviewDialog({
                     className='flex items-center gap-3 hover:text-blue-500'
                   >
                     <ProfilePicture
-                      email={request.student_email ?? ''}
+                      studentId={request.student_id ?? undefined}
                       firstName={request.student_first_name ?? ''}
                       lastName={request.student_last_name ?? ''}
                       size='md'

@@ -6211,6 +6211,7 @@ __metadata:
     i18n-iso-countries: "npm:^7.14.0"
     papaparse: "npm:^5.7.0"
     react-beautiful-dnd: "npm:^13.1.1"
+    react-easy-crop: "npm:^6.2.3"
     sha256: "npm:^0.2.0"
     typescript: "npm:^6.0.3"
     webpack-bundle-analyzer: "npm:^5.4.0"
@@ -9154,6 +9155,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"normalize-wheel@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "normalize-wheel@npm:1.0.1"
+  checksum: 10c0/5daf4c97e39f36658a5263a6499bbc148676ae2bd85f12c8d03c46ffe7bc3c68d44564c00413d88d0457ac0d94450559bb1c24c2ce7ae0c107031f82d093ac06
+  languageName: node
+  linkType: hard
+
 "npm-bundled@npm:^4.0.0":
   version: 4.0.0
   resolution: "npm-bundled@npm:4.0.0"
@@ -10747,6 +10755,18 @@ __metadata:
   peerDependencies:
     react: ^19.3.0
   checksum: 10c0/c513044b724dd6bfe9500a9682d60973e7f8a48cffba00b6b16d3e910e27dcc459bf71bf0a5c33d7d62a3843ca30de1bd1e2098058aa4ed71f618a24b6061da5
+  languageName: node
+  linkType: hard
+
+"react-easy-crop@npm:^6.2.3":
+  version: 6.2.3
+  resolution: "react-easy-crop@npm:6.2.3"
+  dependencies:
+    normalize-wheel: "npm:^1.0.1"
+  peerDependencies:
+    react: ">=16.4.0"
+    react-dom: ">=16.4.0"
+  checksum: 10c0/ca55a03eb9396c9cf9354aceaa0da585171a94cd86eabdd1aec482c96128cffade1438cbc2d8e221dc50f50c70d84538441f928bf4c3d7bc951d4c2b60a0be7e
   languageName: node
   linkType: hard
 

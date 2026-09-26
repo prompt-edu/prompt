@@ -33,6 +33,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
+	"github.com/prompt-edu/prompt/servers/core/profilePicture"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -230,6 +231,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize prompt file storage: %v", err)
 	}
+	profilePictureService := profilePicture.NewProfilePictureService(*query, conn, fileStorageService)
+	profilePicture.RegisterRoutes(api, profilePictureService, tokenVerifier.KeycloakMiddleware)
 
 	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 	applicationAdministration.RegisterRoutes(api, applicationService, tokenVerifier.KeycloakMiddleware, tokenVerifier.ApplicationMiddleware, validationService.CheckCoursePhasePermission)

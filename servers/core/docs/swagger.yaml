@@ -1844,6 +1844,57 @@ definitions:
       status:
         $ref: '#/definitions/db.PrivacyDeletionSubrequestStatus'
     type: object
+  profilePictureDTO.CompleteUpload:
+    properties:
+      storageKey:
+        type: string
+    required:
+    - storageKey
+    type: object
+  profilePictureDTO.LookupRequest:
+    properties:
+      courseParticipationIds:
+        items:
+          type: string
+        type: array
+      studentIds:
+        items:
+          type: string
+        type: array
+      userIds:
+        items:
+          type: string
+        type: array
+    type: object
+  profilePictureDTO.PresignedUpload:
+    properties:
+      storageKey:
+        type: string
+      uploadUrl:
+        type: string
+    type: object
+  profilePictureDTO.ProfilePicture:
+    properties:
+      updatedAt:
+        type: string
+      url:
+        type: string
+    type: object
+  profilePictureDTO.ProfilePictureURLs:
+    properties:
+      courseParticipations:
+        additionalProperties:
+          type: string
+        type: object
+      students:
+        additionalProperties:
+          type: string
+        type: object
+      users:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
   resolutionDTO.Resolution:
     properties:
       baseURL:
@@ -5502,6 +5553,144 @@ paths:
       summary: Get download URL for an export document
       tags:
       - privacy
+  /profile-pictures/lookup:
+    post:
+      consumes:
+      - application/json
+      description: Resolve presigned download URLs for the profile pictures of several
+        users, students, or course participations. Ids without a picture are omitted.
+      parameters:
+      - description: Ids to look up
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/profilePictureDTO.LookupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/profilePictureDTO.ProfilePictureURLs'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Look up profile pictures
+      tags:
+      - profilePictures
+  /profile-pictures/me:
+    delete:
+      description: Delete the profile picture of the logged-in user
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete own profile picture
+      tags:
+      - profilePictures
+    get:
+      description: Get a presigned download URL for the profile picture of the logged-in
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/profilePictureDTO.ProfilePicture'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get own profile picture
+      tags:
+      - profilePictures
+  /profile-pictures/me/complete:
+    post:
+      consumes:
+      - application/json
+      description: Validate an uploaded picture and make it the profile picture of
+        the logged-in user, replacing the previous one
+      parameters:
+      - description: Storage key returned by the presign endpoint
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/profilePictureDTO.CompleteUpload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/profilePictureDTO.ProfilePicture'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Complete a profile picture upload
+      tags:
+      - profilePictures
+  /profile-pictures/me/presign:
+    post:
+      description: Get a presigned URL to upload a cropped JPEG profile picture for
+        the logged-in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/profilePictureDTO.PresignedUpload'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Presign a profile picture upload
+      tags:
+      - profilePictures
   /students/:
     get:
       description: Get a list of all students

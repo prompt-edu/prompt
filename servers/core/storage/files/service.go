@@ -52,8 +52,10 @@ type PresignUploadRequest struct {
 	Filename      string
 	ContentType   string
 	CoursePhaseID *uuid.UUID
-	Description   string
-	Tags          []string
+	// StorageKeyPrefix scopes the key of an upload without a course phase, e.g. to its owner.
+	StorageKeyPrefix string
+	Description      string
+	Tags             []string
 }
 
 type PresignUploadResponse struct {
@@ -213,6 +215,9 @@ func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadReq
 	}
 	uniqueFilename := fmt.Sprintf("%s-%s", uuid.New().String(), safeOriginal)
 	storageKey := buildStorageKey(req.CoursePhaseID, uniqueFilename)
+	if req.CoursePhaseID == nil && req.StorageKeyPrefix != "" {
+		storageKey = fmt.Sprintf("%s/%s", req.StorageKeyPrefix, uniqueFilename)
+	}
 
 	uploadURL, err := s.storageAdapter.GetUploadURL(ctx, storageKey, req.ContentType, presignUploadTTLSeconds())
 	if err != nil {
@@ -340,6 +345,11 @@ func (s *StorageService) GetFileByID(ctx context.Context, fileID uuid.UUID) (*Fi
 	}
 
 	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// GetDownloadURL returns a presigned download URL for a storage key that stays valid for ttlSeconds.
+func (s *StorageService) GetDownloadURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error) {
+	return s.storageAdapter.GetURL(ctx, storageKey, ttlSeconds)
 }
 
 // DownloadFile retrieves a file's content from storage

@@ -5238,6 +5238,210 @@ const docTemplate = `{
                 }
             }
         },
+        "/profile-pictures/lookup": {
+            "post": {
+                "description": "Resolve presigned download URLs for the profile pictures of several users, students, or course participations. Ids without a picture are omitted.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profilePictures"
+                ],
+                "summary": "Look up profile pictures",
+                "parameters": [
+                    {
+                        "description": "Ids to look up",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.LookupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.ProfilePictureURLs"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile-pictures/me": {
+            "get": {
+                "description": "Get a presigned download URL for the profile picture of the logged-in user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profilePictures"
+                ],
+                "summary": "Get own profile picture",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.ProfilePicture"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete the profile picture of the logged-in user",
+                "tags": [
+                    "profilePictures"
+                ],
+                "summary": "Delete own profile picture",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile-pictures/me/complete": {
+            "post": {
+                "description": "Validate an uploaded picture and make it the profile picture of the logged-in user, replacing the previous one",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profilePictures"
+                ],
+                "summary": "Complete a profile picture upload",
+                "parameters": [
+                    {
+                        "description": "Storage key returned by the presign endpoint",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.CompleteUpload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.ProfilePicture"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile-pictures/me/presign": {
+            "post": {
+                "description": "Get a presigned URL to upload a cropped JPEG profile picture for the logged-in user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profilePictures"
+                ],
+                "summary": "Presign a profile picture upload",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/profilePictureDTO.PresignedUpload"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/students/": {
             "get": {
                 "description": "Get a list of all students",
@@ -8296,6 +8500,85 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/db.PrivacyDeletionSubrequestStatus"
+                }
+            }
+        },
+        "profilePictureDTO.CompleteUpload": {
+            "type": "object",
+            "required": [
+                "storageKey"
+            ],
+            "properties": {
+                "storageKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "profilePictureDTO.LookupRequest": {
+            "type": "object",
+            "properties": {
+                "courseParticipationIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "studentIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "profilePictureDTO.PresignedUpload": {
+            "type": "object",
+            "properties": {
+                "storageKey": {
+                    "type": "string"
+                },
+                "uploadUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "profilePictureDTO.ProfilePicture": {
+            "type": "object",
+            "properties": {
+                "updatedAt": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "profilePictureDTO.ProfilePictureURLs": {
+            "type": "object",
+            "properties": {
+                "courseParticipations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "students": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "users": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

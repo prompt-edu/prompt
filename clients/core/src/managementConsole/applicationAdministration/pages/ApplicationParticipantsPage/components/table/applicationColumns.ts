@@ -2,12 +2,14 @@ import type { ExportedAnswerColumn } from '@core/managementConsole/applicationAd
 import type { PassStatus } from '@tumaet/prompt-shared-state'
 import { ProfilePicture, type PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import { createElement } from 'react'
+import { getApplicantPictureHiddenReason } from '../../../../utils/profilePictureSettings'
 import { type ApplicationRow, EXPORTED_ANSWER_COLUMN_PREFIX } from './applicationRow'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
 
 export function getApplicationColumns(
   additionalScores?: { key: string; name: string }[],
   exportedColumns?: ExportedAnswerColumn[],
+  hidePicturesUntilAccepted = true,
 ): PromptTableColumnDef<ApplicationRow>[] {
   return [
     {
@@ -19,6 +21,10 @@ export function getApplicationColumns(
           courseParticipationId: row.original.courseParticipationID,
           firstName: row.original.student.firstName,
           lastName: row.original.student.lastName,
+          hiddenReason: getApplicantPictureHiddenReason(
+            hidePicturesUntilAccepted,
+            row.original.passStatus,
+          ),
           size: 'sm',
         }),
     },

@@ -151,6 +151,7 @@ export const ApplicationAuthenticated = () => {
           student={student}
           applicationId={application.id}
           coursePhaseId={phaseId}
+          profilePicture={applicationPhase.profilePicture}
           onSubmit={handleSubmit}
         />
       </div>

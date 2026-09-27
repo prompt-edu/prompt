@@ -26,6 +26,7 @@ import {
   getApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../utils/applicationCsvExportSettings'
+import { parseProfilePictureSettings } from '../../utils/profilePictureSettings'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import {
@@ -71,6 +72,12 @@ export const ApplicationQuestionConfig = () => {
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const queryClient = useQueryClient()
   const { coursePhase } = useApplicationStore()
+  const profilePictureSettings = parseProfilePictureSettings(coursePhase?.restrictedData)
+  const previewProfilePicture = {
+    requirement: profilePictureSettings.requirement,
+    explanation: profilePictureSettings.explanation,
+    hiddenUntilAccepted: profilePictureSettings.hideUntilAccepted,
+  }
 
   const {
     data: fetchedForm,
@@ -234,6 +241,7 @@ export const ApplicationQuestionConfig = () => {
               questionsFileUpload={applicationQuestions.filter(
                 (question) => 'allowedFileTypes' in question,
               )}
+              profilePicture={previewProfilePicture}
             />
             <AddQuestionMenu
               setApplicationQuestions={setApplicationQuestions}

@@ -1,4 +1,5 @@
 import { type ExtendedRouteObject, LECTURER_ROLES, Role } from '@tumaet/prompt-shared-state'
+import { Navigate, useParams } from 'react-router-dom'
 import { InterviewDataShell } from '../src/interview/pages/InterviewDataShell'
 import { InterviewParticipantsPage } from '../src/interview/pages/InterviewParticipantsPage/InterviewParticipantsPage'
 import OverviewPage from '../src/interview/pages/Overview/OverviewPage'
@@ -6,6 +7,12 @@ import { ProfileDetailPage } from '../src/interview/pages/ProfileDetail/ProfileD
 import { InterviewScheduleManagement } from '../src/interview/pages/ScheduleManagement/InterviewScheduleManagement'
 import { SettingsPage } from '../src/interview/pages/Settings/SettingsPage'
 import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
+
+// Profiles used to live under /manage/details/:studentId. Keeps those links working.
+const LegacyProfileDetailRedirect = () => {
+  const { studentId } = useParams<{ studentId: string }>()
+  return <Navigate to={`../../${studentId}`} relative='path' replace />
+}
 
 const interviewRoutes: ExtendedRouteObject[] = [
   {
@@ -28,12 +35,17 @@ const interviewRoutes: ExtendedRouteObject[] = [
     requiredPermissions: LECTURER_ROLES,
   },
   {
-    path: '/manage/details/:studentId',
+    path: '/manage/:studentId',
     element: (
       <InterviewDataShell>
         <ProfileDetailPage />
       </InterviewDataShell>
     ),
+    requiredPermissions: LECTURER_ROLES,
+  },
+  {
+    path: '/manage/details/:studentId',
+    element: <LegacyProfileDetailRedirect />,
     requiredPermissions: LECTURER_ROLES,
   },
   {

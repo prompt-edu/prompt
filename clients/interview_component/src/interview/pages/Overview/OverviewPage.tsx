@@ -53,7 +53,7 @@ export const OverviewPage = () => {
         {orderedParticipations?.map((participation) => (
           <div
             key={participation.student.email}
-            onClick={() => navigate(`${path}/details/${participation.student.id}`)}
+            onClick={() => navigate(`${path}/${participation.student.id}`)}
             className='cursor-pointer'
           >
             <StudentCard

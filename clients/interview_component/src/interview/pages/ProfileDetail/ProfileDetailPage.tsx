@@ -19,7 +19,7 @@ export const ProfileDetailPage = () => {
   const participation = participations.find((p) => p.student.id === studentId)
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const overviewURL = pathname.replace(`/details/${studentId}`, '')
+  const overviewURL = pathname.replace(`/${studentId}`, '')
 
   const applicationAnswers =
     (participation?.prevData?.applicationAnswers as ExportedApplicationAnswer[]) ?? []

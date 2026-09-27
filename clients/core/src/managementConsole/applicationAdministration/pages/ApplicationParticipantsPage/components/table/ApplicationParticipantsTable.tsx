@@ -10,7 +10,7 @@ import {
   type TableFilter,
   useToast,
 } from '@tumaet/prompt-ui-components'
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
 import { useSendStatusMail } from '../../hooks/useSendStatusMail'
@@ -59,7 +59,6 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   const { participations, additionalScores, coursePhase } = useApplicationStore()
   const { mutate: deleteApplications } = useDeleteApplications()
   const navigate = useNavigate()
-  const tableContainerRef = useRef<HTMLDivElement | null>(null)
   const { toast } = useToast()
 
   const { data: exportedAnswers, isError: exportedAnswersError } = useQuery({
@@ -113,32 +112,20 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [additionalScores, studyPrograms],
   )
 
-  const getVisibleApplicationIds = useCallback(() => {
-    const idsFromVisibleRows = Array.from(
-      tableContainerRef.current?.querySelectorAll('[data-application-participation-id]') ?? [],
-    )
-      .map((element) => element.getAttribute('data-application-participation-id') ?? '')
-      .filter((id, index, ids) => Boolean(id) && ids.indexOf(id) === index)
-
-    if (idsFromVisibleRows.length > 0) {
-      return idsFromVisibleRows
-    }
-
-    return data.map((row) => row.courseParticipationID)
-  }, [data])
-
+  // orderedRows is the table as the user sees it, so the details page steps through that order.
+  // The row action has no table order; the details page then falls back to all applications.
   const viewApplication = useCallback(
-    (row: ApplicationRow) => {
+    (row: ApplicationRow, orderedRows?: ApplicationRow[]) => {
       navigate(
         `/management/course/${courseId}/${phaseId}/participants/${row.courseParticipationID}`,
         {
           state: {
-            filteredApplicationIds: getVisibleApplicationIds(),
+            filteredApplicationIds: orderedRows?.map((r) => r.courseParticipationID),
           },
         },
       )
     },
-    [navigate, courseId, phaseId, getVisibleApplicationIds],
+    [navigate, courseId, phaseId],
   )
 
   const queryClient = useQueryClient()
@@ -248,15 +235,13 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
   ])
 
   return (
-    <div ref={tableContainerRef}>
-      <PromptTableURL<ApplicationRow>
-        data={data}
-        columns={columns}
-        filters={filters}
-        actions={actions}
-        onRowClick={viewApplication}
-        initialState={{ sorting: [{ id: 'firstName', desc: false }] }}
-      />
-    </div>
+    <PromptTableURL<ApplicationRow>
+      data={data}
+      columns={columns}
+      filters={filters}
+      actions={actions}
+      onRowClick={viewApplication}
+      initialState={{ sorting: [{ id: 'firstName', desc: false }] }}
+    />
   )
 }

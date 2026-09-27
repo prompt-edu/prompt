@@ -1,15 +1,44 @@
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  parseSortParam,
+  SORTING_QUERY_PARAM,
+  type SortOption,
+  serializeSortParam,
+} from '../utils/sortOptions'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
-export const useSorting = (sortBy: string | undefined) => {
+/** Keeps the overview sort in the URL so it survives reloads and the way back from a profile. */
+export const useSortSearchParam = (): [SortOption, (sortBy: SortOption) => void] => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sortBy = parseSortParam(searchParams.get(SORTING_QUERY_PARAM))
+
+  const setSortBy = (nextSortBy: SortOption) => {
+    setSearchParams(
+      (params) => {
+        const serialized = serializeSortParam(nextSortBy)
+        if (serialized) {
+          params.set(SORTING_QUERY_PARAM, serialized)
+        } else {
+          params.delete(SORTING_QUERY_PARAM)
+        }
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  return [sortBy, setSortBy]
+}
+
+export const useSorting = (sortBy: SortOption) => {
   const { participations, interviewSlots, interviewReviews } = useParticipationStore()
 
   return useMemo(() => {
-    if (!sortBy) return participations
     return [...participations].sort((a, b) => {
       switch (sortBy) {
-        case 'Interview Date': {
+        case 'interviewDate': {
           const aSlot = interviewSlots.find(
             (slot) => slot.courseParticipationID === a.courseParticipationID,
           )
@@ -33,17 +62,17 @@ export const useSorting = (sortBy: string | undefined) => {
           }
           return timeComparison
         }
-        case 'First Name':
+        case 'firstName':
           return a.student.firstName.localeCompare(b.student.firstName)
-        case 'Last Name':
+        case 'lastName':
           return a.student.lastName.localeCompare(b.student.lastName)
-        case 'Acceptance Status': {
+        case 'acceptanceStatus': {
           const statusOrder = [PassStatus.PASSED, PassStatus.NOT_ASSESSED, PassStatus.FAILED]
           const aIndex = statusOrder.indexOf(a.passStatus)
           const bIndex = statusOrder.indexOf(b.passStatus)
           return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
         }
-        case 'Interview Score':
+        case 'interviewScore':
           return (
             (interviewReviews[a.courseParticipationID]?.score || Number.MAX_VALUE) -
             (interviewReviews[b.courseParticipationID]?.score || Number.MAX_VALUE)

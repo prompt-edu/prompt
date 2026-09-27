@@ -1,41 +1,38 @@
 import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
 import {
-  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   ExportedApplicationAnswerTable,
+  ParticipantNavigation,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, FileUserIcon } from 'lucide-react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { FileUserIcon } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'
 import { StudentCard } from '../../components/StudentCard'
+import { useInterviewNavigation } from '../../hooks/useInterviewNavigation'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 
 export const ProfileDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()
   const { participations } = useParticipationStore()
   const participation = participations.find((p) => p.student.id === studentId)
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
-  const overviewURL = pathname.replace(`/details/${studentId}`, '')
+  const { orderedParticipations, currentParticipationId, navigateToParticipation } =
+    useInterviewNavigation()
 
   const applicationAnswers =
     (participation?.prevData?.applicationAnswers as ExportedApplicationAnswer[]) ?? []
 
   return (
     <div className=''>
-      <div className='relative pb-4'>
-        <Button
-          onClick={() => navigate(overviewURL)}
-          variant='ghost'
-          size='sm'
-          className='absolute top-0 left-0'
-        >
-          <ChevronLeft className='h-4 w-4' />
-          <span>Back</span>
-        </Button>
+      <div className='pb-4'>
+        <ParticipantNavigation
+          participants={orderedParticipations}
+          currentId={currentParticipationId}
+          onNavigate={navigateToParticipation}
+          colorByStatus
+        />
         {!participation && (
           <div className='flex justify-center items-center h-64'>
             <p className='text-lg text-muted-foreground'>Participant not found</p>

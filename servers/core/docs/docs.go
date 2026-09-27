@@ -5912,6 +5912,22 @@ const docTemplate = `{
                 }
             }
         },
+        "applicationDTO.ApplicationProfilePicture": {
+            "type": "object",
+            "properties": {
+                "explanation": {
+                    "type": "string"
+                },
+                "hiddenUntilAccepted": {
+                    "description": "HiddenUntilAccepted tells applicants that reviewers do not see their picture.",
+                    "type": "boolean"
+                },
+                "requirement": {
+                    "description": "Requirement is \"off\", \"optional\", or \"required\".",
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.CreateAnswerFileUpload": {
             "type": "object",
             "properties": {
@@ -6292,6 +6308,14 @@ const docTemplate = `{
                 },
                 "longDescription": {
                     "type": "string"
+                },
+                "profilePicture": {
+                    "description": "ProfilePicture tells the form whether and why to ask logged-in applicants for a picture.\nOnly set on the form of one application, not in the list of open applications.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/applicationDTO.ApplicationProfilePicture"
+                        }
+                    ]
                 },
                 "shortDescription": {
                     "type": "string"

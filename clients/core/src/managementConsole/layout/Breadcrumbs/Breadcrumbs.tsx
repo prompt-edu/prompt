@@ -131,24 +131,41 @@ export const Breadcrumbs: React.FC = () => {
     return breadcrumbs
   }, [location.pathname, courses, studentsById, participations])
 
+  const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
+  const canCollapse = hidden.length > 0
+
   const containerRef = useRef<HTMLElement>(null)
-  const fullTrailRef = useRef<HTMLOListElement>(null)
+  const listRef = useRef<HTMLOListElement>(null)
+  const lastLabelRef = useRef<HTMLSpanElement>(null)
+  const fullWidthRef = useRef(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // Measures an invisible copy of the full trail against the space the header leaves, so the
-  // trail collapses as soon as it would wrap and expands again once it fits.
+  // A new trail is shown in full first, so its width can be measured.
+  useLayoutEffect(() => {
+    setIsCollapsed(false)
+  }, [breadcrumbList])
+
+  // While the full trail is shown, remember the width it needs (the last crumb may already be
+  // truncated, so its untruncated width counts). Collapse whenever that width exceeds the space
+  // the header leaves, and expand again once it fits. Runs before paint, so nothing flickers.
   useLayoutEffect(() => {
     const container = containerRef.current
-    const fullTrail = fullTrailRef.current
-    if (!container || !fullTrail) return
+    const list = listRef.current
+    if (!container || !list) return
 
-    const update = () => setIsCollapsed(fullTrail.scrollWidth > container.clientWidth)
+    const update = () => {
+      if (!isCollapsed) {
+        const lastLabel = lastLabelRef.current
+        const lastLabelOverflow = lastLabel ? lastLabel.scrollWidth - lastLabel.clientWidth : 0
+        fullWidthRef.current = list.scrollWidth + lastLabelOverflow
+      }
+      setIsCollapsed(canCollapse && fullWidthRef.current > container.clientWidth)
+    }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(container)
-    observer.observe(fullTrail)
     return () => observer.disconnect()
-  }, [breadcrumbList])
+  }, [isCollapsed, canCollapse, breadcrumbList])
 
   if (breadcrumbList.length === 0) {
     return null
@@ -157,7 +174,7 @@ export const Breadcrumbs: React.FC = () => {
   const renderCrumb = (crumb: BreadcrumbProps, isLast: boolean) => (
     <BreadcrumbItem className={isLast ? 'min-w-0' : 'min-w-0 max-w-48 shrink-0'}>
       {isLast ? (
-        <BreadcrumbPage className='block truncate' title={crumb.title}>
+        <BreadcrumbPage ref={lastLabelRef} className='block truncate' title={crumb.title}>
           {crumb.title}
         </BreadcrumbPage>
       ) : (
@@ -173,26 +190,9 @@ export const Breadcrumbs: React.FC = () => {
     </BreadcrumbItem>
   )
 
-  const renderFullTrail = () =>
-    breadcrumbList.map((crumb, index) => (
-      <React.Fragment key={crumb.path}>
-        {index > 0 && <BreadcrumbSeparator />}
-        {renderCrumb(crumb, index === breadcrumbList.length - 1)}
-      </React.Fragment>
-    ))
-
-  const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
-
   return (
-    <Breadcrumb ref={containerRef} className='relative min-w-0 flex-1'>
-      <BreadcrumbList
-        ref={fullTrailRef}
-        aria-hidden='true'
-        className='invisible absolute w-max flex-nowrap'
-      >
-        {renderFullTrail()}
-      </BreadcrumbList>
-      <BreadcrumbList className='flex-nowrap'>
+    <Breadcrumb ref={containerRef} className='min-w-0 flex-1'>
+      <BreadcrumbList ref={listRef} className='flex-nowrap'>
         {isCollapsed && first && last ? (
           <>
             {renderCrumb(first, false)}
@@ -218,7 +218,12 @@ export const Breadcrumbs: React.FC = () => {
             {renderCrumb(last, true)}
           </>
         ) : (
-          renderFullTrail()
+          breadcrumbList.map((crumb, index) => (
+            <React.Fragment key={crumb.path}>
+              {index > 0 && <BreadcrumbSeparator />}
+              {renderCrumb(crumb, index === breadcrumbList.length - 1)}
+            </React.Fragment>
+          ))
         )}
       </BreadcrumbList>
     </Breadcrumb>

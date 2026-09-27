@@ -3,15 +3,21 @@ import { useStudentStore } from '@core/managementConsole/shared/store/student.st
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   getStudentName,
 } from '@tumaet/prompt-ui-components'
-import React, { useMemo } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { collapseBreadcrumbs } from './collapseBreadcrumbs'
 
 interface BreadcrumbProps {
   title: string
@@ -125,27 +131,95 @@ export const Breadcrumbs: React.FC = () => {
     return breadcrumbs
   }, [location.pathname, courses, studentsById, participations])
 
+  const containerRef = useRef<HTMLElement>(null)
+  const fullTrailRef = useRef<HTMLOListElement>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Measures an invisible copy of the full trail against the space the header leaves, so the
+  // trail collapses as soon as it would wrap and expands again once it fits.
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const fullTrail = fullTrailRef.current
+    if (!container || !fullTrail) return
+
+    const update = () => setIsCollapsed(fullTrail.scrollWidth > container.clientWidth)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    observer.observe(fullTrail)
+    return () => observer.disconnect()
+  }, [breadcrumbList])
+
   if (breadcrumbList.length === 0) {
     return null
   }
 
+  const renderCrumb = (crumb: BreadcrumbProps, isLast: boolean) => (
+    <BreadcrumbItem className={isLast ? 'min-w-0' : 'min-w-0 max-w-48 shrink-0'}>
+      {isLast ? (
+        <BreadcrumbPage className='block truncate' title={crumb.title}>
+          {crumb.title}
+        </BreadcrumbPage>
+      ) : (
+        <BreadcrumbLink
+          className='block truncate'
+          title={crumb.title}
+          style={{ cursor: 'pointer' }}
+          onClick={() => navigate(crumb.path)}
+        >
+          {crumb.title}
+        </BreadcrumbLink>
+      )}
+    </BreadcrumbItem>
+  )
+
+  const renderFullTrail = () =>
+    breadcrumbList.map((crumb, index) => (
+      <React.Fragment key={crumb.path}>
+        {index > 0 && <BreadcrumbSeparator />}
+        {renderCrumb(crumb, index === breadcrumbList.length - 1)}
+      </React.Fragment>
+    ))
+
+  const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
+
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {breadcrumbList.map((crumb, index) => (
-          <React.Fragment key={crumb.path}>
-            {index > 0 && <BreadcrumbSeparator />}
+    <Breadcrumb ref={containerRef} className='relative min-w-0 flex-1'>
+      <BreadcrumbList
+        ref={fullTrailRef}
+        aria-hidden='true'
+        className='invisible absolute w-max flex-nowrap'
+      >
+        {renderFullTrail()}
+      </BreadcrumbList>
+      <BreadcrumbList className='flex-nowrap'>
+        {isCollapsed && first && last ? (
+          <>
+            {renderCrumb(first, false)}
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
-              {index === breadcrumbList.length - 1 ? (
-                <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink style={{ cursor: 'pointer' }} onClick={() => navigate(crumb.path)}>
-                  {crumb.title}
-                </BreadcrumbLink>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className='flex items-center'
+                  aria-label='Show hidden breadcrumbs'
+                >
+                  <BreadcrumbEllipsis className='h-4 w-4' />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start'>
+                  {hidden.map((crumb) => (
+                    <DropdownMenuItem key={crumb.path} onClick={() => navigate(crumb.path)}>
+                      {crumb.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </BreadcrumbItem>
-          </React.Fragment>
-        ))}
+            <BreadcrumbSeparator />
+            {renderCrumb(last, true)}
+          </>
+        ) : (
+          renderFullTrail()
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   )

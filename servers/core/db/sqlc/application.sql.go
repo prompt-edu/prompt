@@ -1302,13 +1302,18 @@ SELECT
     (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available,
     -- deliberately public: rendered to applicants on the unauthenticated apply page.
     -- COALESCE keeps the column non-null, so an unset key does not fail the scan.
-    COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text
-FROM 
+    COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text,
+    -- deliberately public as well: the form asks for the picture and tells applicants who sees it.
+    COALESCE(cp.restricted_data->>'profilePictureRequirement', 'off')::text AS profile_picture_requirement,
+    COALESCE(cp.restricted_data->>'profilePictureExplanation', '')::text AS profile_picture_explanation,
+    -- hiding is on unless a lecturer turned it off
+    COALESCE((cp.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)::boolean AS hide_profile_pictures_until_accepted
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
     ON cp.course_phase_type_id = cpt.id
-JOIN 
+JOIN
     course c
     ON cp.course_id = c.id
 WHERE
@@ -1322,18 +1327,21 @@ WHERE
 `
 
 type GetOpenApplicationPhaseRow struct {
-	CoursePhaseID            uuid.UUID   `json:"course_phase_id"`
-	CourseName               string      `json:"course_name"`
-	StartDate                pgtype.Date `json:"start_date"`
-	EndDate                  pgtype.Date `json:"end_date"`
-	CourseType               CourseType  `json:"course_type"`
-	Ects                     pgtype.Int4 `json:"ects"`
-	ShortDescription         pgtype.Text `json:"short_description"`
-	LongDescription          pgtype.Text `json:"long_description"`
-	ApplicationEndDate       string      `json:"application_end_date"`
-	ExternalStudentsAllowed  bool        `json:"external_students_allowed"`
-	UniversityLoginAvailable bool        `json:"university_login_available"`
-	WelcomeText              string      `json:"welcome_text"`
+	CoursePhaseID                    uuid.UUID   `json:"course_phase_id"`
+	CourseName                       string      `json:"course_name"`
+	StartDate                        pgtype.Date `json:"start_date"`
+	EndDate                          pgtype.Date `json:"end_date"`
+	CourseType                       CourseType  `json:"course_type"`
+	Ects                             pgtype.Int4 `json:"ects"`
+	ShortDescription                 pgtype.Text `json:"short_description"`
+	LongDescription                  pgtype.Text `json:"long_description"`
+	ApplicationEndDate               string      `json:"application_end_date"`
+	ExternalStudentsAllowed          bool        `json:"external_students_allowed"`
+	UniversityLoginAvailable         bool        `json:"university_login_available"`
+	WelcomeText                      string      `json:"welcome_text"`
+	ProfilePictureRequirement        string      `json:"profile_picture_requirement"`
+	ProfilePictureExplanation        string      `json:"profile_picture_explanation"`
+	HideProfilePicturesUntilAccepted bool        `json:"hide_profile_pictures_until_accepted"`
 }
 
 func (q *Queries) GetOpenApplicationPhase(ctx context.Context, id uuid.UUID) (GetOpenApplicationPhaseRow, error) {
@@ -1352,6 +1360,9 @@ func (q *Queries) GetOpenApplicationPhase(ctx context.Context, id uuid.UUID) (Ge
 		&i.ExternalStudentsAllowed,
 		&i.UniversityLoginAvailable,
 		&i.WelcomeText,
+		&i.ProfilePictureRequirement,
+		&i.ProfilePictureExplanation,
+		&i.HideProfilePicturesUntilAccepted,
 	)
 	return i, err
 }

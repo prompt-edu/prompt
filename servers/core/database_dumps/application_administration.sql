@@ -638,3 +638,12 @@ INSERT INTO application_question_file_upload (id, course_phase_id, title, descri
 VALUES 
     ('b1b04042-95d1-4765-8592-caf9560c8c3d', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Resume Upload', 'Please upload your resume', true, '.pdf,.doc,.docx', 10, 3, false, null),
     ('c2c04042-95d1-4765-8592-caf9560c8c3e', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Portfolio', 'Upload your portfolio (optional)', false, '.pdf,.zip', 20, 4, false, null);
+
+-- Profile pictures (migration 0030), for the application's required picture check.
+CREATE TABLE IF NOT EXISTS profile_picture (
+    user_id UUID PRIMARY KEY,
+    university_login VARCHAR(20),
+    file_id UUID NOT NULL UNIQUE REFERENCES files (id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

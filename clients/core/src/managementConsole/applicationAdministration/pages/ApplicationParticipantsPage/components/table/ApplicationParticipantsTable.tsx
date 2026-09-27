@@ -12,6 +12,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { parseProfilePictureSettings } from '../../../../utils/profilePictureSettings'
 import { useDeleteApplications } from '../../hooks/useDeleteApplications'
 import { useSendStatusMail } from '../../hooks/useSendStatusMail'
 import { downloadApplications } from '../../utils/downloadApplications'
@@ -95,9 +96,10 @@ export const ApplicationParticipantsTable = ({ phaseId }: { phaseId: string }): 
     [participations, additionalScores, exportedAnswersByParticipation],
   )
 
+  const { hideUntilAccepted } = parseProfilePictureSettings(coursePhase?.restrictedData)
   const columns: PromptTableColumnDef<ApplicationRow>[] = useMemo(
-    () => getApplicationColumns(additionalScores, exportedColumns),
-    [additionalScores, exportedColumns],
+    () => getApplicationColumns(additionalScores, exportedColumns, hideUntilAccepted),
+    [additionalScores, exportedColumns, hideUntilAccepted],
   )
 
   const studyPrograms = useMemo(

@@ -420,6 +420,21 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 		return
 	}
 
+	userID, err := utils.GetUserUUIDFromContext(c)
+	if err != nil {
+		handleError(c, http.StatusUnauthorized, err)
+		return
+	}
+	if err := s.ValidateProfilePictureRequirement(c, coursePhaseId, userID); err != nil {
+		if errors.Is(err, ErrProfilePictureRequired) {
+			handleError(c, http.StatusBadRequest, err)
+			return
+		}
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("could not check the profile picture"))
+		return
+	}
+
 	application.Student.Email = userEmail
 	if firstName != "" && lastName != "" {
 		application.Student.FirstName = firstName

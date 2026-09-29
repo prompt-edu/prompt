@@ -60,12 +60,12 @@ export class CourseCreationPage {
   }
 }
 
-// Drives the shared DatePickerWithRange (trigger #date opens a react-day-picker
-// range calendar on the current month). Days 10 and 20 are always in-month
-// (never a [data-outside] cell), and 20 > 10 satisfies the copy form's
-// to > from rule.
+// Drives the shared DatePickerWithRange (its "Open calendar" button opens a
+// react-day-picker range calendar on the current month). Days 10 and 20 are
+// always in-month (never a [data-outside] cell), and 20 > 10 satisfies the copy
+// form's to > from rule.
 export async function pickDateRange(page: Page): Promise<void> {
-  await page.locator('#date').click()
+  await page.getByRole('button', { name: 'Open calendar' }).click()
   const day = (n: number) =>
     page.locator('td[data-day]:not([data-outside]) button', {
       hasText: new RegExp(`^${n}$`),

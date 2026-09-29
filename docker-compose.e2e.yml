@@ -958,7 +958,7 @@ services:
   # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
   # the runner reads them back over the HTTP API (8025) to assert delivery.
   mailpit:
-    image: axllent/mailpit:v1.31.1
+    image: axllent/mailpit:v1.31.2
     container_name: prompt-e2e-mailpit
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true

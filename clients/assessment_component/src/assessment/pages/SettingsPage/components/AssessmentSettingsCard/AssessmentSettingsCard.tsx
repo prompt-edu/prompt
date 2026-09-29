@@ -1,10 +1,12 @@
 import { useGetAllAssessmentSchemas } from '../../../hooks/useGetAllAssessmentSchemas'
+import { useTutorLabel } from '../../../hooks/useTutorLabel'
 import { useAssessmentSettingsCardState } from '../../hooks/useAssessmentSettingsCardState'
 import { SchemaConfigurationCard } from '../SchemaConfigurationCard'
 import { SettingsSwitchField } from '../SettingsSwitchField'
 
 export const AssessmentSettingsCard = () => {
   const { isSaving, assessmentCard, assessmentVisibility } = useAssessmentSettingsCardState()
+  const tutorLabel = useTutorLabel()
   const {
     data: schemas,
     isPending: isSchemasPending,
@@ -61,7 +63,7 @@ export const AssessmentSettingsCard = () => {
             onCheckedChange={assessmentVisibility.setEvaluationResultsVisible}
             disabled={isSaving}
             title='Show evaluation results before submission'
-            description='Assessment authors can review self-, peer-, and student-to-tutor evaluation results before they finalize the assessment.'
+            description={`Assessment authors can review self-, peer-, and student-to-${tutorLabel.text} evaluation results before they finalize the assessment.`}
           />
         </div>
       </div>

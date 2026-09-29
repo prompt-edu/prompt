@@ -13,6 +13,8 @@ declare module '*_component/sidebar' {
 
   const sidebar: SidebarMenuItemProps
   export default sidebar
+  // Optional: remotes whose sidebar depends on phase data (e.g. a configured label).
+  export const useSidebarElement: ((coursePhaseID: string) => SidebarMenuItemProps) | undefined
 }
 
 declare module '*_component/provide' {

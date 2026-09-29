@@ -10,6 +10,7 @@ export const createTutorEvalStatusColumn = (
   teams: Team[],
   participations: AssessmentParticipationWithStudent[],
   isEnabled: boolean,
+  tutorLabel: string,
 ): ExtraParticipantColumn<{ completed: number; total: number }> | undefined => {
   if (!isEnabled) return undefined
 
@@ -31,7 +32,7 @@ export const createTutorEvalStatusColumn = (
 
   return {
     id: 'tutorEvalStatus',
-    header: 'Tutor Eval',
+    header: `${tutorLabel} Eval`,
 
     accessorFn: (row) => getCountsForParticipation(row.courseParticipationID),
 

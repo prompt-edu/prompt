@@ -452,6 +452,8 @@ definitions:
         type: string
       start:
         type: string
+      tutorDisplayName:
+        type: string
       tutorEvaluationDeadline:
         type: string
       tutorEvaluationEnabled:
@@ -496,6 +498,9 @@ definitions:
       selfEvaluationStart:
         type: string
       start:
+        type: string
+      tutorDisplayName:
+        maxLength: 50
         type: string
       tutorEvaluationDeadline:
         type: string

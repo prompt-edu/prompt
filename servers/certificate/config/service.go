@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -21,6 +22,34 @@ func NewConfigService(queries db.Queries) *ConfigService {
 	return &ConfigService{
 		queries: queries,
 	}
+}
+
+// HandlePhaseConfig implements promptTypes.PhaseConfigHandler.
+func (s *ConfigService) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetPhaseConfig(c.Request.Context(), coursePhaseID)
+}
+
+// GetPhaseConfig reports the configuration a certificate phase needs before students can download.
+// Only the template is required. The release date is deliberately not a setup key: without one
+// the phase is complete but stays unreleased.
+// Unlike GetCoursePhaseConfig, it never creates the config row, so it stays a pure read.
+func (s *ConfigService) GetPhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (map[string]bool, error) {
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return map[string]bool{"template": false}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]bool{
+		"template": config.TemplateContent.Valid && config.TemplateContent.String != "",
+	}, nil
 }
 
 func (s *ConfigService) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (configDTO.CoursePhaseConfig, error) {

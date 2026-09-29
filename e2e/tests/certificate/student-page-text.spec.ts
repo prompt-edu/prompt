@@ -1,7 +1,13 @@
 import { authFile, expect, test } from '../../src/fixtures/auth'
 import { CERTIFICATE_FIXTURE_PHASES, SEEDED_COURSES } from '../../src/data/constants'
 import { CertificatePage } from '../../src/pages/CertificatePage'
-import { E2E_TEMPLATE, putTemplate, resetCertificatePhase, setStudentPageText } from './helpers'
+import {
+  E2E_TEMPLATE,
+  putTemplate,
+  resetCertificatePhase,
+  setReleaseDate,
+  setStudentPageText,
+} from './helpers'
 
 const PHASE_ID = CERTIFICATE_FIXTURE_PHASES.studentPageText
 const COURSE_ID = SEEDED_COURSES.fullCourse.id
@@ -77,8 +83,9 @@ test.describe('certificate: instructor text on the student download page', () =>
       await expect(settings.studentPageTextEditor).toContainText(written, { timeout: 15_000 })
 
       // A released certificate must carry the text too, not only the "not
-      // available" state.
+      // available" state. Without a release date the phase stays unreleased.
       await putTemplate(PHASE_ID, E2E_TEMPLATE)
+      await setReleaseDate(PHASE_ID, new Date(Date.now() - 60 * 1000).toISOString())
 
       const studentContext = await browser.newContext({ storageState: authFile('student') })
       try {

@@ -14,10 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -53,7 +55,7 @@ func (s *ConfigRouterTestSuite) TearDownSuite() {
 
 func (s *ConfigRouterTestSuite) TestGetConfig() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
-	url := fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings", coursePhaseID)
 
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := httptest.NewRecorder()
@@ -70,7 +72,7 @@ func (s *ConfigRouterTestSuite) TestGetConfig() {
 
 func (s *ConfigRouterTestSuite) TestGetConfig_AutoCreate() {
 	newID := uuid.New()
-	url := fmt.Sprintf("/api/course_phase/%s/config", newID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings", newID)
 
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := httptest.NewRecorder()
@@ -86,7 +88,7 @@ func (s *ConfigRouterTestSuite) TestGetConfig_AutoCreate() {
 }
 
 func (s *ConfigRouterTestSuite) TestGetConfig_InvalidID() {
-	url := "/api/course_phase/not-a-uuid/config"
+	url := "/api/course_phase/not-a-uuid/settings"
 
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := httptest.NewRecorder()
@@ -97,7 +99,7 @@ func (s *ConfigRouterTestSuite) TestGetConfig_InvalidID() {
 
 func (s *ConfigRouterTestSuite) TestUpdateConfig() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
-	url := fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings", coursePhaseID)
 
 	body := configDTO.UpdateConfigRequest{
 		TemplateContent: "= Updated via Router\nNew content here",
@@ -119,7 +121,7 @@ func (s *ConfigRouterTestSuite) TestUpdateConfig() {
 }
 
 func (s *ConfigRouterTestSuite) TestUpdateConfig_InvalidID() {
-	url := "/api/course_phase/not-a-uuid/config"
+	url := "/api/course_phase/not-a-uuid/settings"
 
 	body := configDTO.UpdateConfigRequest{
 		TemplateContent: "some content",
@@ -136,7 +138,7 @@ func (s *ConfigRouterTestSuite) TestUpdateConfig_InvalidID() {
 
 func (s *ConfigRouterTestSuite) TestUpdateConfig_EmptyBody() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
-	url := fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings", coursePhaseID)
 
 	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer([]byte("{}")))
 	req.Header.Set("Content-Type", "application/json")
@@ -148,7 +150,7 @@ func (s *ConfigRouterTestSuite) TestUpdateConfig_EmptyBody() {
 
 func (s *ConfigRouterTestSuite) TestGetTemplate() {
 	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
-	url := fmt.Sprintf("/api/course_phase/%s/config/template", coursePhaseID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings/template", coursePhaseID)
 
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := httptest.NewRecorder()
@@ -165,7 +167,7 @@ func (s *ConfigRouterTestSuite) TestGetTemplate_NoTemplate() {
 	_, err := s.service.queries.CreateCoursePhaseConfig(s.suiteCtx, noTemplateID)
 	assert.NoError(s.T(), err)
 
-	url := fmt.Sprintf("/api/course_phase/%s/config/template", noTemplateID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings/template", noTemplateID)
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := httptest.NewRecorder()
 	s.router.ServeHTTP(resp, req)
@@ -173,12 +175,44 @@ func (s *ConfigRouterTestSuite) TestGetTemplate_NoTemplate() {
 	assert.Equal(s.T(), http.StatusNotFound, resp.Code)
 }
 
+func (s *ConfigRouterTestSuite) TestGetPhaseConfig() {
+	// RegisterRoutes wires the standardized endpoint behind the real SDK auth middleware, so this
+	// router reaches the handler directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
+	router := gin.New()
+	promptTypes.RegisterConfigEndpoint(router.Group("/api/course_phase/:coursePhaseID"), func(c *gin.Context) { c.Next() }, s.service)
+
+	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID), nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(s.T(), http.StatusOK, resp.Code)
+	var phaseConfig map[string]bool
+	assert.NoError(s.T(), json.Unmarshal(resp.Body.Bytes(), &phaseConfig))
+	assert.Equal(s.T(), map[string]bool{"template": true}, phaseConfig)
+
+	invalid, _ := http.NewRequest(http.MethodGet, "/api/course_phase/not-a-uuid/config", nil)
+	invalidResp := httptest.NewRecorder()
+	router.ServeHTTP(invalidResp, invalid)
+	assert.Equal(s.T(), http.StatusInternalServerError, invalidResp.Code)
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	RegisterRoutes(router.Group("/api/course_phase/:coursePhaseID"), NewConfigService(db.Queries{}), sdkTestUtils.MockPermissionMiddleware)
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, "/api/course_phase/"+uuid.NewString()+"/config", nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+}
+
 func TestConfigRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(ConfigRouterTestSuite))
 }
 
 func (s *ConfigRouterTestSuite) putStudentPageText(coursePhaseID uuid.UUID, body string) *httptest.ResponseRecorder {
-	url := fmt.Sprintf("/api/course_phase/%s/config/student-page-text", coursePhaseID)
+	url := fmt.Sprintf("/api/course_phase/%s/settings/student-page-text", coursePhaseID)
 	req, _ := http.NewRequest(http.MethodPut, url, bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
@@ -197,8 +231,8 @@ func (s *ConfigRouterTestSuite) TestUpdateStudentPageTextRoundTrip() {
 	assert.NotNil(s.T(), config.StudentPageText)
 	assert.Equal(s.T(), "<p>Congratulations!</p>", *config.StudentPageText)
 
-	// It is readable back through the config endpoint the settings page uses.
-	readBack, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID), nil)
+	// It is readable back through the settings endpoint the settings page reads.
+	readBack, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/settings", coursePhaseID), nil)
 	readResp := httptest.NewRecorder()
 	s.router.ServeHTTP(readResp, readBack)
 	assert.Equal(s.T(), http.StatusOK, readResp.Code)
@@ -229,7 +263,7 @@ func (s *ConfigRouterTestSuite) TestUpdateStudentPageTextRejectsBadRequests() {
 	assert.Equal(s.T(), http.StatusBadRequest, s.putStudentPageText(coursePhaseID, string(oversized)).Code,
 		"the cap counts bytes, so multibyte text hits it sooner")
 
-	invalidPhase, _ := http.NewRequest(http.MethodPut, "/api/course_phase/not-a-uuid/config/student-page-text", bytes.NewBufferString(`{"studentPageText":"x"}`))
+	invalidPhase, _ := http.NewRequest(http.MethodPut, "/api/course_phase/not-a-uuid/settings/student-page-text", bytes.NewBufferString(`{"studentPageText":"x"}`))
 	invalidResp := httptest.NewRecorder()
 	s.router.ServeHTTP(invalidResp, invalidPhase)
 	assert.Equal(s.T(), http.StatusBadRequest, invalidResp.Code)
@@ -240,14 +274,14 @@ func (s *ConfigRouterTestSuite) TestUpdateStudentPageTextPreservesTemplateAndRel
 	releaseDate := time.Now().Add(48 * time.Hour).UTC().Truncate(time.Second)
 
 	templateBody, _ := json.Marshal(configDTO.UpdateConfigRequest{TemplateContent: "= Certificate"})
-	templateReq, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/course_phase/%s/config", coursePhaseID), bytes.NewBuffer(templateBody))
+	templateReq, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/course_phase/%s/settings", coursePhaseID), bytes.NewBuffer(templateBody))
 	templateReq.Header.Set("Content-Type", "application/json")
 	templateResp := httptest.NewRecorder()
 	s.router.ServeHTTP(templateResp, templateReq)
 	assert.Equal(s.T(), http.StatusOK, templateResp.Code)
 
 	releaseBody, _ := json.Marshal(configDTO.UpdateReleaseDateRequest{ReleaseDate: &releaseDate})
-	releaseReq, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/course_phase/%s/config/release-date", coursePhaseID), bytes.NewBuffer(releaseBody))
+	releaseReq, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/course_phase/%s/settings/release-date", coursePhaseID), bytes.NewBuffer(releaseBody))
 	releaseReq.Header.Set("Content-Type", "application/json")
 	releaseResp := httptest.NewRecorder()
 	s.router.ServeHTTP(releaseResp, releaseReq)

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier/keycloakCoreRequests"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
@@ -36,39 +37,39 @@ func RegisterRoutes(router *gin.RouterGroup, service *Service) {
 	}
 
 	router.GET("/config", promptSDK.AuthenticationMiddleware(allRoles...), service.getConfig)
-	router.PUT("/config", promptSDK.AuthenticationMiddleware(managerRoles...), service.updateConfig)
+	router.PUT("/config", audit.Describe("Updated the presentation configuration"), promptSDK.AuthenticationMiddleware(managerRoles...), service.updateConfig)
 
 	router.GET("/categories", promptSDK.AuthenticationMiddleware(allRoles...), service.listCategories)
-	router.POST("/categories", promptSDK.AuthenticationMiddleware(managerRoles...), service.createCategory)
-	router.PUT("/categories/:categoryID", promptSDK.AuthenticationMiddleware(managerRoles...), service.updateCategory)
-	router.DELETE("/categories/:categoryID", promptSDK.AuthenticationMiddleware(managerRoles...), service.deleteCategory)
+	router.POST("/categories", audit.Describe("Created a feedback category"), promptSDK.AuthenticationMiddleware(managerRoles...), service.createCategory)
+	router.PUT("/categories/:categoryID", audit.Describe("Updated a feedback category"), promptSDK.AuthenticationMiddleware(managerRoles...), service.updateCategory)
+	router.DELETE("/categories/:categoryID", audit.Describe("Deleted a feedback category"), promptSDK.AuthenticationMiddleware(managerRoles...), service.deleteCategory)
 
 	router.GET("/slots", promptSDK.AuthenticationMiddleware(allRoles...), service.listSlots)
-	router.POST("/slots", promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlot)
-	router.POST("/slots/batch", promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlotsBatch)
-	router.PUT("/slots/:slotID", promptSDK.AuthenticationMiddleware(managerRoles...), service.updateSlot)
-	router.DELETE("/slots/:slotID", promptSDK.AuthenticationMiddleware(managerRoles...), service.deleteSlot)
+	router.POST("/slots", audit.Describe("Created a presentation slot"), promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlot)
+	router.POST("/slots/batch", audit.Describe("Created presentation slots in bulk"), promptSDK.AuthenticationMiddleware(managerRoles...), service.createSlotsBatch)
+	router.PUT("/slots/:slotID", audit.Describe("Updated a presentation slot"), promptSDK.AuthenticationMiddleware(managerRoles...), service.updateSlot)
+	router.DELETE("/slots/:slotID", audit.Describe("Deleted a presentation slot"), promptSDK.AuthenticationMiddleware(managerRoles...), service.deleteSlot)
 	router.GET("/targets", promptSDK.AuthenticationMiddleware(staffRoles...), service.listTargets)
-	router.PUT("/slots/:slotID/assignment", promptSDK.AuthenticationMiddleware(managerRoles...), service.assignTarget)
-	router.DELETE("/slots/:slotID/assignment", promptSDK.AuthenticationMiddleware(managerRoles...), service.unassignTarget)
+	router.PUT("/slots/:slotID/assignment", audit.Describe("Assigned a presentation target to a slot"), promptSDK.AuthenticationMiddleware(managerRoles...), service.assignTarget)
+	router.DELETE("/slots/:slotID/assignment", audit.Describe("Unassigned a presentation target from a slot"), promptSDK.AuthenticationMiddleware(managerRoles...), service.unassignTarget)
 
 	router.GET("/presentations", promptSDK.AuthenticationMiddleware(staffRoles...), service.listPresentations)
 	router.GET("/presentations/me", promptSDK.AuthenticationMiddleware(promptSDK.CourseStudent), service.getOwnPresentation)
 
 	router.GET("/presentations/:presentationID/materials", promptSDK.AuthenticationMiddleware(allRoles...), service.listMaterials)
-	router.POST("/presentations/:presentationID/materials/presign", promptSDK.AuthenticationMiddleware(allRoles...), service.createUploadIntent)
-	router.POST("/presentations/:presentationID/materials/:materialID/complete", promptSDK.AuthenticationMiddleware(allRoles...), service.completeUpload)
+	router.POST("/presentations/:presentationID/materials/presign", audit.Describe("Started a presentation material upload"), promptSDK.AuthenticationMiddleware(allRoles...), service.createUploadIntent)
+	router.POST("/presentations/:presentationID/materials/:materialID/complete", audit.Describe("Uploaded presentation material"), promptSDK.AuthenticationMiddleware(allRoles...), service.completeUpload)
 	router.GET("/presentations/:presentationID/materials/:materialID/download", promptSDK.AuthenticationMiddleware(allRoles...), service.getMaterialDownload)
-	router.DELETE("/presentations/:presentationID/materials/:materialID", promptSDK.AuthenticationMiddleware(allRoles...), service.deleteMaterial)
+	router.DELETE("/presentations/:presentationID/materials/:materialID", audit.Describe("Deleted presentation material"), promptSDK.AuthenticationMiddleware(allRoles...), service.deleteMaterial)
 
 	router.GET("/presentations/:presentationID/feedback", promptSDK.AuthenticationMiddleware(allRoles...), resolveCourseLecturer(), service.getFeedback)
-	router.PUT("/presentations/:presentationID/feedback/answers/:categoryID", promptSDK.AuthenticationMiddleware(staffRoles...), service.putFeedbackAnswer)
-	router.POST("/presentations/:presentationID/feedback/submit", promptSDK.AuthenticationMiddleware(staffRoles...), service.submitFeedback)
-	router.POST("/presentations/:presentationID/feedback/reopen", promptSDK.AuthenticationMiddleware(staffRoles...), service.reopenFeedback)
-	router.DELETE("/presentations/:presentationID/feedback/draft", promptSDK.AuthenticationMiddleware(staffRoles...), resolveCourseLecturer(), service.deleteDraft)
-	router.POST("/presentations/:presentationID/feedback/release", promptSDK.AuthenticationMiddleware(managerRoles...), service.releaseFeedback)
-	router.DELETE("/presentations/:presentationID/feedback/release", promptSDK.AuthenticationMiddleware(managerRoles...), service.unreleaseFeedback)
-	router.DELETE("/presentations/:presentationID/feedback", promptSDK.AuthenticationMiddleware(managerRoles...), service.resetFeedback)
+	router.PUT("/presentations/:presentationID/feedback/answers/:categoryID", audit.Describe("Updated a presentation feedback answer"), promptSDK.AuthenticationMiddleware(staffRoles...), service.putFeedbackAnswer)
+	router.POST("/presentations/:presentationID/feedback/submit", audit.Describe("Submitted presentation feedback"), promptSDK.AuthenticationMiddleware(staffRoles...), service.submitFeedback)
+	router.POST("/presentations/:presentationID/feedback/reopen", audit.Describe("Reopened presentation feedback"), promptSDK.AuthenticationMiddleware(staffRoles...), service.reopenFeedback)
+	router.DELETE("/presentations/:presentationID/feedback/draft", audit.Describe("Discarded a presentation feedback draft"), promptSDK.AuthenticationMiddleware(staffRoles...), resolveCourseLecturer(), service.deleteDraft)
+	router.POST("/presentations/:presentationID/feedback/release", audit.Describe("Released presentation feedback"), promptSDK.AuthenticationMiddleware(managerRoles...), service.releaseFeedback)
+	router.DELETE("/presentations/:presentationID/feedback/release", audit.Describe("Unreleased presentation feedback"), promptSDK.AuthenticationMiddleware(managerRoles...), service.unreleaseFeedback)
+	router.DELETE("/presentations/:presentationID/feedback", audit.Describe("Reset presentation feedback"), promptSDK.AuthenticationMiddleware(managerRoles...), service.resetFeedback)
 	router.GET("/presentations/:presentationID/feedback/events", promptSDK.AuthenticationMiddleware(staffRoles...), service.streamFeedbackEvents)
 }
 

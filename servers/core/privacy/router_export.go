@@ -38,8 +38,8 @@ func (h *privacyHandler) registerExportRoutes(privacyRouter *gin.RouterGroup, pe
 // @Tags privacy
 // @Param uuid path string true "Export UUID"
 // @Success 204
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-exports/{uuid} [delete]
 func (h *privacyHandler) deleteExport(c *gin.Context) {
@@ -85,10 +85,10 @@ func (h *privacyHandler) deleteExport(c *gin.Context) {
 // @Tags privacy
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyExport
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 409 {object} coreutils.ErrorResponse "A valid export already exists for this user"
-// @Failure 429 {object} coreutils.ErrorResponse "User is rate-limited from requesting another export"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse "A valid export already exists for this user"
+// @Failure 429 {object} utils.ErrorResponse "User is rate-limited from requesting another export"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [post]
 func (h *privacyHandler) handleNewSubjectDataExport(c *gin.Context) {
@@ -133,8 +133,8 @@ func (h *privacyHandler) handleNewSubjectDataExport(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Success 204 "No recent export"
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export [get]
 func (h *privacyHandler) getLatestExport(c *gin.Context) {
@@ -172,9 +172,9 @@ func (h *privacyHandler) getLatestExport(c *gin.Context) {
 // @Param uuid path string true "Export UUID"
 // @Param docID path string true "Export Document UUID"
 // @Success 200 {object} map[string]string
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 403 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid}/docs/{docID}/download-url [get]
 func (h *privacyHandler) getExportDocDownloadURL(c *gin.Context) {
@@ -221,7 +221,7 @@ func (h *privacyHandler) getExportDocDownloadURL(c *gin.Context) {
 // @Tags privacy
 // @Produce json
 // @Success 200 {array} privacyDTO.AdminPrivacyExport
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-exports [get]
 func (h *privacyHandler) getAllExports(c *gin.Context) {
@@ -243,9 +243,9 @@ func (h *privacyHandler) getAllExports(c *gin.Context) {
 // @Produce json
 // @Param uuid path string true "Export UUID"
 // @Success 200 {object} privacyDTO.PrivacyExport
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 403 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-export/{uuid} [get]
 func (h *privacyHandler) getExport(c *gin.Context) {

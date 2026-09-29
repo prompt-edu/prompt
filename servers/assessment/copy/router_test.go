@@ -38,10 +38,10 @@ func (suite *CopyRouterTestSuite) SetupSuite() {
 	suite.copyService = NewCopyService(*testDB.Queries, testDB.Conn)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "lecturer@example.com", "03711111", "ab12cde")
-	}
-	RegisterRoutes(api, suite.copyService, testMiddleware)
+	// RegisterRoutes wires the real SDK auth middleware, which no request here
+	// carries a token for, so the handler is reached through the SDK registrar
+	// directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
+	promptTypes.RegisterCopyEndpoint(api, func(c *gin.Context) { c.Next() }, suite.copyService)
 }
 
 func (suite *CopyRouterTestSuite) TearDownSuite() {
@@ -84,6 +84,7 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 		GradeSuggestionVisible:   pgtype.Bool{Bool: true, Valid: true},
 		ActionItemsVisible:       pgtype.Bool{Bool: true, Valid: true},
 		GradingSheetVisible:      pgtype.Bool{Bool: false, Valid: true},
+		TutorDisplayName:         pgtype.Text{String: "Coach", Valid: true},
 	})
 	assert.NoError(suite.T(), err)
 
@@ -108,6 +109,7 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 	assert.Equal(suite.T(), targetCoursePhaseID, targetConfig.CoursePhaseID)
 	assert.Equal(suite.T(), true, targetConfig.SelfEvaluationEnabled)
 	assert.Equal(suite.T(), selfEvalSchemaID, targetConfig.SelfEvaluationSchema)
+	assert.Equal(suite.T(), "Coach", targetConfig.TutorDisplayName.String)
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpoint_InvalidJSON() {
@@ -153,6 +155,18 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_NonExistentSource() {
 	suite.router.ServeHTTP(resp, req)
 
 	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code, "Should fail when source doesn't exist")
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.Default()
+	RegisterRoutes(router.Group("/api"), NewCopyService(db.Queries{}, nil))
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest("POST", "/api/copy", nil))
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
 }
 
 func TestCopyRouterTestSuite(t *testing.T) {

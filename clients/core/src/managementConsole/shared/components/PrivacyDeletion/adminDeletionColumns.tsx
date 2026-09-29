@@ -4,7 +4,7 @@ import {
   DeletionSubrequestStatus,
   type PrivacyDeletionSubrequest,
 } from '@core/interfaces/privacy'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import { CircleCheck, CircleX, Clock, Loader2 } from 'lucide-react'
 import { HoverInfoText } from '../Privacy/HoverInfoText'
 import { PrivacyStatusBadge } from '../Privacy/PrivacyStatusBadge'
@@ -95,7 +95,7 @@ function SourceSummaryCell({ subs }: { subs: PrivacyDeletionSubrequest[] }) {
   )
 }
 
-export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
+export const adminDeletionColumns: PromptTableColumnDef<AdminPrivacyDeletionRequest>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
@@ -110,7 +110,7 @@ export const adminDeletionColumns: ColumnDef<AdminPrivacyDeletionRequest>[] = [
   {
     accessorKey: 'requested_at',
     header: 'Requested',
-    cell: (info) => new Date(info.getValue<string>()).toLocaleString(),
+    cell: (info) => new Date(info.getValue() as string).toLocaleString(),
   },
   {
     id: 'reviewed',

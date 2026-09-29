@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills/skillDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +16,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *SkillsService, authMi
 	skillRouter := routerGroup.Group("/skill")
 
 	skillRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getAllSkills)
-	skillRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createSkills)
+	skillRouter.POST("", audit.Describe("Created skills"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createSkills)
 	skillRouter.PUT("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateSkill)
 	skillRouter.DELETE("/:skillID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteSkill)
 }

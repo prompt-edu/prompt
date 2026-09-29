@@ -104,26 +104,6 @@ describe('coursePhaseChanged', () => {
   })
 })
 
-describe('coursePhaseGraphSaved', () => {
-  it('reaches none of the graphs, because it sends one composite key rather than four', () => {
-    seed(
-      coreKeys.courses.all(),
-      coreKeys.courseGraphs.phase(COURSE),
-      coreKeys.courseGraphs.participationData(COURSE),
-      coreKeys.courseGraphs.phaseData(COURSE),
-      coreKeys.coursePhases.types(),
-    )
-
-    coreCache.coursePhaseGraphSaved(queryClient)
-
-    expect(isInvalidated(coreKeys.courses.all())).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.phase(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.participationData(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.courseGraphs.phaseData(COURSE))).toBe(false)
-    expect(isInvalidated(coreKeys.coursePhases.types())).toBe(false)
-  })
-})
-
 describe('applicationsImported', () => {
   it('invalidates the score names and the participations of this phase', () => {
     seed(
@@ -161,22 +141,48 @@ describe('applicationParticipantsChanged', () => {
 })
 
 describe('applicationAssessmentSaved', () => {
-  it('reaches every phase, because the participation key it uses is unscoped', () => {
-    seed(
-      coreKeys.applications.participations.inPhase(PHASE),
-      coreKeys.applications.participations.inPhase(OTHER_PHASE),
-    )
+  it('invalidates the participations of the assessed phase', () => {
+    seed(coreKeys.applications.participations.inPhase(PHASE))
 
-    coreCache.applicationAssessmentSaved(queryClient)
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
 
     expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
+  })
+
+  it('leaves the participations of another phase alone', () => {
+    seed(coreKeys.applications.participations.inPhase(OTHER_PHASE))
+
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
+
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(false)
   })
 
   it('leaves the applications themselves alone', () => {
     seed(coreKeys.applications.ofParticipation(PARTICIPATION))
 
-    coreCache.applicationAssessmentSaved(queryClient)
+    coreCache.applicationAssessmentSaved(queryClient, PHASE)
+
+    expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(false)
+  })
+
+  // The phase id comes from `useParams`, so a route that stops providing it must not turn the
+  // invalidation into a no-op
+  it('falls back to every phase when the phase id is missing', () => {
+    seed(
+      coreKeys.applications.participations.inPhase(PHASE),
+      coreKeys.applications.participations.inPhase(OTHER_PHASE),
+    )
+
+    coreCache.applicationAssessmentSaved(queryClient, undefined)
+
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
+  })
+
+  it('still leaves the applications alone when the phase id is missing', () => {
+    seed(coreKeys.applications.ofParticipation(PARTICIPATION))
+
+    coreCache.applicationAssessmentSaved(queryClient, undefined)
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(false)
   })
@@ -190,17 +196,37 @@ describe('studentUniversityDataChanged', () => {
       coreKeys.applications.participations.inPhase(OTHER_PHASE),
     )
 
-    coreCache.studentUniversityDataChanged(queryClient)
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
 
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(true)
     expect(isInvalidated(coreKeys.applications.inPhase(PHASE))).toBe(true)
     expect(isInvalidated(coreKeys.applications.participations.inPhase(OTHER_PHASE))).toBe(true)
   })
 
+  it('invalidates the detail cache of the edited student only', () => {
+    seed(coreKeys.students.byId(STUDENT), coreKeys.students.byId('other'))
+
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
+
+    expect(isInvalidated(coreKeys.students.byId(STUDENT))).toBe(true)
+    expect(isInvalidated(coreKeys.students.byId('other'))).toBe(false)
+  })
+
+  it('invalidates every cached university user search, whatever it searched for', () => {
+    const search = coreKeys.applications.universityUsers.forSearch('ab', PHASE)
+    const otherSearch = coreKeys.applications.universityUsers.forSearch('cd', OTHER_PHASE)
+    seed(search, otherSearch)
+
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
+
+    expect(isInvalidated(search)).toBe(true)
+    expect(isInvalidated(otherSearch)).toBe(true)
+  })
+
   it('leaves the application form alone, which is a separate cache', () => {
     seed(coreKeys.applications.form(PHASE))
 
-    coreCache.studentUniversityDataChanged(queryClient)
+    coreCache.studentUniversityDataChanged(queryClient, STUDENT)
 
     expect(isInvalidated(coreKeys.applications.form(PHASE))).toBe(false)
   })
@@ -286,5 +312,32 @@ describe('privacy events', () => {
     coreCache.privacyExportsChanged(queryClient)
 
     expect(isInvalidated(coreKeys.privacy.admin.exports())).toBe(true)
+  })
+})
+
+// Every id-scoped event routes through the same `invalidate` helper, so this covers the class
+describe('a key whose scoping id is missing', () => {
+  it('is truncated at the missing segment rather than matching nothing', () => {
+    seed(
+      coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN),
+      coreKeys.mailCampaigns.byId(COURSE, 'campaign-2'),
+    )
+
+    coreCache.mailCampaignChanged(queryClient, COURSE, undefined)
+
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN))).toBe(true)
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, 'campaign-2'))).toBe(true)
+  })
+
+  it('keeps the segments before the missing one, so other ids stay untouched', () => {
+    seed(
+      coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN),
+      coreKeys.mailCampaigns.byId(OTHER_COURSE, CAMPAIGN),
+    )
+
+    coreCache.mailCampaignChanged(queryClient, COURSE, undefined)
+
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(COURSE, CAMPAIGN))).toBe(true)
+    expect(isInvalidated(coreKeys.mailCampaigns.byId(OTHER_COURSE, CAMPAIGN))).toBe(false)
   })
 })

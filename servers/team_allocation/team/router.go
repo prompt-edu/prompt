@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
@@ -19,14 +20,14 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(service.queries))
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllTeams)
-	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createTeams)
+	teamRouter.POST("", audit.Describe("Created teams"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createTeams)
 	teamRouter.PUT("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateTeam)
 	teamRouter.DELETE("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteTeam)
 
-	teamRouter.POST("/student-names", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.addStudentNamesToTeams)
+	teamRouter.POST("/student-names", audit.Describe("Added student names to team allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.addStudentNamesToTeams)
 
-	teamRouter.POST("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
-	teamRouter.PUT("/tutors/:universityLogin", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateTutorTeam)
+	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
+	teamRouter.PUT("/tutors/:universityLogin", audit.Describe("Updated a tutor's team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateTutorTeam)
 
 	// required for inter-phase communication protocol
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getTeamByID)

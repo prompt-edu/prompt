@@ -1,7 +1,10 @@
 import { AssessmentType } from '../interfaces/assessmentType'
+import type { TutorLabel } from './hooks/useTutorLabel'
 
 export interface SchemaSectionContent {
   title: string
+  // The title as it reads mid-sentence; only the built-in words are lowercased.
+  inlineTitle: string
   summary: string
   toggleLabel: string
   toggleHint: string
@@ -13,9 +16,12 @@ export interface SchemaSectionContent {
   detailDescription: string
 }
 
-export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> = {
+export const getSchemaSectionContent = (
+  tutorLabel: TutorLabel,
+): Record<AssessmentType, SchemaSectionContent> => ({
   [AssessmentType.ASSESSMENT]: {
     title: 'Assessment',
+    inlineTitle: 'assessment',
     summary:
       'Configure the final assessment that lecturers use to grade students in this course phase.',
     toggleLabel: 'Assessment enabled',
@@ -33,6 +39,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
   },
   [AssessmentType.SELF]: {
     title: 'Self-Evaluation',
+    inlineTitle: 'self-evaluation',
     summary:
       'Configure the reflective self-evaluation students complete before their final assessment is reviewed.',
     toggleLabel: 'Self-evaluation enabled',
@@ -48,6 +55,7 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
   },
   [AssessmentType.PEER]: {
     title: 'Peer-Evaluation',
+    inlineTitle: 'peer-evaluation',
     summary:
       'Configure the peer feedback form used when students evaluate teammates or collaborators.',
     toggleLabel: 'Peer-evaluation enabled',
@@ -62,20 +70,16 @@ export const schemaSectionContent: Record<AssessmentType, SchemaSectionContent> 
       'Review and edit the peer-evaluation categories, competencies, weights, and proficiency descriptions.',
   },
   [AssessmentType.TUTOR]: {
-    title: 'Tutor-Evaluation',
-    summary:
-      'Configure the feedback form students use to evaluate their tutors in this course phase.',
-    toggleLabel: 'Tutor-evaluation enabled',
-    toggleHint:
-      'Turn this on when students should submit structured feedback about their tutors in this phase.',
-    schemaLabel: 'Tutor-evaluation schema',
-    schemaHint:
-      'Choose the schema students use to evaluate their tutors. Use the detail page to review categories and competency descriptions.',
-    timeframeLabel: 'Tutor-evaluation timeframe',
-    timeframeHint:
-      'This controls when students can evaluate their tutors and when submissions close.',
-    detailTitle: 'Tutor-Evaluation Schema',
-    detailDescription:
-      'Review and edit the tutor-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their tutors.',
+    title: `${tutorLabel.title}-Evaluation`,
+    inlineTitle: `${tutorLabel.text}-evaluation`,
+    summary: `Configure the feedback form students use to evaluate their ${tutorLabel.text} in this course phase.`,
+    toggleLabel: `${tutorLabel.title}-evaluation enabled`,
+    toggleHint: `Turn this on when students should submit structured feedback about their ${tutorLabel.text} in this phase.`,
+    schemaLabel: `${tutorLabel.title}-evaluation schema`,
+    schemaHint: `Choose the schema students use to evaluate their ${tutorLabel.text}. Use the detail page to review categories and competency descriptions.`,
+    timeframeLabel: `${tutorLabel.title}-evaluation timeframe`,
+    timeframeHint: `This controls when students can evaluate their ${tutorLabel.text} and when submissions close.`,
+    detailTitle: `${tutorLabel.title}-Evaluation Schema`,
+    detailDescription: `Review and edit the ${tutorLabel.text}-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their ${tutorLabel.text}.`,
   },
-}
+})

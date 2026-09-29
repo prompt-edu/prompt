@@ -13,7 +13,8 @@ import type { CategoryWithCompetencies } from '../../../../interfaces/category'
 import { useGetAllCategoriesWithCompetencies } from '../../../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetEvaluationCategoriesWithCompetencies'
-import { schemaSectionContent } from '../../../schemaSectionContent'
+import { useTutorLabel } from '../../../hooks/useTutorLabel'
+import { getSchemaSectionContent } from '../../../schemaSectionContent'
 
 import { CategoryItem } from './components/CategoryItem'
 import { CreateCategoryForm } from './components/CreateCategoryForm'
@@ -71,7 +72,7 @@ export const CategoryList = ({
           ? tutorEvaluationCategories
           : assessmentCategories
 
-  const content = schemaSectionContent[assessmentType]
+  const content = getSchemaSectionContent(useTutorLabel())[assessmentType]
 
   return (
     <Card className='overflow-hidden border-border p-6 shadow-xs'>
@@ -113,8 +114,8 @@ export const CategoryList = ({
           </div>
 
           <p className='text-sm leading-6 text-muted-foreground'>
-            Review the {content.title.toLowerCase()} structure, category weights, competency
-            descriptions, and score-level guidance below.
+            Review the {content.inlineTitle} structure, category weights, competency descriptions,
+            and score-level guidance below.
           </p>
         </div>
 

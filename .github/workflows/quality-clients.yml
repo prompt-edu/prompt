@@ -31,6 +31,7 @@ jobs:
           - self_team_allocation_component
           - certificate_component
           - presentation_component
+          - infrastructure_setup_component
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node

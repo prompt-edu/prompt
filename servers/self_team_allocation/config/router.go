@@ -6,6 +6,6 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterConfigEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService) {
+	promptTypes.RegisterConfigModule(routerGroup, service, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 }

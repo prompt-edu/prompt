@@ -4,14 +4,16 @@ sidebar_position: 3
 
 # Database Seeding
 
-A fresh `make db` gives you eight **empty** databases. `make seed` fills them with
+A fresh `make db` gives you nine **empty** databases. `make seed` fills them with
 one realistic course so you can click through PROMPT without creating anything by
-hand.
+hand. The one exception is `infrastructure_setup`: everything it stores is either
+encrypted provider credentials or a record of resources provisioned in a real
+external system, so it has no seed file.
 
 ```bash
 make db          # every service database + Keycloak
 make servers     # the servers own the schemas: their startup migrations create them
-make seed        # load the demo course into all eight databases
+make seed        # load the demo course into every seeded database
 ```
 
 `make seed` is re-runnable. It is **authoritative** for the rows it owns: it deletes
@@ -84,7 +86,7 @@ the source tree at run time.
 
 Core gets one extra gate: the seed resolves course phase types **by name**, because
 `servers/core/coursePhaseType/initializeTypes.go` creates them with random UUIDs on
-every fresh database. The script therefore also waits for all eight type names the
+every fresh database. The script therefore also waits for all nine type names the
 seed uses. Two consequences worth knowing:
 
 - Never insert a `course_phase_type` row yourself. Core skips a type's provided and

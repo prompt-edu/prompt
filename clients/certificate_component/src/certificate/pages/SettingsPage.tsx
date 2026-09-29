@@ -404,8 +404,8 @@ export const SettingsPage = () => {
             <div>
               <CardTitle>Release Date</CardTitle>
               <CardDescription>
-                Set a date after which students can download their certificates. Leave empty to
-                allow downloads immediately.
+                Set a date after which students can download their certificates. Until a release
+                date is set, students cannot download them.
               </CardDescription>
             </div>
             {config?.releaseDate && (

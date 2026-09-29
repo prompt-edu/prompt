@@ -6,6 +6,5 @@ import (
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *PrivacyService) {
-	promptTypes.RegisterPrivacyDataExportEndpoint(routerGroup, service.DataExportHandler, []string{})
-	promptTypes.RegisterPrivacyDataDeletionEndpoint(routerGroup, service.DataDeletionHandler)
+	promptTypes.RegisterPrivacyModule(routerGroup, service.DataExportHandler, service.DataDeletionHandler, []string{})
 }

@@ -16,6 +16,7 @@ import { useGetEvaluationCategoriesWithCompetencies } from './hooks/useGetEvalua
 import { useGetMyEvaluationCompletions } from './hooks/useGetMyEvaluationCompletions'
 import { useGetMyEvaluations } from './hooks/useGetMyEvaluations'
 import { useGetMyParticipation } from './hooks/useGetMyParticipation'
+import { getTutorLabel } from './hooks/useTutorLabel'
 
 interface EvaluationDataShellProps {
   children: React.ReactNode
@@ -125,7 +126,7 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
     return (
       <ErrorPage
         onRetry={refetch}
-        description='Could not fetch self, peer, or tutor evaluation categories'
+        description={`Could not fetch self, peer, or ${getTutorLabel(coursePhaseConfig).text} evaluation categories`}
       />
     )
   if (isPending) return <LoadingPage />

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,16 +24,16 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, as
 	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.createTeams)
 	teamRouter.PUT("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.updateTeam)
 	// only allowing student - as this is a self assignment
-	teamRouter.PUT("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), handler.assignTeam)
-	teamRouter.DELETE("/:teamID/assignment", authMiddleware(promptSDK.CourseStudent), handler.leaveTeam)
+	teamRouter.PUT("/:teamID/assignment", audit.Describe("Joined a team"), authMiddleware(promptSDK.CourseStudent), handler.assignTeam)
+	teamRouter.DELETE("/:teamID/assignment", audit.Describe("Left a team"), authMiddleware(promptSDK.CourseStudent), handler.leaveTeam)
 	teamRouter.DELETE("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTeam)
 
 	// this is required to comply with the inter phase communication protocol
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTeamByID)
 
 	// Tutor management endpoints
-	teamRouter.POST("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.importTutors)
-	teamRouter.POST("/:teamID/tutor", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.createManualTutor)
+	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.importTutors)
+	teamRouter.POST("/:teamID/tutor", audit.Describe("Added a tutor to a team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.createManualTutor)
 	teamRouter.DELETE("/tutor/:tutorID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTutor)
 	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTutors)
 }

@@ -95,7 +95,8 @@ describe('coreKeys', () => {
       'application_exported_answers',
       PHASE,
     ])
-    expect(coreKeys.applications.universityUsers('ab', PHASE)).toEqual([
+    expect(coreKeys.applications.universityUsers.all()).toEqual(['university_users'])
+    expect(coreKeys.applications.universityUsers.forSearch('ab', PHASE)).toEqual([
       'university_users',
       'ab',
       PHASE,

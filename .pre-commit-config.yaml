@@ -51,4 +51,4 @@ repos:
         name: regenerate swagger docs (Go services)
         language: script
         entry: scripts/pre-commit-swagger.sh
-        files: '^servers/(core|example_server|self_team_allocation|assessment|team_allocation|interview)/.*\.go$'
+        files: '^servers/(core|example_server|self_team_allocation|assessment|team_allocation|interview|infrastructure_setup)/.*\.go$'

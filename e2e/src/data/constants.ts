@@ -225,6 +225,10 @@ export const EXAMPLE_PHASE_ID = 'd000000f-0000-0000-0000-00000000000f'
 // fixture).
 export const EXAMPLE_FOREIGN_PHASE_ID = 'd0000010-0000-0000-0000-000000000010'
 
+// Standalone Infrastructure Setup phase on fullCourse (no graph edge, navigate by
+// URL). Hosts the module-federation smoke test and the lecturer journey.
+export const INFRASTRUCTURE_SETUP_PHASE_ID = 'd0000017-0000-0000-0000-000000000017'
+
 // CLOSED Application phase on TestCourse (applicationEndDate in the past):
 // the public apply endpoints must reject it (GET 404, POST 400).
 export const CLOSED_APPLICATION_PHASE_ID = 'aaaa5555-0000-0000-0000-0000000000a5'

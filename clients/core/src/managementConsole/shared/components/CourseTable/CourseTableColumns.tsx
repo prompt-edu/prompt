@@ -1,9 +1,8 @@
 import { formatDate } from '@core/utils/formatDate'
-import type { ColumnDef } from '@tanstack/react-table'
 import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
-import { DynamicIcon } from '@tumaet/prompt-ui-components'
+import { DynamicIcon, type PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 
-export const CourseTableColumns: ColumnDef<Course>[] = [
+export const CourseTableColumns: PromptTableColumnDef<Course>[] = [
   {
     id: 'icon',
     header: 'Icon',
@@ -73,7 +72,7 @@ export const CourseTableColumns: ColumnDef<Course>[] = [
       return 0
     },
     cell: (info) => {
-      const status = info.getValue<string>()
+      const status = info.getValue() as string
       if (status === 'Archived') {
         const archivedOn = info.row.original.archivedOn
         return archivedOn ? `Archived on ${formatDate(archivedOn)}` : 'Archived'

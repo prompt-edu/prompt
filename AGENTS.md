@@ -30,6 +30,7 @@ clients/
     - team_allocation_component (port 3008)
     - self_team_allocation_component (port 3009)
     - certificate_component (port 3010)
+    - infrastructure_setup_component (port 3012)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
     - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
@@ -43,6 +44,7 @@ servers/
   example_server/          # Example phase service (port 8086)
   interview/               # Interview scheduling (port 8087)
   certificate/             # Certificate generation (port 8088)
+  infrastructure_setup/    # External resource provisioning (port 8091)
 
 docs/                      # Docusaurus documentation
 ```
@@ -144,7 +146,7 @@ phases: see the external-phase section of the guide and `template-repository/`.
 
 ## Testing
 
-**Seed data:** `make seed` loads one fully populated demo course into all eight databases from
+**Seed data:** `make seed` loads one fully populated demo course into every seeded database from
 `seed/` (see `docs/contributor/guide/seeding.md`). It is data only and runs after the servers have
 migrated; never insert `course_phase_type` rows, resolve them by name. `make seed-check` verifies
 the ids that cross service boundaries.

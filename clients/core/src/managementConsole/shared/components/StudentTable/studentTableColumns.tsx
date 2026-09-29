@@ -3,20 +3,24 @@ import type {
   StudentNoteTag,
   StudentWithCourses,
 } from '@core/interfaces/studentWithCourses'
-import type { ColumnDef, Row } from '@tanstack/react-table'
 import {
   type Gender,
   getGenderString,
   getStudyDegreeString,
   type StudyDegree,
 } from '@tumaet/prompt-shared-state'
-import { getStudentName, ProfilePicture } from '@tumaet/prompt-ui-components'
+import {
+  getStudentName,
+  ProfilePicture,
+  type PromptTableColumnDef,
+  type PromptTableRow,
+} from '@tumaet/prompt-ui-components'
 import { format, subYears } from 'date-fns'
 import type { NoteTagColor } from '../../interfaces/InstructorNote'
 import { InstructorNoteTag } from '../InstructorNote/InstructorNoteTag'
 import { StudentCoursePreview } from './components/StudentCoursePreview'
 
-export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
+export const studentTableColumns: PromptTableColumnDef<StudentWithCourses>[] = [
   {
     id: 'profilepicture',
     header: '',
@@ -89,7 +93,7 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
       </div>
     ),
 
-    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: string[]) => {
+    filterFn: (row: PromptTableRow<StudentWithCourses>, _columnId, filterValue: string[]) => {
       if (!filterValue?.length) return true
 
       return row.original.courses.some((course) => filterValue.includes(course.courseName))
@@ -117,7 +121,7 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
       </div>
     ),
 
-    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: string[]) => {
+    filterFn: (row: PromptTableRow<StudentWithCourses>, _columnId, filterValue: string[]) => {
       if (!filterValue?.length) return true
 
       return row.original.noteTags.some((tag) => filterValue.includes(tag.id))
@@ -129,7 +133,11 @@ export const studentTableColumns: ColumnDef<StudentWithCourses>[] = [
     accessorFn: (row: StudentWithCourses) => new Date(row.lastModified).getTime(),
     cell: ({ row }) => format(new Date(row.original.lastModified), 'yyyy-MM-dd'),
     sortingFn: 'basic',
-    filterFn: (row: Row<StudentWithCourses>, _columnId, filterValue: number | undefined) => {
+    filterFn: (
+      row: PromptTableRow<StudentWithCourses>,
+      _columnId,
+      filterValue: number | undefined,
+    ) => {
       if (!filterValue) return true
       return new Date(row.original.lastModified) < subYears(new Date(), filterValue)
     },

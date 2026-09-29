@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,9 +19,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *SurveyService, authMi
 	// Endpoints accessible to CourseStudents.
 	surveyRouter.GET("/form", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), service.getSurveyForm)
 	surveyRouter.GET("/answers", authMiddleware(promptSDK.CourseStudent), service.getStudentSurveyResponses)
-	surveyRouter.POST("/answers", authMiddleware(promptSDK.CourseStudent), service.submitSurveyResponses)
+	surveyRouter.POST("/answers", audit.Describe("Submitted survey answers"), authMiddleware(promptSDK.CourseStudent), service.submitSurveyResponses)
 
-	surveyRouter.PUT("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.setSurveyTimeframe)
+	surveyRouter.PUT("/timeframe", audit.Describe("Updated the survey timeframe"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.setSurveyTimeframe)
 	surveyRouter.GET("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getSurveyTimeframe)
 	surveyRouter.GET("/statistics", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getSurveyStatistics)
 

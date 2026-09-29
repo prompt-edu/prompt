@@ -18,6 +18,6 @@ import (
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /copy [post]
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *CopyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service)
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CopyService) {
+	promptTypes.RegisterCopyModule(routerGroup, service, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 }

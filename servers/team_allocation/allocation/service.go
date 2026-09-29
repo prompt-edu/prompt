@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests"
@@ -24,7 +26,6 @@ var (
 	ErrAllocationNotFound    = errors.New("allocation not found")
 	ErrParticipantNotInPhase = errors.New("course participation is not part of this course phase")
 	ErrInvalidTeamForPhase   = errors.New("team does not belong to this course phase")
-	ErrTeamWriteDenied       = errors.New("access restricted to assigned team")
 	ErrParticipantLookup     = errors.New("could not verify course participation")
 )
 
@@ -41,12 +42,14 @@ func DefaultParticipantResolver() participantResolver {
 
 type AllocationService struct {
 	queries             db.Queries
+	conn                *pgxpool.Pool
 	resolveParticipants participantResolver
 }
 
-func NewAllocationService(queries db.Queries) *AllocationService {
+func NewAllocationService(queries db.Queries, conn *pgxpool.Pool) *AllocationService {
 	return &AllocationService{
 		queries:             queries,
+		conn:                conn,
 		resolveParticipants: DefaultParticipantResolver(),
 	}
 }
@@ -119,7 +122,7 @@ func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader str
 		return fmt.Errorf("could not store the allocation: %w", err)
 	}
 	if rows == 0 {
-		return ErrTeamWriteDenied
+		return tutorscope.ErrWriteDenied
 	}
 	return nil
 }

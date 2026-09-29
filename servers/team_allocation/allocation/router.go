@@ -9,11 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
-	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
-	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +19,7 @@ const maxAllocationBodyBytes = 4 << 10
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(service.queries))
+	scopingMW := tutorscope.Middleware(tutorscope.NewPgxResolver(service.conn))
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
@@ -53,7 +51,7 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
 		allocations = filterAllocationsByTeam(allocations, tutorTeamID)
 	}
 
@@ -97,7 +95,7 @@ func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context)
 		return
 	}
 
-	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}
@@ -148,20 +146,20 @@ func (s *AllocationService) updateAllocation(c *gin.Context) {
 		return
 	}
 
-	expectedTeamID, allowed := authorizeAllocationWrite(c)
+	access, allowed := authorizeWrite(c)
 	if !allowed {
 		return
 	}
-	if expectedTeamID.Valid && request.TeamID != uuid.UUID(expectedTeamID.Bytes) {
+	if !access.AllowsTeam(request.TeamID) {
 		denyAllocationWrite(c)
 		return
 	}
 
-	err := s.UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, expectedTeamID)
+	err := s.UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, access.Guard())
 	switch {
 	case err == nil:
 		c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: request.TeamID})
-	case errors.Is(err, ErrTeamWriteDenied):
+	case errors.Is(err, tutorscope.ErrWriteDenied):
 		denyAllocationWrite(c)
 	case errors.Is(err, ErrParticipantNotInPhase), errors.Is(err, ErrInvalidTeamForPhase):
 		handleError(c, http.StatusBadRequest, err)
@@ -193,17 +191,17 @@ func (s *AllocationService) deleteAllocation(c *gin.Context) {
 		return
 	}
 
-	expectedTeamID, allowed := authorizeAllocationWrite(c)
+	access, allowed := authorizeWrite(c)
 	if !allowed {
 		return
 	}
 
-	err := s.DeleteAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID)
+	err := s.DeleteAllocation(c, coursePhaseID, courseParticipationID, access.Guard())
 	switch {
 	case err == nil:
 		c.Status(http.StatusNoContent)
 	case errors.Is(err, ErrAllocationNotFound):
-		if s.isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, expectedTeamID) {
+		if s.isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, access) {
 			denyAllocationWrite(c)
 			return
 		}
@@ -229,43 +227,26 @@ func parseAllocationParams(c *gin.Context) (coursePhaseID, courseParticipationID
 	return coursePhaseID, courseParticipationID, true
 }
 
-// authorizeAllocationWrite reports whether the requester may write allocations and,
-// for a tutor, which source team the write is confined to. Reads deliberately fail
-// open for editors the scoping middleware cannot resolve; writes fail closed.
-// Authorization is decided from the team resolved at the start of the request.
-// It answers the request itself when the write is refused.
-func authorizeAllocationWrite(c *gin.Context) (pgtype.UUID, bool) {
-	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
-	if !ok {
-		handleError(c, http.StatusUnauthorized, keycloakTokenVerifier.ErrUserNotInContext)
-		return pgtype.UUID{}, false
-	}
-
-	// PromptLecturer is deliberately absent: the routes do not admit it directly, so
-	// such a user arrives as a course editor and their reads are tutor-scoped. Writes
-	// must be scoped with them.
-	if tokenUser.Roles[promptSDK.PromptAdmin] || tokenUser.IsLecturer {
-		return pgtype.UUID{}, true
-	}
-
-	if !tokenUser.IsEditor {
+// authorizeWrite answers the request itself when the write is refused.
+func authorizeWrite(c *gin.Context) (tutorscope.Access, bool) {
+	access, err := tutorscope.AuthorizeWrite(c)
+	switch {
+	case err == nil:
+		return access, true
+	case errors.Is(err, tutorscope.ErrNotAuthenticated):
+		handleError(c, http.StatusUnauthorized, err)
+	case errors.Is(err, tutorscope.ErrWriteDenied):
 		denyAllocationWrite(c)
-		return pgtype.UUID{}, false
+	default:
+		handleError(c, http.StatusInternalServerError, err)
 	}
-
-	tutorTeamID, scoped := promptSDK.GetTutorTeamID(c)
-	if !scoped {
-		denyAllocationWrite(c)
-		return pgtype.UUID{}, false
-	}
-
-	return pgtype.UUID{Bytes: tutorTeamID, Valid: true}, true
+	return tutorscope.Access{}, false
 }
 
 // isForeignTeamAllocation classifies a delete that affected no rows. It only picks
 // the status code, it never grants access: the scoped delete has already not happened.
-func (s *AllocationService) isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) bool {
-	if !expectedTeamID.Valid {
+func (s *AllocationService) isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, access tutorscope.Access) bool {
+	if !access.Confined {
 		return false
 	}
 	_, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
@@ -273,7 +254,7 @@ func (s *AllocationService) isForeignTeamAllocation(c *gin.Context, coursePhaseI
 }
 
 func denyAllocationWrite(c *gin.Context) {
-	c.JSON(http.StatusForbidden, gin.H{"error": ErrTeamWriteDenied.Error()})
+	c.JSON(http.StatusForbidden, gin.H{"error": tutorscope.ErrWriteDenied.Error()})
 }
 
 func bindAllocationJSON(c *gin.Context, target any) bool {

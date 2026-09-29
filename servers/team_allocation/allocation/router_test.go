@@ -124,7 +124,7 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.allocationService = NewAllocationService(*testDB.Queries)
+	suite.allocationService = NewAllocationService(*testDB.Queries, testDB.Conn)
 	suite.allocationService.resolveParticipants = stubParticipants(tutorFreeParticip, deltaParticip, epsilonParticip, staffFreeParticip)
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -437,6 +437,24 @@ func (suite *AllocationRouterTestSuite) TestWriteWithoutTokenUserIsUnauthorized(
 
 	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
 	assert.Equal(suite.T(), http.StatusUnauthorized, deleteResp.Code)
+}
+
+func (suite *AllocationRouterTestSuite) TestEditorWriteWithoutScopingMiddlewareFailsClosed() {
+	router := gin.New()
+	allocationRouter := router.Group("/api/course_phase/:coursePhaseID/allocation")
+	editorAuth := tutorAuthMiddleware(scopedTutorLogin)()
+	allocationRouter.PUT("/:courseParticipationID", editorAuth, suite.allocationService.updateAllocation)
+	allocationRouter.DELETE("/:courseParticipationID", editorAuth, suite.allocationService.deleteAllocation)
+
+	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+
+	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
+	assert.Equal(suite.T(), http.StatusInternalServerError, deleteResp.Code)
+
+	teamID, err := suite.storedTeam(epsilonParticip)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID, "a misconfigured route must not write")
 }
 
 func TestAllocationRouterTestSuite(t *testing.T) {

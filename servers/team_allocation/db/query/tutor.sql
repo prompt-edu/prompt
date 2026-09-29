@@ -19,12 +19,6 @@ FROM tutor t
 WHERE t.team_id = $1
   AND t.course_phase_id = $2;
 
--- name: GetTutorTeamByUniversityLogin :one
-SELECT team_id
-FROM tutor
-WHERE course_phase_id = $1
-  AND university_login = $2;
-
 -- name: UpdateTutorTeam :execrows
 UPDATE tutor
 SET team_id = $3

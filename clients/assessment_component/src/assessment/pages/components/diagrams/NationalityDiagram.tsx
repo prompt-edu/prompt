@@ -1,10 +1,10 @@
-import { getCountryName } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  groupByNationality,
 } from '@tumaet/prompt-ui-components'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
@@ -14,7 +14,6 @@ import { ScoreDistributionBarChart } from './scoreDistributionBarChart/ScoreDist
 import { createScoreDistributionDataPoint } from './scoreDistributionBarChart/utils/createScoreDistributionDataPoint'
 
 import { getGridSpanClass } from './utils/getGridSpanClass'
-import { groupBy } from './utils/groupBy'
 
 interface NationalityDiagramProps {
   participationsWithAssessment: ParticipationWithAssessment[]
@@ -25,15 +24,7 @@ export const NationalityDiagram = ({
   participationsWithAssessment,
   showGrade = false,
 }: NationalityDiagramProps) => {
-  const data = Array.from(
-    groupBy(participationsWithAssessment, (p) => p.participation.student.nationality || 'Unknown'),
-  ).map(([nationality, participations]) => {
-    return {
-      shortLabel: nationality,
-      label: getCountryName(nationality) ?? 'Unknown',
-      participationWithAssessment: participations,
-    }
-  })
+  const data = groupByNationality(participationsWithAssessment, (p) => p.participation.student)
 
   return (
     <Card className={`flex flex-col ${getGridSpanClass(data.length)}`}>
@@ -49,7 +40,7 @@ export const NationalityDiagram = ({
               createGradeDistributionDataPoint(
                 d.shortLabel,
                 d.label,
-                d.participationWithAssessment
+                d.items
                   .map((p) => p.assessmentCompletion?.gradeSuggestion)
                   .filter((grade): grade is number => grade !== undefined),
               ),
@@ -62,8 +53,8 @@ export const NationalityDiagram = ({
               createScoreDistributionDataPoint(
                 d.shortLabel,
                 d.label,
-                d.participationWithAssessment.map((p) => p.scoreNumeric),
-                d.participationWithAssessment.map((p) => p.scoreLevel),
+                d.items.map((p) => p.scoreNumeric),
+                d.items.map((p) => p.scoreLevel),
               ),
             )}
           />

@@ -1,10 +1,10 @@
-import { Gender } from '@tumaet/prompt-shared-state'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  groupByGender,
 } from '@tumaet/prompt-ui-components'
 import { GradeDistributionBarChart } from './gradeDistributionBarChart/GradeDistributionBarChart'
 import { createGradeDistributionDataPoint } from './gradeDistributionBarChart/utils/createGradeDistributionDataPoint'
@@ -21,22 +21,7 @@ export const GenderDiagram = ({
   participationsWithAssessment,
   showGrade = false,
 }: GenderDiagramProps) => {
-  const data = (Object.values(Gender) as Gender[]).map((gender) => {
-    const genderLabel =
-      gender === Gender.PREFER_NOT_TO_SAY
-        ? 'Unknown'
-        : gender.replace(/_/g, ' ').charAt(0).toUpperCase() + gender.replace(/_/g, ' ').slice(1)
-
-    const participationWithAssessment = participationsWithAssessment.filter(
-      (p) => p.participation.student.gender === gender,
-    )
-
-    return {
-      shortLabel: genderLabel,
-      label: genderLabel,
-      participationWithAssessment: participationWithAssessment,
-    }
-  })
+  const data = groupByGender(participationsWithAssessment, (p) => p.participation.student)
 
   return (
     <Card className='flex flex-col'>
@@ -52,7 +37,7 @@ export const GenderDiagram = ({
               createGradeDistributionDataPoint(
                 d.shortLabel,
                 d.label,
-                d.participationWithAssessment
+                d.items
                   .map((p) => p.assessmentCompletion?.gradeSuggestion)
                   .filter((grade): grade is number => grade !== undefined),
               ),
@@ -65,8 +50,8 @@ export const GenderDiagram = ({
               createScoreDistributionDataPoint(
                 d.shortLabel,
                 d.label,
-                d.participationWithAssessment.map((p) => p.scoreNumeric),
-                d.participationWithAssessment.map((p) => p.scoreLevel),
+                d.items.map((p) => p.scoreNumeric),
+                d.items.map((p) => p.scoreLevel),
               ),
             )}
           />

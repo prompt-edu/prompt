@@ -155,6 +155,12 @@ available yet.
   release date has passed, so it is a good place to explain a wait.
 - Leaving the editor empty shows no extra message at all.
 
+### Copying a Course
+
+When you copy a course, the certificate template and the student download page text are copied into
+the new certificate phase. The release date and the download records are not, so the copied
+certificates stay unreleased until you set a release date.
+
 ---
 
 ## For Students
@@ -169,7 +175,7 @@ available yet.
 ### Certificate Availability
 
 - Certificates are available only after the instructor has released them (either by setting a release date that has passed, or by releasing immediately).
-- If certificates are not yet available, you will see a message indicating when they will be released.
+- If certificates are not yet available, you will see when they will be released, or that your instructor has not released them yet.
 - Your instructor may also add their own message to the page with further information.
 
 :::note

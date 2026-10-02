@@ -4,8 +4,8 @@ import { BASE_URL, INTERVIEW_API } from '../../src/env'
 import { FULL_COURSE_PHASES, INTERVIEW_FOREIGN_PHASE_ID } from '../../src/data/constants'
 
 // The phase server is reached on the browser origin through the e2e nginx
-// proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401 both
-// for missing tokens and for valid tokens lacking the required role.
+// proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
+// for missing tokens and 403 for valid tokens lacking the required role.
 const phaseUrl = (phaseId: string, path: string) =>
   `${BASE_URL}${INTERVIEW_API}/course_phase/${phaseId}/${path}`
 
@@ -26,13 +26,13 @@ test.describe('interview API auth', () => {
     // interview-slots POST is Admin/CourseLecturer/CourseEditor only.
     const api = await apiAs('student')
     const res = await api.post(phaseUrl(FULL_PHASE, 'interview-slots'), { data: {} })
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a student on the admin-assign endpoint', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.post(phaseUrl(FULL_PHASE, 'interview-assignments/admin'), { data: {} })
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a token without a course-scoped role', async ({ apiAs }) => {
@@ -42,7 +42,7 @@ test.describe('interview API auth', () => {
     const res = await api.post(phaseUrl(INTERVIEW_FOREIGN_PHASE_ID, 'interview-slots'), {
       data: {},
     })
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('accepts an enrolled student reading slots (is_student round-trip via core)', async ({
@@ -56,6 +56,6 @@ test.describe('interview API auth', () => {
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(INTERVIEW_FOREIGN_PHASE_ID, 'interview-slots'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 })

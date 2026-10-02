@@ -5207,6 +5207,9 @@
                 "start": {
                     "type": "string"
                 },
+                "tutorDisplayName": {
+                    "type": "string"
+                },
                 "tutorEvaluationDeadline": {
                     "type": "string"
                 },
@@ -5274,6 +5277,10 @@
                 },
                 "start": {
                     "type": "string"
+                },
+                "tutorDisplayName": {
+                    "type": "string",
+                    "maxLength": 50
                 },
                 "tutorEvaluationDeadline": {
                     "type": "string"

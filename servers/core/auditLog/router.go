@@ -15,7 +15,6 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -108,12 +107,12 @@ func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService, authMiddlewa
 func (s *AuditLogService) listGlobalAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	c.IndentedJSON(http.StatusOK, page)
@@ -144,13 +143,13 @@ func (s *AuditLogService) listGlobalAuditLog(c *gin.Context) {
 func (s *AuditLogService) listCourseAuditLog(c *gin.Context) {
 	filters, err := parseListFilters(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	filters.CourseID = c.Param("uuid")
 	page, err := s.ListAuditLog(c.Request.Context(), filters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 	c.IndentedJSON(http.StatusOK, page)
@@ -163,7 +162,7 @@ func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var e audit.Event
 		if err := c.ShouldBindJSON(&e); err != nil {
-			c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+			c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 			return
 		}
 		// source_service is authoritative (from the matched key), never the body.
@@ -173,11 +172,11 @@ func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 			// delivery was refused and which service it came from.
 			log.WithFields(log.Fields{"service": e.SourceService, "reason": err.Error()}).
 				Warn("audit: rejected ingested event")
-			c.JSON(http.StatusBadRequest, utils.ErrorResponse{Error: err.Error()})
+			c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 			return
 		}
 		if err := sink.Record(c.Request.Context(), e); err != nil {
-			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
+			c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: err.Error()})
 			return
 		}
 		c.Status(http.StatusCreated)
@@ -225,7 +224,7 @@ func ingestAuth(keys map[string][]string) gin.HandlerFunc {
 		service := c.GetHeader("X-Audit-Service")
 		token := c.GetHeader("X-Audit-Token")
 		if service == "" || token == "" || !matchesAnyKey(token, keys[service]) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, utils.ErrorResponse{Error: "invalid audit credentials"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, sdkUtils.ErrorResponse{Error: "invalid audit credentials"})
 			return
 		}
 		c.Set(ingestServiceContextKey, service)

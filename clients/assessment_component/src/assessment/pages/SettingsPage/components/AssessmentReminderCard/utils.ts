@@ -6,6 +6,7 @@ import type {
   AssessmentReminderMetaData,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
+import { getTutorLabel } from '../../../hooks/useTutorLabel'
 import type { ReminderTypeConfig } from './interfaces/ReminderTypeConfig'
 
 export const EMPTY_REMINDER_META: AssessmentReminderMetaData = {
@@ -72,6 +73,7 @@ export const getReminderTypes = (
     activeReminderTypes.push({
       type: 'self',
       label: 'Self Evaluation',
+      inlineLabel: 'self evaluation',
       deadline: coursePhaseConfig.selfEvaluationDeadline,
     })
   }
@@ -80,14 +82,17 @@ export const getReminderTypes = (
     activeReminderTypes.push({
       type: 'peer',
       label: 'Peer Evaluation',
+      inlineLabel: 'peer evaluation',
       deadline: coursePhaseConfig.peerEvaluationDeadline,
     })
   }
 
   if (coursePhaseConfig?.tutorEvaluationEnabled) {
+    const tutorLabel = getTutorLabel(coursePhaseConfig)
     activeReminderTypes.push({
       type: 'tutor',
-      label: 'Tutor Evaluation',
+      label: `${tutorLabel.title} Evaluation`,
+      inlineLabel: `${tutorLabel.text} evaluation`,
       deadline: coursePhaseConfig.tutorEvaluationDeadline,
     })
   }

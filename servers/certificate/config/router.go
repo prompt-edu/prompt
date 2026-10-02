@@ -8,20 +8,25 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	configRouter := routerGroup.Group("/config")
+	// The standardized GET /config reports which required settings are in place. The settings
+	// themselves are served under /settings, which the certificate client reads and writes.
+	promptTypes.RegisterConfigModule(routerGroup, service, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
+
+	settingsRouter := routerGroup.Group("/settings")
 
 	// Students are deliberately absent: the payload carries the full Typst
 	// template. The student page reads its instructor text from /certificate/status.
-	configRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getConfig)
-	configRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
-	configRouter.PUT("/release-date", audit.Describe("Updated the certificate release date"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
-	configRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
-	configRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
+	settingsRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getConfig)
+	settingsRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
+	settingsRouter.PUT("/release-date", audit.Describe("Updated the certificate release date"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
+	settingsRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
+	settingsRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
 }
 
 func (s *ConfigService) getConfig(c *gin.Context) {

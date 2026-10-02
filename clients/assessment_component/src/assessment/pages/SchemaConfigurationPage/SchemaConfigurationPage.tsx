@@ -15,7 +15,8 @@ import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
-import { schemaSectionContent } from '../schemaSectionContent'
+import { useTutorLabel } from '../hooks/useTutorLabel'
+import { getSchemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
 import { RenameSchemaDialog } from './components/RenameSchemaDialog'
 
@@ -96,7 +97,8 @@ export const SchemaConfigurationPage = () => {
   } = useSchemaHasAssessmentData(schemaId)
 
   const assessmentType = getAssessmentTypeForSchema(coursePhaseConfig, schemaId)
-  const content = assessmentType ? schemaSectionContent[assessmentType] : undefined
+  const tutorLabel = useTutorLabel()
+  const content = assessmentType ? getSchemaSectionContent(tutorLabel)[assessmentType] : undefined
   const isEnabled = assessmentType
     ? isAssessmentTypeEnabled(coursePhaseConfig, assessmentType)
     : false

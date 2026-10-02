@@ -13,7 +13,8 @@ import { CalendarRange, ExternalLink, FileStack, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { AssessmentSchema } from '../../../interfaces/assessmentSchema'
 import type { AssessmentType } from '../../../interfaces/assessmentType'
-import { schemaSectionContent } from '../../schemaSectionContent'
+import { useTutorLabel } from '../../hooks/useTutorLabel'
+import { getSchemaSectionContent } from '../../schemaSectionContent'
 import { CreateAssessmentSchemaDialog } from './CreateAssessmentSchemaDialog'
 import { ErrorDisplay } from './ErrorDisplay'
 import { SettingsSwitchField } from './SettingsSwitchField'
@@ -71,7 +72,7 @@ export const SchemaConfigurationCard = ({
   showToggle = true,
   children,
 }: SchemaConfigurationCardProps) => {
-  const content = schemaSectionContent[assessmentType]
+  const content = getSchemaSectionContent(useTutorLabel())[assessmentType]
   const isActive = enabled
   const controlsDisabled = disabled || isSaving
   const enableSwitchDisabled = controlsDisabled || hasAssessmentData

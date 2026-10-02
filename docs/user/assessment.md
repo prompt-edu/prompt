@@ -25,6 +25,10 @@ Once the assessment phase is set up, students and instructors can begin evaluati
 1. **Review Submissions**: Monitor student progress and submissions in the phase overview.
 2. **Conduct Assessments**: Use the tutor template to assess students.
 3. **Provide Feedback**: Offer constructive comments to support student development.
+4. **Finalize Assessments**: Mark an assessment as final on the student's assessment page, or select
+   several students in the participants table and use **Mark as final** from the actions menu.
+   Students with unassessed competencies or no grade suggestion are skipped. **Unmark final** reopens
+   assessments until the deadline has passed.
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 

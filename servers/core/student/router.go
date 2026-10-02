@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // RegisterRoutes mounts the student endpoints on the given router group.
@@ -226,7 +226,7 @@ func (s *StudentService) getStudentEnrollments(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/presentation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/presentation"
 	"github.com/prompt-edu/prompt/servers/presentation/storage"
@@ -164,6 +165,7 @@ func main() {
 	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "presentation")))
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
 	presentation.RegisterRoutes(coursePhaseAPI, service)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
 
 	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
@@ -178,6 +180,7 @@ func main() {
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityAuditLog:        audit.Enabled(),

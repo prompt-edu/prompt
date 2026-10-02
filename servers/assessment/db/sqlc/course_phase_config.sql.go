@@ -91,13 +91,15 @@ INSERT INTO course_phase_config (assessment_schema_id,
                                  action_items_visible,
                                  results_released,
                                  grading_sheet_visible,
-                                 assessment_enabled)
+                                 assessment_enabled,
+                                 tutor_display_name)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
         COALESCE($18::boolean, TRUE),
         COALESCE($19::boolean, TRUE),
         COALESCE($20::boolean, FALSE),
         COALESCE($21::boolean, FALSE),
-        $22::boolean)
+        $22::boolean,
+        $23::text)
 ON CONFLICT (course_phase_id)
     DO UPDATE SET assessment_schema_id      = EXCLUDED.assessment_schema_id,
                   start                     = EXCLUDED.start,
@@ -119,7 +121,8 @@ ON CONFLICT (course_phase_id)
                   action_items_visible      = COALESCE(EXCLUDED.action_items_visible, TRUE),
                   results_released          = COALESCE(EXCLUDED.results_released, FALSE),
                   grading_sheet_visible     = COALESCE(EXCLUDED.grading_sheet_visible, FALSE),
-                  assessment_enabled        = EXCLUDED.assessment_enabled
+                  assessment_enabled        = EXCLUDED.assessment_enabled,
+                  tutor_display_name        = EXCLUDED.tutor_display_name
 `
 
 type CreateOrUpdateCoursePhaseConfigParams struct {
@@ -145,10 +148,12 @@ type CreateOrUpdateCoursePhaseConfigParams struct {
 	ResultsReleased          pgtype.Bool        `json:"results_released"`
 	GradingSheetVisible      pgtype.Bool        `json:"grading_sheet_visible"`
 	AssessmentEnabled        bool               `json:"assessment_enabled"`
+	TutorDisplayName         pgtype.Text        `json:"tutor_display_name"`
 }
 
-// assessment_enabled takes no COALESCE like its sibling flags: an omitted value must keep the
-// phase's current mode rather than fall back to a constant, so Go resolves it before this runs.
+// assessment_enabled and tutor_display_name take no COALESCE like the sibling flags: an omitted
+// value must keep the phase's current setting rather than fall back to a constant, so Go resolves
+// them before this runs.
 func (q *Queries) CreateOrUpdateCoursePhaseConfig(ctx context.Context, arg CreateOrUpdateCoursePhaseConfigParams) error {
 	_, err := q.db.Exec(ctx, createOrUpdateCoursePhaseConfig,
 		arg.AssessmentSchemaID,
@@ -173,12 +178,13 @@ func (q *Queries) CreateOrUpdateCoursePhaseConfig(ctx context.Context, arg Creat
 		arg.ResultsReleased,
 		arg.GradingSheetVisible,
 		arg.AssessmentEnabled,
+		arg.TutorDisplayName,
 	)
 	return err
 }
 
 const getCoursePhaseConfig = `-- name: GetCoursePhaseConfig :one
-SELECT assessment_schema_id, course_phase_id, deadline, self_evaluation_enabled, self_evaluation_schema, self_evaluation_deadline, peer_evaluation_enabled, peer_evaluation_schema, peer_evaluation_deadline, start, self_evaluation_start, peer_evaluation_start, tutor_evaluation_enabled, tutor_evaluation_start, tutor_evaluation_deadline, tutor_evaluation_schema, evaluation_results_visible, grade_suggestion_visible, action_items_visible, results_released, grading_sheet_visible, assessment_enabled
+SELECT assessment_schema_id, course_phase_id, deadline, self_evaluation_enabled, self_evaluation_schema, self_evaluation_deadline, peer_evaluation_enabled, peer_evaluation_schema, peer_evaluation_deadline, start, self_evaluation_start, peer_evaluation_start, tutor_evaluation_enabled, tutor_evaluation_start, tutor_evaluation_deadline, tutor_evaluation_schema, evaluation_results_visible, grade_suggestion_visible, action_items_visible, results_released, grading_sheet_visible, assessment_enabled, tutor_display_name
 FROM course_phase_config
 WHERE course_phase_id = $1
 `
@@ -209,6 +215,7 @@ func (q *Queries) GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.U
 		&i.ResultsReleased,
 		&i.GradingSheetVisible,
 		&i.AssessmentEnabled,
+		&i.TutorDisplayName,
 	)
 	return i, err
 }
@@ -422,7 +429,7 @@ func (q *Queries) IsTutorEvaluationOpen(ctx context.Context, coursePhaseID uuid.
 }
 
 const listAssessmentSchemaCoursePhaseMappings = `-- name: ListAssessmentSchemaCoursePhaseMappings :many
-SELECT assessment_schema_id, course_phase_id, deadline, self_evaluation_enabled, self_evaluation_schema, self_evaluation_deadline, peer_evaluation_enabled, peer_evaluation_schema, peer_evaluation_deadline, start, self_evaluation_start, peer_evaluation_start, tutor_evaluation_enabled, tutor_evaluation_start, tutor_evaluation_deadline, tutor_evaluation_schema, evaluation_results_visible, grade_suggestion_visible, action_items_visible, results_released, grading_sheet_visible, assessment_enabled
+SELECT assessment_schema_id, course_phase_id, deadline, self_evaluation_enabled, self_evaluation_schema, self_evaluation_deadline, peer_evaluation_enabled, peer_evaluation_schema, peer_evaluation_deadline, start, self_evaluation_start, peer_evaluation_start, tutor_evaluation_enabled, tutor_evaluation_start, tutor_evaluation_deadline, tutor_evaluation_schema, evaluation_results_visible, grade_suggestion_visible, action_items_visible, results_released, grading_sheet_visible, assessment_enabled, tutor_display_name
 FROM course_phase_config
 ORDER BY assessment_schema_id, course_phase_id
 `
@@ -459,6 +466,7 @@ func (q *Queries) ListAssessmentSchemaCoursePhaseMappings(ctx context.Context) (
 			&i.ResultsReleased,
 			&i.GradingSheetVisible,
 			&i.AssessmentEnabled,
+			&i.TutorDisplayName,
 		); err != nil {
 			return nil, err
 		}

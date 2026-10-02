@@ -20,7 +20,8 @@
         "/tests/api/application-apply\\.api\\.spec\\.ts$",
         "/tests/api/application-files\\.api\\.spec\\.ts$",
         "/tests/api/application-import\\.api\\.spec\\.ts$",
-        "/tests/api/course-staff\\.api\\.spec\\.ts$"
+        "/tests/api/course-staff\\.api\\.spec\\.ts$",
+        "/tests/api/service-info\\.api\\.spec\\.ts$"
       ]
     },
     {

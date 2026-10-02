@@ -5,7 +5,7 @@ import { FULL_COURSE_PHASES, TEAM_ALLOCATION_FOREIGN_PHASE_ID } from '../../src/
 
 // The team allocation server is reached on the browser origin through the e2e
 // nginx proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
-// both for missing tokens and for valid tokens lacking the required role. All
+// for missing tokens and 403 for valid tokens lacking the required role. All
 // checks are side-effect-free (reads, plus a batch that auth rejects before it
 // runs) on the graph Team Allocation phase, so this file cannot interfere with
 // the journey specs (which own their own standalone phases).
@@ -28,13 +28,13 @@ test.describe('team allocation API auth', () => {
   test('rejects a student on a lecturer-only endpoint', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(PHASE_ID, 'skill'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a student creating a team', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.post(phaseUrl(PHASE_ID, 'team'), { data: { teamNames: ['nope'] } })
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('accepts an enrolled student on the team list', async ({ apiAs }) => {
@@ -52,6 +52,6 @@ test.describe('team allocation API auth', () => {
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(TEAM_ALLOCATION_FOREIGN_PHASE_ID, 'allocation'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 })

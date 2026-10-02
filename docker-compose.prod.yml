@@ -1,6 +1,6 @@
 services:
   reverse-proxy:
-    image: traefik:v3.6
+    image: traefik:v3.7
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
@@ -77,6 +77,8 @@ services:
     environment:
       - CORE_HOST
       - SERVER_ADDRESS
+      # Reported as the service version on /info (admin System Status page).
+      - SERVER_IMAGE_TAG=${SERVER_CORE_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_RETENTION_DAYS
       - AUDIT_INGEST_KEYS
@@ -133,6 +135,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_TEAM_ALLOCATION_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_TEAM_ALLOCATION}
       - DB_HOST_TEAM_ALLOCATION
@@ -168,6 +171,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION}
       - DB_HOST_SELF_TEAM_ALLOCATION
@@ -203,6 +207,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_ASSESSMENT_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_ASSESSMENT}
       - DB_HOST_ASSESSMENT=db-assessment
@@ -238,6 +243,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_INTERVIEW_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_INTERVIEW}
       - DB_HOST_INTERVIEW=db-interview
@@ -274,6 +280,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_CERTIFICATE_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_CERTIFICATE}
       - DB_HOST_CERTIFICATE=db-certificate
@@ -311,6 +318,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_PRESENTATION_IMAGE_TAG}
       - AUDIT_ENABLED
       - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_PRESENTATION}
       - DB_HOST_PRESENTATION=db-presentation
@@ -356,6 +364,7 @@ services:
       - CORE_HOST
       - SERVER_CORE_HOST
       - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG}
       - DB_HOST_INFRASTRUCTURE_SETUP=db-infrastructure-setup
       - DB_PORT_INFRASTRUCTURE_SETUP=5432
       - DB_USER
@@ -753,7 +762,7 @@ services:
 
   # SeaweedFS Master Server
   seaweedfs-master:
-    image: chrislusf/seaweedfs:4.45
+    image: chrislusf/seaweedfs:4.47
     container_name: prompt-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     volumes:
@@ -774,7 +783,7 @@ services:
 
   # SeaweedFS Volume Server
   seaweedfs-volume:
-    image: chrislusf/seaweedfs:4.45
+    image: chrislusf/seaweedfs:4.47
     container_name: prompt-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     volumes:
@@ -797,7 +806,7 @@ services:
 
   # SeaweedFS Filer (required for S3)
   seaweedfs-filer:
-    image: chrislusf/seaweedfs:4.45
+    image: chrislusf/seaweedfs:4.47
     container_name: prompt-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     volumes:
@@ -817,7 +826,7 @@ services:
 
   # SeaweedFS S3 Gateway (public access via presigned URLs only)
   seaweedfs-s3:
-    image: chrislusf/seaweedfs:4.45
+    image: chrislusf/seaweedfs:4.47
     container_name: prompt-seaweedfs-s3
     entrypoint:
       - /bin/sh

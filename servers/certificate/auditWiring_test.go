@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -9,10 +11,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
+	"github.com/prompt-edu/prompt/servers/certificate/copy"
+	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
@@ -20,8 +28,9 @@ import (
 )
 
 const (
-	auditActorID       = "44444444-4444-4444-4444-444444444444"
-	auditCoursePhaseID = "10000000-0000-0000-0000-000000000001"
+	auditActorID             = "44444444-4444-4444-4444-444444444444"
+	auditCoursePhaseID       = "10000000-0000-0000-0000-000000000001"
+	auditTargetCoursePhaseID = "10000000-0000-0000-0000-0000000000c0"
 )
 
 type recordingSink struct {
@@ -93,6 +102,7 @@ func auditRouter(sink audit.Sink) *gin.Engine {
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
 	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletion.NewCoursePhaseDeletionService(*queries, nil))
 
 	return router
 }
@@ -106,21 +116,21 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 	}{
 		{
 			name:      "config update",
-			path:      "/config",
+			path:      "/settings",
 			action:    "Updated the certificate configuration",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings",
 		},
 		{
 			name:      "release date update",
-			path:      "/config/release-date",
+			path:      "/settings/release-date",
 			action:    "Updated the certificate release date",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config/release-date",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings/release-date",
 		},
 		{
 			name:      "student page text update",
-			path:      "/config/student-page-text",
+			path:      "/settings/student-page-text",
 			action:    "Updated the certificate student page text",
-			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/config/student-page-text",
+			actionKey: "PUT /certificate/api/course_phase/:coursePhaseID/settings/student-page-text",
 		},
 	}
 
@@ -147,12 +157,31 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 	}
 }
 
+// The phase deletion route carries its own label: the module deletes only its own data, so the
+// derived "Deleted course phase" would mislead.
+func TestAuditMiddlewareRecordsPhaseDeletionRoute(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditRouter(sink)
+
+	resp := httptest.NewRecorder()
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID
+	router.ServeHTTP(resp, httptest.NewRequest(http.MethodDelete, url, nil))
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+
+	events := sink.waitForEvents(1)
+	require.Len(t, events, 1)
+	require.Equal(t, "Deleted the certificate phase data", events[0].Action)
+	require.Equal(t, "DELETE /certificate/api/course_phase/:coursePhaseID", events[0].ActionKey)
+	require.Equal(t, audit.OutcomeDenied, events[0].Outcome)
+	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
+}
+
 func TestAuditMiddlewareRecordsOneEventPerRequest(t *testing.T) {
 	sink := &recordingSink{}
 	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
-	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/config"
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodPut, url, nil))
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
 
@@ -166,10 +195,78 @@ func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	router := auditRouter(sink)
 
 	resp := httptest.NewRecorder()
-	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/config"
+	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, url, nil))
 	require.Equal(t, http.StatusUnauthorized, resp.Code)
 
 	time.Sleep(300 * time.Millisecond)
 	require.Empty(t, sink.snapshot())
+}
+
+// auditCopyRouter reaches the copy handler itself, which a request without a bearer token never
+// does: copy.RegisterRoutes wires the real SDK auth middleware. The group layout and the audit
+// label mirror what copy.RegisterRoutes builds.
+func auditCopyRouter(sink audit.Sink, copyService *copy.CopyService) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	api := router.Group("certificate/api")
+	api.Use(audit.Middleware(sink))
+	api.Use(auditActorMiddleware())
+	promptTypes.RegisterCopyEndpoint(
+		api.Group("", audit.Describe("Copied course phase")),
+		func(c *gin.Context) { c.Next() },
+		copyService,
+	)
+
+	return router
+}
+
+func postCopyRequest(t *testing.T, router *gin.Engine, source, target uuid.UUID) *httptest.ResponseRecorder {
+	t.Helper()
+	body, err := json.Marshal(promptTypes.PhaseCopyRequest{SourceCoursePhaseID: source, TargetCoursePhaseID: target})
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/certificate/api/copy", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(resp, request)
+	return resp
+}
+
+// Core detects copy support by posting a copy of a phase onto itself, forwarding the caller's
+// token, so that probe must leave no trace in the audit log.
+func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
+	sink := &recordingSink{}
+	router := auditCopyRouter(sink, copy.NewCopyService(*db.New(nil)))
+
+	phaseID := uuid.MustParse(auditCoursePhaseID)
+	require.Equal(t, http.StatusOK, postCopyRequest(t, router, phaseID, phaseID).Code)
+
+	time.Sleep(300 * time.Millisecond)
+	require.Empty(t, sink.snapshot())
+}
+
+func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
+	ctx := context.Background()
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "database_dumps/certificate.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	require.NoError(t, err)
+	defer cleanup()
+
+	sink := &recordingSink{}
+	router := auditCopyRouter(sink, copy.NewCopyService(*testDB.Queries))
+
+	source := uuid.MustParse(auditCoursePhaseID)
+	target := uuid.MustParse(auditTargetCoursePhaseID)
+	require.Equal(t, http.StatusOK, postCopyRequest(t, router, source, target).Code)
+
+	events := sink.waitForEvents(1)
+	require.Len(t, events, 1)
+	require.Equal(t, "Copied course phase", events[0].Action)
+	require.Equal(t, audit.OutcomeSuccess, events[0].Outcome)
+	require.Equal(t, "coursePhase", events[0].EntityType)
+	require.Equal(t, auditTargetCoursePhaseID, events[0].EntityID)
+	require.Equal(t, auditTargetCoursePhaseID, events[0].CoursePhaseID)
+	require.Equal(t, auditCoursePhaseID, events[0].Metadata["sourceCoursePhaseID"])
+	require.Equal(t, auditActorID, events[0].ActorID)
 }

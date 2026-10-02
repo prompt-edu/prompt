@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",
-    "@xyflow/react": "^12.11.6",
+    "@xyflow/react": "^12.12.0",
     "date-fns-tz": "^3.2.0",
     "i18n-iso-countries": "^7.14.0",
     "papaparse": "^5.7.0",
@@ -21,12 +21,12 @@
     "sha256": "^0.2.0"
   },
   "devDependencies": {
-    "@rspack/cli": "^2.2.6",
-    "@rspack/core": "^2.2.6",
+    "@rspack/cli": "^2.2.7",
+    "@rspack/core": "^2.2.7",
     "@types/papaparse": "^5.5.2",
     "compression-webpack-plugin": "^12.0.0",
     "typescript": "^6.0.3",
     "webpack-bundle-analyzer": "^5.4.0"
   },
-  "packageManager": "yarn@4.18.0"
+  "packageManager": "yarn@4.18.1"
 }

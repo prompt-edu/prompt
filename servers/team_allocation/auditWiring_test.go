@@ -37,6 +37,7 @@ const (
 	auditSourceCoursePhaseID = "10000000-0000-0000-0000-000000000002"
 	auditTeamID              = "10000000-0000-0000-0000-000000000003"
 	auditSkillID             = "10000000-0000-0000-0000-000000000004"
+	auditParticipationID     = "10000000-0000-0000-0000-000000000005"
 	auditBase                = "/team-allocation/api"
 	auditCoursePhaseRoute    = auditBase + "/course_phase/" + auditCoursePhaseID
 	auditCoursePhaseTemplate = auditBase + "/course_phase/:coursePhaseID"
@@ -101,7 +102,7 @@ func passThroughAuthMiddleware(_ ...string) gin.HandlerFunc {
 // chain when a subgroup is created. The actor middleware stands in for a token that
 // authenticates but lacks the role the route requires, which is the denial the audit
 // middleware is meant to capture.
-func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, copyService *copy.CopyService) *gin.Engine {
+func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, conn *pgxpool.Pool, copyService *copy.CopyService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
@@ -111,11 +112,10 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 
 	queries := db.New(nil)
-	var conn *pgxpool.Pool
 	skillsService := skills.NewSkillsService(*queries, conn)
 	teamsService := teams.NewTeamsService(*queries, conn)
 	surveyService := survey.NewSurveyService(*queries, conn)
-	allocationService := allocation.NewAllocationService(*queries)
+	allocationService := allocation.NewAllocationService(*queries, conn)
 	teaseService := tease.NewTeaseService(*queries, conn)
 	configService := config.NewConfigService(*queries, surveyService)
 	privacyService := privacy.NewTeamsPrivacyService(*queries, conn)
@@ -137,10 +137,18 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	return router
 }
 
-func auditRouterWithoutDatabase(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
-	queries := db.New(nil)
-	var conn *pgxpool.Pool
-	return auditRouter(sink, authMiddleware, copy.NewCopyService(*queries, conn))
+func auditRouterWithoutDatabase(t *testing.T, sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
+	conn := undialedPool(t)
+	return auditRouter(sink, authMiddleware, conn, copy.NewCopyService(*db.New(nil), conn))
+}
+
+// undialedPool satisfies constructors that reject a nil pool; denied requests never reach it.
+func undialedPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	pool, err := pgxpool.New(context.Background(), "postgres://unused")
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
+	return pool
 }
 
 type auditRouteCase struct {
@@ -156,7 +164,7 @@ func requireDeniedEvent(t *testing.T, tc auditRouteCase) {
 	t.Helper()
 
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+	router := auditRouterWithoutDatabase(t, sink, promptSDK.AuthenticationMiddleware)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(tc.method, tc.url, nil))
@@ -312,6 +320,22 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 			actionKey:     "DELETE " + auditCoursePhaseTemplate + "/skill/:skillID",
 			coursePhaseID: auditCoursePhaseID,
 		},
+		{
+			name:          "allocation update",
+			method:        http.MethodPut,
+			url:           auditCoursePhaseRoute + "/allocation/" + auditParticipationID,
+			action:        "Updated allocation",
+			actionKey:     "PUT " + auditCoursePhaseTemplate + "/allocation/:courseParticipationID",
+			coursePhaseID: auditCoursePhaseID,
+		},
+		{
+			name:          "allocation deletion",
+			method:        http.MethodDelete,
+			url:           auditCoursePhaseRoute + "/allocation/" + auditParticipationID,
+			action:        "Deleted allocation",
+			actionKey:     "DELETE " + auditCoursePhaseTemplate + "/allocation/:courseParticipationID",
+			coursePhaseID: auditCoursePhaseID,
+		},
 	}
 
 	for _, tt := range tests {
@@ -323,7 +347,7 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+	router := auditRouterWithoutDatabase(t, sink, promptSDK.AuthenticationMiddleware)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/team", nil))

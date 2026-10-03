@@ -10,14 +10,14 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
-	"github.com/prompt-edu/prompt/servers/team_allocation/tutorscope"
 	log "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	teamRouter := routerGroup.Group("/team")
-	scopingMW := promptSDK.TutorScopingMiddleware(tutorscope.NewResolver(service.queries))
+	scopingMW := tutorscope.Middleware(tutorscope.NewPgxResolver(service.conn))
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllTeams)
 	teamRouter.POST("", audit.Describe("Created teams"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createTeams)
@@ -58,7 +58,7 @@ func (s *TeamsService) getAllTeams(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
 		teams = filterTeamsByID(teams, tutorTeamID)
 	}
 
@@ -102,7 +102,7 @@ func (s *TeamsService) getTeamByID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := promptSDK.GetTutorTeamID(c); scoped && teamID != tutorTeamID {
+	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
 		return
 	}
@@ -330,7 +330,7 @@ func (s *TeamsService) updateTutorTeam(c *gin.Context) {
 		return
 	}
 
-	universityLogin := teamDTO.NormalizeUniversityLogin(c.Param("universityLogin"))
+	universityLogin := tutorscope.NormalizeLogin(c.Param("universityLogin"))
 	if universityLogin == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "university login is required"})
 		return

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
@@ -148,7 +149,7 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 	qtx := s.queries.WithTx(tx)
 
 	for _, tutor := range tutors {
-		normalizedLogin := teamDTO.NormalizeUniversityLogin(tutor.UniversityLogin)
+		normalizedLogin := tutorscope.NormalizeLogin(tutor.UniversityLogin)
 		err := qtx.UpsertTutor(ctx, db.UpsertTutorParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: tutor.CourseParticipationID,

@@ -27,15 +27,16 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   `FileList`.
 - **Data table:** `PromptTable<T>` — sorting, filtering, row selection, column visibility, search,
   row actions. `PromptTableURL<T>` mirrors it with the table state kept in the URL.
-- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`.
+- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`,
+  `ParticipantNavigation` (previous / next buttons on a participant's detail page).
 - **Student/course UI:** `StudentProfile`, `StudentAvatar`, `StudentProfilePicture`, `SettingsCard`,
   `FilterBadge`, `DynamicIcon`, `MissingConfig`, `MissingSettings`, `ExportedApplicationAnswerTable`,
   `ThemeToggle`.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
 - **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`, `getGravatarUrl`,
-  `getCountries`, `formatFileSize`, `openFileDownload`. **Table types:** `WithId`, `RowAction<T>`,
-  `TableFilter`, `SortableHeader`.
+  `getCountries`, `formatFileSize`, `openFileDownload`, `getNavigationNeighbors`.
+  **Table types:** `WithId`, `RowAction<T>`, `TableFilter`, `SortableHeader`.
 
 ## `@tumaet/prompt-shared-state` (source: `prompt-shared-state` repo)
 

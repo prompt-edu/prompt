@@ -6,10 +6,11 @@ import {
   DropdownMenuTrigger,
 } from '@tumaet/prompt-ui-components'
 import { ArrowUpDown } from 'lucide-react'
+import { SORT_OPTIONS, type SortOption } from '../utils/sortOptions'
 
 interface SortDropdownMenuProps {
-  sortBy: string | undefined
-  setSortBy: (value: string) => void
+  sortBy: SortOption
+  setSortBy: (value: SortOption) => void
 }
 
 export const SortDropdownMenu = ({ sortBy, setSortBy }: SortDropdownMenuProps) => {
@@ -22,36 +23,15 @@ export const SortDropdownMenu = ({ sortBy, setSortBy }: SortDropdownMenuProps) =
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuCheckboxItem
-          onClick={() => setSortBy('First Name')}
-          checked={sortBy === 'First Name'}
-        >
-          First Name
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          onClick={() => setSortBy('Last Name')}
-          checked={sortBy === 'Last Name'}
-        >
-          Last Name
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={sortBy === 'Acceptance Status'}
-          onClick={() => setSortBy('Acceptance Status')}
-        >
-          Acceptance Status
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={sortBy === 'Interview Date'}
-          onClick={() => setSortBy('Interview Date')}
-        >
-          Interview Date
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={sortBy === 'Interview Score'}
-          onClick={() => setSortBy('Interview Score')}
-        >
-          Interview Score
-        </DropdownMenuCheckboxItem>
+        {SORT_OPTIONS.map((option) => (
+          <DropdownMenuCheckboxItem
+            key={option.id}
+            onClick={() => setSortBy(option.id)}
+            checked={sortBy === option.id}
+          >
+            {option.label}
+          </DropdownMenuCheckboxItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   )

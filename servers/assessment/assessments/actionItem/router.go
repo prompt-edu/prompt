@@ -110,12 +110,20 @@ func (s *ActionItemService) getStudentActionItemsForCoursePhaseCommunication(c *
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item [post]
 func (s *ActionItemService) createActionItem(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req actionItemDTO.CreateActionItemRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	err := s.CreateActionItem(c, req)
+	req.CoursePhaseID = coursePhaseID
+
+	err = s.CreateActionItem(c, req)
 	if err != nil {
 		if errors.Is(err, assessmentCompletion.ErrAssessmentCompleted) || errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)

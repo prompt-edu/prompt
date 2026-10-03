@@ -86,6 +86,34 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemValid() {
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
 }
 
+func (suite *ActionItemRouterTestSuite) TestCreateActionItemUsesPathCoursePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	otherPhaseID := uuid.MustParse("3517a3e3-fe60-40e0-8a5e-8f39049c12c3")
+	partID := uuid.New()
+
+	payload := actionItemDTO.CreateActionItemRequest{
+		CoursePhaseID:         otherPhaseID,
+		CourseParticipationID: partID,
+		Action:                "Cross-phase action item",
+		Author:                "tester",
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+
+	inPathPhase, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), inPathPhase, 1)
+
+	inBodyPhase, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, otherPhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), inBodyPhase)
+}
+
 func (suite *ActionItemRouterTestSuite) TestGetActionItemsForStudentValid() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")

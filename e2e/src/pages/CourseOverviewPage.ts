@@ -11,10 +11,8 @@ export class CourseOverviewPage {
     await this.page.goto(`/management/course/${courseId}`)
   }
 
-  // The name also appears in the header breadcrumb, which may hide it in its collapsed form, so
-  // only visible matches count.
   courseName(name: string): Locator {
-    return this.page.getByText(name, { exact: true }).filter({ visible: true }).first()
+    return this.page.getByText(name, { exact: true }).first()
   }
 
   async expectLoaded(courseName: string) {

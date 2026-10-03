@@ -110,7 +110,7 @@ func (suite *ActionItemServiceTestSuite) TestUpdateActionItem() {
 
 	// Test the update operation with proper error handling
 	assert.NotPanics(suite.T(), func() {
-		err := suite.actionItemService.UpdateActionItem(suite.suiteCtx, updateRequest)
+		err := suite.actionItemService.UpdateActionItem(suite.suiteCtx, suite.testCoursePhaseID, updateRequest)
 		assert.NoError(suite.T(), err, "Should be able to update existing action item")
 	}, "Should not panic when updating action item")
 }
@@ -122,20 +122,13 @@ func (suite *ActionItemServiceTestSuite) TestDeleteActionItem() {
 	// This might fail if the ID doesn't exist, which is expected
 	// The test verifies the function doesn't panic
 	assert.NotPanics(suite.T(), func() {
-		_ = suite.actionItemService.DeleteActionItem(suite.suiteCtx, testID)
+		_ = suite.actionItemService.DeleteActionItem(suite.suiteCtx, suite.testCoursePhaseID, testID)
 	}, "Should not panic when deleting action item")
 }
 
 func (suite *ActionItemServiceTestSuite) TestDeleteActionItemNonExistent() {
-	// Test deleting a non-existent action item
-	nonExistentID := uuid.New()
-
-	// The service might not return an error for deleting a non-existent item
-	// This is because DELETE operations are idempotent in SQL
-	// We just verify it doesn't panic
-	assert.NotPanics(suite.T(), func() {
-		_ = suite.actionItemService.DeleteActionItem(suite.suiteCtx, nonExistentID)
-	}, "Should not panic when deleting non-existent action item")
+	err := suite.actionItemService.DeleteActionItem(suite.suiteCtx, suite.testCoursePhaseID, uuid.New())
+	assert.ErrorIs(suite.T(), err, ErrActionItemNotFound)
 }
 
 func (suite *ActionItemServiceTestSuite) TestListActionItemsForCoursePhase() {

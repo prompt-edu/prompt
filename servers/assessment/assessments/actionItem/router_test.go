@@ -86,6 +86,110 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemValid() {
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
 }
 
+func (suite *ActionItemRouterTestSuite) TestCreateActionItemUsesPathCoursePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	otherPhaseID := uuid.MustParse("3517a3e3-fe60-40e0-8a5e-8f39049c12c3")
+	partID := uuid.New()
+
+	payload := actionItemDTO.CreateActionItemRequest{
+		CoursePhaseID:         otherPhaseID,
+		CourseParticipationID: partID,
+		Action:                "Cross-phase action item",
+		Author:                "tester",
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+
+	inPathPhase, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), inPathPhase, 1)
+
+	inBodyPhase, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, otherPhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), inBodyPhase)
+}
+
+func (suite *ActionItemRouterTestSuite) createActionItemIn(phaseID uuid.UUID) actionItemDTO.ActionItem {
+	partID := uuid.New()
+	err := suite.service.CreateActionItem(suite.suiteCtx, actionItemDTO.CreateActionItemRequest{
+		CoursePhaseID:         phaseID,
+		CourseParticipationID: partID,
+		Action:                "Original action",
+		Author:                "tester",
+	})
+	suite.Require().NoError(err)
+
+	items, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	suite.Require().Len(items, 1)
+	return items[0]
+}
+
+func (suite *ActionItemRouterTestSuite) putActionItem(pathPhaseID uuid.UUID, payload actionItemDTO.UpdateActionItemRequest) *httptest.ResponseRecorder {
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+pathPhaseID.String()+"/student-assessment/action-item/"+payload.ID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *ActionItemRouterTestSuite) TestUpdateActionItemFromOtherCoursePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	item := suite.createActionItemIn(uuid.MustParse("3517a3e3-fe60-40e0-8a5e-8f39049c12c3"))
+
+	resp := suite.putActionItem(phaseID, actionItemDTO.UpdateActionItemRequest{
+		ID:                    item.ID,
+		CoursePhaseID:         phaseID,
+		CourseParticipationID: item.CourseParticipationID,
+		Action:                "Changed action",
+		Author:                "tester",
+	})
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+
+	stored, err := suite.service.GetActionItem(suite.suiteCtx, item.ID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), item, *stored)
+}
+
+func (suite *ActionItemRouterTestSuite) TestUpdateActionItemKeepsCoursePhaseAndParticipation() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	item := suite.createActionItemIn(phaseID)
+
+	resp := suite.putActionItem(phaseID, actionItemDTO.UpdateActionItemRequest{
+		ID:                    item.ID,
+		CoursePhaseID:         uuid.MustParse("3517a3e3-fe60-40e0-8a5e-8f39049c12c3"),
+		CourseParticipationID: uuid.New(),
+		Action:                "Changed action",
+		Author:                "tester",
+	})
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	stored, err := suite.service.GetActionItem(suite.suiteCtx, item.ID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), item.CoursePhaseID, stored.CoursePhaseID)
+	assert.Equal(suite.T(), item.CourseParticipationID, stored.CourseParticipationID)
+	assert.Equal(suite.T(), "Changed action", stored.Action)
+}
+
+func (suite *ActionItemRouterTestSuite) TestDeleteActionItemFromOtherCoursePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	item := suite.createActionItemIn(uuid.MustParse("3517a3e3-fe60-40e0-8a5e-8f39049c12c3"))
+
+	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item/"+item.ID.String(), nil)
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+
+	_, err := suite.service.GetActionItem(suite.suiteCtx, item.ID)
+	assert.NoError(suite.T(), err)
+}
+
 func (suite *ActionItemRouterTestSuite) TestGetActionItemsForStudentValid() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")

@@ -5,11 +5,14 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
+
+var ErrActionItemNotFound = errors.New("action item not found")
 
 type assessmentCompletionProvider interface {
 	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
@@ -88,11 +91,19 @@ func (s *ActionItemService) CreateActionItem(ctx context.Context, req actionItem
 	return nil
 }
 
-func (s *ActionItemService) UpdateActionItem(ctx context.Context, req actionItemDTO.UpdateActionItemRequest) error {
-	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
+func (s *ActionItemService) UpdateActionItem(ctx context.Context, coursePhaseID uuid.UUID, req actionItemDTO.UpdateActionItemRequest) error {
+	existing, err := s.getActionItemInPhase(ctx, coursePhaseID, req.ID)
 	if err != nil {
 		return err
 	}
+
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, existing.CourseParticipationID, existing.CoursePhaseID)
+	if err != nil {
+		return err
+	}
+
+	req.CoursePhaseID = existing.CoursePhaseID
+	req.CourseParticipationID = existing.CourseParticipationID
 	err = s.queries.UpdateActionItem(ctx, req.GetDBModel())
 	if err != nil {
 		log.Error("could not update action item: ", err)
@@ -101,11 +112,10 @@ func (s *ActionItemService) UpdateActionItem(ctx context.Context, req actionItem
 	return nil
 }
 
-func (s *ActionItemService) DeleteActionItem(ctx context.Context, actionItemID uuid.UUID) error {
-	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
+func (s *ActionItemService) DeleteActionItem(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) error {
+	actionItem, err := s.getActionItemInPhase(ctx, coursePhaseID, actionItemID)
 	if err != nil {
-		log.Error("could not get action item: ", err)
-		return errors.New("could not get action item")
+		return err
 	}
 
 	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, actionItem.CourseParticipationID, actionItem.CoursePhaseID)
@@ -119,6 +129,21 @@ func (s *ActionItemService) DeleteActionItem(ctx context.Context, actionItemID u
 		return errors.New("could not delete action item")
 	}
 	return nil
+}
+
+func (s *ActionItemService) getActionItemInPhase(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) (db.ActionItem, error) {
+	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return db.ActionItem{}, ErrActionItemNotFound
+	}
+	if err != nil {
+		log.Error("could not get action item: ", err)
+		return db.ActionItem{}, errors.New("could not get action item")
+	}
+	if actionItem.CoursePhaseID != coursePhaseID {
+		return db.ActionItem{}, ErrActionItemNotFound
+	}
+	return actionItem, nil
 }
 
 func (s *ActionItemService) ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {

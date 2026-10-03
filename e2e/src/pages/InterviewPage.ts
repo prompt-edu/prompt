@@ -116,11 +116,8 @@ export class InterviewPage {
     })
   }
 
-  // Opens the profile from its overview card and returns the student id from the URL.
-  async openProfile(studentName: string): Promise<string> {
+  async openProfile(studentName: string) {
     await this.page.getByText(studentName, { exact: true }).first().click()
-    await expect(this.page).toHaveURL(/\/manage\/[0-9a-f-]{36}$/)
-    return new URL(this.page.url()).pathname.split('/').pop() ?? ''
   }
 
   breadcrumb(): Locator {

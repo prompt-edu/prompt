@@ -19,7 +19,7 @@ describe('collapseBreadcrumbs', () => {
     expect(collapseBreadcrumbs(['course'])).toEqual({
       first: 'course',
       hidden: [],
-      last: undefined,
+      last: 'course',
     })
   })
 })

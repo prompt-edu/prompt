@@ -140,9 +140,10 @@ export const Breadcrumbs: React.FC = () => {
   const fullWidthRef = useRef(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // A new trail is shown in full first, so its width can be measured.
+  // A new trail has not been measured yet. Forgetting the old width makes the measuring effect
+  // show it in full, measure it, and collapse it again if needed, all before paint.
   useLayoutEffect(() => {
-    setIsCollapsed(false)
+    fullWidthRef.current = 0
   }, [breadcrumbList])
 
   // While the full trail is shown, remember the width it needs (the last crumb may already be
@@ -171,8 +172,17 @@ export const Breadcrumbs: React.FC = () => {
     return null
   }
 
+  // The last crumb truncates first. Earlier crumbs are capped only in the collapsed form; in the
+  // full form they keep their real width so it can be measured, unless the trail cannot collapse
+  // at all, in which case they shrink and truncate instead.
+  const earlierCrumbClassName = isCollapsed
+    ? 'min-w-0 max-w-48 shrink-0'
+    : canCollapse
+      ? 'shrink-0'
+      : 'min-w-0'
+
   const renderCrumb = (crumb: BreadcrumbProps, isLast: boolean) => (
-    <BreadcrumbItem className={isLast ? 'min-w-0' : 'min-w-0 max-w-48 shrink-0'}>
+    <BreadcrumbItem className={isLast ? 'min-w-0' : earlierCrumbClassName}>
       {isLast ? (
         <BreadcrumbPage ref={lastLabelRef} className='block truncate' title={crumb.title}>
           {crumb.title}
@@ -193,7 +203,7 @@ export const Breadcrumbs: React.FC = () => {
   return (
     <Breadcrumb ref={containerRef} className='min-w-0 flex-1'>
       <BreadcrumbList ref={listRef} className='flex-nowrap'>
-        {isCollapsed && first && last ? (
+        {isCollapsed ? (
           <>
             {renderCrumb(first, false)}
             <BreadcrumbSeparator />

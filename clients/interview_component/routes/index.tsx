@@ -8,7 +8,6 @@ import { InterviewScheduleManagement } from '../src/interview/pages/ScheduleMana
 import { SettingsPage } from '../src/interview/pages/Settings/SettingsPage'
 import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
 
-// Profiles used to live under /manage/details/:studentId. Keeps those links working.
 const LegacyProfileDetailRedirect = () => {
   const { studentId } = useParams<{ studentId: string }>()
   return <Navigate to={`../../${studentId}`} relative='path' replace />

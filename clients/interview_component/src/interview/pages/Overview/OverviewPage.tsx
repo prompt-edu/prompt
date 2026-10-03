@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn, ManagementPageHeader, useScreenSize } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { SortDropdownMenu } from '../../components/SortDropdownMenu'
 import { StudentCard } from '../../components/StudentCard'
 import { useSorting } from '../../hooks/useSorting'
@@ -11,7 +11,6 @@ import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 export const OverviewPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const navigate = useNavigate()
-  const path = useLocation().pathname
   const { width } = useScreenSize() // use this for more fine-grained control over the layout
   const [sortBy, setSortBy] = useState<string | undefined>('Interview Date')
   const orderedParticipations = useSorting(sortBy)
@@ -53,7 +52,7 @@ export const OverviewPage = () => {
         {orderedParticipations?.map((participation) => (
           <div
             key={participation.student.email}
-            onClick={() => navigate(`${path}/${participation.student.id}`)}
+            onClick={() => navigate(participation.student.id)}
             className='cursor-pointer'
           >
             <StudentCard

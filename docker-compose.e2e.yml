@@ -1108,6 +1108,9 @@ services:
       - CORE_API_URL=http://server-core:8080
       - MAILPIT_URL=http://mailpit:8025
       - KEYCLOAK_REALM_NAME=${KEYCLOAK_REALM_NAME}
+      # The realm's prompt-server client secret (test-only, committed in the env
+      # file). The infrastructure setup journey provisions Keycloak groups with it.
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       # Sharding knobs (forwarded from the CI job; empty/unset for a local run).
       # PW_BLOB + PW_SHARD_NAME select the per-shard blob report; PW_WORKERS and
       # PW_GLOBAL_TIMEOUT_MIN tune parallelism and the runtime budget guard.

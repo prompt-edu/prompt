@@ -31,7 +31,10 @@ servers/infrastructure_setup/
 │   ├── migration/
 │   │   ├── 0001_schema.up.sql         # enums and tables
 │   │   ├── 0002_partial_status.up.sql # adds the 'partial' resource status
-│   │   └── 0003_resource_config_identity.up.sql
+│   │   ├── 0003_resource_config_identity.up.sql
+│   │   ├── 0004_instance_identity.up.sql
+│   │   ├── 0005_instance_labels.up.sql
+│   │   └── 0006_instance_members.up.sql   # who each run was for, and who got in
 │   ├── query/                         # sqlc sources
 │   └── sqlc/                          # generated, committed
 ├── database_dumps/base.sql            # schema for testcontainers-based tests
@@ -51,15 +54,32 @@ servers/infrastructure_setup/
 
 ### Frontend: `clients/infrastructure_setup_component/` (React, TypeScript, port 3012)
 
-- **SetupConfigPage** — the phase's semester tag.
-- **ProvidersPage** — configure and validate credentials per provider. A provider without
-  credentials is marked *credentials required*.
-- **ResourceConfigPage** — CRUD for resource configs: provider, resource type, scope, name
-  template, permission mapping.
-- **ExecutionPage** — trigger provisioning and monitor instances. Polls every 3s while any
-  instance is `pending` or `in_progress`. Each row names the team or student, the provider, the
-  resource kind and the resolved resource name; the status counts double as filters and a search box
-  narrows the list, which is what makes 30 teams times three configs readable.
+The phase root is the student page; the three lecturer pages sit behind it in the sidebar.
+
+- **StudentResourcesPage** (phase root): what was provisioned for the student and their team,
+  from `GET /my-resources`. Each entry says *Ready*, *Not added yet* (with what to do about it),
+  *Being set up*, *Not available yet* (a failure the lecturer sees on Provisioning) or *Not set up
+  yet*, and links to the resource where there is something to open. Error text never reaches this
+  page. A lecturer sees the usual not-a-student notice and a preview built from the resource
+  configs; an editor sees the notice only.
+- **ParticipantsPage**: the shared `CoursePhaseParticipationsTable` with one column per resource
+  config, derived from the instances and their members. The columns are filterable, so a lecturer
+  filters a resource by *Ready*, selects those students and sets them passed with the table's bulk
+  action. A summary counts the participants who can reach every resource.
+- **ConfigurationPage**: the three steps of the setup as sections of one page: the semester tag,
+  the providers (configure and validate credentials; a provider without credentials is marked
+  *credentials required*) and the resources (provider, resource type, scope, name template,
+  permission mapping). Each section has an anchor the provisioning checklist links to.
+- **ProvisioningPage**: a readiness checklist (providers, resources, semester tag, and the teams
+  and students the server's dry run resolved), what the next run does, the *Provision resources*
+  button, and the status list. The list polls every 3s while any instance is `pending` or
+  `in_progress`. Each row names the team or student, the provider, the resource kind and the
+  resolved resource name; the status counts double as filters and a search box narrows the list,
+  which is what makes 30 teams times three configs readable.
+
+Toasts raised in the remote render through core's `<Toaster />`, which relies on
+`@tumaet/prompt-ui-components` being in the singleton share scope (see
+`.claude/rules/module-federation/remotes.md`).
 
 ---
 
@@ -271,7 +291,37 @@ CREATE UNIQUE INDEX uq_resource_instance_team
 CREATE UNIQUE INDEX uq_resource_instance_student
     ON resource_instance (resource_config_id, course_participation_id)
     WHERE course_participation_id IS NOT NULL;
+
+-- Who the latest run of an instance was for, and whether each person was granted access.
+CREATE TABLE resource_instance_member (
+    resource_instance_id    uuid    NOT NULL REFERENCES resource_instance(id) ON DELETE CASCADE,
+    course_participation_id uuid    NOT NULL,
+    granted                 boolean NOT NULL,
+    PRIMARY KEY (resource_instance_id, course_participation_id)
+);
 ```
+
+### Instance members
+
+An instance names only its target, a team or one student, so on its own nothing links a student to
+their team's resources, or says which members a partial run left out. Every run therefore records
+the people its target stands for in `resource_instance_member`, replacing the previous run's rows:
+
+- The resolver lists every team member and tutor, including those it could not turn into a provider
+  member (no participation in this phase, no email address).
+- Providers report warnings as `provider.Warning{Text, Members}`. `Text` is what the lecturer reads
+  in the instance's error details; `Members` names the emails the warning left without access. A
+  per-member failure names that member; a failure that locks out a whole group (Outline's user
+  lookup or group binding) names every member of it.
+- A person is recorded as `granted` when the resource exists, an email could be resolved for them,
+  and no warning names them. A failed run records its people with `granted = false`.
+- A trigger already writes the rows when it queues an instance, with `granted = false`, so a team's
+  members see their resource being set up while it waits for a worker instead of finding nothing.
+
+The student page and the participants columns derive one state per person and resource from the
+instance status and that flag. An instance whose run predates the table has no member rows: a
+personal one reads by its status (a `partial` one as *partly set up*), and a team one reaches its
+members once it is retried or queued again.
 
 ### Permission mapping
 
@@ -374,6 +424,21 @@ identifier is an error rather than a request.
    atomic: a second trigger arriving at the same time gets **409** instead of starting a second run.
 4. Commits, then starts the background worker if anything was queued.
 
+### Preview
+
+`GET .../execute/preview` runs the same checks and target resolution as a trigger and plans the
+same convergence, but writes nothing. It answers with the counts a trigger would produce, the
+number of instances a run is still working on, and how many teams and students were resolved:
+
+```json
+{ "queued": 3, "requeued": 12, "upToDate": 15, "running": 0, "teams": 30, "students": null }
+```
+
+A refusal is the trigger's: **400** for a phase with no resource configs, a provider without
+credentials, a template needing an unsaved semester tag, or a per-team config in a phase no teams
+reach through the course's phase graph. The Provisioning page shows it as the blocking item of its
+checklist. The trigger and the preview share `planInstances`, so they cannot disagree.
+
 ### Convergence
 
 A `(resource config, target)` pair carries **exactly one instance** for the life of the phase, and
@@ -454,9 +519,10 @@ out that the external resources stay behind.
 
 Core fans a privacy request out to every phase type of the courses a subject is in, so these
 endpoints are not optional: without them one unanswered service marks the whole deletion request
-failed. What the phase stores about a person is the instances of its `per_student` configs, so the
-export carries those rows (with their provider and resource type joined in) and the deletion removes
-them. A team-scoped instance stays: it belongs to the team, not to one member.
+failed. What the phase stores about a person is the instances of its `per_student` configs and
+their membership in any instance, so the export carries both (with the provider and resource type
+joined in) and the deletion removes both. A team-scoped instance stays: it belongs to the team, not
+to one member, and only the subject's own member row goes.
 
 Deleting the phase itself removes every row the service holds for it, the encrypted provider
 credentials included. Both deletions stop at PROMPT's own records: the external resources survive,
@@ -513,7 +579,8 @@ triggering execution is refused.
 
 Phase-scoped routes live under `/infrastructure-setup/api/course_phase/:coursePhaseID` and require
 `PromptAdmin` or `CourseLecturer`. These routes carry external credentials, so `CourseEditor` is
-deliberately **not** granted access.
+deliberately **not** granted access. The one exception is `GET /my-resources`, which requires
+`CourseStudent` and answers for the caller's own course participation only.
 
 | Method | Path | Description |
 |---|---|---|
@@ -530,8 +597,10 @@ deliberately **not** granted access.
 | GET | `/resource-configs/:resourceConfigID` | Read a resource config |
 | PUT | `/resource-configs/:resourceConfigID` | Update a resource config |
 | DELETE | `/resource-configs/:resourceConfigID` | Delete a resource config |
-| GET | `/instances` | List instances and their status |
+| GET | `/instances` | List instances, their status and their members |
 | POST | `/execute` | Create pending instances and start provisioning (202, or 409 while a run is active) |
+| GET | `/execute/preview` | What a trigger would do now, without doing it (see [Preview](#preview)) |
+| GET | `/my-resources` | The caller's own and team resources, for a student; no error text |
 | POST | `/instances/:instanceID/retry` | Re-queue a failed or partial instance |
 | DELETE | `/instances/:instanceID` | Delete the PROMPT row; the external resource is untouched |
 | GET | `/config` | Readiness flags consumed by core |
@@ -581,7 +650,11 @@ with the migrations.
 - **execution/worker** — created, partial (with the external ID preserved), retry to exhaustion,
   success after a transient failure, a vanished target, an unresolvable template, a resolver failure
   handing the claimed instances back, and the sweep over abandoned claims. Two workers racing on one
-  phase call the provider exactly once.
+  phase call the provider exactly once. Each run records who it was for and who was let in, a failed
+  run included, and the next run replaces those rows.
+- **execution/preview, execution/my_resources**: the preview reports what a trigger would do and
+  writes nothing; a student sees their own and their team's resources, never another team's, never
+  error text and never a Keycloak admin link.
 - **execution/service** — instances per team and per student, 409 for a second trigger, two
   concurrent triggers on separate connections creating one run, and retry returning 404/409.
 - **execution/target_resolver** — malformed upstream payloads are skipped, not fatal.
@@ -591,13 +664,17 @@ with the migrations.
   non-string and unknown credential fields are rejected, and resource types are validated against
   the provider.
 - **privacy / coursePhaseDeletion** — the export and deletion cover the subject's own instances and
-  leave the team's alone; deleting a phase empties every table it owns (counted on the raw tables,
-  so a weakened cascade fails) and is idempotent.
+  their memberships, and leave the team's instance and the other members alone; deleting a phase
+  empties every table it owns (counted on the raw tables, so a weakened cascade fails) and is
+  idempotent.
 - **copy / config / phaseconfig** — the copy endpoint answers with exactly one JSON body, a copied
   phase reports its semester tag and resource configs but not its providers, copying twice does not
   duplicate anything, and a phase with no config row reads as unconfigured rather than failing.
 
-End-to-end coverage lives in `e2e/tests/infrastructure-setup/`.
+End-to-end coverage lives in `e2e/tests/infrastructure-setup/`. The UI journey provisions Keycloak
+groups in the stack's own realm through the seeded `prompt-server` service account, so one run
+ends with a participant who was let in and one who was not.
+
 
 ---
 

@@ -18,6 +18,14 @@ export interface ResourceInstance {
   resourceType: string
   scope: 'per_team' | 'per_student'
   nameTemplate: string
+  // The people the latest run was for, and whether each was granted access. Empty until
+  // the instance has run.
+  members: InstanceMember[]
   createdAt: string
   updatedAt: string
+}
+
+export interface InstanceMember {
+  courseParticipationId: string
+  granted: boolean
 }

@@ -64,27 +64,28 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 
 	// Create source config
 	err := suite.copyService.queries.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, db.CreateOrUpdateCoursePhaseConfigParams{
-		AssessmentSchemaID:       assessmentSchemaID,
-		CoursePhaseID:            sourceCoursePhaseID,
-		Start:                    now,
-		Deadline:                 pgtype.Timestamptz{Valid: false},
-		SelfEvaluationEnabled:    true,
-		SelfEvaluationSchema:     selfEvalSchemaID,
-		SelfEvaluationStart:      now,
-		SelfEvaluationDeadline:   now,
-		PeerEvaluationEnabled:    false,
-		PeerEvaluationSchema:     peerEvalSchemaID,
-		PeerEvaluationStart:      now,
-		PeerEvaluationDeadline:   now,
-		TutorEvaluationEnabled:   false,
-		TutorEvaluationSchema:    tutorEvalSchemaID,
-		TutorEvaluationStart:     pgtype.Timestamptz{Valid: false},
-		TutorEvaluationDeadline:  pgtype.Timestamptz{Valid: false},
-		EvaluationResultsVisible: true,
-		GradeSuggestionVisible:   pgtype.Bool{Bool: true, Valid: true},
-		ActionItemsVisible:       pgtype.Bool{Bool: true, Valid: true},
-		GradingSheetVisible:      pgtype.Bool{Bool: false, Valid: true},
-		TutorDisplayName:         pgtype.Text{String: "Coach", Valid: true},
+		AssessmentSchemaID:           assessmentSchemaID,
+		CoursePhaseID:                sourceCoursePhaseID,
+		Start:                        now,
+		Deadline:                     pgtype.Timestamptz{Valid: false},
+		SelfEvaluationEnabled:        true,
+		SelfEvaluationSchema:         selfEvalSchemaID,
+		SelfEvaluationStart:          now,
+		SelfEvaluationDeadline:       now,
+		PeerEvaluationEnabled:        false,
+		PeerEvaluationSchema:         peerEvalSchemaID,
+		PeerEvaluationStart:          now,
+		PeerEvaluationDeadline:       now,
+		TutorEvaluationEnabled:       false,
+		TutorEvaluationSchema:        tutorEvalSchemaID,
+		TutorEvaluationStart:         pgtype.Timestamptz{Valid: false},
+		TutorEvaluationDeadline:      pgtype.Timestamptz{Valid: false},
+		EvaluationResultsVisible:     true,
+		GradeSuggestionVisible:       pgtype.Bool{Bool: true, Valid: true},
+		ActionItemsVisible:           pgtype.Bool{Bool: true, Valid: true},
+		GradingSheetVisible:          pgtype.Bool{Bool: false, Valid: true},
+		TutorDisplayName:             pgtype.Text{String: "Coach", Valid: true},
+		IndependentAssessmentEnabled: true,
 	})
 	assert.NoError(suite.T(), err)
 
@@ -110,6 +111,7 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_Success() {
 	assert.Equal(suite.T(), true, targetConfig.SelfEvaluationEnabled)
 	assert.Equal(suite.T(), selfEvalSchemaID, targetConfig.SelfEvaluationSchema)
 	assert.Equal(suite.T(), "Coach", targetConfig.TutorDisplayName.String)
+	assert.True(suite.T(), targetConfig.IndependentAssessmentEnabled)
 }
 
 func (suite *CopyRouterTestSuite) TestCopyEndpoint_InvalidJSON() {

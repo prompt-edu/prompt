@@ -478,6 +478,8 @@ definitions:
         type: boolean
       gradingSheetVisible:
         type: boolean
+      independentAssessmentEnabled:
+        type: boolean
       peerEvaluationDeadline:
         type: string
       peerEvaluationEnabled:
@@ -526,6 +528,8 @@ definitions:
       gradeSuggestionVisible:
         type: boolean
       gradingSheetVisible:
+        type: boolean
+      independentAssessmentEnabled:
         type: boolean
       peerEvaluationDeadline:
         type: string

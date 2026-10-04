@@ -5413,6 +5413,9 @@ const docTemplate = `{
                 "gradingSheetVisible": {
                     "type": "boolean"
                 },
+                "independentAssessmentEnabled": {
+                    "type": "boolean"
+                },
                 "peerEvaluationDeadline": {
                     "type": "string"
                 },
@@ -5485,6 +5488,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "gradingSheetVisible": {
+                    "type": "boolean"
+                },
+                "independentAssessmentEnabled": {
                     "type": "boolean"
                 },
                 "peerEvaluationDeadline": {

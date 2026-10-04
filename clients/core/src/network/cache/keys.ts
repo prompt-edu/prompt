@@ -21,7 +21,6 @@ export const coreKeys = {
     // Owned by @tumaet/prompt-shared-state: react-query is a Module Federation singleton, so this
     // entry is shared with every remote and must keep its literal
     byId: (phaseId: Id) => ['course_phase', phaseId] as const,
-    participants: (phaseId: Id) => ['participants', phaseId] as const,
     // The archive dialog caches the same phase under its own literal, so it shares neither the
     // entry above nor its invalidations
     byIdInArchiveDialog: (phaseId: Id) => ['coursePhase', phaseId] as const,

@@ -25,9 +25,6 @@ test.describe('interview: profile', () => {
 
     await expect(page).toHaveURL(PROFILE_URL)
     await expect(phase.breadcrumb().getByText('Participants', { exact: true })).toBeVisible()
-    await expect(
-      phase.breadcrumb().getByText(`${STUDENT.firstName} ${STUDENT.lastName}`, { exact: true }),
-    ).toBeVisible()
     await expect(phase.breadcrumb().getByText('Details', { exact: true })).toHaveCount(0)
   })
 

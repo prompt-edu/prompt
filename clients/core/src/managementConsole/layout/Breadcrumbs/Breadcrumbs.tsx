@@ -1,11 +1,6 @@
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
-import { coreKeys } from '@core/network/cache'
-import { skipToken, useQuery } from '@tanstack/react-query'
-import {
-  type CoursePhaseParticipationsWithResolution,
-  useCourseStore,
-} from '@tumaet/prompt-shared-state'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -23,7 +18,6 @@ import {
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { collapseBreadcrumbs } from './collapseBreadcrumbs'
-import { getParticipantName } from './getParticipantName'
 
 interface BreadcrumbProps {
   title: string
@@ -46,16 +40,10 @@ export const Breadcrumbs: React.FC = () => {
   const { courses } = useCourseStore()
   const { studentsById } = useStudentStore()
   const { participations } = useApplicationStore()
-  const [, section, , phaseIdInPath] = location.pathname.split('/').filter(Boolean)
-  const { data: phaseParticipations } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: coreKeys.coursePhases.participants(section === 'course' ? phaseIdInPath : undefined),
-    queryFn: skipToken,
-  })
 
   const breadcrumbList = useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
     const breadcrumbs: BreadcrumbProps[] = []
-    const knownParticipations = [...participations, ...(phaseParticipations?.participations ?? [])]
 
     if (pathSegments[0] === 'management') {
       if (pathSegments[1] === 'courses') {
@@ -118,9 +106,19 @@ export const Breadcrumbs: React.FC = () => {
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               } else {
-                // This is likely a courseParticipationID or a student ID (long UUID)
+                // This is likely a courseParticipationID (long UUID)
+                const participation = participations.find(
+                  (p) => p.courseParticipationID === segment,
+                )
+                const fullName = [
+                  participation?.student?.firstName ?? '',
+                  participation?.student?.lastName ?? '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+                const title = fullName || 'Participant'
                 breadcrumbs.push({
-                  title: getParticipantName(segment, knownParticipations) ?? 'Participant',
+                  title,
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               }
@@ -131,7 +129,7 @@ export const Breadcrumbs: React.FC = () => {
     }
 
     return breadcrumbs
-  }, [location.pathname, courses, studentsById, participations, phaseParticipations])
+  }, [location.pathname, courses, studentsById, participations])
 
   const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
   const canCollapse = hidden.length > 0

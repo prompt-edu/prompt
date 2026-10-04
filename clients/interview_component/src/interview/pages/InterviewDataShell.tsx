@@ -110,6 +110,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
             id: slot.id,
             startTime: slot.startTime,
             endTime: slot.endTime,
+            location: slot.location,
             courseParticipationID: assignment.courseParticipationId,
           })
         })

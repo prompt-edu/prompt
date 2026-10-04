@@ -104,20 +104,23 @@ export class InterviewPage {
     await expect(dialog).toBeHidden()
   }
 
-  // ── Interview overview and profiles (lecturer) ───────────────────────────
+  // ── Interview participants and profiles (lecturer) ───────────────────────
 
-  async gotoOverview(courseId: string, phaseId: string) {
-    await this.goto(courseId, phaseId, '/manage')
+  async gotoParticipants(courseId: string, phaseId: string) {
+    await this.goto(courseId, phaseId, '/participants')
   }
 
-  async expectOverviewLoaded() {
-    await expect(this.page.getByRole('heading', { level: 1, name: 'Interview' })).toBeVisible({
-      timeout: 15_000,
-    })
+  async expectParticipantsLoaded() {
+    await expect(
+      this.page.getByRole('heading', { level: 1, name: 'Interview Participants' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
-  async openProfile(studentName: string) {
-    await this.page.getByText(studentName, { exact: true }).first().click()
+  async openProfile(firstName: string, lastName: string) {
+    await this.page
+      .getByRole('row', { name: new RegExp(`${firstName} ${lastName}`) })
+      .getByRole('cell', { name: lastName, exact: true })
+      .click()
   }
 
   breadcrumb(): Locator {

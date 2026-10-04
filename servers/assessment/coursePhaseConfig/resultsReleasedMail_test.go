@@ -27,6 +27,7 @@ type ResultsReleasedMailTestSuite struct {
 	participants   []coursePhaseConfigDTO.AssessmentParticipationWithStudent
 	mailRequests   []coreManualMailRequest
 	failEmails     []string
+	skipEmails     []string
 	coreMailErr    error
 }
 
@@ -60,6 +61,7 @@ func (suite *ResultsReleasedMailTestSuite) SetupTest() {
 	suite.participants = nil
 	suite.mailRequests = nil
 	suite.failEmails = nil
+	suite.skipEmails = nil
 	suite.coreMailErr = nil
 
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
@@ -97,6 +99,9 @@ func (suite *ResultsReleasedMailTestSuite) SetupTest() {
 		report := coreManualMailReport{RequestedRecipients: len(request.RecipientCourseParticipationIDs)}
 		for _, participant := range suite.participants {
 			if !slices.Contains(request.RecipientCourseParticipationIDs, participant.CourseParticipationID) {
+				continue
+			}
+			if slices.Contains(suite.skipEmails, participant.Student.Email) {
 				continue
 			}
 			if slices.Contains(suite.failEmails, participant.Student.Email) {
@@ -192,6 +197,20 @@ func (suite *ResultsReleasedMailTestSuite) TestRetriesFailedRecipientOnNextRelea
 	report = suite.send(coursePhaseID)
 	suite.Equal([]string{"bob@example.com"}, report.SuccessfulEmails)
 	suite.Equal([]uuid.UUID{bob}, suite.mailRequests[1].RecipientCourseParticipationIDs)
+}
+
+func (suite *ResultsReleasedMailTestSuite) TestRetriesRecipientCoreSkipped() {
+	coursePhaseID := suite.createPhase(true)
+	suite.addParticipant(coursePhaseID, "alice@example.com", true)
+	suite.addParticipant(coursePhaseID, "bob@example.com", true)
+	suite.skipEmails = []string{"bob@example.com"}
+
+	report := suite.send(coursePhaseID)
+	suite.Equal([]string{"alice@example.com"}, report.SuccessfulEmails)
+
+	suite.skipEmails = nil
+	report = suite.send(coursePhaseID)
+	suite.Equal([]string{"bob@example.com"}, report.SuccessfulEmails)
 }
 
 func (suite *ResultsReleasedMailTestSuite) TestReleasesAllClaimsWhenCoreFails() {

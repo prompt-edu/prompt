@@ -57,7 +57,7 @@ func (s *CoursePhaseConfigService) SendResultsReleasedMail(
 		s.releaseResultsReleasedMailClaims(ctx, coursePhaseID, claimedIDs)
 		return nil, err
 	}
-	s.releaseResultsReleasedMailClaims(ctx, coursePhaseID, getCourseParticipationIDsByEmail(recipients, mailReport.FailedEmails))
+	s.releaseResultsReleasedMailClaims(ctx, coursePhaseID, getUnmailedIDs(recipients, claimedIDs, mailReport.SuccessfulEmails))
 
 	report.SuccessfulEmails = mailReport.SuccessfulEmails
 	report.FailedEmails = mailReport.FailedEmails
@@ -130,15 +130,17 @@ func getCourseParticipationIDs(participations []coursePhaseConfigDTO.AssessmentP
 	return ids
 }
 
-func getCourseParticipationIDsByEmail(
+func getUnmailedIDs(
 	participations []coursePhaseConfigDTO.AssessmentParticipationWithStudent,
-	emails []string,
+	claimedIDs []uuid.UUID,
+	successfulEmails []string,
 ) []uuid.UUID {
-	ids := make([]uuid.UUID, 0, len(emails))
+	emailByID := make(map[uuid.UUID]string, len(participations))
 	for _, participation := range participations {
-		if slices.Contains(emails, participation.Student.Email) {
-			ids = append(ids, participation.CourseParticipationID)
-		}
+		emailByID[participation.CourseParticipationID] = participation.Student.Email
 	}
-	return ids
+
+	return slices.DeleteFunc(slices.Clone(claimedIDs), func(id uuid.UUID) bool {
+		return slices.Contains(successfulEmails, emailByID[id])
+	})
 }

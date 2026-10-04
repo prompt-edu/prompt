@@ -10,7 +10,9 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -75,6 +77,7 @@ func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
@@ -124,9 +127,12 @@ func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentD
 
 	err = save(c, req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidScoreLevel) {
+		switch {
+		case errors.Is(err, ErrInvalidScoreLevel), errors.Is(err, ErrCompetencyNotInPhase):
 			handleError(c, http.StatusBadRequest, err)
-		} else {
+		case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+			handleError(c, http.StatusConflict, err)
+		default:
 			handleError(c, http.StatusInternalServerError, err)
 		}
 		return

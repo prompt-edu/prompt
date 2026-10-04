@@ -229,3 +229,25 @@ func (suite *AssessmentServiceTestSuite) TestIndependentAssessmentsAreKeptPerAss
 	assert.ErrorIs(suite.T(), save("coach", scoreLevelDTO.ScoreLevelBad), assessmentCompletion.ErrAssessmentCompleted,
 		"Independent scores freeze once the final assessment is marked final")
 }
+
+func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsCompetencyOutsidePhaseSchema() {
+	phaseID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440001', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+
+	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
+		CourseParticipationID: uuid.New(),
+		CoursePhaseID:         phaseID,
+		CompetencyID:          uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3"),
+		ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
+		Author:                "Lecturer",
+		AuthorID:              "lecturer",
+	}
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+
+	req.CompetencyID = uuid.New()
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+}

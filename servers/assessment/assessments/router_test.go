@@ -183,4 +183,10 @@ func (suite *AssessmentRouterTestSuite) TestCreateIndependentAssessment() {
 	assert.Len(suite.T(), studentAssessment.MyIndependentAssessments, 1)
 	assert.Equal(suite.T(), "John Doe", studentAssessment.MyIndependentAssessments[0].Author, "The author comes from the token")
 	assert.Empty(suite.T(), studentAssessment.MyIndependentAssessments[0].AuthorID, "A client-sent author ID is ignored")
+
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusConflict, post(phaseID), "Scores freeze once the final assessment is marked final")
 }

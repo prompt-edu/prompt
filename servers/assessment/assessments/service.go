@@ -88,6 +88,7 @@ var ErrInvalidScoreLevel = errors.New("validation failed: scoreLevel is required
 var ErrUnsupportedAssessmentExportFormat = errors.New("unsupported assessment export format")
 var ErrAssessmentNotInPhase = errors.New("assessment does not belong to this course phase")
 var ErrAssessmentNotFound = errors.New("assessment not found")
+var ErrCompetencyNotInPhase = errors.New("competency does not belong to this course phase's assessment schema")
 
 const AssessmentExportFormatJSON = "json"
 
@@ -135,6 +136,10 @@ func (s *AssessmentService) saveScore(ctx context.Context, req assessmentDTO.Cre
 		return err
 	}
 
+	if err := checkCompetencyInPhaseSchema(ctx, qtx, req.CompetencyID, req.CoursePhaseID); err != nil {
+		return err
+	}
+
 	if err := write(qtx); err != nil {
 		log.Error("could not create or update assessment: ", err)
 		return errors.New("could not create or update assessment")
@@ -142,6 +147,27 @@ func (s *AssessmentService) saveScore(ctx context.Context, req assessmentDTO.Cre
 	if err := tx.Commit(ctx); err != nil {
 		log.Error("could not commit assessment creation/update: ", err)
 		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func checkCompetencyInPhaseSchema(ctx context.Context, qtx *db.Queries, competencyID, coursePhaseID uuid.UUID) error {
+	schemaID, err := qtx.GetAssessmentSchemaIDByCompetency(ctx, competencyID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrCompetencyNotInPhase
+	}
+	if err != nil {
+		log.Error("could not get assessment schema of competency: ", err)
+		return errors.New("could not get assessment schema of competency")
+	}
+
+	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get course phase config: ", err)
+		return errors.New("could not get course phase config")
+	}
+	if schemaID != config.AssessmentSchemaID {
+		return ErrCompetencyNotInPhase
 	}
 	return nil
 }

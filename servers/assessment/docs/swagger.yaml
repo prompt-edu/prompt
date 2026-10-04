@@ -3068,6 +3068,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:

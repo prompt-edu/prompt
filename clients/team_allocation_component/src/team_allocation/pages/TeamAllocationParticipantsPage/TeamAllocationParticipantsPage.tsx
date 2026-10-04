@@ -109,7 +109,6 @@ export const TeamAllocationParticipantsPage = () => {
     if (!coursePhaseParticipations?.participations?.length || !phaseId) return
 
     const requestPayload = {
-      coursePhaseID: phaseId,
       studentNamesPerID: coursePhaseParticipations.participations.reduce(
         (acc, p) => {
           if (p.student?.firstName && p.student?.lastName) {
@@ -124,7 +123,7 @@ export const TeamAllocationParticipantsPage = () => {
       ),
     }
 
-    void addStudentNamesToTeams(requestPayload).catch((error) => {
+    void addStudentNamesToTeams(phaseId, requestPayload).catch((error) => {
       console.error('Failed to update student names:', error)
     })
   }, [coursePhaseParticipations, phaseId])

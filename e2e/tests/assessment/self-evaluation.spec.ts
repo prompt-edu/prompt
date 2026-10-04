@@ -162,7 +162,7 @@ test.describe('assessment: student self evaluation', () => {
 
   // The `lecturer` user holds the course lecturer role but no participation, so
   // it has no student role: every student-only endpoint behind this page would
-  // answer 401 and must therefore not be requested at all.
+  // answer 403 and must therefore not be requested at all.
   test.describe('previewed by a lecturer', () => {
     test.use({ role: 'lecturer' })
 

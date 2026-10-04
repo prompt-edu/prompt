@@ -90,7 +90,9 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 	}
 
 	var capturedUpdateRequest coreUpdateCoursePhaseRequest
-	updateCoreCoursePhaseFn = func(ctx context.Context, authHeader string, request coreUpdateCoursePhaseRequest) error {
+	var capturedUpdateCoursePhaseID uuid.UUID
+	updateCoreCoursePhaseFn = func(ctx context.Context, authHeader string, updatedCoursePhaseID uuid.UUID, request coreUpdateCoursePhaseRequest) error {
+		capturedUpdateCoursePhaseID = updatedCoursePhaseID
 		capturedUpdateRequest = request
 		return nil
 	}
@@ -106,6 +108,7 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 	assert.Equal(t, "Assessment Phase", capturedMailRequest.AdditionalPlaceholders["coursePhaseName"])
 	assert.Equal(t, "09.01.2026 15:00", capturedMailRequest.AdditionalPlaceholders["evaluationDeadline"])
 
+	assert.Equal(t, coursePhaseID, capturedUpdateCoursePhaseID)
 	mailingSettings := capturedUpdateRequest.RestrictedData["mailingSettings"].(map[string]any)
 	assessmentReminder := mailingSettings["assessmentReminder"].(map[string]any)
 	lastSentAtByType := assessmentReminder["lastSentAtByType"].(map[string]any)
@@ -227,7 +230,7 @@ func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testin
 		}, nil
 	}
 
-	updateCoreCoursePhaseFn = func(ctx context.Context, authHeader string, request coreUpdateCoursePhaseRequest) error {
+	updateCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, request coreUpdateCoursePhaseRequest) error {
 		return errors.New("failed to persist")
 	}
 

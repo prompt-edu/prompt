@@ -122,6 +122,12 @@ DELETE
 FROM course
 WHERE id = $1;
 
+-- name: LockCourseForDeletion :one
+SELECT id
+FROM course
+WHERE id = $1
+FOR UPDATE;
+
 
 -- name: GetOwnCourses :many
 SELECT c.id

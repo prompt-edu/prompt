@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType/coursePhaseTypeDTO"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
 // SubjectIdentifierProvider resolves the authenticated user's subject identifiers.
@@ -49,7 +49,7 @@ func (h *coursePhaseTypeHandler) getCoursePhaseTypes(c *gin.Context) {
 	if c.Query("for_self") == "true" {
 		subject, subjErr := h.subjects.GetSubjectIdentifiers(c)
 		if subjErr != nil {
-			c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: subjErr.Error()})
+			c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: subjErr.Error()})
 			return
 		}
 		coursePhaseTypes, err = h.service.GetCoursePhaseTypesForStudent(c, subject.StudentID)
@@ -58,7 +58,7 @@ func (h *coursePhaseTypeHandler) getCoursePhaseTypes(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.ErrorResponse{Error: err.Error()})
+		c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 

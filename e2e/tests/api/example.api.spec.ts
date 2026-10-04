@@ -5,8 +5,8 @@ import { EXAMPLE_FOREIGN_PHASE_ID, EXAMPLE_PHASE_ID } from '../../src/data/const
 
 // The example server is reached on the browser origin through the e2e nginx
 // proxy (same path prefix as prod Traefik). Its /info read requires admin or a
-// course-scoped lecturer; prompt-sdk auth answers 401 both for missing tokens
-// and for valid tokens lacking the required role.
+// course-scoped lecturer; prompt-sdk auth answers 401 for missing tokens and
+// 403 for valid tokens lacking the required role.
 const phaseUrl = (phaseId: string, path: string) =>
   `${BASE_URL}${EXAMPLE_API}/course_phase/${phaseId}/${path}`
 
@@ -24,7 +24,7 @@ test.describe('example API auth', () => {
   test('rejects a student on the lecturer-only info endpoint', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(EXAMPLE_PHASE_ID, 'info'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('accepts a course lecturer', async ({ apiAs }) => {
@@ -38,6 +38,6 @@ test.describe('example API auth', () => {
   }) => {
     const api = await apiAs('course-lecturer')
     const res = await api.get(phaseUrl(EXAMPLE_FOREIGN_PHASE_ID, 'info'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 })

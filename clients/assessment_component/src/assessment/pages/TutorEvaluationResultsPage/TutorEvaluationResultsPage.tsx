@@ -16,6 +16,7 @@ import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
@@ -29,6 +30,7 @@ export const TutorEvaluationResultsPage = () => {
   const { prevTutor, nextTutor } = useTutorNavigation()
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const tutorLabel = getTutorLabel(coursePhaseConfig)
   const { data: teams } = useGetAllTeams()
   const { data: tutorEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.TUTOR,
@@ -88,7 +90,7 @@ export const TutorEvaluationResultsPage = () => {
     <QueryGate queries={[evaluationsQuery, feedbackItemsQuery]}>
       {() => {
         if (!tutor) {
-          return <ErrorPage message='The requested tutor could not be found.' />
+          return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
         }
 
         return (
@@ -100,7 +102,7 @@ export const TutorEvaluationResultsPage = () => {
                     <Button
                       variant='outline'
                       className='h-10 shrink-0'
-                      aria-label={`Navigate to previous tutor: ${getStudentName(prevTutor)}`}
+                      aria-label={`Navigate to previous ${tutorLabel.text}: ${getStudentName(prevTutor)}`}
                       onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
                     >
                       <ChevronLeft className='h-4 w-4' />
@@ -113,7 +115,7 @@ export const TutorEvaluationResultsPage = () => {
                     <Button
                       variant='outline'
                       className='h-10 shrink-0'
-                      aria-label={`Navigate to next tutor: ${getStudentName(nextTutor)}`}
+                      aria-label={`Navigate to next ${tutorLabel.text}: ${getStudentName(nextTutor)}`}
                       onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
                     >
                       <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
@@ -122,7 +124,7 @@ export const TutorEvaluationResultsPage = () => {
                   )
                 }
               >
-                Tutor Evaluation Results for {getStudentName(tutor)}
+                {tutorLabel.title} Evaluation Results for {getStudentName(tutor)}
               </EvaluationHeader>
 
               {tutorEvaluationCategories.length === 0 ? (
@@ -177,7 +179,7 @@ export const TutorEvaluationResultsPage = () => {
             </div>
 
             <PrintReport
-              title={`Tutor Evaluation Results for ${getStudentName(tutor)}`}
+              title={`${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`}
               subtitle={tutor.teamName}
               meta={
                 evaluatorCount > 1 ? (

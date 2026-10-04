@@ -62,10 +62,16 @@ const deleteActionItem = `-- name: DeleteActionItem :exec
 DELETE
 FROM action_item
 WHERE id = $1
+  AND course_phase_id = $2
 `
 
-func (q *Queries) DeleteActionItem(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteActionItem, id)
+type DeleteActionItemParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+}
+
+func (q *Queries) DeleteActionItem(ctx context.Context, arg DeleteActionItemParams) error {
+	_, err := q.db.Exec(ctx, deleteActionItem, arg.ID, arg.CoursePhaseID)
 	return err
 }
 
@@ -73,10 +79,16 @@ const getActionItem = `-- name: GetActionItem :one
 SELECT id, course_phase_id, course_participation_id, action, created_at, author
 FROM action_item
 WHERE id = $1
+  AND course_phase_id = $2
 `
 
-func (q *Queries) GetActionItem(ctx context.Context, id uuid.UUID) (ActionItem, error) {
-	row := q.db.QueryRow(ctx, getActionItem, id)
+type GetActionItemParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+}
+
+func (q *Queries) GetActionItem(ctx context.Context, arg GetActionItemParams) (ActionItem, error) {
+	row := q.db.QueryRow(ctx, getActionItem, arg.ID, arg.CoursePhaseID)
 	var i ActionItem
 	err := row.Scan(
 		&i.ID,
@@ -228,13 +240,13 @@ func (q *Queries) ListActionItemsForStudentInPhase(ctx context.Context, arg List
 	return items, nil
 }
 
-const updateActionItem = `-- name: UpdateActionItem :exec
+const updateActionItem = `-- name: UpdateActionItem :execrows
 UPDATE action_item
-SET course_phase_id         = $2,
-    course_participation_id = $3,
-    action                  = $4,
-    author                  = $5
+SET action = $4,
+    author = $5
 WHERE id = $1
+  AND course_phase_id = $2
+  AND course_participation_id = $3
 `
 
 type UpdateActionItemParams struct {
@@ -245,13 +257,16 @@ type UpdateActionItemParams struct {
 	Author                string    `json:"author"`
 }
 
-func (q *Queries) UpdateActionItem(ctx context.Context, arg UpdateActionItemParams) error {
-	_, err := q.db.Exec(ctx, updateActionItem,
+func (q *Queries) UpdateActionItem(ctx context.Context, arg UpdateActionItemParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateActionItem,
 		arg.ID,
 		arg.CoursePhaseID,
 		arg.CourseParticipationID,
 		arg.Action,
 		arg.Author,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

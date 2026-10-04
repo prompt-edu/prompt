@@ -41,7 +41,7 @@ export async function putTemplate(
   templateContent: string,
   role: Role = 'lecturer',
 ): Promise<void> {
-  await put(role, phaseId, 'config', { templateContent })
+  await put(role, phaseId, 'settings', { templateContent })
 }
 
 export async function setReleaseDate(
@@ -49,7 +49,7 @@ export async function setReleaseDate(
   releaseDate: string | null,
   role: Role = 'lecturer',
 ): Promise<void> {
-  await put(role, phaseId, 'config/release-date', { releaseDate })
+  await put(role, phaseId, 'settings/release-date', { releaseDate })
 }
 
 export async function setStudentPageText(
@@ -57,7 +57,7 @@ export async function setStudentPageText(
   studentPageText: string | null,
   role: Role = 'lecturer',
 ): Promise<void> {
-  await put(role, phaseId, 'config/student-page-text', { studentPageText })
+  await put(role, phaseId, 'settings/student-page-text', { studentPageText })
 }
 
 // Idempotent teardown so CI retries (which reuse the ephemeral DB) stay

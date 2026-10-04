@@ -965,9 +965,8 @@ func (s *Service) CreateUploadIntent(
 	uploadID := uuid.New()
 	presignExpiresAt := s.now().Add(time.Duration(s.uploadTTLSeconds) * time.Second)
 	reclaimAt := s.now().Add(materialReclaimAfter)
-	storageKey := fmt.Sprintf(
-		"presentations/%s/%s/%s/%s",
-		coursePhaseID,
+	storageKey := storage.CoursePhasePrefix(coursePhaseID) + fmt.Sprintf(
+		"%s/%s/%s",
 		presentationID,
 		uploadID,
 		fileName,

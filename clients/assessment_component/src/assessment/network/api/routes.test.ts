@@ -210,6 +210,20 @@ const ROUTES: Route[] = [
     data: BODY,
   },
   {
+    name: 'completions.markCompleteBatch',
+    run: () => assessmentApi.completions.markCompleteBatch(PHASE, [PARTICIPATION]),
+    method: 'post',
+    url: `${ASSESSMENT_BASE}/student-assessment/completed/mark-complete/batch`,
+    data: { courseParticipationIDs: [PARTICIPATION] },
+  },
+  {
+    name: 'completions.unmarkBatch',
+    run: () => assessmentApi.completions.unmarkBatch(PHASE, [PARTICIPATION]),
+    method: 'put',
+    url: `${ASSESSMENT_BASE}/student-assessment/completed/unmark/batch`,
+    data: { courseParticipationIDs: [PARTICIPATION] },
+  },
+  {
     name: 'completions.unmark',
     run: () => assessmentApi.completions.unmark(PHASE, PARTICIPATION),
     method: 'put',

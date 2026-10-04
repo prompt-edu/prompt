@@ -86,7 +86,7 @@ export class CertificatePage {
   // before the caller navigates away (which would otherwise abort the request).
   async releaseNow() {
     const responsePromise = this.page.waitForResponse(
-      (res) => res.url().includes('/config/release-date') && res.request().method() === 'PUT',
+      (res) => res.url().includes('/settings/release-date') && res.request().method() === 'PUT',
     )
     await this.page.getByRole('button', { name: 'Release Now' }).click()
     const response = await responsePromise
@@ -118,7 +118,7 @@ export class CertificatePage {
     // the response is the only way to tell "saving" from "saved".
     const saved = this.page.waitForResponse(
       (response) =>
-        response.url().includes('/config/student-page-text') &&
+        response.url().includes('/settings/student-page-text') &&
         response.request().method() === 'PUT' &&
         response.ok(),
       { timeout: 15_000 },

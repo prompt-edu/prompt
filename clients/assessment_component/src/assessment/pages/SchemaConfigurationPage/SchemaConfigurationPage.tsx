@@ -15,7 +15,8 @@ import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import { useGetAllAssessmentSchemas } from '../hooks/useGetAllAssessmentSchemas'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useSchemaHasAssessmentData } from '../hooks/useSchemaHasAssessmentData'
-import { schemaSectionContent } from '../schemaSectionContent'
+import { useTutorLabel } from '../hooks/useTutorLabel'
+import { getSchemaSectionContent } from '../schemaSectionContent'
 import { CategoryList } from './components/CategoryList/CategoryList'
 import { RenameSchemaDialog } from './components/RenameSchemaDialog'
 
@@ -96,7 +97,8 @@ export const SchemaConfigurationPage = () => {
   } = useSchemaHasAssessmentData(schemaId)
 
   const assessmentType = getAssessmentTypeForSchema(coursePhaseConfig, schemaId)
-  const content = assessmentType ? schemaSectionContent[assessmentType] : undefined
+  const tutorLabel = useTutorLabel()
+  const content = assessmentType ? getSchemaSectionContent(tutorLabel)[assessmentType] : undefined
   const isEnabled = assessmentType
     ? isAssessmentTypeEnabled(coursePhaseConfig, assessmentType)
     : false
@@ -158,7 +160,7 @@ export const SchemaConfigurationPage = () => {
 
   return (
     <div className='space-y-6'>
-      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden'>
         <div className='space-y-2'>
           <BackToSettingsButton />
           <ManagementPageHeader>{content.detailTitle}</ManagementPageHeader>
@@ -168,7 +170,7 @@ export const SchemaConfigurationPage = () => {
         </div>
       </div>
 
-      <Card className='border-border shadow-xs'>
+      <Card className='border-border shadow-xs print:hidden'>
         <CardContent className='space-y-3 p-6'>
           <div className='flex flex-wrap items-center gap-2'>
             <h2 className='text-xl font-semibold text-foreground'>

@@ -59,12 +59,11 @@ func (s *CourseCopyService) copyCoursePhases(c *gin.Context, qtx *db.Queries, so
 		newPhase := coursePhaseDTO.CreateCoursePhase{
 			Name:                phase.Name,
 			IsInitialPhase:      phase.IsInitialPhase,
-			CourseID:            targetID,
 			CoursePhaseTypeID:   phase.CoursePhaseTypeID,
 			RestrictedData:      sanitizedRestrictedData,
 			StudentReadableData: phase.StudentReadableData,
 		}
-		dbModel, err := newPhase.GetDBModel()
+		dbModel, err := newPhase.GetDBModel(targetID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert phase to DB model: %w", err)
 		}

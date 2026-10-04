@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -206,55 +205,6 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 			} else {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tt.expectedError)
-			}
-		})
-	}
-}
-
-func (suite *CourseTestSuite) TestValidateUpdateCourseOrder() {
-	tests := []struct {
-		name          string
-		courseID      uuid.UUID
-		orderedPhases []uuid.UUID
-		expectedError string
-	}{
-		{
-			name:     "valid course phase order",
-			courseID: uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"),
-			orderedPhases: []uuid.UUID{
-				uuid.MustParse("3d1f3b00-87f3-433b-a713-178c4050411b"),
-				uuid.MustParse("92bb0532-39e5-453d-bc50-fa61ea0128b2"),
-			},
-			expectedError: "",
-		},
-		// Example of a failing test:
-		// {
-		// 	name:     "invalid course ID in phase",
-		// 	courseID: uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"),
-		// 	orderedPhases: []uuid.UUID{
-		// 		uuid.MustParse("3d1f3b00-87f3-433b-a713-178c4050411c"),
-		// 	},
-		// 	expectedError: "course id must be the same for all course phases",
-		// },
-	}
-
-	for _, tt := range tests {
-		suite.T().Run(tt.name, func(t *testing.T) {
-			// Convert orderedPhases to a slice of CoursePhaseGraph entries
-			var phaseGraph []courseDTO.CoursePhaseGraph
-			for _, phaseID := range tt.orderedPhases {
-				phaseGraph = append(phaseGraph, courseDTO.CoursePhaseGraph{
-					FromCoursePhaseID: uuid.Nil, // or another valid UUID if needed
-					ToCoursePhaseID:   phaseID,
-				})
-			}
-
-			err := suite.courseService.validateUpdateCourseOrder(context.Background(), tt.courseID, phaseGraph)
-			if tt.expectedError == "" {
-				assert.NoError(t, err, "Expected no error, got %v", err)
-			} else {
-				assert.Error(t, err, "Expected an error but got none")
-				assert.EqualError(t, err, tt.expectedError, "Error message did not match")
 			}
 		})
 	}

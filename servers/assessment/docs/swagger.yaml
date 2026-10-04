@@ -399,8 +399,6 @@ definitions:
     type: object
   competencyDTO.UpdateCompetencyRequest:
     properties:
-      categoryID:
-        type: string
       description:
         type: string
       descriptionBad:

@@ -89,7 +89,6 @@ func TestValidateUpdateCoursePhase(t *testing.T) {
 		{
 			name: "valid update",
 			input: coursePhaseDTO.UpdateCoursePhase{
-				ID:                  uuid.New(),
 				Name:                pgtype.Text{Valid: true, String: "Updated Phase Name"},
 				RestrictedData:      meta.MetaData{"key": "value"},
 				StudentReadableData: meta.MetaData{"key": "value"},
@@ -99,7 +98,6 @@ func TestValidateUpdateCoursePhase(t *testing.T) {
 		{
 			name: "missing name",
 			input: coursePhaseDTO.UpdateCoursePhase{
-				ID:                  uuid.New(),
 				Name:                pgtype.Text{Valid: true, String: ""},
 				RestrictedData:      meta.MetaData{"key": "value"},
 				StudentReadableData: meta.MetaData{"key": "value"},
@@ -109,20 +107,9 @@ func TestValidateUpdateCoursePhase(t *testing.T) {
 		{
 			name: "empty metadata",
 			input: coursePhaseDTO.UpdateCoursePhase{
-				ID:                  uuid.New(),
 				Name:                pgtype.Text{Valid: true, String: "Phase with empty meta data"},
 				StudentReadableData: meta.MetaData{},
 				RestrictedData:      meta.MetaData{},
-			},
-			expectedError: "",
-		},
-		{
-			name: "missing ID",
-			input: coursePhaseDTO.UpdateCoursePhase{
-				ID:                  uuid.Nil,
-				Name:                pgtype.Text{Valid: true, String: "Valid Name"},
-				RestrictedData:      meta.MetaData{"key": "value"},
-				StudentReadableData: meta.MetaData{"key": "value"},
 			},
 			expectedError: "",
 		},

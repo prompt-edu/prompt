@@ -7180,9 +7180,6 @@ const docTemplate = `{
         "coursePhaseDTO.UpdateCoursePhase": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
-                },
                 "name": {
                     "description": "use pgtype to handle null values",
                     "type": "string"

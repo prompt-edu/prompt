@@ -41,13 +41,13 @@ func (s *CoursePhaseService) GetCoursePhaseByID(ctx context.Context, id uuid.UUI
 	return coursePhaseDTO.GetCoursePhaseDTOFromDBModel(coursePhase)
 }
 
-func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
+func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
 	dbModel, err := coursePhase.GetDBModel()
 	if err != nil {
 		return err
 	}
 
-	dbModel.ID = coursePhase.ID
+	dbModel.ID = coursePhaseID
 	return s.queries.UpdateCoursePhase(ctx, dbModel)
 }
 

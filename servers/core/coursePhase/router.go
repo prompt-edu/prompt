@@ -153,6 +153,12 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [put]
 func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var updatedCoursePhase coursePhaseDTO.UpdateCoursePhase
 	if err := c.BindJSON(&updatedCoursePhase); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -164,7 +170,7 @@ func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 		return
 	}
 
-	err := s.UpdateCoursePhase(c, updatedCoursePhase)
+	err = s.UpdateCoursePhase(c, id, updatedCoursePhase)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

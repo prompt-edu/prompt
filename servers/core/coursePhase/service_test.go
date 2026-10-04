@@ -65,13 +65,12 @@ func (suite *CoursePhaseTestSuite) TestUpdateCoursePhase() {
 	assert.NoError(suite.T(), err)
 
 	update := coursePhaseDTO.UpdateCoursePhase{
-		ID:                  id,
 		Name:                pgtype.Text{Valid: true, String: "Updated Phase"},
 		RestrictedData:      restrictedData,
 		StudentReadableData: studentData,
 	}
 
-	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, update)
+	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, id, update)
 	assert.NoError(suite.T(), err)
 
 	// Verify update
@@ -96,13 +95,12 @@ func (suite *CoursePhaseTestSuite) TestUpdateCoursePhaseWithMetaDataOverride() {
 	assert.NoError(suite.T(), err)
 
 	update := coursePhaseDTO.UpdateCoursePhase{
-		ID:                  id,
 		Name:                pgtype.Text{Valid: true, String: "Updated Phase"},
 		RestrictedData:      data,
 		StudentReadableData: studentData,
 	}
 
-	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, update)
+	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, id, update)
 	assert.NoError(suite.T(), err)
 
 	// Verify update

@@ -1077,8 +1077,6 @@ definitions:
     type: object
   coursePhaseDTO.UpdateCoursePhase:
     properties:
-      id:
-        type: string
       name:
         description: use pgtype to handle null values
         type: string

@@ -12,6 +12,7 @@ on:
       - "clients/shared/**"
       - "servers/example_server/**"
       - "clients/core/rspack.config.mjs"
+      - "clients/core/remotes.config.mjs"
       - "clients/core/src/App.tsx"
       - "clients/core/src/managementConsole/PhaseMapping/**"
       - "clients/core/public/env.js"

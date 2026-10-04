@@ -28,6 +28,7 @@ const config = (env = {}) => {
       port: COMPONENT_DEV_PORT,
       client: { progress: true },
       open: false,
+      headers: { 'Access-Control-Allow-Origin': '*' },
     },
     module: {
       rules: [
@@ -69,6 +70,7 @@ const config = (env = {}) => {
       new ModuleFederationPlugin({
         name: COMPONENT_NAME,
         filename: 'remoteEntry.js',
+        manifest: true,
         exposes: {
           './routes': './routes',
           './sidebar': './sidebar',

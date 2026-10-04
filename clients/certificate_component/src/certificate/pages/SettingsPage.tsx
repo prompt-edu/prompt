@@ -34,7 +34,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { StudentPageTextCard } from '../components/StudentPageTextCard'
-import { certificateKeys } from '../network/cache'
+import { certificateCache, certificateKeys } from '../network/cache'
 import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
 import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
@@ -77,7 +77,7 @@ export const SettingsPage = () => {
   const updateMutation = useMutation({
     mutationFn: (content: string) => updateConfig(phaseId ?? '', content),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['config', phaseId] })
+      certificateCache.configChanged(queryClient, phaseId)
       toast({
         title: 'Success',
         description: 'Certificate template updated successfully',
@@ -96,7 +96,7 @@ export const SettingsPage = () => {
   const releaseDateMutation = useMutation({
     mutationFn: (releaseDate: string | null) => updateReleaseDate(phaseId ?? '', releaseDate),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['config', phaseId] })
+      certificateCache.configChanged(queryClient, phaseId)
       setReleaseDateDirty(false)
       toast({
         title: 'Success',
@@ -152,7 +152,7 @@ export const SettingsPage = () => {
       if (hasChanges) {
         try {
           await updateConfig(phaseId, templateContent)
-          queryClient.invalidateQueries({ queryKey: ['config', phaseId] })
+          certificateCache.configChanged(queryClient, phaseId)
           setHasChanges(false)
           toast({
             title: 'Template saved',

@@ -13,7 +13,7 @@ import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
 import type { ParticipantWithDownloadStatus } from '../interfaces/participant'
-import { certificateKeys } from '../network/cache'
+import { certificateCache, certificateKeys } from '../network/cache'
 import {
   downloadStudentCertificate,
   triggerBlobDownload,
@@ -42,7 +42,7 @@ export const ParticipantsPage = () => {
       downloadStudentCertificate(phaseId, studentId)
         .then((blob) => {
           triggerBlobDownload(blob, `certificate_${lastName}.pdf`)
-          queryClient.invalidateQueries({ queryKey: certificateKeys.participants(phaseId) })
+          certificateCache.certificateDownloaded(queryClient, phaseId)
         })
         .catch((error) => {
           console.error('Failed to download certificate:', error)

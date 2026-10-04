@@ -213,6 +213,8 @@ export const AssessmentParticipantsPage = () => {
     },
   ]
 
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
+
   return (
     <QueryGate
       queries={[coursePhaseConfigQuery, assessmentCompletionsQuery, evaluationCompletionsQuery]}
@@ -250,7 +252,7 @@ export const AssessmentParticipantsPage = () => {
           }}
         >
           <CoursePhaseParticipationsTable
-            phaseId={phaseId!}
+            phaseId={phaseId}
             participants={participations ?? []}
             extraColumns={extraColumns}
             extraFilters={extraFilters}

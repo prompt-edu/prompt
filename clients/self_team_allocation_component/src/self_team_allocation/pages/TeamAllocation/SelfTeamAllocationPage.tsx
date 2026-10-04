@@ -55,9 +55,7 @@ export const SelfTeamAllocationPage = () => {
 
   return (
     <QueryGate
-      queries={
-        isStudent ? [participationQuery, teamsQuery, timeframeQuery] : [teamsQuery, timeframeQuery]
-      }
+      queries={[participationQuery, teamsQuery, timeframeQuery]}
       errorFallback={({ refetch }) =>
         isStudent && participationError?.message.includes('404') ? (
           <UnauthorizedPage backUrl={`/management/course/${courseId}`} />

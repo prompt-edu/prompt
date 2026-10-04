@@ -32,8 +32,17 @@ export const withStudentCounts = (
 
 const students = (count: number): string => `${count} student${count === 1 ? '' : 's'}`
 
-export const renameWarning = (studentCount: number, previousName: string, newName: string) =>
-  `${students(studentCount)} with "${previousName}" will be updated to "${newName}".`
+export const renameWarning = (
+  studentCount: number | null,
+  previousName: string,
+  newName: string,
+): string => {
+  const update = `with "${previousName}" will be updated to "${newName}".`
+  if (studentCount === null) {
+    return `Student counts could not be loaded. Students ${update}`
+  }
+  return `${students(studentCount)} ${update}`
+}
 
 export const deleteWarning = (studyPrograms: StudyProgramWithStudentCount[]): string => {
   const keepTheirProgram = `keep their study program, which will then count as "${OTHER_STUDY_PROGRAM}".`

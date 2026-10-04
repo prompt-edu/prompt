@@ -86,7 +86,7 @@ export const StudyProgramFormDialog = ({
               </p>
             )}
           </div>
-          {isRename && !!editing.studentCount && (
+          {isRename && editing.studentCount !== 0 && (
             <Alert>
               <AlertDescription>
                 {renameWarning(editing.studentCount, editing.name, trimmedName)}

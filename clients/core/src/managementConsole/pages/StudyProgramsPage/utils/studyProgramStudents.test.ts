@@ -59,6 +59,12 @@ describe('renameWarning', () => {
       '4 students with "Informatics" will be updated to "Computer Science".',
     )
   })
+
+  it('still names both programs when the counts are unavailable', () => {
+    expect(renameWarning(null, 'Informatics', 'Computer Science')).toBe(
+      'Student counts could not be loaded. Students with "Informatics" will be updated to "Computer Science".',
+    )
+  })
 })
 
 describe('deleteWarning', () => {

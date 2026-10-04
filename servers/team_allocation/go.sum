@@ -180,8 +180,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 h1:o4JXh1EVt9k/+g42oCprj/FisM4qX9L3sZB3upGN2ZU=
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
-github.com/prompt-edu/prompt-sdk v1.4.1-0.20261004090000-c4e0f2d48ed0 h1:r30H7lNLXL4Gdle9E0oqv8UZRoFLNvyuG7I7PoaPQew=
-github.com/prompt-edu/prompt-sdk v1.4.1-0.20261004090000-c4e0f2d48ed0/go.mod h1:cviZCqCBP9BJISilS8yBQjJzuGPFpvQ8a1bP4CYGV6E=
+github.com/prompt-edu/prompt-sdk v1.4.1 h1:dFG4IWnQoKLjaPLQhKBAHqUE9wZ8Ty0hARX5hAF0iGY=
+github.com/prompt-edu/prompt-sdk v1.4.1/go.mod h1:cviZCqCBP9BJISilS8yBQjJzuGPFpvQ8a1bP4CYGV6E=
 github.com/quic-go/go-ossfuzz-seeds v0.1.0 h1:APacT+iIaNF6fd8AGEiN3bT/Jtkd2jz4v4TzM7MFjy0=
 github.com/quic-go/go-ossfuzz-seeds v0.1.0/go.mod h1:3IOHRbJIc+L6YKMwfDtJAM9Vj9k0YY4muhuyUYk5tbk=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=

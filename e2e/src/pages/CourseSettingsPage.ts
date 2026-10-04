@@ -38,6 +38,35 @@ export class CourseSettingsPage {
     await expect(this.page.getByText('Successfully Updated Course', { exact: true })).toBeVisible()
   }
 
+  async expandAI() {
+    await this.expandCard(/^AI\s+A course phase/)
+  }
+
+  aiCard(): Locator {
+    return this.page.getByRole('button', { name: /^AI\s+A course phase/ })
+  }
+
+  keyRow(phaseName: string): Locator {
+    return this.page.getByRole('group', { name: phaseName, exact: true })
+  }
+
+  async saveKey(phaseName: string, key: string) {
+    await this.keyRow(phaseName)
+      .getByRole('button', { name: /^(Set|Rotate) key$/ })
+      .click()
+    const dialog = this.page.getByRole('dialog')
+    await dialog.getByLabel('Logos key').fill(key)
+    await dialog.getByRole('button', { name: 'Save key' }).click()
+    await expect(dialog).toBeHidden()
+  }
+
+  async removeKey(phaseName: string) {
+    await this.keyRow(phaseName).getByRole('button', { name: 'Remove key' }).click()
+    const dialog = this.page.getByRole('alertdialog')
+    await dialog.getByRole('button', { name: 'Delete' }).click()
+    await expect(dialog).toBeHidden()
+  }
+
   async deleteCourse() {
     await this.expandCard(/Danger Zone/)
     await this.page.getByRole('button', { name: 'Delete', exact: true }).click()

@@ -209,6 +209,9 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 	@set -e; \
 		paths="$(PATHS)"; \
 		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
+		ai="$(AI_ENABLED)"; \
+		if [ -n "$(SHARD)" ]; then ai="$$(cd e2e && node scripts/shards.mjs ai-enabled "$(SHARD)")"; fi; \
+		export AI_ENABLED="$$ai" COMPOSE_PROFILES="$$(if [ "$$ai" = true ]; then echo ai; fi)"; \
 		set -f; \
 		unset $(E2E_ENV_KEYS); \
 		$(E2E_BUILD); \
@@ -218,7 +221,7 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 		exit $$status
 
 test-e2e-down: ## Tear down the e2e stack and remove volumes
-	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v
+	unset $(E2E_ENV_KEYS); COMPOSE_PROFILES=ai $(E2E_COMPOSE) down -v
 
 test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1:8123
 	@mkdir -p e2e/playwright-report e2e/test-results
@@ -241,9 +244,9 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 VERIFY_COMPOSE = docker compose -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
 
 verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 reuses existing images)
-	set -e; unset $(E2E_ENV_KEYS); \
+	set -e; unset $(E2E_ENV_KEYS); export AI_ENABLED="$(AI_ENABLED)"; \
 		$(if $(SKIP_BUILD),true,$(VERIFY_COMPOSE) build); \
-		$(VERIFY_COMPOSE) up -d client-core server-core seed
+		$(VERIFY_COMPOSE) up -d client-core server-core seed $(if $(AI_PROFILE),server-ai)
 	@echo ""
 	@echo "client    http://localhost:4000/management"
 	@echo "core API  http://localhost:18090"
@@ -252,7 +255,7 @@ verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 
 	@echo "logins    username == password (lecturer, admin, student, ...)"
 
 verify-down: ## Tear down the host-browser stack and remove volumes
-	unset $(E2E_ENV_KEYS); $(VERIFY_COMPOSE) down -v
+	unset $(E2E_ENV_KEYS); COMPOSE_PROFILES=ai $(VERIFY_COMPOSE) down -v
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 

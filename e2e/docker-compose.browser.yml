@@ -51,6 +51,7 @@ services:
   server-presentation: *host-phase-server
   server-infrastructure-setup: *host-phase-server
   server-team-allocation: *host-phase-server
+  server-ai: *host-phase-server
 
   seaweedfs-s3:
     # Not published in the base stack; the host browser needs it for presigned URLs.

@@ -62,6 +62,7 @@ const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
 const aiPhasePath = `http://ai.test/ai/api/course_phase/${PHASE}`
+const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
   {
@@ -684,6 +685,40 @@ const ROUTES: Route[] = [
     method: 'put',
     url: `${studentsPath}/${STUDENT}`,
     data: { id: STUDENT },
+  },
+
+  {
+    name: 'studyPrograms.list',
+    run: () => coreApi.studyPrograms.list(),
+    method: 'get',
+    url: studyProgramsPath,
+    instance: 'public',
+  },
+  {
+    name: 'studyPrograms.studentCounts',
+    run: () => coreApi.studyPrograms.studentCounts(),
+    method: 'get',
+    url: `${studyProgramsPath}/student-counts`,
+  },
+  {
+    name: 'studyPrograms.create',
+    run: () => coreApi.studyPrograms.create(body()),
+    method: 'post',
+    url: studyProgramsPath,
+    data: BODY,
+  },
+  {
+    name: 'studyPrograms.update',
+    run: () => coreApi.studyPrograms.update('program-1', body()),
+    method: 'put',
+    url: `${studyProgramsPath}/program-1`,
+    data: BODY,
+  },
+  {
+    name: 'studyPrograms.remove',
+    run: () => coreApi.studyPrograms.remove('program-1'),
+    method: 'delete',
+    url: `${studyProgramsPath}/program-1`,
   },
 
   {

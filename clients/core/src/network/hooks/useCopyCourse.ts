@@ -3,6 +3,7 @@ import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { useNavigate } from 'react-router-dom'
 import type { CopyCourse } from '../../managementConsole/courseOverview/interfaces/copyCourse'
@@ -68,6 +69,8 @@ export const useCopyCourse = (
       semesterTag: formData.semesterTag,
       startDate: formData.dateRange?.from ?? new Date(),
       endDate: formData.dateRange?.to ?? new Date(),
+      courseType: formData.courseType,
+      ects: CourseTypeDetails[formData.courseType]?.ects,
       template: !!createTemplate,
       shortDescription: formData.shortDescription,
       longDescription: formData.longDescription || undefined,

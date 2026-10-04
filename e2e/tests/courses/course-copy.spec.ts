@@ -38,7 +38,7 @@ test.describe('course copy from template', () => {
     await cleanupCourses(templateId, copyId)
   })
 
-  test('admin copies a course from a template', async ({ page }, testInfo) => {
+  test('admin copies a template as a different course type', async ({ page }, testInfo) => {
     const suffix = uniqueSuffix(testInfo.workerIndex)
     const targetName = `E2ECopyTarget${suffix}`
 
@@ -47,12 +47,16 @@ test.describe('course copy from template', () => {
       templateName,
       name: targetName,
       semesterTag: `e2ecopytgt${suffix}`,
+      courseType: 'Seminar',
     })
 
     const api = await apiContextFor('admin')
     try {
       const all = await listCourses(api)
-      expect(all.some((c) => c.id === copyId && c.name === targetName)).toBeTruthy()
+      const copied = all.find((c) => c.id === copyId)
+      expect(copied?.name).toBe(targetName)
+      expect(copied?.courseType).toBe('seminar')
+      expect(copied?.ects).toBe(5)
     } finally {
       await api.dispose()
     }

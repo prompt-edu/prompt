@@ -19,6 +19,7 @@ import { AlertCircle, CalendarIcon, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { SurveyTimeframe } from '../../../interfaces/timeframe'
+import { teamAllocationCache } from '../../../network/cache'
 import { updateSurveyTimeframe as updateSurveyTimeframeFn } from '../../../network/mutations/updateSurveyTimeframe'
 
 dayjs.extend(utc)
@@ -67,7 +68,7 @@ export const SurveyTimeframeSettings = ({ surveyTimeframe }: SurveyTimeframeSett
     mutationFn: ({ start, end }: { start: Date; end: Date }) =>
       updateSurveyTimeframeFn(phaseId ?? '', start, end),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team_allocation_survey_timeframe', phaseId] })
+      teamAllocationCache.surveyTimeframeChanged(queryClient, phaseId)
       setError(null)
     },
     onError: () => {

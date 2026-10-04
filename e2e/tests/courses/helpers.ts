@@ -9,6 +9,8 @@ export interface CourseSummary {
   id: string
   name: string
   semesterTag: string | null
+  courseType: string
+  ects: number | null
   template: boolean
 }
 

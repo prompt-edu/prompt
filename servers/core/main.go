@@ -37,6 +37,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
+	"github.com/prompt-edu/prompt/servers/core/studyProgram"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -240,6 +241,8 @@ func main() {
 	}
 	instructorNoteService := instructorNote.NewInstructorNoteService(*query, conn)
 	instructorNote.RegisterRoutes(api, instructorNoteService, tokenVerifier.KeycloakMiddleware)
+	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
+	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()
 	if err != nil {

@@ -5302,9 +5302,6 @@ const docTemplate = `{
         "competencyDTO.UpdateCompetencyRequest": {
             "type": "object",
             "properties": {
-                "categoryID": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },

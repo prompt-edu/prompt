@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 	log "github.com/sirupsen/logrus"
@@ -215,39 +216,46 @@ func (w *Worker) processInstance(
 		return w.failInstance(ctx, inst.ID, "resource instance target no longer exists")
 	}
 
+	// From here on the run knows who the instance is for, so a failure still records
+	// them: that is what shows a team's members that their resource failed.
+	fail := func(message string) error {
+		w.recordMembers(ctx, inst.ID, target, nil, false)
+		return w.failInstance(ctx, inst.ID, message)
+	}
+
 	providerCfg, err := w.queries.GetProviderConfig(ctx, db.GetProviderConfigParams{
 		CoursePhaseID: inst.CoursePhaseID,
 		ProviderType:  config.ProviderType,
 	})
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("load provider config: %v", err))
+		return fail(fmt.Sprintf("load provider config: %v", err))
 	}
 
 	factory, ok := Registry[string(config.ProviderType)]
 	if !ok {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("unknown provider type: %s", config.ProviderType))
+		return fail(fmt.Sprintf("unknown provider type: %s", config.ProviderType))
 	}
 	prov, err := factory(providerCfg.Credentials)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("build provider: %v", err))
+		return fail(fmt.Sprintf("build provider: %v", err))
 	}
 
 	resolvedName, err := ResolveName(config.NameTemplate, target.TemplateData)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve name: %v", err))
+		return fail(fmt.Sprintf("resolve name: %v", err))
 	}
 
 	permissionMap, err := ParsePermissionMapping(config.PermissionMapping)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("parse permission map: %v", err))
+		return fail(fmt.Sprintf("parse permission map: %v", err))
 	}
 	extraConfig, err := ParseExtraConfig(config.ResourceExtraConfig)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("parse extra config: %v", err))
+		return fail(fmt.Sprintf("parse extra config: %v", err))
 	}
 	extraConfig, err = ResolveTemplatedExtraConfig(extraConfig, prov.TemplatedExtraConfigKeys(), target.TemplateData)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, fmt.Sprintf("resolve extra config: %v", err))
+		return fail(fmt.Sprintf("resolve extra config: %v", err))
 	}
 
 	w.recordLabels(ctx, inst.ID, target.DisplayName(), resolvedName)
@@ -264,7 +272,7 @@ func (w *Worker) processInstance(
 
 	resource, err := w.createWithRetry(ctx, prov, input, inst.ID)
 	if err != nil {
-		return w.failInstance(ctx, inst.ID, err.Error())
+		return fail(err.Error())
 	}
 
 	// A member the phase could not resolve at all never reaches the provider, so its
@@ -273,12 +281,92 @@ func (w *Worker) processInstance(
 	// run concurrently.
 	warnings := make([]string, 0, len(target.Warnings)+len(resource.Warnings))
 	warnings = append(warnings, target.Warnings...)
-	warnings = append(warnings, resource.Warnings...)
+	for _, warning := range resource.Warnings {
+		warnings = append(warnings, warning.Text)
+	}
+
+	w.recordMembers(ctx, inst.ID, target, resource.Warnings, true)
 	if len(warnings) > 0 {
 		return w.markPartial(ctx, inst.ID, resource, strings.Join(warnings, "; "))
 	}
 
 	return w.markCreated(ctx, inst.ID, resource)
+}
+
+// memberAccess lists the people a run was for and, in the same order, whether each was
+// granted access. A person is let in only when the resource exists, an email could be
+// resolved for them, and no warning names them. Someone listed twice (a member who is
+// also a tutor) counts once, granted if either entry was.
+func memberAccess(target ProvisioningTarget, warnings []provider.Warning, resourceExists bool) ([]uuid.UUID, []bool) {
+	denied := make(map[string]struct{})
+	for _, warning := range warnings {
+		for _, email := range warning.Members {
+			denied[strings.ToLower(email)] = struct{}{}
+		}
+	}
+
+	ids := make([]uuid.UUID, 0, len(target.People))
+	granted := make([]bool, 0, len(target.People))
+	position := make(map[uuid.UUID]int, len(target.People))
+	for _, person := range target.People {
+		_, isDenied := denied[strings.ToLower(person.Email)]
+		access := resourceExists && person.Email != "" && !isDenied
+
+		if index, seen := position[person.CourseParticipationID]; seen {
+			granted[index] = granted[index] || access
+			continue
+		}
+		position[person.CourseParticipationID] = len(ids)
+		ids = append(ids, person.CourseParticipationID)
+		granted = append(granted, access)
+	}
+	return ids, granted
+}
+
+// recordMembers replaces who the instance was provisioned for with this run's people.
+// It runs before the status write, so the status a reader sees next already belongs
+// with these members. Like the labels, a write error is logged rather than failing a
+// run whose resource exists.
+func (w *Worker) recordMembers(ctx context.Context, id uuid.UUID, target ProvisioningTarget, warnings []provider.Warning, resourceExists bool) {
+	ids, granted := memberAccess(target, warnings, resourceExists)
+
+	writeCtx, cancel := statusWriteContext(ctx)
+	defer cancel()
+
+	err := w.replaceMembers(writeCtx, id, ids, granted)
+	if err != nil {
+		log.WithError(err).WithField("instanceID", id).
+			Warn("execution worker: recording the instance members failed")
+	}
+}
+
+func (w *Worker) replaceMembers(ctx context.Context, id uuid.UUID, ids []uuid.UUID, granted []bool) error {
+	tx, err := w.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	if err := writeMembers(ctx, w.queries.WithTx(tx), id, ids, granted); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// writeMembers replaces an instance's member rows. The caller owns the transaction, so
+// the old rows never stay beside the new ones.
+func writeMembers(ctx context.Context, q *db.Queries, id uuid.UUID, ids []uuid.UUID, granted []bool) error {
+	if err := q.DeleteInstanceMembers(ctx, id); err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return q.InsertInstanceMembers(ctx, db.InsertInstanceMembersParams{
+		ResourceInstanceID:     id,
+		CourseParticipationIds: ids,
+		Granted:                granted,
+	})
 }
 
 func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, input provider.CreateResourceInput, instanceID uuid.UUID) (*provider.Resource, error) {

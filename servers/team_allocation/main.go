@@ -95,7 +95,7 @@ func main() {
 	skillsService := skills.NewSkillsService(*query, conn)
 	teamsService := teams.NewTeamsService(*query, conn)
 	surveyService := survey.NewSurveyService(*query, conn)
-	allocationService := allocation.NewAllocationService(*query)
+	allocationService := allocation.NewAllocationService(*query, conn)
 	teaseService := tease.NewTeaseService(*query, conn)
 	configService := config.NewConfigService(*query, surveyService)
 	copyService := copy.NewCopyService(*query, conn)

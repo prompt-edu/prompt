@@ -35,9 +35,15 @@ inside `src/`. It does not expose `./App`.
 ## Share scope
 
 `clients/shared/rspack/federatedDependencies.mjs` is the single source of the singleton share scope
-(`react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`).
-Both the host and every remote import it, which is what keeps them from drifting apart. Changing the
-set changes it for host and remotes at once, which is the only safe way to change it.
+(`react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`,
+`@tumaet/prompt-ui-components`). Both the host and every remote import it, which is what keeps them
+from drifting apart. Changing the set changes it for host and remotes at once, which is the only safe
+way to change it.
+
+`@tumaet/prompt-ui-components` is shared because some of its state lives at module level. The toast
+store is the visible case: core mounts the only `<Toaster />`, so a remote holding its own copy of the
+library raises toasts into a store nothing renders, and every success and error message it shows is
+silently dropped.
 
 ## Register (core host)
 
@@ -79,6 +85,6 @@ host overrode, and reversing the order just moves the breakage to the remote (is
 
 ## Rules
 
-- `react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, and
-  `@tumaet/prompt-shared-state` must be `singleton: true` on both host and remote.
+- `react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`,
+  and `@tumaet/prompt-ui-components` must be `singleton: true` on both host and remote.
 - The federation `name`, the core `remotes` key, and the import specifier must all match exactly.

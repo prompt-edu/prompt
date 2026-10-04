@@ -501,7 +501,14 @@ UPDATE resource_instance
 SET status = 'pending',
     error_message = NULL,
     updated_at = NOW()
-WHERE id = $1 AND course_phase_id = $2 AND status IN ('failed', 'partial')
+WHERE id = $1 AND course_phase_id = $2
+  AND (status IN ('failed', 'partial')
+       OR (status = 'created'
+           AND team_id IS NOT NULL
+           AND NOT EXISTS (
+               SELECT 1 FROM resource_instance_member AS member
+               WHERE member.resource_instance_id = resource_instance.id
+           )))
 RETURNING id, resource_config_id, course_phase_id, team_id, course_participation_id, status, external_id, external_url, error_message, created_at, updated_at, target_name, resolved_name
 `
 
@@ -510,6 +517,8 @@ type ResetInstanceToPendingParams struct {
 	CoursePhaseID uuid.UUID `json:"coursePhaseId"`
 }
 
+// A team instance created before members were recorded runs again too, so its members
+// can find it.
 func (q *Queries) ResetInstanceToPending(ctx context.Context, arg ResetInstanceToPendingParams) (ResourceInstance, error) {
 	row := q.db.QueryRow(ctx, resetInstanceToPending, arg.ID, arg.CoursePhaseID)
 	var i ResourceInstance

@@ -170,6 +170,10 @@ func TestKeycloakReportsUnknownUserAsWarning(t *testing.T) {
 	if len(resource.Warnings) != 1 {
 		t.Fatalf("warnings = %v, want one for the unknown user", resource.Warnings)
 	}
+	// The warning names the member, which is what tells that student they were not added.
+	if members := resource.Warnings[0].Members; len(members) != 1 || members[0] != "nobody@example.com" {
+		t.Fatalf("warning members = %v, want the unknown user", members)
+	}
 }
 
 // A service account that can sign in but cannot create groups must be rejected during

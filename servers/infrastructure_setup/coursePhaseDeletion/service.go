@@ -50,6 +50,9 @@ func (s *CoursePhaseDeletionService) HandleCoursePhaseDeletion(c *gin.Context, c
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
+	if err := qtx.DeleteResourceInstanceMembersByCoursePhase(ctx, coursePhaseID); err != nil {
+		return fmt.Errorf("delete resource instance members of course phase %s: %w", coursePhaseID, err)
+	}
 	if err := qtx.DeleteResourceInstancesByCoursePhase(ctx, coursePhaseID); err != nil {
 		return fmt.Errorf("delete resource instances of course phase %s: %w", coursePhaseID, err)
 	}

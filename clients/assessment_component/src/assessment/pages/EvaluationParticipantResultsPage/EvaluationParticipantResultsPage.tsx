@@ -5,7 +5,7 @@ import {
   CardContent,
   ErrorPage,
   getStudentName,
-  LoadingPage,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
@@ -48,12 +48,7 @@ export const EvaluationParticipantResultsPage = ({
     coursePhaseConfig?.peerEvaluationEnabled ?? false,
   )
 
-  const {
-    data: evaluations = [],
-    isPending: isEvaluationsPending,
-    isError: isEvaluationsError,
-    refetch: refetchEvaluations,
-  } = useQuery({
+  const evaluationsQuery = useQuery({
     queryKey: assessmentKeys.evaluations.ofParticipant(
       assessmentType,
       phaseId,
@@ -66,17 +61,15 @@ export const EvaluationParticipantResultsPage = ({
     enabled: !!phaseId && !!courseParticipationID,
   })
 
-  const {
-    data: feedbackItems = [],
-    isPending: isFeedbackItemsPending,
-    isError: isFeedbackItemsError,
-    refetch: refetchFeedbackItems,
-  } = useQuery({
+  const feedbackItemsQuery = useQuery({
     queryKey: assessmentKeys.feedbackItems.ofStudent(phaseId, courseParticipationID),
     queryFn: () =>
       assessmentApi.feedbackItems.ofStudent(phaseId ?? '', courseParticipationID ?? ''),
     enabled: !!phaseId && !!courseParticipationID,
   })
+
+  const evaluations = evaluationsQuery.data ?? []
+  const feedbackItems = feedbackItemsQuery.data ?? []
 
   const participant = useMemo(
     () =>
@@ -134,97 +127,88 @@ export const EvaluationParticipantResultsPage = ({
     [evaluations],
   )
 
-  const isPending = isEvaluationsPending || isFeedbackItemsPending
-  const isError = isEvaluationsError || isFeedbackItemsError
-  const refetch = () => {
-    refetchEvaluations()
-    refetchFeedbackItems()
-  }
-
-  if (isError) {
-    return <ErrorPage onRetry={refetch} />
-  }
-
-  if (isPending) {
-    return <LoadingPage />
-  }
-
-  if (!participant) {
-    return <ErrorPage message='The requested participant could not be found.' />
-  }
-
-  const studentName = getStudentName(participant.student)
-  const teamName = teams.find((team) =>
-    team.members.some((member) => member.id === courseParticipationID),
-  )?.name
-
   return (
-    <>
-      <div className='space-y-4 print:hidden'>
-        <EvaluationHeader>
-          {pageTitle} for {studentName}
-        </EvaluationHeader>
-
-        {categories.length === 0 ? (
-          <Card>
-            <CardContent className='p-6'>
-              <p className='text-center text-muted-foreground'>
-                No evaluation categories configured yet.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className='space-y-6'>
-            <div className='space-y-4'>
-              {categories.map((category) => (
-                <CategoryEvaluation
-                  key={category.id}
-                  category={category}
-                  assessmentType={assessmentType}
-                  evaluations={evaluationsByCategory.get(category.id) ?? []}
-                />
-              ))}
-            </div>
-
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-              <FeedbackItemDisplayPanel
-                feedbackItems={negativeFeedbackItems}
-                feedbackType='negative'
-                studentName={participant.student.firstName}
-              />
-              <FeedbackItemDisplayPanel
-                feedbackItems={positiveFeedbackItems}
-                feedbackType='positive'
-                studentName={participant.student.firstName}
-              />
-            </div>
-          </div>
-        )}
-
-        {categories.length > 0 && (
-          <div className='flex justify-end pt-4'>
-            <Button variant='outline' onClick={printPage} className='gap-2'>
-              <Printer className='h-4 w-4' />
-              PDF / Print
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <PrintReport
-        title={`${pageTitle} for ${studentName}`}
-        subtitle={teamName}
-        meta={
-          evaluatorCount > 1 ? (
-            <span>
-              <strong>Evaluators:</strong> {evaluatorCount}
-            </span>
-          ) : undefined
+    <QueryGate queries={[evaluationsQuery, feedbackItemsQuery]}>
+      {() => {
+        if (!participant) {
+          return <ErrorPage message='The requested participant could not be found.' />
         }
-        categories={categories}
-        scores={reportScores}
-        feedbackItems={typedFeedbackItems}
-      />
-    </>
+
+        const studentName = getStudentName(participant.student)
+        const teamName = teams.find((team) =>
+          team.members.some((member) => member.id === courseParticipationID),
+        )?.name
+
+        return (
+          <>
+            <div className='space-y-4 print:hidden'>
+              <EvaluationHeader>
+                {pageTitle} for {studentName}
+              </EvaluationHeader>
+
+              {categories.length === 0 ? (
+                <Card>
+                  <CardContent className='p-6'>
+                    <p className='text-center text-muted-foreground'>
+                      No evaluation categories configured yet.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className='space-y-6'>
+                  <div className='space-y-4'>
+                    {categories.map((category) => (
+                      <CategoryEvaluation
+                        key={category.id}
+                        category={category}
+                        assessmentType={assessmentType}
+                        evaluations={evaluationsByCategory.get(category.id) ?? []}
+                      />
+                    ))}
+                  </div>
+
+                  <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+                    <FeedbackItemDisplayPanel
+                      feedbackItems={negativeFeedbackItems}
+                      feedbackType='negative'
+                      studentName={participant.student.firstName}
+                    />
+                    <FeedbackItemDisplayPanel
+                      feedbackItems={positiveFeedbackItems}
+                      feedbackType='positive'
+                      studentName={participant.student.firstName}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {categories.length > 0 && (
+                <div className='flex justify-end pt-4'>
+                  <Button variant='outline' onClick={printPage} className='gap-2'>
+                    <Printer className='h-4 w-4' />
+                    PDF / Print
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <PrintReport
+              title={`${pageTitle} for ${studentName}`}
+              subtitle={teamName}
+              meta={
+                evaluatorCount > 1 ? (
+                  <span>
+                    <strong>Evaluators:</strong> {evaluatorCount}
+                  </span>
+                ) : undefined
+              }
+              categories={categories}
+              scores={reportScores}
+              feedbackItems={typedFeedbackItems}
+            />
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

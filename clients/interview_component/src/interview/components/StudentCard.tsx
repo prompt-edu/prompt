@@ -17,33 +17,16 @@ import {
   getStudentName,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { format } from 'date-fns'
-import {
-  BookOpen,
-  Calendar,
-  Clock,
-  ExternalLink,
-  FileUserIcon,
-  GraduationCap,
-  MapPin,
-  Mic,
-} from 'lucide-react'
+import { BookOpen, ExternalLink, FileUserIcon, GraduationCap, Mic } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { getApplicationParticipantPath } from '../utils/getApplicationParticipantPath'
 import { useParticipationStore } from '../zustand/useParticipationStore'
-
-interface InterviewSlotData {
-  id: string
-  startTime: string
-  endTime: string
-  location: string | null
-}
 
 interface StudentCardProps {
   participation: CoursePhaseParticipationWithStudent
-  interviewSlot?: InterviewSlotData
 }
 
-export function StudentCard({ participation, interviewSlot }: StudentCardProps) {
+export function StudentCard({ participation }: StudentCardProps) {
   const { interviewReviews } = useParticipationStore()
   const navigate = useNavigate()
   const { courseId } = useParams<{ courseId: string }>()
@@ -52,13 +35,11 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
   const assessmentScore = participation.prevData?.score ?? 'N/A'
   const interviewScore = interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'
 
-  const applicationPhaseId = courses
-    .find((c) => c.id === courseId)
-    ?.coursePhases.find((p) => p.coursePhaseType === 'Application')?.id
-  const applicationLink =
-    courseId && applicationPhaseId && participation.courseParticipationID
-      ? `/management/course/${courseId}/${applicationPhaseId}/participants/${participation.courseParticipationID}`
-      : undefined
+  const applicationLink = getApplicationParticipantPath(
+    courses,
+    courseId,
+    participation.courseParticipationID,
+  )
 
   return (
     <Card className='h-full relative overflow-hidden'>
@@ -79,38 +60,6 @@ export function StudentCard({ participation, interviewSlot }: StudentCardProps) 
 
       <CardHeader>
         <CardTitle className='text-left'>{getStudentName(participation.student)}</CardTitle>
-        {interviewSlot && (
-          <div className='mt-2 space-y-1'>
-            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-              <Calendar className='h-3 w-3' />
-              <span>{format(new Date(interviewSlot.startTime), 'PPP')}</span>
-            </div>
-            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-              <Clock className='h-3 w-3' />
-              <span>
-                {format(new Date(interviewSlot.startTime), 'p')} -{' '}
-                {format(new Date(interviewSlot.endTime), 'p')}
-              </span>
-            </div>
-            {interviewSlot.location && (
-              <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-                <MapPin className='h-3 w-3 shrink-0' />
-                {interviewSlot.location.match(/^https?:\/\//) ? (
-                  <a
-                    href={interviewSlot.location}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-blue-600 hover:underline truncate min-w-0'
-                  >
-                    {interviewSlot.location}
-                  </a>
-                ) : (
-                  <span className='truncate min-w-0'>{interviewSlot.location}</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </CardHeader>
 
       <CardContent className='grid gap-2'>

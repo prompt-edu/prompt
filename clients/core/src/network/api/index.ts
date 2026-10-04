@@ -1,3 +1,4 @@
+import { announcements } from './announcements'
 import { applications } from './applications'
 import { apply } from './apply'
 import { auditLog } from './auditLog'
@@ -17,6 +18,7 @@ import { system } from './system'
  * `coreApi.applications.form(phaseId)` and the resource id comes first.
  */
 export const coreApi = {
+  announcements,
   applications,
   apply,
   auditLog,

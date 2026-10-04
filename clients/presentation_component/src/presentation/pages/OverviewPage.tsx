@@ -20,6 +20,7 @@ import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
 import type { PresentationMaterial, PresentationSummary } from '../interfaces'
 import { presentationApi } from '../network'
+import { presentationKeys } from '../network/cache'
 import { buildSampleMaterials, buildSamplePresentation } from '../samplePresentation'
 import { formatDateTime, getApiError } from '../utils'
 
@@ -102,7 +103,7 @@ const NonStudentPreview = ({
 }) => {
   const navigate = useNavigate()
   const configQuery = useQuery({
-    queryKey: ['presentation-config', coursePhaseId],
+    queryKey: presentationKeys.config(coursePhaseId),
     queryFn: () => presentationApi.getConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
@@ -167,7 +168,7 @@ const OverviewPage = () => {
   const navigate = useNavigate()
 
   const presentationQuery = useQuery({
-    queryKey: ['presentations', coursePhaseId, 'own'],
+    queryKey: presentationKeys.presentations.own(coursePhaseId),
     queryFn: () => presentationApi.getOwnPresentation(coursePhaseId),
     enabled: isStudent && Boolean(coursePhaseId),
   })

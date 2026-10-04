@@ -12,6 +12,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { certificateCache } from '../network/cache'
 import { updateStudentPageText } from '../network/queries/getConfig'
 
 interface StudentPageTextCardProps {
@@ -62,7 +63,7 @@ export const StudentPageTextCard = ({ phaseId, initialText }: StudentPageTextCar
     mutationFn: (value: string | null) => updateStudentPageText(phaseId, value),
     onSuccess: (_, value) => {
       setSavedText(value ?? '')
-      queryClient.invalidateQueries({ queryKey: ['config', phaseId] })
+      certificateCache.configChanged(queryClient, phaseId)
       toast({ title: 'Success', description: 'Student page text updated successfully' })
     },
     onError: (error) => {

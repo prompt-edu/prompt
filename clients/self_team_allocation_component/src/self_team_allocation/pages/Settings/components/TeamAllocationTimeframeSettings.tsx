@@ -19,6 +19,7 @@ import { AlertCircle, CalendarIcon, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Timeframe } from '../../../interfaces/timeframe'
+import { selfTeamAllocationCache } from '../../../network/cache'
 import { updateTimeframe } from '../../../network/mutations/updateTimeframe'
 
 dayjs.extend(utc)
@@ -73,7 +74,7 @@ export const TeamAllocationTimeframeSettings = ({
     mutationFn: ({ start, end }: { start: Date; end: Date }) =>
       updateTimeframe(phaseId ?? '', start, end),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['timeframe', phaseId] })
+      selfTeamAllocationCache.timeframeChanged(queryClient, phaseId)
       setError(null)
     },
     onError: () => {

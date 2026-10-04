@@ -19,6 +19,7 @@ import {
 import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { Timeframe } from '../../interfaces/timeframe'
+import { selfTeamAllocationKeys } from '../../network/cache'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamSelection } from './components/TeamSelection'
@@ -40,7 +41,7 @@ export const SelfTeamAllocationPage = () => {
     refetch: refetchCoursePhaseParticipations,
     error: participationError,
   } = useQuery<CoursePhaseParticipationWithStudent>({
-    queryKey: ['course_phase_participation', phaseId],
+    queryKey: selfTeamAllocationKeys.myParticipation(phaseId),
     queryFn: () => getOwnCoursePhaseParticipation(phaseId),
     enabled: isStudent,
   })
@@ -51,7 +52,7 @@ export const SelfTeamAllocationPage = () => {
     isError: isTeamsError,
     refetch: refetchTeams,
   } = useQuery<Team[]>({
-    queryKey: ['self_team_allocations', phaseId],
+    queryKey: selfTeamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId),
   })
 
@@ -61,7 +62,7 @@ export const SelfTeamAllocationPage = () => {
     isError: isTimeframeError,
     refetch: refetchTimeframe,
   } = useQuery<Timeframe>({
-    queryKey: ['timeframe', phaseId],
+    queryKey: selfTeamAllocationKeys.timeframe(phaseId),
     queryFn: () => getTimeframe(phaseId),
   })
 

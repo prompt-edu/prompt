@@ -310,6 +310,10 @@ func TestOutlineKeepsCollectionWhenBindFails(t *testing.T) {
 	if len(resource.Warnings) != 1 {
 		t.Fatalf("warnings = %v, want one for the failed binding", resource.Warnings)
 	}
+	// The student is in the group, but an unbound group cannot see the collection.
+	if members := resource.Warnings[0].Members; len(members) != 1 || members[0] != "student@example.com" {
+		t.Fatalf("warning members = %v, want the group's member left without access", members)
+	}
 }
 
 // A role with no mapping must be reported, not quietly granted read access.

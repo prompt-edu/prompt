@@ -1,12 +1,4 @@
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App'
+import { mountRemote } from '../../shared/runtime/mountRemote'
+import { StandaloneNotice } from '../../shared/runtime/StandaloneNotice'
 
-const rootElement = document.getElementById('presentation-root')
-if (rootElement) {
-  createRoot(rootElement).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  )
-}
+mountRemote('presentation-root', <StandaloneNotice title='Prompt Presentation Component' />)

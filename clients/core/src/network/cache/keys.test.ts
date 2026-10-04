@@ -23,6 +23,10 @@ describe('coreKeys', () => {
     expect(coreKeys.applications.form(undefined)).toEqual(['application_form', undefined])
   })
 
+  it('builds the phase participants key under the literal shared with the remotes', () => {
+    expect(coreKeys.coursePhases.participants(PHASE)).toEqual(['participants', PHASE])
+  })
+
   it('keeps the two course phase caches apart, since they hold the same phase', () => {
     expect(coreKeys.coursePhases.byId(PHASE)).toEqual(['course_phase', PHASE])
     expect(coreKeys.coursePhases.byIdInArchiveDialog(PHASE)).toEqual(['coursePhase', PHASE])

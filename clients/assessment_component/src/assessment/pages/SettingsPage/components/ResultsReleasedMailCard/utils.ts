@@ -28,6 +28,10 @@ export const describeMailReport = ({
   successfulEmails,
   failedEmails,
 }: ResultsReleasedMailReport): string => {
+  if (successfulEmails.length === 0 && failedEmails.length === 0) {
+    return 'All students were already notified.'
+  }
+
   const sent = `${successfulEmails.length} notification ${
     successfulEmails.length === 1 ? 'mail was' : 'mails were'
   } sent.`

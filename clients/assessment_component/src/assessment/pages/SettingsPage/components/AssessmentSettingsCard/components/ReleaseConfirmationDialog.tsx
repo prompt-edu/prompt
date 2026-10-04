@@ -1,3 +1,4 @@
+import { useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,7 +36,9 @@ export function ReleaseConfirmationDialog({
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: coursePhase } = useGetCoursePhaseMetaData()
   const resultsMail = parseResultsReleasedMail(coursePhase)
-  const notifiesStudents = resultsMail.sendOnRelease && isTemplateComplete(resultsMail)
+  const courseMailingIsConfigured = useGetMailingIsConfigured()
+  const notifiesStudents =
+    courseMailingIsConfigured && resultsMail.sendOnRelease && isTemplateComplete(resultsMail)
 
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true

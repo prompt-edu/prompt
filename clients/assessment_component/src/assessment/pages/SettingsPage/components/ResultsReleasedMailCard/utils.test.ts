@@ -56,4 +56,10 @@ describe('describeMailReport', () => {
       }),
     ).toBe('2 notification mails were sent. 1 could not be delivered.')
   })
+
+  it('says when nobody was left to notify', () => {
+    expect(
+      describeMailReport({ successfulEmails: [], failedEmails: [], requestedRecipients: 0 }),
+    ).toBe('All students were already notified.')
+  })
 })

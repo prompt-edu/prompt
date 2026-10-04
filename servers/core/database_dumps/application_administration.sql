@@ -541,7 +541,7 @@ ALTER TABLE course_phase_participation
   DROP COLUMN old_id;
 
 -- Rename the dependency graph table to "participation_data_dependency_graph"
-ALTER TABLE meta_data_dependency_graph 
+ALTER TABLE meta_data_dependency_graph
     RENAME TO participation_data_dependency_graph;
 
 -- Add files table required by file upload answers
@@ -635,6 +635,6 @@ CREATE INDEX idx_application_answer_file_upload_file ON application_answer_file_
 
 -- Add sample file upload question for testing
 INSERT INTO application_question_file_upload (id, course_phase_id, title, description, is_required, allowed_file_types, max_file_size_mb, order_num, accessible_for_other_phases, access_key)
-VALUES 
+VALUES
     ('b1b04042-95d1-4765-8592-caf9560c8c3d', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Resume Upload', 'Please upload your resume', true, '.pdf,.doc,.docx', 10, 3, false, null),
     ('c2c04042-95d1-4765-8592-caf9560c8c3e', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Portfolio', 'Upload your portfolio (optional)', false, '.pdf,.zip', 20, 4, false, null);

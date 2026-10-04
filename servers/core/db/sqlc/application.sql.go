@@ -36,20 +36,20 @@ func (q *Queries) AcceptApplicationIfAutoAccept(ctx context.Context, arg AcceptA
 
 const batchUpdateAdditionalScores = `-- name: BatchUpdateAdditionalScores :exec
 WITH updates AS (
-  SELECT 
+  SELECT
     UNNEST($2::uuid[]) AS course_participation_id,
     UNNEST($3::numeric[]) AS score,
     $4::text[] AS path -- Use $3 as a JSON path array
 )
 UPDATE course_phase_participation
-SET    
+SET
     restricted_data = jsonb_set(
         COALESCE(restricted_data, '{}'),
         updates.path, -- Use dynamic path
         to_jsonb(ROUND(updates.score, 2)) -- Convert the float score to JSONB
     )
 FROM updates
-WHERE 
+WHERE
     course_phase_participation.course_participation_id = updates.course_participation_id
     AND course_phase_participation.course_phase_id = $1::uuid
 `
@@ -72,15 +72,15 @@ func (q *Queries) BatchUpdateAdditionalScores(ctx context.Context, arg BatchUpda
 }
 
 const checkIfCoursePhaseIsApplicationPhase = `-- name: CheckIfCoursePhaseIsApplicationPhase :one
-SELECT 
+SELECT
     cpt.name = 'Application' AS is_application
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
-ON 
+ON
     cp.course_phase_type_id = cpt.id
-WHERE 
+WHERE
     cp.id = $1
 `
 
@@ -92,14 +92,14 @@ func (q *Queries) CheckIfCoursePhaseIsApplicationPhase(ctx context.Context, id u
 }
 
 const checkIfCoursePhaseIsOpenApplicationPhase = `-- name: CheckIfCoursePhaseIsOpenApplicationPhase :one
-SELECT 
+SELECT
     cpt.name = 'Application' AS is_application,
-    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available 
-FROM 
+    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
-ON 
+ON
     cp.course_phase_type_id = cpt.id
 WHERE
     cp.id = $1
@@ -669,7 +669,7 @@ SELECT
     s.matriculation_number,
     s.university_login,
     s.has_university_account,
-    s.gender, 
+    s.gender,
     s.nationality,
     s.study_degree,
     s.study_program,
@@ -746,27 +746,27 @@ func (q *Queries) GetAllApplicationParticipations(ctx context.Context, coursePha
 }
 
 const getAllOpenApplicationPhases = `-- name: GetAllOpenApplicationPhases :many
-SELECT 
+SELECT
     cp.id AS course_phase_id,
     c.name AS course_name,
-    c.start_date, 
+    c.start_date,
     c.end_date,
-    c.course_type, 
+    c.course_type,
     c.ects,
     c.short_description,
     c.long_description,
     (cp.restricted_data->>'applicationEndDate')::text AS application_end_date,
     (cp.restricted_data->>'externalStudentsAllowed')::boolean AS external_students_allowed,
     (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
     ON cp.course_phase_type_id = cpt.id
-JOIN 
+JOIN
     course c
     ON cp.course_id = c.id
-WHERE 
+WHERE
     cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
@@ -1165,7 +1165,7 @@ func (q *Queries) GetApplicationQuestionsTextForCoursePhase(ctx context.Context,
 }
 
 const getExistingAdditionalScores = `-- name: GetExistingAdditionalScores :one
-SELECT 
+SELECT
     restricted_data->>'additional_scores' AS additional_scores
 FROM
     course_phase
@@ -1288,12 +1288,12 @@ func (q *Queries) GetExportedApplicationQuestionsForCoursePhase(ctx context.Cont
 }
 
 const getOpenApplicationPhase = `-- name: GetOpenApplicationPhase :one
-SELECT 
+SELECT
     cp.id AS course_phase_id,
     c.name AS course_name,
-    c.start_date, 
+    c.start_date,
     c.end_date,
-    c.course_type, 
+    c.course_type,
     c.ects,
     c.short_description,
     c.long_description,
@@ -1303,12 +1303,12 @@ SELECT
     -- deliberately public: rendered to applicants on the unauthenticated apply page.
     -- COALESCE keeps the column non-null, so an unset key does not fail the scan.
     COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
     ON cp.course_phase_type_id = cpt.id
-JOIN 
+JOIN
     course c
     ON cp.course_id = c.id
 WHERE
@@ -1363,7 +1363,7 @@ SET restricted_data = jsonb_set(
     '{student_last_modified}', -- Path to the key
     to_jsonb(NOW())::jsonb     -- Value to set
 )
-WHERE 
+WHERE
  course_phase_id = $1
  AND course_participation_id = $2
 `
@@ -1402,13 +1402,13 @@ func (q *Queries) StoreApplicationAssessmentUpdateTimestamp(ctx context.Context,
 const updateApplicationAssessment = `-- name: UpdateApplicationAssessment :exec
 INSERT INTO application_assessment (id, course_phase_id, course_participation_id, score)
 VALUES (
-    gen_random_uuid(),    
-    $1,                   
-    $2, 
-    $3             
+    gen_random_uuid(),
+    $1,
+    $2,
+    $3
 )
-ON CONFLICT (course_phase_id, course_participation_id) 
-DO UPDATE 
+ON CONFLICT (course_phase_id, course_participation_id)
+DO UPDATE
 SET score = EXCLUDED.score
 `
 
@@ -1475,7 +1475,7 @@ SET
     min_select = COALESCE($7, min_select),
     max_select = COALESCE($8, max_select),
     options = COALESCE($9, options),
-    order_num = COALESCE($10, order_num), 
+    order_num = COALESCE($10, order_num),
     accessible_for_other_phases = COALESCE($11, accessible_for_other_phases),
     access_key = COALESCE($12, access_key)
 WHERE id = $1

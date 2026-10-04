@@ -46,7 +46,7 @@ SET
     min_select = COALESCE($7, min_select),
     max_select = COALESCE($8, max_select),
     options = COALESCE($9, options),
-    order_num = COALESCE($10, order_num), 
+    order_num = COALESCE($10, order_num),
     accessible_for_other_phases = COALESCE($11, accessible_for_other_phases),
     access_key = COALESCE($12, access_key)
 WHERE id = $1;
@@ -69,15 +69,15 @@ WHERE id = $1;
 
 
 -- name: CheckIfCoursePhaseIsApplicationPhase :one
-SELECT 
+SELECT
     cpt.name = 'Application' AS is_application
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
-ON 
+ON
     cp.course_phase_type_id = cpt.id
-WHERE 
+WHERE
     cp.id = $1;
 
 -- name: DeleteApplicationQuestionText :exec
@@ -89,27 +89,27 @@ DELETE FROM application_question_multi_select
 WHERE id = $1;
 
 -- name: GetAllOpenApplicationPhases :many
-SELECT 
+SELECT
     cp.id AS course_phase_id,
     c.name AS course_name,
-    c.start_date, 
+    c.start_date,
     c.end_date,
-    c.course_type, 
+    c.course_type,
     c.ects,
     c.short_description,
     c.long_description,
     (cp.restricted_data->>'applicationEndDate')::text AS application_end_date,
     (cp.restricted_data->>'externalStudentsAllowed')::boolean AS external_students_allowed,
     (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
     ON cp.course_phase_type_id = cpt.id
-JOIN 
+JOIN
     course c
     ON cp.course_id = c.id
-WHERE 
+WHERE
     cp.is_initial_phase = true
     AND c.archived = false
     AND cpt.name = 'Application'
@@ -118,12 +118,12 @@ WHERE
     AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW();
 
 -- name: GetOpenApplicationPhase :one
-SELECT 
+SELECT
     cp.id AS course_phase_id,
     c.name AS course_name,
-    c.start_date, 
+    c.start_date,
     c.end_date,
-    c.course_type, 
+    c.course_type,
     c.ects,
     c.short_description,
     c.long_description,
@@ -133,12 +133,12 @@ SELECT
     -- deliberately public: rendered to applicants on the unauthenticated apply page.
     -- COALESCE keeps the column non-null, so an unset key does not fail the scan.
     COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text
-FROM 
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
     ON cp.course_phase_type_id = cpt.id
-JOIN 
+JOIN
     course c
     ON cp.course_id = c.id
 WHERE
@@ -164,14 +164,14 @@ SELECT EXISTS (
 );
 
 -- name: CheckIfCoursePhaseIsOpenApplicationPhase :one
-SELECT 
+SELECT
     cpt.name = 'Application' AS is_application,
-    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available 
-FROM 
+    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
+FROM
     course_phase cp
-JOIN 
+JOIN
     course_phase_type cpt
-ON 
+ON
     cp.course_phase_type_id = cpt.id
 WHERE
     cp.id = $1
@@ -190,14 +190,14 @@ FROM application_answer_multi_select aams
 JOIN application_question_multi_select aqms ON aams.application_question_id = aqms.id
 WHERE aqms.course_phase_id = $1 AND aams.course_participation_id = $2;
 
--- name: CreateOrOverwriteApplicationAnswerText :exec 
+-- name: CreateOrOverwriteApplicationAnswerText :exec
 INSERT INTO application_answer_text (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (course_participation_id, application_question_id)
 DO UPDATE
 SET answer = EXCLUDED.answer;
 
--- name: CreateOrOverwriteApplicationAnswerMultiSelect :exec 
+-- name: CreateOrOverwriteApplicationAnswerMultiSelect :exec
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (course_participation_id, application_question_id)
@@ -217,7 +217,7 @@ SELECT
     s.matriculation_number,
     s.university_login,
     s.has_university_account,
-    s.gender, 
+    s.gender,
     s.nationality,
     s.study_degree,
     s.study_program,
@@ -237,37 +237,37 @@ WHERE
 -- name: UpdateApplicationAssessment :exec
 INSERT INTO application_assessment (id, course_phase_id, course_participation_id, score)
 VALUES (
-    gen_random_uuid(),    
-    $1,                   
-    $2, 
-    $3             
+    gen_random_uuid(),
+    $1,
+    $2,
+    $3
 )
-ON CONFLICT (course_phase_id, course_participation_id) 
-DO UPDATE 
-SET score = EXCLUDED.score; 
+ON CONFLICT (course_phase_id, course_participation_id)
+DO UPDATE
+SET score = EXCLUDED.score;
 
 -- name: BatchUpdateAdditionalScores :exec
 WITH updates AS (
-  SELECT 
+  SELECT
     UNNEST(sqlc.arg(course_participation_ids)::uuid[]) AS course_participation_id,
     UNNEST(sqlc.arg(scores)::numeric[]) AS score,
     sqlc.arg(score_name)::text[] AS path -- Use $3 as a JSON path array
 )
 UPDATE course_phase_participation
-SET    
+SET
     restricted_data = jsonb_set(
         COALESCE(restricted_data, '{}'),
         updates.path, -- Use dynamic path
         to_jsonb(ROUND(updates.score, 2)) -- Convert the float score to JSONB
     )
 FROM updates
-WHERE 
+WHERE
     course_phase_participation.course_participation_id = updates.course_participation_id
     AND course_phase_participation.course_phase_id = sqlc.arg(course_phase_id)::uuid;
 
 
 -- name: GetExistingAdditionalScores :one
-SELECT 
+SELECT
     restricted_data->>'additional_scores' AS additional_scores
 FROM
     course_phase
@@ -295,7 +295,7 @@ SET restricted_data = jsonb_set(
     '{student_last_modified}', -- Path to the key
     to_jsonb(NOW())::jsonb     -- Value to set
 )
-WHERE 
+WHERE
  course_phase_id = $1
  AND course_participation_id = $2;
 
@@ -449,4 +449,3 @@ WHERE aa.course_participation_id = ANY($1::uuid[]);
 SELECT file_id
 FROM application_answer_file_upload
 WHERE course_participation_id = ANY($1::uuid[]);
-

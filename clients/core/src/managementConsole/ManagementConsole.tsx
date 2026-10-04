@@ -157,7 +157,7 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
         <SidebarInset>
           {courseId && !courseExists && <CourseNotFound courseId={courseId || ''} />}
           <header className='sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4 print:hidden'>
-            <div className='flex min-w-0 items-center gap-2'>
+            <div className='flex min-w-0 flex-1 items-center gap-2'>
               <SidebarTrigger className='-ml-1' />
               <Separator orientation='vertical' className='mr-2 h-4' />
               <Breadcrumbs />

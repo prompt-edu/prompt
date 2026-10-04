@@ -216,6 +216,20 @@ func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
 			actionKey: "POST " + auditCoursePhaseTemplate + "/student-assessment/completed/mark-complete",
 		},
 		{
+			name:      "assessments marked complete in a batch",
+			method:    http.MethodPost,
+			path:      auditCoursePhaseRoute + "/student-assessment/completed/mark-complete/batch",
+			action:    "Marked assessments as completed",
+			actionKey: "POST " + auditCoursePhaseTemplate + "/student-assessment/completed/mark-complete/batch",
+		},
+		{
+			name:      "assessments unmarked in a batch",
+			method:    http.MethodPut,
+			path:      auditCoursePhaseRoute + "/student-assessment/completed/unmark/batch",
+			action:    "Unmarked assessment completions",
+			actionKey: "PUT " + auditCoursePhaseTemplate + "/student-assessment/completed/unmark/batch",
+		},
+		{
 			name:      "assessment unmarked",
 			method:    http.MethodPut,
 			path:      auditCoursePhaseRoute + "/student-assessment/completed" + auditParticipationSegment + "/unmark",

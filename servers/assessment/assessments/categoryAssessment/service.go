@@ -49,7 +49,7 @@ func wrapEditabilityError(err error) error {
 	return err
 }
 
-func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
+func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, coursePhaseID uuid.UUID, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -58,13 +58,13 @@ func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context
 
 	qtx := s.queries.WithTx(tx)
 
-	if err := wrapEditabilityError(s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, req.CoursePhaseID)); err != nil {
+	if err := wrapEditabilityError(s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, coursePhaseID)); err != nil {
 		return err
 	}
 
 	if err := qtx.CreateOrUpdateCategoryAssessment(ctx, db.CreateOrUpdateCategoryAssessmentParams{
 		CategoryID:            req.CategoryID,
-		CoursePhaseID:         req.CoursePhaseID,
+		CoursePhaseID:         coursePhaseID,
 		CourseParticipationID: req.CourseParticipationID,
 		Comment:               req.Comment,
 		Author:                req.Author,

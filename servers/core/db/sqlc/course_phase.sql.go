@@ -157,6 +157,39 @@ func (q *Queries) GetCoursePhase(ctx context.Context, id uuid.UUID) (GetCoursePh
 	return i, err
 }
 
+const getCoursePhaseDeletionTargets = `-- name: GetCoursePhaseDeletionTargets :many
+SELECT cp.id, cpt.name AS course_phase_type_name, cpt.base_url
+FROM course_phase cp
+JOIN course_phase_type cpt ON cpt.id = cp.course_phase_type_id
+WHERE cp.id = ANY($1::uuid[])
+`
+
+type GetCoursePhaseDeletionTargetsRow struct {
+	ID                  uuid.UUID `json:"id"`
+	CoursePhaseTypeName string    `json:"course_phase_type_name"`
+	BaseUrl             string    `json:"base_url"`
+}
+
+func (q *Queries) GetCoursePhaseDeletionTargets(ctx context.Context, coursePhaseIds []uuid.UUID) ([]GetCoursePhaseDeletionTargetsRow, error) {
+	rows, err := q.db.Query(ctx, getCoursePhaseDeletionTargets, coursePhaseIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCoursePhaseDeletionTargetsRow
+	for rows.Next() {
+		var i GetCoursePhaseDeletionTargetsRow
+		if err := rows.Scan(&i.ID, &i.CoursePhaseTypeName, &i.BaseUrl); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPrevCoursePhaseDataFromCore = `-- name: GetPrevCoursePhaseDataFromCore :one
 SELECT jsonb_object_agg(sub.dto_name, sub.dto_value) AS incoming_dto_objects
 FROM (
@@ -226,7 +259,7 @@ func (q *Queries) GetPrevCoursePhaseDataResolution(ctx context.Context, toCourse
 const getResolutionsForCoursePhase = `-- name: GetResolutionsForCoursePhase :many
 SELECT po.dto_name, cpt.base_url, po.endpoint_path, mdg.from_course_phase_id
 FROM participation_data_dependency_graph mdg
-JOIN course_phase_type_participation_provided_output_dto po 
+JOIN course_phase_type_participation_provided_output_dto po
   ON po.id = mdg.from_course_phase_DTO_id
 JOIN course_phase_type cpt
   ON cpt.id = po.course_phase_type_id
@@ -266,10 +299,10 @@ func (q *Queries) GetResolutionsForCoursePhase(ctx context.Context, toCoursePhas
 	return items, nil
 }
 
-const updateCoursePhase = `-- name: UpdateCoursePhase :exec
+const updateCoursePhase = `-- name: UpdateCoursePhase :execrows
 UPDATE course_phase
-SET 
-    name = COALESCE($2, name), 
+SET
+    name = COALESCE($2, name),
     restricted_data = restricted_data || $3,
     student_readable_data = student_readable_data || $4
 WHERE id = $1
@@ -282,12 +315,15 @@ type UpdateCoursePhaseParams struct {
 	StudentReadableData []byte      `json:"student_readable_data"`
 }
 
-func (q *Queries) UpdateCoursePhase(ctx context.Context, arg UpdateCoursePhaseParams) error {
-	_, err := q.db.Exec(ctx, updateCoursePhase,
+func (q *Queries) UpdateCoursePhase(ctx context.Context, arg UpdateCoursePhaseParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCoursePhase,
 		arg.ID,
 		arg.Name,
 		arg.RestrictedData,
 		arg.StudentReadableData,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

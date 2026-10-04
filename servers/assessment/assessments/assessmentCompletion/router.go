@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,6 +14,11 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	auditMarkBatchAction   = "Marked assessments as completed"
+	auditUnmarkBatchAction = "Unmarked assessment completions"
 )
 
 // RegisterRoutes sets up assessment completion endpoints.
@@ -35,6 +41,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionS
 	assessmentCompletionRouter.POST("", audit.Describe("Saved assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
 	assessmentCompletionRouter.PUT("", audit.Describe("Saved assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessmentCompletion)
 	assessmentCompletionRouter.POST("/mark-complete", audit.Describe("Marked assessment as completed"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentAsCompleted)
+	assessmentCompletionRouter.POST("/mark-complete/batch", audit.Describe(auditMarkBatchAction), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.markAssessmentsAsCompleted)
+	assessmentCompletionRouter.PUT("/unmark/batch", audit.Describe(auditUnmarkBatchAction), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentsAsCompleted)
 	assessmentCompletionRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAssessmentCompletion)
 	assessmentCompletionRouter.PUT("/course-participation/:courseParticipationID/unmark", audit.Describe("Unmarked assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.unmarkAssessmentAsCompleted)
 	assessmentCompletionRouter.DELETE("/course-participation/:courseParticipationID", audit.Describe("Deleted assessment completion"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteAssessmentCompletion)
@@ -213,6 +221,87 @@ func (s *AssessmentCompletionService) markAssessmentAsCompleted(c *gin.Context) 
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment marked as completed successfully"})
 }
 
+// markAssessmentsAsCompleted godoc
+// @Summary Mark assessments as completed
+// @Description Mark several assessments as completed. Assessments that cannot be marked yet are skipped and reported with a reason.
+// @Tags assessment_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param request body assessmentCompletionDTO.BatchCompletionRequest true "Course participations to mark"
+// @Success 200 {object} assessmentCompletionDTO.BatchMarkResult
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/mark-complete/batch [post]
+func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	var req assessmentCompletionDTO.BatchCompletionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, authorName(tokenUser))
+	if err != nil {
+		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+	recordBatchAudit(c, auditMarkBatchAction, coursePhaseID, result.Marked)
+	c.JSON(http.StatusOK, result)
+}
+
+// unmarkAssessmentsAsCompleted godoc
+// @Summary Unmark assessments as completed
+// @Description Unmark several assessment completions. Assessments that are not completed are skipped and reported.
+// @Tags assessment_completions
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param request body assessmentCompletionDTO.BatchCompletionRequest true "Course participations to unmark"
+// @Success 200 {object} assessmentCompletionDTO.BatchUnmarkResult
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/completed/unmark/batch [put]
+func (s *AssessmentCompletionService) unmarkAssessmentsAsCompleted(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	var req assessmentCompletionDTO.BatchCompletionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	result, err := s.UnmarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs)
+	if err != nil {
+		if errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+	recordBatchAudit(c, auditUnmarkBatchAction, coursePhaseID, result.Unmarked)
+	c.JSON(http.StatusOK, result)
+}
+
 // deleteAssessmentCompletion godoc
 // @Summary Delete assessment completion
 // @Description Delete an assessment completion by course participation ID.
@@ -368,6 +457,33 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// recordBatchAudit lists the changed participations on the audit entry, since the automatic
+// entry only knows the route and the IDs arrive in the request body.
+func recordBatchAudit(c *gin.Context, action string, coursePhaseID uuid.UUID, changed []uuid.UUID) {
+	courseParticipationIDs := make([]string, len(changed))
+	for i, id := range changed {
+		courseParticipationIDs[i] = id.String()
+	}
+	audit.Record(c, audit.Event{
+		Action:        action,
+		EntityType:    "assessmentCompletion",
+		CoursePhaseID: coursePhaseID.String(),
+		Metadata:      map[string]any{"courseParticipationIDs": courseParticipationIDs},
+	})
+}
+
+// authorName is the name stored on a completion, falling back to the university login and then
+// the email when the token carries no first or last name.
+func authorName(tokenUser keycloakTokenVerifier.TokenUser) string {
+	if name := strings.TrimSpace(tokenUser.FirstName + " " + tokenUser.LastName); name != "" {
+		return name
+	}
+	if login := strings.TrimSpace(tokenUser.UniversityLogin); login != "" {
+		return login
+	}
+	return strings.TrimSpace(tokenUser.Email)
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {

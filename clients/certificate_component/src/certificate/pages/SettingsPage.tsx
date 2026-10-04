@@ -34,6 +34,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { StudentPageTextCard } from '../components/StudentPageTextCard'
+import { certificateKeys } from '../network/cache'
 import { getConfig, updateConfig, updateReleaseDate } from '../network/queries/getConfig'
 import { type PreviewError, previewCertificate } from '../network/queries/previewCertificate'
 
@@ -68,7 +69,7 @@ export const SettingsPage = () => {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['config', phaseId],
+    queryKey: certificateKeys.config(phaseId),
     queryFn: () => getConfig(phaseId ?? ''),
     enabled: !!phaseId,
   })

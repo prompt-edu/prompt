@@ -1,9 +1,17 @@
-import { Button, useToast } from '@tumaet/prompt-ui-components'
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  useToast,
+} from '@tumaet/prompt-ui-components'
 import { Download, Upload } from 'lucide-react'
 import { useRef } from 'react'
 
 import type { AssessmentType } from '../../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../../interfaces/category'
+import { printPage } from '../../../../utils/printPage'
 import { triggerTextDownload } from '../../../../utils/triggerTextDownload'
 import {
   type AssessmentSchemaTemplate,
@@ -124,10 +132,18 @@ export const SchemaTemplateButtons = ({
         className='hidden'
         onChange={handleFileSelected}
       />
-      <Button variant='outline' size='sm' onClick={handleExport} disabled={categories.length === 0}>
-        <Download className='mr-2 h-4 w-4' />
-        Export
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant='outline' size='sm' disabled={categories.length === 0}>
+            <Download className='mr-2 h-4 w-4' />
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end'>
+          <DropdownMenuItem onSelect={printPage}>PDF / Print</DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleExport}>JSON</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Button
         variant='outline'
         size='sm'

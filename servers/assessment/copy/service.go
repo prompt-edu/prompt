@@ -115,6 +115,7 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 		ActionItemsVisible:       pgtype.Bool{Bool: sourceConfig.ActionItemsVisible, Valid: true},
 		GradingSheetVisible:      pgtype.Bool{Bool: sourceConfig.GradingSheetVisible, Valid: true},
 		AssessmentEnabled:        sourceConfig.AssessmentEnabled,
+		TutorDisplayName:         sourceConfig.TutorDisplayName,
 	}
 
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)

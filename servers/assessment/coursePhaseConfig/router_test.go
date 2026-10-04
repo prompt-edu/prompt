@@ -160,6 +160,16 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestGetCoursePhaseConfigInvalidID
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
+func (suite *CoursePhaseConfigRouterTestSuite) TestPutCoursePhaseConfigRejectsTooLongTutorDisplayName() {
+	body := fmt.Sprintf(`{"tutorDisplayName": %q}`, strings.Repeat("a", 51))
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/course_phase/%s/config", uuid.New()), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
 func (suite *CoursePhaseConfigRouterTestSuite) TestGetParticipationsForCoursePhase() {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/course_phase/%s/config/participations", suite.testCoursePhaseID.String()), nil)
 	resp := httptest.NewRecorder()

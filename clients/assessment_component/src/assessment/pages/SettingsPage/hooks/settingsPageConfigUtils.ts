@@ -73,6 +73,7 @@ export const buildRequestFromConfig = (
     gradeSuggestionVisible: config?.gradeSuggestionVisible ?? true,
     actionItemsVisible: config?.actionItemsVisible ?? true,
     gradingSheetVisible: config?.gradingSheetVisible ?? false,
+    tutorDisplayName: config?.tutorDisplayName ?? '',
   }
 }
 

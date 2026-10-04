@@ -6,10 +6,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -786,7 +786,7 @@ func (s *ApplicationService) postApplicationImport(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

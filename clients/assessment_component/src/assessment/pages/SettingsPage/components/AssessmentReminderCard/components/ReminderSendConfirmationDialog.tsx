@@ -35,7 +35,7 @@ export function ReminderSendConfirmationDialog({
           <DialogTitle>Send reminder?</DialogTitle>
           <DialogDescription>
             {confirmationReminderType &&
-              `This sends ${confirmationReminderType.label.toLowerCase()} reminders to students who still have incomplete evaluations.`}
+              `This sends ${confirmationReminderType.inlineLabel} reminders to students who still have incomplete evaluations.`}
             {previousSentAt &&
               ` A reminder for this type was already sent on ${formatSentAt(previousSentAt)}.`}
           </DialogDescription>

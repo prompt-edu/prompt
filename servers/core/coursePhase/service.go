@@ -5,16 +5,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 // ResolutionReplacer rewrites the base URLs of course phase resolutions.
 type ResolutionReplacer interface {
 	ReplaceResolutionURLs(ctx context.Context, resolutions []resolutionDTO.Resolution) ([]resolutionDTO.Resolution, error)
+	ResolveBaseURL(baseURL string) string
 }
 
 type CoursePhaseService struct {
@@ -40,18 +41,26 @@ func (s *CoursePhaseService) GetCoursePhaseByID(ctx context.Context, id uuid.UUI
 	return coursePhaseDTO.GetCoursePhaseDTOFromDBModel(coursePhase)
 }
 
-func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
-	dbModel, err := coursePhase.GetDBModel()
+var ErrCoursePhaseNotFound = errors.New("course phase not found")
+
+func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
+	dbModel, err := coursePhase.GetDBModel(coursePhaseID)
 	if err != nil {
 		return err
 	}
 
-	dbModel.ID = coursePhase.ID
-	return s.queries.UpdateCoursePhase(ctx, dbModel)
+	rows, err := s.queries.UpdateCoursePhase(ctx, dbModel)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrCoursePhaseNotFound
+	}
+	return nil
 }
 
-func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
-	dbModel, err := coursePhase.GetDBModel()
+func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, courseID uuid.UUID, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
+	dbModel, err := coursePhase.GetDBModel(courseID)
 	if err != nil {
 		return coursePhaseDTO.CoursePhase{}, err
 	}
@@ -65,7 +74,13 @@ func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase 
 	return s.GetCoursePhaseByID(ctx, createdCoursePhase.ID)
 }
 
-func (s *CoursePhaseService) DeleteCoursePhase(ctx context.Context, id uuid.UUID) error {
+// DeleteCoursePhase removes the phase. The modules holding data for it are asked first, so a
+// module that cannot delete its data keeps the phase alive for a retry instead of orphaning it.
+func (s *CoursePhaseService) DeleteCoursePhase(ctx context.Context, authHeader string, id uuid.UUID) error {
+	if err := s.deleteModuleData(ctx, authHeader, []uuid.UUID{id}); err != nil {
+		return err
+	}
+
 	return s.queries.DeleteCoursePhase(ctx, id)
 }
 

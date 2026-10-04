@@ -193,6 +193,7 @@ export const FULL_COURSE_STUDENT = {
 export const FULL_COURSE_APPLICATION_PARTICIPANTS = {
   stan: { firstName: 'Stan', lastName: 'Stan', email: 'pgdp_enjoyer@example.com' },
   maxMustermann: {
+    id: '23bf3123-4f0d-473c-9ef5-d0333e29fe9a',
     firstName: 'Max',
     lastName: 'Mustermann',
     email: 'max.mustermann@tum.de',

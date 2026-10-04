@@ -26,13 +26,16 @@ func (s *ResolutionService) ReplaceResolutionURLs(ctx context.Context, resolutio
 		return resolutions, nil
 	}
 
-	coreHost := NormaliseHost(s.coreHost)
-
 	for i, r := range resolutions {
-		resolutions[i].BaseURL = strings.ReplaceAll(r.BaseURL, "{CORE_HOST}", coreHost)
+		resolutions[i].BaseURL = s.ResolveBaseURL(r.BaseURL)
 	}
 
 	return resolutions, nil
+}
+
+// ResolveBaseURL replaces the {CORE_HOST} placeholder in a course phase type base URL.
+func (s *ResolutionService) ResolveBaseURL(baseURL string) string {
+	return strings.ReplaceAll(baseURL, "{CORE_HOST}", NormaliseHost(s.coreHost))
 }
 
 // NormaliseHost ensures the host string starts with a scheme.

@@ -1,15 +1,16 @@
 package coursePhase
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -71,18 +72,12 @@ func (s *CoursePhaseService) createCoursePhase(c *gin.Context) {
 		return
 	}
 
-	// validate that the courseIDs are identical
-	if newCoursePhase.CourseID != courseID {
-		handleError(c, http.StatusBadRequest, err)
-		return
-	}
-
 	if err := validateCreateCoursePhase(newCoursePhase); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	coursePhase, err := s.CreateCoursePhase(c, newCoursePhase)
+	coursePhase, err := s.CreateCoursePhase(c, courseID, newCoursePhase)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -149,9 +144,16 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 // @Param uuid path string true "Course Phase UUID"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [put]
 func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var updatedCoursePhase coursePhaseDTO.UpdateCoursePhase
 	if err := c.BindJSON(&updatedCoursePhase); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -163,7 +165,11 @@ func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 		return
 	}
 
-	err := s.UpdateCoursePhase(c, updatedCoursePhase)
+	err = s.UpdateCoursePhase(c, id, updatedCoursePhase)
+	if errors.Is(err, ErrCoursePhaseNotFound) {
+		handleError(c, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -181,6 +187,7 @@ func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Failure 502 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [delete]
 func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
@@ -189,9 +196,15 @@ func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 		return
 	}
 
-	err = s.DeleteCoursePhase(c, id)
+	err = s.DeleteCoursePhase(c, c.GetHeader("Authorization"), id)
+	if errors.Is(err, ErrModuleDeletionFailed) {
+		log.Error("Failed to delete course phase module data: ", err)
+		handleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
+		return
+	}
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		log.Error(err)
+		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course phase"))
 		return
 	}
 
@@ -231,7 +244,7 @@ func hasRestrictedDataAccess(userRolesMap map[string]bool, courseTokenIdentifier
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

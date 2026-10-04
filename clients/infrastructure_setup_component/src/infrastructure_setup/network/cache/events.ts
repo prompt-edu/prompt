@@ -34,7 +34,7 @@ export const infrastructureSetupCache = {
       infrastructureSetupKeys.provisioningPreview(phaseId),
     ]),
 
-  // Instance rows carry their config's type, scope and name template
+  // Instances cascade-delete with their config, and each row carries its config's fields
   resourceConfigsChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [
       infrastructureSetupKeys.resourceConfigs(phaseId),

@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom'
 import type { ProviderType } from '../../interfaces/providerConfig'
 import type { ResourceConfig } from '../../interfaces/resourceConfig'
 import { describeTriggerSummary } from '../../interfaces/triggerSummary'
-import { infrastructureSetupKeys } from '../../network/cache'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../../network/cache'
 import { triggerExecution } from '../../network/mutations/triggerExecution'
 import { getProviderConfigs } from '../../network/queries/getProviderConfigs'
 import { getProvisioningPreview } from '../../network/queries/getProvisioningPreview'
@@ -189,8 +189,7 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
       })
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
     },
   })
 

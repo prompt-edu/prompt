@@ -12,6 +12,7 @@ import { ChevronDown, ChevronRight, ExternalLink, RotateCcw, Trash2 } from 'luci
 import { useState } from 'react'
 
 import type { ResourceInstance } from '../interfaces/resourceInstance'
+import { infrastructureSetupCache } from '../network/cache'
 import { deleteInstance } from '../network/mutations/deleteInstance'
 import { retryInstance } from '../network/mutations/retryInstance'
 import { describeError } from '../utils/describeError'
@@ -36,16 +37,10 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
     })
   }
 
-  // Both change what the next run does, which the provisioning preview reports.
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-    queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
-  }
-
   const { mutate: retry, isPending: isRetrying } = useMutation({
     mutationFn: () => retryInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      invalidate()
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
       toast({ title: 'Retry started' })
     },
     onError: onMutationError('retry'),
@@ -54,7 +49,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const { mutate: remove, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      invalidate()
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
       toast({ title: 'Instance deleted' })
       setConfirmOpen(false)
     },

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/profilePicture/profilePictureDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
@@ -170,7 +171,7 @@ func handleServiceError(c *gin.Context, err error) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

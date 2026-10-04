@@ -14,6 +14,7 @@ import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { SurveyForm } from '../../interfaces/surveyForm'
 import type { SurveyResponse } from '../../interfaces/surveyResponse'
+import { teamAllocationKeys } from '../../network/cache'
 import { getSurveyForm } from '../../network/queries/getSurveyForm'
 import { getSurveyOwnResponse } from '../../network/queries/getSurveyOwnResponse'
 import { SurveyFormComponent } from './components/SurveyForm'
@@ -30,7 +31,7 @@ export const StudentSurveyPage = () => {
     isError: isSurveyFormError,
     refetch: refetchSurveyForm,
   } = useQuery<SurveyForm | null>({
-    queryKey: ['team_allocation_survey_form', phaseId], // TODO also update on skill / teams change
+    queryKey: teamAllocationKeys.survey.form(phaseId), // TODO also update on skill / teams change
     queryFn: () => getSurveyForm(phaseId ?? ''),
   })
 
@@ -41,7 +42,7 @@ export const StudentSurveyPage = () => {
     isError: isStudentSurveyResponseError,
     refetch: refetchStudentSurveyResponse,
   } = useQuery<SurveyResponse>({
-    queryKey: ['team_allocation_student_survey_response', phaseId],
+    queryKey: teamAllocationKeys.survey.myResponse(phaseId),
     queryFn: () => getSurveyOwnResponse(phaseId ?? ''),
     enabled: isStudent,
   })

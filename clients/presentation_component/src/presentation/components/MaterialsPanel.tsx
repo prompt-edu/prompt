@@ -20,7 +20,7 @@ import {
   sortMaterialTypes,
 } from '../materialTypes'
 import { openMaterialDownload, presentationApi, uploadMaterial } from '../network'
-import { presentationKeys } from '../network/cache'
+import { presentationCache, presentationKeys } from '../network/cache'
 import { formatFileSize, getErrorMessage } from '../utils'
 
 // Only covers the moment before the config query resolves. The server enforces its own
@@ -204,18 +204,11 @@ export const MaterialsPanel = ({
     (material) => !requiredTypes.includes(material.materialType),
   )
 
-  const invalidateMaterials = () => {
-    void queryClient.invalidateQueries({
-      queryKey: presentationKeys.materials.ofPresentation(coursePhaseId, presentation.id),
-    })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-  }
-
   const deleteMutation = useMutation({
     mutationFn: (materialId: string) =>
       presentationApi.deleteMaterial(coursePhaseId, presentation.id, materialId),
     onSuccess: () => {
-      invalidateMaterials()
+      presentationCache.materialsChanged(queryClient, coursePhaseId, presentation.id)
       toast({ title: 'Material deleted' })
     },
     onError: (error) => {
@@ -249,7 +242,7 @@ export const MaterialsPanel = ({
     setUploadingType(undefined)
 
     const rejected = results.filter((result) => result.status === 'rejected')
-    invalidateMaterials()
+    presentationCache.materialsChanged(queryClient, coursePhaseId, presentation.id)
     if (rejected.length > 0) {
       toast({
         title: 'Some files could not be uploaded',

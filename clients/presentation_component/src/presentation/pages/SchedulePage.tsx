@@ -54,7 +54,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCoursePhaseId } from '../hooks'
 import type { CreateSlotRequest, PresentationSlot, PresentationTarget } from '../interfaces'
 import { presentationApi } from '../network'
-import { presentationKeys } from '../network/cache'
+import { presentationCache, presentationKeys } from '../network/cache'
 import {
   buildSlotTimes,
   EMPTY_SERIES,
@@ -173,12 +173,6 @@ const SchedulePage = () => {
     (target) => !target.assigned && !target.assignedPresentationId,
   )
 
-  const invalidateSchedule = () => {
-    void queryClient.invalidateQueries({ queryKey: ['presentation-slots', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-  }
-
   const resetForm = () => {
     setCreateMultipleSlots(false)
     setFormData(emptySlotForm())
@@ -208,7 +202,7 @@ const SchedulePage = () => {
       return presentationApi.unassignTarget(coursePhaseId, action.slotId)
     },
     onSuccess: (result, action) => {
-      invalidateSchedule()
+      presentationCache.scheduleChanged(queryClient, coursePhaseId)
       if (action.type === 'create' || action.type === 'create-series') {
         setIsCreateDialogOpen(false)
         resetForm()

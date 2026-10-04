@@ -48,7 +48,7 @@ import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
 import type { ActiveEditor, FeedbackAnswer, FeedbackDocument, FeedbackForm } from '../interfaces'
 import { presentationApi, streamFeedbackEvents } from '../network'
-import { presentationKeys } from '../network/cache'
+import { presentationCache, presentationKeys } from '../network/cache'
 import { formatDateTime, getApiError, getErrorMessage } from '../utils'
 
 const SHARED_REFETCH_INTERVAL_MS = 15_000
@@ -208,9 +208,7 @@ const FeedbackWorkspacePage = () => {
                 event.type === 'form.status.changed' ||
                 event.type === 'released'
               ) {
-                void queryClient.invalidateQueries({
-                  queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
-                })
+                presentationCache.feedbackChanged(queryClient, coursePhaseId, presentationId)
               }
             },
             controller.signal,
@@ -244,13 +242,6 @@ const FeedbackWorkspacePage = () => {
     queryClient,
   ])
 
-  const invalidateFeedback = () => {
-    void queryClient.invalidateQueries({
-      queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
-    })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-  }
-
   const actionMutation = useMutation({
     mutationFn: async (action: FeedbackAction) => {
       if (action.type === 'submit') {
@@ -275,7 +266,7 @@ const FeedbackWorkspacePage = () => {
       return presentationApi.resetFeedback(coursePhaseId, presentationId)
     },
     onSuccess: (_data, action) => {
-      invalidateFeedback()
+      presentationCache.feedbackStatusChanged(queryClient, coursePhaseId, presentationId)
       setDeleteDraftOpen(false)
       setReleaseOpen(false)
       setReleaseName('')
@@ -325,9 +316,7 @@ const FeedbackWorkspacePage = () => {
         setDirty((current) => ({ ...current, [categoryId]: false }))
       }
       setSaveStatuses((current) => ({ ...current, [categoryId]: stillEditing ? 'idle' : 'saved' }))
-      void queryClient.invalidateQueries({
-        queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
-      })
+      presentationCache.feedbackChanged(queryClient, coursePhaseId, presentationId)
     } catch (error) {
       const apiError = getApiError(error)
       const conflictAnswer =

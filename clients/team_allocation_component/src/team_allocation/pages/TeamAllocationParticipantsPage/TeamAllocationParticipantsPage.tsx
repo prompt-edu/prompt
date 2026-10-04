@@ -11,6 +11,7 @@ import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Allocation } from '../../interfaces/allocation'
 import type { StudentName } from '../../interfaces/studentNameUpdateRequest'
+import { teamAllocationKeys } from '../../network/cache'
 import { addStudentNamesToTeams } from '../../network/mutations/addStudentNamesToTeams'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
@@ -31,7 +32,7 @@ export const TeamAllocationParticipantsPage = () => {
     isError: isTeamsError,
     refetch: refetchTeams,
   } = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
@@ -41,7 +42,7 @@ export const TeamAllocationParticipantsPage = () => {
     isError: isTeamAllocationsError,
     refetch: refetchTeamAllocations,
   } = useQuery<Allocation[]>({
-    queryKey: ['team_allocations', phaseId],
+    queryKey: teamAllocationKeys.allocations(phaseId),
     queryFn: () => getTeamAllocations(phaseId ?? ''),
   })
 
@@ -109,7 +110,6 @@ export const TeamAllocationParticipantsPage = () => {
     if (!coursePhaseParticipations?.participations?.length || !phaseId) return
 
     const requestPayload = {
-      coursePhaseID: phaseId,
       studentNamesPerID: coursePhaseParticipations.participations.reduce(
         (acc, p) => {
           if (p.student?.firstName && p.student?.lastName) {
@@ -124,7 +124,7 @@ export const TeamAllocationParticipantsPage = () => {
       ),
     }
 
-    void addStudentNamesToTeams(requestPayload).catch((error) => {
+    void addStudentNamesToTeams(phaseId, requestPayload).catch((error) => {
       console.error('Failed to update student names:', error)
     })
   }, [coursePhaseParticipations, phaseId])

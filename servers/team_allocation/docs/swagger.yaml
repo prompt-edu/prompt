@@ -203,8 +203,6 @@ definitions:
     type: object
   teamDTO.StudentNameUpdateRequest:
     properties:
-      coursePhaseID:
-        type: string
       studentNamesPerID:
         additionalProperties:
           $ref: '#/definitions/teamDTO.StudentName'

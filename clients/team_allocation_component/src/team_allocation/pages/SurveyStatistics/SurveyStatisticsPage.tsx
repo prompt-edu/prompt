@@ -18,6 +18,7 @@ import { BarChart3, Clock, Star } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { SurveyStatistics } from '../../interfaces/surveyStatistics'
 import type { SurveyTimeframe } from '../../interfaces/timeframe'
+import { teamAllocationKeys } from '../../network/cache'
 import { getSurveyStatistics } from '../../network/queries/getSurveyStatistics'
 import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { SkillDistributionChart } from './components/SkillDistributionChart'
@@ -44,7 +45,7 @@ export const SurveyStatisticsPage = () => {
     isPending,
     isError,
   } = useQuery<SurveyStatistics>({
-    queryKey: ['team_allocation_survey_statistics', phaseId],
+    queryKey: teamAllocationKeys.survey.statistics(phaseId),
     queryFn: () => getSurveyStatistics(phaseId!),
     enabled: !!phaseId,
   })
@@ -52,7 +53,7 @@ export const SurveyStatisticsPage = () => {
   const { data: participations } = useGetCoursePhaseParticipants()
 
   const { data: timeframe } = useQuery<SurveyTimeframe>({
-    queryKey: ['team_allocation_survey_timeframe', phaseId],
+    queryKey: teamAllocationKeys.survey.timeframe(phaseId),
     queryFn: () => getSurveyTimeframe(phaseId!),
     enabled: !!phaseId,
   })

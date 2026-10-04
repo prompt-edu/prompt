@@ -53,6 +53,7 @@ import type {
 } from '../interfaces'
 import { MATERIAL_TYPE_CATALOG, sortMaterialTypes } from '../materialTypes'
 import { presentationApi } from '../network'
+import { presentationKeys } from '../network/cache'
 import { getApiError, getErrorMessage } from '../utils'
 
 type SettingsAction = { resetExistingData?: boolean } & (
@@ -238,12 +239,12 @@ const SettingsPage = () => {
   const [resetAction, setResetAction] = useState<ResetAction>()
 
   const configQuery = useQuery({
-    queryKey: ['presentation-config', coursePhaseId],
+    queryKey: presentationKeys.config(coursePhaseId),
     queryFn: () => presentationApi.getConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
   const categoriesQuery = useQuery({
-    queryKey: ['presentation-categories', coursePhaseId],
+    queryKey: presentationKeys.categories(coursePhaseId),
     queryFn: () => presentationApi.getCategories(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })

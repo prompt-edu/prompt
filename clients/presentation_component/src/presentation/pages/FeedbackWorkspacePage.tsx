@@ -48,6 +48,7 @@ import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useCoursePhaseId, usePresentationAccess } from '../hooks'
 import type { ActiveEditor, FeedbackAnswer, FeedbackDocument, FeedbackForm } from '../interfaces'
 import { presentationApi, streamFeedbackEvents } from '../network'
+import { presentationKeys } from '../network/cache'
 import { formatDateTime, getApiError, getErrorMessage } from '../utils'
 
 const SHARED_REFETCH_INTERVAL_MS = 15_000
@@ -143,7 +144,7 @@ const FeedbackWorkspacePage = () => {
   }, [values])
 
   const feedbackQuery = useQuery({
-    queryKey: ['presentation-feedback', coursePhaseId, presentationId],
+    queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
     queryFn: () => presentationApi.getFeedback(coursePhaseId, presentationId),
     enabled: Boolean(coursePhaseId && presentationId),
     // The event stream drops events when a subscriber falls behind, so shared mode polls
@@ -208,7 +209,7 @@ const FeedbackWorkspacePage = () => {
                 event.type === 'released'
               ) {
                 void queryClient.invalidateQueries({
-                  queryKey: ['presentation-feedback', coursePhaseId, presentationId],
+                  queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
                 })
               }
             },
@@ -245,7 +246,7 @@ const FeedbackWorkspacePage = () => {
 
   const invalidateFeedback = () => {
     void queryClient.invalidateQueries({
-      queryKey: ['presentation-feedback', coursePhaseId, presentationId],
+      queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
     })
     void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
   }
@@ -325,7 +326,7 @@ const FeedbackWorkspacePage = () => {
       }
       setSaveStatuses((current) => ({ ...current, [categoryId]: stillEditing ? 'idle' : 'saved' }))
       void queryClient.invalidateQueries({
-        queryKey: ['presentation-feedback', coursePhaseId, presentationId],
+        queryKey: presentationKeys.feedback.ofPresentation(coursePhaseId, presentationId),
       })
     } catch (error) {
       const apiError = getApiError(error)

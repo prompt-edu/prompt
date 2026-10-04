@@ -54,6 +54,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCoursePhaseId } from '../hooks'
 import type { CreateSlotRequest, PresentationSlot, PresentationTarget } from '../interfaces'
 import { presentationApi } from '../network'
+import { presentationKeys } from '../network/cache'
 import {
   buildSlotTimes,
   EMPTY_SERIES,
@@ -156,12 +157,12 @@ const SchedulePage = () => {
   const [formData, setFormData] = useState<SlotFormData>(emptySlotForm)
 
   const slotsQuery = useQuery({
-    queryKey: ['presentation-slots', coursePhaseId],
+    queryKey: presentationKeys.slots(coursePhaseId),
     queryFn: () => presentationApi.getSlots(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
   const targetsQuery = useQuery({
-    queryKey: ['presentation-targets', coursePhaseId],
+    queryKey: presentationKeys.targets(coursePhaseId),
     queryFn: () => presentationApi.getTargets(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })

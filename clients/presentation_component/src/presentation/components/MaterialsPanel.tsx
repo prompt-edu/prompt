@@ -20,6 +20,7 @@ import {
   sortMaterialTypes,
 } from '../materialTypes'
 import { openMaterialDownload, presentationApi, uploadMaterial } from '../network'
+import { presentationKeys } from '../network/cache'
 import { formatFileSize, getErrorMessage } from '../utils'
 
 // Only covers the moment before the config query resolves. The server enforces its own
@@ -184,13 +185,13 @@ export const MaterialsPanel = ({
     !isPreview && (isStaff || new Date(presentation.startTime).getTime() > Date.now())
 
   const materialsQuery = useQuery({
-    queryKey: ['presentation-materials', coursePhaseId, presentation.id],
+    queryKey: presentationKeys.materials.ofPresentation(coursePhaseId, presentation.id),
     queryFn: () => presentationApi.getMaterials(coursePhaseId, presentation.id),
     enabled: !isPreview && Boolean(coursePhaseId && presentation.id),
   })
 
   const configQuery = useQuery({
-    queryKey: ['presentation-config', coursePhaseId],
+    queryKey: presentationKeys.config(coursePhaseId),
     queryFn: () => presentationApi.getConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
@@ -205,7 +206,7 @@ export const MaterialsPanel = ({
 
   const invalidateMaterials = () => {
     void queryClient.invalidateQueries({
-      queryKey: ['presentation-materials', coursePhaseId, presentation.id],
+      queryKey: presentationKeys.materials.ofPresentation(coursePhaseId, presentation.id),
     })
     void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
   }

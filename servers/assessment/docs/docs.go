@@ -5133,9 +5133,6 @@ const docTemplate = `{
                 },
                 "courseParticipationID": {
                     "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
                 }
             }
         },

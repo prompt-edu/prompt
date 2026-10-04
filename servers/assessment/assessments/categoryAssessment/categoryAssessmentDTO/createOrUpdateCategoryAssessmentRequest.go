@@ -9,7 +9,6 @@ import (
 // MUST NOT be set by the client (they are intentionally not exported in JSON).
 type CreateOrUpdateCategoryAssessmentRequest struct {
 	CategoryID            uuid.UUID `json:"categoryID"`
-	CoursePhaseID         uuid.UUID `json:"coursePhaseID"`
 	CourseParticipationID uuid.UUID `json:"courseParticipationID"`
 	Comment               string    `json:"comment"`
 

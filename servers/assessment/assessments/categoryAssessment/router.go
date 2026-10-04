@@ -53,7 +53,6 @@ func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Cont
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	req.CoursePhaseID = coursePhaseID
 
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
@@ -64,7 +63,7 @@ func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Cont
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
 	req.AuthorID = tokenUser.ID
 
-	if err := s.CreateOrUpdateCategoryAssessment(c, req); err != nil {
+	if err := s.CreateOrUpdateCategoryAssessment(c, coursePhaseID, req); err != nil {
 		if errors.Is(err, ErrNotEditable) {
 			handleError(c, http.StatusForbidden, err)
 			return

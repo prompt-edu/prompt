@@ -14,7 +14,6 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/stretchr/testify/assert"
@@ -53,16 +52,16 @@ func (suite *CategoryAssessmentRouterTestSuite) TearDownSuite() {
 	}
 }
 
-func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateUsesPathCoursePhase() {
+func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateIgnoresBodyCoursePhase() {
 	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	otherPhaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New()
 
-	body, _ := json.Marshal(categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest{
-		CategoryID:            uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e"),
-		CoursePhaseID:         otherPhaseID,
-		CourseParticipationID: partID,
-		Comment:               "Cross-phase comment",
+	body, _ := json.Marshal(map[string]string{
+		"categoryID":            "25f1c984-ba31-4cf2-aa8e-5662721bf44e",
+		"coursePhaseID":         otherPhaseID.String(),
+		"courseParticipationID": partID.String(),
+		"comment":               "Cross-phase comment",
 	})
 	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/category-assessment", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")

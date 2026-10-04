@@ -289,8 +289,6 @@ definitions:
         type: string
       courseParticipationID:
         type: string
-      coursePhaseID:
-        type: string
     type: object
   categoryDTO.Category:
     properties:

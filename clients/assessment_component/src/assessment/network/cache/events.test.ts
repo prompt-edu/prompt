@@ -176,3 +176,23 @@ describe('the remaining events', () => {
     }
   })
 })
+
+// Every event routes through the same `invalidate` helper, so this covers the class
+describe('a key whose scoping id is missing', () => {
+  it('is truncated at the missing segment rather than matching nothing', () => {
+    seed(assessmentKeys.assessments.inPhase(PHASE), assessmentKeys.assessments.inPhase(OTHER_PHASE))
+
+    assessmentCache.assessmentWritten(queryClient, undefined)
+
+    expect(isInvalidated(assessmentKeys.assessments.inPhase(PHASE))).toBe(true)
+    expect(isInvalidated(assessmentKeys.assessments.inPhase(OTHER_PHASE))).toBe(true)
+  })
+
+  it('keeps the namespace, so other caches stay untouched', () => {
+    seed(assessmentKeys.actionItems.inPhase(PHASE))
+
+    assessmentCache.assessmentWritten(queryClient, undefined)
+
+    expect(isInvalidated(assessmentKeys.actionItems.inPhase(PHASE))).toBe(false)
+  })
+})

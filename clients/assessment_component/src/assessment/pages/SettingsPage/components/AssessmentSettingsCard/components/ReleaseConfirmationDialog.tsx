@@ -10,6 +10,8 @@ import {
 } from '@tumaet/prompt-ui-components'
 
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseMetaData } from '../../../../hooks/useGetCoursePhaseMetaData'
+import { isTemplateComplete, parseResultsReleasedMail } from '../../ResultsReleasedMailCard/utils'
 
 interface ReleaseConfirmationDialogProps {
   open: boolean
@@ -31,6 +33,9 @@ export function ReleaseConfirmationDialog({
   totalAssessments,
 }: ReleaseConfirmationDialogProps) {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const { data: coursePhase } = useGetCoursePhaseMetaData()
+  const resultsMail = parseResultsReleasedMail(coursePhase)
+  const notifiesStudents = resultsMail.sendOnRelease && isTemplateComplete(resultsMail)
 
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true
@@ -86,6 +91,8 @@ export function ReleaseConfirmationDialog({
                 Competencies rated by only one peer stay hidden.
               </>
             )}
+            {notifiesStudents &&
+              ' Students who have not been notified yet will also receive the results mail.'}
           </AlertDialogDescription>
           {releaseError && (
             <p className='text-sm font-medium text-destructive' role='alert'>

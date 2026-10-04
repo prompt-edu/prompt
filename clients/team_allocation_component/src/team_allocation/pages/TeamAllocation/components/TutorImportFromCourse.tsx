@@ -13,6 +13,7 @@ import {
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import type { Tutor } from '../../../interfaces/tutor'
+import { teamAllocationKeys } from '../../../network/cache'
 import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'
 import { TutorSelection } from './TutorSelection'
 
@@ -76,7 +77,7 @@ export const TutorImportFromCourse = ({
     isLoading: isStudentsLoading,
     isError: isStudentsError,
   } = useQuery<Student[]>({
-    queryKey: ['students', selectedSourcePhase],
+    queryKey: teamAllocationKeys.tutorImport.studentsOfPhase(selectedSourcePhase ?? undefined),
     queryFn: () => {
       if (selectedSourceCourse && selectedSourcePhase) {
         return getStudentsOfCoursePhase(selectedSourcePhase)

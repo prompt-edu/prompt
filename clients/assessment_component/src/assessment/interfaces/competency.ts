@@ -27,7 +27,6 @@ export type CreateCompetencyRequest = {
 
 export type UpdateCompetencyRequest = {
   id: string
-  categoryID?: string
   name?: string
   shortName?: string
   description?: string

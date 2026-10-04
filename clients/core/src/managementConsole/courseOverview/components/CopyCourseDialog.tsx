@@ -63,6 +63,7 @@ export const CopyCourseDialog = ({
         handleProceedWithCopy({
           name,
           semesterTag,
+          courseType: templateCourse?.courseType ?? '',
           dateRange,
           shortDescription: templateFormData.shortDescription,
           longDescription: templateFormData.longDescription,

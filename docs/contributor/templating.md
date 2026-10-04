@@ -51,7 +51,8 @@ When copying with `Template = false`:
   - DTO mappings and meta graphs
   - Application form if both source and target course have an application phase
   - Student-readable and restricted metadata
-  - CourseType and ECTS
+  - CourseType and ECTS, unless the request sets `courseType` / `ects` (the copy form lets the user
+    pick a different course type and sends the fixed ECTS of that type, if it has one)
 - Creates Keycloak roles/groups for the new course
 
 When copying with `Template = true`:

@@ -17,7 +17,7 @@ const EDITED_TEXT = 'Applying to the right course? This is iPraktikumWelcome.'
 // text editor could never reproduce the seeded markup.
 async function setWelcomeTextViaApi(api: APIRequestContext, welcomeText: string | null) {
   const res = await api.put(`/api/course_phases/${WELCOME_TEXT_PHASE_ID}`, {
-    data: { id: WELCOME_TEXT_PHASE_ID, restrictedData: { welcomeText } },
+    data: { restrictedData: { welcomeText } },
   })
   expect(res.ok()).toBeTruthy()
 }

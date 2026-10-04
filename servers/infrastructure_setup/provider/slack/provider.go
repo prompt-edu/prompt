@@ -78,15 +78,15 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 		return nil, err
 	}
 
-	var warnings []string
+	var warnings []provider.Warning
 	for _, member := range input.Members {
 		userID, err := p.lookupUserByEmail(ctx, member.Email)
 		if err != nil {
-			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 			continue
 		}
 		if err := p.inviteToChannel(ctx, channelID, userID); err != nil {
-			warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 		}
 	}
 

@@ -50,6 +50,8 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
       // Resource configs cascade-delete when a provider is removed; refresh that list too.
       queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
       queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({ title: `${provider.providerType} provider removed` })
       setConfirmOpen(false)
     },
@@ -113,8 +115,8 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
           setOpen={setConfirmOpen}
           deleteMessage={`Remove the ${provider.providerType} provider?`}
           customWarning={
-            'This also deletes every resource configuration and resource instance ' +
-            'that uses this provider for this course phase. Provisioned external ' +
+            'This also deletes every resource of this provider in this phase, and ' +
+            "PROMPT's record of what was provisioned for it. Provisioned external " +
             'resources (groups, channels, …) are NOT touched.'
           }
           onClick={(confirmed) => {

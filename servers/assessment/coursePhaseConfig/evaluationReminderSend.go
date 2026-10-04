@@ -38,7 +38,6 @@ type coreCoursePhaseResponse struct {
 }
 
 type coreUpdateCoursePhaseRequest struct {
-	ID                  uuid.UUID      `json:"id"`
 	Name                string         `json:"name"`
 	RestrictedData      map[string]any `json:"restrictedData"`
 	StudentReadableData map[string]any `json:"studentReadableData"`
@@ -119,7 +118,12 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	report.SentAt = mailReport.SentAt
 
 	setLastSentAt(coursePhase.RestrictedData, evaluationType, report.SentAt)
-	if err := updateCoreCoursePhaseFn(ctx, authHeader, coreUpdateCoursePhaseRequest(coursePhase)); err != nil {
+	update := coreUpdateCoursePhaseRequest{
+		Name:                coursePhase.Name,
+		RestrictedData:      coursePhase.RestrictedData,
+		StudentReadableData: coursePhase.StudentReadableData,
+	}
+	if err := updateCoreCoursePhaseFn(ctx, authHeader, coursePhase.ID, update); err != nil {
 		log.WithError(err).
 			WithField("coursePhaseID", coursePhase.ID).
 			WithField("evaluationType", evaluationType).
@@ -223,6 +227,7 @@ func sendManualReminderMail(
 func updateCoreCoursePhase(
 	ctx context.Context,
 	authHeader string,
+	coursePhaseID uuid.UUID,
 	request coreUpdateCoursePhaseRequest,
 ) error {
 	payload, err := json.Marshal(request)
@@ -230,7 +235,7 @@ func updateCoreCoursePhase(
 		return fmt.Errorf("failed to marshal course phase update request: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), request.ID)
+	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), coursePhaseID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create core course phase update request: %w", err)

@@ -16,7 +16,7 @@ INSERT INTO course_phase (id, course_id, name, is_initial_phase, restricted_data
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
--- name: UpdateCoursePhase :exec
+-- name: UpdateCoursePhase :execrows
 UPDATE course_phase
 SET
     name = COALESCE($2, name),

@@ -52,16 +52,21 @@ WHERE cp.course_id = $1
 
 -- name: DeleteCourseGraph :exec
 DELETE FROM course_phase_graph
-WHERE from_course_phase_id IN 
+WHERE from_course_phase_id IN
     (SELECT id FROM course_phase WHERE course_id = $1);
 
--- name: CreateCourseGraphConnection :exec
+-- name: CreateCourseGraphConnection :execrows
 INSERT INTO course_phase_graph (from_course_phase_id, to_course_phase_id)
-VALUES ($1, $2);
+SELECT from_phase.id, to_phase.id
+FROM course_phase from_phase
+JOIN course_phase to_phase ON to_phase.course_id = from_phase.course_id
+WHERE from_phase.id = sqlc.arg(from_course_phase_id)
+  AND to_phase.id = sqlc.arg(to_course_phase_id)
+  AND from_phase.course_id = sqlc.arg(course_id);
 
 -- name: UpdateInitialCoursePhase :exec
 UPDATE course_phase
-SET is_initial_phase = CASE 
+SET is_initial_phase = CASE
     WHEN id = $2 THEN true
     ELSE false
 END

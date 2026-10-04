@@ -1,6 +1,7 @@
 package coursePhaseDTO
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
@@ -12,7 +13,7 @@ type UpdateCoursePhase struct {
 	StudentReadableData meta.MetaData `json:"studentReadableData"`
 }
 
-func (cp UpdateCoursePhase) GetDBModel() (db.UpdateCoursePhaseParams, error) {
+func (cp UpdateCoursePhase) GetDBModel(id uuid.UUID) (db.UpdateCoursePhaseParams, error) {
 	restrictedData, err := cp.RestrictedData.GetDBModel()
 	if err != nil {
 		return db.UpdateCoursePhaseParams{}, err
@@ -24,6 +25,7 @@ func (cp UpdateCoursePhase) GetDBModel() (db.UpdateCoursePhaseParams, error) {
 	}
 
 	return db.UpdateCoursePhaseParams{
+		ID:                  id,
 		Name:                cp.Name,
 		StudentReadableData: studentReadableData,
 		RestrictedData:      restrictedData,

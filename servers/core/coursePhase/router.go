@@ -150,6 +150,7 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 // @Param uuid path string true "Course Phase UUID"
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /course_phases/{uuid} [put]
 func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
@@ -171,6 +172,10 @@ func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 	}
 
 	err = s.UpdateCoursePhase(c, id, updatedCoursePhase)
+	if errors.Is(err, ErrCoursePhaseNotFound) {
+		handleError(c, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

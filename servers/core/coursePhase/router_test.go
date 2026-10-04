@@ -181,6 +181,14 @@ func (suite *RouterTestSuite) TestUpdateCoursePhaseIgnoresBodyID() {
 	assert.NotEqual(suite.T(), "Renamed Through Path", bodyPhase.Name)
 }
 
+func (suite *RouterTestSuite) TestUpdateCoursePhaseNotFound() {
+	req := httptest.NewRequest(http.MethodPut, "/api/course_phases/"+uuid.NewString(), bytes.NewReader([]byte(`{"name": "Missing"}`)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+	assert.Equal(suite.T(), http.StatusNotFound, w.Code)
+}
+
 func TestRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(RouterTestSuite))
 }

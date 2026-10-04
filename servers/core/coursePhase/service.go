@@ -41,14 +41,22 @@ func (s *CoursePhaseService) GetCoursePhaseByID(ctx context.Context, id uuid.UUI
 	return coursePhaseDTO.GetCoursePhaseDTOFromDBModel(coursePhase)
 }
 
+var ErrCoursePhaseNotFound = errors.New("course phase not found")
+
 func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhaseID uuid.UUID, coursePhase coursePhaseDTO.UpdateCoursePhase) error {
-	dbModel, err := coursePhase.GetDBModel()
+	dbModel, err := coursePhase.GetDBModel(coursePhaseID)
 	if err != nil {
 		return err
 	}
 
-	dbModel.ID = coursePhaseID
-	return s.queries.UpdateCoursePhase(ctx, dbModel)
+	rows, err := s.queries.UpdateCoursePhase(ctx, dbModel)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrCoursePhaseNotFound
+	}
+	return nil
 }
 
 func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {

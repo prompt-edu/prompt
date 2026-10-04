@@ -91,6 +91,26 @@ func (suite *CourseCopyRouterTestSuite) TestCopyCourse() {
 	assert.NotEqual(suite.T(), uuid.MustParse(courseID), copiedCourse.ID, "Copied course ID should be different from original course ID")
 }
 
+func (suite *CourseCopyRouterTestSuite) TestCopyCourseRejectsUnknownCourseType() {
+	courseID := "c1f8060d-7381-4b64-a6ea-5ba8e8ac88dd"
+
+	copyCourseRequest := courseCopyDTO.CopyCourseRequest{
+		Name:        "Invalid Type Copy",
+		SemesterTag: pgtype.Text{String: "ws2526", Valid: true},
+		StartDate:   pgtype.Date{Valid: true, Time: time.Now()},
+		EndDate:     pgtype.Date{Valid: true, Time: time.Now().Add(24 * time.Hour)},
+		CourseType:  db.CourseType("workshop"),
+	}
+
+	body, _ := json.Marshal(copyCourseRequest)
+	req, _ := http.NewRequest("POST", "/api/courses/"+courseID+"/copy", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+}
+
 func TestCourseCopyRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(CourseCopyRouterTestSuite))
 }

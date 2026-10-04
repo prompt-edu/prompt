@@ -4,10 +4,10 @@ import {
   Button,
   ErrorPage,
   getStudentName,
-  LoadingPage,
   ManagementPageHeader,
   PromptTable,
   type PromptTableColumnDef,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
@@ -91,12 +91,8 @@ export const EvaluationParticipantsOverviewPage = ({
 
   const { data: categories } = useGetEvaluationCategoriesWithCompetencies(assessmentType, isEnabled)
 
-  const {
-    data: evaluationCompletions = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGetAllEvaluationCompletions()
+  const evaluationCompletionsQuery = useGetAllEvaluationCompletions()
+  const evaluationCompletions = evaluationCompletionsQuery.data ?? []
 
   // Feedback items are only needed for the bulk report, so they are fetched on
   // demand. A counter rather than a boolean: React Query reports isSuccess for
@@ -217,16 +213,13 @@ export const EvaluationParticipantsOverviewPage = ({
     [],
   )
 
-  if (isError) {
-    return <ErrorPage message={`Error loading ${pageTitle.toLowerCase()}`} onRetry={refetch} />
-  }
-
-  if (isPending) {
-    return <LoadingPage />
-  }
-
   return (
-    <>
+    <QueryGate
+      queries={[evaluationCompletionsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage message={`Error loading ${pageTitle.toLowerCase()}`} onRetry={refetch} />
+      )}
+    >
       <div className='space-y-4 print:hidden'>
         <ManagementPageHeader>{pageTitle}</ManagementPageHeader>
 
@@ -291,6 +284,6 @@ export const EvaluationParticipantsOverviewPage = ({
           feedbackItems={report.feedbackItems}
         />
       ))}
-    </>
+    </QueryGate>
   )
 }

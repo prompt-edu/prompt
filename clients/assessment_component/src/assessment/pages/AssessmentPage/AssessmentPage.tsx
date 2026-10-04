@@ -1,6 +1,6 @@
 import {
   ErrorPage,
-  LoadingPage,
+  QueryGate,
   Tabs,
   TabsContent,
   TabsList,
@@ -37,12 +37,8 @@ export const AssessmentPage = () => {
   }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const {
-    data: coursePhaseConfig,
-    isPending: isCoursePhaseConfigPending,
-    isError: isCoursePhaseConfigError,
-    refetch: refetchCoursePhaseConfig,
-  } = useGetCoursePhaseConfig()
+  const coursePhaseConfigQuery = useGetCoursePhaseConfig()
+  const coursePhaseConfig = coursePhaseConfigQuery.data
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const independentAssessmentEnabled = coursePhaseConfig?.independentAssessmentEnabled ?? false
   const [tab, setTab] = useState('mine')
@@ -60,14 +56,12 @@ export const AssessmentPage = () => {
   )
   const { actionItems } = useGetActionItemsForStudent()
 
+  const studentAssessmentQuery = useGetStudentAssessment({ enabled: assessmentEnabled })
   const {
     data: studentAssessment,
-    isPending: isStudentAssessmentPending,
     isFetching: isStudentAssessmentFetching,
     isPlaceholderData: isPlaceholderStudentAssessmentData,
-    isError: isStudentAssessmentError,
-    refetch: refetchStudentAssessment,
-  } = useGetStudentAssessment({ enabled: assessmentEnabled })
+  } = studentAssessmentQuery
   const isSwitchingParticipant = isStudentAssessmentFetching && isPlaceholderStudentAssessmentData
 
   const remainingAssessments = useMemo(() => {
@@ -90,98 +84,105 @@ export const AssessmentPage = () => {
     }
   }, [participant, setAssessmentParticipation])
 
-  if (isCoursePhaseConfigError) return <ErrorPage onRetry={refetchCoursePhaseConfig} />
-  if (isCoursePhaseConfigPending) return <LoadingPage />
-  if (!assessmentEnabled) return <AssessmentDisabledNotice title='Assessment' />
-  if (isStudentAssessmentError) return <ErrorPage onRetry={refetchStudentAssessment} />
-  if (isStudentAssessmentPending) return <LoadingPage />
-
-  if (!studentAssessment) {
-    return (
-      <ErrorPage
-        title='No participant found for this course participation ID'
-        description='We like what you are doing. To contribute, checkout https://github.com/prompt-edu/prompt'
-      />
-    )
-  }
-
-  const finalAssessment = (
-    <>
-      {categories.map((category) => (
-        <CategoryAssessment
-          key={category.id}
-          category={category}
-          assessments={inCategory(studentAssessment.assessments, category)}
-          completed={studentAssessment.assessmentCompletion.completed}
-          disabled={isSwitchingParticipant}
-          courseParticipationID={courseParticipationID ?? ''}
-          independentAssessments={
-            independentAssessmentEnabled ? studentAssessment.independentAssessments : undefined
-          }
-        />
-      ))}
-
-      {evaluationEnabled && <FeedbackItemsPanel />}
-
-      <AssessmentCompletion />
-
-      <PassStatusControls
-        courseParticipationID={courseParticipationID}
-        disabled={isSwitchingParticipant}
-      />
-
-      <AssessmentExportMenu />
-    </>
-  )
-
   return (
-    <>
-      <div className='space-y-4 print:hidden' aria-busy={isSwitchingParticipant}>
-        {participant && (
-          <AssessmentHeader
-            participant={participant}
-            studentAssessment={studentAssessment}
-            remainingAssessments={remainingAssessments}
-          />
-        )}
+    <QueryGate queries={[coursePhaseConfigQuery, studentAssessmentQuery]}>
+      {() => {
+        if (!assessmentEnabled) return <AssessmentDisabledNotice title='Assessment' />
 
-        {independentAssessmentEnabled ? (
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className='w-full'>
-              <TabsTrigger value='mine' className='flex-1'>
-                My assessment
-              </TabsTrigger>
-              <TabsTrigger value='final' className='flex-1'>
-                Final assessment
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value='mine' className='space-y-4'>
-              {categories.map((category) => (
-                <CategoryAssessment
-                  key={category.id}
-                  category={category}
-                  assessments={inCategory(studentAssessment.myIndependentAssessments, category)}
-                  completed={studentAssessment.assessmentCompletion.completed}
-                  disabled={isSwitchingParticipant}
-                  courseParticipationID={courseParticipationID ?? ''}
-                  independent
+        if (!studentAssessment) {
+          return (
+            <ErrorPage
+              title='No participant found for this course participation ID'
+              description='We like what you are doing. To contribute, checkout https://github.com/prompt-edu/prompt'
+            />
+          )
+        }
+
+        const finalAssessment = (
+          <>
+            {categories.map((category) => (
+              <CategoryAssessment
+                key={category.id}
+                category={category}
+                assessments={inCategory(studentAssessment.assessments, category)}
+                completed={studentAssessment.assessmentCompletion.completed}
+                disabled={isSwitchingParticipant}
+                courseParticipationID={courseParticipationID ?? ''}
+                independentAssessments={
+                  independentAssessmentEnabled
+                    ? studentAssessment.independentAssessments
+                    : undefined
+                }
+              />
+            ))}
+
+            {evaluationEnabled && <FeedbackItemsPanel />}
+
+            <AssessmentCompletion />
+
+            <PassStatusControls
+              courseParticipationID={courseParticipationID}
+              disabled={isSwitchingParticipant}
+            />
+
+            <AssessmentExportMenu />
+          </>
+        )
+
+        return (
+          <>
+            <div className='space-y-4 print:hidden' aria-busy={isSwitchingParticipant}>
+              {participant && (
+                <AssessmentHeader
+                  participant={participant}
+                  studentAssessment={studentAssessment}
+                  remainingAssessments={remainingAssessments}
                 />
-              ))}
-            </TabsContent>
-            <TabsContent value='final' className='space-y-4'>
-              {finalAssessment}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          finalAssessment
-        )}
-      </div>
+              )}
 
-      <AssessmentPrintReport
-        categories={categories}
-        feedbackItems={feedbackItems}
-        actionItems={actionItems}
-      />
-    </>
+              {independentAssessmentEnabled ? (
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList className='w-full'>
+                    <TabsTrigger value='mine' className='flex-1'>
+                      My assessment
+                    </TabsTrigger>
+                    <TabsTrigger value='final' className='flex-1'>
+                      Final assessment
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value='mine' className='space-y-4'>
+                    {categories.map((category) => (
+                      <CategoryAssessment
+                        key={category.id}
+                        category={category}
+                        assessments={inCategory(
+                          studentAssessment.myIndependentAssessments,
+                          category,
+                        )}
+                        completed={studentAssessment.assessmentCompletion.completed}
+                        disabled={isSwitchingParticipant}
+                        courseParticipationID={courseParticipationID ?? ''}
+                        independent
+                      />
+                    ))}
+                  </TabsContent>
+                  <TabsContent value='final' className='space-y-4'>
+                    {finalAssessment}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                finalAssessment
+              )}
+            </div>
+
+            <AssessmentPrintReport
+              categories={categories}
+              feedbackItems={feedbackItems}
+              actionItems={actionItems}
+            />
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

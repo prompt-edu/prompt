@@ -8,9 +8,15 @@ type CacheKeys = readonly (readonly unknown[])[]
 
 const EVALUATION_TYPES = [AssessmentType.SELF, AssessmentType.PEER, AssessmentType.TUTOR] as const
 
+// A key holding `undefined` matches no cached entry, so invalidate from its last defined segment
+const definedPrefixOf = (queryKey: readonly unknown[]): readonly unknown[] => {
+  const missing = queryKey.indexOf(undefined)
+  return missing === -1 ? queryKey : queryKey.slice(0, missing)
+}
+
 const invalidate = (queryClient: QueryClient, keys: CacheKeys): void => {
   for (const queryKey of keys) {
-    queryClient.invalidateQueries({ queryKey })
+    queryClient.invalidateQueries({ queryKey: definedPrefixOf(queryKey) })
   }
 }
 

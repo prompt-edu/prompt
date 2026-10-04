@@ -2,36 +2,37 @@ import { useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 
 export const ParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: coursePhaseParticipations,
-    isPending,
-    isError,
-    refetch,
-  } = useGetCoursePhaseParticipants()
+  const participationsQuery = useGetCoursePhaseParticipants()
 
-  if (isError) return <ErrorPage onRetry={refetch} description='Could not fetch participants' />
-  if (isPending) return <LoadingPage />
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
   return (
-    <div id='table-view' className='relative flex flex-col'>
-      <ManagementPageHeader>Example Component Participants</ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        This table shows all participants of the Example Component phase.
-      </p>
-      <div className='w-full'>
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
-          participants={coursePhaseParticipations.participations ?? []}
-        />
+    <QueryGate
+      queries={[participationsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage onRetry={refetch} description='Could not fetch participants' />
+      )}
+    >
+      <div id='table-view' className='relative flex flex-col'>
+        <ManagementPageHeader>Example Component Participants</ManagementPageHeader>
+        <p className='text-sm text-muted-foreground mb-4'>
+          This table shows all participants of the Example Component phase.
+        </p>
+        <div className='w-full'>
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId}
+            participants={participationsQuery.data?.participations ?? []}
+          />
+        </div>
       </div>
-    </div>
+    </QueryGate>
   )
 }

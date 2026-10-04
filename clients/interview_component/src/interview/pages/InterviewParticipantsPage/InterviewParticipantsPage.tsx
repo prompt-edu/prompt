@@ -6,7 +6,7 @@ import {
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { useMemo, useRef } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { InterviewSlot } from '../../interfaces/InterviewSlots'
 import { getApplicationParticipantPath } from '../../utils/getApplicationParticipantPath'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
@@ -21,14 +21,13 @@ import {
 export const InterviewParticipantsPage = () => {
   const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const navigate = useNavigate()
-  const path = useLocation().pathname
   const openInNewTabRef = useRef(false)
   const { participations, interviewSlots, interviewReviews } = useParticipationStore()
   const { courses } = useCourseStore()
 
   const openInterview = (row: ParticipantRow) => {
     if (!row.student.id) return
-    const target = `${path}/${row.student.id}`
+    const target = `/management/course/${courseId}/${phaseId}/participants/${row.student.id}`
     if (openInNewTabRef.current) {
       window.open(`${window.location.origin}${target}`, '_blank', 'noopener,noreferrer')
       return

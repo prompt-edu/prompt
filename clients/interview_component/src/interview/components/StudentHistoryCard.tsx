@@ -1,3 +1,4 @@
+/// <reference path="../../declaration.d.ts" />
 import { Loader2 } from 'lucide-react'
 import React, { Suspense } from 'react'
 import { ErrorBoundary } from './ErrorBoundary'

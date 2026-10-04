@@ -19,7 +19,7 @@ import (
 )
 
 var getCoreCoursePhaseFn = getCoreCoursePhase
-var sendManualReminderMailFn = sendManualReminderMail
+var sendManualMailFn = sendManualMail
 var updateCoreCoursePhaseFn = updateCoreCoursePhase
 
 var (
@@ -98,7 +98,7 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	}
 	report.PreviousSentAt = getPreviousReminderSentAt(lastSentByType, evaluationType)
 
-	mailReport, err := sendManualReminderMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
+	mailReport, err := sendManualMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
 		Subject:                         subject,
 		Content:                         content,
 		RecipientCourseParticipationIDs: recipients.IncompleteAuthorCourseParticipationIDs,
@@ -177,7 +177,7 @@ func getCoreCoursePhase(ctx context.Context, authHeader string, coursePhaseID uu
 	return parsed, nil
 }
 
-func sendManualReminderMail(
+func sendManualMail(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,

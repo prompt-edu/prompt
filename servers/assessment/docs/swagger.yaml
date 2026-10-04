@@ -603,6 +603,28 @@ definitions:
           type: string
         type: array
     type: object
+  coursePhaseConfigDTO.ReleaseResultsResponse:
+    properties:
+      mailError:
+        type: string
+      mailReport:
+        $ref: '#/definitions/coursePhaseConfigDTO.ResultsReleasedMailReport'
+      message:
+        type: string
+    type: object
+  coursePhaseConfigDTO.ResultsReleasedMailReport:
+    properties:
+      failedEmails:
+        items:
+          type: string
+        type: array
+      requestedRecipients:
+        type: integer
+      successfulEmails:
+        items:
+          type: string
+        type: array
+    type: object
   coursePhaseConfigDTO.SendEvaluationReminderRequest:
     properties:
       evaluationType:
@@ -1927,7 +1949,8 @@ paths:
       - course_phase_config
   /course_phase/{coursePhaseID}/config/release:
     post:
-      description: Release assessment results for the course phase.
+      description: Release assessment results for the course phase and mail the students
+        who were not notified yet.
       parameters:
       - description: Course phase ID
         in: path
@@ -1940,9 +1963,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/coursePhaseConfigDTO.ReleaseResultsResponse'
         "400":
           description: Bad Request
           schema:

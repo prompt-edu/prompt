@@ -1413,7 +1413,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/config/release": {
             "post": {
-                "description": "Release assessment results for the course phase.",
+                "description": "Release assessment results for the course phase and mail the students who were not notified yet.",
                 "produces": [
                     "application/json"
                 ],
@@ -1434,10 +1434,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/coursePhaseConfigDTO.ReleaseResultsResponse"
                         }
                     },
                     "400": {
@@ -5593,6 +5590,40 @@ const docTemplate = `{
                 },
                 "sentAt": {
                     "type": "string"
+                },
+                "successfulEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ReleaseResultsResponse": {
+            "type": "object",
+            "properties": {
+                "mailError": {
+                    "type": "string"
+                },
+                "mailReport": {
+                    "$ref": "#/definitions/coursePhaseConfigDTO.ResultsReleasedMailReport"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ResultsReleasedMailReport": {
+            "type": "object",
+            "properties": {
+                "failedEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requestedRecipients": {
+                    "type": "integer"
                 },
                 "successfulEmails": {
                     "type": "array",

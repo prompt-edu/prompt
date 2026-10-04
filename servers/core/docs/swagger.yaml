@@ -1053,8 +1053,6 @@ definitions:
     type: object
   coursePhaseDTO.CreateCoursePhase:
     properties:
-      courseID:
-        type: string
       coursePhaseTypeID:
         type: string
       isInitialPhase:
@@ -1077,8 +1075,6 @@ definitions:
     type: object
   coursePhaseDTO.UpdateCoursePhase:
     properties:
-      id:
-        type: string
       name:
         description: use pgtype to handle null values
         type: string
@@ -3137,6 +3133,10 @@ paths:
             type: string
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":

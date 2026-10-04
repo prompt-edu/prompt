@@ -251,17 +251,17 @@ const ROUTES: Route[] = [
   },
   {
     name: 'coursePhases.create',
-    run: () => coreApi.coursePhases.create({ courseID: COURSE } as never),
+    run: () => coreApi.coursePhases.create({ courseID: COURSE, name: 'New' } as never),
     method: 'post',
     url: `${CORE}/api/course_phases/course/${COURSE}`,
-    data: { courseID: COURSE },
+    data: { name: 'New' },
   },
   {
     name: 'coursePhases.update',
-    run: () => coreApi.coursePhases.update({ id: PHASE } as never),
+    run: () => coreApi.coursePhases.update({ id: PHASE, name: 'Renamed' } as never),
     method: 'put',
     url: `${CORE}/api/course_phases/${PHASE}`,
-    data: { id: PHASE },
+    data: { name: 'Renamed' },
   },
   {
     name: 'coursePhases.remove',

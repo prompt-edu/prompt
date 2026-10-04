@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
 import { isAxiosError } from 'axios'
 import type { UpdateInterviewReviewRequest } from '../../interfaces/InterviewReview'
+import { interviewCache } from '../cache'
 import { updateInterviewReview } from '../mutations/updateInterviewReview'
 
 interface UpdateInterviewReviewVariables {
@@ -24,12 +25,9 @@ export const useUpdateInterviewReview = (coursePhaseID: string | undefined) => {
       }
       return updateInterviewReview(coursePhaseID, courseParticipationID, review)
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewReviews', coursePhaseID] })
-    },
+    onSettled: () => interviewCache.reviewWritten(queryClient, coursePhaseID),
     onError: (error: unknown) => {
       // The card saves on blur, so an unreported failure would look exactly like a successful save.
-      queryClient.invalidateQueries({ queryKey: ['interviewReviews', coursePhaseID] })
       toast({
         title: 'Saving the interview review failed',
         description: isAxiosError<ErrorResponse>(error)

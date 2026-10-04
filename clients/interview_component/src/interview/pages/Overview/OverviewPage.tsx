@@ -6,6 +6,7 @@ import { SortDropdownMenu } from '../../components/SortDropdownMenu'
 import { StudentCard } from '../../components/StudentCard'
 import { useSorting } from '../../hooks/useSorting'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import { interviewKeys } from '../../network/cache'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 export const OverviewPage = () => {
@@ -17,7 +18,7 @@ export const OverviewPage = () => {
 
   // Fetch interview slots with assignments
   const { data: slots } = useQuery<InterviewSlotWithAssignments[]>({
-    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryKey: interviewKeys.slots(phaseId),
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
         `interview/api/course_phase/${phaseId}/interview-slots`,

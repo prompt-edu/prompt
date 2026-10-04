@@ -85,7 +85,10 @@ export const createRspackConfig = ({
             './provide': './src/provide',
           },
           ...(consumesCore
-            ? { remotes: { core: `core@${coreURL}/remoteEntry.js?${Date.now()}` } }
+            ? {
+                remotes: { core: `core@${coreURL}/remoteEntry.js?${Date.now()}` },
+                shareStrategy: 'loaded-first',
+              }
             : {}),
           shared: federatedDependencies(),
         }),

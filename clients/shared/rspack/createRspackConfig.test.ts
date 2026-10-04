@@ -14,7 +14,13 @@ const federationOptions = (consumesCore: boolean | undefined, NODE_ENV: string) 
 
 describe('createRspackConfig', () => {
   it('does not consume core by default', () => {
-    expect(federationOptions(undefined, 'development').remotes).toBeUndefined()
+    const options = federationOptions(undefined, 'development')
+    expect(options.remotes).toBeUndefined()
+    expect(options.shareStrategy).toBeUndefined()
+  })
+
+  it('loads core only when a core module is first imported', () => {
+    expect(federationOptions(true, 'development').shareStrategy).toBe('loaded-first')
   })
 
   it('consumes core from the dev server in development', () => {

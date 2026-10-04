@@ -1,6 +1,7 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
+  ErrorPage,
   ManagementPageHeader,
   type ParticipantRow,
   type TableFilter,
@@ -95,23 +96,29 @@ export const InterviewParticipantsPage = () => {
   return (
     <div>
       <ManagementPageHeader>Interview Participants</ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        Click on a participant to open their interview. Cmd/Ctrl-click to open it in a new tab.
-      </p>
-      <div
-        className='w-full'
-        onClickCapture={(e) => {
-          openInNewTabRef.current = e.metaKey || e.ctrlKey
-        }}
-      >
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId!}
-          participants={participations}
-          extraColumns={extraColumns}
-          extraFilters={extraFilters}
-          onClickRowAction={openInterview}
-        />
-      </div>
+      {!phaseId ? (
+        <ErrorPage description='Invalid course phase ID' />
+      ) : (
+        <>
+          <p className='text-sm text-muted-foreground mb-4'>
+            Click on a participant to open their interview. Cmd/Ctrl-click to open it in a new tab.
+          </p>
+          <div
+            className='w-full'
+            onClickCapture={(e) => {
+              openInNewTabRef.current = e.metaKey || e.ctrlKey
+            }}
+          >
+            <CoursePhaseParticipationsTable
+              phaseId={phaseId}
+              participants={participations}
+              extraColumns={extraColumns}
+              extraFilters={extraFilters}
+              onClickRowAction={openInterview}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

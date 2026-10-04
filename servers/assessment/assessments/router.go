@@ -1,6 +1,7 @@
 package assessments
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -20,6 +21,7 @@ import (
 // @Security BearerAuth
 type assessmentGuard interface {
 	RequireAssessmentEnabled() gin.HandlerFunc
+	RequireIndependentAssessmentEnabled() gin.HandlerFunc
 }
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
@@ -29,6 +31,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, gu
 	// The grading form posts on every score selection, so auditing this route would
 	// bury the log and start dropping events. Completion transitions are audited instead.
 	assessmentRouter.POST("", audit.Skip(), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
+	assessmentRouter.POST("/independent", audit.Skip(), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), guard.RequireIndependentAssessmentEnabled(), service.createOrUpdateIndependentAssessment)
 	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.exportStudentAssessment)
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)
@@ -75,6 +78,28 @@ func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
+	saveScoreFromRequest(c, s.CreateOrUpdateAssessment)
+}
+
+// createOrUpdateIndependentAssessment godoc
+// @Summary Create or update independent assessment
+// @Description Create or update the caller's own score for a student, kept apart from other assessors' scores and from the final assessment. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.
+// @Tags assessments
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param assessment body assessmentDTO.CreateOrUpdateAssessmentRequest true "Assessment payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/independent [post]
+func (s *AssessmentService) createOrUpdateIndependentAssessment(c *gin.Context) {
+	saveScoreFromRequest(c, s.CreateOrUpdateIndependentAssessment)
+}
+
+func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentDTO.CreateOrUpdateAssessmentRequest) error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -97,7 +122,7 @@ func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
 	req.CoursePhaseID = coursePhaseID
 
-	err = s.CreateOrUpdateAssessment(c, req)
+	err = save(c, req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidScoreLevel) {
 			handleError(c, http.StatusBadRequest, err)
@@ -132,7 +157,13 @@ func (s *AssessmentService) getStudentAssessment(c *gin.Context) {
 		return
 	}
 
-	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID)
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+
+	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID, tokenUser.ID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

@@ -4360,6 +4360,86 @@
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/student-assessment/independent": {
+            "post": {
+                "description": "Create or update the caller's own score for a student, kept apart from other assessors' scores and from the final assessment. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessments"
+                ],
+                "summary": "Create or update independent assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assessment payload",
+                        "name": "assessment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/assessmentDTO.CreateOrUpdateAssessmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/student-assessment/my-results": {
             "get": {
                 "description": "Get assessment results for the current student.",
@@ -4969,6 +5049,18 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/evaluationDTO.Evaluation"
+                    }
+                },
+                "independentAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "myIndependentAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentDTO.Assessment"
                     }
                 },
                 "studentScore": {

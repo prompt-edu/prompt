@@ -92,6 +92,32 @@ var ErrAssessmentNotFound = errors.New("assessment not found")
 const AssessmentExportFormatJSON = "json"
 
 func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
+	return s.saveScore(ctx, req, func(qtx *db.Queries) error {
+		return qtx.CreateOrUpdateAssessment(ctx, db.CreateOrUpdateAssessmentParams{
+			CourseParticipationID: req.CourseParticipationID,
+			CoursePhaseID:         req.CoursePhaseID,
+			CompetencyID:          req.CompetencyID,
+			ScoreLevel:            scoreLevelDTO.MapDTOtoDBScoreLevel(req.ScoreLevel),
+			Author:                req.Author,
+			AuthorID:              req.AuthorID,
+		})
+	})
+}
+
+func (s *AssessmentService) CreateOrUpdateIndependentAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
+	return s.saveScore(ctx, req, func(qtx *db.Queries) error {
+		return qtx.CreateOrUpdateIndependentAssessment(ctx, db.CreateOrUpdateIndependentAssessmentParams{
+			CourseParticipationID: req.CourseParticipationID,
+			CoursePhaseID:         req.CoursePhaseID,
+			CompetencyID:          req.CompetencyID,
+			ScoreLevel:            scoreLevelDTO.MapDTOtoDBScoreLevel(req.ScoreLevel),
+			Author:                req.Author,
+			AuthorID:              req.AuthorID,
+		})
+	})
+}
+
+func (s *AssessmentService) saveScore(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest, write func(qtx *db.Queries) error) error {
 	if req.ScoreLevel == "" {
 		return ErrInvalidScoreLevel
 	}
@@ -109,15 +135,7 @@ func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, req as
 		return err
 	}
 
-	err = qtx.CreateOrUpdateAssessment(ctx, db.CreateOrUpdateAssessmentParams{
-		CourseParticipationID: req.CourseParticipationID,
-		CoursePhaseID:         req.CoursePhaseID,
-		CompetencyID:          req.CompetencyID,
-		ScoreLevel:            scoreLevelDTO.MapDTOtoDBScoreLevel(req.ScoreLevel),
-		Author:                req.Author,
-		AuthorID:              req.AuthorID,
-	})
-	if err != nil {
+	if err := write(qtx); err != nil {
 		log.Error("could not create or update assessment: ", err)
 		return errors.New("could not create or update assessment")
 	}
@@ -158,7 +176,7 @@ func (s *AssessmentService) ListAssessmentsByStudentInPhase(ctx context.Context,
 	return assessments, nil
 }
 
-func (s *AssessmentService) GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (assessmentDTO.StudentAssessment, error) {
+func (s *AssessmentService) GetStudentAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, viewerID string) (assessmentDTO.StudentAssessment, error) {
 	assessments, err := s.ListAssessmentsByStudentInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		log.Error("could not get assessments for student in phase: ", err)
@@ -210,13 +228,30 @@ func (s *AssessmentService) GetStudentAssessment(ctx context.Context, coursePhas
 		evaluations = []evaluationDTO.Evaluation{}
 	}
 
-	return assessmentDTO.StudentAssessment{
+	independentAssessments, err := s.queries.ListIndependentAssessmentsByStudentInPhase(ctx, db.ListIndependentAssessmentsByStudentInPhaseParams{
 		CourseParticipationID: courseParticipationID,
-		Assessments:           assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
-		CategoryAssessments:   categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
-		AssessmentCompletion:  completion,
-		StudentScore:          studentScore,
-		Evaluations:           evaluations,
+		CoursePhaseID:         coursePhaseID,
+	})
+	if err != nil {
+		log.Error("could not get independent assessments: ", err)
+		return assessmentDTO.StudentAssessment{}, errors.New("could not get independent assessments")
+	}
+	var myIndependentAssessments []db.IndependentAssessment
+	for _, independentAssessment := range independentAssessments {
+		if independentAssessment.AuthorID == viewerID {
+			myIndependentAssessments = append(myIndependentAssessments, independentAssessment)
+		}
+	}
+
+	return assessmentDTO.StudentAssessment{
+		CourseParticipationID:    courseParticipationID,
+		Assessments:              assessmentDTO.GetAssessmentDTOsFromDBModels(assessments),
+		CategoryAssessments:      categoryAssessmentDTO.GetCategoryAssessmentDTOsFromDBModels(categoryAssessments),
+		AssessmentCompletion:     completion,
+		StudentScore:             studentScore,
+		Evaluations:              evaluations,
+		IndependentAssessments:   assessmentDTO.GetAssessmentDTOsFromIndependentAssessments(independentAssessments),
+		MyIndependentAssessments: assessmentDTO.GetAssessmentDTOsFromIndependentAssessments(myIndependentAssessments),
 	}, nil
 }
 

@@ -247,3 +247,15 @@ VALUES
 
 INSERT INTO public.schema_migrations
 VALUES (10, false);
+
+CREATE TABLE public.independent_assessment (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_participation_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    competency_id uuid NOT NULL REFERENCES public.competency (id) ON DELETE CASCADE,
+    score_level public.score_level NOT NULL,
+    author text NOT NULL,
+    author_id text NOT NULL,
+    assessed_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (course_participation_id, course_phase_id, competency_id, author_id)
+);

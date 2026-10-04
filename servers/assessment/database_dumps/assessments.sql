@@ -1573,3 +1573,34 @@ ADD CONSTRAINT assessment_competency_id_fkey FOREIGN KEY (competency_id) REFEREN
 
 ALTER TABLE ONLY public.competency
 ADD CONSTRAINT competency_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.category(id) ON DELETE CASCADE;
+
+CREATE TYPE public.assessment_type AS ENUM (
+    'self',
+    'peer',
+    'tutor',
+    'assessment'
+);
+
+CREATE TABLE public.evaluation (
+    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    course_participation_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    competency_id uuid NOT NULL REFERENCES public.competency (id) ON DELETE CASCADE,
+    score_level public.score_level NOT NULL,
+    author_course_participation_id uuid NOT NULL,
+    evaluated_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    type public.assessment_type NOT NULL DEFAULT 'self',
+    UNIQUE (course_participation_id, course_phase_id, competency_id, author_course_participation_id)
+);
+
+CREATE TABLE public.independent_assessment (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_participation_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    competency_id uuid NOT NULL REFERENCES public.competency (id) ON DELETE CASCADE,
+    score_level public.score_level NOT NULL,
+    author text NOT NULL,
+    author_id text NOT NULL,
+    assessed_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (course_participation_id, course_phase_id, competency_id, author_id)
+);

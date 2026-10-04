@@ -183,6 +183,14 @@ definitions:
         items:
           $ref: '#/definitions/evaluationDTO.Evaluation'
         type: array
+      independentAssessments:
+        items:
+          $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
+      myIndependentAssessments:
+        items:
+          $ref: '#/definitions/assessmentDTO.Assessment'
+        type: array
       studentScore:
         $ref: '#/definitions/scoreLevelDTO.StudentScore'
     type: object
@@ -4015,6 +4023,62 @@ paths:
               type: string
             type: object
       summary: List assessments for student in phase
+      tags:
+      - assessments
+  /course_phase/{coursePhaseID}/student-assessment/independent:
+    post:
+      consumes:
+      - application/json
+      description: Create or update the caller's own score for a student, kept apart
+        from other assessors' scores and from the final assessment. The author identity
+        is taken from the authenticated JWT and any client-sent author fields are
+        ignored.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Assessment payload
+        in: body
+        name: assessment
+        required: true
+        schema:
+          $ref: '#/definitions/assessmentDTO.CreateOrUpdateAssessmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create or update independent assessment
       tags:
       - assessments
   /course_phase/{coursePhaseID}/student-assessment/my-results:

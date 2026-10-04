@@ -85,6 +85,16 @@ func (q *Queries) DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx context.Context,
 	return err
 }
 
+const deleteIndependentAssessmentsByCourseParticipationIDs = `-- name: DeleteIndependentAssessmentsByCourseParticipationIDs :exec
+DELETE FROM independent_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteIndependentAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteIndependentAssessmentsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
 const getAllActionItemsByCourseParticipationIDs = `-- name: GetAllActionItemsByCourseParticipationIDs :many
 SELECT id, course_phase_id, course_participation_id, action, created_at
 FROM action_item
@@ -381,6 +391,48 @@ func (q *Queries) GetAllFeedbackItemsByCourseParticipationIDs(ctx context.Contex
 			&i.CoursePhaseID,
 			&i.CreatedAt,
 			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllIndependentAssessmentsByCourseParticipationIDs = `-- name: GetAllIndependentAssessmentsByCourseParticipationIDs :many
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, score_level
+FROM independent_assessment
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+type GetAllIndependentAssessmentsByCourseParticipationIDsRow struct {
+	ID                    uuid.UUID          `json:"id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CompetencyID          uuid.UUID          `json:"competency_id"`
+	AssessedAt            pgtype.Timestamptz `json:"assessed_at"`
+	ScoreLevel            ScoreLevel         `json:"score_level"`
+}
+
+func (q *Queries) GetAllIndependentAssessmentsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetAllIndependentAssessmentsByCourseParticipationIDsRow, error) {
+	rows, err := q.db.Query(ctx, getAllIndependentAssessmentsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllIndependentAssessmentsByCourseParticipationIDsRow
+	for rows.Next() {
+		var i GetAllIndependentAssessmentsByCourseParticipationIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CourseParticipationID,
+			&i.CoursePhaseID,
+			&i.CompetencyID,
+			&i.AssessedAt,
+			&i.ScoreLevel,
 		); err != nil {
 			return nil, err
 		}

@@ -140,3 +140,47 @@ func (suite *AssessmentRouterTestSuite) TestInvalidUUIDs() {
 func TestAssessmentRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentRouterTestSuite))
 }
+
+func (suite *AssessmentRouterTestSuite) TestCreateIndependentAssessment() {
+	partID := uuid.New()
+	post := func(phaseID uuid.UUID) int {
+		body, _ := json.Marshal(map[string]string{
+			"courseParticipationID": partID.String(),
+			"coursePhaseID":         uuid.New().String(),
+			"competencyID":          "20725c05-bfd7-45a7-a981-d092e14f98d3",
+			"scoreLevel":            "good",
+			"authorID":              "spoofed",
+		})
+		req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/independent", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		suite.router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+	insertPhase := func(independentAssessmentEnabled bool) uuid.UUID {
+		phaseID := uuid.New()
+		_, err := suite.service.conn.Exec(suite.suiteCtx,
+			`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+			 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', $2)`,
+			phaseID, independentAssessmentEnabled)
+		assert.NoError(suite.T(), err)
+		return phaseID
+	}
+
+	assert.Equal(suite.T(), http.StatusConflict, post(insertPhase(false)), "Phases have to opt in")
+
+	phaseID := insertPhase(true)
+	assert.Equal(suite.T(), http.StatusOK, post(phaseID))
+
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/"+partID.String(), nil)
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var studentAssessment assessmentDTO.StudentAssessment
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &studentAssessment))
+	assert.Len(suite.T(), studentAssessment.IndependentAssessments, 1, "The score is stored under the phase in the URL")
+	assert.Len(suite.T(), studentAssessment.MyIndependentAssessments, 1)
+	assert.Equal(suite.T(), "John Doe", studentAssessment.MyIndependentAssessments[0].Author, "The author comes from the token")
+	assert.Empty(suite.T(), studentAssessment.MyIndependentAssessments[0].AuthorID, "A client-sent author ID is ignored")
+}

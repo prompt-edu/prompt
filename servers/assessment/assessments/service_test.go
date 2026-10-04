@@ -20,6 +20,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
@@ -189,4 +190,42 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentUnsupportedF
 
 func TestAssessmentServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentServiceTestSuite))
+}
+
+func (suite *AssessmentServiceTestSuite) TestIndependentAssessmentsAreKeptPerAssessor() {
+	phaseID := uuid.New()
+	partID := uuid.New()
+	competencyID := uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3")
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+
+	save := func(authorID string, scoreLevel scoreLevelDTO.ScoreLevel) error {
+		return suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+			CourseParticipationID: partID,
+			CoursePhaseID:         phaseID,
+			CompetencyID:          competencyID,
+			ScoreLevel:            scoreLevel,
+			Author:                "Assessor " + authorID,
+			AuthorID:              authorID,
+		})
+	}
+	assert.NoError(suite.T(), save("coach", scoreLevelDTO.ScoreLevelGood))
+	assert.NoError(suite.T(), save("lecturer", scoreLevelDTO.ScoreLevelOk))
+	assert.NoError(suite.T(), save("coach", scoreLevelDTO.ScoreLevelVeryGood))
+
+	studentAssessment, err := suite.service.GetStudentAssessment(suite.suiteCtx, phaseID, partID, "coach")
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), studentAssessment.IndependentAssessments, 2, "Each assessor keeps one row per competency")
+	assert.Len(suite.T(), studentAssessment.MyIndependentAssessments, 1)
+	assert.Equal(suite.T(), scoreLevelDTO.ScoreLevelVeryGood, studentAssessment.MyIndependentAssessments[0].ScoreLevel)
+	assert.Empty(suite.T(), studentAssessment.Assessments, "Independent scores must not touch the final assessment")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), save("coach", scoreLevelDTO.ScoreLevelBad), assessmentCompletion.ErrAssessmentCompleted,
+		"Independent scores freeze once the final assessment is marked final")
 }

@@ -113,7 +113,7 @@ func (s *TeamsService) DeleteTeam(ctx context.Context, coursePhaseID, teamID uui
 	return nil
 }
 
-func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUpdateRequest) error {
+func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teamDTO.StudentNameUpdateRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -126,7 +126,7 @@ func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, req tea
 			StudentFirstName:      name.FirstName,
 			StudentLastName:       name.LastName,
 			CourseParticipationID: participationID,
-			CoursePhaseID:         req.CoursePhaseID,
+			CoursePhaseID:         coursePhaseID,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update name for participation ID %s: %w", participationID, err)

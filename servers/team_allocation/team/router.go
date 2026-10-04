@@ -251,13 +251,19 @@ func handleError(c *gin.Context, statusCode int, err error) {
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/student-names [post]
 func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req teamDTO.StudentNameUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := s.AddStudentNamesToAllocations(c, req); err != nil {
+	if err := s.AddStudentNamesToAllocations(c, coursePhaseID, req); err != nil {
 		log.Error("Error adding student names to allocations: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return

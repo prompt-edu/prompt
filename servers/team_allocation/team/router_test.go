@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -285,6 +286,40 @@ func (suite *TeamRouterTestSuite) TestEditorSeesAllTeamsInPhaseWithoutTutors() {
 	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
 	assert.Len(suite.T(), response.Teams, 1, "An editor in a phase without tutors should see every team of the phase")
 	assert.Equal(suite.T(), "dddddddd-dddd-dddd-dddd-dddddddddddd", response.Teams[0].ID.String())
+}
+
+func (suite *TeamRouterTestSuite) postStudentNames(pathPhaseID string, body string) int {
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+pathPhaseID+"/team/student-names", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	return resp.Code
+}
+
+func (suite *TeamRouterTestSuite) TestAddStudentNamesUsesPathCoursePhase() {
+	allocatedPhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	participationID := uuid.MustParse("99999999-9999-9999-9999-999999999991")
+	studentNames := `"studentNamesPerID": {"` + participationID.String() + `": {"firstName": "Renamed", "lastName": "Student"}}`
+
+	code := suite.postStudentNames("5179d58a-d00d-4fa7-94a5-397bc69fab03", `{"coursePhaseID": "`+allocatedPhaseID.String()+`", `+studentNames+`}`)
+	assert.Equal(suite.T(), http.StatusOK, code)
+
+	allocation, err := suite.teamService.queries.GetAllocationForStudent(suite.suiteCtx, db.GetAllocationForStudentParams{
+		CourseParticipationID: participationID,
+		CoursePhaseID:         allocatedPhaseID,
+	})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "John", allocation.StudentFirstName)
+
+	code = suite.postStudentNames(allocatedPhaseID.String(), `{`+studentNames+`}`)
+	assert.Equal(suite.T(), http.StatusOK, code)
+
+	allocation, err = suite.teamService.queries.GetAllocationForStudent(suite.suiteCtx, db.GetAllocationForStudentParams{
+		CourseParticipationID: participationID,
+		CoursePhaseID:         allocatedPhaseID,
+	})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Renamed", allocation.StudentFirstName)
 }
 
 func (suite *TeamRouterTestSuite) TestImportTutorsDuplicateLogin() {

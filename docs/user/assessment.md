@@ -106,6 +106,20 @@ it reads **Coach Overview**. The name is shown exactly as you enter it, also in 
 sentence, so an abbreviation such as "PL" stays uppercase. Leave the field empty to go back to
 "Tutor" and **Tutor Overview**.
 
+#### Notifying Students About Released Results
+
+The **Results Released Mailing** card on the **Settings** page holds a mail that is sent when you
+release the results. Write the subject and content, turn on **Notify Students on Release** and save.
+The switch stays disabled until the course has a reply-to address in its mailing settings and the
+mail has a subject and content.
+
+- Only students who can see their results receive the mail: those whose assessment is marked as final,
+  or every participant in an evaluation-only phase
+- Each student receives the mail once. If you unrelease and release the results again, only students
+  who were not notified before are mailed
+- A student whose mail could not be delivered is mailed again on the next release
+- Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available
+
 #### Evaluation-Only Phases
 
 Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the

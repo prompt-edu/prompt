@@ -81,17 +81,18 @@ export const ProfilePictureDialog = ({ open, onOpenChange }: ProfilePictureDialo
 
   const handleSave = async () => {
     if (!imageUrl || !croppedArea || isSaving) return
-    // Covers the crop too, which runs before the upload mutation reports itself as pending
     setIsSaving(true)
-    try {
-      const picture = await cropProfilePicture(imageUrl, croppedArea)
-      await uploadPicture.mutateAsync(picture)
-      handleOpenChange(false)
-    } catch {
-      // The mutation reports its own failure; a failed crop leaves the dialog open to retry
-    } finally {
+    setFileError(null)
+    const picture = await cropProfilePicture(imageUrl, croppedArea).catch(() => null)
+    if (!picture) {
+      setFileError('The picture could not be cropped. Try again or choose another one.')
       setIsSaving(false)
+      return
     }
+    uploadPicture.mutate(picture, {
+      onSuccess: () => handleOpenChange(false),
+      onSettled: () => setIsSaving(false),
+    })
   }
 
   const handleRemove = async () => {

@@ -43,6 +43,7 @@ func NewEvaluationService(queries db.Queries, conn *pgxpool.Pool, evaluationComp
 func (s *EvaluationService) CreateOrUpdateEvaluation(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, req evaluationDTO.CreateOrUpdateEvaluationRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin evaluation creation/update transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -78,6 +79,7 @@ func (s *EvaluationService) CreateOrUpdateEvaluation(ctx context.Context, authHe
 func (s *EvaluationService) DeleteEvaluation(ctx context.Context, authHeader string, id uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin evaluation deletion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)

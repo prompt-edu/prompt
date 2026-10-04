@@ -1,5 +1,8 @@
 import type { StudyProgram } from '@core/managementConsole/shared/interfaces/StudyProgram'
-import { OTHER_STUDY_PROGRAM } from '@core/managementConsole/shared/utils/otherStudyProgram'
+import {
+  OTHER_STUDY_PROGRAM,
+  UNKNOWN_STUDY_PROGRAM,
+} from '@core/managementConsole/shared/utils/otherStudyProgram'
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import type { ApplicationParticipation } from '../../../../interfaces/applicationParticipation'
 import type { DataPoint } from '../../interfaces/DataPoint'
@@ -10,8 +13,6 @@ export interface StudyProgramDataPoint extends DataPoint {
   rejected: number
   notAssessed: number
 }
-
-const UNKNOWN_STUDY_PROGRAM = 'Unknown'
 
 type PassStatusCounts = Record<PassStatus, number>
 

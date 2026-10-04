@@ -12,10 +12,9 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
 import type { CreateStudyProgram } from '../../../shared/interfaces/StudyProgram'
-import { OTHER_STUDY_PROGRAM } from '../../../shared/utils/otherStudyProgram'
 import {
-  isReservedStudyProgramName,
   renameWarning,
+  reservedStudyProgramError,
   type StudyProgramWithStudentCount,
 } from '../utils/studyProgramStudents'
 
@@ -41,7 +40,9 @@ export const StudyProgramFormDialog = ({
   const [shortName, setShortName] = useState(editing?.shortName ?? '')
 
   const trimmedName = name.trim()
-  const isReserved = isReservedStudyProgramName(trimmedName)
+  const nameError = reservedStudyProgramError(name)
+  const shortNameError = reservedStudyProgramError(shortName)
+  const isReserved = nameError !== undefined || shortNameError !== undefined
   const isRename = editing !== undefined && trimmedName !== '' && trimmedName !== editing.name
 
   const handleSubmit = () => {
@@ -66,12 +67,7 @@ export const StudyProgramFormDialog = ({
               onChange={(e) => setName(e.target.value)}
               placeholder='e.g. Computer Science'
             />
-            {isReserved && (
-              <p className='text-destructive text-sm'>
-                &quot;{OTHER_STUDY_PROGRAM}&quot; is reserved for study programs applicants enter as
-                free text.
-              </p>
-            )}
+            {nameError && <p className='text-destructive text-sm'>{nameError}</p>}
           </div>
           <div className='flex flex-col gap-1.5'>
             <Label htmlFor='study-program-short-name'>Short Name (optional)</Label>
@@ -82,9 +78,13 @@ export const StudyProgramFormDialog = ({
               onChange={(e) => setShortName(e.target.value)}
               placeholder='e.g. CS'
             />
-            <p className='text-muted-foreground text-sm'>
-              Shown in charts where the full name does not fit.
-            </p>
+            {shortNameError ? (
+              <p className='text-destructive text-sm'>{shortNameError}</p>
+            ) : (
+              <p className='text-muted-foreground text-sm'>
+                Shown in charts where the full name does not fit.
+              </p>
+            )}
           </div>
           {isRename && !!editing.studentCount && (
             <Alert>

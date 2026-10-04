@@ -2,14 +2,22 @@ import type {
   StudyProgram,
   StudyProgramStudentCount,
 } from '../../../shared/interfaces/StudyProgram'
-import { OTHER_STUDY_PROGRAM } from '../../../shared/utils/otherStudyProgram'
+import { OTHER_STUDY_PROGRAM, UNKNOWN_STUDY_PROGRAM } from '../../../shared/utils/otherStudyProgram'
 
 export interface StudyProgramWithStudentCount extends StudyProgram {
   studentCount: number | null
 }
 
-export const isReservedStudyProgramName = (name: string): boolean =>
-  name.trim().toLowerCase() === OTHER_STUDY_PROGRAM.toLowerCase()
+const RESERVED_STUDY_PROGRAMS = [
+  { name: OTHER_STUDY_PROGRAM, reason: 'study programs applicants enter as free text' },
+  { name: UNKNOWN_STUDY_PROGRAM, reason: 'applications without a study program' },
+]
+
+export const reservedStudyProgramError = (value: string): string | undefined => {
+  const normalized = value.trim().toLowerCase()
+  const reserved = RESERVED_STUDY_PROGRAMS.find(({ name }) => name.toLowerCase() === normalized)
+  return reserved && `"${reserved.name}" is reserved for ${reserved.reason}.`
+}
 
 export const withStudentCounts = (
   studyPrograms: StudyProgram[],

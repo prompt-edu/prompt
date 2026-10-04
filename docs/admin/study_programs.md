@@ -26,4 +26,5 @@ administrators.
 - **Remove** a program from the list with the row's delete action. Students keep the program they
   entered; it then counts as **Other** in the application statistics, like any free-text program.
 
-The name **Other** is reserved for free-text programs and cannot be added to the list.
+The names **Other** (free-text programs) and **Unknown** (applications without a study program) are
+reserved for the application statistics and cannot be used as a name or short name.

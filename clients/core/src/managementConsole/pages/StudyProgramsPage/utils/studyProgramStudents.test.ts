@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   deleteWarning,
-  isReservedStudyProgramName,
   renameWarning,
+  reservedStudyProgramError,
   withStudentCounts,
 } from './studyProgramStudents'
 
@@ -30,14 +30,23 @@ describe('withStudentCounts', () => {
   })
 })
 
-describe('isReservedStudyProgramName', () => {
+describe('reservedStudyProgramError', () => {
   it('reserves "Other" in any casing and with surrounding spaces', () => {
-    expect(isReservedStudyProgramName('Other')).toBe(true)
-    expect(isReservedStudyProgramName('  oTHER ')).toBe(true)
+    const error = '"Other" is reserved for study programs applicants enter as free text.'
+    expect(reservedStudyProgramError('Other')).toBe(error)
+    expect(reservedStudyProgramError('  oTHER ')).toBe(error)
   })
 
-  it('allows names that only contain the word', () => {
-    expect(isReservedStudyProgramName('Other Sciences')).toBe(false)
+  it('reserves "Unknown" in any casing and with surrounding spaces', () => {
+    const error = '"Unknown" is reserved for applications without a study program.'
+    expect(reservedStudyProgramError('Unknown')).toBe(error)
+    expect(reservedStudyProgramError(' uNKNOWN  ')).toBe(error)
+  })
+
+  it('allows values that only contain a reserved word', () => {
+    expect(reservedStudyProgramError('Other Sciences')).toBeUndefined()
+    expect(reservedStudyProgramError('Unknown Studies')).toBeUndefined()
+    expect(reservedStudyProgramError('')).toBeUndefined()
   })
 })
 

@@ -178,6 +178,14 @@ const ROUTES: Route[] = [
     timeout: 10_000,
   },
   {
+    name: 'assessments.saveIndependent',
+    run: () => assessmentApi.assessments.saveIndependent(PHASE, assessment),
+    method: 'post',
+    url: `${ASSESSMENT_BASE}/student-assessment/independent`,
+    data: BODY,
+    timeout: 10_000,
+  },
+  {
     name: 'assessments.remove',
     run: () => assessmentApi.assessments.remove(PHASE, 'assessment-1'),
     method: 'delete',

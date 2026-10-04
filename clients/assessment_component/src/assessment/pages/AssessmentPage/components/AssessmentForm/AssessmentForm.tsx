@@ -28,6 +28,8 @@ interface AssessmentFormProps {
   peerEvaluationAverageScore?: number
   selfEvaluationAverageScore?: number
   hidePeerEvaluationDetails?: boolean
+  independent?: boolean
+  independentAssessments?: Assessment[]
 }
 
 export const AssessmentForm = ({
@@ -39,6 +41,8 @@ export const AssessmentForm = ({
   peerEvaluationAverageScore,
   selfEvaluationAverageScore,
   hidePeerEvaluationDetails = false,
+  independent = false,
+  independentAssessments,
 }: AssessmentFormProps) => {
   const [error, setError] = useState<string | undefined>(undefined)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -54,7 +58,7 @@ export const AssessmentForm = ({
     },
   })
 
-  const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError)
+  const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError, independent)
   const deleteAssessment = useDeleteAssessment(setError)
   const selectedScore = form.watch('scoreLevel')
   const controlsDisabled = completed || disabled
@@ -175,12 +179,33 @@ export const AssessmentForm = ({
         })
         .filter((item): item is () => JSX.Element => item !== undefined)
 
+  const indicatorProps = independent
+    ? {}
+    : {
+        selfEvaluationCompetency,
+        selfEvaluationScoreLevel,
+        selfEvaluationStudentAnswers,
+        peerEvaluationCompetency: peerEvaluationCompetency?.id
+          ? {
+              ...peerEvaluationCompetency,
+              name:
+                peerEvaluationCompetency.name.replace(
+                  /This person|this person/g,
+                  assessmentParticipation?.student.firstName ?? 'This Person',
+                ) ?? '',
+            }
+          : undefined,
+        peerEvaluationScoreLevel: peerEvaluationScore,
+        peerEvaluationStudentAnswers,
+        independentAssessments,
+      }
+
   return (
     <Form {...form}>
       <div className='space-y-4 p-4 border rounded-md'>
         <CompetencyHeader
           competency={competency}
-          competencyScore={assessment}
+          competencyScore={independent ? undefined : assessment}
           completed={controlsDisabled}
           onResetClick={() => setDeleteDialogOpen(true)}
         />
@@ -191,23 +216,7 @@ export const AssessmentForm = ({
           selectedScore={selectedScore}
           onScoreChange={handleScoreChange}
           completed={controlsDisabled}
-          selfEvaluationCompetency={selfEvaluationCompetency}
-          selfEvaluationScoreLevel={selfEvaluationScoreLevel}
-          selfEvaluationStudentAnswers={selfEvaluationStudentAnswers}
-          peerEvaluationCompetency={
-            peerEvaluationCompetency?.id
-              ? {
-                  ...peerEvaluationCompetency,
-                  name:
-                    peerEvaluationCompetency.name.replace(
-                      /This person|this person/g,
-                      assessmentParticipation?.student.firstName ?? 'This Person',
-                    ) ?? '',
-                }
-              : undefined
-          }
-          peerEvaluationScoreLevel={peerEvaluationScore}
-          peerEvaluationStudentAnswers={peerEvaluationStudentAnswers}
+          {...indicatorProps}
         />
 
         {error && !controlsDisabled && <FormMessage className='mt-2'>{error}</FormMessage>}

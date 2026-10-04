@@ -58,6 +58,8 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
       assessmentCompletion: results.assessmentCompletion,
       studentScore: results.studentScore,
       evaluations: [],
+      independentAssessments: [],
+      myIndependentAssessments: [],
     })
   }, [results, setStudentAssessment])
 

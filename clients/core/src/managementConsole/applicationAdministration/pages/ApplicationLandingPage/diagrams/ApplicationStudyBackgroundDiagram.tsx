@@ -17,7 +17,7 @@ interface StudyBackgroundCardProps {
 }
 
 export const ApplicationStudyBackgroundDiagram = ({ applications }: StudyBackgroundCardProps) => {
-  const { data: studyPrograms } = useStudyPrograms()
+  const { data: studyPrograms, isError } = useStudyPrograms()
 
   const studyData = useMemo(
     () => studyPrograms && groupApplicationsByStudyProgram(applications, studyPrograms),
@@ -33,6 +33,8 @@ export const ApplicationStudyBackgroundDiagram = ({ applications }: StudyBackgro
       <CardContent className='flex-1 flex flex-col justify-end pb-0'>
         {studyData ? (
           <StackedBarChartWithPassStatus data={studyData} />
+        ) : isError ? (
+          <p className='text-destructive text-sm pb-6'>Failed to load study programs.</p>
         ) : (
           <Skeleton className='w-full h-[280px]' />
         )}

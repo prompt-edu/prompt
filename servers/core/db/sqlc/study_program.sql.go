@@ -73,12 +73,12 @@ func (q *Queries) DeleteStudyProgram(ctx context.Context, id uuid.UUID) (int64, 
 	return result.RowsAffected(), nil
 }
 
-const getStudyProgramByID = `-- name: GetStudyProgramByID :one
-SELECT id, name, short_name FROM study_program WHERE id = $1
+const getStudyProgramByIDForUpdate = `-- name: GetStudyProgramByIDForUpdate :one
+SELECT id, name, short_name FROM study_program WHERE id = $1 FOR UPDATE
 `
 
-func (q *Queries) GetStudyProgramByID(ctx context.Context, id uuid.UUID) (StudyProgram, error) {
-	row := q.db.QueryRow(ctx, getStudyProgramByID, id)
+func (q *Queries) GetStudyProgramByIDForUpdate(ctx context.Context, id uuid.UUID) (StudyProgram, error) {
+	row := q.db.QueryRow(ctx, getStudyProgramByIDForUpdate, id)
 	var i StudyProgram
 	err := row.Scan(&i.ID, &i.Name, &i.ShortName)
 	return i, err

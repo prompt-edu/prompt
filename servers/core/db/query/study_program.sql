@@ -1,8 +1,8 @@
 -- name: ListStudyPrograms :many
 SELECT * FROM study_program ORDER BY name ASC;
 
--- name: GetStudyProgramByID :one
-SELECT * FROM study_program WHERE id = $1;
+-- name: GetStudyProgramByIDForUpdate :one
+SELECT * FROM study_program WHERE id = $1 FOR UPDATE;
 
 -- name: CreateStudyProgram :one
 INSERT INTO study_program (id, name, short_name) VALUES ($1, $2, $3) RETURNING *;

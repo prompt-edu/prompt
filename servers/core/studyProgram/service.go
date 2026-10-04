@@ -66,7 +66,7 @@ func (s *StudyProgramService) UpdateStudyProgram(ctx context.Context, id uuid.UU
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
-	previous, err := qtx.GetStudyProgramByID(ctx, id)
+	previous, err := qtx.GetStudyProgramByIDForUpdate(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return studyProgramDTO.StudyProgram{}, ErrStudyProgramNotFound
 	}

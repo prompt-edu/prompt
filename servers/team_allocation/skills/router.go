@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills/skillDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,13 +37,13 @@ func (s *SkillsService) getAllSkills(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	skills, err := s.GetAllSkills(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, skills)
@@ -65,19 +66,19 @@ func (s *SkillsService) createSkills(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request skillDTO.CreateSkillsRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.CreateNewSkills(c, request.SkillNames, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusCreated)
@@ -101,26 +102,26 @@ func (s *SkillsService) updateSkill(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	skillID, err := uuid.Parse(c.Param("skillID"))
 	if err != nil {
 		log.Error("Error parsing skillID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request skillDTO.UpdateSkillRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateSkill(c, coursePhaseID, skillID, request.NewSkillName)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -142,25 +143,21 @@ func (s *SkillsService) deleteSkill(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	skillID, err := uuid.Parse(c.Param("skillID"))
 	if err != nil {
 		log.Error("Error parsing skillID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteSkill(c, coursePhaseID, skillID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

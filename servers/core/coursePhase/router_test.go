@@ -90,7 +90,6 @@ func (suite *RouterTestSuite) TestCreateCoursePhase() {
 	assert.NoError(suite.T(), err)
 
 	newCoursePhase := coursePhaseDTO.CreateCoursePhase{
-		CourseID:            uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"),
 		Name:                "New Phase",
 		IsInitialPhase:      false,
 		RestrictedData:      data,
@@ -112,7 +111,7 @@ func (suite *RouterTestSuite) TestCreateCoursePhase() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "New Phase", createdCoursePhase.Name, "Expected course phase name to match")
 	assert.False(suite.T(), createdCoursePhase.IsInitialPhase, "Expected course phase to not be an initial phase")
-	assert.Equal(suite.T(), newCoursePhase.CourseID, createdCoursePhase.CourseID, "Expected CourseID to match")
+	assert.Equal(suite.T(), uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"), createdCoursePhase.CourseID, "Expected CourseID to match")
 	assert.Equal(suite.T(), newCoursePhase.RestrictedData, createdCoursePhase.RestrictedData, "Expected MetaData to match")
 	assert.Equal(suite.T(), newCoursePhase.StudentReadableData, createdCoursePhase.StudentReadableData, "Expected MetaData to match")
 	assert.Equal(suite.T(), newCoursePhase.CoursePhaseTypeID, createdCoursePhase.CoursePhaseTypeID, "Expected CoursePhaseTypeID to match")
@@ -179,6 +178,19 @@ func (suite *RouterTestSuite) TestUpdateCoursePhaseIgnoresBodyID() {
 	bodyPhase, err := suite.coursePhaseService.GetCoursePhaseByID(suite.ctx, uuid.MustParse(bodyPhaseID))
 	assert.NoError(suite.T(), err)
 	assert.NotEqual(suite.T(), "Renamed Through Path", bodyPhase.Name)
+}
+
+func (suite *RouterTestSuite) TestCreateCoursePhaseIgnoresBodyCourseID() {
+	body := `{"courseID": "` + uuid.NewString() + `", "name": "Body Course Ignored", "coursePhaseTypeID": "7dc1c4e8-4255-4874-80a0-0c12b958744c"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/course_phases/course/3f42d322-e5bf-4faa-b576-51f2cab14c2e", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+
+	var created coursePhaseDTO.CoursePhase
+	assert.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &created))
+	assert.Equal(suite.T(), uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"), created.CourseID)
 }
 
 func (suite *RouterTestSuite) TestUpdateCoursePhaseNotFound() {

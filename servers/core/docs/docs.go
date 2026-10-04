@@ -7149,9 +7149,6 @@ const docTemplate = `{
         "coursePhaseDTO.CreateCoursePhase": {
             "type": "object",
             "properties": {
-                "courseID": {
-                    "type": "string"
-                },
                 "coursePhaseTypeID": {
                     "type": "string"
                 },

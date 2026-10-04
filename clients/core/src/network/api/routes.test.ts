@@ -251,10 +251,10 @@ const ROUTES: Route[] = [
   },
   {
     name: 'coursePhases.create',
-    run: () => coreApi.coursePhases.create({ courseID: COURSE } as never),
+    run: () => coreApi.coursePhases.create({ courseID: COURSE, name: 'New' } as never),
     method: 'post',
     url: `${CORE}/api/course_phases/course/${COURSE}`,
-    data: { courseID: COURSE },
+    data: { name: 'New' },
   },
   {
     name: 'coursePhases.update',

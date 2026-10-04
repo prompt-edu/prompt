@@ -3,7 +3,6 @@ package coursePhase
 import (
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/meta"
@@ -20,12 +19,6 @@ const (
 func validateCreateCoursePhase(coursePhase coursePhaseDTO.CreateCoursePhase) error {
 	if coursePhase.Name == "" {
 		errorMessage := "course phase name is required"
-		log.Error(errorMessage)
-		return errors.New(errorMessage)
-	}
-
-	if coursePhase.CourseID == uuid.Nil {
-		errorMessage := "course id is required"
 		log.Error(errorMessage)
 		return errors.New(errorMessage)
 	}

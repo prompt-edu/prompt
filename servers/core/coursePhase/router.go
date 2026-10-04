@@ -72,18 +72,12 @@ func (s *CoursePhaseService) createCoursePhase(c *gin.Context) {
 		return
 	}
 
-	// validate that the courseIDs are identical
-	if newCoursePhase.CourseID != courseID {
-		handleError(c, http.StatusBadRequest, err)
-		return
-	}
-
 	if err := validateCreateCoursePhase(newCoursePhase); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	coursePhase, err := s.CreateCoursePhase(c, newCoursePhase)
+	coursePhase, err := s.CreateCoursePhase(c, courseID, newCoursePhase)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

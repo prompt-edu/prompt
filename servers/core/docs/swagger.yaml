@@ -1053,8 +1053,6 @@ definitions:
     type: object
   coursePhaseDTO.CreateCoursePhase:
     properties:
-      courseID:
-        type: string
       coursePhaseTypeID:
         type: string
       isInitialPhase:

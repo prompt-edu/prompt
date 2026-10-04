@@ -14,9 +14,8 @@ export const coursePhases = {
   byID: (coursePhaseID: string): Promise<CoursePhaseWithMetaData> =>
     coreRequest.get(`${path}/${coursePhaseID}`),
 
-  create: async (coursePhase: CreateCoursePhase): Promise<string | undefined> =>
-    (await coreRequest.post<{ id?: string }>(`${path}/course/${coursePhase.courseID}`, coursePhase))
-      .id,
+  create: async ({ courseID, ...coursePhase }: CreateCoursePhase): Promise<string | undefined> =>
+    (await coreRequest.post<{ id?: string }>(`${path}/course/${courseID}`, coursePhase)).id,
 
   update: async ({ id, ...coursePhase }: UpdateCoursePhase): Promise<string | undefined> =>
     (await coreRequest.put<{ id?: string }>(`${path}/${id}`, coursePhase)).id,

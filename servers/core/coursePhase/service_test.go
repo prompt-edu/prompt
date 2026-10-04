@@ -123,7 +123,6 @@ func (suite *CoursePhaseTestSuite) TestCreateCoursePhase() {
 	assert.NoError(suite.T(), err)
 
 	newCoursePhase := coursePhaseDTO.CreateCoursePhase{
-		CourseID:            uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"),
 		Name:                "New Phase",
 		IsInitialPhase:      false,
 		RestrictedData:      data,
@@ -131,7 +130,7 @@ func (suite *CoursePhaseTestSuite) TestCreateCoursePhase() {
 		CoursePhaseTypeID:   uuid.MustParse("7dc1c4e8-4255-4874-80a0-0c12b958744c"),
 	}
 
-	createdCoursePhase, err := suite.coursePhaseService.CreateCoursePhase(suite.ctx, newCoursePhase)
+	createdCoursePhase, err := suite.coursePhaseService.CreateCoursePhase(suite.ctx, uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e"), newCoursePhase)
 	assert.NoError(suite.T(), err)
 
 	// Verify creation

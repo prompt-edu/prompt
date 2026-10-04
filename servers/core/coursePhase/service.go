@@ -59,8 +59,8 @@ func (s *CoursePhaseService) UpdateCoursePhase(ctx context.Context, coursePhaseI
 	return nil
 }
 
-func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
-	dbModel, err := coursePhase.GetDBModel()
+func (s *CoursePhaseService) CreateCoursePhase(ctx context.Context, courseID uuid.UUID, coursePhase coursePhaseDTO.CreateCoursePhase) (coursePhaseDTO.CoursePhase, error) {
+	dbModel, err := coursePhase.GetDBModel(courseID)
 	if err != nil {
 		return coursePhaseDTO.CoursePhase{}, err
 	}

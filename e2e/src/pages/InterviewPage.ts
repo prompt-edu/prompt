@@ -123,6 +123,16 @@ export class InterviewPage {
       .click()
   }
 
+  async searchParticipants(term: string) {
+    const search = this.page.getByPlaceholder('Search ... (press Enter)')
+    await search.fill(term)
+    await search.press('Enter')
+  }
+
+  async backToParticipants() {
+    await this.page.getByRole('button', { name: 'Back', exact: true }).click()
+  }
+
   breadcrumb(): Locator {
     return this.page.getByRole('navigation', { name: 'breadcrumb' })
   }

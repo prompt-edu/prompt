@@ -28,6 +28,23 @@ test.describe('interview: profile', () => {
     await expect(phase.breadcrumb().getByText('Details', { exact: true })).toHaveCount(0)
   })
 
+  test('Back from a profile keeps the table search', async ({ page }) => {
+    const phase = new InterviewPage(page)
+    await phase.gotoParticipants(COURSE_ID, PHASE_ID)
+    await phase.expectParticipantsLoaded()
+    await phase.searchParticipants(STUDENT.lastName)
+    await expect(page).toHaveURL(`${PARTICIPANTS_URL}?search=${STUDENT.lastName}`)
+
+    await phase.openProfile(STUDENT.firstName, STUDENT.lastName)
+    await expect(page).toHaveURL(PROFILE_URL)
+    await phase.backToParticipants()
+
+    await expect(page).toHaveURL(`${PARTICIPANTS_URL}?search=${STUDENT.lastName}`)
+    await expect(
+      page.getByRole('row', { name: new RegExp(`${STUDENT.firstName} ${STUDENT.lastName}`) }),
+    ).toBeVisible()
+  })
+
   for (const { oldPath, newUrl } of [
     { oldPath: '/manage', newUrl: PARTICIPANTS_URL },
     { oldPath: `/manage/${STUDENT.id}`, newUrl: PROFILE_URL },

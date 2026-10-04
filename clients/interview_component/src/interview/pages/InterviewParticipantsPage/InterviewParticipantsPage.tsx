@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { InterviewSlot } from '../../interfaces/InterviewSlots'
 import { getApplicationParticipantPath } from '../../utils/getApplicationParticipantPath'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
+import type { ProfileDetailLocationState } from '../ProfileDetail/ProfileDetailPage'
 import {
   createApplicationLinkColumn,
   createInterviewDayFilter,
@@ -32,7 +33,9 @@ export const InterviewParticipantsPage = () => {
       window.open(`${window.location.origin}${target}`, '_blank', 'noopener,noreferrer')
       return
     }
-    navigate(target)
+    navigate(target, {
+      state: { tableSearch: window.location.search } satisfies ProfileDetailLocationState,
+    })
   }
 
   const slotByParticipation = useMemo(() => {

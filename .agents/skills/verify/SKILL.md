@@ -50,9 +50,12 @@ wait for the app shell. Sequence with the MCP tools:
 4. `browser_snapshot` again once redirected back, then click through to the change
 5. `browser_take_screenshot` for the evidence, `browser_console_messages` for errors
 
-Snapshots and console logs land in the gitignored `.playwright-mcp/` on their own, but
-`browser_take_screenshot` resolves its `filename` against the repo root — pass an explicit
-`.playwright-mcp/<name>.png` or the image lands in the working tree, where only a
+Action tools (`browser_navigate`, `browser_click`, `browser_type`, …) save the page
+snapshot they take, and each tab streams its console log, into the gitignored
+`.playwright-mcp/` on their own. An explicit `browser_snapshot` or
+`browser_console_messages` call returns its output inline instead. Any `filename` you pass
+— to those two or to `browser_take_screenshot` — resolves against the repo root, so give
+an explicit `.playwright-mcp/<name>` or the file lands in the working tree, where only a
 `git status` catches it. Always report what you observed, and show a screenshot of the
 changed surface.
 

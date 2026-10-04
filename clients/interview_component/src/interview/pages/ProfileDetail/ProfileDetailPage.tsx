@@ -11,6 +11,8 @@ import { ChevronLeft, FileUserIcon } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'
 import { StudentCard } from '../../components/StudentCard'
+import { StudentHistoryCard } from '../../components/StudentHistoryCard'
+import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 
 export interface ProfileDetailLocationState {
@@ -20,6 +22,8 @@ export interface ProfileDetailLocationState {
 export const ProfileDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()
   const { participations } = useParticipationStore()
+  const { coursePhase } = useCoursePhaseStore()
+  const showStudentHistory = coursePhase?.restrictedData?.showStudentHistory === true
   const participation = participations.find((p) => p.student.id === studentId)
   const navigate = useNavigate()
   const location = useLocation()
@@ -53,7 +57,7 @@ export const ProfileDetailPage = () => {
           <div className='pt-6 mb-8'>
             <StudentCard participation={participation} />
           </div>
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+          <div className='grid grid-cols-1 lg:grid-cols-2 xl:has-[>[data-student-history]]:grid-cols-[1fr_1fr_20rem] gap-8'>
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center'>
@@ -73,6 +77,9 @@ export const ProfileDetailPage = () => {
               </CardContent>
             </Card>
             <InterviewCard />
+            {showStudentHistory && participation.student.id && (
+              <StudentHistoryCard studentId={participation.student.id} />
+            )}
           </div>
         </>
       )}

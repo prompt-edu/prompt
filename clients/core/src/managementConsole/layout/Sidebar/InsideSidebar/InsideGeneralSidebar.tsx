@@ -2,7 +2,17 @@ import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRo
 import { useAuditLogEnabled } from '@core/network/hooks/useAuditLogStatus'
 import { Role } from '@tumaet/prompt-shared-state'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
-import { Activity, Archive, File, FileText, ScrollText, Shield, Tag, Users } from 'lucide-react'
+import {
+  Activity,
+  Archive,
+  File,
+  FileText,
+  GraduationCap,
+  ScrollText,
+  Shield,
+  Tag,
+  Users,
+} from 'lucide-react'
 import { InsideSidebarVisualGroup } from './components/InsideSidebarHeading'
 import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
@@ -64,6 +74,11 @@ export const InsideGeneralSidebar = () => {
                 icon={<Shield />}
                 goToPath={'/management/admin/privacy'}
                 title='Privacy'
+              />
+              <InsideSidebarMenuItem
+                icon={<GraduationCap />}
+                goToPath={'/management/admin/study-programs'}
+                title='Study Programs'
               />
               {auditLogEnabled && (
                 <InsideSidebarMenuItem

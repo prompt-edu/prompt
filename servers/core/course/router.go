@@ -312,12 +312,11 @@ func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 		return
 	}
 
-	if err := s.validateUpdateCourseOrder(c, courseID, graphUpdate.PhaseGraph); err != nil {
+	err = s.UpdateCoursePhaseOrder(c, courseID, graphUpdate)
+	if errors.Is(err, ErrPhaseNotInCourse) {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
-
-	err = s.UpdateCoursePhaseOrder(c, courseID, graphUpdate)
 	if err != nil {
 		log.Error(err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update course phase order"))

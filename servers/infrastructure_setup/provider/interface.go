@@ -2,15 +2,46 @@
 // infrastructure provider implementations (GitLab, Slack, Outline, Rancher, Keycloak).
 package provider
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Resource represents a successfully created external resource.
 type Resource struct {
 	ExternalID  string
 	ExternalURL string
-	// Warnings lists members that could not be granted access. The resource itself
-	// exists, so the instance is recorded as partial rather than failed.
-	Warnings []string
+	// Warnings lists what could not be done on the resource, usually members that could
+	// not be granted access. The resource itself exists, so the instance is recorded as
+	// partial rather than failed.
+	Warnings []Warning
+}
+
+// Warning reports something a provider could not do on a resource that exists.
+type Warning struct {
+	// Text is what the lecturer reads on the instance.
+	Text string
+	// Members lists the emails of the members the warning left without access. It is
+	// what tells a student that they, specifically, were not added.
+	Members []string
+}
+
+// MemberWarning reports one member that could not be granted access.
+func MemberWarning(email, format string, args ...any) Warning {
+	return Warning{
+		Text:    fmt.Sprintf("%s: %s", email, fmt.Sprintf(format, args...)),
+		Members: []string{email},
+	}
+}
+
+// MembersWarning reports a failure that left several members without access at once,
+// such as a group that could not be bound to its resource.
+func MembersWarning(members []Member, format string, args ...any) Warning {
+	emails := make([]string, 0, len(members))
+	for _, member := range members {
+		emails = append(emails, member.Email)
+	}
+	return Warning{Text: fmt.Sprintf(format, args...), Members: emails}
 }
 
 // Member represents a user to be granted access to a resource.
@@ -76,7 +107,7 @@ type Provider interface {
 	// CreateResource creates the external resource and returns its ID and URL.
 	// Implementations must be idempotent: if the resource already exists, return it.
 	// A member that cannot be granted access is reported through Resource.Warnings,
-	// never silently skipped.
+	// naming the member, never silently skipped.
 	CreateResource(ctx context.Context, input CreateResourceInput) (*Resource, error)
 }
 

@@ -7,6 +7,7 @@ CREATE TABLE study_program (
 );
 
 CREATE UNIQUE INDEX study_program_name_unique ON study_program (lower(trim(name)));
+CREATE UNIQUE INDEX study_program_label_unique ON study_program (lower(trim(coalesce(short_name, name))));
 
 INSERT INTO study_program (name, short_name) VALUES
   ('Computer Science', 'CS'),

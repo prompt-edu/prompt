@@ -12,11 +12,11 @@ type it in.
 Open **Admin → Study Programs** in the management console. The page is only available to PROMPT
 administrators.
 
-| Column         | Meaning                                                                                   |
-| -------------- | ----------------------------------------------------------------------------------------- |
-| **Name**       | What applicants see in the application form. Must be unique, ignoring case and spaces.     |
-| **Short Name** | Optional label for charts, such as `CS` for Computer Science. The name is used otherwise. |
-| **Students**   | How many students currently have exactly this program stored.                             |
+| Column         | Meaning                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Name**       | What applicants see in the application form. Must be unique, ignoring case and surrounding spaces.                         |
+| **Short Name** | Optional label for charts, such as `CS` for Computer Science. The name is used otherwise. Each chart label must be unique. |
+| **Students**   | How many students currently have exactly this program stored.                                                              |
 
 ## Adding, renaming, and removing
 

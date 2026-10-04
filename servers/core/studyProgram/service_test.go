@@ -109,6 +109,49 @@ func (suite *ServiceTestSuite) TestCreateStudyProgramRejectsDuplicateIgnoringCas
 	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgram)
 }
 
+func (suite *ServiceTestSuite) TestCreateStudyProgramRejectsShortNameOfAnotherProgram() {
+	_, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Electrical Engineering",
+		ShortName: "EE",
+	})
+	require.NoError(suite.T(), err)
+
+	_, err = suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Electronics Engineering",
+		ShortName: " ee ",
+	})
+
+	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgramLabel)
+}
+
+func (suite *ServiceTestSuite) TestCreateStudyProgramRejectsShortNameEqualToAnotherProgramsName() {
+	_, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name: "Chemistry",
+	})
+	require.NoError(suite.T(), err)
+
+	_, err = suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Chemical Engineering",
+		ShortName: "chemistry",
+	})
+
+	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgramLabel)
+}
+
+func (suite *ServiceTestSuite) TestCreateStudyProgramRejectsNameEqualToAnotherProgramsShortName() {
+	_, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Aerospace Engineering",
+		ShortName: "AE",
+	})
+	require.NoError(suite.T(), err)
+
+	_, err = suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name: "ae",
+	})
+
+	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgramLabel)
+}
+
 func (suite *ServiceTestSuite) TestUpdateStudyProgramRenamesMatchingStudents() {
 	updated, err := suite.service.UpdateStudyProgram(suite.ctx, computerScienceID, studyProgramDTO.UpdateStudyProgram{
 		Name:      "Informatics",
@@ -164,6 +207,55 @@ func (suite *ServiceTestSuite) TestUpdateStudyProgramToExistingNameRollsBack() {
 		names = append(names, studyProgram.Name)
 	}
 	assert.Contains(suite.T(), names, "Management and Technology")
+}
+
+func (suite *ServiceTestSuite) TestUpdateStudyProgramToShortNameOfAnotherProgramRollsBack() {
+	_, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Architecture",
+		ShortName: "ARCH",
+	})
+	require.NoError(suite.T(), err)
+	civilEngineering, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Civil Engineering",
+		ShortName: "CE",
+	})
+	require.NoError(suite.T(), err)
+
+	_, err = suite.service.UpdateStudyProgram(suite.ctx, civilEngineering.ID, studyProgramDTO.UpdateStudyProgram{
+		Name:      "Civil Engineering",
+		ShortName: "arch",
+	})
+	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgramLabel)
+
+	studyPrograms, err := suite.service.ListStudyPrograms(suite.ctx)
+	require.NoError(suite.T(), err)
+	for _, studyProgram := range studyPrograms {
+		if studyProgram.ID == civilEngineering.ID {
+			assert.Equal(suite.T(), "CE", studyProgram.ShortName.String)
+		}
+	}
+}
+
+func (suite *ServiceTestSuite) TestRenameStudyProgramToLabelOfAnotherProgramRollsBack() {
+	_, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name:      "Biochemistry",
+		ShortName: "BC",
+	})
+	require.NoError(suite.T(), err)
+	bioinformatics, err := suite.service.CreateStudyProgram(suite.ctx, studyProgramDTO.CreateStudyProgram{
+		Name: "Bioinformatics",
+	})
+	require.NoError(suite.T(), err)
+	studentID := uuid.New()
+	_, err = suite.conn.Exec(suite.ctx, "INSERT INTO student (id, study_program) VALUES ($1, $2)", studentID, "Bioinformatics")
+	require.NoError(suite.T(), err)
+
+	_, err = suite.service.UpdateStudyProgram(suite.ctx, bioinformatics.ID, studyProgramDTO.UpdateStudyProgram{
+		Name: "bc",
+	})
+	assert.ErrorIs(suite.T(), err, ErrDuplicateStudyProgramLabel)
+
+	assert.Equal(suite.T(), "Bioinformatics", suite.studyProgramOf(studentID).String)
 }
 
 func (suite *ServiceTestSuite) TestUpdateUnknownStudyProgram() {

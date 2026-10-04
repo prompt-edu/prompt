@@ -16,9 +16,12 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/studyProgram/studyProgramDTO"
 )
 
+const studyProgramLabelIndex = "study_program_label_unique"
+
 var (
-	ErrDuplicateStudyProgram = errors.New("a study program with this name already exists")
-	ErrStudyProgramNotFound  = errors.New("study program not found")
+	ErrDuplicateStudyProgram      = errors.New("a study program with this name already exists")
+	ErrDuplicateStudyProgramLabel = errors.New("another study program already has this chart label (its short name, or its name if it has no short name)")
+	ErrStudyProgramNotFound       = errors.New("study program not found")
 )
 
 type StudyProgramService struct {
@@ -117,8 +120,11 @@ func optionalText(value string) pgtype.Text {
 
 func mapUniqueViolation(err error) error {
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return ErrDuplicateStudyProgram
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
+		return err
 	}
-	return err
+	if pgErr.ConstraintName == studyProgramLabelIndex {
+		return ErrDuplicateStudyProgramLabel
+	}
+	return ErrDuplicateStudyProgram
 }

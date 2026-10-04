@@ -139,6 +139,22 @@ func (suite *RouterTestSuite) TestCreateDuplicateStudyProgram() {
 	assert.Equal(suite.T(), http.StatusConflict, w.Code)
 }
 
+func (suite *RouterTestSuite) TestCreateStudyProgramWithTakenLabel() {
+	w := serve(suite.adminRouter, http.MethodPost, "/api/study-programs", studyProgramDTO.CreateStudyProgram{
+		Name:      "Physics",
+		ShortName: "PH",
+	})
+	require.Equal(suite.T(), http.StatusCreated, w.Code)
+
+	w = serve(suite.adminRouter, http.MethodPost, "/api/study-programs", studyProgramDTO.CreateStudyProgram{
+		Name:      "Engineering Physics",
+		ShortName: "ph",
+	})
+
+	assert.Equal(suite.T(), http.StatusConflict, w.Code)
+	assert.Contains(suite.T(), w.Body.String(), ErrDuplicateStudyProgramLabel.Error())
+}
+
 func (suite *RouterTestSuite) TestUpdateStudyProgram() {
 	w := serve(suite.adminRouter, http.MethodPut, "/api/study-programs/"+informationSystemsID.String(), studyProgramDTO.UpdateStudyProgram{
 		Name:      "Information Systems",

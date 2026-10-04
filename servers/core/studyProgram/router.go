@@ -161,7 +161,7 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrStudyProgramNotFound):
 		handleError(c, http.StatusNotFound, err)
-	case errors.Is(err, ErrDuplicateStudyProgram):
+	case errors.Is(err, ErrDuplicateStudyProgram), errors.Is(err, ErrDuplicateStudyProgramLabel):
 		handleError(c, http.StatusConflict, err)
 	default:
 		log.Error(err)

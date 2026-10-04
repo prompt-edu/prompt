@@ -18,8 +18,8 @@ export const coursePhases = {
     (await coreRequest.post<{ id?: string }>(`${path}/course/${coursePhase.courseID}`, coursePhase))
       .id,
 
-  update: async (coursePhase: UpdateCoursePhase): Promise<string | undefined> =>
-    (await coreRequest.put<{ id?: string }>(`${path}/${coursePhase.id}`, coursePhase)).id,
+  update: async ({ id, ...coursePhase }: UpdateCoursePhase): Promise<string | undefined> =>
+    (await coreRequest.put<{ id?: string }>(`${path}/${id}`, coursePhase)).id,
 
   remove: (coursePhaseID: string): Promise<void> => coreRequest.del(`${path}/${coursePhaseID}`),
 

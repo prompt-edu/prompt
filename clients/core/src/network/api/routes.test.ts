@@ -258,10 +258,10 @@ const ROUTES: Route[] = [
   },
   {
     name: 'coursePhases.update',
-    run: () => coreApi.coursePhases.update({ id: PHASE } as never),
+    run: () => coreApi.coursePhases.update({ id: PHASE, name: 'Renamed' } as never),
     method: 'put',
     url: `${CORE}/api/course_phases/${PHASE}`,
-    data: { id: PHASE },
+    data: { name: 'Renamed' },
   },
   {
     name: 'coursePhases.remove',

@@ -1,3 +1,4 @@
+import rspack from '@rspack/core'
 import { describe, expect, it } from 'vitest'
 import { createRspackConfig } from './createRspackConfig.mjs'
 
@@ -8,7 +9,7 @@ const federationOptions = (consumesCore: boolean | undefined, NODE_ENV: string) 
     configUrl: import.meta.url,
     consumesCore,
   })({ NODE_ENV })
-  const plugin = config.plugins.find((p) => p.constructor.name === 'ModuleFederationPlugin')
+  const plugin = config.plugins.find((p) => p instanceof rspack.container.ModuleFederationPlugin)
   return plugin._options
 }
 
@@ -19,7 +20,7 @@ describe('createRspackConfig', () => {
     expect(options.shareStrategy).toBeUndefined()
   })
 
-  it('loads core only when a core module is first imported', () => {
+  it('uses the loaded-first share strategy', () => {
     expect(federationOptions(true, 'development').shareStrategy).toBe('loaded-first')
   })
 

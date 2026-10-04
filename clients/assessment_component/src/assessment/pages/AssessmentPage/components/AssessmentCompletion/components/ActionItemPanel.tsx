@@ -127,7 +127,7 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
         </div>
       }
       errorFallback={({ refetch }) => (
-        <ErrorPage message='Error loading assessments' onRetry={refetch} />
+        <ErrorPage message='Error loading action items' onRetry={refetch} />
       )}
     >
       <Card>

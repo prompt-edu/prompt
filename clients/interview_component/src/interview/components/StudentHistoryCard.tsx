@@ -19,7 +19,7 @@ export const StudentHistoryCard = ({ studentId }: { studentId: string }) => (
       </div>
     }
   >
-    <div className='flex flex-col gap-4'>
+    <div className='flex flex-col gap-4 lg:col-span-2 lg:flex-row lg:gap-8 lg:*:min-w-0 lg:*:flex-1 xl:col-span-1 xl:flex-col xl:gap-4 xl:*:flex-none'>
       <StudentNotesAndHistory studentId={studentId} />
     </div>
   </Suspense>

@@ -22,6 +22,7 @@ export interface CoursePhaseConfig {
   gradingSheetVisible: boolean
   resultsReleased: boolean
   tutorDisplayName: string
+  independentAssessmentEnabled: boolean
 }
 
 export interface CreateOrUpdateCoursePhaseConfigRequest {
@@ -46,4 +47,5 @@ export interface CreateOrUpdateCoursePhaseConfigRequest {
   actionItemsVisible: boolean
   gradingSheetVisible: boolean
   tutorDisplayName?: string
+  independentAssessmentEnabled: boolean
 }

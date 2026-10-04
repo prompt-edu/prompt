@@ -56,14 +56,21 @@ export const AssessmentSettingsCard = () => {
         </div>
 
         <div className='space-y-4'>
-          <h3 className='text-sm font-semibold text-foreground'>Assessment workflow visibility</h3>
+          <h3 className='text-sm font-semibold text-foreground'>Assessment workflow</h3>
 
+          <SettingsSwitchField
+            checked={assessmentVisibility.independentAssessmentEnabled}
+            onCheckedChange={assessmentVisibility.setIndependentAssessmentEnabled}
+            disabled={isSaving}
+            title='Independent assessments'
+            description='Every assessor first scores students on their own in a "My assessment" tab. The final assessment then shows all scores side by side so they can be merged.'
+          />
           <SettingsSwitchField
             checked={assessmentVisibility.evaluationResultsVisible}
             onCheckedChange={assessmentVisibility.setEvaluationResultsVisible}
             disabled={isSaving}
             title='Show evaluation results before submission'
-            description={`Assessment authors can review self-, peer-, and student-to-${tutorLabel.text} evaluation results before they finalize the assessment.`}
+            description={`Assessment authors can review self-, peer-, and student-to-${tutorLabel.text} evaluation results, and other assessors' independent scores, before they finalize the assessment.`}
           />
         </div>
       </div>

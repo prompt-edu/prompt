@@ -16,6 +16,17 @@ export function infrastructureSetupUrl(phaseId: string, path: string): string {
 // against the worker.
 export const UNRESPONSIVE_PROVIDER_URL = 'http://192.0.2.1:9999'
 
+// The stack's own Keycloak, as the infrastructure setup server reaches it on the
+// compose network, whichever host the runner is on. Its prompt-server client has a
+// service account, so the phase can provision real groups in the e2e realm.
+export const KEYCLOAK_PROVIDER = {
+  url: 'http://keycloak:8080',
+  realm: 'prompt',
+  clientId: 'prompt-server',
+  // The committed test-only secret, passed to the runner by docker-compose.e2e.yml.
+  clientSecret: process.env.KEYCLOAK_CLIENT_SECRET ?? '',
+}
+
 export interface ApiResponse {
   status: number
   body: string
@@ -108,8 +119,8 @@ export function getPhaseConfig(phaseId: string, role: Role = 'lecturer'): Promis
   return call(role, 'get', phaseId, 'config')
 }
 
-// Idempotent reset, run before and after the journey so a retry (or a rerun against
-// a stack that is still up) starts from the same state. Removing the provider
+// Idempotent reset, run before and after each journey so a retry (or a rerun against
+// a stack that is still up) starts from the same state. Removing a provider
 // cascades to its resource configs and their instances, which also clears any
 // non-terminal instance that would otherwise make the next trigger a conflict.
 export async function resetInfrastructureSetupPhase(
@@ -117,5 +128,6 @@ export async function resetInfrastructureSetupPhase(
   role: Role = 'lecturer',
 ): Promise<void> {
   await call(role, 'delete', phaseId, 'provider-configs/gitlab')
+  await call(role, 'delete', phaseId, 'provider-configs/keycloak')
   await call(role, 'put', phaseId, 'setup-config', { semesterTag: '' })
 }

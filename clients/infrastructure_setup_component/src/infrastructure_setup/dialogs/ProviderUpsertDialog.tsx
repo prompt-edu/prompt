@@ -86,6 +86,8 @@ export const ProviderUpsertDialog = ({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider-configs', coursePhaseID] })
+      // What the next run does depends on it, and the provisioning page shows that.
+      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
       toast({
         title: existingProvider ? 'Provider updated' : 'Provider added',
         description: `Credentials for ${selectedType} saved.`,
@@ -108,7 +110,7 @@ export const ProviderUpsertDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className='max-h-[90vh] overflow-y-auto'>
         <form
           onSubmit={(e) => {
             e.preventDefault()

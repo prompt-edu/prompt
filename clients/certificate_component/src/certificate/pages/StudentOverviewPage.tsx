@@ -15,6 +15,7 @@ import { Download, FileCheck2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { SanitizedHtml } from '../components/SanitizedHtml'
+import { certificateCache, certificateKeys } from '../network/cache'
 import { downloadOwnCertificate, triggerBlobDownload } from '../network/queries/downloadCertificate'
 import { getCertificateStatus } from '../network/queries/getCertificateStatus'
 
@@ -25,7 +26,7 @@ export const StudentOverviewPage = () => {
   const [isDownloading, setIsDownloading] = useState(false)
 
   const statusQuery = useQuery({
-    queryKey: ['certificateStatus', phaseId],
+    queryKey: certificateKeys.myStatus(phaseId),
     queryFn: () => getCertificateStatus(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -39,8 +40,7 @@ export const StudentOverviewPage = () => {
     try {
       const blob = await downloadOwnCertificate(phaseId)
       triggerBlobDownload(blob, 'certificate.pdf')
-      // Refresh status after download
-      queryClient.invalidateQueries({ queryKey: ['certificateStatus', phaseId] })
+      certificateCache.myCertificateDownloaded(queryClient, phaseId)
     } catch (error) {
       console.error('Failed to download certificate:', error)
       toast({

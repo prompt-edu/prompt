@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewReview } from '../interfaces/InterviewReview'
 import type { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
+import { interviewKeys } from '../network/cache'
 import { interviewAxiosInstance } from '../network/interviewServerConfig'
 import { getInterviewReviews } from '../network/queries/getInterviewReviews'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
@@ -24,18 +25,18 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
   const { setParticipations, setInterviewSlots, setInterviewReviews } = useParticipationStore()
   const { setCoursePhase } = useCoursePhaseStore()
   const coursePhaseParticipationsQuery = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
+    queryKey: interviewKeys.participants(phaseId),
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
   })
 
   const coursePhaseQuery = useQuery<CoursePhaseWithMetaData>({
-    queryKey: ['course_phase', phaseId],
+    queryKey: interviewKeys.coursePhase(phaseId),
     queryFn: () => getCoursePhase(phaseId ?? ''),
   })
 
   // Fetch interview slots with assignments from the interview server
   const interviewSlotsQuery = useQuery<InterviewSlotWithAssignments[]>({
-    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryKey: interviewKeys.slots(phaseId),
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
         `interview/api/course_phase/${phaseId}/interview-slots`,
@@ -47,7 +48,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
 
   // Fetch interview reviews (score, interviewer, answers) from the interview server
   const interviewReviewsQuery = useQuery<InterviewReview[]>({
-    queryKey: ['interviewReviews', phaseId],
+    queryKey: interviewKeys.reviews(phaseId),
     queryFn: () => getInterviewReviews(phaseId ?? ''),
     enabled: !!phaseId,
   })

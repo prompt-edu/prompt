@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,8 +14,24 @@ import (
 func RegisterRoutes(rg *gin.RouterGroup, svc *Service) {
 	rg.GET("/instances", listInstances(svc))
 	rg.POST("/execute", triggerExecution(svc))
+	rg.GET("/execute/preview", previewExecution(svc))
 	rg.POST("/instances/:instanceID/retry", retryInstance(svc))
 	rg.DELETE("/instances/:instanceID", deleteInstance(svc))
+}
+
+// RegisterStudentRoutes mounts the endpoints a student of the phase calls. The group
+// must only admit students: the handlers answer for the caller's own participation.
+func RegisterStudentRoutes(rg *gin.RouterGroup, svc *Service) {
+	rg.GET("/my-resources", listMyResources(svc))
+}
+
+// isPreconditionError reports whether a trigger was refused because of how the phase is
+// set up, which the lecturer can fix, rather than because something broke.
+func isPreconditionError(err error) bool {
+	return errors.Is(err, ErrProviderNotConfigured) ||
+		errors.Is(err, ErrNothingConfigured) ||
+		errors.Is(err, ErrSemesterTagMissing) ||
+		errors.Is(err, ErrTeamsNotWired)
 }
 
 // listInstances godoc
@@ -69,9 +86,7 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			switch {
 			case errors.Is(err, ErrExecutionInProgress):
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			case errors.Is(err, ErrProviderNotConfigured),
-				errors.Is(err, ErrNothingConfigured),
-				errors.Is(err, ErrSemesterTagMissing):
+			case isPreconditionError(err):
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			default:
 				log.WithError(err).Error("trigger execution")
@@ -80,6 +95,72 @@ func triggerExecution(svc *Service) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusAccepted, summary)
+	}
+}
+
+// previewExecution godoc
+// @Summary Preview infrastructure provisioning
+// @Description Runs the checks of a trigger and resolves its targets without writing anything, and reports how many instances a trigger would create, retry and leave alone.
+// @Tags execution
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} ProvisioningPreview
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/execute/preview [get]
+func previewExecution(svc *Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
+			return
+		}
+		preview, err := svc.PreviewExecution(c.Request.Context(), c.GetHeader("Authorization"), coursePhaseID)
+		if err != nil {
+			if isPreconditionError(err) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			log.WithError(err).Error("preview execution")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, preview)
+	}
+}
+
+// listMyResources godoc
+// @Summary List the caller's resources
+// @Description Lists every resource config of the phase as the calling student sees it: the instances provisioned for them or their team, with whether they were granted access, and configs that have provisioned nothing for them yet. Error details are never included.
+// @Tags execution
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {array} MyResourceResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/my-resources [get]
+func listMyResources(svc *Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coursePhaseID"})
+			return
+		}
+		courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
+		if err != nil {
+			c.JSON(keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), gin.H{"error": err.Error()})
+			return
+		}
+		resources, err := svc.ListMyResources(c.Request.Context(), coursePhaseID, courseParticipationID)
+		if err != nil {
+			log.WithError(err).Error("list my resources")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load your resources"})
+			return
+		}
+		c.JSON(http.StatusOK, resources)
 	}
 }
 

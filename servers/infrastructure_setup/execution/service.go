@@ -103,7 +103,7 @@ func NewServiceWithResolver(pool *pgxpool.Pool, resolver TargetResolver) *Servic
 // TriggerExecution converges the phase's resource instances on its resource configs and
 // then starts the async worker. A target without an instance gets one, a failed or
 // partial instance is queued for another attempt, and an already created resource is
-// left alone.
+// left alone unless it is a team's whose members were never recorded.
 //
 // Targets are resolved first, outside the transaction, because resolution calls core
 // over HTTP. The transaction then takes a per-phase advisory lock so the in-progress
@@ -361,7 +361,7 @@ type plannedRequeue struct {
 
 // planInstances decides, for every (config, target) pair, what a trigger does. It
 // writes nothing, so the preview and the trigger share one answer.
-func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targetsByScope map[db.ResourceScope][]ProvisioningTarget, existing map[instanceKey]db.ResourceInstance) instancePlan {
+func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targetsByScope map[db.ResourceScope][]ProvisioningTarget, existing map[instanceKey]existingInstance) instancePlan {
 	var plan instancePlan
 	for _, cfg := range configs {
 		for _, target := range targetsByScope[cfg.Scope] {
@@ -372,7 +372,7 @@ func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targets
 					params: createResourceInstanceParams(cfg, coursePhaseID, target),
 					target: target,
 				})
-			case isRetryable(instance.Status):
+			case needsRun(instance, target):
 				plan.requeue = append(plan.requeue, plannedRequeue{instanceID: instance.ID, target: target})
 			default:
 				plan.upToDate++
@@ -382,21 +382,47 @@ func planInstances(coursePhaseID uuid.UUID, configs []db.ResourceConfig, targets
 	return plan
 }
 
-func (s *Service) instancesByTarget(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (map[instanceKey]db.ResourceInstance, error) {
+type existingInstance struct {
+	db.ResourceInstance
+	hasMembers bool
+}
+
+func (s *Service) instancesByTarget(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (map[instanceKey]existingInstance, error) {
 	instances, err := qtx.ListResourceInstances(ctx, coursePhaseID)
 	if err != nil {
 		return nil, err
 	}
-	byTarget := make(map[instanceKey]db.ResourceInstance, len(instances))
+	members, err := qtx.ListInstanceMembersByCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	withMembers := make(map[uuid.UUID]bool, len(members))
+	for _, member := range members {
+		withMembers[member.ResourceInstanceID] = true
+	}
+
+	byTarget := make(map[instanceKey]existingInstance, len(instances))
 	for _, instance := range instances {
-		byTarget[targetKey(instance.ResourceConfigID, instance.TeamID, instance.CourseParticipationID)] = instance
+		byTarget[targetKey(instance.ResourceConfigID, instance.TeamID, instance.CourseParticipationID)] = existingInstance{
+			ResourceInstance: instance,
+			hasMembers:       withMembers[instance.ID],
+		}
 	}
 	return byTarget, nil
 }
 
-// isRetryable mirrors ResetInstanceToPending's WHERE clause.
-func isRetryable(status db.ResourceStatus) bool {
-	return status == db.ResourceStatusFailed || status == db.ResourceStatusPartial
+// needsRun mirrors ResetInstanceToPending's WHERE clause. A team instance created
+// before members were recorded runs again once its team has people, so they can find
+// it; the provider adopts the resource that already exists.
+func needsRun(instance existingInstance, target ProvisioningTarget) bool {
+	switch instance.Status {
+	case db.ResourceStatusFailed, db.ResourceStatusPartial:
+		return true
+	case db.ResourceStatusCreated:
+		return instance.TeamID != nil && !instance.hasMembers && len(target.People) > 0
+	default:
+		return false
+	}
 }
 
 func createResourceInstanceParams(cfg db.ResourceConfig, coursePhaseID uuid.UUID, target ProvisioningTarget) db.CreateResourceInstanceParams {

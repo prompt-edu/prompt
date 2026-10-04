@@ -321,7 +321,9 @@ the people its target stands for in `resource_instance_member`, replacing the pr
 The student page and the participants columns derive one state per person and resource from the
 instance status and that flag. An instance whose run predates the table has no member rows: a
 personal one reads by its status (a `partial` one as *partly set up*), and a team one reaches its
-members once it is retried or queued again.
+members once it runs again. A failed or partial one does on its next retry; a `created` one is
+queued again by the next trigger once its team has members (the provider adopts the existing
+resource, so nothing is duplicated).
 
 ### Permission mapping
 

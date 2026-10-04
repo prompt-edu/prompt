@@ -24,12 +24,11 @@ import { getMyResources } from '../network/queries/getMyResources'
 import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 import { providerName, resourceLabel } from '../utils/resourceLabel'
 import {
+  isRunning,
   type ResourceState,
   resourceState,
   STUDENT_RESOURCE_STATE_LABELS,
 } from '../utils/resourceState'
-
-const isRunning = (status: string | null) => status === 'pending' || status === 'in_progress'
 
 // What the student can do about a state, or why there is nothing to do.
 const hintFor = (state: ResourceState, resource: MyResource): string | undefined => {

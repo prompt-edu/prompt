@@ -5,8 +5,7 @@ import { useParams } from 'react-router-dom'
 import { InstanceList } from '../components/provisioning/InstanceList'
 import { ReadinessCard } from '../components/provisioning/ReadinessCard'
 import { getInstances } from '../network/queries/getInstances'
-
-const isRunning = (status: string) => status === 'pending' || status === 'in_progress'
+import { isRunning } from '../utils/resourceState'
 
 export const ProvisioningPage = () => {
   const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()

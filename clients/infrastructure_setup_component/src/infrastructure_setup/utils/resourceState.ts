@@ -10,6 +10,9 @@ export type ResourceState =
   | 'not_added'
   | 'failed'
 
+export const isRunning = (status: ResourceStatus | null) =>
+  status === 'pending' || status === 'in_progress'
+
 export const resourceState = (
   status: ResourceStatus | null,
   granted: boolean | null,

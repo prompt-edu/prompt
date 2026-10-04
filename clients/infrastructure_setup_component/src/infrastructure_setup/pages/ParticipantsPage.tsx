@@ -17,12 +17,11 @@ import { getInstances } from '../network/queries/getInstances'
 import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 import { resourceLabel } from '../utils/resourceLabel'
 import {
+  isRunning,
   participantResourceState,
   RESOURCE_STATE_LABELS,
   type ResourceState,
 } from '../utils/resourceState'
-
-const isRunning = (status: string) => status === 'pending' || status === 'in_progress'
 
 const columnId = (config: ResourceConfig) => `resource-${config.id}`
 
@@ -158,6 +157,7 @@ export const ParticipantsPage = () => {
     refetchInstances()
   }
 
+  if (!phaseId) return null
   if (participationsError || configsError || instancesError) {
     return (
       <ErrorPage
@@ -194,7 +194,7 @@ export const ParticipantsPage = () => {
       )}
 
       <CoursePhaseParticipationsTable
-        phaseId={phaseId!}
+        phaseId={phaseId}
         participants={participations ?? []}
         extraColumns={extraColumns}
         extraFilters={extraFilters}

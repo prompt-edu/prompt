@@ -205,6 +205,9 @@ func (suite *CourseServiceTestSuite) TestUpdateCoursePhaseOrderRejectsPhaseFromO
 		CoursePhaseTypeID:   uuid.MustParse("7dc1c4e8-4255-4874-80a0-0c12b958744b"),
 	})
 	require.NoError(suite.T(), err)
+	defer func() {
+		require.NoError(suite.T(), suite.courseService.queries.DeleteCoursePhase(suite.ctx, foreignPhase.ID))
+	}()
 
 	graphBefore, err := suite.courseService.GetCoursePhaseGraph(suite.ctx, courseID)
 	require.NoError(suite.T(), err)

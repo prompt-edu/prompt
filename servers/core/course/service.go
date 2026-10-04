@@ -267,7 +267,7 @@ func (s *CourseService) UpdateCoursePhaseOrder(ctx context.Context, courseID uui
 			return err
 		}
 		if rows == 0 {
-			return ErrPhaseNotInCourse
+			return fmt.Errorf("%w: %s -> %s", ErrPhaseNotInCourse, graphItem.FromCoursePhaseID, graphItem.ToCoursePhaseID)
 		}
 	}
 

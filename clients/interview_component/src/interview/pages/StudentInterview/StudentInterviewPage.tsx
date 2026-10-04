@@ -18,7 +18,7 @@ import { format } from 'date-fns'
 import { AlertCircle, Clock, MapPin, TriangleAlert, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { interviewKeys } from '../../network/cache'
+import { interviewCache, interviewKeys } from '../../network/cache'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface InterviewSlot {
@@ -91,8 +91,7 @@ export const StudentInterviewPage = () => {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myInterviewAssignment', phaseId] })
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotBooked(queryClient, phaseId)
       setSelectedSlotId(null)
       toast({
         title: 'Slot booked successfully',
@@ -116,11 +115,7 @@ export const StudentInterviewPage = () => {
       )
     },
     onSuccess: async () => {
-      queryClient.setQueryData(['myInterviewAssignment', phaseId], null)
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['myInterviewAssignment', phaseId] }),
-        queryClient.refetchQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] }),
-      ])
+      await interviewCache.bookingCancelled(queryClient, phaseId)
       toast({
         title: 'Booking cancelled',
         description: 'Your interview slot booking has been cancelled.',

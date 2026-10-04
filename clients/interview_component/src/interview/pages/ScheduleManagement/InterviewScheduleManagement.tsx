@@ -55,7 +55,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
-import { interviewKeys } from '../../network/cache'
+import { interviewCache, interviewKeys } from '../../network/cache'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface SlotFormData {
@@ -222,7 +222,7 @@ export const InterviewScheduleManagement = () => {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       setIsCreateDialogOpen(false)
       resetForm()
       toast({
@@ -249,7 +249,7 @@ export const InterviewScheduleManagement = () => {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       setIsEditDialogOpen(false)
       setEditingSlot(null)
       resetForm()
@@ -286,7 +286,7 @@ export const InterviewScheduleManagement = () => {
       return response.data
     },
     onSuccess: (createdSlots) => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       setIsCreateDialogOpen(false)
       resetForm()
       toast({
@@ -311,7 +311,7 @@ export const InterviewScheduleManagement = () => {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       toast({
         title: 'Slot deleted',
         description: 'Interview slot has been deleted successfully.',
@@ -345,7 +345,7 @@ export const InterviewScheduleManagement = () => {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       setIsAssignDialogOpen(false)
       setSelectedParticipationId('')
       setAssigningSlot(null)
@@ -371,7 +371,7 @@ export const InterviewScheduleManagement = () => {
       )
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewSlotsWithAssignments', phaseId] })
+      interviewCache.slotsChanged(queryClient, phaseId)
       setIsUnassignDialogOpen(false)
       setUnassigningInfo(null)
       toast({

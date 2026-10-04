@@ -5,6 +5,7 @@ export interface CopyCourseInput {
   templateName: string
   name: string
   semesterTag: string
+  courseType?: string
 }
 
 // The "Use Template" flow: choice dialog -> template picker -> copy form ->
@@ -25,6 +26,11 @@ export class CopyCoursePage {
       .filter({ hasText: 'Create Course from Template' })
     await form.getByPlaceholder('Enter course name').fill(input.name)
     await form.getByPlaceholder('Enter semester tag').fill(input.semesterTag)
+
+    if (input.courseType) {
+      await form.getByRole('combobox').click()
+      await this.page.getByRole('option', { name: input.courseType }).click()
+    }
 
     // Copy form requires a date range with to > from.
     await pickDateRange(this.page)

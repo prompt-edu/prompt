@@ -56,6 +56,11 @@ func (s *CourseCopyService) copyCourse(c *gin.Context) {
 		return
 	}
 
+	if err := validateCopyCourseRequest(courseVariables); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	originalCourseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, fmt.Errorf("invalid course UUID: %w", err))

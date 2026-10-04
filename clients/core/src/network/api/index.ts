@@ -10,6 +10,7 @@ import { mailCampaigns } from './mailCampaigns'
 import { mailing } from './mailing'
 import { privacy } from './privacy'
 import { students } from './students'
+import { studyPrograms } from './studyPrograms'
 import { system } from './system'
 
 /**
@@ -29,6 +30,7 @@ export const coreApi = {
   mailing,
   privacy,
   students,
+  studyPrograms,
   system,
 }
 

@@ -1,3 +1,5 @@
+import { OTHER_STUDY_PROGRAM } from '@core/managementConsole/shared/utils/otherStudyProgram'
+import { useStudyPrograms } from '@core/network/hooks/useStudyPrograms'
 import { type StudentFormValues, studentSchema } from '@core/validations/student'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -35,11 +37,9 @@ import {
   SelectValue,
 } from '@tumaet/prompt-ui-components'
 import { Check, ChevronDown } from 'lucide-react'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { StudentComponentRef } from '../../utils/StudentComponentRef'
-
-const studyPrograms = translations.university.studyPrograms.concat('Other')
 
 interface StudentFormProps {
   student: Student
@@ -134,6 +134,14 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
       })
       return unsubscribe
     }, [form, student, onUpdate])
+
+    const { data: listedStudyPrograms } = useStudyPrograms()
+    const studyPrograms = useMemo(
+      () => listedStudyPrograms?.map((program) => program.name).concat(OTHER_STUDY_PROGRAM),
+      [listedStudyPrograms],
+    )
+    const isUnlistedStudyProgram = (value: string) =>
+      studyPrograms !== undefined && value !== '' && !studyPrograms.includes(value)
 
     const [otherStudyProgram, setOtherStudyProgram] = useState(false)
     const currStudyProgram = form.watch('studyProgram')
@@ -374,7 +382,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                   <FormLabel>Study Program{requiredStar}</FormLabel>
                   <Select
                     onValueChange={(value) => {
-                      if (value === 'Other') {
+                      if (value === OTHER_STUDY_PROGRAM) {
                         setOtherStudyProgram(true)
                         field.onChange('')
                       } else {
@@ -383,11 +391,10 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                       }
                     }}
                     defaultValue={field.value}
-                    disabled={isInstructorView}
+                    disabled={isInstructorView || studyPrograms === undefined}
                     value={
-                      otherStudyProgram ||
-                      (field.value !== '' && !studyPrograms.includes(field.value))
-                        ? 'Other'
+                      otherStudyProgram || isUnlistedStudyProgram(field.value)
+                        ? OTHER_STUDY_PROGRAM
                         : field.value
                     }
                   >
@@ -397,7 +404,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {studyPrograms.map((program) => (
+                      {studyPrograms?.map((program) => (
                         <SelectItem key={program} value={program}>
                           {program}
                         </SelectItem>
@@ -435,8 +442,7 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
             />
           </div>
 
-          {(otherStudyProgram ||
-            (currStudyProgram !== '' && !studyPrograms.includes(currStudyProgram))) && (
+          {(otherStudyProgram || isUnlistedStudyProgram(currStudyProgram)) && (
             <FormField
               control={form.control}
               name='studyProgram'

@@ -1,57 +1,28 @@
-import { translations } from '@tumaet/prompt-shared-state'
+import { useStudyPrograms } from '@core/network/hooks/useStudyPrograms'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  Skeleton,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import type { ApplicationParticipation } from '../../../interfaces/applicationParticipation'
 import { StackedBarChartWithPassStatus } from './StackedBarChartWithPassStatus'
-
-const programsWithOther = translations.university.studyPrograms.concat('Other')
+import { groupApplicationsByStudyProgram } from './utils/groupApplicationsByStudyProgram'
 
 interface StudyBackgroundCardProps {
   applications: ApplicationParticipation[]
 }
 
 export const ApplicationStudyBackgroundDiagram = ({ applications }: StudyBackgroundCardProps) => {
-  const studyData = useMemo(() => {
-    // Use the complete list of programs including 'Other'
-    const allPrograms = programsWithOther
+  const { data: studyPrograms } = useStudyPrograms()
 
-    // Count each pass status per program, initializing the count object when needed.
-    const countsByProgram = applications.reduce(
-      (acc, app) => {
-        const program = app.student.studyProgram || 'Other'
-        if (!acc[program]) {
-          acc[program] = { passed: 0, failed: 0, not_assessed: 0 }
-        }
-        acc[program][app.passStatus] = (acc[program][app.passStatus] || 0) + 1
-        return acc
-      },
-      {} as Record<string, { passed: number; failed: number; not_assessed: number }>,
-    )
-
-    // Map over all programs (including "Other") to create the data for the chart.
-    const data = allPrograms.map((program) => {
-      const accepted = countsByProgram[program]?.passed ?? 0
-      const rejected = countsByProgram[program]?.failed ?? 0
-      const notAssessed = countsByProgram[program]?.not_assessed ?? 0
-
-      return {
-        program,
-        dataKey: translations.university.studyProgramShortNames[program] || program,
-        accepted,
-        rejected,
-        notAssessed,
-        total: accepted + rejected + notAssessed,
-      }
-    })
-
-    return data
-  }, [applications])
+  const studyData = useMemo(
+    () => studyPrograms && groupApplicationsByStudyProgram(applications, studyPrograms),
+    [applications, studyPrograms],
+  )
 
   return (
     <Card className='flex flex-col w-full h-full'>
@@ -60,7 +31,11 @@ export const ApplicationStudyBackgroundDiagram = ({ applications }: StudyBackgro
         <CardDescription>Breakdown of student study programs</CardDescription>
       </CardHeader>
       <CardContent className='flex-1 flex flex-col justify-end pb-0'>
-        <StackedBarChartWithPassStatus data={studyData} />
+        {studyData ? (
+          <StackedBarChartWithPassStatus data={studyData} />
+        ) : (
+          <Skeleton className='w-full h-[280px]' />
+        )}
       </CardContent>
     </Card>
   )

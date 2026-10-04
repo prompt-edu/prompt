@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewReview } from '../interfaces/InterviewReview'
 import type { InterviewSlot, InterviewSlotWithAssignments } from '../interfaces/InterviewSlots'
+import { interviewKeys } from '../network/cache'
 import { interviewAxiosInstance } from '../network/interviewServerConfig'
 import { getInterviewReviews } from '../network/queries/getInterviewReviews'
 import { useCoursePhaseStore } from '../zustand/useCoursePhaseStore'
@@ -29,7 +30,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     isError: isParticipationsError,
     refetch: refetchCoursePhaseParticipations,
   } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
+    queryKey: interviewKeys.participants(phaseId),
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
   })
 
@@ -39,7 +40,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     isError: isCoursePhaseError,
     refetch: refetchCoursePhase,
   } = useQuery<CoursePhaseWithMetaData>({
-    queryKey: ['course_phase', phaseId],
+    queryKey: interviewKeys.coursePhase(phaseId),
     queryFn: () => getCoursePhase(phaseId ?? ''),
   })
 
@@ -50,7 +51,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     isError: isInterviewSlotsError,
     refetch: refetchInterviewSlots,
   } = useQuery<InterviewSlotWithAssignments[]>({
-    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryKey: interviewKeys.slots(phaseId),
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
         `interview/api/course_phase/${phaseId}/interview-slots`,
@@ -67,7 +68,7 @@ export const InterviewDataShell = ({ children }: InterviewDataShellProps) => {
     isError: isInterviewReviewsError,
     refetch: refetchInterviewReviews,
   } = useQuery<InterviewReview[]>({
-    queryKey: ['interviewReviews', phaseId],
+    queryKey: interviewKeys.reviews(phaseId),
     queryFn: () => getInterviewReviews(phaseId ?? ''),
     enabled: !!phaseId,
   })

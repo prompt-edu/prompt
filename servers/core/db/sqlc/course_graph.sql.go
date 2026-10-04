@@ -12,24 +12,33 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createCourseGraphConnection = `-- name: CreateCourseGraphConnection :exec
+const createCourseGraphConnection = `-- name: CreateCourseGraphConnection :execrows
 INSERT INTO course_phase_graph (from_course_phase_id, to_course_phase_id)
-VALUES ($1, $2)
+SELECT from_phase.id, to_phase.id
+FROM course_phase from_phase
+JOIN course_phase to_phase ON to_phase.course_id = from_phase.course_id
+WHERE from_phase.id = $1
+  AND to_phase.id = $2
+  AND from_phase.course_id = $3
 `
 
 type CreateCourseGraphConnectionParams struct {
 	FromCoursePhaseID uuid.UUID `json:"from_course_phase_id"`
 	ToCoursePhaseID   uuid.UUID `json:"to_course_phase_id"`
+	CourseID          uuid.UUID `json:"course_id"`
 }
 
-func (q *Queries) CreateCourseGraphConnection(ctx context.Context, arg CreateCourseGraphConnectionParams) error {
-	_, err := q.db.Exec(ctx, createCourseGraphConnection, arg.FromCoursePhaseID, arg.ToCoursePhaseID)
-	return err
+func (q *Queries) CreateCourseGraphConnection(ctx context.Context, arg CreateCourseGraphConnectionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createCourseGraphConnection, arg.FromCoursePhaseID, arg.ToCoursePhaseID, arg.CourseID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const deleteCourseGraph = `-- name: DeleteCourseGraph :exec
 DELETE FROM course_phase_graph
-WHERE from_course_phase_id IN 
+WHERE from_course_phase_id IN
     (SELECT id FROM course_phase WHERE course_id = $1)
 `
 
@@ -188,7 +197,7 @@ func (q *Queries) GetNotOrderedCoursePhases(ctx context.Context, courseID uuid.U
 
 const updateInitialCoursePhase = `-- name: UpdateInitialCoursePhase :exec
 UPDATE course_phase
-SET is_initial_phase = CASE 
+SET is_initial_phase = CASE
     WHEN id = $2 THEN true
     ELSE false
 END

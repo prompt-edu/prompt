@@ -193,3 +193,58 @@ func TestResolveMemberReportsWhoCouldNotBeResolved(t *testing.T) {
 		t.Fatal("a member without an email was dropped without a warning")
 	}
 }
+
+// A team target records everyone on the team, not only the members who could be turned
+// into provider members: the student view finds a team resource through these people,
+// and one without an email is exactly the student who needs to be told they were left
+// out.
+func TestResolveTeamTargetsRecordsEveryPerson(t *testing.T) {
+	testDB, cleanup := setupExecutionTestDB(t)
+	defer cleanup()
+
+	coursePhaseID := uuid.New()
+	teamID, alice, outsider, tutor := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/course_phase_data"):
+			_, _ = w.Write([]byte(`{"prevData":{"teams":[{"id":"` + teamID.String() + `","name":"Team A",` +
+				`"members":[{"id":"` + alice.String() + `","firstName":"Alice"},{"id":"` + outsider.String() + `","firstName":"Olga"}],` +
+				`"tutors":[{"id":"` + tutor.String() + `","firstName":"Tim"}]}]},"resolutions":[]}`))
+		case strings.HasSuffix(r.URL.Path, "/participations"):
+			_, _ = w.Write([]byte(`{"participations":[` +
+				`{"courseParticipationID":"` + alice.String() + `","student":{"firstName":"Alice","email":"alice@example.com"}},` +
+				`{"courseParticipationID":"` + tutor.String() + `","student":{"firstName":"Tim"}}` +
+				`],"resolutions":[]}`))
+		default:
+			t.Errorf("unexpected core request: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer core.Close()
+
+	resolver := &CoreTargetResolver{queries: testDB.Queries, coreURL: core.URL}
+	targets, err := resolver.ResolveTargets(context.Background(), "Bearer test", coursePhaseID, db.ResourceScopePerTeam)
+	if err != nil {
+		t.Fatalf("ResolveTargets returned error: %v", err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("targets = %d, want the one team", len(targets))
+	}
+
+	target := targets[0]
+	if len(target.Members) != 1 || target.Members[0].Email != "alice@example.com" {
+		t.Fatalf("members = %+v, want only Alice, the one with an email", target.Members)
+	}
+	want := []TargetPerson{
+		{CourseParticipationID: alice, Email: "alice@example.com"},
+		{CourseParticipationID: outsider},
+		{CourseParticipationID: tutor},
+	}
+	if len(target.People) != len(want) {
+		t.Fatalf("people = %+v, want %+v", target.People, want)
+	}
+	for i := range want {
+		if target.People[i] != want[i] {
+			t.Fatalf("people[%d] = %+v, want %+v", i, target.People[i], want[i])
+		}
+	}
+}

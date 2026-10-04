@@ -508,6 +508,67 @@ func TestTriggerConvergesOnExistingInstances(t *testing.T) {
 	}
 }
 
+// A team instance created before members were recorded has no member rows, so its
+// members cannot find it. Triggering again runs it once more to record them, while a
+// created instance whose members are known stays up to date.
+func TestTriggerRerunsCreatedTeamInstanceWithoutMembers(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		forgetMembers bool
+		requeued      int
+		upToDate      int
+		want          db.ResourceStatus
+	}{
+		{name: "members unknown", forgetMembers: true, requeued: 1, want: db.ResourceStatusPending},
+		{name: "members recorded", upToDate: 1, want: db.ResourceStatusCreated},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testDB, cleanup := setupExecutionTestDB(t)
+			defer cleanup()
+
+			coursePhaseID := uuid.New()
+			teamID, member := uuid.New(), uuid.New()
+			cfg := createResourceConfig(t, testDB.Queries, coursePhaseID, db.ResourceScopePerTeam)
+			targets := []ProvisioningTarget{{
+				Scope:    db.ResourceScopePerTeam,
+				TeamID:   &teamID,
+				TeamName: "Team A",
+				People:   []TargetPerson{{CourseParticipationID: member, Email: "member@example.com"}},
+			}}
+			service := NewServiceWithResolver(testDB.Conn, fakeTargetResolver{targets: targets})
+
+			if err := createInstances(t, service, coursePhaseID, cfg, targets); err != nil {
+				t.Fatalf("first trigger: %v", err)
+			}
+			instances, err := testDB.Queries.ListResourceInstances(context.Background(), coursePhaseID)
+			if err != nil {
+				t.Fatalf("list instances: %v", err)
+			}
+			instanceID := instances[0].ID
+			markInstance(t, testDB.Queries, instanceID, db.ResourceStatusCreated)
+			if tc.forgetMembers {
+				if err := testDB.Queries.DeleteInstanceMembers(context.Background(), instanceID); err != nil {
+					t.Fatalf("delete members: %v", err)
+				}
+			}
+
+			second, err := queueInstances(t, service, coursePhaseID, cfg, targets)
+			if err != nil {
+				t.Fatalf("second trigger: %v", err)
+			}
+			if second.Requeued != tc.requeued || second.UpToDate != tc.upToDate {
+				t.Fatalf("summary = %+v, want requeued %d and upToDate %d", second, tc.requeued, tc.upToDate)
+			}
+			if got := getInstance(t, testDB.Queries, coursePhaseID, instanceID); got.Status != tc.want {
+				t.Fatalf("status = %s, want %s", got.Status, tc.want)
+			}
+			if _, ok := instanceMembers(t, testDB.Queries, coursePhaseID, instanceID)[member]; !ok {
+				t.Fatalf("member rows lack %s, want the team member recorded", member)
+			}
+		})
+	}
+}
+
 // A trigger that queued nothing must say so. Reporting "execution started" over a no-op
 // is what let a lecturer believe a phase full of partial instances was being retried.
 func TestTriggerSummaryReportsWhetherWorkWasQueued(t *testing.T) {

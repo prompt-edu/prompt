@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle, Button } from '@tumaet/prompt-ui-components'
 import dayjs from 'dayjs'
 import { AlertTriangle, CheckCircle, CheckCircle2, Loader2 } from 'lucide-react'
@@ -8,6 +8,7 @@ import type { SkillLevel, SkillResponse } from '../../../interfaces/skillRespons
 import type { SurveyForm } from '../../../interfaces/surveyForm'
 import type { SurveyResponse } from '../../../interfaces/surveyResponse'
 import type { TeamPreference } from '../../../interfaces/teamPreference'
+import { teamAllocationCache } from '../../../network/cache'
 import { postSurveyResponse } from '../../../network/mutations/postSurveyResponse'
 import { SkillRanking } from './SkillRanking'
 import { SurveyStatusBar } from './SurveyStatusBar'
@@ -21,6 +22,7 @@ interface SurveyFormProps {
 
 export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: SurveyFormProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
+  const queryClient = useQueryClient()
 
   // Local state for ranking teams and rating skills
   const [teamRanking, setTeamRanking] = useState<string[]>([])
@@ -78,6 +80,7 @@ export const SurveyFormComponent = ({ surveyForm, surveyResponse, isStudent }: S
   const updateSurveyResponseMutation = useMutation({
     mutationFn: (response: SurveyResponse) => postSurveyResponse(phaseId ?? '', response),
     onSuccess: () => {
+      teamAllocationCache.mySurveyResponseSubmitted(queryClient, phaseId)
       setSubmitError(null)
       setSubmitSuccess(true)
       // Reset the initial state to match the newly submitted data

@@ -4,6 +4,7 @@ import { Button, DialogFooter, Input, Label } from '@tumaet/prompt-ui-components
 import { Loader2, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Tutor } from '../../../interfaces/tutor'
+import { teamAllocationKeys } from '../../../network/cache'
 import { searchStudents } from '../../../network/queries/searchStudents'
 import { TutorSelection } from './TutorSelection'
 
@@ -47,7 +48,7 @@ export const TutorSearchStudents = ({
     isFetching,
     isError,
   } = useQuery<Student[]>({
-    queryKey: ['student-search', trimmedQuery],
+    queryKey: teamAllocationKeys.tutorImport.studentSearch(trimmedQuery),
     queryFn: () => searchStudents(trimmedQuery),
     enabled: trimmedQuery.length >= 2,
   })

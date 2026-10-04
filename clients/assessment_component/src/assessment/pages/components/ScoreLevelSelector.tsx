@@ -21,6 +21,7 @@ interface ScoreLevelSelectorProps {
   selectedScore?: ScoreLevel
   onScoreChange: (value: ScoreLevel) => void
   completed: boolean
+  finalized?: boolean
   assessmentType?: AssessmentType
   selfEvaluationCompetency?: Competency
   selfEvaluationScoreLevel?: ScoreLevel
@@ -45,6 +46,7 @@ export const ScoreLevelSelector = ({
   selectedScore,
   onScoreChange,
   completed,
+  finalized = completed,
   assessmentType = AssessmentType.ASSESSMENT,
   selfEvaluationCompetency,
   selfEvaluationScoreLevel,
@@ -56,7 +58,7 @@ export const ScoreLevelSelector = ({
 }: ScoreLevelSelectorProps) => {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const descriptionsByLevel = mapCompetencyDescriptionsByLevel(competency)
-  const showIndicators = coursePhaseConfig?.evaluationResultsVisible || completed
+  const showIndicators = coursePhaseConfig?.evaluationResultsVisible || finalized
   const indicators: Partial<Record<ScoreLevel, ReactNode[]>> = {}
 
   if (selfEvaluationCompetency && selfEvaluationScoreLevel) {

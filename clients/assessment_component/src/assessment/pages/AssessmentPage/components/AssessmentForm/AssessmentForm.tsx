@@ -216,6 +216,7 @@ export const AssessmentForm = ({
           selectedScore={selectedScore}
           onScoreChange={handleScoreChange}
           completed={controlsDisabled}
+          finalized={completed}
           {...indicatorProps}
         />
 

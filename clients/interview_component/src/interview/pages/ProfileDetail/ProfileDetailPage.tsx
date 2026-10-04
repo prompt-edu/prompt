@@ -49,13 +49,7 @@ export const ProfileDetailPage = () => {
           <div className='pt-6 mb-8'>
             <StudentCard participation={participation} />
           </div>
-          <div
-            className={
-              showStudentHistory
-                ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1fr_20rem] gap-8'
-                : 'grid grid-cols-1 lg:grid-cols-2 gap-8'
-            }
-          >
+          <div className='grid grid-cols-1 lg:grid-cols-2 xl:has-[>[data-student-history]]:grid-cols-[1fr_1fr_20rem] gap-8'>
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center'>

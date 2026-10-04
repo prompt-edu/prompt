@@ -247,13 +247,19 @@ func (s *TeamsService) deleteTeam(c *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/student-names [post]
 func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req teamDTO.StudentNameUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if err := s.AddStudentNamesToAllocations(c, req); err != nil {
+	if err := s.AddStudentNamesToAllocations(c, coursePhaseID, req); err != nil {
 		log.Error("Error adding student names to allocations: ", err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return

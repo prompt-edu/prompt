@@ -1684,6 +1684,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -7143,9 +7149,6 @@ const docTemplate = `{
         "coursePhaseDTO.CreateCoursePhase": {
             "type": "object",
             "properties": {
-                "courseID": {
-                    "type": "string"
-                },
                 "coursePhaseTypeID": {
                     "type": "string"
                 },
@@ -7180,9 +7183,6 @@ const docTemplate = `{
         "coursePhaseDTO.UpdateCoursePhase": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
-                },
                 "name": {
                     "description": "use pgtype to handle null values",
                     "type": "string"

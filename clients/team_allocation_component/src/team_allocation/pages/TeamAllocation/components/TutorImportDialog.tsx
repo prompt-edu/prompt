@@ -18,6 +18,7 @@ import { UserPlus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Tutor } from '../../../interfaces/tutor'
+import { teamAllocationCache, teamAllocationKeys } from '../../../network/cache'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
 import { TutorImportFromCourse } from './TutorImportFromCourse'
@@ -43,7 +44,7 @@ export function TutorImportDialog() {
   }, [open])
 
   const { data: fetchedTeams } = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -54,7 +55,7 @@ export function TutorImportDialog() {
       setOpen(false)
       setIsImporting(false)
       setImportError(null)
-      queryClient.invalidateQueries({ queryKey: ['tutors', phaseId] })
+      teamAllocationCache.tutorsImported(queryClient, phaseId)
     },
     onError: (error: unknown) => {
       console.error('Error importing tutors:', error)

@@ -226,7 +226,6 @@ func (suite *CompetencyServiceTestSuite) TestUpdateCompetency() {
 	// Update the competency
 	updateRequest := competencyDTO.UpdateCompetencyRequest{
 		Name:                "Updated Competency Name",
-		CategoryID:          categoryID,
 		Description:         "Updated description",
 		DescriptionVeryBad:  "Updated very bad description",
 		DescriptionBad:      "Updated bad description",
@@ -256,11 +255,9 @@ func (suite *CompetencyServiceTestSuite) TestUpdateCompetency() {
 
 func (suite *CompetencyServiceTestSuite) TestUpdateNonExistentCompetency() {
 	nonExistentID := uuid.New()
-	categoryID := uuid.MustParse("815b159b-cab3-49b4-8060-c4722d59241d")
 
 	updateRequest := competencyDTO.UpdateCompetencyRequest{
 		Name:                "Non-existent Competency",
-		CategoryID:          categoryID,
 		Description:         "This should not fail but affect 0 rows",
 		DescriptionVeryBad:  "Non-existent very bad description",
 		DescriptionBad:      "Non-existent bad description",

@@ -1728,9 +1728,6 @@ const docTemplate = `{
         "teamDTO.StudentNameUpdateRequest": {
             "type": "object",
             "properties": {
-                "coursePhaseID": {
-                    "type": "string"
-                },
                 "studentNamesPerID": {
                     "type": "object",
                     "additionalProperties": {

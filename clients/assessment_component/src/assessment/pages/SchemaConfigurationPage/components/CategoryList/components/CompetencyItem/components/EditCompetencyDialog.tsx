@@ -31,7 +31,6 @@ import { useUpdateCompetency } from '../hooks/useUpdateCompetency'
 
 const updateCompetencySchema = z.object({
   id: z.string(),
-  categoryID: z.string().optional(),
   name: z.string().min(1, 'Name is required').optional(),
   shortName: z.string().min(1, 'Short name is required').optional(),
   description: z.string().min(1, 'Description is required').optional(),
@@ -64,7 +63,6 @@ export function EditCompetencyDialog({
   const form = useForm<UpdateCompetencyRequest>({
     defaultValues: {
       id: competency?.id,
-      categoryID: competency?.categoryID,
       name: competency?.name,
       shortName: competency?.shortName,
       description: competency?.description,
@@ -103,7 +101,6 @@ export function EditCompetencyDialog({
     if (competency) {
       form.reset({
         id: competency.id,
-        categoryID: competency.categoryID,
         name: competency.name,
         shortName: competency.shortName,
         description: competency.description,

@@ -9,6 +9,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
+import { selfTeamAllocationKeys } from '../../network/cache'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 
 export const SelfTeamAllocationParticipantsPage = () => {
@@ -27,7 +28,7 @@ export const SelfTeamAllocationParticipantsPage = () => {
     isError: isTeamsError,
     refetch: refetchTeams,
   } = useQuery<Team[]>({
-    queryKey: ['self_team_allocations', phaseId],
+    queryKey: selfTeamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 

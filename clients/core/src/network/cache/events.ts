@@ -118,4 +118,7 @@ export const coreCache = {
 
   privacyExportsChanged: (queryClient: QueryClient): void =>
     invalidate(queryClient, [coreKeys.privacy.admin.exports()]),
+
+  aiKeyChanged: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [coreKeys.ai.key(phaseId)]),
 }

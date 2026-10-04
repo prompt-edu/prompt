@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { KeycloakProvider } from './keycloak/KeycloakProvider'
 import { RequireAuth } from './keycloak/RequireAuth'
 import { AdminAuditLogPage } from './managementConsole/adminAuditLog/AdminAuditLogPage'
+import { AICallsPage } from './managementConsole/ai/AICallsPage'
 import { CourseAuditLogPage } from './managementConsole/courseAuditLog/CourseAuditLogPage'
 import CourseConfiguratorPage from './managementConsole/courseConfigurator/CourseConfiguratorPage'
 import { CourseMailingComposePage } from './managementConsole/courseMailing/CourseMailingComposePage'
@@ -211,6 +212,16 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={LECTURER_ROLES}>
                     <CourseAuditLogPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/ai-calls'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AICallsPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

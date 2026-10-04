@@ -172,4 +172,10 @@ describe('coreKeys', () => {
   it('builds the pull request banner key', () => {
     expect(coreKeys.githubPullRequest('2099')).toEqual(['github-pr', '2099'])
   })
+
+  it('keeps the AI keys of each phase apart', () => {
+    expect(coreKeys.ai.key(PHASE)).toEqual(['aiKey', PHASE])
+    expect(coreKeys.ai.calls(PHASE, 50, undefined)).toEqual(['aiCalls', PHASE, 50, undefined])
+    expect(coreKeys.ai.call(PHASE, 'call-1')).toEqual(['aiCall', PHASE, 'call-1'])
+  })
 })

@@ -4,6 +4,7 @@ import type { CoursePhaseType } from '@core/managementConsole/pages/SystemStatus
 import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import { aiAxiosInstance } from '../client'
 import { coreApi } from './index'
 
 const CORE = 'http://core.test'
@@ -42,7 +43,7 @@ const serializedCopy = { ...copyCourse, startDate: '2026-09-01', endDate: '2026-
 
 const service = { id: 'assessment', baseUrl: 'http://assessment.test' } as CoursePhaseType
 
-type Instance = 'core' | 'public' | 'raw'
+type Instance = 'core' | 'public' | 'raw' | 'ai'
 
 interface Route {
   name: string
@@ -60,8 +61,65 @@ const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
+const aiPhasePath = `http://ai.test/ai/api/course_phase/${PHASE}`
 
 const ROUTES: Route[] = [
+  {
+    name: 'ai.status',
+    run: () => coreApi.ai.status(),
+    method: 'get',
+    url: `${CORE}/api/ai/status`,
+  },
+  {
+    name: 'ai.info',
+    run: () => coreApi.ai.info(),
+    method: 'get',
+    url: 'http://ai.test/ai/api/info',
+    instance: 'ai',
+  },
+  {
+    name: 'ai.key',
+    run: () => coreApi.ai.key(PHASE),
+    method: 'get',
+    url: `${aiPhasePath}/key`,
+    instance: 'ai',
+  },
+  {
+    name: 'ai.setKey',
+    run: () => coreApi.ai.setKey(PHASE, 'logos-key-1234'),
+    method: 'put',
+    url: `${aiPhasePath}/key`,
+    data: { key: 'logos-key-1234' },
+    instance: 'ai',
+  },
+  {
+    name: 'ai.removeKey',
+    run: () => coreApi.ai.removeKey(PHASE),
+    method: 'delete',
+    url: `${aiPhasePath}/key`,
+    instance: 'ai',
+  },
+  {
+    name: 'ai.calls',
+    run: () => coreApi.ai.calls(PHASE, 50),
+    method: 'get',
+    url: `${aiPhasePath}/calls?limit=50`,
+    instance: 'ai',
+  },
+  {
+    name: 'ai.calls',
+    run: () => coreApi.ai.calls(PHASE, 50, { requestedAt: '2026-10-04T10:00:00Z', id: 'call-1' }),
+    method: 'get',
+    url: `${aiPhasePath}/calls?limit=50&cursorRequestedAt=2026-10-04T10:00:00Z&cursorId=call-1`,
+    instance: 'ai',
+  },
+  {
+    name: 'ai.call',
+    run: () => coreApi.ai.call(PHASE, 'call-1'),
+    method: 'get',
+    url: `${aiPhasePath}/calls/call-1`,
+    instance: 'ai',
+  },
   {
     name: 'applications.listParticipations',
     run: () => coreApi.applications.listParticipations(PHASE),
@@ -647,6 +705,7 @@ const INSTANCES = {
   core: axiosInstance,
   public: notAuthenticatedAxiosInstance,
   raw: axios,
+  ai: aiAxiosInstance,
 } as const
 
 let captured: InternalAxiosRequestConfig[]

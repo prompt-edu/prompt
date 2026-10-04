@@ -1,4 +1,8 @@
-import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
+import {
+  axiosInstance,
+  createAuthenticatedAxiosInstance,
+  notAuthenticatedAxiosInstance,
+} from '@tumaet/prompt-shared-state'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { isAxiosError } from 'axios'
 
@@ -96,3 +100,10 @@ export const coreRequest = requestsThrough(axiosInstance, 'Core')
 
 /** The public application pages, which are reached before there is a token. */
 export const publicRequest = requestsThrough(notAuthenticatedAxiosInstance, 'Public core')
+
+// Read off window.env: the shared `env` object drops keys its EnvType does not know.
+export const aiAxiosInstance = createAuthenticatedAxiosInstance(
+  (window.env as { AI_HOST?: string }).AI_HOST ?? '',
+)
+
+export const aiRequest = requestsThrough(aiAxiosInstance, 'AI')

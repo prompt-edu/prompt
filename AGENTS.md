@@ -45,6 +45,7 @@ servers/
   interview/               # Interview scheduling (port 8087)
   certificate/             # Certificate generation (port 8088)
   infrastructure_setup/    # External resource provisioning (port 8091)
+  ai/                      # AI gateway, phase keys and AI audit, behind AI_ENABLED (port 8092)
 
 docs/                      # Docusaurus documentation
 ```

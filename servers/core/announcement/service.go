@@ -3,7 +3,6 @@ package announcement
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -38,10 +37,10 @@ func (s *AnnouncementService) ListAnnouncements(ctx context.Context, includeExpi
 func (s *AnnouncementService) CreateAnnouncement(ctx context.Context, request announcementDTO.UpsertAnnouncement) (announcementDTO.Announcement, error) {
 	created, err := s.queries.CreateAnnouncement(ctx, db.CreateAnnouncementParams{
 		Severity:  db.AnnouncementSeverity(request.Severity),
-		Title:     strings.TrimSpace(request.Title),
-		Message:   strings.TrimSpace(request.Message),
-		LinkUrl:   strings.TrimSpace(request.LinkURL),
-		LinkLabel: strings.TrimSpace(request.LinkLabel),
+		Title:     request.Title,
+		Message:   request.Message,
+		LinkUrl:   request.LinkURL,
+		LinkLabel: request.LinkLabel,
 		StartsAt:  announcementDTO.ToTimestamptz(request.StartsAt),
 		ExpiresAt: announcementDTO.ToTimestamptz(request.ExpiresAt),
 		Enabled:   request.Enabled,
@@ -56,10 +55,10 @@ func (s *AnnouncementService) UpdateAnnouncement(ctx context.Context, id uuid.UU
 	updated, err := s.queries.UpdateAnnouncement(ctx, db.UpdateAnnouncementParams{
 		ID:        id,
 		Severity:  db.AnnouncementSeverity(request.Severity),
-		Title:     strings.TrimSpace(request.Title),
-		Message:   strings.TrimSpace(request.Message),
-		LinkUrl:   strings.TrimSpace(request.LinkURL),
-		LinkLabel: strings.TrimSpace(request.LinkLabel),
+		Title:     request.Title,
+		Message:   request.Message,
+		LinkUrl:   request.LinkURL,
+		LinkLabel: request.LinkLabel,
 		StartsAt:  announcementDTO.ToTimestamptz(request.StartsAt),
 		ExpiresAt: announcementDTO.ToTimestamptz(request.ExpiresAt),
 		Enabled:   request.Enabled,

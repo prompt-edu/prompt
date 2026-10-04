@@ -16,13 +16,21 @@ const (
 	maxLinkLabelLength = 50
 )
 
+func normalizeAnnouncement(request announcementDTO.UpsertAnnouncement) announcementDTO.UpsertAnnouncement {
+	request.Title = strings.TrimSpace(request.Title)
+	request.Message = strings.TrimSpace(request.Message)
+	request.LinkURL = strings.TrimSpace(request.LinkURL)
+	request.LinkLabel = strings.TrimSpace(request.LinkLabel)
+	return request
+}
+
 func validateAnnouncement(request announcementDTO.UpsertAnnouncement) error {
 	switch db.AnnouncementSeverity(request.Severity) {
 	case db.AnnouncementSeverityInfo, db.AnnouncementSeverityWarning, db.AnnouncementSeverityCritical:
 	default:
 		return errors.New("severity must be one of info, warning, critical")
 	}
-	if strings.TrimSpace(request.Message) == "" {
+	if request.Message == "" {
 		return errors.New("message is required")
 	}
 	if utf8.RuneCountInString(request.Message) > maxMessageLength {

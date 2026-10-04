@@ -120,6 +120,38 @@ func (s *AnnouncementRouterTestSuite) TestCreateUpdateAndDeleteAnnouncement() {
 
 	assert.Equal(s.T(), http.StatusNoContent, s.request(router, http.MethodDelete, "/api/announcements/"+created.ID.String(), nil).Code)
 	assert.Equal(s.T(), http.StatusNotFound, s.request(router, http.MethodDelete, "/api/announcements/"+created.ID.String(), nil).Code)
+	assert.Equal(s.T(), http.StatusNotFound, s.request(router, http.MethodPut, "/api/announcements/"+created.ID.String(), announcementDTO.UpsertAnnouncement{
+		Severity: "warning",
+		Message:  "PROMPT is down tonight",
+	}).Code)
+}
+
+func (s *AnnouncementRouterTestSuite) TestCreateTrimsInputBeforeValidating() {
+	router := s.routerWithRoles(permissionValidation.PromptAdmin)
+
+	w := s.request(router, http.MethodPost, "/api/announcements", announcementDTO.UpsertAnnouncement{
+		Severity:  "info",
+		Title:     "  Release  ",
+		Message:   "  New version available  ",
+		LinkURL:   "  https://example.com/release  ",
+		LinkLabel: "  Notes  ",
+	})
+	require.Equal(s.T(), http.StatusCreated, w.Code)
+	var created announcementDTO.Announcement
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &created))
+	assert.Equal(s.T(), "Release", created.Title)
+	assert.Equal(s.T(), "New version available", created.Message)
+	assert.Equal(s.T(), "https://example.com/release", created.LinkURL)
+	assert.Equal(s.T(), "Notes", created.LinkLabel)
+
+	w = s.request(router, http.MethodPost, "/api/announcements", announcementDTO.UpsertAnnouncement{
+		Severity:  "info",
+		Message:   "Blank label without link",
+		LinkLabel: "   ",
+	})
+	require.Equal(s.T(), http.StatusCreated, w.Code)
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &created))
+	assert.Empty(s.T(), created.LinkLabel)
 }
 
 func (s *AnnouncementRouterTestSuite) TestCreateRejectsInvalidInput() {

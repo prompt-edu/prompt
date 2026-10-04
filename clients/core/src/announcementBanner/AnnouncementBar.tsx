@@ -1,11 +1,11 @@
 import type { Announcement } from '@core/interfaces/announcement'
 import { useActiveAnnouncements } from '@core/network/hooks/useAnnouncements'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { useDismissedAnnouncements } from './hooks/useDismissedAnnouncements'
+import { useNow } from './hooks/useNow'
 import { getDismissalKey, selectVisibleAnnouncements } from './utils/announcementStatus'
 
-const CLOCK_TICK_MS = 60 * 1000
 const ANNOUNCEMENT_BAR_HEIGHT_VARIABLE = '--announcement-bar-height'
 
 const setBarHeight = (height: number) =>
@@ -14,14 +14,9 @@ const setBarHeight = (height: number) =>
 export const AnnouncementBar = () => {
   const { data: announcements = [] } = useActiveAnnouncements()
   const { dismissedKeys, dismiss } = useDismissedAnnouncements()
-  const [now, setNow] = useState(() => new Date())
+  const now = useNow()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const barRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), CLOCK_TICK_MS)
-    return () => clearInterval(interval)
-  }, [])
 
   const visible = selectVisibleAnnouncements(announcements, dismissedKeys, now)
   const index = Math.min(selectedIndex, Math.max(visible.length - 1, 0))

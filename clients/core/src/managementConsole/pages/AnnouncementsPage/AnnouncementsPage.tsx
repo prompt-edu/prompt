@@ -1,3 +1,4 @@
+import { useNow } from '@core/announcementBanner/hooks/useNow'
 import type { Announcement, UpsertAnnouncement } from '@core/interfaces/announcement'
 import {
   useAnnouncements,
@@ -72,9 +73,10 @@ export const AnnouncementsPage = () => {
     [deleteMutate],
   )
 
+  const now = useNow()
   const columns = useMemo(
-    () => getAnnouncementTableColumns(handleToggleEnabled, new Date()),
-    [handleToggleEnabled],
+    () => getAnnouncementTableColumns(handleToggleEnabled, now),
+    [handleToggleEnabled, now],
   )
   const actions = useMemo(
     () => getAnnouncementTableActions({ onEdit: setEditAnnouncement, onDelete: handleDelete }),

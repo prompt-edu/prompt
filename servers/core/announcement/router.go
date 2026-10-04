@@ -86,6 +86,7 @@ func (s *AnnouncementService) createAnnouncement(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	request = normalizeAnnouncement(request)
 	if err := validateAnnouncement(request); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
@@ -123,6 +124,7 @@ func (s *AnnouncementService) updateAnnouncement(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
+	request = normalizeAnnouncement(request)
 	if err := validateAnnouncement(request); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return

@@ -38,7 +38,7 @@ func setupStudentRouter(router *gin.RouterGroup, s *StudentService, authMiddlewa
 func (s *StudentService) getAllStudents(c *gin.Context) {
 	students, err := s.GetAllStudents(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (s *StudentService) getAllStudents(c *gin.Context) {
 func (s *StudentService) getAllStudentsWithCourses(c *gin.Context) {
 	studentsWithCourses, err := s.GetAllStudentsWithCourses(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -76,13 +76,13 @@ func (s *StudentService) getAllStudentsWithCourses(c *gin.Context) {
 func (s *StudentService) getStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	student, err := s.GetStudentByID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, student)
@@ -102,19 +102,19 @@ func (s *StudentService) getStudentByID(c *gin.Context) {
 func (s *StudentService) createStudent(c *gin.Context) {
 	var newStudent studentDTO.CreateStudent
 	if err := c.BindJSON(&newStudent); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	// validate student
 	if err := Validate(newStudent); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	student, err := s.CreateStudent(c, nil, newStudent)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -136,31 +136,31 @@ func (s *StudentService) createStudent(c *gin.Context) {
 func (s *StudentService) updateStudent(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var updateStudent studentDTO.CreateStudent
 	if err := c.BindJSON(&updateStudent); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	// make sure that the UUID matches
 	if id != updateStudent.ID {
-		handleError(c, http.StatusBadRequest, errors.New("UUID in URL does not match UUID in body"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("UUID in URL does not match UUID in body"))
 		return
 	}
 
 	// validate student
 	if err := Validate(updateStudent); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	student, err := s.UpdateStudent(c, nil, id, updateStudent)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (s *StudentService) searchStudents(c *gin.Context) {
 
 	students, err := s.SearchStudents(c, searchString)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, students)
@@ -200,33 +200,27 @@ func (s *StudentService) searchStudents(c *gin.Context) {
 func (s *StudentService) getStudentEnrollments(c *gin.Context) {
 	id, parseErr := uuid.Parse(c.Param("uuid"))
 	if parseErr != nil {
-		handleError(c, http.StatusBadRequest, parseErr)
+		sdkUtils.HandleError(c, http.StatusBadRequest, parseErr)
 		return
 	}
 
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
-		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
+		sdkUtils.HandleError(c, http.StatusForbidden, errors.New("missing user roles"))
 		return
 	}
 	userRoles, ok := rolesVal.(map[string]bool)
 	if !ok {
-		handleError(c, http.StatusInternalServerError, errors.New("invalid roles format in context"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("invalid roles format in context"))
 		return
 	}
 
 	studentEnrollments, err := s.GetStudentEnrollmentsByID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	studentEnrollments = FilterEnrollmentsToAccessibleCourses(studentEnrollments, userRoles)
 	c.IndentedJSON(http.StatusOK, studentEnrollments)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

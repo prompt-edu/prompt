@@ -81,7 +81,7 @@ func (s *CourseService) getOwnCourses(c *gin.Context) {
 
 	courseIDs, err := s.GetOwnCourseIDs(c, matriculationNumber, universityLogin)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (s *CourseService) getOwnCourses(c *gin.Context) {
 func (s *CourseService) getAllCourses(c *gin.Context) {
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
-		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
+		sdkUtils.HandleError(c, http.StatusForbidden, errors.New("missing user roles"))
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *CourseService) getAllCourses(c *gin.Context) {
 
 	courses, err := s.GetAllCourses(c, userRoles)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -128,14 +128,14 @@ func (s *CourseService) getAllCourses(c *gin.Context) {
 func (s *CourseService) getCourseByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	course, err := s.GetCourseByID(c, id)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to get course"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get course"))
 		return
 	}
 
@@ -158,23 +158,23 @@ func (s *CourseService) createCourse(c *gin.Context) {
 
 	var newCourse courseDTO.CreateCourse
 	if err := c.BindJSON(&newCourse); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := validateCreateCourse(newCourse); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	course, err := s.CreateCourse(c, newCourse, userID)
 	if err != nil {
 		if errors.Is(err, ErrDuplicateCourseIdentifier) {
-			handleError(c, http.StatusConflict, err)
+			sdkUtils.HandleError(c, http.StatusConflict, err)
 			return
 		}
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to create course"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to create course"))
 		return
 	}
 	c.IndentedJSON(http.StatusCreated, course)
@@ -195,14 +195,14 @@ func (s *CourseService) checkCourseNameAvailability(c *gin.Context) {
 	name := c.Query("name")
 	semesterTag := c.Query("semesterTag")
 	if name == "" || semesterTag == "" {
-		handleError(c, http.StatusBadRequest, errors.New("name and semesterTag are required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("name and semesterTag are required"))
 		return
 	}
 
 	exists, err := s.CheckCourseNameExists(c, name, semesterTag)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to check course name availability"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to check course name availability"))
 		return
 	}
 
@@ -222,13 +222,13 @@ func (s *CourseService) checkCourseNameAvailability(c *gin.Context) {
 func (s *CourseService) getCoursePhaseGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	graph, err := s.GetCoursePhaseGraph(c, courseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -248,13 +248,13 @@ func (s *CourseService) getCoursePhaseGraph(c *gin.Context) {
 func (s *CourseService) getParticipationDataGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	graph, err := s.GetParticipationDataGraph(c, courseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -274,13 +274,13 @@ func (s *CourseService) getParticipationDataGraph(c *gin.Context) {
 func (s *CourseService) getPhaseDataGraph(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	graph, err := s.GetPhaseDataGraph(c, courseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -302,25 +302,25 @@ func (s *CourseService) getPhaseDataGraph(c *gin.Context) {
 func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var graphUpdate courseDTO.UpdateCoursePhaseGraph
 	if err := c.BindJSON(&graphUpdate); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := s.validateUpdateCourseOrder(c, courseID, graphUpdate.PhaseGraph); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateCoursePhaseOrder(c, courseID, graphUpdate)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to update course phase order"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update course phase order"))
 		return
 	}
 
@@ -342,14 +342,14 @@ func (s *CourseService) updateCoursePhaseOrder(c *gin.Context) {
 func (s *CourseService) updateParticipationDataGraph(c *gin.Context) {
 	newGraph, courseID, err := s.parseAndValidateMetaDataGraph(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateParticipationDataGraph(c, courseID, newGraph)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
 		return
 	}
 
@@ -371,14 +371,14 @@ func (s *CourseService) updateParticipationDataGraph(c *gin.Context) {
 func (s *CourseService) updatePhaseDataGraph(c *gin.Context) {
 	newGraph, courseID, err := s.parseAndValidateMetaDataGraph(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdatePhaseDataGraph(c, courseID, newGraph)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update meta data order"))
 		return
 	}
 
@@ -418,13 +418,13 @@ func (s *CourseService) parseAndValidateMetaDataGraph(c *gin.Context) ([]courseD
 func (s *CourseService) archiveCourse(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var update courseDTO.CourseArchiveStatus
 	if err := c.BindJSON(&update); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -452,26 +452,26 @@ func (s *CourseService) archiveCourse(c *gin.Context) {
 func (s *CourseService) updateCourseData(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var update courseDTO.UpdateCourseData
 	if err := c.BindJSON(&update); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = validateUpdateCourseData(update)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateCourseData(c, courseID, update)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to update course data"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update course data"))
 		return
 	}
 
@@ -494,27 +494,27 @@ func (s *CourseService) updateCourseData(c *gin.Context) {
 func (s *CourseService) deleteCourse(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteCourse(c, c.GetHeader("Authorization"), courseID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		handleError(c, http.StatusNotFound, errors.New("course not found"))
+		sdkUtils.HandleError(c, http.StatusNotFound, errors.New("course not found"))
 		return
 	}
 	if errors.Is(err, ErrCourseChangedDuringDeletion) {
-		handleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, err)
 		return
 	}
 	if errors.Is(err, coursePhase.ErrModuleDeletionFailed) {
 		log.Error(err)
-		handleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
+		sdkUtils.HandleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
 		return
 	}
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to delete course"))
 		return
 	}
 
@@ -536,20 +536,20 @@ func (s *CourseService) deleteCourse(c *gin.Context) {
 func (s *CourseService) updateCourseTemplateStatus(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var update courseDTO.CourseTemplateStatus
 	if err := c.BindJSON(&update); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateCourseTemplateStatus(c, courseID, update.IsTemplate)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to update course template status"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update course template status"))
 		return
 	}
 
@@ -568,7 +568,7 @@ func (s *CourseService) updateCourseTemplateStatus(c *gin.Context) {
 func (s *CourseService) getTemplateCourses(c *gin.Context) {
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
-		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
+		sdkUtils.HandleError(c, http.StatusForbidden, errors.New("missing user roles"))
 		return
 	}
 
@@ -576,7 +576,7 @@ func (s *CourseService) getTemplateCourses(c *gin.Context) {
 
 	courses, err := s.GetTemplateCourses(c, userRoles)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -596,24 +596,18 @@ func (s *CourseService) getTemplateCourses(c *gin.Context) {
 func (s *CourseService) checkCourseTemplateStatus(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	isTemplate, err := s.CheckCourseTemplateStatus(c, courseID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to check if course is template"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to check if course is template"))
 		return
 	}
 
 	c.IndentedJSON(http.StatusOK, courseDTO.CourseTemplateStatus{
 		IsTemplate: isTemplate,
-	})
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
 	})
 }

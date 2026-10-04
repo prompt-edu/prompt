@@ -62,30 +62,30 @@ func setupCoursePhaseRouter(router *gin.RouterGroup, s *CoursePhaseService, auth
 func (s *CoursePhaseService) createCoursePhase(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var newCoursePhase coursePhaseDTO.CreateCoursePhase
 	if err := c.BindJSON(&newCoursePhase); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	// validate that the courseIDs are identical
 	if newCoursePhase.CourseID != courseID {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := validateCreateCoursePhase(newCoursePhase); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhase, err := s.CreateCoursePhase(c, newCoursePhase)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusCreated, coursePhase)
@@ -105,13 +105,13 @@ func (s *CoursePhaseService) createCoursePhase(c *gin.Context) {
 func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhase, err := s.GetCoursePhaseByID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -121,14 +121,14 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 	userRoles, exists := c.Get("userRoles")
 	if !exists {
 		log.Error("userRoles not found in context")
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	userRolesMap, ok := userRoles.(map[string]bool)
 	if !ok {
 		log.Error("invalid roles format in context")
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -155,18 +155,18 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 	var updatedCoursePhase coursePhaseDTO.UpdateCoursePhase
 	if err := c.BindJSON(&updatedCoursePhase); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := validateUpdateCoursePhase(updatedCoursePhase); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err := s.UpdateCoursePhase(c, updatedCoursePhase)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -187,19 +187,19 @@ func (s *CoursePhaseService) updateCoursePhase(c *gin.Context) {
 func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteCoursePhase(c, c.GetHeader("Authorization"), id)
 	if errors.Is(err, ErrModuleDeletionFailed) {
 		log.Error("Failed to delete course phase module data: ", err)
-		handleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
+		sdkUtils.HandleError(c, http.StatusBadGateway, errors.New("failed to delete the course phase data held by the phase modules"))
 		return
 	}
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to delete course phase"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to delete course phase"))
 		return
 	}
 
@@ -219,13 +219,13 @@ func (s *CoursePhaseService) deleteCoursePhase(c *gin.Context) {
 func (s *CoursePhaseService) getPrevPhaseDataByCoursePhaseID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhaseData, err := s.GetPrevPhaseDataByCoursePhaseID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -236,12 +236,6 @@ func hasRestrictedDataAccess(userRolesMap map[string]bool, courseTokenIdentifier
 	return userRolesMap[permissionValidation.PromptAdmin] ||
 		userRolesMap[fmt.Sprintf("%s-%s", courseTokenIdentifier, permissionValidation.CourseLecturer)] ||
 		userRolesMap[fmt.Sprintf("%s-%s", courseTokenIdentifier, permissionValidation.CourseEditor)]
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }
 
 // getCoursePhaseParticipationStatusCounts godoc
@@ -257,13 +251,13 @@ func handleError(c *gin.Context, statusCode int, err error) {
 func (s *CoursePhaseService) getCoursePhaseParticipationStatusCounts(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	countsMap, err := s.GetCoursePhaseParticipationStatusCounts(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 

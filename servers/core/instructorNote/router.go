@@ -42,7 +42,7 @@ func setupInstructorNoteRouter(router *gin.RouterGroup, s *InstructorNoteService
 func (s *InstructorNoteService) getAllInstructorNotes(c *gin.Context) {
 	studentNotes, err := s.GetStudentNotes(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, studentNotes)
@@ -61,13 +61,13 @@ func (s *InstructorNoteService) getAllInstructorNotes(c *gin.Context) {
 func (s *InstructorNoteService) getInstructorNoteForStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("student-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	studentNotes, err := s.GetStudentNotesByID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, studentNotes)
@@ -88,19 +88,19 @@ func (s *InstructorNoteService) getInstructorNoteForStudentByID(c *gin.Context) 
 func (s *InstructorNoteService) createInstructorNoteForStudentByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("student-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var newNote instructorNoteDTO.CreateInstructorNote
 	if err := c.BindJSON(&newNote); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -109,23 +109,23 @@ func (s *InstructorNoteService) createInstructorNoteForStudentByID(c *gin.Contex
 
 	// validate Request
 	if err := ValidateCreateNote(newNote); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.ValidateReferencedNote(newNote, c, userID); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	_, err = s.NewStudentNote(c, id, newNote, userID, authorName, authorEmail)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	studentNotes, err := s.GetStudentNotesByID(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, studentNotes)
@@ -144,24 +144,24 @@ func (s *InstructorNoteService) createInstructorNoteForStudentByID(c *gin.Contex
 func (s *InstructorNoteService) deleteInstructorNote(c *gin.Context) {
 	note_id, err := uuid.Parse(c.Param("note-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err := s.VerifyNoteOwnership(c, note_id, userID); err != nil {
-		handleError(c, http.StatusForbidden, err)
+		sdkUtils.HandleError(c, http.StatusForbidden, err)
 		return
 	}
 
 	note, err := s.DeleteInstructorNote(c, note_id, userID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -182,13 +182,13 @@ func (s *InstructorNoteService) deleteInstructorNote(c *gin.Context) {
 func (s *InstructorNoteService) createNoteTag(c *gin.Context) {
 	var newTag instructorNoteDTO.CreateNoteTag
 	if err := c.BindJSON(&newTag); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tag, err := s.CreateNoteTag(c, newTag)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, tag)
@@ -209,19 +209,19 @@ func (s *InstructorNoteService) createNoteTag(c *gin.Context) {
 func (s *InstructorNoteService) updateNoteTag(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("tag-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var updatedTag instructorNoteDTO.UpdateNoteTag
 	if err := c.BindJSON(&updatedTag); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tag, err := s.UpdateNoteTag(c, id, updatedTag)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, tag)
@@ -240,12 +240,12 @@ func (s *InstructorNoteService) updateNoteTag(c *gin.Context) {
 func (s *InstructorNoteService) deleteNoteTag(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("tag-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := s.DeleteNoteTag(c, id); err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -262,14 +262,8 @@ func (s *InstructorNoteService) deleteNoteTag(c *gin.Context) {
 func (s *InstructorNoteService) getAllNoteTags(c *gin.Context) {
 	tags, err := s.GetAllTags(c)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, tags)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

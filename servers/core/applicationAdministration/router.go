@@ -80,14 +80,14 @@ func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, auth
 func (s *ApplicationService) getApplicationForm(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	applicationForm, err := s.GetApplicationForm(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
 		return
 	}
 
@@ -110,27 +110,27 @@ func (s *ApplicationService) getApplicationForm(c *gin.Context) {
 func (s *ApplicationService) updateApplicationForm(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var updatedApplicationForm applicationDTO.UpdateForm
 	if err := c.BindJSON(&updatedApplicationForm); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateUpdateForm(c, coursePhaseId, updatedApplicationForm)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateApplicationForm(c, coursePhaseId, updatedApplicationForm)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not update application form"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not update application form"))
 		return
 	}
 
@@ -149,7 +149,7 @@ func (s *ApplicationService) getAllOpenApplications(c *gin.Context) {
 	openApplications, err := s.GetOpenApplicationPhases(c)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get open applications"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get open applications"))
 		return
 	}
 
@@ -170,7 +170,7 @@ func (s *ApplicationService) getAllOpenApplications(c *gin.Context) {
 func (s *ApplicationService) getApplicationFormWithCourseDetails(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -178,10 +178,10 @@ func (s *ApplicationService) getApplicationFormWithCourseDetails(c *gin.Context)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrNotFound) {
-			handleError(c, http.StatusNotFound, errors.New("application not found"))
+			sdkUtils.HandleError(c, http.StatusNotFound, errors.New("application not found"))
 			return
 		}
-		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
 		return
 	}
 
@@ -202,17 +202,17 @@ func (s *ApplicationService) getApplicationFormWithCourseDetails(c *gin.Context)
 func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	importMode, err := s.IsImportModePhase(c, coursePhaseID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
 		return
 	}
 	if importMode {
-		handleError(c, http.StatusNotFound, errors.New("application not available"))
+		sdkUtils.HandleError(c, http.StatusNotFound, errors.New("application not available"))
 		return
 	}
 
@@ -220,7 +220,7 @@ func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 
 	universityLogin := c.GetString("universityLogin")
 	if universityLogin == "" {
-		handleError(c, http.StatusUnauthorized, errors.New("no university login found"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("no university login found"))
 		return
 	}
 
@@ -231,7 +231,7 @@ func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 	applicationForm, err := s.GetApplicationAuthenticatedByMatriculationNumberAndUniversityLogin(c, coursePhaseID, matriculationNumber, universityLogin)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get application form"))
 		return
 	}
 
@@ -269,19 +269,19 @@ func (s *ApplicationService) getApplicationAuthenticated(c *gin.Context) {
 func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	var application applicationDTO.PostApplication
 	if err := c.BindJSON(&application); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateApplicationManualAdd(c, coursePhaseId, application)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -289,21 +289,21 @@ func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
-			handleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
+			sdkUtils.HandleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
 			return
 		} else if errors.Is(err, ErrEmailAlreadyInUse) {
-			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			sdkUtils.HandleError(c, http.StatusConflict, errors.New("email already in use"))
 			return
 		}
 
-		handleError(c, http.StatusInternalServerError, errors.New("could not post application"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not post application"))
 		return
 	}
 
 	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
 		return
 	}
 
@@ -327,20 +327,20 @@ func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 func (s *ApplicationService) postApplicationExtern(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var application applicationDTO.PostApplication
 	if err := c.BindJSON(&application); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateApplication(c, coursePhaseId, application, false)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -348,21 +348,21 @@ func (s *ApplicationService) postApplicationExtern(c *gin.Context) {
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
-			handleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
+			sdkUtils.HandleError(c, http.StatusMethodNotAllowed, errors.New("already applied"))
 			return
 		} else if errors.Is(err, ErrStudentDetailsDoNotMatch) {
-			handleError(c, http.StatusConflict, errors.New("student exists but details do not match"))
+			sdkUtils.HandleError(c, http.StatusConflict, errors.New("student exists but details do not match"))
 			return
 		}
 
-		handleError(c, http.StatusInternalServerError, errors.New("could not post application"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not post application"))
 		return
 	}
 
 	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
 		return
 	}
 
@@ -387,7 +387,7 @@ func (s *ApplicationService) postApplicationExtern(c *gin.Context) {
 func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -397,26 +397,26 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 	firstName := c.GetString("firstName")
 	lastName := c.GetString("lastName")
 	if userEmail == "" {
-		handleError(c, http.StatusUnauthorized, errors.New("no user email found"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("no user email found"))
 		return
 	}
 
 	var application applicationDTO.PostApplication
 	if err := c.BindJSON(&application); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateApplication(c, coursePhaseId, application, true)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if application.Student.MatriculationNumber != matriculationNumber ||
 		application.Student.UniversityLogin != universityLogin {
-		handleError(c, http.StatusUnauthorized, errors.New("credentials do not match payload"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("credentials do not match payload"))
 		return
 	}
 
@@ -430,17 +430,17 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {
-			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			sdkUtils.HandleError(c, http.StatusConflict, errors.New("email already in use"))
 			return
 		}
-		handleError(c, http.StatusInternalServerError, errors.New("could not post application"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not post application"))
 		return
 	}
 
 	confirmationMailSent, err := s.mailer.SendApplicationConfirmationMail(c, coursePhaseId, courseParticipationID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not send confirmation mail"))
 		return
 	}
 
@@ -463,13 +463,13 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 func (s *ApplicationService) getApplicationByCPID(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -477,10 +477,10 @@ func (s *ApplicationService) getApplicationByCPID(c *gin.Context) {
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrNotFound) {
-			handleError(c, http.StatusNotFound, errors.New("application not found"))
+			sdkUtils.HandleError(c, http.StatusNotFound, errors.New("application not found"))
 			return
 		}
-		handleError(c, http.StatusInternalServerError, errors.New("could not get application"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get application"))
 		return
 	}
 
@@ -500,14 +500,14 @@ func (s *ApplicationService) getApplicationByCPID(c *gin.Context) {
 func (s *ApplicationService) getAllApplicationParticipations(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	applications, err := s.GetAllApplicationParticipations(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get applications"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get applications"))
 		return
 	}
 
@@ -527,14 +527,14 @@ func (s *ApplicationService) getAllApplicationParticipations(c *gin.Context) {
 func (s *ApplicationService) getExportedApplicationAnswers(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	exportedAnswers, err := s.GetExportedApplicationAnswers(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get exported application answers"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get exported application answers"))
 		return
 	}
 
@@ -557,33 +557,33 @@ func (s *ApplicationService) getExportedApplicationAnswers(c *gin.Context) {
 func (s *ApplicationService) updateApplicationAssessment(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationId, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var assessment applicationDTO.PutAssessment
 	if err := c.BindJSON(&assessment); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateUpdateAssessment(c, coursePhaseId, courseParticipationId, assessment)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateApplicationAssessment(c, coursePhaseId, courseParticipationId, assessment)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not update application assessment"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not update application assessment"))
 		return
 	}
 
@@ -605,27 +605,27 @@ func (s *ApplicationService) updateApplicationAssessment(c *gin.Context) {
 func (s *ApplicationService) uploadAdditionalScore(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var additionalScore applicationDTO.AdditionalScoreUpload
 	if err := c.BindJSON(&additionalScore); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = validateAdditionalScore(additionalScore)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UploadAdditionalScore(c, coursePhaseId, additionalScore)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not upload additional score"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not upload additional score"))
 		return
 	}
 
@@ -645,14 +645,14 @@ func (s *ApplicationService) uploadAdditionalScore(c *gin.Context) {
 func (s *ApplicationService) getAdditionalScores(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	additionalScore, err := s.GetAdditionalScores(c, coursePhaseId)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not get additional score"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not get additional score"))
 		return
 	}
 
@@ -674,20 +674,20 @@ func (s *ApplicationService) getAdditionalScores(c *gin.Context) {
 func (s *ApplicationService) updateApplicationsStatus(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var status coursePhaseParticipationDTO.UpdateCoursePhaseParticipationStatus
 	if err := c.BindJSON(&status); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	participationIDs, err := s.participations.BatchUpdatePassStatus(c, coursePhaseId, status.CourseParticipationIDs, status.PassStatus)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not update application status"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not update application status"))
 		return
 	}
 	log.Info("Updated ", len(participationIDs), " participations")
@@ -710,20 +710,20 @@ func (s *ApplicationService) updateApplicationsStatus(c *gin.Context) {
 func (s *ApplicationService) deleteApplications(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var courseParticipationIDs []uuid.UUID
 	if err := c.BindJSON(&courseParticipationIDs); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteApplications(c, coursePhaseId, courseParticipationIDs)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("could not delete applications"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not delete applications"))
 		return
 	}
 
@@ -746,20 +746,20 @@ func (s *ApplicationService) deleteApplications(c *gin.Context) {
 func (s *ApplicationService) postApplicationImport(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req applicationDTO.ImportApplicationRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.validateApplicationImport(c, coursePhaseId, req)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -767,26 +767,20 @@ func (s *ApplicationService) postApplicationImport(c *gin.Context) {
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {
-			handleError(c, http.StatusConflict, errors.New("email already in use"))
+			sdkUtils.HandleError(c, http.StatusConflict, errors.New("email already in use"))
 			return
 		}
 		if errors.Is(err, ErrImportAnswerTooLong) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
 		if errors.Is(err, ErrUniversityLoginConflict) {
-			handleError(c, http.StatusConflict, err)
+			sdkUtils.HandleError(c, http.StatusConflict, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, errors.New("could not import applications"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not import applications"))
 		return
 	}
 
 	c.JSON(http.StatusCreated, result)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }
